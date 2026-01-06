@@ -69,7 +69,7 @@ export interface QrPase {
   file: string
 }
 
-export const useSearchPass = (enable:boolean) => {
+export const useSearchPass = (enable:boolean, cat?:string) => {
   const { area, location, setLoading, isLoading: loading } = useShiftStore()
   const { passCode , setPassCode, clearPassCode} = useAccessStore()
   const queryClient = useQueryClient()
@@ -100,11 +100,11 @@ export const useSearchPass = (enable:boolean) => {
 
 
 
-  const { data: assets } = useQuery<any>({
-    queryKey: ["getAssetsAccess"],
+  const { data: assets , isLoading:assetsLoading} = useQuery<any>({
+    queryKey: ["getAssetsAccess",cat],
     enabled:enable,
     queryFn: async () => {
-      const data = await getAccessAssets(location)
+      const data = await getAccessAssets(location,cat)
       return data.response?.data || {}
     },
     refetchOnWindowFocus: false,
@@ -210,7 +210,8 @@ export const useSearchPass = (enable:boolean) => {
 
 
     /* assets visita */
-    assets
+    assets,
+    assetsLoading
   }
 }
 

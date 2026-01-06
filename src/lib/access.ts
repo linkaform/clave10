@@ -164,9 +164,10 @@ export const exitRegister = async (
   return data;
 };
 
-export const getAccessAssets = async (location: string) => {
+export const getAccessAssets = async (location: string, cat?:string) => {
   const payload = {
     location,
+    cat,
     option: "assets_access_pass",
     script_name: "script_turnos.py",
   };

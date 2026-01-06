@@ -41,7 +41,7 @@ export const Header = () => {
             { currentPath !== "/" && currentPath !== "/dashboard/pase-update"  ? (
               <Link href="/dashboard/pases">
                 <Button
-                  className={`${
+                  className={`ml-3 ${
                     currentPath === "/dashboard/pases"
                       ? "bg-button-primary hover:bg-button-primary text-white hover:text-white"
                       : "hover:text-white hover:bg-button-primary"
