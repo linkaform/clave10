@@ -34,6 +34,8 @@ import { useShiftStore } from "@/store/useShiftStore";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DateTime from "@/components/dateTime";
 import { Switch } from "@/components/ui/switch";
+import { useSearchPass } from "@/hooks/useSearchPass";
+import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 
 
  const formSchema = z
@@ -142,9 +144,55 @@ import { Switch } from "@/components/ui/switch";
 	const [config_dia_de_acceso, set_config_dia_de_acceso] = useState("cualquier_día");
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
-	const { dataAreas:catAreas, dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingAreas:loadingCatAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(location, true, location?true:false);
+	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingAreas:loadingCatAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(location, true, location?true:false);
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted??[]);
 	const pickerRef = useRef<any>(null);
+	const { assets,assetsLoading} = useSearchPass(true);
+
+	const [areasTodas, setAreasTodas] = useState<any[]>([]);
+
+	useEffect(() => {
+	  if (!ubicacionesSeleccionadas?.length) {
+		setAreasTodas([]);
+		return;
+	  }
+	
+	  const fetchAreasTodas = async () => {
+		const resultados = await Promise.all(
+		  ubicacionesSeleccionadas.map(async (ubicacion) => {
+			const res = await getCatalogoPasesAreaNoApi(ubicacion.id);
+			const areas = res?.response?.data?.areas_by_location ?? [];
+	
+			return areas.map((area: string) => ({
+			  nombre: area,
+			  locationId: ubicacion.id,
+			  nombreUbicacion: ubicacion.nombre,
+			}));
+		  })
+		);
+	
+		setAreasTodas(resultados.flat());
+	  };
+	
+	  fetchAreasTodas();
+	}, [setAreasTodas, ubicacionesSeleccionadas]);
+	
+
+	const [areasDisponibles, setAreasDisponibles] = useState<any[]>([]);
+
+	useEffect(() => {
+		console.log("area", areasTodas)
+	setAreasDisponibles(
+		areasTodas.map((area) => ({
+		value: `${area.nombre}`,
+		label: `${area.nombre} — ${area.locationId}`,
+		areaId: area.nombre,
+		}))
+	);
+	}, [areasTodas]);
+	console.log("areasTodas", areasTodas);
+	console.log("areasDisponibles", areasDisponibles);
+
 	useEffect(() => {
 	  const picker = pickerRef.current;
 	  if (picker) {
@@ -461,15 +509,15 @@ return (
 									value={field.value} 
 								>
 									<SelectTrigger className="w-full">
-									<SelectValue placeholder="Selecciona una opcion" />
+									{assetsLoading ? <SelectValue placeholder="Cargando..." />:<SelectValue placeholder="Selecciona una opcion" /> }
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem key={"Visita General"} value={"Visita General"}>
-											Visita General
+									{assets?.Perfiles?.map((item: string) => (
+										<SelectItem key={item} value={item}>
+										{item}
 										</SelectItem>
-										<SelectItem key={"Candidatos"} value={"Candidatos"}>
-											Candidatos
-										</SelectItem>
+									))}
+									
 									</SelectContent>
 								</Select>
 									</FormControl>
@@ -1008,7 +1056,7 @@ return (
 					<AreasList
 						areas={areasList}
 						setAreas={setAreasList}
-						catAreas={catAreas}
+						catAreas={areasDisponibles}
 						loadingCatAreas={loadingCatAreas} existingAreas={false} 
 					/>
 				</> 

@@ -26,7 +26,7 @@ import { Areas } from "@/hooks/useCreateAccessPass";
 interface AreasListProps {
     areas: Areas[];
     setAreas: Dispatch<SetStateAction<Areas[]>>
-    catAreas:string[]
+    catAreas:any[]
     loadingCatAreas: boolean
     existingAreas:boolean
 }
@@ -39,6 +39,8 @@ const formSchema =
 
 const AreasList:React.FC<AreasListProps> = ({ areas, setAreas, catAreas, loadingCatAreas, existingAreas})=> {
     const [collapsedIndex, setCollapsedIndex] = useState<number | null>(null);
+
+    console.log("catAreas",catAreas)
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -147,8 +149,8 @@ const AreasList:React.FC<AreasListProps> = ({ areas, setAreas, catAreas, loading
                   <SelectContent>
                     {catAreas?.length > 0 ? (
                       catAreas.map((area, index) => (
-                        <SelectItem key={index} value={area}>
-                          {area}
+                        <SelectItem key={index} value={area.value}>
+                          {area.label}
                         </SelectItem>
                       ))
                     ) : (

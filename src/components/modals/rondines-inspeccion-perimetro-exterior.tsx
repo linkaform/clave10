@@ -192,7 +192,7 @@ export const ViewRondinesDetallePerimetroExt: React.FC<ViewRondinesDetalleAreaPr
                                                         <div className="w-1 h-12 bg-blue-500"></div>
                                                         <div>
                                                             <p>{area?.rondin_area}</p>
-                                                            <p className="text-gray-400">{"Fecha no disponible"}</p>
+                                                            <p className="text-gray-500">{area?.fecha_hora_inspeccion_area}</p>
                                                         </div>
                                                     </div>
                                                 </li>

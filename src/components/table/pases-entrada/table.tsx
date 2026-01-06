@@ -45,6 +45,7 @@ const PasesEntradaTable:React.FC<ListProps> = ({ isLoading, pases, onSearch})=>{
 
     const [globalFilter, setGlobalFilter] = React.useState("");
 
+
     const table = useReactTable({
       data: pases || [],
       columns: pasesEntradaColumns,
