@@ -1,6 +1,6 @@
-# Soter
+# Clave10
 
-Soter es una plataforma para llevar el control de la seguridad de las empresas.
+Clave10  es una plataforma para llevar el control de la seguridad de las empresas.
 
 En soter se puede llevar el contro de entrada y salida de contratistas
 Frontend de plataforma Soter
@@ -55,7 +55,7 @@ docker compuse up -d
 Una vez que el proyecto este en segundo plano si deseas ver los logs corres
 
 ```
-docker logs -f soter
+docker logs -f clave10
 ```
 
 
