@@ -65,7 +65,7 @@ const ListaPasesPage = () => {
                   <div className="flex gap-6">
                     <Sun className="text-primary w-10 h-10" />
                     <span className="flex items-center font-bold text-4xl">
-                    {stats?.pases_proceso}
+                    {stats?.pases_proceso ?? 0}
                     </span>
                   </div>
                   <div className="flex items-center space-x-0">
@@ -80,7 +80,7 @@ const ListaPasesPage = () => {
                   <div className="flex gap-6">
                     <UsersRound className="text-primary w-10 h-10" />
                     <span className="flex items-center font-bold text-4xl">
-                    {stats?.pases_activos}
+                    {stats?.pases_activos ?? 0}
                     </span>
                   </div>
                   <div className="flex items-center space-x-0">
