@@ -168,10 +168,11 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, ch
 	const [modalData, setModalData] = useState<any>(null);
 	const { ubicacionesDefaultFormatted ,dataLocations:ubicaciones, dataAreas, isLoadingAreas:loadingCatAreas } = useCatalogoPaseAreaLocation(location, true, location?true:false)
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted??[]);
+	const ubicacionesFormattedUpdate = ubicacionesSeleccionadas?.map((u: any) => (u.name));
 	const userEmailSoter = localStorage.getItem("userEmail_soter")||"";
 	const userIdSoter = parseInt(localStorage.getItem("userId_soter") || "0", 10);
 
-	const { data: dataConfigLocation, isLoading: loadingConfigLocation } = useGetConfSeguridad(ubicacionesSeleccionadas[0]?.id?? '')
+	const { data: dataConfigLocation, isLoading: loadingConfigLocation } = useGetConfSeguridad(ubicacionesSeleccionadas?.[0]?.id ?? [])
 	const ubicacionesFormatted = ubicaciones?.map((u: any) => ({ id: u, name: u }));
 
 	const [formatedDocs, setFormatedDocs] = useState<string[]>([])
@@ -203,7 +204,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, ch
 			nombre: dataPass.nombre,
 			email: dataPass.email ||"",
 			telefono: dataPass.telefono||"",
-			ubicacion: dataPass.ubicacion||"",
+			ubicacion: dataPass.ubicacion || [],
 			tema_cita:dataPass.tema_cita||"",
 			descripcion:dataPass.descripcion||"",
 			perfil_pase: dataPass.perfil_pase||"",
@@ -306,7 +307,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, ch
 			nombre: data.nombre,
 			email: data.email ||"",
 			telefono: data.telefono||"",
-			ubicacion: setUbicacionesSeleccionadas,
+			ubicacion: ubicacionesFormattedUpdate,
 			tema_cita:data.tema_cita||"",
 			descripcion:data.descripcion||"",
 			perfil_pase: dataPass.perfil_pase||"",
