@@ -28,14 +28,13 @@ import ComentariosList from "@/components/comentarios-list";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
 import { Contacto } from "@/lib/get-user-contacts";
-import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
+import { useCatalogoPaseAreaLocation, useGetAreasByLocations } from "@/hooks/useCatalogoPaseAreaLocation";
 import { usePaseEntrada } from "@/hooks/usePaseEntrada";
 import { useShiftStore } from "@/store/useShiftStore";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DateTime from "@/components/dateTime";
 import { Switch } from "@/components/ui/switch";
 import { useSearchPass } from "@/hooks/useSearchPass";
-import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 
 
  const formSchema = z
@@ -144,54 +143,10 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 	const [config_dia_de_acceso, set_config_dia_de_acceso] = useState("cualquier_día");
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
-	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingAreas:loadingCatAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(location, true, location?true:false);
-	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted??[]);
+	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(location, true, location?true:false);	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted??[]);
 	const pickerRef = useRef<any>(null);
 	const { assets,assetsLoading} = useSearchPass(true);
-
-	const [areasTodas, setAreasTodas] = useState<any[]>([]);
-
-	useEffect(() => {
-	  if (!ubicacionesSeleccionadas?.length) {
-		setAreasTodas([]);
-		return;
-	  }
-	
-	  const fetchAreasTodas = async () => {
-		const resultados = await Promise.all(
-		  ubicacionesSeleccionadas.map(async (ubicacion) => {
-			const res = await getCatalogoPasesAreaNoApi(ubicacion.id);
-			const areas = res?.response?.data?.areas_by_location ?? [];
-	
-			return areas.map((area: string) => ({
-			  nombre: area,
-			  locationId: ubicacion.id,
-			  nombreUbicacion: ubicacion.nombre,
-			}));
-		  })
-		);
-	
-		setAreasTodas(resultados.flat());
-	  };
-	
-	  fetchAreasTodas();
-	}, [setAreasTodas, ubicacionesSeleccionadas]);
-	
-
 	const [areasDisponibles, setAreasDisponibles] = useState<any[]>([]);
-
-	useEffect(() => {
-		console.log("area", areasTodas)
-	setAreasDisponibles(
-		areasTodas.map((area) => ({
-		value: `${area.nombre}`,
-		label: `${area.nombre} — ${area.locationId}`,
-		areaId: area.nombre,
-		}))
-	);
-	}, [areasTodas]);
-	console.log("areasTodas", areasTodas);
-	console.log("areasDisponibles", areasDisponibles);
 
 	useEffect(() => {
 	  const picker = pickerRef.current;
@@ -241,6 +196,16 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 
 	const ubicacionesSeleccionadasLista = ubicacionesSeleccionadas?.map((u: any) => (u.name));
 	const { dataConfigLocation, isLoadingConfigLocation } = usePaseEntrada(ubicacionesSeleccionadasLista ?? [])
+	const { data: catAreas, isLoading: loadingCatAreas } = useGetAreasByLocations(true, ubicacionesSeleccionadasLista ?? [])
+	useEffect(() => {
+	setAreasDisponibles(
+		catAreas?.map((area:string) => ({
+		value: `${area}`,
+		label: `${area}`,
+		areaId: area,
+		}))
+	);
+	}, [catAreas]);
 
 	const [enviar_correo_pre_registro] = useState<string[]>([]);
 	const [formatedDocs, setFormatedDocs] = useState<string[]>([])
