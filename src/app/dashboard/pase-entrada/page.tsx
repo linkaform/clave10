@@ -177,9 +177,9 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 	
 
 	const [areasDisponibles, setAreasDisponibles] = useState<any[]>([]);
-	console.log(areasDisponibles)
 
 	useEffect(() => {
+		console.log("area", areasTodas)
 	setAreasDisponibles(
 		areasTodas.map((area) => ({
 		value: `${area.nombre}`,
@@ -188,6 +188,8 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 		}))
 	);
 	}, [areasTodas]);
+	console.log("areasTodas", areasTodas);
+	console.log("areasDisponibles", areasDisponibles);
 
 	useEffect(() => {
 	  const picker = pickerRef.current;
