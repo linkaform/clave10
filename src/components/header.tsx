@@ -17,7 +17,7 @@ import { useMenuStore } from "@/store/useGetMenuStore";
 
 export const Header = () => {
   const currentPath = usePathname();
-  const email = useAuthStore((state) => state.userEmailSoter);
+  const email = useAuthStore((state) => state.userNameSoter);
   const userPhoto = useAuthStore((state) => state.userPhoto);
   const { logout } = useAuthStore();
   const { labels } = useMenuStore();
@@ -25,8 +25,6 @@ export const Header = () => {
   return (
     <header className="w-full shadow py-1 px-12 sticky top-0 left-0 bg-white  z-50">
       <div className="mx-auto flex flex-col lg:flex-row items-center justify-between mb-0">
-        {/* Logo */}
-
           <div className="flex lg:mb-0 justify-center items-center">
             <Link href="/">
               <Image
@@ -53,7 +51,6 @@ export const Header = () => {
           </div>
           {currentPath !== "/dashboard/pase-update" && (
               <div className="flex">
-              {/* Navegación */}
               <nav className="flex  space-x-3 mr-5">
               { currentPath !== "/" ? (
                 <>
@@ -74,7 +71,6 @@ export const Header = () => {
                       </>
                       ) : null
                     }
-                    
                     { labels.includes("turnos")? (
                       <>
                           <Link href="/dashboard/turnos">
@@ -90,7 +86,6 @@ export const Header = () => {
                       </>
                       ) : null
                     }
-                      
                       { labels.includes("bitacoras")? (
                       <>
                           <Link href="/dashboard/bitacoras">
@@ -106,7 +101,6 @@ export const Header = () => {
                       </>
                       ) : null
                     }
-    
                     { labels.includes("incidencias")? (
                       <>
                           <Link href="/dashboard/incidencias">

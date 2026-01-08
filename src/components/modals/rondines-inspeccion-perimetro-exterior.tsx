@@ -2,7 +2,7 @@
 
 import { Button } from "../ui/button";
 import { capitalizeFirstLetter } from "@/lib/utils";
-import {useState } from "react";
+import { useState } from "react";
 import { AlarmClock, Building2, Calendar, Calendar1, ChevronLeft, ChevronRight, Clock, FileDown, Loader2, Repeat2, Route, Tag } from "lucide-react";
 import { Badge } from "../ui/badge";
 import DaysCarousel from "../daysCarousel";
@@ -16,24 +16,16 @@ interface ViewRondinesDetalleAreaProps {
     diaSelected: number
     selectedRondin: any
     activeIndex: number
-    estatus:string
+    onSelectArea: (areaIndex: number,rondin:string, diaSeleccionado:number, estatus:string) => void;
 }
-// interface Incidente {
-//     id: number;
-//     folio: string;
-//     incidencia: string;
-//     descripcion: string;
-//     accion: string;
-//     evidencia: string;
-//     fecha: string;
-//   }
-
 
 export const ViewRondinesDetallePerimetroExt: React.FC<ViewRondinesDetalleAreaProps> = ({
     diaSelected,
     selectedRondin,
     areaSelected,
+    onSelectArea
 }) => {
+    
     const [incidenteSeleccionado, setIncidenteSeleccionado] = useState<any | null>(null);
     const [view, setView] = useState<"lista" | "detalle">("lista");
     const [diaSeleccionado, setDiaSeleccionado] = useState<number>(diaSelected || 0);
@@ -122,30 +114,30 @@ export const ViewRondinesDetallePerimetroExt: React.FC<ViewRondinesDetalleAreaPr
                                                 <p>Estatus</p>
                                                 <div>
                                                     <Badge
-                                                      className={`text-white text-sm ${
+                                                        className={`text-white text-sm ${
                                                         estatus === "finalizado" ||
                                                         estatus === "realizado"
-                                                          ? "bg-green-600 hover:bg-green-600"
-                                                          : estatus === "cerrado"
-                                                          ? "bg-gray-600 hover:bg-gray-600"
-                                                          : estatus === "programado"
-                                                          ? "bg-purple-600 hover:bg-purple-600"
-                                                          : estatus === "en_proceso"
-                                                          ? "bg-blue-600 hover:bg-blue-600"
+                                                            ? "bg-green-600 hover:bg-green-600"
+                                                            : estatus === "cerrado"
+                                                            ? "bg-gray-600 hover:bg-gray-600"
+                                                            : estatus === "programado"
+                                                            ? "bg-purple-600 hover:bg-purple-600"
+                                                            : estatus === "en_proceso"
+                                                            ? "bg-blue-600 hover:bg-blue-600"
                                                             : estatus === "incidencias"
-                                                          ? "bg-red-600 hover:bg-red-600"
-                                                             : estatus === "fuera_de_hora"
-                                                          ? "bg-pink-600 hover:bg-pink-600"
-                                                              : estatus === "no_inspeccionada"
-                                                          ? "bg-yellow-600 hover:bg-yellow-600"
-                                                             : estatus === "no_aplica"
-                                                          ? "bg-gray-400 hover:bg-gray-400"
-                                                          : estatus === "cancelado"
-                                                          ? "bg-gray-400 hover:bg-gray-400"
-                                                          : "bg-gray-400 hover:bg-gray-400"
-                                                      }`}
+                                                            ? "bg-red-600 hover:bg-red-600"
+                                                                : estatus === "fuera_de_hora"
+                                                            ? "bg-pink-600 hover:bg-pink-600"
+                                                                : estatus === "no_inspeccionada"
+                                                            ? "bg-yellow-600 hover:bg-yellow-600"
+                                                                : estatus === "no_aplica"
+                                                            ? "bg-gray-400 hover:bg-gray-400"
+                                                            : estatus === "cancelado"
+                                                            ? "bg-gray-400 hover:bg-gray-400"
+                                                            : "bg-gray-400 hover:bg-gray-400"
+                                                            }`}
                                                     >
-                                                        {capitalizeFirstLetter(estatus).replace(/_/g, " ")}  
+                                                    {capitalizeFirstLetter(estatus).replace(/_/g, " ")}  
                                                     </Badge>
                                                 </div>
                                             </div>
@@ -182,7 +174,18 @@ export const ViewRondinesDetallePerimetroExt: React.FC<ViewRondinesDetalleAreaPr
                                     <div>
                                         <ul>
                                             {(getBitacoraById?.areas_a_inspeccionar ?? []).map((area: any, index: number) => (
-                                                <li className="py-2" key={index}>
+                                                <li key={index}
+                                                onClick={() => {
+                                                    // const recordId = getRecordId(
+                                                    //     selectedRondin,
+                                                    //     area.rondin_area,
+                                                    //     diaSelected
+                                                    //   );
+                                                    onSelectArea(index,selectedRondin, diaSeleccionado, estatus)
+                                                    
+                                                  }}
+                                                  className="py-2 cursor-pointer rounded-md transition hover:bg-blue-100 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                                  tabIndex={0}>
                                                     <div className="flex gap-3">
                                                         <div className="w-1 h-12 bg-blue-500"></div>
                                                         <div>

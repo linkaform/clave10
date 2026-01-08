@@ -1,8 +1,8 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { ViewDetalleArea } from "./modals/view-detalle-area-rondin";
 import { useState } from "react";
+import { ViewDetalleArea } from "./modals/view-detalle-area-rondin";
 
 interface CarruselDetalleAreaProps {
   areas: any[];
@@ -70,18 +70,23 @@ export const CarruselDetalleArea: React.FC<CarruselDetalleAreaProps> = ({
 
             return (
               <div
-                key={index}
-                className={`
-                  absolute transition-all 
-                  ${position} ${zIndex}
-                  w-[55%]
-                  h-[600px]
-                `}
-                style={{
-                  transitionDuration: "900ms",
-                  transitionTimingFunction: "cubic-bezier(.25,.8,.25,1)",
-                }}
-              >
+              key={index}
+              onClick={() => {
+                if (isLeft) prev();
+                if (isRight) next();
+              }}
+              className={`
+                absolute transition-all 
+                ${position} ${zIndex}
+                w-[55%]
+                h-[600px]
+                cursor-pointer
+              `}
+              style={{
+                transitionDuration: "900ms",
+                transitionTimingFunction: "cubic-bezier(.25,.8,.25,1)",
+              }}
+            >
                 <div className="relative bg-white rounded-xl shadow-xl p-4 border">
 
                   {isActive && (

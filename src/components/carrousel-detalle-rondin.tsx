@@ -10,14 +10,15 @@ interface CarruselDetalleRondinProps {
   estatus: string;
   startIndex?: number;
   onClose: () => void;
+  onSelectArea: (areaIndex: number,rondin:string, diaSeleccionado:number, estatus:string) => void;
 }
 
 export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
   rondinesHoraSeleccionada,
   diaSelected,
-  estatus,
   startIndex = 0,
   onClose,
+  onSelectArea
 }) => {
   const [activeIndex, setActiveIndex] = useState(startIndex);
   const prev = () =>
@@ -69,13 +70,18 @@ export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
             }
             return (
               <div
-                key={`${rondin.titulo}-${rondin.fecha_hora_programada}`}
-                className={`absolute transition-all ${position} ${zIndex} w-[55%] h-[600px]`}
-                style={{
-                  transitionDuration: "900ms",
-                  transitionTimingFunction: "cubic-bezier(.25,.8,.25,1)",
-                }}
-              >
+              key={`${rondin.titulo}-${rondin.fecha_hora_programada}`}
+              onClick={() => {
+                if (isLeft) prev();
+                if (isRight) next();
+              }}
+              className={`absolute transition-all ${position} ${zIndex} w-[55%] h-[600px] cursor-pointer`}
+              style={{
+                transitionDuration: "900ms",
+                transitionTimingFunction: "cubic-bezier(.25,.8,.25,1)",
+              }}
+            >
+            
                 <div className="relative bg-white rounded-xl shadow-xl p-4 border">
                   {isActive && (
                     <button
@@ -95,7 +101,7 @@ export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
                         (e: { dia: number }) => e.dia === diaSelected
                       ),
                     }}
-                    estatus={estatus}
+                    onSelectArea={onSelectArea}
                     activeIndex={activeIndex}
                   />
                 </div>

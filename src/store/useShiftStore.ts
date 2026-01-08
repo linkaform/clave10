@@ -1,4 +1,5 @@
 import { getShift } from "@/lib/get-shift";
+import { errorMsj } from "@/lib/utils";
 import { toast } from "sonner";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
@@ -67,13 +68,16 @@ export const useShiftStore = create(
 			setIsFetching(true);
 		  
 			try {
-			  const data = await getShift({ area, location });
-				if(!data.success){
-					throw new Error(data.error?.exception?.msg[0] || "Hubo un error al obtener load shift");
-				}else{
-					setArea(data.response?.data?.location?.area ?? "");
-					setLocation(data.response?.data?.location?.name ?? "");
-					setTurno(data?.response.data?.guard?.status_turn === "Turno Abierto");
+				const data = await getShift({ area, location });
+				const hasError = (!data?.success) || (data?.response?.data?.status_code === 400 )
+				if (hasError) {
+					const textMsj = errorMsj(data)
+					throw new Error(`Error al crear seguimiento, Error: ${textMsj?.text}`);
+				} else {
+						setArea(data.response?.data?.location?.area ?? "");
+						setLocation(data.response?.data?.location?.name ?? "");
+						setTurno(data?.response.data?.guard?.status_turn === "Turno Abierto");
+						return data.response?.data
 				}
 			} catch (error) {
 			  toast.error("Error al obtener información: " + error);

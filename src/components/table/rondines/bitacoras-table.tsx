@@ -79,13 +79,13 @@ type Rondin = {
 };
 
 export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { showTabs: boolean, ubicacion:any, nombre_rondin?: string }) => {
-	
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const [nombreMes, setNombreMes] = useState(
 		currentDate.toLocaleString("es-ES", { month: "long" })
 	);
 	const numeroMes = currentDate.getMonth() + 1;
 	const numeroAno = currentDate.getFullYear();
+	
 
 	const { listBitacoraRondines:data, isLoadingListBitacoraRondines: isLoading } =
 	useGetListBitacoraRondines(ubicacion, nombre_rondin, numeroAno, numeroMes) as {
@@ -94,9 +94,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 	};
 	const [diaSelected, setDiaSelected] = useState(0);
 	const [estatus, setEstatus] = useState("");
-	// const [modalOpenPerimetroExt, setModalOpenPerimetroExt] = useState(false);
 	const [selectedAreaIndex, setSelectedAreaIndex] = useState<number>(0);
-	// const [selectedAreaData, setSelectedAreaData] = useState<any>(null);
 	const [selectedRondin, setSelectedRondin] = useState<any>(null)
 	const [expandedCategorias, setExpandedCategorias] = useState<string[]>([]);
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -175,8 +173,6 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 		setDias(totalDias);
 	}, []);
 
-
-
 	useEffect(() => {
 		const totalDias = new Date(
 			currentDate.getFullYear(),
@@ -239,7 +235,6 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 				{estadoDia && (
 				<div
 					onClick={() => {
-					// setSelectedAreaData({ area, estadoDia });
 					abrirCarrusel();
 					setDiaSelected(estadoDia.dia);
 					setEstatus(estadoDia.estado);
@@ -269,6 +264,17 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 	};
 
 
+
+	const handleSelectArea = (areaIndex: number,rondin:string, diaSeleccionado:number, estatus:string) => {
+		setCarruselOpenRondin(false);
+		setSelectedAreaIndex(areaIndex);
+		abrirCarrusel();
+		setDiaSelected(diaSeleccionado);
+		setEstatus(estatus);
+		setSelectedRondin(rondin);
+		setSelectedAreaIndex(areaIndex); 
+	};
+
 	return (
 		<div >
 			<div className="flex justify-between items-center my-2 ">
@@ -277,6 +283,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 						<div className="flex justify-center items-center">
 							<TabsList className="bg-blue-500 text-white p-1 rounded-md ">
 								<TabsTrigger value="Bitacora">Ejecuciones</TabsTrigger>
+								<TabsTrigger value="Comentarios">Comentarios</TabsTrigger>
 								<TabsTrigger value="Rondines">Rondines</TabsTrigger>
 								<TabsTrigger value="Incidencias">Incidencias</TabsTrigger>
 								<TabsTrigger value="Fotos">Fotos</TabsTrigger>
@@ -285,16 +292,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 						</div>
 					}
 					<div className="flex gap-1 items-center">
-						{/* <div className="flex w-full max-w-sm items-center space-x-2">
-						<input
-							type="text"
-							placeholder="Buscar"
-							value={globalFilter || ''}
-							onChange={(e) => setGlobalFilter(e.target.value)}
-							className="border border-gray-300 rounded-md p-2 placeholder-gray-600 w-full" 
-						/>
-							<Search />
-						</div> */}
+					
 					<div className="border p-2 rounded w-full">
 					<div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap pr-1">
 						
@@ -328,18 +326,6 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 					</div>
 
 						<Search />
-
-
-						{/* <div className="flex w-full max-w-sm items-center space-x-2">
-							<input
-								type="text"
-								placeholder="Buscar"
-								value={globalFilter || ''}
-								onChange={(e) => setGlobalFilter(e.target.value)}
-								className="border border-gray-300 rounded-md p-2 placeholder-gray-600 w-full"
-							/>
-							<Search />
-						</div> */}
 					</div>
 				</div>
 				<div className="flex items-center gap-3 text-2xl font-bold capitalize select-none">
@@ -620,8 +606,9 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 					rondinesHoraSeleccionada={ data?.find((h: { hora: string; }) => h.hora === horaSeleccionada)?.categorias ?? []}
 					startIndex={selectedAreaIndex} 
 					diaSelected={diaSelected}
-					estatus={estatus}
 					onClose={() => setCarruselOpenRondin(false)}
+					estatus={estatus}
+					onSelectArea={handleSelectArea}
 					/>
 				)} 
 

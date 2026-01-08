@@ -122,7 +122,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
 	const handleClose = () => {
 		setIsSuccess(false); 
 	};
-
+	const tipoCon = form.watch("solicita_concesion");
   return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
       <DialogTrigger></DialogTrigger>
@@ -251,135 +251,134 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
 					)}
 				/>	
 
-				<FormField
-					control={form.control}
-					name="area_concesion"
-					render={({ field }:any) => (
-						<FormItem>
-							<FormLabel>Nombre del area:</FormLabel>
-							<FormControl>
-							<Select {...field} className="input"
-								onValueChange={(value:string) => {
-								field.onChange(value); 
-								setConSelected(value)
-							}}
-							value={field.value} 
-						>
-							<SelectTrigger className="w-full">
-								{isLoadingCon && conSelected ? (
-									<SelectValue placeholder="Cargando articulos..." />
-								):(<>
-								{dataCon?.length > 0 ?(<SelectValue placeholder="Selecciona una opción..." />)
-								:(<SelectValue placeholder="Selecciona una categoria para ver las opciones..." />)
-								}
-								</>)}
-								
-							</SelectTrigger>
-							<SelectContent>
-							{dataCon?.length>0 ? (
-								dataCon?.map((item:string, index:number) => {
-									return (
-										<SelectItem key={index} value={item}>
-											{item}
-										</SelectItem>
-									)
-								})
-							):(
-								<><SelectItem disabled value={"no opciones"}>No hay opciones disponibles</SelectItem></>
-							)}
-							</SelectContent>
-						</Select>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>	
-				<FormField
-					control={form.control}
-					name="equipo_concesion"
-					render={({ field }:any) => (
-						<FormItem>
-							<FormLabel>Nombre del equipo:</FormLabel>
-							<FormControl>
-							<Select {...field} className="input"
-								onValueChange={(value:string) => {
-								field.onChange(value); 
-							}}
-							value={field.value} 
-						>
-							<SelectTrigger className="w-full">
-								{isLoadingConSub && conSelected ? (
-									<SelectValue placeholder="Cargando articulos..." />
-								):(<>
-								{dataConSub?.length > 0 ?(<SelectValue placeholder="Selecciona una opción..." />)
-								:(<SelectValue placeholder="Selecciona una categoria para ver las opciones..." />)
-								}
-								</>)}
-								
-							</SelectTrigger>
-							<SelectContent>
-							{dataConSub?.length>0 ? (
-								dataConSub?.map((item:string, index:number) => {
-									return (
-										<SelectItem key={index} value={item}>
-											{item}
-										</SelectItem>
-									)
-								})
-							):(
-								<><SelectItem disabled value={"no opciones"}>No hay opciones disponibles</SelectItem></>
-							)}
-							</SelectContent>
-						</Select>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>	
-			
-            <FormField
-					control={form.control}
-					name="persona_nombre_concesion"
-					render={({ field }:any) => (
-						<FormItem>
-							<FormLabel>Persona:</FormLabel>
-							<FormControl>
-							<Select {...field} className="input"
-								onValueChange={(value:string) => {
-								field.onChange(value); 
-							}}
-							value={field.value} 
-						>
-							<SelectTrigger className="w-full">
-								{loadingAreaEmpleadoApoyo ? (
-									<SelectValue placeholder="Cargando articulos..." />
-								):(<>
-								{dataAreaEmpleadoApoyo?.length > 0 ?(<SelectValue placeholder="Selecciona una opción..." />)
-								:(<SelectValue placeholder="Selecciona una categoria para ver las opciones..." />)
-								}
-								</>)}
-								
-							</SelectTrigger>
-							<SelectContent>
-							{dataAreaEmpleadoApoyo?.length>0 ? (
-								dataAreaEmpleadoApoyo?.map((item:string, index:number) => {
-									return (
-										<SelectItem key={index} value={item}>
-											{item}
-										</SelectItem>
-									)
-								})
-							):(
-								<><SelectItem disabled value={"no opciones"}>No hay opciones disponibles</SelectItem></>
-							)}
-							</SelectContent>
-						</Select>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>	
+		{(tipoCon== "compartida" || tipoCon == "área") &&
+			<FormField
+			control={form.control}
+			name="area_concesion"
+			render={({ field }: any) => (
+			<FormItem>
+				<FormLabel>Nombre del area:</FormLabel>
+				<FormControl>
+					<Select {...field} className="input"
+						onValueChange={(value: string) => {
+							field.onChange(value);
+							setConSelected(value);
+						} }
+						value={field.value}
+					>
+						<SelectTrigger className="w-full">
+							{isLoadingCon && conSelected ? (
+								<SelectValue placeholder="Cargando articulos..." />
+							) : (<>
+								{dataCon?.length > 0 ? (<SelectValue placeholder="Selecciona una opción..." />)
+									: (<SelectValue placeholder="Selecciona una categoria para ver las opciones..." />)}
+							</>)}
 
+						</SelectTrigger>
+						<SelectContent>
+							{dataCon?.length > 0 ? (
+								dataCon?.map((item: string, index: number) => {
+									return (
+										<SelectItem key={index} value={item}>
+											{item}
+										</SelectItem>
+									);
+								})
+							) : (
+								<><SelectItem disabled value={"no opciones"}>No hay opciones disponibles</SelectItem></>
+							)}
+						</SelectContent>
+					</Select>
+				</FormControl>
+				<FormMessage />
+			</FormItem>
+			)} />
+	}
+	{(tipoCon=="compartida" || tipoCon== "persona") && 
+			<FormField
+			control={form.control}
+			name="persona_nombre_concesion"
+			render={({ field }:any) => (
+				<FormItem>
+					<FormLabel>Persona:</FormLabel>
+					<FormControl>
+					<Select {...field} className="input"
+						onValueChange={(value:string) => {
+						field.onChange(value); 
+					}}
+					value={field.value} 
+				>
+					<SelectTrigger className="w-full">
+						{loadingAreaEmpleadoApoyo ? (
+							<SelectValue placeholder="Cargando articulos..." />
+						):(<>
+						{dataAreaEmpleadoApoyo?.length > 0 ?(<SelectValue placeholder="Selecciona una opción..." />)
+						:(<SelectValue placeholder="Selecciona una categoria para ver las opciones..." />)
+						}
+						</>)}
+						
+					</SelectTrigger>
+					<SelectContent>
+					{dataAreaEmpleadoApoyo?.length>0 ? (
+						dataAreaEmpleadoApoyo?.map((item:string, index:number) => {
+							return (
+								<SelectItem key={index} value={item}>
+									{item}
+								</SelectItem>
+							)
+						})
+					):(
+						<><SelectItem disabled value={"no opciones"}>No hay opciones disponibles</SelectItem></>
+					)}
+					</SelectContent>
+				</Select>
+					</FormControl>
+					<FormMessage />
+				</FormItem>
+			)}
+			/>	
+		}	
+				<FormField
+				control={form.control}
+				name="equipo_concesion"
+				render={({ field }: any) => (
+					<FormItem>
+						<FormLabel>Nombre del equipo:</FormLabel>
+						<FormControl>
+							<Select {...field} className="input"
+								onValueChange={(value: string) => {
+									field.onChange(value);
+								} }
+								value={field.value}
+							>
+								<SelectTrigger className="w-full">
+									{isLoadingConSub && conSelected ? (
+										<SelectValue placeholder="Cargando articulos..." />
+									) : (<>
+										{dataConSub?.length > 0 ? (<SelectValue placeholder="Selecciona una opción..." />)
+											: (<SelectValue placeholder="Selecciona una categoria para ver las opciones..." />)}
+									</>)}
+
+								</SelectTrigger>
+								<SelectContent>
+									{dataConSub?.length > 0 ? (
+										dataConSub?.map((item: string, index: number) => {
+											return (
+												<SelectItem key={index} value={item}>
+													{item}
+												</SelectItem>
+											);
+										})
+									) : (
+										<><SelectItem disabled value={"no opciones"}>No hay opciones disponibles</SelectItem></>
+									)}
+								</SelectContent>
+							</Select>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)} />
+           
                 <FormField
                     control={form.control}
                     name="observacion_concesion"

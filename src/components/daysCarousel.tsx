@@ -24,18 +24,16 @@ interface DaysCarouselProps {
       estados: EstadoDia[];
     };
     estadoDia?: EstadoDia;
-  };
+  };  
   resumen?: DiaCarrusel[];
   selectedDay: number | null;
   onDaySelect: Dispatch<SetStateAction<number>>
 }
-
 interface DiaCarrusel {
   dia: number;
   estado: string;
   record_id?: string;
 }
-
 const estadoColors: Record<string, string> = {
   finalizado: "bg-green-600 text-white",
   fuera_de_hora: "bg-pink-600 text-white",
@@ -52,12 +50,13 @@ const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 const DaysCarousel: React.FC<DaysCarouselProps> = ({
   data,
-  resumen,
   selectedDay,
   onDaySelect,
+  resumen
 }) => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [api, setApi] = useState<any>(null);
+
   const dias: DiaCarrusel[] = (() => {
     if (Array.isArray(resumen)) return resumen;
     if (data?.area?.estados) return data.area.estados;
@@ -78,12 +77,9 @@ const DaysCarousel: React.FC<DaysCarouselProps> = ({
       api.off("init", scroll);
     };
   }, [api, selectedDay, dias]);
-  
-  
 
   if (dias.length === 0) return null;
-          
-
+  
   return (
     <div className="flex justify-center  mb-2">
       <Carousel

@@ -43,15 +43,7 @@ interface ListProps {
   isLoadingListArticulosPerdidos:boolean;
   openModal: () => void;
   resetTableFilters: () => void;
-//   setStateArticle: React.Dispatch<React.SetStateAction<string>>;
   setSelectedArticulos:React.Dispatch<React.SetStateAction<string[]>>;
-//   selectedArticulos:string[];
-
-  // setUbicacionSeleccionada: React.Dispatch<React.SetStateAction<string>>;
-  // setAreaSeleccionada:React.Dispatch<React.SetStateAction<string>>;
-  // areaSeleccionada:string;
-  // ubicacionSeleccionada:string;
-
   setDate1 :React.Dispatch<React.SetStateAction<Date | "">>;
 	setDate2 :React.Dispatch<React.SetStateAction<Date | "">>;
 	date1:Date| ""
@@ -59,22 +51,7 @@ interface ListProps {
 	dateFilter: string;
 	setDateFilter :React.Dispatch<React.SetStateAction<string>>;
 	Filter:() => void;
-
 }
-
-// const articulosColumnsCSV = [
-//     { label: 'Folio', key: 'folio' },
-//     { label: 'Nombre', key: 'articulo_perdido' },
-//     { label: 'Articulo', key: 'articulo_seleccion' },
-//     { label: 'Color', key: 'color_perdido' },
-//     { label: 'Categoria', key: 'tipo_articulo_perdido' },
-//     { label: 'Fecha del Hallazgo', key: 'date_hallazgo_perdido' },
-//     { label: 'Area de Resguardo', key: 'locker_perdido' },
-//     { label: 'Reporta Interno', key: 'quien_entrega_interno' },
-// 	  { label: 'Reporta Externo', key: 'quien_entrega_externo' },
-//     { label: 'Fecha de Devolucion', key: 'date_entrega_perdido' },
-// 	  { label: 'Comentarios', key: 'comentario_perdido' },
-//   ];
 
 const ArticulosPerdidosTable:React.FC<ListProps> = ({ data, isLoadingListArticulosPerdidos, openModal,
 	setSelectedArticulos, setDate1, setDate2, date1, date2, dateFilter, setDateFilter,Filter,resetTableFilters
@@ -118,10 +95,6 @@ const ArticulosPerdidosTable:React.FC<ListProps> = ({ data, isLoadingListArticul
       globalFilter,
     },
   });
-
-//   const handleCheckboxChange = (value:any) => {
-//     setStateArticle(value)
-//   };
 
 	useEffect(()=>{
 		if(table.getFilteredSelectedRowModel().rows.length>0){
@@ -192,13 +165,6 @@ const ArticulosPerdidosTable:React.FC<ListProps> = ({ data, isLoadingListArticul
 							Nuevo Artículo
 						</Button>
 					</div>
-
-					{/* <div>
-						<Button className="w-full md:w-auto bg-blue-500 hover:bg-blue-600" onClick={()=>{downloadCSV(selectedArticulos, articulosColumnsCSV, "incidencias.csv")}}>
-							<FileX2 />
-							Descargar
-						</Button>
-					</div> */}
 				</div>
 			</div>
 		</div>

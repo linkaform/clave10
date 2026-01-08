@@ -37,9 +37,7 @@ export const ViewDetalleArea: React.FC<ViewRondinesDetalleAreaProps> = ({
   selectedRondin,
   onClose,
 }) => {
-    console.log("AAREAS",areaSelected)
-    // const [checkSelected, setCheckSelected] = useState(areaSelected?.estadoDia?.record_id ||"692719584c99eda82536ef55") //areaSelected?.estadoDia?.record_id
-    // const { data:getCheckById, isLoadingRondin:isLoadingCheckById} = useCheckById(checkSelected);
+
     const { createIncidenciaMutation , isLoading} = useCreateIncidenciaRondin();
 
 	function crearNuevaIncidencia(data:any){
@@ -96,9 +94,7 @@ export const ViewDetalleArea: React.FC<ViewRondinesDetalleAreaProps> = ({
     //   }, [diaSeleccionado, getCheckById]);
 
     return (
-    // <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
-    //   <DialogTrigger asChild>{children}</DialogTrigger>
-    //   <DialogContent className="max-w-md overflow-y-auto max-h-[80vh] min-h-[60vh]  flex flex-col" onInteractOutside={(e) => e.preventDefault()} aria-describedby="">
+
        
                 <div className=" overflow-y-auto  h-[550px]">
                 {view === "lista" && (
@@ -222,7 +218,7 @@ export const ViewDetalleArea: React.FC<ViewRondinesDetalleAreaProps> = ({
                                                 <div className="bg-slate-200 p-3 rounded"> <Clock/> </div>
                                                 <div className="flex flex-col"> 
                                                     <p>Tiempo</p>
-                                                    <p className="text-gray-400">{getCheckById?.tiempo_translado || "No disponible"}</p>
+                                                    <p className="text-gray-400">{getCheckById?.tiempo_traslado || "No disponible"}</p>
                                                 </div>
                                             </div>
                                         </div>
