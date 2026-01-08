@@ -63,34 +63,6 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       enableSorting: false,
       enableHiding: false,
     },
-    // {
-    //   id: "select",
-    //   cell: ({ row }) => {
-    //     return (
-    //       <>
-    //       <div className="flex space-x-3 items-center">
-    //         <Checkbox
-    //           checked={row.getIsSelected()}
-    //           onCheckedChange={(value) => row.toggleSelected(!!value)}
-    //           aria-label="Select row" />
-    //         <OptionsCell row={row} key={row.original._id}/>
-    //       </div>
-    //       </>
-    //     )
-    //   },
-    //   header: ({ table }) => (
-    //     <Checkbox
-    //       checked={
-    //         table.getIsAllPageRowsSelected() ||
-    //         (table.getIsSomePageRowsSelected() && "indeterminate")
-    //       }
-    //       onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-    //       aria-label="Select all"
-    //     />
-    //   ),
-    //   enableSorting: false,
-    //   enableHiding: false,
-    // },
     {
       accessorKey: "folio",
       header: "Folio",
