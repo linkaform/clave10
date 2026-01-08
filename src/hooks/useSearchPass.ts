@@ -215,7 +215,151 @@ export const useSearchPass = (enable:boolean, cat?:string) => {
   }
 }
 
+export const useSearchPassForceLocation = (enable:boolean, forceLocation:string, cat?:string) => {
+  const { area, setLoading, isLoading: loading } = useShiftStore()
+  const { passCode , setPassCode, clearPassCode} = useAccessStore()
+  const queryClient = useQueryClient()
 
+  const {
+    data: searchPass,
+    isLoading,
+    error,
+    isFetching,
+    refetch,
+  } = useQuery<SearchAccessPass>({
+    queryKey: ["serchPass",area, forceLocation, passCode],
+    enabled:!!(area && forceLocation && passCode),
+    queryFn: async () => {
+      const data = await searchAccessPass(area, forceLocation, passCode)
+      const textMsj = errorMsj(data) 
+      if (textMsj){
+        toast.error(`Error al buscar pase, Error: ${textMsj.text}`);
+        clearPassCode()
+        return {}
+      }else {
+        // setPassCode(passCode)
+        return data ? data?.response?.data : {};
+      }
+    },
+  })
+
+
+
+
+  const { data: assets , isLoading:assetsLoading} = useQuery<any>({
+    queryKey: ["getAssetsAccess",cat],
+    enabled:enable,
+    queryFn: async () => {
+      const data = await getAccessAssets(forceLocation,cat)
+      return data.response?.data || {}
+    },
+    refetchOnWindowFocus: false,
+    // refetchInterval: 60000,
+    refetchOnReconnect: true,
+    // staleTime: 1000 * 60 * 5,
+  })
+
+
+  const exitRegisterAccess = useMutation({
+    mutationFn: async () => {
+      const data = await exitRegister(area, forceLocation, passCode)
+      return data.response?.data || []
+    },
+    onMutate: () => {
+      setLoading(true)
+    },
+    onSuccess: (response: any) => {
+      console.log("exitRegisterAccess:", response)
+
+      queryClient.invalidateQueries({ queryKey: ["searchPass"] })
+    },
+    onError: (err) => {
+      console.log(err)
+    },
+    onSettled: () => {
+      setLoading(false)
+    },
+  })
+
+  const fetchAccessAssets = useMutation({
+    mutationFn: async () => {
+      const data = await getAccessAssets(forceLocation)
+
+      return data.response?.data || []
+    },
+    onMutate: () => {
+      setLoading(true)
+    },
+    onSuccess: (response: any) => {
+      console.log("Error Obteniendo los assets", response)
+    },
+    onError: (err) => {
+      console.log("Error Obteniendo los assets", err)
+    },
+    onSettled: () => {
+      setLoading(false)
+    },
+  })
+
+
+
+     const registerNewVisit = useMutation({
+      mutationFn: ({ location, access_pass }: { location: string; access_pass: AccessPass }) =>
+        addNewVisit(location, access_pass),
+    
+      onMutate: () => {
+        setLoading(true);
+      },
+      onSuccess: (response) => {
+        const id = response?.response?.data?.json?.id;
+    
+        if (id) {
+          setPassCode(id);
+          console.log("ID de la nueva visita guardado en passCode:", id);
+        } else {
+          console.error("No se encontró el ID en la respuesta.");
+        }
+        queryClient.invalidateQueries({
+          predicate: (query) => query.queryKey[0] === 'searchPass'
+        });
+        queryClient.invalidateQueries({ queryKey: ["getTemporaryPasses"] });
+        
+
+      },
+    
+      onError: (error: any) => {
+        console.error("Error registrando nueva visita:", error);
+      },
+      onSettled: () => {
+        setLoading(false);
+      },
+    });
+    
+
+  return {
+    /* Obtener Acceso */
+    searchPass,
+    isLoading,
+    loading,
+    error,
+    isFetching,
+    refetch,
+
+    /* Registrar Salida */
+    exitRegisterAccess,
+
+    /* obtener assets registrar visita */
+    fetchAccessAssets,
+
+    /* nueva visita */
+    registerNewVisit,
+
+
+    /* assets visita */
+    assets,
+    assetsLoading
+  }
+}
 
 
 

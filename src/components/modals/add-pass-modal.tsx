@@ -29,7 +29,8 @@ export type Visita={
 interface EntryPassUpdateModalProps {
   title: string;
   dataPass: {
-    nombre: string;
+    selected_visita_a?: string,
+	nombre: string;
 	empresa:string;
     email: string;
     telefono: string;
@@ -101,6 +102,7 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 
   const onSubmit = async () => {
     const accessPassData: Access_pass = {
+		selected_visita_a: dataPass.selected_visita_a,
       nombre: dataPass.nombre,
 	  empresa: dataPass.empresa||"",
       email: dataPass.email,
