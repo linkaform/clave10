@@ -147,8 +147,8 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
           <p>Estatus de la caseta:</p>
 
           <Badge
-            className={`text-white  text-md hover:${shift?.booth_status?.status === "Disponible"? 'bg-green-600':'bg-red-600'} ${
-              shift?.booth_status?.status === "Disponible"
+            className={`text-white  text-md hover:${shift?.booth_status?.status === "Abierta"? 'bg-green-600':'bg-red-600'} ${
+              shift?.booth_status?.status === "Abierta"
                 ? "bg-green-600"
                 : "bg-red-600"
             }`}
@@ -157,21 +157,21 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
           </Badge>
         </div>
        
-        {shift?.booth_status?.status === "No Disponible" && (
+        {shift?.booth_status?.status === "Abierta" && (
           <>
             <div className="">
-              <p className="">Guardia en turno:</p>
+              <p className="">Inició el guardia:</p>
               <p className="font-bold">{shift?.booth_status?.guard_on_dutty || "---"}</p>
             </div>
             <div className="">
-              <p className="">Fecha de inicio de turno:</p>
+              <p className="">Fecha de apertura:</p>
               <div className="flex justify-between">
                 <p className="font-bold">{shift?.booth_status?.stated_at || "---"}</p>
               </div>
             </div>
           </>
         )}
-         {shift?.booth_status?.status === "No Disponible" && (
+         {shift?.booth_status?.status === "Abierta" && (
           <ForceCloseShift title="Confirmación" boothInfo={shift?.booth_status}>
             <Button className="w-1/2 bg-red-500 hover:bg-red-600" >
             Forzar cierre
