@@ -10,6 +10,7 @@ interface CarruselDetalleRondinProps {
   estatus: string;
   startIndex?: number;
   onClose: () => void;
+  onSelectArea: (areaIndex: number,rondin:string, diaSeleccionado:number, estatus:string) => void;
 }
 
 export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
@@ -18,6 +19,7 @@ export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
   estatus,
   startIndex = 0,
   onClose,
+  onSelectArea
 }) => {
   // Filtramos los rondines de la hora seleccionada
 
@@ -31,9 +33,6 @@ export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
     setActiveIndex((prev) =>
       prev === rondinesHoraSeleccionada.length - 1 ? 0 : prev + 1
     );
-
-  console.log("TODOS LOS RONDINES???", rondinesHoraSeleccionada)
-
 
   return (
     <div
@@ -72,16 +71,20 @@ export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
               position = "opacity-50 scale-[0.8] translate-x-[230px]";
               zIndex = "z-10";
             }
-            console.log("RONDIN", rondin)
             return (
               <div
-                key={index}
-                className={`absolute transition-all ${position} ${zIndex} w-[55%] h-[600px]`}
-                style={{
-                  transitionDuration: "900ms",
-                  transitionTimingFunction: "cubic-bezier(.25,.8,.25,1)",
-                }}
-              >
+              key={`${rondin.titulo}-${rondin.fecha_hora_programada}`}
+              onClick={() => {
+                if (isLeft) prev();
+                if (isRight) next();
+              }}
+              className={`absolute transition-all ${position} ${zIndex} w-[55%] h-[600px] cursor-pointer`}
+              style={{
+                transitionDuration: "900ms",
+                transitionTimingFunction: "cubic-bezier(.25,.8,.25,1)",
+              }}
+            >
+            
                 <div className="relative bg-white rounded-xl shadow-xl p-4 border">
                   {isActive && (
                     <button
@@ -102,6 +105,7 @@ export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
                         (e: { dia: number }) => e.dia === diaSelected
                       ),
                     }}
+                    onSelectArea={onSelectArea}
                     activeIndex={activeIndex}
                   />
                 </div>

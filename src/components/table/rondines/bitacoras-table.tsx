@@ -79,18 +79,21 @@ type Rondin = {
 };
 
 export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { showTabs: boolean, ubicacion:any, nombre_rondin?: string }) => {
-	
+	const [currentDate, setCurrentDate] = useState(new Date());
+	const [nombreMes, setNombreMes] = useState(
+		currentDate.toLocaleString("es-ES", { month: "long" })
+	);
+	const numeroMes = currentDate.getMonth() + 1;
+	const numeroAno = currentDate.getFullYear();
 
 	const { listBitacoraRondines:data, isLoadingListBitacoraRondines: isLoading } =
-	useGetListBitacoraRondines(ubicacion, nombre_rondin) as {
+	useGetListBitacoraRondines(ubicacion, nombre_rondin, numeroAno, numeroMes) as {
 		listBitacoraRondines?: Rondin[];
 		isLoadingListBitacoraRondines: boolean;
 	};
 	const [diaSelected, setDiaSelected] = useState(0);
 	const [estatus, setEstatus] = useState("");
-	// const [modalOpenPerimetroExt, setModalOpenPerimetroExt] = useState(false);
 	const [selectedAreaIndex, setSelectedAreaIndex] = useState<number>(0);
-	// const [selectedAreaData, setSelectedAreaData] = useState<any>(null);
 	const [selectedRondin, setSelectedRondin] = useState<any>(null)
 	const [expandedCategorias, setExpandedCategorias] = useState<string[]>([]);
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -169,11 +172,6 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 		setDias(totalDias);
 	}, []);
 
-	const [currentDate, setCurrentDate] = useState(new Date());
-	const [nombreMes, setNombreMes] = useState(
-		currentDate.toLocaleString("es-ES", { month: "long" })
-	);
-
 	useEffect(() => {
 		const totalDias = new Date(
 			currentDate.getFullYear(),
@@ -234,7 +232,6 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 				{estadoDia && (
 				<div
 					onClick={() => {
-					// setSelectedAreaData({ area, estadoDia });
 					abrirCarrusel();
 					setDiaSelected(estadoDia.dia);
 					setEstatus(estadoDia.estado);
@@ -268,6 +265,18 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 		if (selectedRondin) console.log("selectedRondin", selectedRondin.areas)
 	}, [selectedRondin])
 
+
+	const handleSelectArea = (areaIndex: number,rondin:string, diaSeleccionado:number, estatus:string) => {
+		console.log("ABRIR EL MODAL DE AREA", areaIndex, rondin, diaSeleccionado, estatus)
+		setCarruselOpenRondin(false);
+		setSelectedAreaIndex(areaIndex);
+		abrirCarrusel();
+		setDiaSelected(diaSeleccionado);
+		setEstatus(estatus);
+		setSelectedRondin(rondin);
+		setSelectedAreaIndex(areaIndex); 
+	};
+
 	return (
 		<div >
 			<div className="flex justify-between items-center my-2 ">
@@ -276,6 +285,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 						<div className="flex justify-center items-center">
 							<TabsList className="bg-blue-500 text-white p-1 rounded-md ">
 								<TabsTrigger value="Bitacora">Ejecuciones</TabsTrigger>
+								<TabsTrigger value="Comentarios">Comentarios</TabsTrigger>
 								<TabsTrigger value="Rondines">Rondines</TabsTrigger>
 								<TabsTrigger value="Incidencias">Incidencias</TabsTrigger>
 								<TabsTrigger value="Fotos">Fotos</TabsTrigger>
@@ -621,8 +631,9 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 					rondinesHoraSeleccionada={ data?.find((h: { hora: string; }) => h.hora === horaSeleccionada)?.categorias ?? []}
 					startIndex={selectedAreaIndex} 
 					diaSelected={diaSelected}
-					estatus={estatus}
 					onClose={() => setCarruselOpenRondin(false)}
+					estatus={estatus}
+					onSelectArea={handleSelectArea}
 					/>
 				)} 
 
@@ -631,7 +642,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 						areas={selectedRondin?.areas ?? []}
 						startIndex={selectedAreaIndex}
 						diaSelected={diaSelected}
-						rondin={selectedRondin?.name}
+						rondinName={selectedRondin?.name}
 						estatus={estatus}
 						selectedRondin={selectedRondin}
 						onClose={() => setCarruselOpen(false)}

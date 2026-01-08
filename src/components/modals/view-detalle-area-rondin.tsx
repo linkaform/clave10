@@ -1,6 +1,6 @@
 "use client";
 import { Button } from "../ui/button";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Building2, Calendar1, ChevronLeft, ChevronRight, Clock, Loader2, Route } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../ui/carousel";
 import Image from "next/image";
@@ -12,7 +12,7 @@ import { useCreateIncidenciaRondin } from "@/hooks/Rondines/useCeateIncidenciaRo
 interface ViewRondinesDetalleAreaProps {
   areaSelected:any
   diaSelected: number
-  rondin:string
+  rondinName:string
   estatus:string
   selectedRondin:any
   onClose: ()=>void;
@@ -32,14 +32,14 @@ type Incidente = {
 export const ViewDetalleArea: React.FC<ViewRondinesDetalleAreaProps> = ({
   areaSelected,
   diaSelected,
-  rondin,
+  rondinName,
   estatus,
   selectedRondin,
   onClose,
 }) => {
 
-    const [checkSelected, setCheckSelected] = useState(areaSelected?.estadoDia?.record_id ||"692719584c99eda82536ef55") //areaSelected?.estadoDia?.record_id
-    const { data:getCheckById, isLoadingRondin:isLoadingCheckById} = useCheckById(checkSelected);
+    // const [checkSelected, setCheckSelected] = useState(areaSelected?.estadoDia?.record_id ||"692719584c99eda82536ef55") //areaSelected?.estadoDia?.record_id
+    // const { data:getCheckById, isLoadingRondin:isLoadingCheckById} = useCheckById(checkSelected);
     const { createIncidenciaMutation , isLoading} = useCreateIncidenciaRondin();
 
 	function crearNuevaIncidencia(data:any){
@@ -71,24 +71,16 @@ export const ViewDetalleArea: React.FC<ViewRondinesDetalleAreaProps> = ({
     const [diaSeleccionado, setDiaSeleccionado] = useState<number>(diaSelected ||0);
     const [view, setView] = useState<"lista" | "detalle">("lista");
     
-
-    useEffect(() => {
-        if (!getCheckById || !diaSeleccionado) return; 
+    const estadoDiaSeleccionado = areaSelected?.area?.estados?.find(
+        (e: any) => e.dia === diaSeleccionado
+    );
       
-        const estadoFiltrado = getCheckById?.checks_mes?.area?.estados?.find(
-          (e: any) => e.dia === diaSeleccionado
-        );
-        console.log("estadoFiltrado?.record_id", estadoFiltrado?.record_id);
-      
-        if (estadoFiltrado?.record_id) {
-          setCheckSelected(estadoFiltrado.record_id);
-        }
-      }, [diaSeleccionado, getCheckById]);
+    const recordId = estadoDiaSeleccionado?.record_id ?? "";
+    const { data: getCheckById, isLoadingRondin: isLoadingCheckById } =
+    useCheckById(recordId);
 
     return (
-    // <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
-    //   <DialogTrigger asChild>{children}</DialogTrigger>
-    //   <DialogContent className="max-w-md overflow-y-auto max-h-[80vh] min-h-[60vh]  flex flex-col" onInteractOutside={(e) => e.preventDefault()} aria-describedby="">
+
        
                 <div className=" overflow-y-auto  h-[550px]">
                 {view === "lista" && (
@@ -212,7 +204,7 @@ export const ViewDetalleArea: React.FC<ViewRondinesDetalleAreaProps> = ({
                                                 <div className="bg-slate-200 p-3 rounded"> <Clock/> </div>
                                                 <div className="flex flex-col"> 
                                                     <p>Tiempo</p>
-                                                    <p className="text-gray-400">{getCheckById?.tiempo_translado || "No disponible"}</p>
+                                                    <p className="text-gray-400">{getCheckById?.tiempo_traslado || "No disponible"}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -338,7 +330,7 @@ export const ViewDetalleArea: React.FC<ViewRondinesDetalleAreaProps> = ({
                                 <div className="bg-slate-200 p-3 rounded"><Route /></div>
                                 <div className="flex flex-col">
                                     <p>Rondin</p>
-                                    <p className="text-gray-400">{rondin}</p>
+                                    <p className="text-gray-400">{rondinName}</p>
                                 </div>
                             </div>
                             <div className="flex gap-3">

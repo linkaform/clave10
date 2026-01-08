@@ -1,13 +1,13 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { ViewDetalleArea } from "./modals/view-detalle-area-rondin";
 import { useState } from "react";
+import { ViewDetalleArea } from "./modals/view-detalle-area-rondin";
 
 interface CarruselDetalleAreaProps {
   areas: any[];
   diaSelected: number;
-  rondin: string;
+  rondinName: string;
   estatus: string;
   selectedRondin: any;
   startIndex?: number;
@@ -17,7 +17,7 @@ interface CarruselDetalleAreaProps {
 export const CarruselDetalleArea: React.FC<CarruselDetalleAreaProps> = ({
   areas,
   diaSelected,
-  rondin,
+  rondinName,
   estatus,
   selectedRondin,
   startIndex = 0,
@@ -70,18 +70,23 @@ export const CarruselDetalleArea: React.FC<CarruselDetalleAreaProps> = ({
 
             return (
               <div
-                key={index}
-                className={`
-                  absolute transition-all 
-                  ${position} ${zIndex}
-                  w-[55%]
-                  h-[600px]
-                `}
-                style={{
-                  transitionDuration: "900ms",
-                  transitionTimingFunction: "cubic-bezier(.25,.8,.25,1)",
-                }}
-              >
+              key={index}
+              onClick={() => {
+                if (isLeft) prev();
+                if (isRight) next();
+              }}
+              className={`
+                absolute transition-all 
+                ${position} ${zIndex}
+                w-[55%]
+                h-[600px]
+                cursor-pointer
+              `}
+              style={{
+                transitionDuration: "900ms",
+                transitionTimingFunction: "cubic-bezier(.25,.8,.25,1)",
+              }}
+            >
                 <div className="relative bg-white rounded-xl shadow-xl p-4 border">
 
                   {isActive && (
@@ -99,7 +104,7 @@ export const CarruselDetalleArea: React.FC<CarruselDetalleAreaProps> = ({
                       estadoDia: area.estados?.find((e: { dia: number; }) => e.dia === diaSelected),
                     }}
                     diaSelected={diaSelected}
-                    rondin={rondin}
+                    rondinName={rondinName}
                     estatus={estatus}
                     selectedRondin={selectedRondin}
                     onClose={onClose}

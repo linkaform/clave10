@@ -22,9 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
 import { List } from "lucide-react";
 import { formatDateToString, formatFecha } from "@/lib/utils";
-import AreasList from "@/components/areas-list";
-import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
-import ComentariosList from "@/components/comentarios-list";
+// import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
 import { Contacto } from "@/lib/get-user-contacts";
@@ -179,9 +177,9 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 	
 
 	const [areasDisponibles, setAreasDisponibles] = useState<any[]>([]);
+	console.log(areasDisponibles)
 
 	useEffect(() => {
-		console.log("area", areasTodas)
 	setAreasDisponibles(
 		areasTodas.map((area) => ({
 		value: `${area.nombre}`,
@@ -190,8 +188,6 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 		}))
 	);
 	}, [areasTodas]);
-	console.log("areasTodas", areasTodas);
-	console.log("areasDisponibles", areasDisponibles);
 
 	useEffect(() => {
 	  const picker = pickerRef.current;
@@ -245,8 +241,8 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 	const [enviar_correo_pre_registro] = useState<string[]>([]);
 	const [formatedDocs, setFormatedDocs] = useState<string[]>([])
 	const [formatedEnvio, setFormatedEnvio] = useState<string[]>([])
-	const [comentariosList, setComentariosList] = useState<Comentarios[]>([]);
-	const [areasList, setAreasList] = useState<Areas[]>([]);
+	// const [comentariosList, setComentariosList] = useState<Comentarios[]>([]);
+	// const [areasList, setAreasList] = useState<Areas[]>([]);
 	// const [isActive, setIsActive] = useState(false);
 	// const [isActiveSMS, setIsActiveSMS] = useState(false);
 	const [isActiveFechaFija, setIsActiveFechaFija] = useState(false);
@@ -390,8 +386,8 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 			config_dia_de_acceso: config_dia_de_acceso === "limitar_días_de_acceso" ? config_dia_de_acceso : "cualquier_día",
 			config_dias_acceso: config_dias_acceso,
 			config_limitar_acceso: Number(data.config_limitar_acceso) || 0,
-			areas:areasList,
-			comentarios: comentariosList,
+			areas:[],
+			comentarios: [],
 			enviar_pre_sms:{
 				from: "enviar_pre_sms",
 				mensaje: "SOY UN MENSAJE",
@@ -495,36 +491,45 @@ return (
 			<Form {...form}>
 				<form className="space-y-8">
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-						<FormField
+					{assetsLoading ? (
+						<div className="flex justify-start items-center py-4">
+							 <div className="w-6 h-6 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin" /> <span className="ml-2 text-gray-500">Cargando perfiles...</span>
+						</div>
+						) : (
+							<FormField
 							control={form.control}
 							name="perfil_pase"
-							render={({ field }:any) => (
-								<FormItem className="w-full">
-									<FormLabel>Tipo de pase:</FormLabel>
-									<FormControl>
-									<Select {...field} className="input"
-										onValueChange={(value:string) => {
-										field.onChange(value); 
-									}}
-									value={field.value} 
-								>
-									<SelectTrigger className="w-full">
-									{assetsLoading ? <SelectValue placeholder="Cargando..." />:<SelectValue placeholder="Selecciona una opcion" /> }
+							render={({ field }) => (
+							  <FormItem className="w-full">
+								<FormLabel>Tipo de pase:</FormLabel>
+						  
+								<FormControl>
+								  <Select
+									value={field.value}
+									onValueChange={field.onChange}
+								  >
+									<SelectTrigger className="w-full" >
+									  <SelectValue placeholder="Selecciona una opción" />
 									</SelectTrigger>
+						  
 									<SelectContent>
-									{assets?.Perfiles?.map((item: string) => (
+									  {assets?.Perfiles?.map((item: string) => (
 										<SelectItem key={item} value={item}>
-										{item}
+										  {item}
 										</SelectItem>
-									))}
-									
+									  ))}
 									</SelectContent>
-								</Select>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
+								  </Select>
+								</FormControl>
+						  
+								<FormMessage />
+							  </FormItem>
 							)}
-						/>	
+						  />
+						  
+						)}
+
+													
 
 						{selected && (
 							<Image
@@ -826,11 +831,6 @@ return (
 											Visita:
 										</FormLabel>
 										<FormControl>
-											{/* <vaadin-date-time-picker
-												ref={pickerRef}
-												value="2020-06-12T12:30"
-												// step="1800" 
-											/> */}
 											<DateTime date={date} setDate={setDate} />
 										</FormControl>
 									<FormMessage />
@@ -1051,7 +1051,7 @@ return (
 				</form>
 			</Form>
 			
-			{isActiveAdvancedOptions&& (
+			{/* {isActiveAdvancedOptions&& (
 				<><div className="font-bold text-xl">Areas de acceso:</div>
 					<AreasList
 						areas={areasList}
@@ -1067,7 +1067,7 @@ return (
 				comentarios={comentariosList}
 				setComentarios={setComentariosList}
 				tipo={"Pase"} 
-			/>
+			/> */}
 
 				<><div className="text-center">
 					<Button
