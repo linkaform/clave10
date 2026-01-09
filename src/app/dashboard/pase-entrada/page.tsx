@@ -38,6 +38,7 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 
  const formSchema = z
 	.object({
+	selected_visita_a: z.string().optional(),
 	nombre: z.string().min(2, {
 	  	message: "Por favor, ingresa un tu nombre completo",
 	}),
@@ -263,6 +264,7 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
+			selected_visita_a: "",
 			nombre: "",
 			empresa:"",
 			email: "",
@@ -360,6 +362,7 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 		}
 
 		const formattedData = {
+			selected_visita_a: data.selected_visita_a,
 			nombre: data.nombre,
 			empresa:data.empresa,
 			email: data.email,
@@ -531,7 +534,30 @@ return (
 						  
 						)}
 
-													
+						<FormField
+							control={form.control}
+							name="selected_visita_a"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Visita a: </FormLabel>
+									<Select onValueChange={(value) => field.onChange(value)}>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Usuario actual" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{assets?.Visita_a?.map((item: string) => (
+												<SelectItem key={item} value={item}>
+													{item}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>	
 
 						{selected && (
 							<Image
