@@ -540,7 +540,30 @@ return (
 						  
 						)}
 
-													
+						<FormField
+							control={form.control}
+							name="selected_visita_a"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Visita a: </FormLabel>
+									<Select onValueChange={(value) => field.onChange(value)}>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Usuario actual" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{assets?.Visita_a?.map((item: string) => (
+												<SelectItem key={item} value={item}>
+													{item}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>	
 
 						{selected && (
 							<Image
