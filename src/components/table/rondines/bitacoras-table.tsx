@@ -96,6 +96,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 	const [diaSelected, setDiaSelected] = useState(0);
 	const [estatus, setEstatus] = useState("");
 	const [selectedAreaIndex, setSelectedAreaIndex] = useState<number>(0);
+	console.log("selectedAreaIndex",selectedAreaIndex)
 	const [selectedRondin, setSelectedRondin] = useState<any>(null)
 	const [expandedCategorias, setExpandedCategorias] = useState<string[]>([]);
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -218,6 +219,8 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 		return acc;
 	}, [] as number[]);
 
+
+  
 	const renderArea = (area: Area, key: string, rondin: any, areaIndex: number) => (
 		<tr key={key} className="bg-transparent">
 		<td className="border p-2 pl-8">{area.nombre}</td>
@@ -264,30 +267,45 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 				: [...prev, ...allKeys.filter(k => !prev.includes(k))]
 		);
 	};
-
+	//Inspeccion
 
 	useEffect(() => {
 		if (selectedRondin) console.log("selectedRondin", selectedRondin.areas)
 	}, [selectedRondin])
 
 
-	const startIndex = selectedArea && selectedRondin
+	const categoriasDeHora = React.useMemo(() => {
+		return (
+		  data?.find((r) => r.hora === horaSeleccionada)?.categorias ?? []
+		);
+	  }, [data, horaSeleccionada]);
+	const startIndex = React.useMemo(() => {
+		if (!selectedRondin) return 0;
+	  
+		return categoriasDeHora.findIndex(
+		  (c) => c.titulo === selectedRondin.titulo
+		);
+	}, [categoriasDeHora, selectedRondin]);
+	
+
+	const startIndexRondin = selectedArea && selectedRondin
   ? selectedRondin.areas.findIndex(
       (a: Area) => a.nombre === selectedArea.nombre
     )
   : 0;
 
 
-  const handleSelectArea = (areaIndex: number,rondin:string, diaSeleccionado:number, estatus:string) => {
-	setCarruselOpenRondin(false);
-	setSelectedAreaIndex(areaIndex);
-	abrirCarrusel();
-	setDiaSelected(diaSeleccionado);
-	setEstatus(estatus);
-	setSelectedRondin(rondin);
-	setSelectedAreaIndex(startIndex); 
-	setTotalAreas(selectedRondin?.areas?.length)
-};
+
+	const handleSelectArea = (areaIndex: number,rondin:string, diaSeleccionado:number, estatus:string) => {
+		setCarruselOpenRondin(false);
+		setSelectedAreaIndex(areaIndex);
+		abrirCarrusel();
+		setDiaSelected(diaSeleccionado);
+		setEstatus(estatus);
+		setSelectedRondin(rondin);
+		setSelectedAreaIndex(startIndex); 
+		setTotalAreas(selectedRondin?.areas?.length)
+	};
 
 	return (
 		<div >
@@ -599,7 +617,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 				{carruselOpenRondin && (
 					<CarruselDetalleRondin
 					rondinesHoraSeleccionada={ data?.find((h: { hora: string; }) => h.hora === horaSeleccionada)?.categorias ?? []}
-					startIndex={selectedAreaIndex} 
+					startIndex={startIndexRondin} 
 					diaSelected={diaSelected}
 					onClose={() => setCarruselOpenRondin(false)}
 					estatus={estatus}
