@@ -56,12 +56,14 @@ const DaysCarousel: React.FC<DaysCarouselProps> = ({
 }) => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [api, setApi] = useState<any>(null);
+
   const dias: DiaCarrusel[] = (() => {
     if (Array.isArray(resumen)) return resumen;
     if (data?.area?.estados) return data.area.estados;
     if (data?.recorrido?.estados) return data.recorrido.estados;
     return [];
   })();
+
   
   useEffect(() => {
     if (!api || selectedDay == null || dias.length === 0) return;
@@ -92,7 +94,6 @@ const DaysCarousel: React.FC<DaysCarouselProps> = ({
           {dias.map(({ dia, estado }: EstadoDia) => {
             const date = new Date(2025, 8, dia);
             const dayOfWeek = date.getDay();
-
             const isSelected = selectedDay === dia;
 
             return (
@@ -101,7 +102,7 @@ const DaysCarousel: React.FC<DaysCarouselProps> = ({
                   <button
                     data-dia={dia}
                     type="button"
-                    onClick={() => onDaySelect(dia)}
+                    onClick={() => {onDaySelect(dia); console.log("diaaaa",dia,estado);}}
                     className={`
                     flex items-center justify-center rounded-full h-8 w-8 font-bold text-xs
                     border shadow-sm

@@ -17,7 +17,6 @@ import { toast } from "sonner";
 
 interface ViewRondinesDetalleAreaProps {
     areaSelected: any
-    estatus: string
     diaSelected: number
     selectedRondin: any
     activeIndex: number

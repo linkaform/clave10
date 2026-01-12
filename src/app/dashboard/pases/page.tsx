@@ -9,6 +9,7 @@ import ChangeLocation from "@/components/changeLocation";
 import { arraysIguales } from "@/lib/utils";
 import { Sun, UsersRound } from "lucide-react";
 import { useShiftStore } from "@/store/useShiftStore";
+import { useGetStats } from "@/hooks/useGetStats";
 
 const ListaPasesPage = () => {
   const [limit, setLimit] = useState(25);
@@ -19,6 +20,7 @@ const ListaPasesPage = () => {
 	const [areaSeleccionada, setAreaSeleccionada] = useState("todas");
   const { data, isLoading } = useGetMyPases({ skip, limit, searchName });
   const { records, actual_page, records_on_page, total_pages, total_records } = data || {};
+  const { data: stats } = useGetStats(true, ubicacionSeleccionada, areaSeleccionada, 'PasesHistorial')
 
 	const [selectedOption, setSelectedOption] = useState<string[]>([]);
 	const [dateFilter, setDateFilter] = useState<string>("")
@@ -63,7 +65,7 @@ const ListaPasesPage = () => {
                   <div className="flex gap-6">
                     <Sun className="text-primary w-10 h-10" />
                     <span className="flex items-center font-bold text-4xl">
-                    {10}
+                    {stats?.pases_proceso ?? 0}
                     </span>
                   </div>
                   <div className="flex items-center space-x-0">
@@ -78,7 +80,7 @@ const ListaPasesPage = () => {
                   <div className="flex gap-6">
                     <UsersRound className="text-primary w-10 h-10" />
                     <span className="flex items-center font-bold text-4xl">
-                    {12}
+                    {stats?.pases_activos ?? 0}
                     </span>
                   </div>
                   <div className="flex items-center space-x-0">

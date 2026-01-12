@@ -23,6 +23,7 @@ import { EntryPassModal } from "@/components/modals/add-pass-modal";
 import { List } from "lucide-react";
 import { formatDateToString, formatFecha } from "@/lib/utils";
 import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
+// import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
 import { Contacto } from "@/lib/get-user-contacts";
@@ -35,12 +36,13 @@ import { Switch } from "@/components/ui/switch";
 import { useSearchPass } from "@/hooks/useSearchPass";
 import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 import AreasList from "@/components/areas-list";
-import ComentariosList from "@/components/comentarios-list";
 import { useMenuStore } from "@/store/useGetMenuStore";
+import ComentariosList from "@/components/comentarios-list";
 
 
  const formSchema = z
 	.object({
+	selected_visita_a: z.string().optional(),
 	nombre: z.string().min(2, {
 	  	message: "Por favor, ingresa un tu nombre completo",
 	}),
@@ -250,6 +252,8 @@ import { useMenuStore } from "@/store/useGetMenuStore";
 	const [formatedEnvio, setFormatedEnvio] = useState<string[]>([])
 	const [comentariosList, setComentariosList] = useState<Comentarios[]>([]);
 	const [areasList, setAreasList] = useState<Areas[]>([]);
+	// const [isActive, setIsActive] = useState(false);
+	// const [isActiveSMS, setIsActiveSMS] = useState(false);
 	const [isActiveFechaFija, setIsActiveFechaFija] = useState(false);
 	const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(true);
 	const [isActivelimitarDias, setIsActiveLimitarDias] = useState(true);
@@ -266,6 +270,7 @@ import { useMenuStore } from "@/store/useGetMenuStore";
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
+			selected_visita_a: "",
 			nombre: "",
 			empresa:"",
 			email: "",
@@ -363,6 +368,7 @@ import { useMenuStore } from "@/store/useGetMenuStore";
 		}
 
 		const formattedData = {
+			selected_visita_a: data.selected_visita_a,
 			nombre: data.nombre,
 			empresa:data.empresa,
 			email: data.email,
@@ -391,8 +397,8 @@ import { useMenuStore } from "@/store/useGetMenuStore";
 			config_dia_de_acceso: config_dia_de_acceso === "limitar_días_de_acceso" ? config_dia_de_acceso : "cualquier_día",
 			config_dias_acceso: config_dias_acceso,
 			config_limitar_acceso: Number(data.config_limitar_acceso) || 0,
-			areas:[],
-			comentarios: [],
+			areas:areasList,
+			comentarios: comentariosList,
 			enviar_pre_sms:{
 				from: "enviar_pre_sms",
 				mensaje: "SOY UN MENSAJE",
@@ -501,6 +507,7 @@ return (
 							 <div className="w-6 h-6 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin" /> <span className="ml-2 text-gray-500">Cargando perfiles...</span>
 						</div>
 						) : (
+						
 							<FormField
 							control={form.control}
 							name="perfil_pase"
@@ -524,17 +531,39 @@ return (
 										</SelectItem>
 									  ))}
 									</SelectContent>
-								  </Select>
-								</FormControl>
-						  
-								<FormMessage />
-							  </FormItem>
+								</Select>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
 							)}
 						  />
 						  
 						)}
 
-													
+						<FormField
+							control={form.control}
+							name="selected_visita_a"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Visita a: </FormLabel>
+									<Select onValueChange={(value) => field.onChange(value)}>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Usuario actual" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{assets?.Visita_a?.map((item: string) => (
+												<SelectItem key={item} value={item}>
+													{item}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>	
 
 						{selected && (
 							<Image
@@ -1003,8 +1032,6 @@ return (
 				</form>
 			</Form>
 			
-		{!isExcluded("areas") &&
-			<>
 			{isActiveAdvancedOptions&& (
 				<><div className="font-bold text-xl">Areas de acceso:</div>
 					<AreasList
@@ -1013,10 +1040,9 @@ return (
 						catAreas={areasDisponibles}
 						loadingCatAreas={loadingCatAreas} existingAreas={false} 
 					/>
-				</> 
-			)}</>
-  		}
-		{!isExcluded("comentarios") &&
+				</> )
+			}
+			{!isExcluded("comentarios") &&
 			<>
 				<div className="font-bold text-xl">Comentarios/ Instrucciones:</div><ComentariosList
 				comentarios={comentariosList}

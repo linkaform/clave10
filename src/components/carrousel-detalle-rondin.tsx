@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ViewRondinesDetallePerimetroExt } from "./modals/rondines-inspeccion-perimetro-exterior";
 
 interface CarruselDetalleRondinProps {
@@ -17,7 +17,6 @@ interface CarruselDetalleRondinProps {
 export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
   rondinesHoraSeleccionada,
   diaSelected,
-  estatus,
   startIndex = 0,
   onClose,
   onSelectArea,
@@ -34,10 +33,6 @@ export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
       prev === rondinesHoraSeleccionada.length - 1 ? 0 : prev + 1
     );
 
-    useEffect(() => {
-      setActiveIndex(startIndex);
-    }, [startIndex]);
-    
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/70"
@@ -100,7 +95,6 @@ export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
                   )}
 
                   <ViewRondinesDetallePerimetroExt
-                    estatus={estatus}
                     diaSelected={diaSelected}
                     selectedRondin={rondin}
                     areaSelected={{

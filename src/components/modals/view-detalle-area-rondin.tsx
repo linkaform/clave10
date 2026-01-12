@@ -41,6 +41,7 @@ export const ViewDetalleArea: React.FC<ViewRondinesDetalleAreaProps> = ({
   total,
   activeIndex
 }) => {
+
     const { createIncidenciaMutation , isLoading} = useCreateIncidenciaRondin();
 
 	function crearNuevaIncidencia(data:any){

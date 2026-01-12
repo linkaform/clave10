@@ -87,6 +87,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 	);
 	const numeroMes = currentDate.getMonth() + 1;
 	const numeroAno = currentDate.getFullYear();
+	
 
 	const { listBitacoraRondines:data, isLoadingListBitacoraRondines: isLoading } =
 	useGetListBitacoraRondines(ubicacion, nombre_rondin, numeroAno, numeroMes) as {
@@ -194,6 +195,8 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 		);
 	};
 
+
+
 	const handleNextMonth = () => {
 		setCurrentDate(
 			new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
@@ -256,7 +259,6 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 		</tr>
 	);
 
-
 	const toggleExpandAllForHora = (hora: string, categorias: Categoria[]) => {
 		const allKeys = categorias.map(c => `${hora}-${c.titulo}`);
 		const areAllExpanded = allKeys.every(key => expandedCategorias.includes(key));
@@ -267,7 +269,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 				: [...prev, ...allKeys.filter(k => !prev.includes(k))]
 		);
 	};
-	//Inspeccion
+
 
 	useEffect(() => {
 		if (selectedRondin) console.log("selectedRondin", selectedRondin.areas)
@@ -289,11 +291,10 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 	
 
 	const startIndexRondin = selectedArea && selectedRondin
-  ? selectedRondin.areas.findIndex(
-      (a: Area) => a.nombre === selectedArea.nombre
-    )
-  : 0;
-
+	? selectedRondin.areas.findIndex(
+		(a: Area) => a.nombre === selectedArea.nombre
+		)
+	: 0;
 
 
 	const handleSelectArea = (areaIndex: number,rondin:string, diaSeleccionado:number, estatus:string) => {
@@ -324,6 +325,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 						</div>
 					}
 					<div className="flex gap-1 items-center">
+					
 					<div className="border p-2 rounded w-full">
 					<div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap pr-1">
 						
