@@ -64,6 +64,7 @@ const DaysCarousel: React.FC<DaysCarouselProps> = ({
     return [];
   })();
 
+  
   useEffect(() => {
     if (!api || selectedDay == null || dias.length === 0) return;
   

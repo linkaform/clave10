@@ -8,18 +8,20 @@ export const useGetMenu = () => {
 		menuItems,
 		setLabels,
 		labels,
-		setMenuItems
+		setMenuItems,
+        setExcludes
 	} = useMenuStore();
 	
 	const { isLoading:isLoadingMenu, error:errorMenu, refetch: refetfchMenu } = useQuery<any>({
 	queryKey: ["getMenu"], 
 	queryFn: async () => {
-		const data = await getMenu(); 
+		const data = await getMenu();
 		if (!data.response || !data.response?.data || !data.response?.data.menus) {
 			return []
 		}
 		if(data.response?.data.menus){
 			const dataRaw =data.response?.data.menus
+            const excludeInputs =data.response?.data.exclude_inputs
 			setLabels(dataRaw);
             const transformedData = dataRaw.map((item: string) => {
                 let text = item;
@@ -38,6 +40,7 @@ export const useGetMenu = () => {
                     label: text,
                 };
             })
+            setExcludes(excludeInputs)
             setMenuItems(transformedData)
         }
 		

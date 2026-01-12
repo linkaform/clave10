@@ -11,6 +11,7 @@ interface CarruselDetalleRondinProps {
   startIndex?: number;
   onClose: () => void;
   onSelectArea: (areaIndex: number,rondin:string, diaSeleccionado:number, estatus:string) => void;
+  total:number
 }
 
 export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
@@ -18,7 +19,8 @@ export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
   diaSelected,
   startIndex = 0,
   onClose,
-  onSelectArea
+  onSelectArea,
+  total
 }) => {
   const [activeIndex, setActiveIndex] = useState(startIndex);
   const prev = () =>
@@ -103,6 +105,7 @@ export const CarruselDetalleRondin: React.FC<CarruselDetalleRondinProps> = ({
                     }}
                     onSelectArea={onSelectArea}
                     activeIndex={activeIndex}
+                    total={total}
                   />
                 </div>
               </div>

@@ -72,7 +72,7 @@ export const useShiftStore = create(
 				const hasError = (!data?.success) || (data?.response?.data?.status_code === 400 )
 				if (hasError) {
 					const textMsj = errorMsj(data)
-					throw new Error(`Error al crear seguimiento, Error: ${textMsj?.text}`);
+					throw new Error(`Error al obtener load shift, Error: ${textMsj?.text}`);
 				} else {
 						setArea(data.response?.data?.location?.area ?? "");
 						setLocation(data.response?.data?.location?.name ?? "");
