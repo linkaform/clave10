@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
 import { List } from "lucide-react";
 import { formatDateToString, formatFecha } from "@/lib/utils";
-// import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
+import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
 import { Contacto } from "@/lib/get-user-contacts";
@@ -34,6 +34,9 @@ import DateTime from "@/components/dateTime";
 import { Switch } from "@/components/ui/switch";
 import { useSearchPass } from "@/hooks/useSearchPass";
 import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
+import AreasList from "@/components/areas-list";
+import ComentariosList from "@/components/comentarios-list";
+import { useMenuStore } from "@/store/useGetMenuStore";
 
 
  const formSchema = z
@@ -138,6 +141,7 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
   const PaseEntradaPage = () =>  {
 	const [tipoVisita, setTipoVisita] = useState("rango_de_fechas");
 	const { location } = useShiftStore()
+	const { excludes }= useMenuStore()
 	const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>([]);
 	const [config_dia_de_acceso, set_config_dia_de_acceso] = useState("cualquier_día");
 	const [isSuccess, setIsSuccess] = useState(false);
@@ -148,6 +152,10 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 	const { assets,assetsLoading} = useSearchPass(true);
 
 	const [areasTodas, setAreasTodas] = useState<any[]>([]);
+
+	const isExcluded = (key: string) =>
+		Array.isArray(excludes?.pases) &&
+		excludes.pases.includes(key);
 
 	useEffect(() => {
 	  if (!ubicacionesSeleccionadas?.length) {
@@ -177,7 +185,6 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 	
 
 	const [areasDisponibles, setAreasDisponibles] = useState<any[]>([]);
-	console.log(areasDisponibles)
 
 	useEffect(() => {
 	setAreasDisponibles(
@@ -241,10 +248,8 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 	const [enviar_correo_pre_registro] = useState<string[]>([]);
 	const [formatedDocs, setFormatedDocs] = useState<string[]>([])
 	const [formatedEnvio, setFormatedEnvio] = useState<string[]>([])
-	// const [comentariosList, setComentariosList] = useState<Comentarios[]>([]);
-	// const [areasList, setAreasList] = useState<Areas[]>([]);
-	// const [isActive, setIsActive] = useState(false);
-	// const [isActiveSMS, setIsActiveSMS] = useState(false);
+	const [comentariosList, setComentariosList] = useState<Comentarios[]>([]);
+	const [areasList, setAreasList] = useState<Areas[]>([]);
 	const [isActiveFechaFija, setIsActiveFechaFija] = useState(false);
 	const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(true);
 	const [isActivelimitarDias, setIsActiveLimitarDias] = useState(true);
@@ -698,60 +703,6 @@ return (
 						/>         
 					</div>
 					
-					{/* <div className="flex gap-2 flex-col">
-						<FormLabel className="mb-2">
-							Selecciona una opción:
-						</FormLabel>
-						<div className="flex gap-2">
-							<div className="flex gap-2 flex-wrap">
-								<Button
-								type="button"
-								onClick={handleToggleEmail}
-								className={`px-4 py-2 rounded-md transition-all duration-300 ${
-									isActive ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-transparent"
-								} hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-								>
-								<div className="flex flex-wrap items-center">
-									{isActive ? (
-									<>
-										<Mail className="mr-3" />
-										<div>Enviar por correo</div>
-									</>
-									) : (
-									<>
-										<Mail className="mr-3 text-blue-600" />
-										<div className="text-blue-600">Enviar por correo</div>
-									</>
-									)}
-								</div>
-								</Button>
-							</div>
-							<div className="flex gap-2 flex-wrap">
-								<Button
-								type="button"
-								onClick={handleToggleSMS}
-								className={`px-4 py-2 rounded-md transition-all duration-300 ${
-									isActiveSMS ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-transparent"
-								} hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-								>
-								<div className="flex flex-wrap items-center">
-									{isActiveSMS ? (
-									<>
-										<MessageCircleMore className="mr-3" />
-										<div>Enviar por sms</div>
-									</>
-									) : (
-									<>
-										<MessageCircleMore className="mr-3 text-blue-600" />
-										<div className="text-blue-600">Enviar por SMS</div>
-									</>
-									)}
-								</div>
-								</Button>
-							</div>
-						</div>
-						
-					</div> */}
 
 					<h1 className="font-bold text-xl">Sobre vigencia y acceso</h1>
 					<div className="flex items-center flex-wrap gap-5">
@@ -1013,7 +964,7 @@ return (
 						)}
 					</div>
 
-
+				{!isExcluded("areas") &&
 					<div className="flex gap-2">
 						<div className="flex gap-2 flex-wrap">
 							<Button
@@ -1048,10 +999,13 @@ return (
 						</div>
 
 					</div>
+					}
 				</form>
 			</Form>
 			
-			{/* {isActiveAdvancedOptions&& (
+		{!isExcluded("areas") &&
+			<>
+			{isActiveAdvancedOptions&& (
 				<><div className="font-bold text-xl">Areas de acceso:</div>
 					<AreasList
 						areas={areasList}
@@ -1060,15 +1014,16 @@ return (
 						loadingCatAreas={loadingCatAreas} existingAreas={false} 
 					/>
 				</> 
-			)}
-
-			<div className="font-bold text-xl">Comentarios/ Instrucciones:</div>
-			<ComentariosList
+			)}</>
+  		}
+		{!isExcluded("comentarios") &&
+			<>
+				<div className="font-bold text-xl">Comentarios/ Instrucciones:</div><ComentariosList
 				comentarios={comentariosList}
 				setComentarios={setComentariosList}
-				tipo={"Pase"} 
-			/> */}
-
+				tipo={"Pase"} />
+			</>
+		}
 				<><div className="text-center">
 					<Button
 						className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-2/3 md:w-1/2 lg:w-1/2"

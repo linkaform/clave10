@@ -12,6 +12,7 @@ interface CarruselDetalleAreaProps {
   selectedRondin: any;
   startIndex?: number;
   onClose: () => void;
+  total:number
 }
 
 export const CarruselDetalleArea: React.FC<CarruselDetalleAreaProps> = ({
@@ -22,6 +23,7 @@ export const CarruselDetalleArea: React.FC<CarruselDetalleAreaProps> = ({
   selectedRondin,
   startIndex = 0,
   onClose,
+  total
 }) => {
   const [activeIndex, setActiveIndex] = useState(startIndex);
 
@@ -108,6 +110,8 @@ export const CarruselDetalleArea: React.FC<CarruselDetalleAreaProps> = ({
                     estatus={estatus}
                     selectedRondin={selectedRondin}
                     onClose={onClose}
+                    activeIndex={activeIndex}
+                    total={total}
                   />
                 </div>
               </div>
