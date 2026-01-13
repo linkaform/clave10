@@ -20,6 +20,7 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
+import { OlvidoContraModal } from "@/components/modals/olvido-contra";
 
 const formSchema = z.object({
   username: z.string()
@@ -31,7 +32,7 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
-
+  const [openOlvido, setOpenOlvido] = useState(false);
   const [showPassword, setShowPassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const { setAuth } = useAuthStore();
@@ -138,7 +139,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="flex justify-start w-full">
-                  <Button type="button" variant="link" className="mb-5">
+                  <Button type="button" variant="link" className="mb-5" onClick={() => setOpenOlvido(true)}>
                     ¿Olvidó su contraseña?
                   </Button>
                 </div>
@@ -160,6 +161,14 @@ export default function LoginPage() {
             </Card>
           </form>
         </Form>
+
+        <OlvidoContraModal
+        title="Recuperar contraseña"
+        username=""
+        open={openOlvido}
+        setOpen={setOpenOlvido}
+      />
+      
       </div>
     </Suspense>
   );
