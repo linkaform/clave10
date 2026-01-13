@@ -17,7 +17,6 @@ const SeccionPersonasInvolucradas:React.FC<PersonasInvolucradasListProps> = ({ p
 	const [indiceSeleccionado, setIndiceSeleccionado]= useState<number | null>(null)
 
 	const handleEditPersonasInvolucradas = (item: any, index: number) => {
-		console.log(item, index)
 		setPersonasInvolucradasSeleccion(item);
 		setIndiceSeleccionado(index);
 		setEditarPersonasInvolucradas(true)
