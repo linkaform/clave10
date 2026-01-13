@@ -16,7 +16,12 @@ import Image from "next/image";
     }) => {
 	
     return (
-        <Dialog open={open} onOpenChange={setOpen} modal>
+        <Dialog  open={open && evidencia.length > 0}
+        onOpenChange={(value) => {
+          if (evidencia.length > 0) {
+            setOpen(value);
+          }
+        }} modal>
             <DialogContent className="max-w-md min-h-[400px] max-h-[90vh] flex flex-col overflow-hidden justify-between " onInteractOutside={(e) => e.preventDefault()} aria-describedby="">
                 <DialogHeader className="flex-shrink-0">
                     <DialogTitle className="text-2xl text-center font-bold">

@@ -39,8 +39,8 @@ const TurnStatus = ({
   	const [currentDateTime, setCurrentDateTime] = useState(new Date());
   	const turno =  capitalizeOnlyFirstLetter(shift?.guard.status_turn?? "")
 	const checkin_id = shift?.booth_status?.checkin_id
-	const {userNameSoter} = useAuthStore()
-
+	const { userIdSoter} = useAuthStore()
+	const isUserActiveTurn = userIdSoter==shift?.guard.user_id && shift?.guard.status_turn =="Turno Abierto"
 	const [openStartShift, setOpenStartShift] = useState(false)
 	const [openCloseShift, setOpenCloseShift] = useState(false);
 
@@ -60,7 +60,7 @@ const TurnStatus = ({
 
     return () => clearInterval(interval); 
 
-  }, [setEvidencia, setIdentificacion, shift?.booth_status?.fotografia_inicio_turno, ]);
+  }, [setIdentificacion, shift?.booth_status?.fotografia_inicio_turno, ]);
 
 
   const formattedDate = currentDateTime.toLocaleDateString("es-MX", {
@@ -98,13 +98,13 @@ const TurnStatus = ({
 	}, [forceOpenStartPhoto, setForceOpenStartPhoto]);
 	
 	useEffect(()=>{
-		console.log("userNameSoter",userNameSoter, shift?.booth_status?.guard_on_dutty)
-		if(shift?.booth_status?.fotografia_inicio_turno.length>0 && shift?.booth_status?.guard_on_dutty === userNameSoter)
+		console.log("userNameSoter", userIdSoter,isUserActiveTurn)
+		if(shift?.booth_status?.fotografia_inicio_turno.length>0 && isUserActiveTurn)
 			setEvidencia(shift?.booth_status?.fotografia_inicio_turno)
-		if(shift?.booth_status?.fotografia_cierre_turno  && shift?.booth_status?.guard_on_dutty === userNameSoter)
+		if(shift?.booth_status?.fotografia_cierre_turno  && isUserActiveTurn)
 			setIdentificacion(shift?.booth_status?.fotografia_cierre_turno.length)
 	
-	},[shift?.booth_status?.fotografia_inicio_turno, shift?.booth_status?.fotografia_cierre_turno, setEvidencia, setIdentificacion, userNameSoter, shift?.booth_status?.guard_on_dutty])
+	},[shift?.booth_status?.fotografia_inicio_turno, shift?.booth_status?.fotografia_cierre_turno, setEvidencia, setIdentificacion, shift?.booth_status.guard_on_dutty, userIdSoter, shift.guard.user_id, isUserActiveTurn])
 
   return (
     <div className="flex items-center flex-col md:flex-row justify-between md:mb-3">
@@ -128,7 +128,7 @@ const TurnStatus = ({
 						}
 					}}
 					>
-					{Array.isArray(evidencia) && evidencia.length > 0 && turno=="Turno cerrado" && shift?.booth_status?.guard_on_dutty === userNameSoter && (
+					{Array.isArray(evidencia) && evidencia.length > 0 && turno=="Turno cerrado" && isUserActiveTurn&& (
 						<button
 							onClick={(e) => {
 								e.stopPropagation();
@@ -145,7 +145,7 @@ const TurnStatus = ({
 					width={112}
 					height={96}
 					className="w-28 h-24 object-contain"
-					src={shift?.booth_status?.guard_on_dutty === userNameSoter ? evidencia?.[0]?.file_url || shift?.booth_status?.fotografia_inicio_turno?.[0]?.file_url || "/nouser.svg" : "/nouser.svg"}
+					src={isUserActiveTurn? (evidencia[0]?.file_url || shift?.booth_status?.fotografia_inicio_turno[0]?.file_url ||"/nouser.svg"):"/nouser.svg"}
 					alt="Inicio de turno"
 					/>
 					<span className="text-xs text-center text-gray-600">
@@ -153,13 +153,13 @@ const TurnStatus = ({
 					</span>
 				</div>
 
-				<DeletePhotoGuard setEvidencia={setEvidencia} open={openDeletePhoto} setOpen={setOpenDeletePhoto}>
+				<DeletePhotoGuard setEvidencia={setEvidencia } open={openDeletePhoto} setOpen={setOpenDeletePhoto}>
 				</DeletePhotoGuard>
 
 				<TakePhotoGuard title="Tomar Fotografía" descripcion="Capture una fotografía de su uniforme completo antes de iniciar su turno." evidencia={evidencia} setEvidencia={setEvidencia} open={openStartPhotoModal} setOpen={setOpenStartPhotoModal}>
 				</TakePhotoGuard>
 
-				<ViewPhotoGuard  evidencia={evidencia} open={openStartView} setOpen={setOpenStartView}>
+				<ViewPhotoGuard  evidencia={isUserActiveTurn? (evidencia || shift?.booth_status?.fotografia_inicio_turno ||[]):[]} open={openStartView} setOpen={setOpenStartView}>
 				</ViewPhotoGuard>
 
 				<ViewPhotoGuard evidencia={identificacion}  open={openCloseView} setOpen={setOpenCloseView}>

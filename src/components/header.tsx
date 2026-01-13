@@ -21,7 +21,7 @@ export const Header = () => {
   const userPhoto = useAuthStore((state) => state.userPhoto);
   const { logout } = useAuthStore();
   const { labels } = useMenuStore();
-
+console.log("LABELS", labels)
   return (
     <header className="w-full shadow py-1 px-12 sticky top-0 left-0 bg-white  z-50">
       <div className="mx-auto flex flex-col lg:flex-row items-center justify-between mb-0">
@@ -36,7 +36,7 @@ export const Header = () => {
                 priority
               />
             </Link>
-            { currentPath !== "/" && currentPath !== "/dashboard/pase-update"  ? (
+            {labels.includes("pases") && currentPath !== "/" && currentPath !== "/dashboard/pase-update"  ? (
               <Link href="/dashboard/pases">
                 <Button
                   className={`ml-3 ${

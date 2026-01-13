@@ -752,7 +752,7 @@ return (
 									{isActiveRangoFecha ? (
 										<><div className="">Vigencia</div></>
 									):(
-										<><div className="text-blue-600">Fecha Fija</div></>
+										<><div className="text-blue-600">Vigencia</div></>
 									)}
 										
 									</div>
