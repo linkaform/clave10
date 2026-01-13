@@ -1,6 +1,5 @@
 "use client"
 import { ChangeBoothModal } from "@/components/modals/change-booth-modal";
-import { ForceCloseShift } from "@/components/modals/force-close-shift";
 import { NombreSuplenteModal } from "@/components/modals/nombre-suplente";
 import { SuplenteItem } from "@/components/suplente-item";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
