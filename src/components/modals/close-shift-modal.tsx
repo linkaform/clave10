@@ -61,14 +61,7 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
             Estás a punto de cerrar el turno en la{" "}
             <span className="font-semibold">{area}</span> de la {" "}
             <span className="font-semibold">{location}</span>
-            {guardNames?.length > 0 && (
-              <>
-                {" "}
-                con los siguientes guardias de apoyo: {" "}
-                <span className="font-semibold">{guardNames}</span>
-              </>
-            )}
-            {" "}¿Deseas continuar?
+            . ¿Deseas continuar?
           </p>
         </div>
 
