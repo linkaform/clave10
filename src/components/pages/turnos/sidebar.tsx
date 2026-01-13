@@ -171,14 +171,6 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
             </div>
           </>
         )}
-         {shift?.booth_status?.status === "Abierta" && (
-          <ForceCloseShift title="Confirmación" boothInfo={shift?.booth_status}>
-            <Button className="w-1/2 bg-red-500 hover:bg-red-600" >
-            Forzar cierre
-            </Button>
-            
-          </ForceCloseShift>
-        )}
       </div>
     </div>
   );
