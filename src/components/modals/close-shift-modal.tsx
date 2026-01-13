@@ -28,7 +28,6 @@ interface CloseShiftModalProps {
 export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
   title,
   // children,
-  shift,
   area,
   location,
   identificacion,
