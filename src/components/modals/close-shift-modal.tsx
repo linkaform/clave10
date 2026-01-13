@@ -28,7 +28,6 @@ interface CloseShiftModalProps {
 export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
   title,
   // children,
-  shift,
   area,
   location,
   identificacion,
@@ -38,13 +37,6 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
 }) => {
   const { closeShiftMutation } = useGetShift( false);
   
-  const guardNames = Array.isArray(shift?.support_guards) && shift.support_guards.length > 0
-    ? shift.support_guards
-        .filter((guardia: { name: string }) => guardia && guardia.name && guardia.name.trim() !== "")
-        .map((guardia: { name: string }) => guardia.name)
-        .join(", ")
-    : "";
-
   return (
     <Dialog open={open} onOpenChange={setOpen} modal>
       {/* <DialogTrigger asChild>{children}</DialogTrigger> */}
@@ -61,14 +53,7 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
             Estás a punto de cerrar el turno en la{" "}
             <span className="font-semibold">{area}</span> de la {" "}
             <span className="font-semibold">{location}</span>
-            {guardNames?.length > 0 && (
-              <>
-                {" "}
-                con los siguientes guardias de apoyo: {" "}
-                <span className="font-semibold">{guardNames}</span>
-              </>
-            )}
-            {" "}¿Deseas continuar?
+            . ¿Deseas continuar?
           </p>
         </div>
 
