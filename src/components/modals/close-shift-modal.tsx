@@ -38,13 +38,6 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
 }) => {
   const { closeShiftMutation } = useGetShift( false);
   
-  const guardNames = Array.isArray(shift?.support_guards) && shift.support_guards.length > 0
-    ? shift.support_guards
-        .filter((guardia: { name: string }) => guardia && guardia.name && guardia.name.trim() !== "")
-        .map((guardia: { name: string }) => guardia.name)
-        .join(", ")
-    : "";
-
   return (
     <Dialog open={open} onOpenChange={setOpen} modal>
       {/* <DialogTrigger asChild>{children}</DialogTrigger> */}
