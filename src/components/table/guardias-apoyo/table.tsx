@@ -36,6 +36,7 @@ import { useGuardSelectionStore } from "@/store/useGuardStore";
 
 export function GuardiasApoyoTable({ shift, location, area }: { shift: any; location: string; area: string }) {
   const { checkoutSupportGuardsMutation } = useGetSupportGuards(false);
+  const checkInID = shift?.booth_status?.checkin_id || "";
   const { toggleGuardSelection, clearSelectedGuards } = useGuardSelectionStore();
 
   React.useEffect(() => {
@@ -47,6 +48,8 @@ export function GuardiasApoyoTable({ shift, location, area }: { shift: any; loca
       area,
       location,
       guards: [guardia.user_id],
+      checkin_id: checkInID,
+      guard_id: guardia.user_id,
     });
   };
 
@@ -211,7 +214,7 @@ export function GuardiasApoyoTable({ shift, location, area }: { shift: any; loca
           className="border border-gray-300 rounded-md p-2 w-1/2 max-w-xs"
         />
 
-          <AddGuardModal title="Guardias">
+          <AddGuardModal title="Guardias" checkInID={checkInID}>
           <Button
             type="submit"
             className={" text-white bg-green-600 hover:bg-green-700 w-auto"}

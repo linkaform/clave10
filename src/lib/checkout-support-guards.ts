@@ -2,17 +2,23 @@ interface Props {
     area?: string;
     location?: string;
     guards: number[]; // Array de IDs de los guardias
+    checkin_id?: string;
+    guard_id?: number;
 }
   
   export const checkoutSupportGuards = async ({
     area = "Caseta Principal",
     location = "Planta Monterrey",
     guards,
+    checkin_id,
+    guard_id,
   }: Props) => {
     const payload = {
       area,
       location, 
       guards,
+      checkin_id,
+      guard_id,
       option: "checkout",
       script_name: "script_turnos.py",
     };
