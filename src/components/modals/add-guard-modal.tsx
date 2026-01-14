@@ -17,6 +17,7 @@ import { useShiftStore } from "@/store/useShiftStore";
 interface AddGuardModalProps {
   title: string;
   children: React.ReactNode;
+  checkInID: string;
   onAddGuardias?: (selectedGuardias: GuardiaApoyo[]) => void;
 }
 
@@ -30,11 +31,12 @@ type GuardiaApoyo = {
 export const AddGuardModal: React.FC<AddGuardModalProps> = ({
   title,
   children,
+  checkInID
 }) => {
   const [open, setIsOpen] = useState(false)
 
   const { supportGuards, addSupportGuardMutation, isLoading } = useGetSupportGuards(open);
-  const { location, area, checkin_id } = useShiftStore();
+  const { location, area } = useShiftStore();
   const [selectedGuard, setSelectedGuard] = useState<any>("");
   const [searchText, setSearchText] = useState<string>("");
 
@@ -128,7 +130,7 @@ export const AddGuardModal: React.FC<AddGuardModalProps> = ({
              addSupportGuardMutation.mutate({
                 area,
                 location,
-                checkin_id: checkin_id,
+                checkin_id: checkInID,
                 support_guards: [
                   { user_id: selectedGuard.user_id, name: selectedGuard.name },
                 ],

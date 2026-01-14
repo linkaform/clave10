@@ -101,15 +101,21 @@ export const useGetSupportGuards = (enableGetGuards:boolean) => {
       area,
       location,
       guards,
+      checkin_id,
+      guard_id
     }: {
       area: string;
       location: string;
       guards: number[];
+      checkin_id?: string;
+      guard_id?: number;
     }) => {
       const response = await checkoutSupportGuards({
         area,
         location,
         guards,
+        checkin_id,
+        guard_id,
       });
 
       if (!response.success) {
