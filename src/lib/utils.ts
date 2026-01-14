@@ -180,14 +180,14 @@ export function errorMsj(data:any, title = "Error", type="warning"){
 		let res=undefined
 			const error= data.error
      
-      if (error.hasOwnProperty("exception") && error.exception.msg) {
+      if (error.hasOwnProperty("exception")) {
         const ex = error.exception;
-        const text = Array.isArray(ex.msg) ? ex.msg.join(", ") : ex.msg;
+      
         return {
           title: ex.title || title,
-          text,
+          text: normalizeMsg(ex.msg),
           type: ex.type || type,
-          icon: ex.icon || undefined
+          icon: ex.icon || undefined,
         };
       }
 
@@ -260,6 +260,30 @@ export function errorMsj(data:any, title = "Error", type="warning"){
   	}
   return undefined
 }
+
+  function normalizeMsg(msg: any): string {
+    if (!msg) return "";
+
+    if (typeof msg === "string") return msg;
+
+    if (Array.isArray(msg)) {
+      return msg
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (typeof item === "object" && item !== null) {
+            return item.error || item.msg || JSON.stringify(item);
+          }
+          return String(item);
+        })
+        .join(", ");
+    }
+
+    if (typeof msg === "object") {
+      return msg.error || msg.msg || JSON.stringify(msg);
+    }
+
+    return String(msg);
+  }
 
 export const catalogoFechas = () => {
   return [

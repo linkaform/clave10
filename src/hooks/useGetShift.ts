@@ -86,7 +86,12 @@ export const useGetShift = (enableShift:boolean) => {
 
     },
     onError: (err) => {
-      toast.error(err.message || "Hubo un error al iniciar el turno.");
+      toast.error(err.message || "Hubo un error al iniciar el turno.",{
+        style: {
+          background: '#DC2626', 
+          color: 'white',
+        },
+      });
 
     },
     onSettled: () => {

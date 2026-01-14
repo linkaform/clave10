@@ -281,7 +281,9 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 		  data?.find((r) => r.hora === horaSeleccionada)?.categorias ?? []
 		);
 	  }, [data, horaSeleccionada]);
-	const startIndex = React.useMemo(() => {
+
+
+	const startIndexRondin = React.useMemo(() => {
 		if (!selectedRondin) return 0;
 	  
 		return categoriasDeHora.findIndex(
@@ -290,7 +292,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 	}, [categoriasDeHora, selectedRondin]);
 	
 
-	const startIndexRondin = selectedArea && selectedRondin
+	const startIndexArea = selectedArea && selectedRondin
 	? selectedRondin.areas.findIndex(
 		(a: Area) => a.nombre === selectedArea.nombre
 		)
@@ -304,7 +306,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 		setDiaSelected(diaSeleccionado);
 		setEstatus(estatus);
 		setSelectedRondin(rondin);
-		setSelectedAreaIndex(startIndex); 
+		setSelectedAreaIndex(startIndexArea); 
 		setTotalAreas(selectedRondin?.areas?.length)
 	};
 
@@ -632,7 +634,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 					
 					<CarruselDetalleArea
 						areas={selectedRondin?.areas ?? []}
-						startIndex={startIndex}
+						startIndex={startIndexArea}
 						diaSelected={diaSelected}
 						rondinName={selectedRondin?.name}
 						estatus={estatus}
