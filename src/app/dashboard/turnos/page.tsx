@@ -31,9 +31,9 @@ export default function Home() {
     }
     if (shift?.guard?.status_turn !== "Turno Cerrado") {
       setCheckin_id(shift?.guard?._id);
-      setEvidencia(shift?.guard?.fotografia_cierre_turno || [])
+      setEvidencia(shift?.guard?.end_turn_image || [])
     } else if (shift?.guard?.status_turn !== "Turno Abierto") {
-      setEvidencia(shift?.booth_status?.fotografia_inicio_turno || [])
+      setEvidencia(shift?.booth_status?.start_turn_image || [])
     }
   }, [shift, setCheckin_id]);
 
