@@ -60,7 +60,7 @@ const TurnStatus = ({
 
     return () => clearInterval(interval); 
 
-  }, [setIdentificacion, shift?.booth_status?.fotografia_inicio_turno, ]);
+  }, [setIdentificacion, shift?.guard?.start_turn_image, ]);
 
 
   const formattedDate = currentDateTime.toLocaleDateString("es-MX", {
@@ -99,12 +99,12 @@ const TurnStatus = ({
 	
 	useEffect(()=>{
 		console.log("userNameSoter", userIdSoter,isUserActiveTurn)
-		if(shift?.booth_status?.fotografia_inicio_turno.length>0 && isUserActiveTurn)
-			setEvidencia(shift?.booth_status?.fotografia_inicio_turno)
-		if(shift?.booth_status?.fotografia_cierre_turno  && isUserActiveTurn)
-			setIdentificacion(shift?.booth_status?.fotografia_cierre_turno.length)
+		if(shift?.guard?.start_turn_image.length>0 && isUserActiveTurn)
+			setEvidencia(shift?.guard?.start_turn_image)
+		if(shift?.guard?.end_turn_image  && isUserActiveTurn)
+			setIdentificacion(shift?.guard?.end_turn_image.length)
 	
-	},[shift?.booth_status?.fotografia_inicio_turno, shift?.booth_status?.fotografia_cierre_turno, setEvidencia, setIdentificacion, shift?.booth_status.guard_on_dutty, userIdSoter, shift.guard.user_id, isUserActiveTurn])
+	},[shift?.guard?.start_turn_image, shift?.guard?.end_turn_image, setEvidencia, setIdentificacion, shift?.booth_status.guard_on_dutty, userIdSoter, shift.guard.user_id, isUserActiveTurn])
 
   return (
     <div className="flex items-center flex-col md:flex-row justify-between md:mb-3">
@@ -119,7 +119,7 @@ const TurnStatus = ({
 						${turno=="Turno abierto" ? "border-gray-300 bg-gray-100 cursor-not-allowed shadow-none opacity-50" : "border-gray-400 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.2)]"}
 					`}
 					onClick={() => {
-						if(evidencia.length>0 || shift?.booth_status?.fotografia_inicio_turno?.[0]?.file_url ){
+						if(evidencia.length>0 || shift?.guard?.start_turn_image?.[0]?.file_url ){
 							setOpenStartView(true);
 						}else {
 							if (turno=="Turno cerrado"){
@@ -145,7 +145,7 @@ const TurnStatus = ({
 					width={112}
 					height={96}
 					className="w-28 h-24 object-contain"
-					src={isUserActiveTurn? (evidencia[0]?.file_url || shift?.booth_status?.fotografia_inicio_turno[0]?.file_url ||"/nouser.svg"):"/nouser.svg"}
+					src={isUserActiveTurn? (evidencia[0]?.file_url || shift?.guard?.start_turn_image[0]?.file_url ||"/nouser.svg"):"/nouser.svg"}
 					alt="Inicio de turno"
 					/>
 					<span className="text-xs text-center text-gray-600">
@@ -159,7 +159,7 @@ const TurnStatus = ({
 				<TakePhotoGuard title="Tomar Fotografía" descripcion="Capture una fotografía de su uniforme completo antes de iniciar su turno." evidencia={evidencia} setEvidencia={setEvidencia} open={openStartPhotoModal} setOpen={setOpenStartPhotoModal}>
 				</TakePhotoGuard>
 
-				<ViewPhotoGuard  evidencia={isUserActiveTurn? (evidencia || shift?.booth_status?.fotografia_inicio_turno ||[]):[]} open={openStartView} setOpen={setOpenStartView}>
+				<ViewPhotoGuard  evidencia={isUserActiveTurn? (evidencia || shift?.guard?.start_turn_image ||[]):[]} open={openStartView} setOpen={setOpenStartView}>
 				</ViewPhotoGuard>
 
 				<ViewPhotoGuard evidencia={identificacion}  open={openCloseView} setOpen={setOpenCloseView}>
@@ -197,7 +197,7 @@ const TurnStatus = ({
 						width={112}
 						height={96}
 						className="w-28 h-24 object-contain"
-						src={identificacion?.[0]?.file_url  || shift?.booth_status?.fotografia_cierre_turno?.[0]?.file_url || "/nouser.svg"}
+						src={identificacion?.[0]?.file_url  || shift?.guard?.end_turn_image?.[0]?.file_url || "/nouser.svg"}
 						alt="Cierre de turno"
 					/>
 					<span className="text-xs text-center text-gray-600">
