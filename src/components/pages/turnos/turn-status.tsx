@@ -104,7 +104,7 @@ const TurnStatus = ({
 		if(shift?.guard?.end_turn_image  && isUserActiveTurn)
 			setIdentificacion(shift?.guard?.end_turn_image.length)
 	
-	},[shift?.guard?.start_turn_image, shift?.guard?.end_turn_image, setEvidencia, setIdentificacion, shift?.booth_status.guard_on_dutty, userIdSoter, shift.guard.user_id, isUserActiveTurn])
+	},[shift?.guard?.start_turn_image, shift?.guard?.end_turn_image, setEvidencia, setIdentificacion, shift?.booth_status?.guard_on_dutty, userIdSoter, shift?.guard?.user_id, isUserActiveTurn])
 
   return (
     <div className="flex items-center flex-col md:flex-row justify-between md:mb-3">
