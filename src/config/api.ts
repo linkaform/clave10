@@ -5,5 +5,5 @@ if (!API_BASE_URL) {
 }
 
 export const API_ENDPOINTS = {
-    runScript: `${API_BASE_URL}/infosync/scripts/run/`,
+    runScript: `${API_BASE_URL}/clave10/scripts/run/`,
 };
