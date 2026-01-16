@@ -7,7 +7,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "../ui/dialog";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Input } from "../ui/input";
 import { Mail } from "lucide-react";
 import { useResetPassEmail } from "@/hooks/Login/useResetPassEmail";
@@ -25,7 +25,15 @@ export const OlvidoContraModal: React.FC<OlvidoContraModalProps> = ({
 }) => {
     const {  resetPassEmailMutation, isLoading } = useResetPassEmail();
     const [localName, setLocalName] = useState("");
+    const [error, setError] = useState("");
 
+    useEffect(() => {
+        if (!open) {
+          setError("");
+          setLocalName("");
+        }
+      }, [open]);
+      
     return (
         <Dialog open={open} onOpenChange={setOpen} modal>
             <DialogContent className="max-w-xl">
@@ -41,12 +49,19 @@ export const OlvidoContraModal: React.FC<OlvidoContraModalProps> = ({
                 </div>
 
                 <div className="p-4">
+                    <div className="text-sm text-gray-500 mb-2">Nombre de usuario:</div>
                     <Input
                         placeholder="Nombre de usuario"
-                        className="resize-none"
                         value={localName}
-                        onChange={(e) => setLocalName(e.target.value)}
-                    />
+                        onChange={(e) => {
+                            setLocalName(e.target.value);
+                            if (error) setError("");
+                        }}
+                        />
+
+                    {error && (
+                    <p className="text-red-500 text-sm mt-1">{error}</p>
+                    )}
 
                     <div className="flex gap-5 mt-5">
                         <DialogClose asChild>
@@ -58,9 +73,14 @@ export const OlvidoContraModal: React.FC<OlvidoContraModalProps> = ({
                         <Button
                             className="w-full  bg-blue-500 hover:bg-blue-600 text-white"
                             onClick={() => {
+                                if (!localName.trim()) {
+                                    setError("El nombre de usuario es obligatorio");
+                                    return;
+                                }
                                 resetPassEmailMutation.mutate({ username: localName }, {
                                         onSuccess: () => {
                                             setOpen(false);
+                                            setLocalName("");
                                         }
                                     })
                             }}
