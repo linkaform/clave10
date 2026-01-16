@@ -14,6 +14,8 @@ services:
       - ../cache:/srv/cache/
     ports:
       - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: https://app.linkaform.com/api
     stdin_open: true
     command: yarn dev
     #command: /bin/bash
