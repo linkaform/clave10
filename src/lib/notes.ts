@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { API_ENDPOINTS } from "@/config/api"
 
 export interface InputNote {
   note: string;
@@ -58,7 +59,7 @@ export const getNotes = async (area: string, location: string, limit: number = 1
 
   const userJwt = localStorage.getItem("access_token");
 
-  const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+  const response = await fetch(API_ENDPOINTS.runScript, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ export const crearNota = async (location: string, area: string, data_notes: Inpu
   };
 
   const userJwt = localStorage.getItem("access_token");
-  const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+  const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -107,7 +108,7 @@ export const editarNota = async (update_note: UpdateNote | null) => {
   };
 
   const userJwt = localStorage.getItem("access_token");
-  const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+  const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -134,7 +135,7 @@ export const cerrarNota = async (close_note: CloseNote | null) => {
   };
 
   const userJwt = localStorage.getItem("access_token");
-  const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+  const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -167,7 +168,7 @@ export const sendSmsOrEmail = async (folio: string, envio: string[], account_id?
     };
 
     const userJwt = localStorage.getItem("access_token");
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

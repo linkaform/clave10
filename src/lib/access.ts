@@ -1,4 +1,5 @@
 import { Foto, Image } from "@/hooks/useSearchPass";
+import { API_ENDPOINTS } from "@/config/api";
 
 export const searchAccessPass = async (
   area: string,
@@ -16,7 +17,7 @@ export const searchAccessPass = async (
   const userJwt = localStorage.getItem("access_token");
 
   const response = await fetch(
-    `https://app.linkaform.com/api/infosync/scripts/run/`,
+    API_ENDPOINTS.runScript,
     {
       method: "POST",
       headers: {
@@ -47,7 +48,7 @@ export const fetchTemporalPasses = async ({
   const userJwt = localStorage.getItem("access_token");
 
   const response = await fetch(
-    `https://app.linkaform.com/api/infosync/scripts/run/`,
+    API_ENDPOINTS.runScript,
     {
       method: "POST",
       headers: {
@@ -72,7 +73,7 @@ export const fetchPasesActivos = async ({
   
   const userJwt = localStorage.getItem("access_token");
   const response = await fetch(
-    `https://app.linkaform.com/api/infosync/scripts/run/`,
+    API_ENDPOINTS.runScript,
     {
       method: "POST",
       headers: {
@@ -116,7 +117,7 @@ export const registerIncoming = async (props: RegisterIncomingProps) => {
 
   const userJwt = localStorage.getItem("access_token");
   const response = await fetch(
-    `https://app.linkaform.com/api/infosync/scripts/run/`,    {
+    API_ENDPOINTS.runScript,    {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -148,7 +149,7 @@ export const exitRegister = async (
   const userJwt = localStorage.getItem("access_token");
 
   const response = await fetch(
-    `https://app.linkaform.com/api/infosync/scripts/run/`,
+    API_ENDPOINTS.runScript,
     {
       method: "POST",
       headers: {
@@ -175,7 +176,7 @@ export const getAccessAssets = async (location: string, cat?:string) => {
   const userJwt = localStorage.getItem("access_token");
 
   const response = await fetch(
-    `https://app.linkaform.com/api/infosync/scripts/run/`,
+    API_ENDPOINTS.runScript,
     {
       method: "POST",
       headers: {
@@ -227,7 +228,7 @@ export const addNewVisit = async (
   const userJwt = localStorage.getItem("access_token");
 
   const response = await fetch(
-    `https://app.linkaform.com/api/infosync/scripts/run/`,
+    API_ENDPOINTS.runScript,
     {
       method: "POST",
       headers: {

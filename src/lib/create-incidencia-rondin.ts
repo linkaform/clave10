@@ -1,3 +1,5 @@
+import { API_ENDPOINTS } from "@/config/api";
+
 export const crearIncidenciaRondin = async (rondin_data: any)=> {
     const payload = {
         rondin_data,
@@ -6,7 +8,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
     };
   
     const userJwt = localStorage.getItem("access_token"); 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -28,7 +30,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
     };
   
     const userJwt = localStorage.getItem("access_token"); 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -52,7 +54,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
     };
   
     const userJwt = localStorage.getItem("access_token"); 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -74,7 +76,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
     };
   
     const userJwt = localStorage.getItem("access_token"); 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -94,7 +96,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
     };
   
     const userJwt = localStorage.getItem("access_token"); 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

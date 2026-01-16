@@ -1,3 +1,5 @@
+import { API_ENDPOINTS } from "@/config/api"
+
 export interface InputArticuloCon {
     status_concesion:string,
     ubicacion_concesion:string,
@@ -29,7 +31,7 @@ export const getListArticulosCon = async (location:string, area:string,status:st
 
     const userJwt = localStorage.getItem("access_token"); 
   
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -52,7 +54,7 @@ export const getTipoConcesion = async (location:string, tipo:string) => {
   
     const userJwt = localStorage.getItem("access_token"); 
   
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -73,7 +75,7 @@ export const crearArticuloCon = async (data_article: InputArticuloCon | null)=> 
     };
   
     const userJwt = localStorage.getItem("access_token"); 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -95,7 +97,7 @@ export const editarArticuloCon = async (data_article_update: InputArticuloCon | 
     };
   
     const userJwt = localStorage.getItem("access_token"); 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

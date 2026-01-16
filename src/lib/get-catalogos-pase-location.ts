@@ -1,4 +1,6 @@
-  export const getCatalogoPasesLocationNoApi = async () => {
+import { API_ENDPOINTS } from "@/config/api";
+
+export const getCatalogoPasesLocationNoApi = async () => {
     const payload = {
         option: "catalogos_pase_location",
         script_name: "pase_de_acceso.py",
@@ -6,7 +8,7 @@
   
     const userJwt = localStorage.getItem("access_token"); 
   
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -27,7 +29,7 @@
   
 //     const userJwt = localStorage.getItem("access_token"); 
   
-//     const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+//     const response = await fetch(API_ENDPOINTS.runScript, {
 //         method: "POST",
 //         headers: {
 //             "Content-Type": "application/json",
@@ -49,7 +51,7 @@
     const userJwt = localStorage.getItem("access_token");
   
     try {
-      const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+      const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

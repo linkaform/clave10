@@ -1,4 +1,5 @@
 import { Imagen } from "./update-pass"
+import { API_ENDPOINTS } from "@/config/api";
 
 export interface InputArticuloPerdido {
     area_perdido:string,
@@ -40,7 +41,7 @@ export const getListArticulosPerdidos = async (
   
     const userJwt = localStorage.getItem("access_token"); 
   
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -62,7 +63,7 @@ export const getTipoArticulo = async (tipo:string) => {
   
     const userJwt = localStorage.getItem("access_token"); 
   
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -83,7 +84,7 @@ export const crearArticuloPerdido = async (data_article: InputArticuloPerdido | 
     };
   
     const userJwt = localStorage.getItem("access_token"); 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -105,7 +106,7 @@ export const editarArticuloPerdido = async (data_article_update: InputArticuloPe
     };
   
     const userJwt = localStorage.getItem("access_token"); 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -127,7 +128,7 @@ export const editarArticuloPerdido = async (data_article_update: InputArticuloPe
 //     };
   
 //     const userJwt = localStorage.getItem("access_token"); 
-//     const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+//     const response = await fetch(API_ENDPOINTS.runScript, {
 //         method: "POST",
 //         headers: {
 //             "Content-Type": "application/json",

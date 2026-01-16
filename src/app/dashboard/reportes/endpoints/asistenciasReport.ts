@@ -1,4 +1,5 @@
 import { asistenciasReport } from "../types/report";
+import { API_ENDPOINTS } from "@/config/api";
 
 export const getReportAsistencias = async ({ dateRange, locations, groupBy }: asistenciasReport) => {
     try {
@@ -11,7 +12,7 @@ export const getReportAsistencias = async ({ dateRange, locations, groupBy }: as
         };
 
         const userJwt = localStorage.getItem("access_token");
-        const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+        const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -38,7 +39,7 @@ export const getReportLocations = async () => {
         };
 
         const userJwt = localStorage.getItem("access_token");
-        const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+        const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -68,7 +69,7 @@ export const getAttendanceDetail = async (names: string[], selectedDay: number, 
         };
 
         const userJwt = localStorage.getItem("access_token");
-        const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+        const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

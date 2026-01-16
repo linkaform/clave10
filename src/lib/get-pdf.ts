@@ -1,3 +1,5 @@
+import { API_ENDPOINTS } from "@/config/api";
+
 export const getPdf = async (account_id: number|null,qr_code:string|null) => {
     if(qr_code!==null){
     const payload = {
@@ -7,7 +9,7 @@ export const getPdf = async (account_id: number|null,qr_code:string|null) => {
       account_id:account_id,
     };
   
-      const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+      const response = await fetch(API_ENDPOINTS.runScript, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

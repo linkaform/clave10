@@ -28,6 +28,7 @@ import { formatEquipos, formatVehiculos } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
+import { API_ENDPOINTS } from "@/config/api";
 
  const grupoEquipos = z.array(
 	z.object({
@@ -184,7 +185,7 @@ const PaseUpdate = () =>{
 		});
 
 		try {
-			const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+			const response = await fetch(API_ENDPOINTS.runScript, {
 				method: 'POST',
 				body: JSON.stringify({
 					script_name: 'create_pass_apple_wallet.py',

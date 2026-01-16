@@ -1,4 +1,6 @@
- export interface getVehiculosParams {
+import { API_ENDPOINTS } from "@/config/api";
+
+export interface getVehiculosParams {
     tipo: string,
     account_id: number,
     marca?:string
@@ -18,7 +20,7 @@
         marca
     };
 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

@@ -1,3 +1,5 @@
+import { API_ENDPOINTS } from "@/config/api";
+
 export type data_sms={
     mensaje: string,
     numero: string,
@@ -13,7 +15,7 @@ export const sendSMS= async (account_id: number|null, envio: string[],data_cel_m
       folio
     };
   
-      const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+      const response = await fetch(API_ENDPOINTS.runScript, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

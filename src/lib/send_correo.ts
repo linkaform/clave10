@@ -1,3 +1,5 @@
+import { API_ENDPOINTS } from "@/config/api";
+
 export type data_correo={
     email_to: string,
     asunto: string,
@@ -18,7 +20,7 @@ export const sendCorreo = async (account_id: number|null, envio: string[],data_f
       folio:folio
     };
   
-      const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+      const response = await fetch(API_ENDPOINTS.runScript, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

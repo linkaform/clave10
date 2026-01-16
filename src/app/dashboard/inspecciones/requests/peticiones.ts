@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { API_ENDPOINTS } from "@/config/api";
 
 export const getStates = async () => {
     toast.loading("Obteniendo ubicaciones...", {
@@ -16,7 +17,7 @@ export const getStates = async () => {
         };
 
         const userJwt = localStorage.getItem("access_token");
-        const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+        const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -69,7 +70,7 @@ export const getReportAuditorias = async (year: number, states: string[]) => {
         };
 
         const userJwt = localStorage.getItem("access_token");
-        const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+        const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -122,7 +123,7 @@ export const getAuditorias = async (fallas: string[], states: string[]) => {
         };
 
         const userJwt = localStorage.getItem("access_token");
-        const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+        const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -174,7 +175,7 @@ export const getAuditoriaById = async (id: string) => {
         };
 
         const userJwt = localStorage.getItem("access_token");
-        const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+        const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -226,7 +227,7 @@ export const getInspeccionPDF = async ({ recordId }: { recordId: string }) => {
         };
 
         const userJwt = localStorage.getItem("access_token");
-        const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+        const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -277,7 +278,7 @@ export const getPieChart = async (states: string[]) => {
         };
 
         const userJwt = localStorage.getItem("access_token");
-        const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+        const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

@@ -1,5 +1,6 @@
 import { Equipo_bitacora, Vehiculo_bitacora } from "@/components/table/bitacoras/bitacoras-columns";
 import { Equipo, Imagen, Vehiculo } from "./update-pass";
+import { API_ENDPOINTS } from "@/config/api";
 
 export type Access_pass_update_full = {
     equipo: Vehiculo_bitacora[],
@@ -45,7 +46,7 @@ export type Access_pass_update_full = {
     
     const userJwt = localStorage.getItem("access_token"); 
     
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

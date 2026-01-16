@@ -1,4 +1,5 @@
 import { Imagen } from "./update-pass"
+import { API_ENDPOINTS } from "@/config/api";
 
 export interface InputPaqueteria {
     ubicacion_paqueteria:string,
@@ -35,7 +36,7 @@ export const getListPaqueteria  = async (
   
     const userJwt = localStorage.getItem("access_token"); 
   
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -56,7 +57,7 @@ export const getListPaqueteria  = async (
   
     const userJwt = localStorage.getItem("access_token"); 
   
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -77,7 +78,7 @@ export const crearPaqueteria  = async (data_paquete: InputPaqueteria  | null)=> 
     };
   
     const userJwt = localStorage.getItem("access_token"); 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -99,7 +100,7 @@ export const editarPaqueteria  = async (data_paquete_actualizar: InputPaqueteria
     };
   
     const userJwt = localStorage.getItem("access_token"); 
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "@/config/api";
 
 export const getEntryPasses = async (tabStatus='Todos') => {
     const payload = {
@@ -8,7 +9,7 @@ export const getEntryPasses = async (tabStatus='Todos') => {
   
      const userJwt = localStorage.getItem("access_token");
   
-      const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+      const response = await fetch(API_ENDPOINTS.runScript, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

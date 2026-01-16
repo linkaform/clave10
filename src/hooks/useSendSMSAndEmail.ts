@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { errorMsj } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
+import { API_ENDPOINTS } from "@/config/api";
 
 export interface DataMsjInterface {
     email_from: string;
@@ -20,7 +21,7 @@ export const enviarMensaje = async (data_msj: DataMsjInterface | null) => {
     };
 
     const userJwt = localStorage.getItem("access_token");
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

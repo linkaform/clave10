@@ -1,3 +1,5 @@
+import { API_ENDPOINTS } from "@/config/api";
+
 export const getPdfIncidencias = async (qr_code:string, template_id:number|null, account_id:number, name_pdf?:string) => {
     const payload = {
       script_name: "pase_de_acceso_use_api.py",
@@ -8,7 +10,7 @@ export const getPdfIncidencias = async (qr_code:string, template_id:number|null,
       name_pdf
     };
   
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',

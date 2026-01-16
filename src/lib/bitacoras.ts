@@ -1,3 +1,5 @@
+import { API_ENDPOINTS } from "@/config/api";
+
 export const getListBitacora = async (
     location:string, area:string,prioridades:string[], date1:string, date2:string, dateFilter:string) => {
     const payload = {
@@ -13,7 +15,7 @@ export const getListBitacora = async (
   
     const userJwt = localStorage.getItem("access_token"); 
   
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -37,7 +39,7 @@ export const getListBitacora = async (
   
     const userJwt = localStorage.getItem("access_token"); 
   
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -70,7 +72,7 @@ export const asignarGafete = async (data_gafete: dataGafetParamas | null, id_bit
   
     const userJwt = localStorage.getItem("access_token"); 
   
-    const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+    const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

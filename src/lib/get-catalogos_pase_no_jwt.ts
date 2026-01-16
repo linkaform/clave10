@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "@/config/api";
 
 export const getCatalogosPaseNoJwt = async (account_id:number|null, qr_code:string
 ) => {
@@ -8,7 +9,7 @@ export const getCatalogosPaseNoJwt = async (account_id:number|null, qr_code:stri
         option: "catalogos_pase_no_jwt",
      };
   
-      const response = await fetch(`https://app.linkaform.com/api/infosync/scripts/run/`, {
+      const response = await fetch(API_ENDPOINTS.runScript, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
