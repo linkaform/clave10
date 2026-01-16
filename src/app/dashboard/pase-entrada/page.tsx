@@ -170,7 +170,6 @@ import ComentariosList from "@/components/comentarios-list";
 		  ubicacionesSeleccionadas.map(async (ubicacion) => {
 			const res = await getCatalogoPasesAreaNoApi(ubicacion.id);
 			const areas = res?.response?.data?.areas_by_location ?? [];
-	
 			return areas.map((area: string) => ({
 			  nombre: area,
 			  locationId: ubicacion.id,

@@ -209,7 +209,7 @@ const RondinesTable:React.FC<ListProps> = ({ data, isLoading,
 	const [areas, setAreas] = useState(rondin?.areas || [])
 
 	const handleGuardar = () => {
-	  console.log("areas", nuevasAreasSeleccionadas)
+	  console.log("areas", nuevasAreasSeleccionadas) 
 	  editAreasRodindMutation.mutate({
 		areas:areas,     
 		record_id:rondinSeleccionado?rondinSeleccionado._id:"",

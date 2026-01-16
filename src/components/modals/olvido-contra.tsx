@@ -10,22 +10,21 @@ import {
 import { Dispatch, SetStateAction, useState } from "react";
 import { Input } from "../ui/input";
 import { Mail } from "lucide-react";
+import { useResetPassEmail } from "@/hooks/Login/useResetPassEmail";
 
 interface OlvidoContraModalProps {
     title: string;
-    username: string;
     open: boolean;
     setOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 export const OlvidoContraModal: React.FC<OlvidoContraModalProps> = ({
     title,
-    username,
     open,
     setOpen,
 }) => {
-    // const { sendResetEmailMutation, isLoading } = useSendResetEmail();
-    const [localName, setLocalName] = useState(username || "");
+    const {  resetPassEmailMutation, isLoading } = useResetPassEmail();
+    const [localName, setLocalName] = useState("");
 
     return (
         <Dialog open={open} onOpenChange={setOpen} modal>
@@ -59,17 +58,16 @@ export const OlvidoContraModal: React.FC<OlvidoContraModalProps> = ({
                         <Button
                             className="w-full  bg-blue-500 hover:bg-blue-600 text-white"
                             onClick={() => {
-                                    // sendResetEmailMutation.mutate({ username: localName }, {
-                                    //     onSuccess: () => {
-                                    //         setOpen(false);
-                                    //         setNombreSuplente(localName)
-                                    //     }
-                                    // })
+                                resetPassEmailMutation.mutate({ username: localName }, {
+                                        onSuccess: () => {
+                                            setOpen(false);
+                                        }
+                                    })
                             }}
-                            // disabled={localName.trim() === "" || isLoading}
+                            disabled={isLoading}
                         >
-                            {/* {isLoading ? "Cargando..." : "Confirmar"} */}
-                            <Mail /> Enviar correo
+                            {isLoading ? "Cargando..." :<> <Mail /> Enviar correo </>}
+                            
                         </Button>
                     </div>
                 </div>

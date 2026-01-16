@@ -1,4 +1,4 @@
-import { getMenu } from "@/lib/get-menu";
+import { getMenu } from "@/lib/login/get-menu";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { useQuery } from "@tanstack/react-query";
