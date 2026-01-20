@@ -56,17 +56,17 @@ export const useReportLocations = ({ enabled = false }: { enabled?: boolean }) =
     };
 };
 
-export const useAttendanceDetail = ({ enabled = false, names, selectedDay, location }: { enabled?: boolean; names: string[]; selectedDay: number; location: string }) => {
+export const useAttendanceDetail = ({ enabled = false, userIds, selectedDay, location }: { enabled?: boolean; userIds: number[]; selectedDay: number; location: string }) => {
     const {
         data: attendanceDetail,
         isLoading: isLoadingAttendanceDetail,
         error: errorAttendanceDetail,
         refetch: refetchAttendanceDetail,
     } = useQuery<any>({
-        queryKey: ["getAttendanceDetail", { names, selectedDay, location }],
+        queryKey: ["getAttendanceDetail", { userIds, selectedDay, location }],
         enabled,
         queryFn: async () => {
-            const data = await getAttendanceDetail(names, selectedDay, location);
+            const data = await getAttendanceDetail(userIds, selectedDay, location);
             return data ?? [];
         },
         refetchOnWindowFocus: false,

@@ -100,6 +100,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
   const [selectedWeek, setSelectedWeek] = useState(0);
   const [searchUbicacion, setSearchUbicacion] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number[]>([]);
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedUbicacion, setSelectedUbicacion] = useState<string>("");
@@ -331,6 +332,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                           className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
                           title={config.label}
                           onClick={() => {
+                            setSelectedUserId([emp.employee_id]);
                             setSelectedNames([emp.nombre]);
                             setSelectedDay(day);
                             setSelectedUbicacion(emp.ubicacion);
@@ -373,6 +375,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                         className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
                         title={config.label}
                         onClick={() => {
+                          setSelectedUserId([emp.employee_id]);
                           setSelectedNames([emp.nombre]);
                           setSelectedDay(day);
                           setSelectedUbicacion(emp.ubicacion);
@@ -394,6 +397,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
       <AttendanceDetailModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
+        userIds={selectedUserId}
         names={selectedNames}
         selectedDay={selectedDay ?? 1}
         ubicacion={selectedUbicacion}

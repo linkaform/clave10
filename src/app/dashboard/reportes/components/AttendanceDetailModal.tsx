@@ -36,6 +36,7 @@ interface AttendanceDetailModalProps {
     open: boolean;
     onClose: () => void;
     names: string[];
+    userIds: number[];
     selectedDay: number;
     ubicacion: string;
 }
@@ -44,6 +45,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
     open,
     onClose,
     names,
+    userIds,
     selectedDay,
     ubicacion,
 }) => {
@@ -51,7 +53,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
     const [currentDay, setCurrentDay] = useState<number>(selectedDay);
     const { attendanceDetail, isLoadingAttendanceDetail, errorAttendanceDetail } = useAttendanceDetail({
         enabled: open,
-        names,
+        userIds,
         selectedDay: currentDay,
         location: ubicacion,
     });
@@ -91,7 +93,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                         <span className="text-3xl">🧑‍✈️</span>
                                     </div>
                                     <div>
-                                        <div className="text-lg font-semibold">{names[0] ?? "Nombre no disponible"}</div>
+                                        <div className="text-lg font-semibold">{names?.[0] ?? "Nombre no disponible"}</div>
                                         <div className="text-xs text-gray-500 flex items-center gap-1">
                                             {attendanceDetail?.guardia_generales?.tipo_guardia
                                                 ?.replace(/_/g, " ")
@@ -119,7 +121,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                         <span className="text-3xl">🧑‍✈️</span>
                                     </div>
                                     <div>
-                                        <div className="text-lg font-semibold">{names[0] ?? "Nombre no disponible"}</div>
+                                        <div className="text-lg font-semibold">{names?.[0] ?? "Nombre no disponible"}</div>
                                         <div className="text-xs text-gray-500 flex items-center gap-1">
                                             {attendanceDetail?.guardia_generales?.tipo_guardia
                                                 ?.replace(/_/g, " ")
@@ -146,7 +148,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                         <span className="text-3xl">🧑‍✈️</span>
                                     </div>
                                     <div>
-                                        <div className="text-lg font-semibold">{names[0] ?? "Nombre no disponible"}</div>
+                                        <div className="text-lg font-semibold">{names?.[0] ?? "Nombre no disponible"}</div>
                                         <div className="text-xs text-gray-500 flex items-center gap-1">
                                             {attendanceDetail?.guardia_generales?.tipo_guardia
                                                 ?.replace(/_/g, " ")
@@ -211,7 +213,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                         <span className="text-3xl">🧑‍✈️</span>
                                     </div>
                                     <div>
-                                        <div className="text-lg font-semibold">{names[0] ?? "Nombre no disponible"}</div>
+                                        <div className="text-lg font-semibold">{names?.[0] ?? "Nombre no disponible"}</div>
                                         <div className="text-xs text-gray-500 flex items-center gap-1">
                                             {attendanceDetail?.guardia_generales?.tipo_guardia
                                                 ?.replace(/_/g, " ")
@@ -306,9 +308,9 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                                     </span>
                                                     <span className="text-gray-500 ml-4">Cierre:</span>
                                                     <span className="font-semibold ml-1">
-                                                        {attendanceDetail?.guardia_generales?.fecha_inicio_turno
-                                                            ? attendanceDetail.guardia_generales?.fecha_cierre_turno?.slice(11, 16)
-                                                            : ""}
+                                                        {attendanceDetail?.guardia_generales?.end_shift
+                                                            ? attendanceDetail.guardia_generales.end_shift.slice(11, 16)
+                                                            : "No registrado"}
                                                     </span>
                                                 </div>
                                             </div>

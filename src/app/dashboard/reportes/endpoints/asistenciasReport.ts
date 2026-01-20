@@ -58,12 +58,12 @@ export const getReportLocations = async () => {
     }
 };
 
-export const getAttendanceDetail = async (names: string[], selectedDay: number, location: string) => {
+export const getAttendanceDetail = async (userIds: number[], selectedDay: number, location: string) => {
     try {
         const payload = {
             option: "get_guard_turn_details",
             script_name: "asistencia_report.py",
-            names,
+            user_ids: userIds,
             selected_day: selectedDay,
             location
         };

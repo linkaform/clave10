@@ -21,6 +21,7 @@ function getAbbreviation(name: string) {
 interface GuardiasPorDia {
   nombre: string;
   status: string;
+  employee_id: string;
 }
 
 interface RowData {
@@ -65,7 +66,7 @@ function getWeeks(daysInMonth: number, month: number, year: number) {
 }
 
 // GuardiasCircles ya NO tiene modal ni estado propio
-const GuardiasCircles: React.FC<{ guardias: GuardiasPorDia[], onGuardClick?: (names: string[]) => void }> = ({ guardias, onGuardClick }) => {
+const GuardiasCircles: React.FC<{ guardias: GuardiasPorDia[], onGuardClick?: (guardias: GuardiasPorDia[]) => void }> = ({ guardias, onGuardClick }) => {
   const maxVisible = 2;
   const visibles = guardias.slice(0, maxVisible);
   const extra = guardias.length - maxVisible;
@@ -77,7 +78,7 @@ const GuardiasCircles: React.FC<{ guardias: GuardiasPorDia[], onGuardClick?: (na
           type="button"
           key={idx}
           disabled={!onGuardClick}
-          onClick={() => onGuardClick && onGuardClick([g.nombre])}
+          onClick={() => onGuardClick && onGuardClick([g])}
           className={`flex items-center justify-center rounded-full h-7 w-7 font-bold text-[10px] ${statusColors[g.status] || statusColors["sin_registro"]} border border-white shadow absolute cursor-pointer`}
           style={
             visibles.length > 1
@@ -92,7 +93,7 @@ const GuardiasCircles: React.FC<{ guardias: GuardiasPorDia[], onGuardClick?: (na
       {extra > 0 && (
         <button
           type="button"
-          onClick={() => onGuardClick && onGuardClick(guardias.slice(maxVisible).map(g => g.nombre))}
+          onClick={() => onGuardClick && onGuardClick(guardias.slice(maxVisible))}
           className={`flex items-center justify-center rounded-full h-7 w-7 font-bold text-[10px] bg-gray-200 text-gray-700 border border-white shadow absolute cursor-pointer`}
           style={{
             left: `${maxVisible * 12}px`,
@@ -125,6 +126,7 @@ const LocationShiftAttendanceTable: React.FC<LocationShiftAttendanceTableProps> 
   // Estado para el modal y los nombres seleccionados
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedUbicacion, setSelectedUbicacion] = useState<string>("");
 
@@ -244,8 +246,8 @@ const LocationShiftAttendanceTable: React.FC<LocationShiftAttendanceTableProps> 
                     ? asistencia.empleados
                       .filter(e => typeof e === "string" && e && e !== "sin_registro-sin_registro")
                       .map(e => {
-                        const [nombre, status] = e.split("-");
-                        return { nombre, status };
+                        const [nombre, status, employee_id] = e.split("-");
+                        return { nombre, status, employee_id };
                       })
                     : [];
 
@@ -261,8 +263,9 @@ const LocationShiftAttendanceTable: React.FC<LocationShiftAttendanceTableProps> 
                         guardias={filteredGuardias}
                         onGuardClick={
                           filteredGuardias.length > 0
-                            ? (names) => {
-                              setSelectedNames(names);
+                            ? (clickedGuardias) => {
+                              setSelectedUserIds(clickedGuardias.map(g => parseInt(g.employee_id)));
+                              setSelectedNames(clickedGuardias.map(g => g.nombre));
                               setSelectedDay(day.day);
                               setModalOpen(true);
                               setSelectedUbicacion(ubicacion);
@@ -293,6 +296,7 @@ const LocationShiftAttendanceTable: React.FC<LocationShiftAttendanceTableProps> 
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         names={selectedNames}
+        userIds={selectedUserIds}
         selectedDay={selectedDay ?? 1}
         ubicacion={selectedUbicacion}
       />
