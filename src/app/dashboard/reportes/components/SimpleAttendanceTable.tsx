@@ -342,9 +342,9 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                       </td>
                     );
                   })}
-                  <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.asistencias}</td>
                   <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.retardos}</td>
                   <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.faltas}</td>
+                  <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.asistencias}</td>
                 </tr>
               ))
             )
@@ -384,9 +384,9 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                     </td>
                   );
                 })}
-                <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.asistencias}</td>
                 <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.retardos}</td>
                 <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.faltas}</td>
+                <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.asistencias}</td>
               </tr>
             ))}
         </tbody>
