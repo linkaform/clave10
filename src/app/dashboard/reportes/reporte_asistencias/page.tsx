@@ -172,7 +172,7 @@ const ReportsPage = () => {
 	const totalRetardos = data.reduce((acc, row) => acc + ((row as any).resumen?.retardos || 0), 0);
 
 	return (
-		<div className="min-h-screen pb-10">
+		<div>
 			<div className="flex flex-col w-11/12 m-auto mt-2 gap-4">
 				{/* Header: Title */}
 

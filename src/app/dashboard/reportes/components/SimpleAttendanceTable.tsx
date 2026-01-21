@@ -220,7 +220,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
   const daysToShow = timeframe === "semana" ? weeks[selectedWeek] : Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-auto max-h-[60vh] border rounded-md shadow-sm">
       {timeframe === "semana" && (
         <div className="flex items-center justify-center gap-4 mb-4">
           <button
@@ -253,7 +253,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
         <thead>
           <tr>
             {groupByLocation && (
-              <th className="sticky left-0 bg-white z-10 p-2 border-b-2 border-gray-300 text-left min-w-[120px] w-[140px]">
+              <th className="sticky left-0 top-0 bg-white z-30 p-2 border-b-2 border-gray-300 text-left min-w-[120px] w-[140px]">
                 <div>
                   <span>Ubicación</span>
                   <input
@@ -267,7 +267,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
               </th>
             )}
             <th
-              className={`sticky ${groupByLocation ? "left-[120px]" : "left-0"} bg-white z-10 p-2 border-b-2 border-gray-300 text-left min-w-[180px] w-[200px]`}
+              className={`sticky ${groupByLocation ? "left-[120px]" : "left-0"} top-0 bg-white z-30 p-2 border-b-2 border-gray-300 text-left min-w-[180px] w-[200px]`}
             >
               <div>
                 <span>Empleado</span>
@@ -281,7 +281,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
               </div>
             </th>
             {daysToShow.map((day, idx) => {
-              if (!day) return <th key={idx} className="p-2 border-b text-center"></th>;
+              if (!day) return <th key={idx} className="sticky top-0 z-20 bg-white p-2 border-b text-center"></th>;
 
               const date = new Date(year, month - 1, day);
               const dayOfWeek = date.getDay();
@@ -289,15 +289,15 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
               const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
               return (
-                <th key={idx} className={`p-1 border-b-2 border-gray-300 text-center min-w-[32px] max-w-[36px] ${isWeekend ? 'bg-blue-50' : 'bg-white'}`}>
+                <th key={idx} className={`sticky top-0 z-20 p-1 border-b-2 border-gray-300 text-center min-w-[32px] max-w-[36px] ${isWeekend ? 'bg-blue-50' : 'bg-white'}`}>
                   <div className="text-xs font-bold">{day.toString().padStart(2, '0')}</div>
                   <div className="text-[10px]">{dayNames[dayOfWeek]}</div>
                 </th>
               );
             })}
-            <th className="px-1 py-2 border-b-2 border-gray-300 text-center bg-white min-w-[28px] max-w-[32px] text-xs">R</th>
-            <th className="px-1 py-2 border-b-2 border-gray-300 text-center bg-white min-w-[28px] max-w-[32px] text-xs">F</th>
-            <th className="px-1 py-2 border-b-2 border-gray-300 text-center bg-white min-w-[28px] max-w-[32px] text-xs">A</th>
+            <th className="sticky top-0 z-20 px-1 py-2 border-b-2 border-gray-300 text-center bg-white min-w-[28px] max-w-[32px] text-xs">R</th>
+            <th className="sticky top-0 z-20 px-1 py-2 border-b-2 border-gray-300 text-center bg-white min-w-[28px] max-w-[32px] text-xs">F</th>
+            <th className="sticky top-0 z-20 px-1 py-2 border-b-2 border-gray-300 text-center bg-white min-w-[28px] max-w-[32px] text-xs">A</th>
           </tr>
         </thead>
         <tbody>
