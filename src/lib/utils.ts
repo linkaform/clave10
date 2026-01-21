@@ -4,6 +4,7 @@ import { Equipo_bitacora, Vehiculo_bitacora } from "@/components/table/bitacoras
 import { Equipo, Vehiculo } from "./update-pass"
 import { toast } from "sonner"
 import catalogo from '../app/catalogo.json';
+import Swal from "sweetalert2"
 
 
 export function cn(...inputs: ClassValue[]) {
@@ -579,26 +580,66 @@ export function formatToValueLabel (array:any[]) {
   }));
 }
 
-export const imprimirPDF = (url: string) => {
-  const iframe = document.createElement("iframe");
 
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "0";
 
-  iframe.src = url;
+export const imprimirPDF = async (pdfUrl: string) => {
 
-  document.body.appendChild(iframe);
 
-  iframe.onload = () => {
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-
-    setTimeout(() => {
-      document.body.removeChild(iframe);
-    }, 1000);
-  };
+  try {
+    const response = await fetch(pdfUrl, { mode: 'cors' });
+    
+    if (!response.ok) {
+      throw new Error('No se pudo cargar el PDF');
+    }
+    
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    
+    Swal.close();
+    
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.opacity = '0';
+    iframe.src = blobUrl;
+    
+    document.body.appendChild(iframe);
+    
+    iframe.onload = () => {
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.print();
+          
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            URL.revokeObjectURL(blobUrl);
+          }, 1000);
+        } catch (error) {
+          console.error('Error al imprimir:', error);
+          document.body.removeChild(iframe);
+          URL.revokeObjectURL(blobUrl);
+          
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo abrir la ventana de impresión',
+            confirmButtonColor: '#f44336',
+          });
+        }
+      }, 500);
+    };
+    
+  } catch (error) {
+    Swal.close();
+    console.error('Error al cargar el PDF:', error);
+    
+    await Swal.fire({
+      icon: 'error',
+      title: 'Error al cargar PDF',
+      text: 'No se pudo cargar el documento.',
+      confirmButtonColor: '#f44336',
+    });
+  }
 };

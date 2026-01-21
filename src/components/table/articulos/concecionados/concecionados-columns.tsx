@@ -2,11 +2,12 @@ import {
   ColumnDef, 
 } from "@tanstack/react-table";
 import { useState } from "react";
-import { Eye } from "lucide-react";
-import { LoadingModal } from "@/components/modals/loading-modal";
+import { Edit, Eye } from "lucide-react";
+// import { LoadingModal } from "@/components/modals/loading-modal";
 import { ViewArticuloCon } from "@/components/modals/view-articulo-con";
-import { EditArticuloConModal } from "@/components/modals/edit-article-con";
 import { DevolucionArticuloConModal } from "@/components/modals/devolucion-article-con-modal";
+import { Imagen } from "@/components/upload-Image";
+import { AddArticuloConModal } from "@/components/modals/add-article.con";
 
 
 export interface Articulo_con_record {
@@ -22,32 +23,42 @@ export interface Articulo_con_record {
     fecha_devolucion_concesion:string,
     status_concesion:string,
     persona_nombre_concesion:string
+    evidencia:Imagen[],
+    persona_text:string
 }
 
 
 const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
   const articulo = row.original;
-  const [showLoadingModal, setShowLoadingModal] = useState(false);
+  // const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [isSuccessCon, setIsSuccessCon] = useState(false);
 
   return (
-    <div className="flex space-x-2">
-      <ViewArticuloCon 
-          title="Información del Artículo Concesionado"
-          data={articulo} isSuccess={false}>
-            <div className="cursor-pointer" title="Ver Artículo">
-              <Eye /> 
-            </div>
-        </ViewArticuloCon>
+    <><div className="flex space-x-2">
+      <ViewArticuloCon
+        title="Información del Artículo Concesionado"
+        data={articulo} isSuccess={false}>
+        <div className="cursor-pointer" title="Ver Artículo">
+          <Eye />
+        </div>
+      </ViewArticuloCon>
 
-      <LoadingModal isOpen={showLoadingModal} text="Cargando..."/>
-
-      <EditArticuloConModal 
-        title="Editar Artículo Concesionado"
-        data={articulo} setShowLoadingModal={setShowLoadingModal} showLoadingModal={showLoadingModal}/>
-
-      <DevolucionArticuloConModal 
-        title="Devolver Artículo Concesionado" data={articulo}/>
+      {/* <LoadingModal isOpen={showLoadingModal} text="Cargando..."/> */}
+      <AddArticuloConModal
+        title={"Editar Artículo Concesionado"}
+        isSuccess={isSuccessCon}
+        setIsSuccess={setIsSuccessCon}
+        initialData={articulo}
+        mode={"edit"}>
+      <div className="cursor-pointer" title="Editar Artículo">
+        <Edit />
+      </div>
+    </AddArticuloConModal>
+    
+    <DevolucionArticuloConModal
+        title="Devolver Artículo Concesionado" data={articulo} />
     </div>
+    </>
   );
 };
 

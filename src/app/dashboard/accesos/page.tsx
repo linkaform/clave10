@@ -39,7 +39,7 @@ import { useGetShift } from "@/hooks/useGetShift";
 import { exitRegister, registerIncoming } from "@/lib/access";
 import { PermisosTable } from "@/components/table/accesos/permisos-certificaciones/table";
 import useAuthStore from "@/store/useAuthStore";
-import { esHexadecimal } from "@/lib/utils";
+import { esHexadecimal, imprimirPDF } from "@/lib/utils";
 import Link from "next/link";
 import { useGetStats } from "@/hooks/useGetStats";
 import { ScanPassOptionsModal } from "@/components/modals/scan-pass-options";
@@ -51,7 +51,7 @@ import { useGetPdf } from "@/hooks/usetGetPdf";
 import { Equipo , Vehiculo} from "@/lib/update-pass";
 
 const AccesosPage = () => {
-  const { isAuth, userIdSoter } = useAuthStore()
+  const { isAuth, userIdSoter } = useAuthStore();
   const { shift, isLoading:loadingShift} = useGetShift(true);
   const { area, location, setLoading , turno, setTab, setFilter, setOption, downloadPass} = useShiftStore();
   const { passCode, setPassCode, clearPassCode, selectedEquipos, setSelectedEquipos, setSelectedVehiculos, selectedVehiculos, setTipoMovimiento, tipoMovimiento} = useAccessStore();
@@ -83,77 +83,54 @@ const AccesosPage = () => {
   }, [searchPass?.grupo_equipos, searchPass?.grupo_vehiculos, searchPass?.tipo_movimiento]);
 
 
-	const handleGetPdf = async () => {
-		try {
-		const result = await refetch();
-	
-		if (result.error) {
-			toast.error(`Error de red: ${result.error}`, {
-			style: {
-				backgroundColor: "#f44336",
-				color: "#fff",
-			},
-			});
-			return;
-		}
-	
-		const data = result.data?.response?.data;
-	
-		if (!data || data.status_code !== 200) {
-			const errorMsg =
-			data?.json?.error ||
-			result.data?.error ||
-			"Error desconocido del servidor";
-	
-			toast.error(`Error de red: ${errorMsg}`, {
-			style: {
-				backgroundColor: "#f44336",
-				color: "#fff",
-			},
-			});
-			return;
-		}
-	
-		const downloadUrl = data?.json?.download_url;
-	
-		if (downloadUrl) {
-			imprimirPDF(downloadUrl); 
-		} else {
-			toast.warning("No se encontró URL de descarga");
-		}
-		} catch (err) {
-		toast.error(`Error inesperado: ${err}`, {
-			style: {
+  const handleGetPdf = async () => {
+	try {
+	  const result = await refetch();
+  
+	  if (result.error) {
+		toast.error(`Error de red: ${result.error}`, {
+		  style: {
 			backgroundColor: "#f44336",
 			color: "#fff",
-			},
+		  },
 		});
-		}
-	};
-	
+		return;
+	  }
+  
+	  const data = result.data?.response?.data;
+  
+	  if (!data || data.status_code !== 200) {
+		const errorMsg =
+		  data?.json?.error ||
+		  result.data?.error ||
+		  "Error desconocido del servidor";
+  
+		toast.error(`Error de red: ${errorMsg}`, {
+		  style: {
+			backgroundColor: "#f44336",
+			color: "#fff",
+		  },
+		});
+		return;
+	  }
+  
+	  const downloadUrl = data?.json?.download_url;
+  
+	  if (downloadUrl) {
+		imprimirPDF(downloadUrl); 
+	  } else {
+		toast.warning("No se encontró URL de descarga");
+	  }
+	} catch (err) {
+	  toast.error(`Error inesperado: ${err}`, {
+		style: {
+		  backgroundColor: "#f44336",
+		  color: "#fff",
+		},
+	  });
+	}
+  };
 
-	const imprimirPDF = (url: string) => {
-		const ventana = window.open(url, "_blank");
-	  
-		if (!ventana) {
-		  toast.error("El navegador bloqueó la ventana emergente");
-		  return;
-		}
-	  
-		ventana.onload = () => {
-		  ventana.focus();
-		  ventana.print();
-		};
-	  };
-
-	// async function onDescargarPDF(download_url: string) {
-	// 	try {
-	// 		await descargarPdfPase(download_url, "Seguimientio_de_incidente.pdf");
-	// 		toast.success("¡PDF descargado correctamente!");
-	// 	} catch (error) {
-	// 		toast.error("Error al descargar el PDF: " + error);
-	// 	}
-	// }
 
   const exitRegisterAccess = useMutation({
     mutationFn: async () => {
@@ -259,8 +236,19 @@ const AccesosPage = () => {
 		  color: 'white',
 		},
 	  });
-	  if( downloadPass && id!=="" )
+
+	  if(downloadPass.includes("impresion_de_pase")){
+		Swal.fire({
+			title: 'Preparando documento',
+			html: 'Cargando PDF para imprimir...',
+			allowOutsideClick: false,
+			allowEscapeKey: false,
+			didOpen: () => {
+			  Swal.showLoading();
+			}
+		  });
 	  	handleGetPdf();
+	  }
 
 
     },
@@ -350,7 +338,6 @@ const AccesosPage = () => {
 		</div>
 		)
   }
-
 
   return (
     <div >
@@ -454,16 +441,7 @@ const AccesosPage = () => {
 						<Eraser className="text-white" />
 						
 					</Button></>):null}
-					{/* { downloadPass && id!=="" ? (<>
-					<Button
-						className="bg-purple-500 hover:bg-purple-600 text-white"
-						variant="secondary"
-						disabled={isLoadingDownloadPass}
-						onClick={() => {handleGetPdf()}}
-					>
-						<Download className="text-white"/>   {isLoadingDownloadPass ? "Descargando..." : "Descargar pase"}
-						
-					</Button></>):null} */}
+				
 					{ searchPass?.estatus=="proceso" ? (<>
 					<UpdatePassModal title={"Completar Pase"} id={searchPass._id} dataCatalogos={searchPass}>
 						<Button

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Archive, CircleHelp, Package } from "lucide-react";
+import { Archive, CircleHelp, Edit, Package } from "lucide-react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import PageTitle from "@/components/page-title";
 import { useArticulosPerdidos } from "@/hooks/useArticulosPerdidos";
@@ -10,7 +10,6 @@ import ArticulosPerdidosTable from "@/components/table/articulos/pendientes/tabl
 import { AddArticuloModal } from "@/components/modals/add-article-lost";
 import ArticulosConTable from "@/components/table/articulos/concecionados/table";
 import { useArticulosConcesionados } from "@/hooks/useArticulosConcesionados";
-import { AddArticuloConModal } from "@/components/modals/add-article.con";
 import PaqueteriaTable from "@/components/table/articulos/paqueteria/table";
 import { usePaqueteria } from "@/hooks/usePaqueteria";
 import { useShiftStore } from "@/store/useShiftStore";
@@ -19,6 +18,7 @@ import { dateToString } from "@/lib/utils";
 import { toast } from "sonner";
 import ChangeLocation from "@/components/changeLocation";
 import { useGetStats } from "@/hooks/useGetStats";
+import { AddArticuloConModal } from "@/components/modals/add-article.con";
 
 const ArticulosPage = () => {
 	const {location} = useShiftStore()
@@ -61,9 +61,7 @@ const ArticulosPage = () => {
 	const openModalCon = () => {
 		setIsSuccessCon(true);  
 		};
-	const closeModalCon = () => {
-		setIsSuccessCon(false);  
-	};
+
 	const openModalPaq = () => {
 		setIsSuccessPaq(true);  
 		};
@@ -216,8 +214,14 @@ const ArticulosPage = () => {
 					title={"Crear Artículo Concesionado"}
 					isSuccess={isSuccessCon}
 					setIsSuccess={setIsSuccessCon}
-					onClose={closeModalCon}
-				/>
+					// onClose={closeModalCon}
+                    initialData={{}}
+				>
+
+					<div>
+						<Edit/>
+					</div>
+				</AddArticuloConModal>
 
 				<AddPaqueteriaModal
 					title={"Crear Paquetería"}

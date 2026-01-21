@@ -23,7 +23,6 @@ import { Textarea } from "../ui/textarea";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
-import { format } from 'date-fns';
 
 import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
 import DateTime from "../dateTime";
@@ -53,6 +52,13 @@ const formSchema = z.object({
 	area_concesion: z.string().optional(),
 	equipo_concesion: z.string().optional(), 
 	observacion_concesion: z.string().optional(), 
+	evidencia: z.array(
+		z.object({
+		  file_url: z.string(),
+		  file_name: z.string(),
+		})
+	  ).optional(),
+	persona_text:z.string().optional(), 
 });
 
 export const EditArticuloConModal: React.FC<AddFallaModalProps> = ({
@@ -68,7 +74,7 @@ export const EditArticuloConModal: React.FC<AddFallaModalProps> = ({
 
 	const { dataAreas:areas, dataLocations:ubicaciones, isLoadingAreas:loadingAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true,  ubicacionSeleccionada?true:false);
 	const { data:dataAreaEmpleadoApoyo, isLoading:loadingAreaEmpleadoApoyo,} = useCatalogoAreaEmpleadoApoyo(showLoadingModal|| isSuccess);
-	const { editarArticulosConMutation, isLoading} = useArticulosConcesionados(ubicacionSeleccionada, area, "",false, "", "", "")
+	const {  isLoading} = useArticulosConcesionados(ubicacionSeleccionada, area, "",false, "", "", "")
     const { dataCon, dataConSub, isLoadingCon, isLoadingConSub  } = useCatalogoConcesion(ubicacionSeleccionada, conSelected, showLoadingModal|| isSuccess);
 	const [date, setDate] = useState<Date|"">("");
 
@@ -84,6 +90,8 @@ export const EditArticuloConModal: React.FC<AddFallaModalProps> = ({
             area_concesion:data.area_concesion,
             equipo_concesion:"", 
             observacion_concesion:data.observacion_concesion, 
+			evidencia:data.evidencia,
+			persona_text:data.persona_text
 		},
 	});
 
@@ -113,19 +121,22 @@ export const EditArticuloConModal: React.FC<AddFallaModalProps> = ({
 
 	function onSubmit(values: z.infer<typeof formSchema>) {
 		if(date){
-			const formattedDate = format( new Date(date), 'yyyy-MM-dd HH:mm:ss');
-			const formatData ={
-                    status_concesion: "abierto",
-                    persona_nombre_concesion:values.persona_nombre_concesion??"",
-                    ubicacion_concesion: values.ubicacion_concesion ?? "",
-                    caseta_concesion: values.caseta_concesion ?? "",
-                    fecha_concesion: formattedDate?? "",
-                    solicita_concesion: values.solicita_concesion ?? "persona",
-                    area_concesion: values.area_concesion?? "",
-                    equipo_concesion: values.equipo_concesion?? "", 
-                    observacion_concesion: values.observacion_concesion?? "", 
-				}
-				editarArticulosConMutation.mutate({data_article_update: formatData, folio: data.folio})
+			console.log(values)
+			// const formattedDate = format( new Date(date), 'yyyy-MM-dd HH:mm:ss');
+			// const formatData ={
+            //         status_concesion: "abierto",
+            //         persona_nombre_concesion:values.persona_nombre_concesion??"",
+            //         ubicacion_concesion: values.ubicacion_concesion ?? "",
+            //         caseta_concesion: values.caseta_concesion ?? "",
+            //         fecha_concesion: formattedDate?? "",
+            //         solicita_concesion: values.solicita_concesion ?? "persona",
+            //         area_concesion: values.area_concesion?? "",
+            //         equipo_concesion: values.equipo_concesion?? "", 
+            //         observacion_concesion: values.observacion_concesion?? "", 
+			// 		evidencia:values.evidencia,
+			// 		persona_text:values.persona_text
+			// 	}
+				// editarArticulosConMutation.mutate({data_article_update: formatData, folio: data.folio})
 		}else{
 			form.setError("fecha_concesion", { type: "manual", message: "Fecha es un campo requerido." });
 		}

@@ -1,3 +1,4 @@
+import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api"
 
 export interface InputArticuloCon {
@@ -10,6 +11,8 @@ export interface InputArticuloCon {
     area_concesion:string,
     equipo_concesion:string,
     observacion_concesion:string,
+    evidencia:Imagen[],
+    persona_text:string
 }
 export interface InputOutArticuloCon {
     fecha_devolucion_concesion:string,
