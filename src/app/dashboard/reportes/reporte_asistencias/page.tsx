@@ -280,8 +280,8 @@ const ReportsPage = () => {
 				</div>
 
 				{/* Controls Row: Symbology | Month Nav | Buttons */}
-				<div className="flex flex-col lg:flex-row items-center justify-between px-4 mt-4 gap-4">
-					<div className="flex-1 w-full lg:w-auto">
+				<div className="flex flex-col lg:flex-row items-center  justify-between px-4 mt-4 gap-4">
+					<div className="flex-2 w-full lg:w-auto items-center">
 						<AttendanceTableSymbology
 							selectedStatus={selectedStatus}
 							onChange={setSelectedStatus}
