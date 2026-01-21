@@ -148,23 +148,23 @@ export function formatEquipos(arr: Equipo_bitacora[]): Equipo[] {
 
 export function formatVehiculosToBitacora(arr: Vehiculo []): Vehiculo_bitacora[] {
   return arr.map(item => ({
-    tipo: item.tipo, 
-    marca_vehiculo: item.marca, 
-    modelo_vehiculo: item.modelo, 
-    nombre_estado: item.estado, 
-    placas: item.placas, 
-    color: item.color
+    tipo: item.tipo??"", 
+    marca_vehiculo: item.marca??"", 
+    modelo_vehiculo: item.modelo??'', 
+    nombre_estado: item.estado??'', 
+    placas: item.placas??'', 
+    color: item.color??''
   }));
 }
 
 export function formatEquiposToBitacora(arr:Equipo[]): Equipo_bitacora[] {
   return arr.map(item => ({
-    color_articulo: item.color, 
-    numero_serie: item.serie, 
-    modelo_articulo: item.modelo, 
-    marca_articulo: item.marca, 
-    tipo_equipo: item.tipo, 
-    nombre_articulo: item.nombre
+    color_articulo: item.color??'', 
+    numero_serie: item.serie??'', 
+    modelo_articulo: item.modelo??'', 
+    marca_articulo: item.marca??'', 
+    tipo_equipo: item.tipo??'', 
+    nombre_articulo: item.nombre??""
   }));
 }
 
@@ -578,3 +578,27 @@ export function formatToValueLabel (array:any[]) {
     label: val.nombre
   }));
 }
+
+export const imprimirPDF = (url: string) => {
+  const iframe = document.createElement("iframe");
+
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+
+  iframe.src = url;
+
+  document.body.appendChild(iframe);
+
+  iframe.onload = () => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+    }, 1000);
+  };
+};

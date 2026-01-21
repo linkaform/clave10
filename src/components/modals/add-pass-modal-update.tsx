@@ -18,7 +18,6 @@ import useAuthStore from "@/store/useAuthStore";
 import { Update_full_pass, usePaseEntrada } from "@/hooks/usePaseEntrada";
 import { Badge } from "../ui/badge";
 import { capitalizeFirstLetter } from "@/lib/utils";
-// import { useRouter } from "next/navigation";
 
 interface EntryPassModalUpdateProps {
   title: string;
@@ -328,12 +327,13 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
 
       {openGeneratedPass? (
         <GeneratedPassModal
-          title="Pase de Entrada Generado "
-          description="El pase de entrada se ha generado correctamente. Por favor, copie el siguiente enlace y compártalo con el visitante para completar el proceso."
-          link={link}
-          openGeneratedPass={openGeneratedPass}
-          setOpenGeneratedPass={setOpenGeneratedPass}/>
-        
+              title="Pase de Entrada Generado "
+              description="El pase de entrada se ha generado correctamente. Por favor, copie el siguiente enlace y compártalo con el visitante para completar el proceso."
+              link={link}
+              openGeneratedPass={openGeneratedPass}
+              setOpenGeneratedPass={setOpenGeneratedPass}
+              modalConfirmacion={setIsSuccess}/>
+      
       ):null}
       
       <Button className="w-full h-12  bg-blue-500 hover:bg-blue-600 text-white" onClick={onSubmitEdit}>

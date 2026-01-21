@@ -1,5 +1,5 @@
 import { UpdateBitacora } from "@/lib/update-bitacora-entrada";
-import { Equipo, Vehiculo } from "@/lib/update-pass-full";
+import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { errorMsj } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";

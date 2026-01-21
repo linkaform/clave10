@@ -21,8 +21,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import LoadImage from "../upload-Image";
-import { Imagen } from "@/lib/update-pass";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { format,  } from 'date-fns';
 
@@ -34,6 +32,7 @@ import { usePaqueteria } from "@/hooks/usePaqueteria";
 import { useGetLockers } from "@/hooks/useGetLockers";
 import { Textarea } from "../ui/textarea";
 import { useCatalogoProveedores } from "@/hooks/useCatalogoProveedores";
+import LoadImage, { Imagen } from "../upload-Image";
 
 interface EditarFallaModalProps {
   	title: string;

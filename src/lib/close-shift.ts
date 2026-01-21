@@ -1,4 +1,4 @@
-import { Imagen } from "./update-pass-full";
+import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
 
 

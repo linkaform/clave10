@@ -29,8 +29,8 @@ import {
 import { EquipoAutorizadoColumns } from "./equipos-autorizados-columns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EqipmentLocalPassModal } from "@/components/modals/add-local-equipo";
-import { Equipo } from "@/lib/update-pass";
 import { SelectedEquiposModal } from "@/components/modals/modal-selected-equipos";
+import { Equipo } from "@/lib/update-pass";
 
 interface TableProps {
 	selectedEquipos: Equipo[]

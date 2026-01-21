@@ -1,5 +1,6 @@
+import { Imagen } from "@/components/upload-Image"
 import { AccessPass, addNewVisit, exitRegister, getAccessAssets, searchAccessPass } from "@/lib/access"
-import { Equipo, Vehiculo } from "@/lib/update-pass-full"
+import { Equipo, Vehiculo } from "@/lib/update-pass"
 import { errorMsj } from "@/lib/utils"
 import { useAccessStore } from "@/store/useAccessStore"
 import { useShiftStore } from "@/store/useShiftStore"
@@ -28,13 +29,13 @@ export interface SearchAccessPass {
   email: string
   limitado_a_dias: string | string[]
   grupo_areas_acceso: any[]
-  foto: Foto[]
+  foto: Imagen[]
   gafete_id: any
   estatus: string
   visita_a_email: any[][]
   grupo_equipos: Equipo[]
   ultimo_acceso: any[]
-  identificacion: Identificacion[]
+  identificacion: Imagen[]
   visita_a: any[]
   locker_id: any
   certificaciones: any[]
@@ -47,21 +48,7 @@ export interface SearchAccessPass {
   total_entradas?:string;
 }
 
-export interface Foto {
-  file_name: string
-  file_url: string
-}
 
-export interface Image {
-    file_name: string
-    file_url: string
-  }
-  
-
-export interface Identificacion {
-  file_name: string
-  file_url: string
-}
 
 export interface QrPase {
   file_name: string

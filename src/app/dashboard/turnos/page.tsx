@@ -9,7 +9,7 @@ import TurnStatus from "@/components/pages/turnos/turn-status";
 import { useGetShift } from "@/hooks/useGetShift";
 import { useShiftStore } from "@/store/useShiftStore";
 import { useEffect, useState } from "react";
-import { Imagen } from "@/lib/update-pass-full";
+import { Imagen } from "@/components/upload-Image";
 
 
 

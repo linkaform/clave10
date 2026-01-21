@@ -1,12 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import UpdateFullPassModal from "@/components/modals/update-full-pass";
 import { ViewPassModal } from "@/components/modals/view-pass-modal";
 import { Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { capitalizeFirstLetter, replaceNullsInArrayDynamic } from "@/lib/utils";
-import { ColumnDef } from "@tanstack/react-table";
-import { Eye, Pencil} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { replaceNullsInArrayDynamic } from "@/lib/utils";
+import { Edit, Eye} from "lucide-react";
 
 type Imagen = {
   file_name: string;
@@ -51,7 +47,7 @@ export interface PaseEntrada {
    pdf_to_img: Imagen[];
 }
 
-const OptionsCell: React.FC<{ row: any }> = ({ row }) => {
+export const OptionsCell: React.FC<{ row: any,onEditarClick: (pase: any) => void }> = ({ row, onEditarClick }) => {
   const rowData = row.original;
   const dataFull= {
     _id:rowData._id,
@@ -107,154 +103,15 @@ const OptionsCell: React.FC<{ row: any }> = ({ row }) => {
           </div>
       </ViewPassModal>
       
-      <UpdateFullPassModal dataPass={dataFull}>
-        <div className="cursor-pointer">
-            <Pencil />
-          </div>
-      </UpdateFullPassModal>
+        <div
+          className="cursor-pointer"
+          onClick={() => onEditarClick(dataFull)}
+          title="Editar Pase"
+        >
+          <Edit />
+        </div>
+
     </div>
   );
 };
 
-export const pasesEntradaColumns: ColumnDef<PaseEntrada>[] = [
-  {
-    id: "options",
-    header: "Opciones",
-    cell: ({row}) => <OptionsCell row={row} key={row.original._id}/>,
-    enableSorting: false,
-  },
-  {
-    accessorKey: "pase",
-    header: "Foto",
-    cell: ({ row }) => {
-      const foto = row.original.foto;
-      const nombre = row.original.nombre;
-      const estatus = row.original.estatus;
-      const primeraImagen = foto && foto.length > 0 ? foto[0].file_url : '/nouser.svg';
-
-      return (
-        <div className="flex items-center space-x-4">
-        <div>
-          {primeraImagen ? (
-            <>
-            <Avatar>
-              <AvatarImage src={primeraImagen} alt="Avatar" className="object-cover"/>
-              <AvatarFallback>CN</AvatarFallback>
-            </Avatar>
-            </>
-          ) : (
-          <span>No hay imagen</span>
-          )}
-        </div>
-			<div className="flex flex-col">
-			<span className="font-bold">{nombre}</span>
-				<div>
-					<Badge
-					className={`text-white text-sm ${
-						estatus?.toLowerCase() == "vencido"
-						? "bg-red-600 hover:bg-red-600"
-						: estatus?.toLowerCase() == "activo"
-						? "bg-green-600 hover:bg-green-600"
-						: estatus?.toLowerCase() == "proceso"
-						? "bg-blue-600 hover:bg-blue-600"
-						: "bg-gray-400"
-					}`}
-					>
-					{capitalizeFirstLetter(estatus)}
-					</Badge>
-				</div>
-			</div>
-        </div>
-      );
-    },
-    enableSorting: false, 
-  },
-  {
-    accessorKey: "ubicacion",
-    header: "Ubicación",
-    cell: ({ row }) => {
-    	return (
-        <div className="w-full flex gap-2">
-          <div className="relative group w-full break-words">
-            {Array.isArray(row.original?.ubicacion) && row.original.ubicacion.length > 0 ? row.original.ubicacion[0] : ""}
-            {Array.isArray(row.original?.ubicacion) && row.original.ubicacion.length > 1 && (
-
-            <span className="text-blue-600 cursor-pointer ml-1 underline relative">
-              +{row.original?.ubicacion.length - 1}
-              <div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
-              {Array.isArray(row.original?.ubicacion) && row.original.ubicacion.length > 1 && (
-                row.original.ubicacion.slice(1).map((ubic:string, idx:number) => (
-                  <div key={idx}>{ubic}</div>
-                ))
-                )}
-              </div>
-            </span>
-            )}
-          </div>
-      </div>
-      )
-    },
-    enableSorting: true,
-  },
-  {
-    accessorKey: "folio",
-    header: "Folio",
-    cell: ({ row }) => <div>{row.getValue("folio")}</div>,
-    enableSorting: true,
-  },
-  {
-    accessorKey: "fecha_desde_visita", 
-    header: "Fecha de creación", 
-    cell: ({ row }) => {
-      const fecha = row.getValue("fecha_desde_visita");
-      const fechaSinSegundos = typeof fecha === 'string' ? fecha.slice(0, -3) : '';
-      return <div>{fechaSinSegundos}</div>;
-    },
-    enableSorting: true,
-  },
-  {
-    accessorKey: "fecha_desde_hasta", 
-    header: "Vigencia del Pase",  
-    cell: ({ row }) => {
-      const fecha = row.getValue("fecha_desde_hasta");
-      const fechaSinSegundos = typeof fecha === 'string' ? fecha.slice(0, -3) : '';
-      return <div>{fechaSinSegundos}</div>;
-    },
-    enableSorting: true,
-  },
-  {
-    accessorKey: "limite_de_acceso",
-    header: "Limite de Entradas",
-    cell: ({ row }) => {
-      const total_entradas = row.original.total_entradas;
-      const limite_entradas = row.original.limite_de_acceso ?? 1;
-      return <div>{total_entradas} / {limite_entradas}</div>;
-    },
-    enableSorting: true,
-  },
-  {
-    accessorKey: "limitado_a_dias",
-    header: "Días de acceso",
-    cell: ({ row }) => {
-      const dias = row.original.limitado_a_dias;
-  
-      if (!dias || dias.length === 0) {
-        return <span className="text-gray-400 italic">Todos los días</span>;
-      }
-  
-      return (
-        <div className="flex flex-wrap gap-1">
-          {dias.map((dia, index) => (
-            <Badge
-              key={index}
-              className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-sm font-semibold px-2.5 py-0.5 rounded-full"
-            >
-              {dia}
-            </Badge>
-          ))}
-        </div>
-      );
-    },
-  },
-
-];

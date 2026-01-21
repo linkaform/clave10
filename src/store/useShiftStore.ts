@@ -15,6 +15,7 @@ interface ShiftStore {
   isFetching:boolean;
   option:string[]
   from:string;
+  downloadPass:string[];
 
   setIsFetching: (isFetching: boolean) => void;
   setTab: (tab: string) => void;
@@ -28,6 +29,7 @@ interface ShiftStore {
   clearShift: () => void;
   fetchShift: () => Promise<any>;
   setFrom: (from:string)=>void;
+  setDownloadPass: (from:string[])=>void;
 }
 
 export const useShiftStore = create(
@@ -43,8 +45,9 @@ export const useShiftStore = create(
 		option:[],
 		isFetching:false,
 		from:"",
+		downloadPass:[],
 		setIsFetching:(isFetching) => set({isFetching}),
-
+		setDownloadPass:(downloadPass) => set({downloadPass}),
 		setTab:(tab) => set({tab}),
 		setFilter:(filter) => set({filter}),
 		setOption:(option) => set({option}),
@@ -59,11 +62,12 @@ export const useShiftStore = create(
 			checkin_id: undefined,
 			isLoading: false,
 			turno:false,
-			tab:""
+			tab:"",
+			downloadPass:[],
 		}),
 		setFrom:(from:string) => set({ from }),
 		fetchShift: async () => {
-			const { area, location, setArea, setLocation, setTurno, isFetching,setIsFetching } = get();
+			const { area, location, setArea, setLocation, setTurno, isFetching,setIsFetching ,setDownloadPass} = get();
 			if (isFetching || (area && location)) return;
 			setIsFetching(true);
 		  
@@ -77,6 +81,7 @@ export const useShiftStore = create(
 						setArea(data.response?.data?.location?.area ?? "");
 						setLocation(data.response?.data?.location?.name ?? "");
 						setTurno(data?.response.data?.guard?.status_turn === "Turno Abierto");
+						setDownloadPass(data?.response?.data?.booth_config ?? [])
 						return data.response?.data
 				}
 			} catch (error) {

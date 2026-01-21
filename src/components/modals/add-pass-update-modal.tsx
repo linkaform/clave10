@@ -183,6 +183,7 @@ export const EntryPassModal: React.FC<EntryPassModalProps> = ({
               link={"https://app.linkaform.com/api/infosync/scripts/run/"} 
               openGeneratedPass={openGeneratedPass}
               setOpenGeneratedPass={setOpenGeneratedPass}
+              modalConfirmacion={setIsSuccess}
               >
             </GeneratedPassModal>
           ):null}

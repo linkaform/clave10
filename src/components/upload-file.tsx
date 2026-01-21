@@ -1,12 +1,13 @@
+"use client";
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { Dispatch, SetStateAction, useEffect, useRef } from "react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
-import { Imagen } from "@/lib/update-pass";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { Button } from "./ui/button";
 import { Trash, UploadCloud } from "lucide-react";
 import {quitarAcentosYMinusculasYEspacios, reemplazarGuionMinuscula } from "@/lib/utils";
+import { Imagen } from "./upload-Image";
 
 interface CalendarDaysProps {
   id: string;

@@ -1,5 +1,6 @@
 import { Equipo_bitacora, Vehiculo_bitacora } from "@/components/table/bitacoras/bitacoras-columns";
-import { Equipo, Imagen, Vehiculo } from "./update-pass";
+import { Imagen } from "@/components/upload-Image";
+import { Equipo, Vehiculo } from "./update-pass";
 import { API_ENDPOINTS } from "@/config/api";
 
 export type Access_pass_update_full = {

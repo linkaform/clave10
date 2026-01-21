@@ -11,20 +11,19 @@ import { Loader2 } from "lucide-react";
 import { UpdatedPassModal } from "./updated-pass-modal";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { data_correo } from "@/lib/send_correo";
-import { formatData } from "@/app/dashboard/pase-update/page";
 import Image from "next/image";
 // import { Checkbox } from "../ui/checkbox";
 // import { Label } from "../ui/label";
 // import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useUpdateAccessPass } from "@/hooks/useUpdatePass";
-import { Equipo, Vehiculo } from "@/lib/update-pass-full";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { Badge } from "../ui/badge";
+import { Equipo, Vehiculo } from "@/lib/update-pass";
 // import { toast } from "sonner";
 
 interface EntryPassModal2Props {
 	title: string;
-	data: formatData
+	data: any
 	isSuccess: boolean;
 	setIsSuccess: Dispatch<SetStateAction<boolean>>;
 	onClose: ()=> void;
@@ -45,7 +44,7 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
 
 	const onSubmit = async () => {
 			updatePassMutation.mutate({access_pass:{
-				grupo_vehiculos: data?.grupo_vehiculos,
+				grupo_vehiculos: data.grupo_vehiculos,
 				grupo_equipos: data.grupo_equipos,
 				status_pase: data.status_pase,
 				walkin_fotografia: data?.walkin_fotografia,
@@ -182,12 +181,12 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
 									<tbody>
 										{data?.grupo_equipos.map((item: Equipo, index: number) => (
 										<tr key={index}>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.tipo) || ""}</small></td>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.nombre) || ""}</small></td>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.marca) || ""}</small></td>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.modelo) || ""}</small></td>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.serie) || ""}</small></td>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.color) || ""}</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.tipo??'')}</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.nombre??'') }</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.marca??'') }</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.modelo??'') }</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.serie??'') }</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.color??'') }</small></td>
 										</tr>
 										))}
 									</tbody>
@@ -220,14 +219,14 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
 										</tr>
 									</thead>
 									<tbody>
-										{data?.grupo_vehiculos.map((item: Vehiculo, index: number) => (
+										{data?.grupo_vehiculos?.map((item: Vehiculo, index: number) => (
 										<tr key={index}>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.tipo) || ""}</small></td>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.marca) || ""}</small></td>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.modelo) || ""}</small></td>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.estado) || ""}</small></td>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.placas) || ""}</small></td>
-											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.color) || ""}</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.tipo??'') }</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.marca??'') }</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.modelo??'') }</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.estado??'') }</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.placas??'') }</small></td>
+											<td className="px-4 py-2"><small>{capitalizeFirstLetter(item.color??'') }</small></td>
 										</tr>
 										))}
 									</tbody>
@@ -262,7 +261,7 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
 								setOpenGeneratedPass={setOpenGeneratedPass} 
 								qr={response?.json?.qr_pase[0].file_url ?? "/nouser.svg"}
 								dataPass={responseformated}
-								account_id={data?.account_id}
+								account_id={data?.account_id??0}
 								folio={response?.json?.id}
 								closePadre={handleClose}
 								passData={passData}

@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogClose } from "@/components/ui/dialog";
 import { Dispatch, SetStateAction } from "react";
 import { Button } from "../ui/button";
-import { Imagen } from "@/lib/update-pass-full";
+import { Imagen } from "../upload-Image";
 
     interface DelPhotoGuard {
         setEvidencia: Dispatch<SetStateAction<Imagen[]>>;
@@ -35,6 +35,7 @@ import { Imagen } from "@/lib/update-pass-full";
 				<Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700">
 				Cerrar
 				</Button>
+
 			</DialogClose>
 
 			<Button

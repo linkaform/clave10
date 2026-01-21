@@ -13,7 +13,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { useNotes } from '@/hooks/useNotes'
 import { Dispatch, SetStateAction, useState } from 'react'
-import { Imagen } from '@/lib/update-pass-full'
+import { Imagen } from '../upload-Image'
 
 interface CloseNoteModalProps {
   title: string

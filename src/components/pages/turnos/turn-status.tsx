@@ -4,13 +4,13 @@ import { StartShiftModal } from "@/components/modals/start-shift-modal";
 import TakePhotoGuard from "@/components/modals/take-photo-guard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Imagen } from "@/lib/update-pass-full";
 import { capitalizeOnlyFirstLetter } from "@/lib/utils";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import Image from "next/image";
 import { ViewPhotoGuard } from "@/components/modals/view-photo-guard";
 import DeletePhotoGuard from "@/components/modals/eliminar-photo-guard";
 import useAuthStore from "@/store/useAuthStore";
+import { Imagen } from "@/components/upload-Image";
 
 const TurnStatus = ({
 	shift,

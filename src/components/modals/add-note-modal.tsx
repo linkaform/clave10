@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect } from 'react'
-import LoadImage from '../upload-Image'
+import LoadImage, { Imagen } from '../upload-Image'
 import LoadFile from '../upload-file'
 import { Input } from '../ui/input'
 import { z } from 'zod'
@@ -10,7 +10,6 @@ import { Textarea } from '../ui/textarea'
 import { useNotes } from '@/hooks/useNotes'
 import { useShiftStore } from '@/store/useShiftStore'
 import { useState } from 'react'
-import { Imagen } from '@/lib/update-pass'
 import { Button } from '../ui/button'
 import {
   Dialog,

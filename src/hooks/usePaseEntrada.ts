@@ -1,7 +1,8 @@
+import { Imagen } from "@/components/upload-Image";
 import { createPase } from "@/lib/create-access-pass";
 import { getConfSeguridad } from "@/lib/get-configuracion-seguridad";
-import { Imagen, UpdatePase } from "@/lib/update-pass";
-import { Equipo, UpdatePaseFull, Vehiculo } from "@/lib/update-pass-full";
+import { Equipo, UpdatePase, Vehiculo } from "@/lib/update-pass";
+import { UpdatePaseFull } from "@/lib/update-pass-full";
 import { errorMsj } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
 import { useMutation, useQuery ,useQueryClient} from "@tanstack/react-query";

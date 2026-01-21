@@ -4,7 +4,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/
 import Image from 'next/image';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '../ui/carousel';
 import { Card, CardContent } from '../ui/card';
-import { Imagen } from '@/lib/update-pass-full';
+import { Imagen } from '../upload-Image';
 
 const ViewImage = ({ imageUrl }: { imageUrl: Imagen[] }) => {
   const [open, setOpen] = useState(false);

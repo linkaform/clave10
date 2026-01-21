@@ -10,7 +10,8 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { useState } from "react";
-import { Equipo } from "@/lib/update-pass-full";
+import { Equipo } from "@/lib/update-pass";
+
 
 interface Props {
   title: string;

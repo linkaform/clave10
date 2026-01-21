@@ -10,11 +10,11 @@ import {
 
 import EquipoList from "../equipo-list";
 import { useEffect, useState } from "react";
-import { Equipo } from "@/lib/update-pass";
 import { Hammer, Loader2 } from "lucide-react";
 import { useUpdateBitacora } from "@/hooks/useUpdateBitacora";
 import { formatEquiposToBitacora } from "@/lib/utils";
 import { Equipo_bitacora } from "../table/bitacoras/bitacoras-columns";
+import { Equipo } from "@/lib/update-pass";
 // import { toast } from "sonner";
 
 interface AddEquipmentModalProps {

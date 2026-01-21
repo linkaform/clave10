@@ -1,6 +1,6 @@
 // import { Imagen } from "./update-pass";
+import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
-import { Imagen } from "./update-pass-full";
 
 export const getListIncidencias = async (
     location:string, area:string,prioridades:string[], dateFrom:string, dateTo:string, filterDate:string) => {

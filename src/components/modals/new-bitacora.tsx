@@ -11,7 +11,7 @@ import { Separator } from "../ui/separator";
 import { Loader2 } from "lucide-react";
 import {  Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
-import { Imagen } from "@/lib/update-pass";
+
 import CalendarDays from "../calendar-days";
 import { toast } from "sonner";
 import { descargarPdfPase } from "@/lib/download-pdf";
@@ -20,6 +20,7 @@ import { Equipo_bitacora } from "../table/bitacoras/bitacoras-columns";
 import Image from "next/image";
 import useAuthStore from "@/store/useAuthStore";
 import { useSendCorreoSms } from "@/hooks/useSendCorreo";
+import { Imagen } from "../upload-Image";
 
 
 type Vehiculo_custom={
@@ -221,7 +222,7 @@ async function onDescargarPDF(){
                     <p className="font-bold mb-3">Fotografia:</p>
                     <div className="w-full flex justify-center">
                         <Image
-                        src={data?.foto[0].file_url  } 
+                        src={data?.foto[0].file_url ??'' } 
                         alt="Imagen"
                         width={150}
                         height={150}
@@ -238,7 +239,7 @@ async function onDescargarPDF(){
                         <p className="font-bold mb-3">Identificacion:</p>
                         <div className="w-full flex justify-center">
                             <Image
-                            src={data?.identificacion[0].file_url  } 
+                            src={data?.identificacion[0].file_url ??'' } 
                             alt="Imagen"
                             width={150}
                             height={150}

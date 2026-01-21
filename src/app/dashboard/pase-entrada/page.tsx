@@ -716,7 +716,7 @@ return (
 						render={({ field }:any) => (
 							<FormItem>
 							<FormLabel className="">
-								Descripción:
+								Descripción/ Comentarios:
 							</FormLabel>{" "}
 							<FormControl>
 							<Textarea

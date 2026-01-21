@@ -1,7 +1,6 @@
 import {
   ColumnDef, 
 } from "@tanstack/react-table";
-import { Imagen } from "@/lib/update-pass";
 import { useState } from "react";
 import { ViewArticulo } from "@/components/modals/view-articulo";
 import { Eye } from "lucide-react";
@@ -9,6 +8,7 @@ import { EditarArticuloModal } from "@/components/modals/editar-article-modal";
 import { LoadingModal } from "@/components/modals/loading-modal";
 import { DevolucionArticuloModal } from "@/components/modals/devolucion-article-modal";
 import ViewImage from "@/components/modals/view-image";
+import { Imagen } from "@/components/upload-Image";
 
 
 export interface Articulo_perdido_record {

@@ -1,8 +1,8 @@
+"use client";
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
-import { Imagen } from "@/lib/update-pass";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { Button } from "./ui/button";
 import { Camera, Trash, UploadCloud } from "lucide-react";
@@ -11,13 +11,18 @@ import { base64ToFile, quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
 import Image from "next/image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 
+export type Imagen = {
+    file_url?:string,
+    file_name?:string
+}
+
 interface CalendarDaysProps {
   id: string;
   titulo: string; 
-  setImg: Dispatch<SetStateAction<Imagen[]>>;
+  setImg:Dispatch<SetStateAction<Imagen[]>>;
   showWebcamOption:boolean;
   facingMode: string
-  imgArray:Imagen[];
+  imgArray:any;
   showArray:boolean;
   limit:number;
   showTakePhoto?:boolean
@@ -61,7 +66,7 @@ const LoadImage: React.FC<CalendarDaysProps>= ({id, titulo, setImg, showWebcamOp
     }
 
     function removeImage(indexToRemove: number) {
-        const newArray = imgArray.filter((_, index) => index !== indexToRemove);
+        const newArray = imgArray.filter((_: any, index: number) => index !== indexToRemove);
         setImg(newArray);
         if (newArray.length === 0) {
             cleanPhoto();
@@ -89,14 +94,20 @@ const LoadImage: React.FC<CalendarDaysProps>= ({id, titulo, setImg, showWebcamOp
             setHideButtonWebcam(true)
         }
     }
-
-    useEffect(()=>{
-        if(response){
-            if (response?.file_name?.includes(quitarAcentosYMinusculasYEspacios(id)) ) {
-                setImg((prevDocs) => [...(prevDocs || []), ...(Array.isArray(response) ? response : [response])]);
-            }
+    useEffect(() => {
+        if (!response) return;
+      
+        const newImages = Array.isArray(response) ? response : [response];
+      
+        const filtered = newImages.filter(
+          (img) => !imgArray?.some((i: Imagen) => i.file_url === img.file_url)
+        );
+      
+        if (filtered.length > 0) {
+          setImg([...(imgArray ?? []), ...filtered]);
         }
-    }, [response])
+      }, [response]);
+      
 
     const handleUserMedia = () => {
         setloadingWebcam(false); 
@@ -249,16 +260,6 @@ const LoadImage: React.FC<CalendarDaysProps>= ({id, titulo, setImg, showWebcamOp
                                 </Carousel>
                             </div>
                             ) : null}
-
-                    {/* {showArray && imgArray.length<limit ?(
-                        <>
-                        <Input 
-                        className="mt-1"
-                        type="file" 
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        />
-                    </> ): null} */}
                 </>)}
             </div>
             

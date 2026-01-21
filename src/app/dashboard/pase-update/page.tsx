@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
-import { Equipo, Imagen, Vehiculo } from "@/lib/update-pass";
+import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
 import LoadImage from "@/components/upload-Image";
 import { Car, Laptop, Loader2 } from "lucide-react";
@@ -30,71 +30,102 @@ import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
 import { API_ENDPOINTS } from "@/config/api";
 
- const grupoEquipos = z.array(
-	z.object({
-		nombre: z.string().optional(),
-		modelo: z.string().optional(),
-		marca: z.string().optional(),
-		color: z.string().optional(),
-		tipo: z.string().optional(),
-		serie: z.string().optional() ,
-	})
-).optional();
+	const grupoEquipos = z.array(
+		z.object({
+			nombre: z.string().optional(),
+			modelo: z.string().optional(),
+			marca: z.string().optional(),
+			color: z.string().optional(),
+			tipo: z.string().optional(),
+			serie: z.string().optional() ,
+		})
+	).optional();
 
- const grupoVehiculos = z.array(
-	z.object({
-		tipo: z.string().optional(),
-		marca: z.string().optional(),
-		modelo: z.string().optional(),
-		estado: z.string().optional(),
-		placas: z.string().optional(),
-		color: z.string().optional()
-	})
-).optional();
+ 	const grupoVehiculos = z.array(
+		z.object({
+			tipo: z.string().optional(),
+			marca: z.string().optional(),
+			modelo: z.string().optional(),
+			estado: z.string().optional(),
+			placas: z.string().optional(),
+			color: z.string().optional()
+		})
+	).optional();
 
- const valImagen = z.array(
-	z.object({
-		file_url: z.string().optional(),
-		file_name: z.string().optional(),
-	})
-).optional();
+	const createSchema = (requireFoto: boolean, requireIden: boolean) =>
+		z
+		  .object({
+			grupo_equipos: grupoEquipos,
+			grupo_vehiculos: grupoVehiculos,
+	  
+			walkin_fotografia: z
+			  .array(
+				z.object({
+				  file_url: z.string(),
+				  file_name: z.string(),
+				})
+			  )
+			  .default([]),
+	  
+			walkin_identificacion: z
+			  .array(
+				z.object({
+				  file_url: z.string(),
+				  file_name: z.string(),
+				})
+			  ).default([]),
+	  
+			status_pase: z.string().optional(),
+			folio: z.string().optional(),
+			account_id: z.number().optional(),
+	  
+			nombre: z.string().nullable().optional(),
+			ubicacion: z.string().nullable().optional(),
+			email: z.string().nullable().optional(),
+			telefono: z.string().nullable().optional(),
+	  
+			acepto_aviso_privacidad: z.boolean().refine(val => val === true, {
+			  message: "Debes aceptar el aviso de privacidad",
+			}),
+		  })
+		  .superRefine((data, ctx) => {
+			if (requireFoto && (!data.walkin_fotografia || data.walkin_fotografia.length === 0)) {
+			  ctx.addIssue({
+				path: ["walkin_fotografia"],
+				message: "La fotografía es obligatoria",
+				code: z.ZodIssueCode.custom,
+			  });
+			}
+	  
+			if (requireIden && (!data.walkin_identificacion || data.walkin_identificacion.length === 0)) {
+			  ctx.addIssue({
+				path: ["walkin_identificacion"],
+				message: "La identificación es obligatoria",
+				code: z.ZodIssueCode.custom,
+			  });
+			}
+		  });
 
- const formSchema = z
-	.object({
-	grupo_equipos:grupoEquipos,
-	grupo_vehiculos:grupoVehiculos,
-	walkin_fotografia: valImagen,
-	walkin_identificacion: valImagen,
-	status_pase: z.string().optional(),
-	folio: z.string().optional(),
-	account_id: z.number().optional(),
-	nombre:z.string().nullable().optional(),
-	ubicacion:z.string().nullable().optional(),
-	email:z.string().nullable().optional(),
-	telefono:z.string().nullable().optional(),
-	acepto_aviso_privacidad: z.boolean()
-    .refine((val) => val === true, {
-      message: "Debes aceptar el aviso de privacidad",
-    }),
-})
 
+		  
+// export type formatData = {
+// 	grupo_equipos:Equipo[],
+// 	grupo_vehiculos:Vehiculo[],
+// 	walkin_fotografia: Imagen[] ,
+// 	walkin_identificacion: Imagen[] ,
+// 	status_pase: string ,
+// 	folio: string,
+// 	account_id: number,
+// 	nombre:string,
+// 	ubicacion:string,
+// 	email:string,
+// 	telefono:string,
+// 	acepto_aviso_privacidad:boolean
+// 	acepto_aviso_datos_personales:boolean
+// 	conservar_datos_por:string
+// }
+export type formatData = z.infer<ReturnType<typeof createSchema>>;
 
-export type formatData = {
-	grupo_equipos:Equipo[],
-	grupo_vehiculos:Vehiculo[],
-	walkin_fotografia: Imagen[] ,
-	walkin_identificacion: Imagen[] ,
-	status_pase: string ,
-	folio: string,
-	account_id: number,
-	nombre:string,
-	ubicacion:string,
-	email:string,
-	telefono:string,
-	acepto_aviso_privacidad:boolean
-	acepto_aviso_datos_personales:boolean
-	conservar_datos_por:string
-}
 const PaseUpdate = () =>{
 	const [id, setId] = useState("")
 	const [showIneIden, setShowIneIden] = useState<string[]|undefined>([])
@@ -107,23 +138,57 @@ const PaseUpdate = () =>{
 	const [agregarVehiculosActive, setAgregarVehiculosActive] = useState(false);
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
-	const [identificacion, setIdentificacion] = useState<Imagen[]>([])
 	const downloadUrl=responsePdf?.response?.data?.data?.download_url
 	const downloadImgUrl = Array.isArray(dataCatalogos?.pass_selected?.pdf_to_img) && dataCatalogos?.pass_selected?.pdf_to_img.length > 0
 		? dataCatalogos?.pass_selected?.pdf_to_img[0]?.file_url
 		: "";
-	
+	const requireFoto = showIneIden?.includes("foto") ?? false;
+	const requireIden = showIneIden?.includes("iden") ?? false;
+
 	const [errorFotografia, setErrorFotografia] = useState("")
 	const [errorIdentificacion, setErrorIdentificacion] = useState("")
 
 	const [isActualizarOpen, setIsActualizarOpen] = useState<string|boolean>(false);
 	const [equipos, setEquipos] = useState<Equipo[]>( []);
 	const [vehicles, setVehiculos] = useState<Vehiculo[]>([]);
-	const [fotografia, setFotografia] = useState<Imagen[]>([])
 
 	const [mostrarAviso, setMostrarAviso] = useState(false);
-	const [radioSelected, setRadioSelected] = useState("3 meses");		
+	const [radioSelected, setRadioSelected] = useState("3 meses");	
 
+	const formSchema = useMemo(
+		() => createSchema(requireFoto, requireIden),
+		[requireFoto, requireIden]
+	  );
+	  
+	useEffect(()=>{
+		if(dataCatalogos){
+			setEquipos(dataCatalogos.pass_selected?.grupo_equipos ??[])
+			setVehiculos(dataCatalogos.pass_selected?.grupo_vehiculos ??[])
+		}
+	},[dataCatalogos])
+
+	const form = useForm<z.infer<typeof formSchema>>({
+			resolver: zodResolver(formSchema),
+			defaultValues: {
+			grupo_vehiculos:[],
+			grupo_equipos:[],
+			status_pase:'Activo',
+			walkin_fotografia:[],
+			walkin_identificacion:[],
+			folio: "",
+			account_id: 0,
+			nombre:"",
+			ubicacion:"",
+			email:"",
+			telefono:"",
+			acepto_aviso_privacidad:false,
+	}
+	});
+	  
+	  useEffect(() => {
+		form.trigger();
+	  }, [form, requireFoto, requireIden]);
+	  
 	const onDescargarPNG = async (imgUrl: string) => {
 		try {
 			const response = await fetch(imgUrl);
@@ -232,39 +297,15 @@ const PaseUpdate = () =>{
 		}
 	}
 
-	useEffect(()=>{
-		if(dataCatalogos){
-			setEquipos(dataCatalogos.pass_selected?.grupo_equipos ??[])
-			setVehiculos(dataCatalogos.pass_selected?.grupo_vehiculos ??[])
-		}
 
-	},[dataCatalogos])
-
-	const form = useForm<z.infer<typeof formSchema>>({
-			resolver: zodResolver(formSchema),
-			defaultValues: {
-			grupo_vehiculos:[],
-			grupo_equipos:[],
-			status_pase:'Activo',
-			walkin_fotografia:[],
-			walkin_identificacion:[],
-			folio: "",
-			account_id: 0,
-			nombre:"",
-			ubicacion:"",
-			email:"",
-			telefono:"",
-			acepto_aviso_privacidad:false,
-	}
-	});
 
 	const onSubmit = (data: z.infer<typeof formSchema>) => {
 			const formattedData = {
 				grupo_vehiculos: vehicles,
 				grupo_equipos: equipos,
 				status_pase: data.status_pase||"",
-				walkin_fotografia:fotografia,
-				walkin_identificacion:identificacion,
+				walkin_fotografia:data.walkin_fotografia??[],
+				walkin_identificacion:data.walkin_fotografia??[],
 				folio: id,
 				account_id: account_id,
 				nombre: dataCatalogos?.pass_selected?.nombre||"",
@@ -275,18 +316,6 @@ const PaseUpdate = () =>{
 				conservar_datos_por: radioSelected
 			};
 			
-			if (showIneIden?.includes("foto") && fotografia.length<=0) {
-					setErrorFotografia("Este campo es requerido.");
-			}else{
-				setErrorFotografia("-")
-			}
-
-			if (showIneIden?.includes("iden") && identificacion.length<=0) {
-					setErrorIdentificacion("Este campo es requerido.")
-			}else{
-				setErrorIdentificacion("-")
-			}
-			
 			setModalData(formattedData);
 			setIsSuccess(true)
 	};
@@ -295,8 +324,8 @@ const PaseUpdate = () =>{
 		const formattedData = {
 			grupo_vehiculos: vehicles,
 			grupo_equipos: equipos,
-			walkin_fotografia:fotografia.length>0 ? fotografia: dataCatalogos?.pass_selected?.foto,
-			walkin_identificacion:identificacion.length>0 ? identificacion: dataCatalogos?.pass_selected?.identificacion,
+			walkin_fotografia: dataCatalogos?.pass_selected?.foto??[],
+			walkin_identificacion:dataCatalogos?.pass_selected?.identificacion??[],
 			folio: id,
 			account_id: account_id,
 			email: dataCatalogos?.pass_selected?.email||"",
@@ -500,30 +529,52 @@ return (
 					<div className="flex flex-col sm:flex-row justify-between gap-3">
 						{showIneIden?.includes("foto")&& 
 							<div className="w-full md:w-1/2 pr-2">
-									<LoadImage
-										id="fotografia"
-										titulo={"Fotografía"}
-										setImg={setFotografia}
-										showWebcamOption={true}
-										facingMode="user" 
-										imgArray={fotografia} 
-										showArray={true} 
-										limit={1}/>
-									{fotografia.length==0 && errorFotografia !=="" && <span className="text-red-500 text-sm">{errorFotografia}</span>}
-							</div>}
-							{showIneIden?.includes("iden")&& <div className="w-full md:w-1/2">
-									<LoadImage
-									id="identificacion"
-									titulo={"Identificación"}
-									setImg={setIdentificacion}
-									showWebcamOption={true}
-									facingMode="environment" 
-									imgArray={identificacion} 
-									showArray={true} 
-									limit={1}
-									/>
-									{identificacion.length==0 && errorIdentificacion !=="" && <span className="text-red-500 text-sm">{errorIdentificacion}</span>}
-							</div>}
+								<Controller
+									control={form.control}
+									name="walkin_fotografia"
+									render={({ field, fieldState }) => (
+									<div className="flex ">
+										<span className="text-red-500 mr-1">*</span>
+										<div className="felx flex-col">
+										<LoadImage
+											id="fotografia"
+											titulo={"Fotografía"}
+											showWebcamOption={true}
+											imgArray={field.value||[]} 
+											setImg={field.onChange} 
+											facingMode="user" 
+											showArray={true} 
+											limit={1}/>
+											{fieldState.error && <span className="block w-full text-red-500 text-sm mt-1">{fieldState.error.message}</span>}
+										</div>
+									</div>)
+								}/>
+							</div>
+							}
+							{showIneIden?.includes("iden")&& 
+							<div className="w-full flex md:w-1/2">
+								<Controller
+									control={form.control}
+									name="walkin_identificacion"
+									render={({ field, fieldState }) => (
+										<div className="flex ">
+											<span className="text-red-500 mr-1">*</span>
+											<div className="flex flex-col">
+												<LoadImage
+												id="identificacion"
+												titulo={"Identificación"}
+												imgArray={field.value||[]} 
+												setImg={field.onChange} 
+												showWebcamOption={true}
+												facingMode="environment" 
+												showArray={true} 
+												limit={1}/>
+												{fieldState.error && <span className="block w-full text-red-500 text-sm mt-1">{fieldState.error.message}</span>}
+											</div>
+										</div>)
+									}/>
+							</div> 
+							}
 					</div> 
 					<div className="flex flex-col gap-y-6">
 						<div>
@@ -932,5 +983,4 @@ return (
 );
 };
 export default PaseUpdate;
-
 

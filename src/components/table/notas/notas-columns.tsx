@@ -1,6 +1,6 @@
 import { CloseNoteModal } from '@/components/modals/close-note-modal'
 import { NoteDetailsModal } from '@/components/modals/note-details-modal'
-import { Imagen } from '@/lib/update-pass-full'
+import { Imagen } from '@/components/upload-Image'
 import { ColumnDef } from '@tanstack/react-table'
 import { Check, Eye } from 'lucide-react'
 

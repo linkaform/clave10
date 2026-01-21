@@ -1,8 +1,9 @@
-import { Equipo, Imagen, UpdatePase, Vehiculo } from "@/lib/update-pass";
+import { Equipo, UpdatePase, Vehiculo } from "@/lib/update-pass";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { errorMsj } from "@/lib/utils";
+import { Imagen } from "@/components/upload-Image";
 
 
 export type Update_pass = {

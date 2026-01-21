@@ -13,7 +13,6 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import {  Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
-import { Imagen } from "@/lib/update-pass";
 import CalendarDays from "../calendar-days";
 import { toast } from "sonner";
 import { descargarPdfPase } from "@/lib/download-pdf";
@@ -24,8 +23,9 @@ import useAuthStore from "@/store/useAuthStore";
 import { AddEmailModal } from "./add-mail";
 import { AddSmsModal } from "./add-sms";
 import { capitalizeFirstLetter } from "@/lib/utils";
-import { Equipo } from "@/lib/update-pass-full";
 import ModalDescargarPase from "./download-pase-options"; // Ajusta la ruta según tu estructura
+import { Imagen } from "../upload-Image";
+import { Equipo } from "@/lib/update-pass";
 
 type Vehiculo_custom={
     tipo_vehiculo:string,
@@ -196,7 +196,7 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({
   }
 
   const handleDescargarImagen = () => {
-    downloadPassPng(data?.pdf_to_img[0]?.file_url);
+    downloadPassPng(data?.pdf_to_img[0]?.file_url??'');
     setModalOpen(false);
   };
 
@@ -293,7 +293,7 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({
                     <p className="font-bold mb-3">Fotografía:</p>
                     <div className="w-full flex justify-center">
                         <Image
-                        src={data?.foto[0].file_url  } 
+                        src={data?.foto[0].file_url ??"" } 
                         alt="Imagen"
                         width={150}
                         height={150}
@@ -309,7 +309,7 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({
                         <p className="font-bold mb-3">Identificación:</p>
                         <div className="w-full flex justify-center">
                             <Image
-                            src={data?.identificacion[0].file_url  } 
+                            src={data?.identificacion[0].file_url ??'' } 
                             alt="Imagen"
                             width={150}
                             height={150}

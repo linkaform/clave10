@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Imagen } from "@/components/upload-Image";
 import { uploadImage } from "@/lib/get-upload-image";
-import { Imagen } from "@/lib/update-pass";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";

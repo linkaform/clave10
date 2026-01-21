@@ -31,8 +31,7 @@ import { Loader2 } from "lucide-react";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { useShiftStore } from "@/store/useShiftStore";
 import { usePaqueteria } from "@/hooks/usePaqueteria";
-import LoadImage from "../upload-Image";
-import { Imagen } from "@/lib/update-pass";
+import LoadImage, { Imagen } from "../upload-Image";
 import { useCatalogoProveedores } from "@/hooks/useCatalogoProveedores";
 import { useGetLockers } from "@/hooks/useGetLockers";
 

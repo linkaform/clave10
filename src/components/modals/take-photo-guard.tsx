@@ -1,5 +1,4 @@
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogClose } from "@/components/ui/dialog";
-import { Imagen } from '@/lib/update-pass-full';
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Button } from "../ui/button";
 import { useUploadImage } from "@/hooks/useUploadImage";
@@ -7,6 +6,7 @@ import Webcam from "react-webcam";
 import { Camera, Loader2 } from "lucide-react";
 import { base64ToFile, quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
 import Image from "next/image";
+import { Imagen } from "../upload-Image";
 
 
 interface TakeModalProps {
@@ -121,7 +121,7 @@ interface TakeModalProps {
 			{evidencia?.length > 0 && (
 			<div className="flex justify-center items-center h-[350px]">
 				<Image width={300} height={300} alt=""
-				src={evidencia[0]?.file_url}
+				src={evidencia[0]?.file_url??''}
 				className="rounded-lg w-[300px] h-[300px] object-cover"
 				/>
 			</div>)}

@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Vehiculo } from "@/lib/update-pass-full";
 import { useAccessStore } from "@/store/useAccessStore";
+import { Vehiculo } from "@/lib/update-pass";
 
 export interface VehiculoAutorizado {
   tipo_vehiculo: string;

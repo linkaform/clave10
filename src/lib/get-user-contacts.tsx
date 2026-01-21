@@ -1,5 +1,5 @@
+import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
-import { Imagen } from "./update-pass"
 
 export interface Contacto {
   empresa: string | null

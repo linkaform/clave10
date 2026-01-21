@@ -27,7 +27,7 @@ import {
 import { AddNoteModal } from '@/components/modals/add-note-modal'
 import { notasColumns } from './notas-columns'
 import Link from 'next/link'
-import { Imagen } from '@/lib/update-pass-full'
+import { Imagen } from '@/components/upload-Image'
 
 interface ListaNotasTableProps {
   data: Nota[]

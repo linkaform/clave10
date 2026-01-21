@@ -14,12 +14,12 @@ export const AccesosComentarioColumns: ColumnDef<AccesosComentario>[] = [
     ),
     enableSorting: true,
   },
-  {
-    accessorKey: "tipo_de_comentario",
-    header: "Tipo de Comentario",
-    cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("tipo_de_comentario")}</div>
-    ),
-    enableSorting: true,
-  },
+  // {
+  //   accessorKey: "tipo_de_comentario",
+  //   header: "Tipo de Comentario",
+  //   cell: ({ row }) => (
+  //     <div className="capitalize">{row.getValue("tipo_de_comentario")}</div>
+  //   ),
+  //   enableSorting: true,
+  // },
 ];

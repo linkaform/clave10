@@ -36,8 +36,7 @@ import { z } from "zod";
 import { useEffect, useState } from "react";
 
 import { useSearchPass } from "@/hooks/useSearchPass";
-import { Imagen } from "@/lib/update-pass-full";
-import LoadImage from "../upload-Image";
+import LoadImage, { Imagen } from "../upload-Image";
 import { useShiftStore } from "@/store/useShiftStore";
 
 interface Props {

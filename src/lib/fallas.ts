@@ -1,4 +1,4 @@
-import { Imagen } from "./update-pass"
+import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
 
 export interface InputFalla {

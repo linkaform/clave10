@@ -56,7 +56,7 @@ export const formSchema =
 
 
     function loadNewEquipo(equipo:Equipo){
-      form.setValue('tipo', equipo?.tipo)
+      form.setValue('tipo', equipo?.tipo??'')
       form.setValue('nombre', equipo?.nombre)
       form.setValue('modelo', equipo?.modelo)
       form.setValue('marca', equipo?.marca)

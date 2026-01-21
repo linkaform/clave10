@@ -28,7 +28,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { Imagen } from "@/lib/update-pass";
 import { useShiftStore } from "@/store/useShiftStore";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
@@ -36,7 +35,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select } from "@radix-ui/react-select";
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
-import LoadImage from "../upload-Image";
+import LoadImage, { Imagen } from "../upload-Image";
 import LoadFile from "../upload-file";
 import { Button } from "../ui/button";
 import { useCreateIncidenciaRondin } from "@/hooks/Rondines/useCeateIncidenciaRondin";

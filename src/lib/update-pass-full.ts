@@ -1,28 +1,7 @@
 import { Update_full_pass } from "@/hooks/usePaseEntrada"
+import { Imagen } from "@/components/upload-Image";
+import { Equipo, Vehiculo } from "./update-pass";
 import { API_ENDPOINTS } from "@/config/api";
-
-export type Vehiculo ={
-    tipo:string,
-    marca:string,
-    modelo:string,
-    estado:string,
-    placas:string,
-    color:string
-}
-
-export type Equipo ={
-    nombre:string,
-    modelo:string,
-    marca:string,
-    color:string,
-    tipo:string,
-    serie:string ,
-}
-
-export type Imagen = {
-    file_url:string,
-    file_name:string
-}
 
 export type Access_pass_update = {
     grupo_vehiculos: Vehiculo[],

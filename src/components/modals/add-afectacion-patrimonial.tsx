@@ -28,10 +28,10 @@ import { toast } from "sonner";
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { formatCurrencyString, formatForMultiselect } from "@/lib/utils";
 import Select from "react-select";
-import LoadImage from "../upload-Image";
+
 import LoadFile from "../upload-file";
-import { Imagen } from "@/lib/update-pass-full";
 import { Textarea } from "../ui/textarea";
+import LoadImage, { Imagen } from "../upload-Image";
 
 interface IncidenciaModalProps {
 	title: string;

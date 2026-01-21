@@ -175,7 +175,7 @@ const IncidenciasTable:React.FC<ListProps> = ({ data, isLoading, openModal,setSe
 				  );
 				},
 				enableSorting: true,
-			  },
+			},
 			{
 			  accessorKey: "area_incidencia",
 			  header: "Lugar del incidente",
@@ -210,7 +210,7 @@ const IncidenciasTable:React.FC<ListProps> = ({ data, isLoading, openModal,setSe
 				);
 				},
 				enableSorting: true,
-			  },
+			},
 			{
 			  accessorKey: "evidencia_incidencia",
 			  header: "Evidencia",
@@ -238,8 +238,7 @@ const IncidenciasTable:React.FC<ListProps> = ({ data, isLoading, openModal,setSe
 				  return "";
 				},
 				cell: ({ getValue }: { getValue: () => string }) => {
-					const value = getValue(); // string "tag1, tag2, tag3"
-					// Separa el string en array
+					const value = getValue();
 					const tagsArray = value ? value.split(",").map(tag => tag.trim()) : [];
 					return (
 					  <div className="flex flex-wrap gap-1">
@@ -256,7 +255,6 @@ const IncidenciasTable:React.FC<ListProps> = ({ data, isLoading, openModal,setSe
 				},
 				enableSorting: true,
 			},			  
-			
 			{
 			  accessorKey: "reporta_incidencia",
 			  header: "Reporta",

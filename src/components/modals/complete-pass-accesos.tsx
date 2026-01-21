@@ -19,8 +19,7 @@ import { z } from "zod";
 import { useEffect, useState } from "react";
 
 
-import { Equipo, Imagen, Vehiculo } from "@/lib/update-pass-full";
-import LoadImage from "../upload-Image";
+import LoadImage, { Imagen } from "../upload-Image";
 import { useUpdateAccessPass } from "@/hooks/useUpdatePass";
 import { EqipmentLocalPassModal } from "./add-local-equipo";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
@@ -28,6 +27,7 @@ import useAuthStore from "@/store/useAuthStore";
 import { Car, Laptop } from "lucide-react";
 import { VehicleLocalPassModal } from "./add-local-vehicule";
 import { toast } from "sonner";
+import { Equipo, Vehiculo } from "@/lib/update-pass";
 
 interface Props {
   title: string;

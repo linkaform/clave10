@@ -18,8 +18,8 @@ import {
 } from '../ui/dialog'
 import File from '../icon/file'
 import { CloseNoteModal } from './close-note-modal'
-import { Imagen } from '@/lib/update-pass-full'
 import { capitalizeOnlyFirstLetter } from '@/lib/utils'
+import { Imagen } from '../upload-Image'
 
 interface NoteDetailsModalProps {
   title: string

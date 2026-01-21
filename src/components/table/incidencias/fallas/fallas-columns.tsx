@@ -4,8 +4,8 @@ import {
   } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClipboardCheck, Eye, Trash2 } from "lucide-react";
-import { Imagen } from "@/lib/update-pass";
 import ViewImage from "@/components/modals/view-image";
+import { Imagen } from "@/components/upload-Image";
 
   export interface Fallas_record{
     falla_responsable_solucionar_nombre: string

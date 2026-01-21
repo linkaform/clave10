@@ -1,3 +1,4 @@
+"use client";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -20,8 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { catalogoColores, catalogoTipoEquipos } from "@/lib/utils";
-import { Equipo } from "@/lib/update-pass";
 import EquipoItem from "./equipo-item";
+import { Equipo } from "@/lib/update-pass";
 
 
 interface EquipoListProps {

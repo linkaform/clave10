@@ -1,7 +1,6 @@
 import {
   ColumnDef, 
 } from "@tanstack/react-table";
-import { Imagen } from "@/lib/update-pass";
 import { ViewPaqueteria } from "@/components/modals/view-paqueteria";
 import { Eye } from "lucide-react";
 import { LoadingModal } from "@/components/modals/loading-modal";
@@ -9,6 +8,7 @@ import { useState } from "react";
 import { EditarPaqueteria } from "@/components/modals/editar-paqueteria";
 import { DevolucionPaqModal } from "@/components/modals/entregar-paqueteria";
 import ViewImage from "@/components/modals/view-image";
+import { Imagen } from "@/components/upload-Image";
 
 
 export interface Paquete_record {

@@ -28,9 +28,9 @@ import {
 
 import { VehiculoAutorizadoColumns } from "./vehiculos-autorizados-columns";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Vehiculo } from "@/lib/update-pass-full";
 import { VehicleLocalPassModal } from "@/components/modals/add-local-vehicule";
 import { SelectedVehiculosModal } from "@/components/modals/modal-selected-vehiculos";
+import { Vehiculo } from "@/lib/update-pass";
 
 interface TableProps {
   setSelectedVehiculos: (equipos: Vehiculo[])=> void

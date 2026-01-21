@@ -24,8 +24,7 @@ import { useForm } from "react-hook-form";
 import { Textarea } from "../ui/textarea";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import LoadImage from "../upload-Image";
-import { Imagen } from "@/lib/update-pass";
+import LoadImage, { Imagen } from "../upload-Image";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { format } from 'date-fns';
 

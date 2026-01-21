@@ -1,4 +1,4 @@
-import { Equipo, Vehiculo } from "@/lib/update-pass-full";
+import { Equipo, Vehiculo } from "@/lib/update-pass";
 import {create} from "zustand";
 
 interface UseStoreState {

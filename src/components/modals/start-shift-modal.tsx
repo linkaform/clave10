@@ -11,12 +11,11 @@ import {
 import { useShiftStore } from "@/store/useShiftStore";
 import { useGuardSelectionStore } from "@/store/useGuardStore";
 import { useGetShift } from "@/hooks/useGetShift";
-import { Imagen } from "@/lib/update-pass-full";
 import { Dispatch, SetStateAction } from "react";
+import { Imagen } from "../upload-Image";
 
 interface StartShiftModalProps {
   title: string;
-  // children: React.ReactNode;
   evidencia: Imagen[]
   open: boolean;
   nombreSuplente:string;

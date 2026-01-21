@@ -14,11 +14,11 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Card, CardContent } from "../ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { capitalizeFirstLetter, formatDateToText } from "@/lib/utils";
-import { Imagen } from "@/lib/update-pass";
 import { SeguimientoFallaModal } from "./add-seguimiento-falla";
 import { Dispatch, SetStateAction, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Imagen } from "../upload-Image";
 
 interface ViewFallaModalProps {
   title: string;

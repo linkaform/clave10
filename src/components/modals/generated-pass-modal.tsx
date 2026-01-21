@@ -11,6 +11,7 @@ interface GeneratedPassModalProps {
   link: string;
   openGeneratedPass: boolean;
   setOpenGeneratedPass: Dispatch<SetStateAction<boolean>>;
+  modalConfirmacion:Dispatch<SetStateAction<boolean>>;
 }
 
 export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
@@ -19,6 +20,7 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
   link,
   openGeneratedPass,
   setOpenGeneratedPass,
+  modalConfirmacion
 }) => {
   const router = useRouter();
 
@@ -85,6 +87,13 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
           <Copy className="mr-2" />
           Copiar Enlace
         </Button>
+        <Button
+        variant="outline"
+        className="text-gray-700 bg-gray-100 hover:bg-gray-200"
+        onClick={() => {setOpenGeneratedPass(false); modalConfirmacion(false); router.push(`/dashboard/pases`);}}
+      >
+        Cerrar
+      </Button>
       </div>
     </div>
   );

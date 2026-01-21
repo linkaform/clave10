@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { useState } from "react";
-import { Vehiculo } from "@/lib/update-pass-full";
+import { Vehiculo } from "@/lib/update-pass";
 
 interface MakeCallModalProps {
   title: string;

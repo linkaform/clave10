@@ -2,11 +2,11 @@
 import { closeShift } from "@/lib/close-shift";
 import { getShift } from "@/lib/get-shift";
 import { startShift } from "@/lib/start-shift";
-import { toast } from "sonner"; // Importar Sonner
+import { toast } from "sonner";
 import { useShiftStore } from "@/store/useShiftStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Imagen } from "@/lib/update-pass-full";
 import { errorMsj } from "@/lib/utils";
+import { Imagen } from "@/components/upload-Image";
 
 export const useGetShift = (enableShift:boolean) => {
   const queryClient = useQueryClient();
@@ -20,6 +20,7 @@ export const useGetShift = (enableShift:boolean) => {
     setArea,
     setLocation,
     setTurno,
+    setDownloadPass
   } = useShiftStore();
 
   const {
@@ -42,6 +43,7 @@ export const useGetShift = (enableShift:boolean) => {
           setLocation(data.response?.data.location.name)
           setArea(data.response?.data.location.area)
           setTurno(data.response?.data.guard.status_turn == "Turno Abierto")
+          setDownloadPass(data.response?.data?.booth_config ?? [])
           return data.response?.data
       }
 		}});

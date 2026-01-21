@@ -26,12 +26,12 @@ import { z } from "zod";
 import { catalogoColores, catalogoTipoEquipos } from "@/lib/utils";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Equipo } from "@/lib/update-pass-full";
 import { useAccessStore } from "@/store/useAccessStore";
 import { useUpdateBitacora } from "@/hooks/useUpdateBitacora";
 import Select from 'react-select';
 import { ScanBarcodeModal } from "@/components/modals/scan-barcode-modal";
 import { ScanBarcode } from "lucide-react";
+import { Equipo } from "@/lib/update-pass";
 
 interface Props {
   title: string;

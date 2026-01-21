@@ -7,13 +7,13 @@ import { AlarmClock, Building2, Calendar, Calendar1, ChevronLeft, ChevronRight, 
 import { Badge } from "../ui/badge";
 import DaysCarousel from "../daysCarousel";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../ui/carousel";
-import { Imagen } from "@/lib/update-pass";
 import Image from "next/image";
 import { useBitacoraById } from "@/hooks/Rondines/useBitacoraById";
 import { useGetPdfIncidencias } from "@/hooks/Incidencias/usePdfIncidencias";
 import useAuthStore from "@/store/useAuthStore";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import { toast } from "sonner";
+import { Imagen } from "../upload-Image";
 
 interface ViewRondinesDetalleAreaProps {
     areaSelected: any

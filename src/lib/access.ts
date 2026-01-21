@@ -1,4 +1,4 @@
-import { Foto, Image } from "@/hooks/useSearchPass";
+import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
 
 export const searchAccessPass = async (
@@ -196,8 +196,8 @@ export interface AccessPass {
   empresa: string;
   visita_a: string;
   perfil_pase?: string;
-  foto: Foto | Image[] | undefined;
-  identificacion: Foto | Image[] | undefined;
+  foto: Imagen[] | undefined;
+  identificacion: Imagen[] | undefined;
   email?: string;
   telefono?: string;
   status_pase?:string;

@@ -343,7 +343,8 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 				description="El pase de entrada se ha generado correctamente. Por favor, copie el siguiente enlace y compártalo con el visitante para completar el proceso."
 				link={link}
 				openGeneratedPass={openGeneratedPass}
-				setOpenGeneratedPass={setOpenGeneratedPass} />
+				setOpenGeneratedPass={setOpenGeneratedPass} 
+				modalConfirmacion={setIsSuccess}/>
 				
 			):null}
 			

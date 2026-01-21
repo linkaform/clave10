@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Equipo } from "@/lib/update-pass-full";
 import { useAccessStore } from "@/store/useAccessStore";
+import { Equipo } from "@/lib/update-pass";
 
 export const EquipoAutorizadoColumns: ColumnDef<Equipo>[] = [
   {

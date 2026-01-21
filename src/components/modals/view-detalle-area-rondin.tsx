@@ -4,10 +4,10 @@ import { useState } from "react";
 import { Building2, Calendar1, ChevronLeft, ChevronRight, Clock, Loader2, Route } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../ui/carousel";
 import Image from "next/image";
-import { Imagen } from "@/lib/update-pass-full";
 import DaysCarousel from "../daysCarousel";
 import { useCheckById } from "@/hooks/Rondines/useCheckById";
 import { useCreateIncidenciaRondin } from "@/hooks/Rondines/useCeateIncidenciaRondin";
+import { Imagen } from "../upload-Image";
 
 interface ViewRondinesDetalleAreaProps {
   areaSelected:any

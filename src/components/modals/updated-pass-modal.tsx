@@ -1,3 +1,4 @@
+"use client"
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Mail, MessageCircleMore } from "lucide-react";
 import { Button } from "../ui/button";

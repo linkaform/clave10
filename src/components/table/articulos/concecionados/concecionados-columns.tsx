@@ -97,7 +97,7 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
     },
     {
       accessorKey: "status_concesion",
-      header: "Equipo",
+      header: "Estatus",
       cell: ({ row }) => (
         <div className="capitalize">{row.getValue("status_concesion")}</div>
       ),

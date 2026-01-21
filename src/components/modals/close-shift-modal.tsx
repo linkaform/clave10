@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { Imagen } from "@/lib/update-pass-full";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -12,6 +11,7 @@ import {
 } from "../ui/dialog";
 import { useGetShift } from "@/hooks/useGetShift";
 import { Dispatch, SetStateAction } from "react";
+import { Imagen } from "../upload-Image";
 
 interface CloseShiftModalProps {
   title: string;

@@ -1,3 +1,4 @@
+"use client";
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -92,7 +93,7 @@ export const formSchema =
 	  }, [dataVehiculos]);
 
 	function loadNewVehicle(vehicle:Vehiculo){
-		form.setValue('tipo', vehicle?.tipo)
+		form.setValue('tipo', vehicle?.tipo??'')
 		form.setValue('marca', vehicle?.marca)
 		form.setValue('modelo', vehicle?.modelo)
 		form.setValue('color', vehicle?.color)

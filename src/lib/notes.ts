@@ -1,31 +1,23 @@
 import { toast } from "sonner";
+import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api"
+
 
 export interface InputNote {
   note: string;
   note_booth: string;
   note_comments: string[];
-  note_file: NoteFile[];
+  note_file: Imagen[];
   note_guard_close: string;
-  note_pic: NotePic[];
+  note_pic: Imagen[];
   note_status: string;
-}
-
-export interface NoteFile {
-  file_name: string;
-  file_url: string;
-}
-
-export interface NotePic {
-  file_name: string;
-  file_url: string;
 }
 
 export interface NoteUpdated {
   note: string;
   note_comments: string[];
-  note_file: NoteFile[];
-  note_pic: NotePic[];
+  note_file: Imagen[];
+  note_pic: Imagen[];
 }
 
 export interface NoteClose {
