@@ -581,28 +581,41 @@ export function formatToValueLabel (array:any[]) {
 }
 
 
-
-export const imprimirPDF = async (pdfUrl: string) => {
-
-
+export const imprimirYDescargarPDF = async (pdfUrl: string) => {
   try {
     const response = await fetch(pdfUrl, { mode: 'cors' });
     
     if (!response.ok) {
       throw new Error('No se pudo cargar el PDF');
     }
-    
     const blob = await response.blob();
+    Swal.close()
+    const nombreArchivo = pdfUrl.split('/').pop() || 'documento.pdf';
+
+    const forcedBlob = new Blob([blob], {
+      type: 'application/octet-stream',
+    });
+    
+    const downloadUrl = URL.createObjectURL(forcedBlob);
+    const downloadLink = document.createElement('a');
+    
+    downloadLink.href = downloadUrl;
+    downloadLink.download = nombreArchivo;
+    downloadLink.style.display = 'none';
+    
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    
+    URL.revokeObjectURL(downloadUrl);
+
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    
     const blobUrl = URL.createObjectURL(blob);
-    
-    Swal.close();
-    
     const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    iframe.style.opacity = '0';
+    iframe.style.display = 'none';
     iframe.src = blobUrl;
     
     document.body.appendChild(iframe);
@@ -613,33 +626,36 @@ export const imprimirPDF = async (pdfUrl: string) => {
           iframe.contentWindow?.print();
           
           setTimeout(() => {
-            document.body.removeChild(iframe);
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
             URL.revokeObjectURL(blobUrl);
-          }, 1000);
+            URL.revokeObjectURL(downloadUrl);
+          }, 60000);
+          
         } catch (error) {
           console.error('Error al imprimir:', error);
           document.body.removeChild(iframe);
           URL.revokeObjectURL(blobUrl);
+          URL.revokeObjectURL(downloadUrl);
           
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'No se pudo abrir la ventana de impresión',
-            confirmButtonColor: '#f44336',
+          toast.error('No se pudo abrir el diálogo de impresión', {
+            style: {
+              backgroundColor: "#f44336",
+              color: "#fff",
+            },
           });
         }
       }, 500);
     };
     
   } catch (error) {
-    Swal.close();
     console.error('Error al cargar el PDF:', error);
-    
-    await Swal.fire({
-      icon: 'error',
-      title: 'Error al cargar PDF',
-      text: 'No se pudo cargar el documento.',
-      confirmButtonColor: '#f44336',
+    toast.error('No se pudo cargar el documento', {
+      style: {
+        backgroundColor: "#f44336",
+        color: "#fff",
+      },
     });
   }
 };

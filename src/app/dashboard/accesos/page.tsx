@@ -39,7 +39,7 @@ import { useGetShift } from "@/hooks/useGetShift";
 import { exitRegister, registerIncoming } from "@/lib/access";
 import { PermisosTable } from "@/components/table/accesos/permisos-certificaciones/table";
 import useAuthStore from "@/store/useAuthStore";
-import { esHexadecimal, imprimirPDF } from "@/lib/utils";
+import { esHexadecimal, imprimirYDescargarPDF } from "@/lib/utils";
 import Link from "next/link";
 import { useGetStats } from "@/hooks/useGetStats";
 import { ScanPassOptionsModal } from "@/components/modals/scan-pass-options";
@@ -117,7 +117,7 @@ const AccesosPage = () => {
 	  const downloadUrl = data?.json?.download_url;
   
 	  if (downloadUrl) {
-		imprimirPDF(downloadUrl); 
+		imprimirYDescargarPDF(downloadUrl); 
 	  } else {
 		toast.warning("No se encontró URL de descarga");
 	  }
