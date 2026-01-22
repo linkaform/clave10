@@ -41,7 +41,7 @@ interface EmployeeAttendance {
   employee_id: number;
   nombre: string;
   ubicacion: string;
-  asistencia_mes: { status: StatusType; dia: number }[];
+  asistencia_mes: { status: StatusType; dia: number, closed?: boolean }[];
   resumen: { asistencias: number; retardos: number; faltas: number };
 }
 
@@ -325,11 +325,14 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                     const dayObj = emp.asistencia_mes.find(d => d.dia === day);
                     const status = dayObj?.status || "sin_registro";
                     const config = statusConfig[status] || statusConfig["sin_registro"];
+                    const isClosed = dayObj?.closed;
+                    const closedClass = isClosed ? "ring-2 ring-gray-800 ring-offset-1" : "";
+
                     return (
                       <td key={i} className="p-1 border-b text-center">
                         <button
                           type="button"
-                          className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
+                          className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color} ${closedClass}`}
                           title={config.label}
                           onClick={() => {
                             setSelectedUserId([emp.employee_id]);
@@ -365,6 +368,9 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                   const dayObj = emp.asistencia_mes.find(d => d.dia === day);
                   const status = dayObj?.status || "sin_registro";
                   const config = statusConfig[status] || statusConfig["sin_registro"];
+                  const isClosed = dayObj?.closed;
+                  const closedClass = isClosed ? "ring-2 ring-gray-800 ring-offset-1" : "";
+
                   return (
                     <td
                       key={i}
@@ -372,7 +378,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                     >
                       <button
                         type="button"
-                        className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
+                        className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color} ${closedClass}`}
                         title={config.label}
                         onClick={() => {
                           setSelectedUserId([emp.employee_id]);
