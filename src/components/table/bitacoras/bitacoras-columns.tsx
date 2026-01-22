@@ -42,6 +42,7 @@ export interface Bitacora_record {
 	comentarios: Comentarios_bitacoras[]
     formated_comentarios?:string
 	formated_visita?:string
+	pase_id:string
 }
 
 export type Comentarios_bitacoras={

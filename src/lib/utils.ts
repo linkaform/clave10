@@ -608,10 +608,6 @@ export const imprimirYDescargarPDF = async (pdfUrl: string) => {
     document.body.removeChild(downloadLink);
     
     URL.revokeObjectURL(downloadUrl);
-
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
     
     const blobUrl = URL.createObjectURL(blob);
     const iframe = document.createElement('iframe');

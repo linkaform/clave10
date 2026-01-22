@@ -56,7 +56,6 @@ const BitacorasTable:React.FC<ListProps> = ({ data, isLoading, setDate1, setDate
 	const [modalAgregarBadgeAbierto, setModalAgregarBadgeAbierto] = useState(false);
 	const [modalSalidaAbierto, setModalSalidaAbierto] = useState(false);
 	const [bitacoraSeleccionada, setBitacoraSeleccionada] = useState<Bitacora_record | null>(null);
-
 	const [columnVisibility, setColumnVisibility] =
 		React.useState<VisibilityState>({});
 	const [rowSelection, setRowSelection] = React.useState({});
@@ -71,6 +70,8 @@ const BitacorasTable:React.FC<ListProps> = ({ data, isLoading, setDate1, setDate
 	};
 	
 	const handleAgregarBadge= (bitacora: Bitacora_record) => {
+console.log("BVITCAPOR",bitacora.pase_id)
+
 		setBitacoraSeleccionada(bitacora);
 		setModalAgregarBadgeAbierto(true);
 	};
@@ -186,6 +187,7 @@ const BitacorasTable:React.FC<ListProps> = ({ data, isLoading, setDate1, setDate
 					title={"Gafete"} 
 					status={"Disponible"} 
 					id_bitacora= {bitacoraSeleccionada._id}
+					pase_id= {bitacoraSeleccionada.pase_id}
 					tipo_movimiento={bitacoraSeleccionada.status_visita} 
 					ubicacion={bitacoraSeleccionada.ubicacion} 
 					area={bitacoraSeleccionada?.status_visita?.toLowerCase()=="entrada" ? bitacoraSeleccionada.caseta_entrada: bitacoraSeleccionada.caseta_salida||""}

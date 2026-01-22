@@ -27,14 +27,19 @@ import {
 } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Dispatch, SetStateAction, useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useGetLockers } from "@/hooks/useGetLockers";
 import { useGetGafetes } from "@/hooks/useGetGafetes";
 
-import { IdCard, Loader2 } from "lucide-react";
+import { IdCard, Loader2, Printer } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useAsignarGafete } from "@/hooks/useAsignarGafete";
 import { useShiftStore } from "@/store/useShiftStore";
+import Swal from "sweetalert2";
+import { useGetPdf } from "@/hooks/usetGetPdf";
+import useAuthStore from "@/store/useAuthStore";
+import { toast } from "sonner";
+import { imprimirYDescargarPDF } from "@/lib/utils";
 
 interface AddBadgeModalProps {
 	title: string;
@@ -45,7 +50,7 @@ interface AddBadgeModalProps {
 	area:string;
 	setModalAgregarBadgeAbierto:Dispatch<SetStateAction<boolean>>; 
 	modalAgregarBadgeAbierto:boolean;
-	
+	pase_id:string
 }
 
 export interface locker {
@@ -85,13 +90,19 @@ export const AddBadgeModal: React.FC<AddBadgeModalProps> = ({
 	tipo_movimiento,
 	ubicacion,
 	modalAgregarBadgeAbierto,
-	setModalAgregarBadgeAbierto
+	setModalAgregarBadgeAbierto,
+	pase_id
 }) => {
-	const {area, location} = useShiftStore()
+	const {area, location,downloadPass} = useShiftStore()
+	const { userIdSoter } = useAuthStore();
 	const { data:responseGetLockers, isLoading:loadingGetLockers, refetch: refetchLockers } = useGetLockers(location, area, status, modalAgregarBadgeAbierto);
 	const { data:responseGetGafetes, isLoading:loadingGetGafetes, refetch: refetchGafetes } = useGetGafetes(location, area, status, modalAgregarBadgeAbierto);
 	const { asignarGafeteMutation,isLoading} = useAsignarGafete();
-
+	const {
+	  refetch,
+	} = useGetPdf(userIdSoter, pase_id, false);
+	
+const[showOptions, setShowOptions] = useState(true)
 	const form = useForm<z.infer<typeof FormSchema>>({
 		resolver: zodResolver(FormSchema),
 		defaultValues: {
@@ -118,12 +129,102 @@ export const AddBadgeModal: React.FC<AddBadgeModalProps> = ({
 	const handleOpenModal = async () => {
 		setModalAgregarBadgeAbierto(true); 
 	}
+	const handleGetPdf = async () => {
+		try {
+		  const result = await refetch();
+	  
+		  if (result.error) {
+			toast.error(`Error de red: ${result.error}`, {
+			  style: {
+				backgroundColor: "#f44336",
+				color: "#fff",
+			  },
+			});
+			Swal.close();
+			return;
+		  }
+	  
+		  const data = result.data?.response?.data;
+	  
+		  if (!data || data.status_code !== 200) {
+			const errorMsg =
+			  data?.json?.error ||
+			  result.data?.error ||
+			  "Error desconocido del servidor";
+	  
+			toast.error(`Error de red: ${errorMsg}`, {
+			  style: {
+				backgroundColor: "#f44336",
+				color: "#fff",
+			  },
+			});
+			Swal.close();
+			return;
+		  }
+	  
+		  const downloadUrl = data?.json?.download_url;
+	  
+		  if (downloadUrl) {
+			imprimirYDescargarPDF(downloadUrl); 
+		  } else {
+			toast.warning("No se encontró URL de descarga");
+		  }
+		} catch (err) {
+		  toast.error(`Error inesperado: ${err}`, {
+			style: {
+			  backgroundColor: "#f44336",
+			  color: "#fff",
+			},
+		  });
+		  Swal.close();
+		}
+	  };
 
+	  
+	const printPase = () => {
+			Swal.fire({
+				title: 'Preparando documento',
+				html: 'Cargando PDF para imprimir...',
+				allowOutsideClick: false,
+				allowEscapeKey: false,
+				didOpen: () => {
+				  Swal.showLoading();
+				}
+			  });
+			  handleGetPdf();
+	}
 return (
 	<Dialog open={modalAgregarBadgeAbierto} onOpenChange={setModalAgregarBadgeAbierto}>
 		<div className="cursor-pointer" onClick={handleOpenModal}>
 			<IdCard />
 		</div>
+		{showOptions? (
+			<DialogContent className="max-w-lg overflow-y-auto max-h-[80vh] flex flex-col" aria-describedby="">
+				<DialogHeader className="flex-shrink-0">
+			<DialogTitle className="text-2xl text-center font-bold">
+				Selecciona una opción
+			</DialogTitle>
+			</DialogHeader>
+
+		    <div className="flex flex-col gap-5">
+				<div>
+				<Button
+					onClick={() =>{setModalAgregarBadgeAbierto(false);printPase();}}
+					disabled={!downloadPass.includes("impresion_de_pase")}
+					className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+				>
+				 <Printer/>  Imprimir pase de entrada
+				 
+				</Button>
+				{!downloadPass.includes("impresion_de_pase") && <div className="text-red-500 text-sm" >No tienes habilitada la descarga de pases de entrada.</div>}
+				</div>
+
+				<Button className="w-full  bg-blue-500 hover:bg-blue-600 text-white" type="submit" onClick={()=>{setShowOptions(false)}}>
+				<IdCard/> {("Asignar gafete")}
+				</Button>
+			</div>
+			</DialogContent>
+		):
 		<DialogContent className="max-w-xl overflow-y-auto max-h-[80vh] flex flex-col" aria-describedby="">
 			<DialogHeader className="flex-shrink-0">
 			<DialogTitle className="text-2xl text-center font-bold">
@@ -283,7 +384,8 @@ return (
 					</>) :(<> <Loader2 className="animate-spin"/> {"Cargando..."} </>)}
 				</Button>
 			</div>
-		</DialogContent>        
+		</DialogContent>   
+		}     
 	</Dialog>
 );
 };
