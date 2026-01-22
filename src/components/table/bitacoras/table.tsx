@@ -70,7 +70,6 @@ const BitacorasTable:React.FC<ListProps> = ({ data, isLoading, setDate1, setDate
 	};
 	
 	const handleAgregarBadge= (bitacora: Bitacora_record) => {
-console.log("BVITCAPOR",bitacora.pase_id)
 
 		setBitacoraSeleccionada(bitacora);
 		setModalAgregarBadgeAbierto(true);

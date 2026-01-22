@@ -305,7 +305,7 @@ const PaseUpdate = () =>{
 				grupo_equipos: equipos,
 				status_pase: data.status_pase||"",
 				walkin_fotografia:data.walkin_fotografia??[],
-				walkin_identificacion:data.walkin_fotografia??[],
+				walkin_identificacion:data.walkin_identificacion??[],
 				folio: id,
 				account_id: account_id,
 				nombre: dataCatalogos?.pass_selected?.nombre||"",
