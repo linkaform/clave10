@@ -220,7 +220,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
   const daysToShow = timeframe === "semana" ? weeks[selectedWeek] : Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   return (
-    <div className="w-full overflow-auto max-h-[60vh] border rounded-md shadow-sm">
+    <div className="w-full overflow-auto max-h-[90vh] border rounded-md shadow-sm mb-8">
       {timeframe === "semana" && (
         <div className="flex items-center justify-center gap-4 mb-4">
           <button
