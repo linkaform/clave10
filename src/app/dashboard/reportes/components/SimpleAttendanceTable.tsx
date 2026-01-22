@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { CheckCircle, XCircle, Clock, MinusCircle, CalendarOff, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle, Clock, MinusCircle, CalendarOff, ChevronLeft, ChevronRight, X } from "lucide-react";
 import AttendanceDetailModal from "./AttendanceDetailModal";
 
 type StatusType = "presente" | "retardo" | "falta" | "falta_por_retardo" | "dia_libre" | "sin_registro";
@@ -256,13 +256,23 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
               <th className="sticky left-0 top-0 bg-white z-30 p-2 border-b-2 border-gray-300 text-left min-w-[120px] w-[140px]">
                 <div>
                   <span>Ubicación</span>
-                  <input
-                    type="text"
-                    placeholder=""
-                    value={searchUbicacion}
-                    onChange={e => setSearchUbicacion(e.target.value)}
-                    className="mt-2 w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring focus:border-blue-300"
-                  />
+                  <div className="relative mt-2">
+                    <input
+                      type="text"
+                      placeholder=""
+                      value={searchUbicacion}
+                      onChange={e => setSearchUbicacion(e.target.value)}
+                      className="w-full pl-2 pr-7 py-1 border rounded text-sm focus:outline-none focus:ring focus:border-blue-300"
+                    />
+                    {searchUbicacion && (
+                      <button
+                        onClick={() => setSearchUbicacion("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </th>
             )}
@@ -271,13 +281,23 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
             >
               <div>
                 <span>Empleado</span>
-                <input
-                  type="text"
-                  placeholder=""
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="mt-2 w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring focus:border-blue-300"
-                />
+                <div className="relative mt-2">
+                  <input
+                    type="text"
+                    placeholder=""
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full pl-2 pr-7 py-1 border rounded text-sm focus:outline-none focus:ring focus:border-blue-300"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </th>
             {daysToShow.map((day, idx) => {
