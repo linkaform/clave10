@@ -104,6 +104,13 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedUbicacion, setSelectedUbicacion] = useState<string>("");
+  const [filterDay, setFilterDay] = useState<number>(1);
+
+  useEffect(() => {
+    const today = new Date();
+    const isCurrentMonth = month === today.getMonth() + 1 && year === today.getFullYear();
+    setFilterDay(isCurrentMonth ? today.getDate() : 1);
+  }, [month, year]);
 
   // Filtra empleados por nombre
   const filteredData = useMemo(() => {
@@ -121,22 +128,17 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
     return result;
   }, [data, search, searchUbicacion]);
 
-  // Ejemplo dentro de SimpleAttendanceTable
-  const today = new Date();
-  const isCurrentMonth = month === today.getMonth() + 1 && year === today.getFullYear();
-  const currentDay = isCurrentMonth ? today.getDate() : 1;
-
   // Filtra empleados por status seleccionado en el día actual
   const statusFilteredData = useMemo(() => {
     if (!selectedStatus || selectedStatus.length === 0) return filteredData;
     return filteredData.filter(emp => {
-      const dayObj = emp.asistencia_mes.find(d => d.dia === currentDay);
+      const dayObj = emp.asistencia_mes.find(d => d.dia === filterDay);
       return (
         (dayObj && selectedStatus.includes(dayObj.status)) ||
         !dayObj
       );
     });
-  }, [filteredData, selectedStatus, currentDay]);
+  }, [filteredData, selectedStatus, filterDay]);
 
   // Agrupa empleados por ubicación si se activa
   const locationMap = useMemo(() => {
@@ -307,9 +309,14 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
               const dayOfWeek = date.getDay();
               const dayNames = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
               const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+              const isSelected = filterDay === day;
 
               return (
-                <th key={idx} className={`sticky top-0 z-20 p-1 border-b-2 border-gray-300 text-center min-w-[32px] max-w-[36px] ${isWeekend ? 'bg-blue-50' : 'bg-white'}`}>
+                <th
+                  key={idx}
+                  className={`sticky top-0 z-20 p-1 border-b-2 border-gray-300 text-center min-w-[32px] max-w-[36px] ${isWeekend ? 'bg-blue-50' : 'bg-white'} cursor-pointer hover:bg-gray-100 ${isSelected && selectedStatus.length > 0 ? '!bg-yellow-200' : ''}`}
+                  onClick={() => setFilterDay(day)}
+                >
                   <div className="text-xs font-bold">{day.toString().padStart(2, '0')}</div>
                   <div className="text-[10px]">{dayNames[dayOfWeek]}</div>
                 </th>
@@ -381,7 +388,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                   {emp.nombre}
                 </td>
                 {daysToShow.map((day, i) => {
-                  const isTodayCol = day === currentDay && selectedStatus.length > 0;
+                  const isTodayCol = day === filterDay && selectedStatus.length > 0;
                   if (!day) {
                     return <td key={i} className="p-1 border-b text-center bg-gray-100"></td>;
                   }
