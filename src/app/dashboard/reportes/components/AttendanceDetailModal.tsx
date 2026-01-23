@@ -51,8 +51,14 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
     ubicacion,
 }) => {
     const [modalOpen, setModalOpen] = useState(false);
+    const [initialIndex, setInitialIndex] = useState(0);
     const [currentDay, setCurrentDay] = useState<number>(selectedDay);
     const [api, setApi] = useState<CarouselApi>();
+
+    const handleImageClick = (index: number) => {
+        setInitialIndex(index);
+        setModalOpen(true);
+    };
 
     const { attendanceDetail, isLoadingAttendanceDetail, errorAttendanceDetail } = useAttendanceDetail({
         enabled: open,
@@ -67,7 +73,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
             order: 1,
         },
         {
-            src: attendanceDetail?.guardia_generales?.foto_cierre_turno?.[0]?.file_url,
+            src: attendanceDetail?.guardia_generales?.foto_end?.[0]?.file_url,
             alt: "Foto cierre de turno",
             order: 2,
         },
@@ -331,23 +337,16 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                             <div className="flex gap-2">
                                                 <div className="w-24 h-32 rounded-lg overflow-hidden bg-gray-200">
                                                     {attendanceDetail?.guardia_generales?.foto_inicio_turno?.[0] ? (
-                                                        <>
-                                                            <Image
-                                                                src={attendanceDetail.guardia_generales.foto_inicio_turno[0]?.file_url}
-                                                                alt="Guardia inicio"
-                                                                width={96}
-                                                                height={64}
-                                                                className="cursor-pointer"
-                                                                onClick={() => {
-                                                                    setModalOpen(true);
-                                                                }}
-                                                            />
-                                                            <ImagePreviewModal
-                                                                open={modalOpen}
-                                                                onClose={() => setModalOpen(false)}
-                                                                images={images}
-                                                            />
-                                                        </>
+                                                        <Image
+                                                            src={attendanceDetail.guardia_generales.foto_inicio_turno[0]?.file_url}
+                                                            alt="Guardia inicio"
+                                                            width={96}
+                                                            height={64}
+                                                            className="cursor-pointer"
+                                                            onClick={() => {
+                                                                handleImageClick(0);
+                                                            }}
+                                                        />
                                                     ) : (
                                                         <Image
                                                             src="https://f001.backblazeb2.com/file/app-linkaform/public-client-126/68600/6076166dfd84fa7ea446b917/2025-09-17T15:12:50.png"
@@ -359,24 +358,17 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                                     )}
                                                 </div>
                                                 <div className="w-24 h-32 rounded-lg overflow-hidden bg-gray-200">
-                                                    {attendanceDetail?.guardia_generales?.foto_cierre_turno?.[0] ? (
-                                                        <>
-                                                            <Image
-                                                                src={attendanceDetail.guardia_generales.foto_cierre_turno[0]?.file_url}
-                                                                alt="Guardia cierre"
-                                                                width={96}
-                                                                height={64}
-                                                                className="cursor-pointer"
-                                                                onClick={() => {
-                                                                    setModalOpen(true);
-                                                                }}
-                                                            />
-                                                            <ImagePreviewModal
-                                                                open={modalOpen}
-                                                                onClose={() => setModalOpen(false)}
-                                                                images={images}
-                                                            />
-                                                        </>
+                                                    {attendanceDetail?.guardia_generales?.foto_end?.[0] ? (
+                                                        <Image
+                                                            src={attendanceDetail.guardia_generales.foto_end[0]?.file_url}
+                                                            alt="Guardia cierre"
+                                                            width={96}
+                                                            height={64}
+                                                            className="cursor-pointer"
+                                                            onClick={() => {
+                                                                handleImageClick(1);
+                                                            }}
+                                                        />
                                                     ) : (
                                                         <Image
                                                             src="https://f001.backblazeb2.com/file/app-linkaform/public-client-126/68600/6076166dfd84fa7ea446b917/2025-09-17T15:12:50.png"
@@ -431,7 +423,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                             <div className="border rounded-lg p-3 flex items-center gap-3">
                                                 <span className="text-green-500 text-2xl">✔️</span>
                                                 <div>
-                                                    <div className="font-bold text-lg text-gray-800">{attendanceDetail?.indicadores_generales?.porcentaje_asistencias || 0}%</div>
+                                                    <div className="font-bold text-lg text-gray-800">{attendanceDetail?.indicadores_generales?.cantidad_asistencias || 0}</div>
                                                     <div className="text-xs text-gray-500">Asistencias</div>
                                                 </div>
                                             </div>
@@ -576,6 +568,12 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                         Cerrar
                     </Button>
                 </DialogClose>
+                <ImagePreviewModal
+                    open={modalOpen}
+                    onClose={() => setModalOpen(false)}
+                    images={images}
+                    initialIndex={initialIndex}
+                />
             </DialogContent>
         </Dialog>
     );

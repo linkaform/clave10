@@ -14,12 +14,14 @@ interface ImagePreviewModalProps {
   open: boolean;
   onClose: () => void;
   images: { src: string; alt?: string }[];
+  initialIndex?: number;
 }
 
 const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   open,
   onClose,
   images,
+  initialIndex = 0,
 }) => (
   <Dialog open={open} onOpenChange={(open) => (!open ? onClose() : undefined)}>
     <DialogContent className="max-w-2xl flex flex-col items-center">
@@ -37,27 +39,28 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
           opts={{
             align: "start",
             slidesToScroll: 1,
+            startIndex: initialIndex,
           }}
           className="w-full max-w-[500px]"
         >
           <CarouselContent className="px-6 py-2">
             {images.map((img, idx) => {
-                if (!img.src) return null;
+              if (!img.src) return null;
 
-                return (
+              return (
                 <CarouselItem key={idx} className="w-full px-1">
-                    <div className="flex flex-col items-center">
+                  <div className="flex flex-col items-center justify-center h-[500px] w-full">
                     <Image
-                        src={img.src}
-                        alt={img.alt ?? `Imagen ${idx + 1}`}
-                        width={600}
-                        height={400}
-                        className="rounded-lg object-contain max-h-[70vh] w-auto h-auto"
+                      src={img.src}
+                      alt={img.alt ?? `Imagen ${idx + 1}`}
+                      width={600}
+                      height={500}
+                      className="rounded-lg object-contain w-full h-full"
                     />
                     <span className="mt-2 text-xs text-gray-500">{img.alt ?? `Imagen ${idx + 1}`}</span>
-                    </div>
+                  </div>
                 </CarouselItem>
-                )
+              )
             })}
           </CarouselContent>
           <CarouselPrevious />
