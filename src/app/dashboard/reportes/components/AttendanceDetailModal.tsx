@@ -14,6 +14,7 @@ import {
     CarouselItem,
     CarouselNext,
     CarouselPrevious,
+    type CarouselApi,
 } from "@/components/ui/carousel";
 import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -51,6 +52,8 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
 }) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [currentDay, setCurrentDay] = useState<number>(selectedDay);
+    const [api, setApi] = useState<CarouselApi>();
+
     const { attendanceDetail, isLoadingAttendanceDetail, errorAttendanceDetail } = useAttendanceDetail({
         enabled: open,
         userIds,
@@ -69,7 +72,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
             order: 2,
         },
     ];
-    
+
     const statusTurn = attendanceDetail?.guardia_generales?.status_turn || "sin_registro";
     const tagColor = statusColors[statusTurn] || statusColors["sin_registro"];
 
@@ -80,6 +83,17 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
     useEffect(() => {
         if (open) setCurrentDay(selectedDay);
     }, [open, selectedDay]);
+
+    useEffect(() => {
+        if (!api || !attendanceDetail?.asistencia_mes) {
+            return;
+        }
+
+        const index = attendanceDetail.asistencia_mes.findIndex((d: { dia: number }) => d.dia === currentDay);
+        if (index !== -1) {
+            api.scrollTo(index, true);
+        }
+    }, [api, currentDay, attendanceDetail]);
 
     return (
         <Dialog open={open} onOpenChange={(open) => (!open ? onClose() : undefined)}>
@@ -165,9 +179,9 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                         {/* Días de asistencia en carrousel */}
                         <div className="flex justify-center mt-4 mb-2">
                             <Carousel
+                                setApi={setApi}
                                 opts={{
-                                    align: "start",
-                                    slidesToScroll: 5,
+                                    align: "center",
                                 }}
                                 className="w-full max-w-[420px] mx-auto"
                             >
@@ -230,9 +244,9 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                         {/* Días de asistencia en carrousel */}
                         <div className="flex justify-center mt-4 mb-2">
                             <Carousel
+                                setApi={setApi}
                                 opts={{
-                                    align: "start",
-                                    slidesToScroll: 5,
+                                    align: "center",
                                 }}
                                 className="w-full max-w-[420px] mx-auto"
                             >
@@ -278,7 +292,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                         <div className="flex flex-wrap items-center justify-between gap-4">
                                             <div>
                                                 <div className="text-gray-500 text-sm font-medium mb-1 flex justify-between">
-                                                    Detalle del turno: 
+                                                    Detalle del turno:
                                                     <div className="text-gray-700">
                                                         <button
                                                             onClick={() => {
@@ -324,7 +338,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                                                 width={96}
                                                                 height={64}
                                                                 className="cursor-pointer"
-                                                                onClick={()=>{
+                                                                onClick={() => {
                                                                     setModalOpen(true);
                                                                 }}
                                                             />
@@ -353,7 +367,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                                                 width={96}
                                                                 height={64}
                                                                 className="cursor-pointer"
-                                                                onClick={()=>{
+                                                                onClick={() => {
                                                                     setModalOpen(true);
                                                                 }}
                                                             />
@@ -375,11 +389,11 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                                 </div>
                                             </div>
                                         </div>
-                                            <div className="mt-3">
-                                                <span className={`inline-block ${tagColor} text-xs font-semibold px-3 py-1 rounded-lg`}>
-                                                  {statusTurn.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()) || "Sin registro"}
-                                                </span>
-                                            </div>
+                                        <div className="mt-3">
+                                            <span className={`inline-block ${tagColor} text-xs font-semibold px-3 py-1 rounded-lg`}>
+                                                {statusTurn.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()) || "Sin registro"}
+                                            </span>
+                                        </div>
                                         <div className="mt-4">
                                             <div className="mb-2">
                                                 <div className="text-xs text-gray-500 mb-1">Comentarios inicio</div>
