@@ -34,12 +34,13 @@ import { useGetGafetes } from "@/hooks/useGetGafetes";
 import { IdCard, Loader2, Printer } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useAsignarGafete } from "@/hooks/useAsignarGafete";
-import { useShiftStore } from "@/store/useShiftStore";
 import Swal from "sweetalert2";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import useAuthStore from "@/store/useAuthStore";
 import { toast } from "sonner";
 import { imprimirYDescargarPDF } from "@/lib/utils";
+import { useGetShift } from "@/hooks/useGetShift";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface AddBadgeModalProps {
 	title: string;
@@ -93,10 +94,11 @@ export const AddBadgeModal: React.FC<AddBadgeModalProps> = ({
 	setModalAgregarBadgeAbierto,
 	pase_id
 }) => {
-	const {area, location,downloadPass} = useShiftStore()
+	const { area, location } = useBoothStore();
+	const { downloadPass} = useGetShift(area, location);
 	const { userIdSoter } = useAuthStore();
-	const { data:responseGetLockers, isLoading:loadingGetLockers, refetch: refetchLockers } = useGetLockers(location, area, status, modalAgregarBadgeAbierto);
-	const { data:responseGetGafetes, isLoading:loadingGetGafetes, refetch: refetchGafetes } = useGetGafetes(location, area, status, modalAgregarBadgeAbierto);
+	const { data:responseGetLockers, isLoading:loadingGetLockers, refetch: refetchLockers } = useGetLockers(location??"", area??"", status, modalAgregarBadgeAbierto);
+	const { data:responseGetGafetes, isLoading:loadingGetGafetes, refetch: refetchGafetes } = useGetGafetes(location??"", area??"", status, modalAgregarBadgeAbierto);
 	const { asignarGafeteMutation,isLoading} = useAsignarGafete();
 	const {
 	  refetch,
@@ -121,7 +123,7 @@ const[showOptions, setShowOptions] = useState(true)
 
 
 	function onSubmit(data: z.infer<typeof FormSchema>) {
-		asignarGafeteMutation.mutate({ data_gafete:{locker_id:data.locker, gafete_id:data.gafete, documento:data.documentos, status_gafete:"asignado" , ubicacion:ubicacion, area:area} 
+		asignarGafeteMutation.mutate({ data_gafete:{locker_id:data.locker, gafete_id:data.gafete, documento:data.documentos, status_gafete:"asignado" , ubicacion:ubicacion, area:area??""} 
 			,id_bitacora, tipo_movimiento })
 	}
 	

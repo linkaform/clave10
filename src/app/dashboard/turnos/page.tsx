@@ -7,38 +7,36 @@ import ActivitySummary from "@/components/pages/turnos/activity-summary";
 import TurnStatus from "@/components/pages/turnos/turn-status";
 
 import { useGetShift } from "@/hooks/useGetShift";
-import { useShiftStore } from "@/store/useShiftStore";
 import { useEffect, useState } from "react";
 import { Imagen } from "@/components/upload-Image";
-
-
+import { useBoothStore } from "@/store/useBoothStore";
+import { useMounted } from "@/store/useMounted";
 
 export default function Home() {
-  const { isLoading, loading, shift } = useGetShift(true)
-  const {
-    location,
-    area,
-    setCheckin_id,
-  } = useShiftStore()
+  const mounted = useMounted();
+  const area = useBoothStore((s) => s.area);
+  const location = useBoothStore((s) => s.location);
+
+  const { shift, isLoading } = useGetShift(area,location);
 
   const [evidencia, setEvidencia] = useState<Imagen[]>([])
   const [identificacion, setIdentificacion] = useState<Imagen[]>([])
-  const [nombreSuplente, setNombreSuplente] = useState(shift?.guard?.nombre_suplente || "")
+  const [nombreSuplente, setNombreSuplente] = useState("")
   const [forceOpenStartPhoto, setForceOpenStartPhoto] = useState(false);
+
   useEffect(() => {
-    if (shift) {
-      setNombreSuplente(shift?.guard?.nombre_suplente || "")
+    if (!shift) return;
+  
+    setNombreSuplente(shift.guard?.nombre_suplente || "");
+  
+    if (shift.guard?.status_turn !== "Turno Cerrado") {
+      setEvidencia(shift.guard?.end_turn_image || []);
+    } else {
+      setEvidencia(shift.booth_status?.start_turn_image || []);
     }
-    if (shift?.guard?.status_turn !== "Turno Cerrado") {
-      setCheckin_id(shift?.guard?._id);
-      setEvidencia(shift?.guard?.end_turn_image || [])
-    } else if (shift?.guard?.status_turn !== "Turno Abierto") {
-      setEvidencia(shift?.booth_status?.start_turn_image || [])
-    }
-  }, [shift, setCheckin_id]);
-
-
-  if (isLoading || loading) {
+  }, [ shift]);
+  
+  if (isLoading || !mounted) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="w-24 h-24 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
@@ -53,13 +51,13 @@ export default function Home() {
           <Sidebar key={shift?.location?.name} shift={shift} nombreSuplente={nombreSuplente} setNombreSuplente={setNombreSuplente} onSuplenteConfirmado={() => setForceOpenStartPhoto(true)} />
         </div>
         <div className="w-full lg:w-3/4 p-8 flex flex-col">
-          <TurnStatus shift={shift} location={location} area={area} evidencia={evidencia} setEvidencia={setEvidencia} identificacion={identificacion} setIdentificacion={setIdentificacion} nombreSuplente={nombreSuplente}
+          <TurnStatus shift={shift} evidencia={evidencia} setEvidencia={setEvidencia} identificacion={identificacion} setIdentificacion={setIdentificacion} nombreSuplente={nombreSuplente}
             forceOpenStartPhoto={forceOpenStartPhoto}
             setForceOpenStartPhoto={setForceOpenStartPhoto}
           />
           <div className="flex flex-col sm:flex-row justify-between">
             <div className="w-full">
-              <GuardiasApoyoTable shift={shift} location={location} area={area} />
+              <GuardiasApoyoTable shift={shift} />
             </div>
           </div>
           <div className="flex w-full">

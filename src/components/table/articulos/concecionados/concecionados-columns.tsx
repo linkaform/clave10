@@ -1,14 +1,11 @@
 import {
   ColumnDef, 
 } from "@tanstack/react-table";
-import { useState } from "react";
-import { Edit, Eye } from "lucide-react";
+import {  Eye } from "lucide-react";
 // import { LoadingModal } from "@/components/modals/loading-modal";
 import { ViewArticuloCon } from "@/components/modals/view-articulo-con";
 import { DevolucionArticuloConModal } from "@/components/modals/devolucion-article-con-modal";
 import { Imagen } from "@/components/upload-Image";
-import { AddArticuloConModal } from "@/components/modals/add-article.con";
-
 
 export interface Articulo_con_record {
     _id:string,
@@ -31,7 +28,6 @@ export interface Articulo_con_record {
 const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
   const articulo = row.original;
   // const [showLoadingModal, setShowLoadingModal] = useState(false);
-  const [isSuccessCon, setIsSuccessCon] = useState(false);
 
   return (
     <><div className="flex space-x-2">
@@ -44,7 +40,7 @@ const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
       </ViewArticuloCon>
 
       {/* <LoadingModal isOpen={showLoadingModal} text="Cargando..."/> */}
-      <AddArticuloConModal
+      {/* <AddArticuloConModal
         title={"Editar Artículo Concesionado"}
         isSuccess={isSuccessCon}
         setIsSuccess={setIsSuccessCon}
@@ -53,7 +49,7 @@ const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
       <div className="cursor-pointer" title="Editar Artículo">
         <Edit />
       </div>
-    </AddArticuloConModal>
+    </AddArticuloConModal> */}
     
     <DevolucionArticuloConModal
         title="Devolver Artículo Concesionado" data={articulo} />
@@ -83,42 +79,65 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       enableSorting: true,
     },
     {
-      accessorKey: "solicita_concesion",
-      header: "Solicita",
-      cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("solicita_concesion")}</div>
-      ),
+      accessorKey: "status_concesion",
+      header: "Estado",
+      cell: ({ row }) => {
+        const status = row.getValue("status_concesion") as string;
+        const isAbierto = status?.toLowerCase() === "abierto";
+    
+        return (
+          <div
+            className={`inline-flex items-center justify-center px-2  text-sm font-semibold rounded-md border capitalize
+              ${
+                isAbierto
+                  ? "bg-red-100 text-red-700 border-red-700"
+                  : "bg-green-100 text-green-700 border-green-700"
+              }
+            `}
+          >
+            {status}
+          </div>
+        );
+      },
       enableSorting: true,
-    },
+    },    
     {
       accessorKey: "nombre_concesion",
-      header: "Persona",
+      header: "Empleado",
       cell: ({ row }) => (
         <div className="capitalize">{row.getValue("nombre_concesion")}</div>
       ),
       enableSorting: true,
     },
     {
+      accessorKey: "area",
+      header: "Departamento",
+      cell: ({ row }) => (
+        <div className="capitalize">{row.getValue("area")}</div>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: "otro",
+      header: "Otro",
+      cell: ({ row }) => (
+        <div className="capitalize">{row.getValue("otro")}</div>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: "equipos",
+      header: "Equipos",
+      cell: ({ row }) => (
+        <div className="capitalize">{row.getValue("equipos")}</div>
+      ),
+      enableSorting: true,
+    },
+    {
       accessorKey: "fecha_concesion",
-      header: "Fecha de la concesion",
+      header: "Fecha y hora de entrega",
       cell: ({ row }) => (
         <div>{row.getValue("fecha_concesion")}</div>
-      ),
-      enableSorting: true,
-    },
-    {
-      accessorKey: "status_concesion",
-      header: "Estatus",
-      cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("status_concesion")}</div>
-      ),
-      enableSorting: true,
-    },
-    {
-      accessorKey: "observacion_concesion",
-      header: "Observaciones",
-      cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("observacion_concesion")}</div>
       ),
       enableSorting: true,
     },
@@ -130,5 +149,14 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       ),
       enableSorting: true,
     },
+    {
+      accessorKey: "entrego",
+      header: "Entrego",
+      cell: ({ row }) => (
+        <div className="capitalize">{row.getValue("entrego")}</div>
+      ),
+      enableSorting: true,
+    },
+ 
   ];
   

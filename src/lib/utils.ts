@@ -655,3 +655,16 @@ export const imprimirYDescargarPDF = async (pdfUrl: string) => {
     });
   }
 };
+
+type ToastVariant = "success" | "error";
+
+export function customToast(text: string, variant: ToastVariant) {
+  const isSuccess = variant === "success";
+
+  toast[variant](text, {
+    style: {
+      backgroundColor: isSuccess ? "#16a34a" : "#f44336",
+      color: "#fff",
+    },
+  });
+}

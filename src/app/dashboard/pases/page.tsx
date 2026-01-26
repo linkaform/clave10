@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import PageTitle from "@/components/page-title";
 import { useGetMyPases } from "@/hooks/useGetMyPases";
 import PasesEntradaTable from "@/components/table/pases-entrada/table";
@@ -8,15 +8,17 @@ import PaginationPases from "@/components/pages/pases/PaginationPases";
 import ChangeLocation from "@/components/changeLocation";
 import { arraysIguales } from "@/lib/utils";
 import { Sun, UsersRound } from "lucide-react";
-import { useShiftStore } from "@/store/useShiftStore";
 import { useGetStats } from "@/hooks/useGetStats";
+import { useBoothStore } from "@/store/useBoothStore";
 
 const ListaPasesPage = () => {
   const [limit, setLimit] = useState(25);
   const [skip, setSkip] = useState(0);
   const [searchName, setSearchName] = useState("");
-  const {location} = useShiftStore()
-	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<string>(location );
+  const { location } = useBoothStore();
+	console.log("LOCATION",location)
+
+	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<string>("");
 	const [areaSeleccionada, setAreaSeleccionada] = useState("todas");
   const { data, isLoading } = useGetMyPases({ skip, limit, searchName });
   const { records, actual_page, records_on_page, total_pages, total_records } = data || {};
@@ -30,6 +32,10 @@ const ListaPasesPage = () => {
     setLimit(newLimit);
   };
 
+    useEffect(()=>{
+      if(location)
+        setUbicacionSeleccionada(location)
+    },[location])
 
   const handleTabChange = (tab:string, option:string[], filter="") => {
 		if(arraysIguales(option, selectedOption) && filter == dateFilter){

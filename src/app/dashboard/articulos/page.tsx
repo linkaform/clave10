@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Archive, CircleHelp, Edit, Package } from "lucide-react";
+import { Archive, CircleHelp, Package } from "lucide-react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import PageTitle from "@/components/page-title";
 import { useArticulosPerdidos } from "@/hooks/useArticulosPerdidos";
@@ -18,10 +18,11 @@ import { dateToString } from "@/lib/utils";
 import { toast } from "sonner";
 import ChangeLocation from "@/components/changeLocation";
 import { useGetStats } from "@/hooks/useGetStats";
-import { AddArticuloConModal } from "@/components/modals/add-article.con";
+import { useBoothStore } from "@/store/useBoothStore";
+// import { AddArticuloConModal } from "@/components/modals/add-article.con";
 
 const ArticulosPage = () => {
-	const {location} = useShiftStore()
+	const {location} = useBoothStore()
 	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location  || "Planta Monterrey");
 	const [areaSeleccionada, setAreaSeleccionada] = useState("todas")
 	const [date1, setDate1] = useState<Date|"">("")
@@ -40,7 +41,7 @@ const ArticulosPage = () => {
 	const [modalData] = useState<any>(null);
 	const [selectedArticulos, setSelectedArticulos]= useState<string[]>([]);
 	console.log(selectedArticulos)
-	const [isSuccessCon, setIsSuccessCon] = useState(false);
+	// const [isSuccessCon, setIsSuccessCon] = useState(false);
 	const [isSuccessPaq, setIsSuccessPaq] = useState(false);
 
 	useEffect(()=>{
@@ -59,7 +60,7 @@ const ArticulosPage = () => {
 
 
 	const openModalCon = () => {
-		setIsSuccessCon(true);  
+		// setIsSuccessCon(true);  
 		};
 
 	const openModalPaq = () => {
@@ -210,7 +211,7 @@ const ArticulosPage = () => {
 					setIsSuccess={setIsSuccess}
 					onClose={closeModal}
 				/>
-				<AddArticuloConModal
+				{/* <AddArticuloConModal
 					title={"Crear Artículo Concesionado"}
 					isSuccess={isSuccessCon}
 					setIsSuccess={setIsSuccessCon}
@@ -219,9 +220,8 @@ const ArticulosPage = () => {
 				>
 
 					<div>
-						<Edit/>
 					</div>
-				</AddArticuloConModal>
+				</AddArticuloConModal> */}
 
 				<AddPaqueteriaModal
 					title={"Crear Paquetería"}

@@ -190,7 +190,7 @@ export const generateMockLocations = (
             result.push(generateMockLocationAttendance(
                 location.id,
                 location.name,
-                shift.id,
+                shift?.id,
                 shift.name,
                 shift.timeRange,
                 month,

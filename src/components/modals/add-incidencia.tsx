@@ -60,7 +60,6 @@ import DateTime from "../dateTime";
 import LoadFile from "../upload-file";
 import { Loader2 } from "lucide-react";
 import { AccionesTomadas, AfectacionPatrimonial, Depositos, PersonasInvolucradas } from "@/lib/incidencias";
-import { useShiftStore } from "@/store/useShiftStore";
 import { useInciencias } from "@/hooks/Incidencias/useIncidencias";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { Input } from "../ui/input";
@@ -81,6 +80,7 @@ import { SeccionDepositos } from "../depositos-section";
 import Select from 'react-select';
 import { ViewSeg } from "./view-seguimiento";
 import EvidenciaCarousel from "../view-images-videos";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface AddIncidenciaModalProps {
   	title: string;
@@ -285,7 +285,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 	isSuccess,
 	setIsSuccess,
 }) => {
-	const { location, isLoading } = useShiftStore();
+	const { location } = useBoothStore();
 	const [evidencia , setEvidencia] = useState<Imagen[]>([]);
 	const [documento , setDocumento] = useState<Imagen[]>([]);
 
@@ -293,7 +293,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 	// const [documentoAP , setDocumentoAP] = useState<Imagen[]>([]);
 	const [date, setDate] = useState<Date|"">("");
 
-	const[ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location)
+	const[ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"")
 	const { dataAreas:areas, dataLocations:ubicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, isSuccess,  location?true:false);
 	const [personasInvolucradas, setPersonasInvolucradas] = useState<PersonasInvolucradas[]>([])
 	const [accionesTomadas, setAccionesTomadas] = useState<AccionesTomadas[]>([])
@@ -303,8 +303,8 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 	const [openModal, setOpenModal] = useState(false);
 
 
-	const { data:dataAreaEmpleado } = useCatalogoAreaEmpleado(isSuccess, location, "Incidencias");
-	const { createIncidenciaMutation , loading} = useInciencias("","",[], "", "", "");
+	const { data:dataAreaEmpleado } = useCatalogoAreaEmpleado(isSuccess, location??"", "Incidencias");
+	const { createIncidenciaMutation , loading:isLoading} = useInciencias("","",[], "", "", "");
 	
 	const [search, setSearch]= useState("")
 	const [catSubCategorias, setSubCatCategorias] = useState<any>([])
@@ -473,7 +473,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 			setEditarSeguimiento(false)
 			setIndiceSeleccionado(null)
 			setSeguimientos([])
-			setUbicacionSeleccionada(location)
+			setUbicacionSeleccionada(location??"")
 	},[isSuccess]);	
 
 	useEffect(()=>{
@@ -481,12 +481,6 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 			console.log("console log", form.formState.errors)
 		}
 	},[form.formState.errors])
-
-	useEffect(()=>{
-		if(!loading){
-			handleClose()			
-		}
-	},[loading])
 
 	function onSubmit(values: z.infer<typeof formSchema>) {
 		let formattedDate = "";
@@ -553,7 +547,11 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 					modelo: values.modelo,
 					color: values.color,
 				}
-				createIncidenciaMutation.mutate({ data_incidencia: formatData });
+				createIncidenciaMutation.mutate({ data_incidencia: formatData },{
+					onSuccess:()=>{
+						handleClose()	
+					}
+				});
 		}
 	}
 
@@ -763,6 +761,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 												 	<FormLabel>Reporta:</FormLabel>
 													<Select 
 														placeholder="Reporta"
+														tabSelectsValue={false} blurInputOnSelect
 														className="border border-slate-100 rounded-2xl"
 														options={ dataAreaEmpleado && dataAreaEmpleado.length>0? formatForMultiselect(dataAreaEmpleado):[] } 
 														value = {
@@ -777,9 +776,9 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 														  }}
 														isClearable
 														// value={field.value} 
-														styles={{
-															menuPortal: (base) => ({ ...base, zIndex: 9999 ,pointerEvents: "auto",}),
-														}}
+														// styles={{
+														// 	menuPortal: (base) => ({ ...base, zIndex: 9999 ,pointerEvents: "auto",}),
+														// }}
 													/>
 													<FormMessage />
 												</FormItem>
@@ -818,8 +817,8 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 											render={({ field }:any) => (
 												<FormItem>
 													<FormLabel>Ubicación:</FormLabel>
-													<Select 
-														placeholder="Reporta"
+													<Select  tabSelectsValue={false} blurInputOnSelect
+														placeholder="Ubicacion"
 														className="border border-slate-100 rounded-2xl"
 														value={formatForSelectString(ubicacionSeleccionada)}
 														options={ formatForMultiselect(ubicaciones)} 
@@ -828,9 +827,9 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 															setUbicacionSeleccionada(selectedOption?.value ?? ""); 
 														  }}
 														isClearable
-														styles={{
-															menuPortal: (base) => ({ ...base, zIndex: 9999 ,pointerEvents: "auto",}),
-														}}
+														// styles={{
+														// 	menuPortal: (base) => ({ ...base, zIndex: 9999 ,pointerEvents: "auto",}),
+														// }}
 													/>
 													
 													{/* <Select 

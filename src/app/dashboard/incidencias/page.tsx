@@ -15,12 +15,14 @@ import { useInciencias } from "@/hooks/Incidencias/useIncidencias";
 import { dateToString } from "@/lib/utils";
 import ChangeLocation from "@/components/changeLocation";
 import { useShiftStore } from "@/store/useShiftStore";
+import { useBoothStore } from "@/store/useBoothStore";
 
 const IncidenciasPage = () => {
 
   const [isSuccess, setIsSuccess] = useState(false);
-  const {location, filter, from, setFrom, tab} = useShiftStore()
-  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location);
+  const { filter, from, setFrom, tab} = useShiftStore()
+  const { location } = useBoothStore();
+  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState("");
   const [areaSeleccionada, setAreaSeleccionada] = useState("todas");
   const [isSuccessIncidencia, setIsSuccessIncidencia] = useState(false);
   const [modalData] = useState<any>(null);

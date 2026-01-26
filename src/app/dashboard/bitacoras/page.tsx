@@ -16,12 +16,12 @@ import { arraysIguales, dateToString } from "@/lib/utils";
 import { useBitacoras } from "@/hooks/Bitacora/useBitacoras";
 import { toast } from "sonner";
 import { useGetStats } from "@/hooks/useGetStats";
-import useAuthStore from "@/store/useAuthStore";
+import { useBoothStore } from "@/store/useBoothStore";
 
 const BitacorasPage = () => {
-	const { tab, filter, option, setOption, from, setFrom} = useShiftStore()
-  	const {location, area} = useShiftStore()
-	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location );
+	const { tab, filter, option, from, setFrom} = useShiftStore()
+	const {location } = useBoothStore();
+	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState("" );
 	const [areaSeleccionada, setAreaSeleccionada] = useState("todas");
 	const [equiposData, setEquiposData] = useState<Bitacora_record[]>([]);
 	const [vehiculosData, setVehiculosData] = useState<Bitacora_record[]>([]);
@@ -37,23 +37,12 @@ const BitacorasPage = () => {
 	const { data: stats } = useGetStats(ubicacionSeleccionada&& areaSeleccionada?true:false,ubicacionSeleccionada, areaSeleccionada=="todas"?"":areaSeleccionada, 'Bitacoras')
 	const [selectedTab, setSelectedTab] = useState<string>(tab ? tab: "Personal"); 
 
-	const userNameSoter = useAuthStore((state) => state.userNameSoter);
-
 	useEffect(() => {
-		// if(tab){
-		// 	setTab("")
-		// }
-		// if(filter){
-		// 	setFilter("")
-		// }
-		if(location){
-			setUbicacionSeleccionada(location )
-		}else{
-			setUbicacionSeleccionada(location|| "Planta Monterrey" )
+		if (location) {
+		  setUbicacionSeleccionada(location);
 		}
-	}, [area, location, userNameSoter, option, setOption]); 
-
-
+	  }, [location]);
+	  
 	useEffect(() => {
 		if (Array.isArray(listBitacoras) && listBitacoras.length > 0 && from === "turnos") {
 			setDateFilter(filter);

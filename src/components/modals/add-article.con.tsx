@@ -32,6 +32,7 @@ import { useCatalogoConcesion } from "@/hooks/useCatalogoConcesion";
 import { useShiftStore } from "@/store/useShiftStore";
 import { Input } from "../ui/input";
 import LoadImage from "../upload-Image";
+import ConcesionadosAgregarEquipos from "../concesionados-agregar-equipos";
 
 interface ArticuloData {
   status_concesion?: string;
@@ -45,6 +46,7 @@ interface ArticuloData {
   observacion_concesion?: string;
   persona_text?: string;
   evidencia?: { file_url: string; file_name: string }[];
+  firma:string;
 }
 
 interface AddFallaModalProps {
@@ -75,6 +77,7 @@ const formSchema = z.object({
       file_name: z.string(),
     })
   ).optional(),
+  firma: z.string().optional(),
 });
 
 export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
@@ -88,7 +91,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   const [conSelected, setConSelected] = useState<string>("");
   const { location, area } = useShiftStore();
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location);
-  
+  const [equipos, setEquipos]= useState<any[]>([])
   const { dataAreas: areas, dataLocations: ubicaciones, isLoadingAreas: loadingAreas, isLoadingLocations: loadingUbicaciones } = 
     useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, ubicacionSeleccionada ? true : false);
   
@@ -116,7 +119,8 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
       equipo_concesion: "",
       observacion_concesion: "",
       persona_text: "",
-      evidencia: []
+      evidencia: [],
+      firma:""
     },
   });
 
@@ -136,7 +140,8 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
           equipo_concesion: initialData.equipo_concesion || "",
           observacion_concesion: initialData.observacion_concesion || "",
           persona_text: initialData.persona_text || "",
-          evidencia: initialData.evidencia || []
+          evidencia: initialData.evidencia || [],
+          firma:initialData.firma || "",
         });
         if (initialData.ubicacion_concesion) {
           setUbicacionSeleccionada(initialData.ubicacion_concesion);
@@ -176,7 +181,8 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
         equipo_concesion: values.equipo_concesion ?? "",
         observacion_concesion: values.observacion_concesion ?? "",
         persona_text: values.persona_text ?? "",
-        evidencia: values.evidencia ?? []
+        evidencia: values.evidencia ?? [],
+        firma:values.firma || "",
       };
 
       if (mode === 'edit') {
@@ -283,7 +289,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                 name="fecha_concesion"
                 render={() => (
                   <FormItem>
-                    <FormLabel> Fecha de la concesion:</FormLabel>
+                    <FormLabel> Fecha y hora de la concesion:</FormLabel>
                     <FormControl>
                       <DateTime date={date} setDate={setDate} />
                     </FormControl>
@@ -483,6 +489,9 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                   </div>)
                 }
               />
+              <div className="col-span-1 md:col-span-2">
+                <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} ></ConcesionadosAgregarEquipos>
+              </div>
               <FormField
                 control={form.control}
                 name="observacion_concesion"
@@ -500,6 +509,29 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                   </FormItem>
                 )}
               />
+
+                <div className="flex col-span-2 w-1/2 ">
+
+              <FormField
+								control={form.control}
+								name="firma"
+								render={({ field }: any) => (
+									<FormItem>
+										<FormLabel>Firma: *</FormLabel>
+										<FormControl>
+											<Input className="border-none font-medium" placeholder="Escribe tu firma..." {...field}
+												onChange={(e) => {
+													field.onChange(e);
+												}}
+												value={field.value || ""}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+                </div>
+
             </form>
           </Form>
         </div>

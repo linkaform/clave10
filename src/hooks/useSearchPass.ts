@@ -3,9 +3,10 @@ import { AccessPass, addNewVisit, exitRegister, getAccessAssets, searchAccessPas
 import { Equipo, Vehiculo } from "@/lib/update-pass"
 import { errorMsj } from "@/lib/utils"
 import { useAccessStore } from "@/store/useAccessStore"
-import { useShiftStore } from "@/store/useShiftStore"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { useState } from "react"
+import { useBoothStore } from "@/store/useBoothStore"
 
 
 export interface SearchAccessPass {
@@ -57,7 +58,8 @@ export interface QrPase {
 }
 
 export const useSearchPass = (enable:boolean, cat?:string) => {
-  const { area, location, setLoading, isLoading: loading } = useShiftStore()
+  const { area, location } = useBoothStore();
+  const [loading,setLoading]=useState(false)
   const { passCode , setPassCode, clearPassCode} = useAccessStore()
   const queryClient = useQueryClient()
 
@@ -71,7 +73,7 @@ export const useSearchPass = (enable:boolean, cat?:string) => {
     queryKey: ["serchPass",area, location, passCode],
     enabled:!!(area && location && passCode),
     queryFn: async () => {
-      const data = await searchAccessPass(area, location, passCode)
+      const data = await searchAccessPass(area??"", location??"", passCode)
       const textMsj = errorMsj(data) 
       if (textMsj){
         toast.error(`Error al buscar pase, Error: ${textMsj.text}`);
@@ -89,21 +91,23 @@ export const useSearchPass = (enable:boolean, cat?:string) => {
 
   const { data: assets , isLoading:assetsLoading} = useQuery<any>({
     queryKey: ["getAssetsAccess",cat],
-    enabled:enable,
+    enabled:!!location&&enable,
     queryFn: async () => {
-      const data = await getAccessAssets(location,cat)
+    console.log("location HOO", location)
+
+      const data = await getAccessAssets(location??"",cat)
       return data.response?.data || {}
     },
-    refetchOnWindowFocus: false,
+    // refetchOnWindowFocus: false,
     // refetchInterval: 60000,
-    refetchOnReconnect: true,
+    // refetchOnReconnect: true,
     // staleTime: 1000 * 60 * 5,
   })
 
 
   const exitRegisterAccess = useMutation({
     mutationFn: async () => {
-      const data = await exitRegister(area, location, passCode)
+      const data = await exitRegister(area??"", location??"", passCode)
       return data.response?.data || []
     },
     onMutate: () => {
@@ -124,7 +128,7 @@ export const useSearchPass = (enable:boolean, cat?:string) => {
 
   const fetchAccessAssets = useMutation({
     mutationFn: async () => {
-      const data = await getAccessAssets(location)
+      const data = await getAccessAssets(location??"")
 
       return data.response?.data || []
     },

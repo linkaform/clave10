@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { changeUserPhoto, changeUserPhotoPatch } from "@/lib/change-user-photo";
 import { capitalizeOnlyFirstLetter } from "@/lib/utils";
 import useAuthStore from "@/store/useAuthStore";
+import { useBoothStore } from "@/store/useBoothStore";
 import React , { Dispatch, SetStateAction, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -16,7 +17,7 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { userEmailSoter, userNameSoter, userPhoto, userIdSoter , setUserPhoto} = useAuthStore();
   const [openNombreSuplenteModal, setOpenNombreSuplenteModal] = useState(false)
-
+  const { location, area} = useBoothStore()
   const getInitials = (name: string | null) => {
     if (!name) return "N/A";
     return name
@@ -83,7 +84,7 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
         <div className="flex">
           <div className="w-full">
             <p>Ubicación:</p>
-            <p className="font-bold">{shift?.location?.name || "---"}</p>{" "}
+            <p className="font-bold">{location || "---"}</p>{" "}
           </div>
 
           <div className="w-full">
@@ -107,7 +108,7 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
         <div className="flex flex-col">
           <div className="w-full">
             <p>Caseta:</p>
-            <p className="font-bold">{shift?.location?.area || "---"}</p>
+            <p className="font-bold">{area || "---"}</p>
           </div>
         </div>
 

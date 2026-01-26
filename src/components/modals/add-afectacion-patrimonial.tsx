@@ -22,7 +22,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
-import { useShiftStore } from "@/store/useShiftStore";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -76,7 +75,7 @@ export const AfectacionPatrimonialModal: React.FC<IncidenciaModalProps> = ({
     setEditarAfectacionPatrimonial,
     afectacionPatrimonialSeleccionada
 }) => {
-	const { isLoading} = useShiftStore();
+	// const { isLoading} = useShiftStore();
     const [inputValue, setInputValue] = useState(""); // texto visible
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
     const [evidencia , setEvidencia] = useState<Imagen[]>([]);
@@ -338,7 +337,7 @@ export const AfectacionPatrimonialModal: React.FC<IncidenciaModalProps> = ({
                     <Button
                         // type="submit"
                         onClick={form.handleSubmit(onSubmit)}
-                        className="w-full  bg-blue-500 hover:bg-blue-600 text-white " disabled={isLoading}
+                        className="w-full  bg-blue-500 hover:bg-blue-600 text-white " 
                     >
                         {editarAfectacionPatrimonial? ("Guardar"):(("Agregar"))}
                     </Button>

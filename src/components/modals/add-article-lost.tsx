@@ -35,7 +35,7 @@ import { catalogoColores } from "@/lib/utils";
 import { Input } from "../ui/input";
 import { useCatalogoArticulos } from "@/hooks/useCatalogoArticulos";
 import { useGetLockers } from "@/hooks/useGetLockers";
-import { useShiftStore } from "@/store/useShiftStore";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface AddFallaModalProps {
   	title: string;
@@ -74,9 +74,9 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
 	setIsSuccess,
 }) => {
 	const [tipoArt, setTipoArt] = useState<string>("");
-	const { location, fetchShift } = useShiftStore();
+	const { location } = useBoothStore();
 	// const [catalagoSub, setCatalogoSub] = useState<string[]>([]);
-	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState("Planta Monterrey");
+	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState("");
 	const { dataAreas:areas, dataLocations:ubicaciones, isLoadingAreas:loadingAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true,  ubicacionSeleccionada?true:false);
 
 	const { data:dataAreaEmpleado, isLoading:loadingAreaEmpleado, refetch: refetchAreaEmpleado, } = useCatalogoAreaEmpleado(isSuccess, ubicacionSeleccionada,"Objetos Perdidos" );
@@ -113,10 +113,7 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
 
 	useEffect(()=>{
 		if(location){
-			setUbicacionSeleccionada(location || "Planta Monterrey")
-		}else{
-			fetchShift()
-		}
+			setUbicacionSeleccionada(location)}
 	},[])
 
 	useEffect(()=>{
@@ -125,7 +122,6 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
 			setDate(new Date())
 			setEvidencia([])
 			refetchAreaEmpleado()
-			setUbicacionSeleccionada(location || "Planta Monterrey")
 		}
 	},[isSuccess])
 

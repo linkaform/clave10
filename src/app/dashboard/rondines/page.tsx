@@ -17,13 +17,13 @@ import RondinesCalendar from "@/components/calendar";
 import ChecksImagesSection from "@/components/ChecksImagesSection";
 import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
 import { RondinesBitacoraTable } from "@/components/table/rondines/bitacoras-table";
-
+import { useBoothStore } from "@/store/useBoothStore";
 
 const RondinesPage = () => {
   const [selectedOption, setSelectedOption] = useState<string[]>([]);
-  const {location} = useShiftStore()
-  const [ubicacionSeleccionada, setUbicacionSeleccionada]= useState<string>(location)
-  const [areaSeleccionada, setAreaSeleccionada]= useState<string>("")
+  const {location } = useBoothStore();
+  const [ubicacionSeleccionada, setUbicacionSeleccionada]= useState<string>("")
+  const [areaSeleccionada, setAreaSeleccionada]= useState<string>("todas")
   const { tab, filter} = useShiftStore()
   const [dateFilter, setDateFilter] = useState<string>(filter)
   const [selectedTab, setSelectedTab] = useState<string>(tab ? tab: "Rondines"); 

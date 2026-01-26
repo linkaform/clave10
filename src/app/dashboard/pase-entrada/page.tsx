@@ -29,7 +29,6 @@ import Image from "next/image";
 import { Contacto } from "@/lib/get-user-contacts";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { usePaseEntrada } from "@/hooks/usePaseEntrada";
-import { useShiftStore } from "@/store/useShiftStore";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DateTime from "@/components/dateTime";
 import { Switch } from "@/components/ui/switch";
@@ -38,6 +37,7 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 import AreasList from "@/components/areas-list";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import ComentariosList from "@/components/comentarios-list";
+import { useBoothStore } from "@/store/useBoothStore";
 
 
  const formSchema = z
@@ -142,13 +142,15 @@ import ComentariosList from "@/components/comentarios-list";
 
   const PaseEntradaPage = () =>  {
 	const [tipoVisita, setTipoVisita] = useState("rango_de_fechas");
-	const { location } = useShiftStore()
+	const { location } = useBoothStore();
+	
 	const { excludes }= useMenuStore()
 	const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>([]);
 	const [config_dia_de_acceso, set_config_dia_de_acceso] = useState("cualquier_día");
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
-	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingAreas:loadingCatAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(location, true, location?true:false);
+	const [ubicacionSeleccionada,setUbicacionSeleccionada] = useState("")
+	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingAreas:loadingCatAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, location?true:false);
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted??[]);
 	const pickerRef = useRef<any>(null);
 	const { assets,assetsLoading} = useSearchPass(true);
@@ -158,6 +160,11 @@ import ComentariosList from "@/components/comentarios-list";
 	const isExcluded = (key: string) =>
 		Array.isArray(excludes?.pases) &&
 		excludes.pases.includes(key);
+
+	useEffect(()=>{
+		if(location)
+			setUbicacionSeleccionada(location)
+	},[location])
 
 	useEffect(() => {
 	  if (!ubicacionesSeleccionadas?.length) {

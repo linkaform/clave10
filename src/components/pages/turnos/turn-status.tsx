@@ -14,8 +14,6 @@ import { Imagen } from "@/components/upload-Image";
 
 const TurnStatus = ({
 	shift,
-	location,
-	area,
 	evidencia,
 	setEvidencia,
 	identificacion,
@@ -25,8 +23,6 @@ const TurnStatus = ({
 	setForceOpenStartPhoto
   }: {
 	shift: any;
-	location: string;
-	area: string;
 	evidencia: Imagen[];
 	setEvidencia: Dispatch<SetStateAction<Imagen[]>>;
 	identificacion: Imagen[];
@@ -51,6 +47,8 @@ const TurnStatus = ({
 	const [openCloseView, setOpenCloseView] = useState(false);
 
 	const [openDeletePhoto, setOpenDeletePhoto] = useState(false);
+	const location = shift?.location.name?? "";
+	const area = shift?.location.area?? ""
 
   useEffect(() => {
 	
@@ -165,7 +163,7 @@ const TurnStatus = ({
 				<ViewPhotoGuard evidencia={identificacion}  open={openCloseView} setOpen={setOpenCloseView}>
 				</ViewPhotoGuard>
 				
-				<div
+				{/* <div
 					className={`
 						relative w-32 h-32 mx-auto flex flex-col items-center justify-center border-2 border-dashed
 						${turno=="Turno abierto" ? "border-gray-400 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.2)]" : "border-gray-300 bg-gray-100 cursor-not-allowed shadow-none opacity-50"}
@@ -203,7 +201,7 @@ const TurnStatus = ({
 					<span className="text-xs text-center text-gray-600">
 						Cierre de turno
 					</span>
-				</div>
+				</div> */}
 
 				<TakePhotoGuard title="Tomar Fotografía" descripcion="Capture una fotografía de su uniforme completo antes de cerrar su turno." evidencia={identificacion} setEvidencia={setIdentificacion} open={openClosePhotoModal} setOpen={setOpenClosePhotoModal} >
 				</TakePhotoGuard>

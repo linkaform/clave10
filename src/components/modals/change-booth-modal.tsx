@@ -8,6 +8,7 @@ import {
 } from "../ui/dialog";
 import { useHandleBooth } from "@/hooks/useHandleBooth";
 import { useState, useMemo } from "react";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface ChangeBoothProps {
   title: string;
@@ -19,8 +20,9 @@ export const ChangeBoothModal: React.FC<ChangeBoothProps> = ({
   children,
 }) => {
   const [open, setIsOpen] = useState(false);
+  const {setBooth} = useBoothStore();
   const [searchTerm, setSearchTerm] = useState("");
-  const { booths, changeBoothMutation, isLoading } = useHandleBooth(open);
+  const { booths, isLoading } = useHandleBooth(open);
 
   const filteredBooths = useMemo(() => {
     if (!booths) return [];
@@ -75,13 +77,11 @@ export const ChangeBoothModal: React.FC<ChangeBoothProps> = ({
                   <div
                     key={index}
                     className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer transition-colors"
-                    onClick={() =>
-                      changeBoothMutation.mutate({
-                        area: item?.area,
-                        location: item?.location,
-                        })
-                      }
-                    
+                    onClick={() =>{
+                      console.log("CAMBIO DE CASRTA", item?.area, item?.location)
+                      setBooth(item?.area, item?.location);
+                      setIsOpen(false);
+                    }}
                   >
                     <div className="mr-4 bg-gray-100 p-4 rounded-lg">
                       <Flag />

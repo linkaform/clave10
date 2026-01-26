@@ -8,11 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
-import { useShiftStore } from "@/store/useShiftStore";
 import { useGuardSelectionStore } from "@/store/useGuardStore";
-import { useGetShift } from "@/hooks/useGetShift";
+import { useStartShift } from "@/hooks/useGetShift";
 import { Dispatch, SetStateAction } from "react";
 import { Imagen } from "../upload-Image";
+import { Loader2 } from "lucide-react";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface StartShiftModalProps {
   title: string;
@@ -32,11 +33,11 @@ export const StartShiftModal: React.FC<StartShiftModalProps> = ({
   setOpen,
   checkin_id
 }) => {
-  const { area, location } = useShiftStore();
+  const { area, location } = useBoothStore();
 
   const { selectedGuards } = useGuardSelectionStore();
 
-  const { startShiftMutation } = useGetShift(false);
+  const { mutate, isPending } = useStartShift();
 
 
   const guardNames = selectedGuards
@@ -77,9 +78,9 @@ export const StartShiftModal: React.FC<StartShiftModalProps> = ({
             </Button>
           </DialogClose>
 
-          <DialogClose asChild>
             <Button
               className="w-full  bg-blue-500 hover:bg-blue-600 text-white"
+              disabled={isPending}
               onClick={() => {
                 const formattedGuards = selectedGuards?.map(
                   (guard: { user_id: number; name: string }) => ({
@@ -88,12 +89,15 @@ export const StartShiftModal: React.FC<StartShiftModalProps> = ({
                   })
                 );
 
-                startShiftMutation.mutate({ employee_list: formattedGuards ,fotografia:evidencia, nombre_suplente:nombreSuplente, checkin_id })
+                mutate({ employee_list: formattedGuards ,fotografia:evidencia, nombre_suplente:nombreSuplente, checkin_id },{
+                  onSuccess:()=>{
+                    setOpen(false)
+                  }
+                })
               }}
             >
-              Confirmar
+              {isPending? <> <Loader2 className="animate-spin"/> {"Iniciando Turno..."} </>: <> {"Confirmar"}</>}
             </Button>
-          </DialogClose>
         </div>
       </DialogContent>
     </Dialog>

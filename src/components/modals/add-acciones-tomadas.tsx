@@ -22,7 +22,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { Dispatch, SetStateAction, useEffect } from "react";
-import { useShiftStore } from "@/store/useShiftStore";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
@@ -61,7 +60,6 @@ export const AccionesTomadasModal: React.FC<IncidenciaModalProps> = ({
     setEditarAccionesTomadas,
     accionesTomadasSeleccion
 }) => {
-	const { isLoading} = useShiftStore();
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
@@ -299,7 +297,6 @@ export const AccionesTomadasModal: React.FC<IncidenciaModalProps> = ({
                 <Button
                     onClick={form.handleSubmit(onSubmit)}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                    disabled={isLoading}
                 >
                     {editarAccionesTomadas ? "Editar" : "Agregar"}
                 </Button>

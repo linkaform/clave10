@@ -28,7 +28,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { useShiftStore } from "@/store/useShiftStore";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
@@ -39,6 +38,7 @@ import LoadImage, { Imagen } from "../upload-Image";
 import LoadFile from "../upload-file";
 import { Button } from "../ui/button";
 import { useCreateIncidenciaRondin } from "@/hooks/Rondines/useCeateIncidenciaRondin";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface AddIncidenciaModalProps {
   	title: string;
@@ -197,13 +197,13 @@ export const AddIncidenciaRondinesModal: React.FC<AddIncidenciaModalProps> = ({
 	isSuccess,
 	setIsSuccess,
 }) => {
-	const { location, isLoading } = useShiftStore();
+	const {location } = useBoothStore();
 	const [evidencia , setEvidencia] = useState<Imagen[]>([]);
 	const [documento , setDocumento] = useState<Imagen[]>([]);
 
-	const[ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location)
+	const[ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"")
 	const { dataAreas:areas, dataLocations:ubicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, isSuccess,  location?true:false);
-	const { createIncidenciaMutation } = useCreateIncidenciaRondin();
+	const { createIncidenciaMutation, isLoading } = useCreateIncidenciaRondin();
 
 	console.log(areas, ubicaciones)
 
@@ -236,7 +236,7 @@ export const AddIncidenciaRondinesModal: React.FC<AddIncidenciaModalProps> = ({
 			reset()
 			setEvidencia([])
 			setDocumento([])
-			setUbicacionSeleccionada(location)
+			setUbicacionSeleccionada(location??"")
 	},[isSuccess]);	
 
 	useEffect(()=>{

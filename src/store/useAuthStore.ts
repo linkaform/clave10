@@ -13,6 +13,7 @@ interface AuthState {
   userIdSoter: number;
   userPhoto:string| null;
   isAuth: boolean;
+  
   setAuth: (token: string, userId: string, userNameSoter: string, userEmailSoter: string, userIdSoter: number, userPhoto:string) => void;
   setUserPhoto: (photoUrl: string) => void;
   logout: () => void;

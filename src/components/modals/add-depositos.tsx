@@ -22,7 +22,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
-import { useShiftStore } from "@/store/useShiftStore";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -57,7 +56,7 @@ export const DepositosModal: React.FC<IncidenciaModalProps> = ({
     setEditarDepositos,
     depositosSeleccion
 }) => {
-	const { isLoading} = useShiftStore();
+    
     const [inputValue, setInputValue] = useState(""); 
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -225,7 +224,7 @@ export const DepositosModal: React.FC<IncidenciaModalProps> = ({
 
                     <Button
                         onClick={form.handleSubmit(onSubmit)}
-                        className="w-full  bg-blue-500 hover:bg-blue-600 text-white " disabled={isLoading}
+                        className="w-full  bg-blue-500 hover:bg-blue-600 text-white " 
                     >
                         {editarDepositos? ("Editar"):(("Agregar"))}
                     </Button>

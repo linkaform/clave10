@@ -9,9 +9,10 @@ import {
   DialogTitle,
   // DialogTrigger,
 } from "../ui/dialog";
-import { useGetShift } from "@/hooks/useGetShift";
+import { useCloseShift } from "@/hooks/useGetShift";
 import { Dispatch, SetStateAction } from "react";
 import { Imagen } from "../upload-Image";
+import { Loader2 } from "lucide-react";
 
 interface CloseShiftModalProps {
   title: string;
@@ -35,7 +36,7 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
   setOpen,
   checkin_id
 }) => {
-  const { closeShiftMutation } = useGetShift( false);
+  const { mutate, isPending } = useCloseShift();
   
   return (
     <Dialog open={open} onOpenChange={setOpen} modal>
@@ -66,9 +67,14 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
 
           <Button
             className="w-full  bg-blue-500 hover:bg-blue-600 text-white"
-            onClick={() => closeShiftMutation.mutate({fotografia:identificacion, checkin_id})}
+            disabled={isPending}
+            onClick={() => mutate({fotografia:identificacion, checkin_id:checkin_id},{
+              onSuccess:()=>{
+                setOpen(false)
+              }
+            })}
           >
-            Confirmar
+            {isPending? <> <Loader2 className="animate-spin"/> {"Cerrando Turno..."} </>: <> {"Confirmar"}</>}
           </Button>
         </div>
       </DialogContent>

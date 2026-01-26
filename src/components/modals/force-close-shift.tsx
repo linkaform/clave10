@@ -9,9 +9,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { useShiftStore } from "@/store/useShiftStore";
-import { useGetShift } from "@/hooks/useGetShift";
+import { useForceCloseShift } from "@/hooks/useGetShift";
 import { formatDateToText } from "@/lib/utils";
+import { useBoothStore } from "@/store/useBoothStore";
 
 type BoohtInfo={
     status?: string
@@ -31,8 +31,8 @@ export const ForceCloseShift: React.FC<StartShiftModalProps> = ({
   title,
   children,boothInfo
 }) => {
-  const { area, location } = useShiftStore();
-  const { forceCloseShift } = useGetShift(false);
+  const { area, location } = useBoothStore();
+  const { mutate } = useForceCloseShift();
 
   return (
     <Dialog>
@@ -67,7 +67,7 @@ export const ForceCloseShift: React.FC<StartShiftModalProps> = ({
               className="w-full  bg-blue-500 hover:bg-blue-600 text-white"
               onClick={() => {
                 if(boothInfo?.checkin_id)
-                  forceCloseShift.mutate({ area: area, location: location, checkin_id: boothInfo?.checkin_id });
+                  mutate({ area: area, location: location, checkin_id: boothInfo?.checkin_id });
               }}
             >
               Confirmar

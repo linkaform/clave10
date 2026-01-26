@@ -34,13 +34,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useGetSupportGuards } from "@/hooks/useGetSupportGuards";
 import { useGuardSelectionStore } from "@/store/useGuardStore";
 
-export function GuardiasApoyoTable({ shift, location, area }: { shift: any; location: string; area: string }) {
+export function GuardiasApoyoTable({ shift }: { shift: any; }) {
   const { checkoutSupportGuardsMutation } = useGetSupportGuards(false);
   const checkInID = shift?.booth_status?.checkin_id || "";
   const { toggleGuardSelection, clearSelectedGuards } = useGuardSelectionStore();
+  const location = shift?.location.name?? "";
+  const area = shift?.location.area?? "";
 
   React.useEffect(() => {
-    clearSelectedGuards(); // 🔥 Reinicia la selección de guardias
+    clearSelectedGuards(); 
     }, [clearSelectedGuards]);
 
   const handleConfirmCheckout = (guardia: any) => {
@@ -57,7 +59,7 @@ export function GuardiasApoyoTable({ shift, location, area }: { shift: any; loca
     {
       id: "select",
       header: ({ table }) => {
-        if (shift?.guard?.status_turn !== "Turno Cerrado") return null; // 🔥 Oculta el header del checkbox si el turno NO está cerrado
+        if (shift?.guard?.status_turn !== "Turno Cerrado") return null; 
     
         return (
           <Checkbox
@@ -71,7 +73,7 @@ export function GuardiasApoyoTable({ shift, location, area }: { shift: any; loca
         );
       },
       cell: ({ row }) => {
-        if (shift?.guard?.status_turn !== "Turno Cerrado") return null; // 🔥 Oculta los checkboxes si el turno NO está cerrado
+        if (shift?.guard?.status_turn !== "Turno Cerrado") return null; 
     
         return (
           <Checkbox

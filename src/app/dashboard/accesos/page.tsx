@@ -49,26 +49,29 @@ import { UpdatePassModal } from "@/components/modals/complete-pass-accesos";
 import Image from "next/image";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { Equipo , Vehiculo} from "@/lib/update-pass";
+import { useBoothStore } from "@/store/useBoothStore";
 
 const AccesosPage = () => {
   const { isAuth, userIdSoter } = useAuthStore();
-  const { shift, isLoading:loadingShift} = useGetShift(true);
-  const { area, location, setLoading , turno, setTab, setFilter, setOption, downloadPass} = useShiftStore();
+  const { area, location } = useBoothStore();
+  const { shift, isLoading:loadingShift, turno, downloadPass} = useGetShift(area,location);
+  const {setTab, setFilter, setOption} = useShiftStore();
   const { passCode, setPassCode, clearPassCode, selectedEquipos, setSelectedEquipos, setSelectedVehiculos, selectedVehiculos, setTipoMovimiento, tipoMovimiento} = useAccessStore();
-  const { isLoading, loading, searchPass } = useSearchPass(false);
+  const { isLoading, loading:loadingSearchPass, searchPass } = useSearchPass(false);
   const [inputValue, setInputValue] = useState("");
   const [ openActivePases , setOpenActivePases ] = useState(false)
   const queryClient = useQueryClient();
   const [debouncedValue,setDebouncedValue]=useState("")
-  const { data: stats } = useGetStats(true,location, area, 'Accesos')
+  const { data: stats } = useGetStats(true,location??"", area??"", 'Accesos')
   const { loading:loadingLocationArea} = useAreasLocationStore();
   const [equipos, setEquipos]= useState<Equipo[]>([])
   const [vehiculos, setVehiculos]= useState<Vehiculo[]>([])
   const inputRef = useRef<HTMLInputElement>(null);
   const [id, setId] = useState("");
+  const [loading, setLoading]= useState(false);
   const {
 	refetch,
-  } = useGetPdf(userIdSoter, id, false);
+  } = useGetPdf(userIdSoter, id??"", false);
 
   useEffect(() => {
 	if(searchPass){
@@ -134,7 +137,7 @@ const AccesosPage = () => {
 
   const exitRegisterAccess = useMutation({
     mutationFn: async () => {
-      const data = await exitRegister(area, location, passCode);
+      const data = await exitRegister(area??"", location??"", passCode);
 
       if (!data.success) {
         throw new Error(data.error?.msg?.msg || "Hubo un error en la Salida");
@@ -305,7 +308,7 @@ const AccesosPage = () => {
 	setOption(option)
   }
 
-  if (isLoading || loading || loadingShift || loadingLocationArea) {
+  if (isLoading || loadingSearchPass ||loading|| loadingShift || loadingLocationArea) {
     return (
       <div className="flex justify-center items-center h-screen overflow-hidden">
 			<div className="w-24 h-24 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
@@ -443,7 +446,7 @@ const AccesosPage = () => {
 					</Button></>):null}
 				
 					{ searchPass?.estatus=="proceso" ? (<>
-					<UpdatePassModal title={"Completar Pase"} id={searchPass._id} dataCatalogos={searchPass}>
+					<UpdatePassModal title={"Completar Pase"} id={searchPass?._id} dataCatalogos={searchPass}>
 						<Button
 							className="bg-blue-500 hover:bg-blue-600 text-white"
 							variant="secondary"
