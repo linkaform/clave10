@@ -68,12 +68,8 @@ interface NoteFiles {
 }
 
 const formSchema = z.object({
-  title: z.string().min(2, {
-    message: 'Campo requerido.',
-  }),
-  description: z.string().min(2, {
-    message: 'Campo requerido.',
-  }),
+  title: z.string().optional(),
+  description: z.string().optional()
 })
 
 export const EditNoteModal: React.FC<EditNoteModalProps> = ({
@@ -100,8 +96,8 @@ export const EditNoteModal: React.FC<EditNoteModalProps> = ({
   function onSubmit(values: z.infer<typeof formSchema>) {
     const formatData = {
       data_update: {
-        note: values.title,
-        note_comments: [values.description],
+        note: values.title??"",
+        note_comments: [values.description??""],
         note_file: documento,
         note_pic: evidencia,
       },
@@ -142,7 +138,7 @@ export const EditNoteModal: React.FC<EditNoteModalProps> = ({
                 <FormItem>
                   <FormLabel>* Nota</FormLabel>
                   <FormControl>
-                    <Input placeholder='Texto' {...field} />
+                    <Input placeholder='Texto' {...field} value={note.note} disabled={true} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -252,7 +248,7 @@ export const EditNoteModal: React.FC<EditNoteModalProps> = ({
               name='description'
               render={({ field }: any) => (
                 <FormItem>
-                  <FormLabel>* Comentario</FormLabel>
+                  <FormLabel> Comentario</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder='Texto'

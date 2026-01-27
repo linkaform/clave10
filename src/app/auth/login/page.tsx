@@ -24,6 +24,8 @@ import { OlvidoContraModal } from "@/components/modals/olvido-contra";
 import { useQueryClient } from "@tanstack/react-query";
 import { getShift } from "@/lib/get-shift";
 import { useBoothStore } from "@/store/useBoothStore";
+import { errorMsj } from "@/lib/utils";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   username: z.string()
@@ -40,7 +42,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { setAuth } = useAuthStore();
   const queryClient = useQueryClient();
-  const {setBooth, location, area}= useBoothStore()
+  const {setBooth}= useBoothStore()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -62,21 +64,16 @@ export default function LoginPage() {
           queryKey: ["getShift", undefined, undefined],
           queryFn: async () => {
             const data = await getShift({}); 
-   
+            const hasError = (!data?.success) || (data?.response?.data?.status_code === 400 )
+            if (hasError) {
+                const textMsj = errorMsj(data)
+                toast.error(`Error al obtener load shift, Error: ${textMsj?.text}`);
+            } 
               setBooth(data?.response?.data?.location?.area || data?.response?.data?.guard?.area,
                 data?.response?.data?.location?.name|| data?.response?.data?.guard?.location);
-
-            console.log("Area en store:",area);
-            console.log("Location en store:", location);
             return data.response?.data;
           },
         });
-        
-        console.log(
-          "SHIFT CACHE:",
-          queryClient.getQueryData(["getShift", undefined, undefined])
-        );
-
         router.push("/");
       } else {
         form.setError("password", {

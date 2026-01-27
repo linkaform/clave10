@@ -8,7 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { Textarea } from '../ui/textarea'
 import { useNotes } from '@/hooks/useNotes'
-import { useShiftStore } from '@/store/useShiftStore'
 import { useState } from 'react'
 import { Button } from '../ui/button'
 import {
@@ -29,6 +28,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { useBoothStore } from '@/store/useBoothStore';
 
 interface AddNoteModalProps {
   title: string
@@ -36,12 +36,8 @@ interface AddNoteModalProps {
 }
 
 const formSchema = z.object({
-  title: z.string().min(2, {
-    message: 'Campo requerido.',
-  }),
-  description: z.string().min(2, {
-    message: 'Campo requerido.',
-  }),
+  title: z.string().min(1,{message:"Nombre obligatorio"}),
+  description: z.string().optional()
 })
 
 export const AddNoteModal: React.FC<AddNoteModalProps> = ({
@@ -51,8 +47,8 @@ export const AddNoteModal: React.FC<AddNoteModalProps> = ({
   const [evidencia, setEvidencia] = useState<Imagen[]>([])
   const [documento, setDocumento] = useState<Imagen[]>([])
   const [open, setOpen] = useState(false)
-  const { area, location } = useShiftStore()
-  const { createNoteMutation, isLoadingNotes } = useNotes(false,area, location)
+  const { area, location } = useBoothStore()
+  const { createNoteMutation, isLoadingNotes } = useNotes(false,area??"", location??"")
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -71,16 +67,16 @@ export const AddNoteModal: React.FC<AddNoteModalProps> = ({
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const formatData = {
-      note: values.title,
-      note_comments: [values.description],
-      note_booth: area,
+      note: values.title??"",
+      note_comments: [values.description ?? ""],
+      note_booth: area ??"",
       note_status: 'abierto',
       note_file: documento,
       note_pic: evidencia,
       note_guard_close: '',
     }
     createNoteMutation.mutate(
-      { location, area, data_notes: formatData },
+      { location:location??"", area:area??"", data_notes: formatData },
       {
         onSuccess: () => {
           if (open) {
@@ -149,7 +145,7 @@ export const AddNoteModal: React.FC<AddNoteModalProps> = ({
 					name='description'
 					render={({ field }: any) => (
 					<FormItem>
-						<FormLabel>* Comentarios</FormLabel>
+						<FormLabel> Comentarios</FormLabel>
 						<FormControl>
 						<Textarea
 							placeholder='Texto'

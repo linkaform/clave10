@@ -4,13 +4,13 @@ import { ListaNotasTable } from '@/components/table/notas/lista-notas/table'
 import PageTitle from '@/components/page-title'
 import Stats from '@/components/pages/notas/StatsNotas'
 import {  useState } from 'react'
-import { useShiftStore } from '@/store/useShiftStore'
+import { useBoothStore } from '@/store/useBoothStore'
 
 const NotasPage = () => {
-  const { location, area } = useShiftStore()
+  const { location, area } = useBoothStore()
   const [statusFilter, setStatusFilter] = useState<string>('')
-  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location)
-  const [areaSeleccionada, setAreaSeleccionada] = useState(area)
+  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"")
+  const [areaSeleccionada, setAreaSeleccionada] = useState(area??"")
 
   return (
     <main className='mt-4 mx-4'>
