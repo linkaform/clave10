@@ -29,10 +29,10 @@ import { Loader2 } from "lucide-react";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { useArticulosConcesionados } from "@/hooks/useArticulosConcesionados";
 import { useCatalogoConcesion } from "@/hooks/useCatalogoConcesion";
-import { useShiftStore } from "@/store/useShiftStore";
 import { Input } from "../ui/input";
-import LoadImage from "../upload-Image";
+import LoadImage, { Imagen } from "../upload-Image";
 import ConcesionadosAgregarEquipos from "../concesionados-agregar-equipos";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface ArticuloData {
   status_concesion?: string;
@@ -45,8 +45,9 @@ interface ArticuloData {
   equipo_concesion?: string;
   observacion_concesion?: string;
   persona_text?: string;
-  evidencia?: { file_url: string; file_name: string }[];
-  firma:string;
+  evidencia?:Imagen[];
+  firma?:string;
+  equipos?:any[]
 }
 
 interface AddFallaModalProps {
@@ -76,8 +77,9 @@ const formSchema = z.object({
       file_url: z.string(),
       file_name: z.string(),
     })
-  ).optional(),
+  ).optional().default([]),
   firma: z.string().optional(),
+  equipos:z.array(z.any()).optional()
 });
 
 export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
@@ -89,8 +91,8 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   children
 }) => {
   const [conSelected, setConSelected] = useState<string>("");
-  const { location, area } = useShiftStore();
-  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location);
+  const { location, area } = useBoothStore();
+  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"");
   const [equipos, setEquipos]= useState<any[]>([])
   const { dataAreas: areas, dataLocations: ubicaciones, isLoadingAreas: loadingAreas, isLoadingLocations: loadingUbicaciones } = 
     useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, ubicacionSeleccionada ? true : false);
@@ -99,7 +101,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
     useCatalogoAreaEmpleadoApoyo(isSuccess);
   
   const { createArticulosConMutation, editarArticulosConMutation, isLoading } = 
-    useArticulosConcesionados(ubicacionSeleccionada, area, "", false, "", "", "");
+    useArticulosConcesionados(ubicacionSeleccionada, area??"", "", false, "", "", "");
   
   const { dataCon, dataConSub, isLoadingCon, isLoadingConSub } = 
     useCatalogoConcesion(ubicacionSeleccionada, conSelected, isSuccess);
@@ -120,7 +122,8 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
       observacion_concesion: "",
       persona_text: "",
       evidencia: [],
-      firma:""
+      firma:"",
+      equipos:[]
     },
   });
 
@@ -142,6 +145,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
           persona_text: initialData.persona_text || "",
           evidencia: initialData.evidencia || [],
           firma:initialData.firma || "",
+          equipos:initialData.equipos || [],
         });
         if (initialData.ubicacion_concesion) {
           setUbicacionSeleccionada(initialData.ubicacion_concesion);
@@ -155,7 +159,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
       } else {
         reset();
         setDate(new Date());
-        setUbicacionSeleccionada(location);
+        setUbicacionSeleccionada(location??"");
         setConSelected("");
       }
     }
@@ -183,6 +187,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
         persona_text: values.persona_text ?? "",
         evidencia: values.evidencia ?? [],
         firma:values.firma || "",
+        equipos: values.equipos ?? [],
       };
 
       if (mode === 'edit') {

@@ -9,10 +9,10 @@ import {
   import SearchInput from "../search-input";
   import { useQuery } from "@tanstack/react-query";
   import { useAccessStore } from "@/store/useAccessStore";
-  import { useShiftStore } from "@/store/useShiftStore";
   import { fetchTemporalPasses } from "@/lib/access";
   import { useState } from "react";
   import Image from "next/image";
+import { useBoothStore } from "@/store/useBoothStore";
   
   interface Props {
     title: string;
@@ -22,7 +22,7 @@ import {
   export const TemporaryPassesModal: React.FC<Props> = ({ title, children }) => {
     const { setPassCode } = useAccessStore();
     
-    const { area, location } = useShiftStore();
+    const { area, location } = useBoothStore();
   
     const [searchText, setSearchText] = useState("");
   

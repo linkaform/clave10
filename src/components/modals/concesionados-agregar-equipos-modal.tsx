@@ -34,13 +34,14 @@ import {
 } from "@/components/ui/select";
 import { Calculator } from "lucide-react";
 import LoadImage from "../upload-Image";
+import { EquipoConcesionado } from "../concesionados-agregar-equipos";
 
 interface AgregarEquiposModalProps {
 	title: string;
 	children: React.ReactNode;
 	isSuccess: boolean;
 	setIsSuccess: Dispatch<SetStateAction<boolean>>;
-    setEquipos: Dispatch<SetStateAction<any>>;
+    setEquipos: Dispatch<SetStateAction<EquipoConcesionado[]>>;
     indice:number| null;
     editarAgregarEquiposModal:boolean;
     setEditarAgregarEquiposModal: Dispatch<SetStateAction<any>>;
@@ -52,7 +53,8 @@ const formSchema = z.object({
 	equipo: z.string().min(1, { message: "Este campo es oblicatorio" }),
 	unidades: z.number().optional(),
 	comentarios:  z.string().optional(),
-	evidencia:  z.string().optional(),
+	evidencia:  z.array(z.any()).optional(),
+	precio:z.string().optional()
 });
 
 export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps> = ({
@@ -74,7 +76,8 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
             equipo: "",
 			unidades: 0,
 			comentarios: "",
-			evidencia: "",
+			evidencia: [],
+			precio: "",
 		},
 	});
 
@@ -86,8 +89,9 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                 categoria: "",
                 equipo: "",
                 unidades: 0,
+				evidencia:[],
                 comentarios: "",
-                evidencia: "",
+                precio: "",
               });
         }
 
@@ -98,6 +102,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                 unidades: agregarEquiposSeleccion.unidades,
                 comentarios: agregarEquiposSeleccion.comentarios,
                 evidencia: agregarEquiposSeleccion.evidencia,
+				precio:agregarEquiposSeleccion.precio
               });
 		}
 	}, [isSuccess, reset])
@@ -109,19 +114,21 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
             unidades: values.unidades,
             comentarios: values.comentarios,
             evidencia: values.evidencia,
+			precio:values.precio
         }
         if(editarAgregarEquiposModal){
             setEditarAgregarEquiposModal(false)
             setEquipos((prev: any[]) =>
                 prev.map((item, i) => (i === indice ? formatData : item))
                 );
-            toast.success("Equipo editada correctamente.")
+            toast.success("Equipo editado correctamente.")
         }else{
             setEquipos((prev: any) => [...prev, formatData]);
             toast.success("Equipo agregada correctamente.")
         }
         setIsSuccess(false)
 	}
+	console.log("ERRORES",form?.formState?.errors)
 
 	const handleClose = () => {
 		setIsSuccess(false);
@@ -168,7 +175,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
-												<SelectItem key={1} value={"1"}>
+												<SelectItem key={"Herramienta"} value={"Herramienta"}>
                                                     Herramienta
 												</SelectItem>
 											</SelectContent>
@@ -197,7 +204,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
-												<SelectItem key={1} value={"1"}>
+												<SelectItem key={"Martillo"} value={"Martillo"}>
                                                     Martillo
 												</SelectItem>
 											</SelectContent>
@@ -217,10 +224,11 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                                         <FormLabel>Unidades:</FormLabel>
                                         <FormControl>
                                             <Input type="number" placeholder="Responsable..." {...field}
-                                                onChange={(e) => {
-                                                    field.onChange(e);
-                                                }}
-                                                value={Number(field.value) || 0}
+                                               onChange={(e) => {
+													const value = e.target.value === '' ? 0 : Number(e.target.value);
+													field.onChange(value);
+												}}
+												value={Number(field.value) || 0}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -260,7 +268,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 									control={form.control}
 									name="evidencia"
 									render={({ field, fieldState }) => (
-									<div className="flex ">
+									<div className="flex">
 										<span className="text-red-500 mr-1">*</span>
 										<div className="felx flex-col">
 										<LoadImage

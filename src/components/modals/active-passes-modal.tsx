@@ -8,13 +8,13 @@ import {
 } from "../ui/dialog";
 
 import SearchInput from "../search-input";
-import { useShiftStore } from "@/store/useShiftStore";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import Image from "next/image";
 import { esHexadecimal } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAccessStore } from "@/store/useAccessStore";
 import { usePasses } from "@/hooks/usePasses";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface ActivePassesModalProps {
   title: string;
@@ -31,11 +31,11 @@ export const ActivePassesModal: React.FC<ActivePassesModalProps> = ({
   setOpen,
   input,
 }) => {
-  const { location } = useShiftStore();
+  const { location } = useBoothStore();
   const { setPassCode, passCode } = useAccessStore();
   const [searchText, setSearchText] = useState("");
 
-  const { data: activePasses, isLoadingPasses } = usePasses(location);
+  const { data: activePasses, isLoadingPasses } = usePasses(location??"");
 
   useEffect(() => {
     if (open) {

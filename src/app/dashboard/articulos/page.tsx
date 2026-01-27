@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import ChangeLocation from "@/components/changeLocation";
 import { useGetStats } from "@/hooks/useGetStats";
 import { useBoothStore } from "@/store/useBoothStore";
+import { AddArticuloConModal } from "@/components/modals/add-article.con";
 // import { AddArticuloConModal } from "@/components/modals/add-article.con";
 
 const ArticulosPage = () => {
@@ -41,7 +42,7 @@ const ArticulosPage = () => {
 	const [modalData] = useState<any>(null);
 	const [selectedArticulos, setSelectedArticulos]= useState<string[]>([]);
 	console.log(selectedArticulos)
-	// const [isSuccessCon, setIsSuccessCon] = useState(false);
+	const [isSuccessCon, setIsSuccessCon] = useState(false);
 	const [isSuccessPaq, setIsSuccessPaq] = useState(false);
 
 	useEffect(()=>{
@@ -60,7 +61,7 @@ const ArticulosPage = () => {
 
 
 	const openModalCon = () => {
-		// setIsSuccessCon(true);  
+		setIsSuccessCon(true);  
 		};
 
 	const openModalPaq = () => {
@@ -211,7 +212,7 @@ const ArticulosPage = () => {
 					setIsSuccess={setIsSuccess}
 					onClose={closeModal}
 				/>
-				{/* <AddArticuloConModal
+				<AddArticuloConModal
 					title={"Crear Artículo Concesionado"}
 					isSuccess={isSuccessCon}
 					setIsSuccess={setIsSuccessCon}
@@ -220,8 +221,9 @@ const ArticulosPage = () => {
 				>
 
 					<div>
+					
 					</div>
-				</AddArticuloConModal> */}
+				</AddArticuloConModal>
 
 				<AddPaqueteriaModal
 					title={"Crear Paquetería"}
