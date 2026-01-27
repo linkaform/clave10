@@ -12,12 +12,11 @@ import {
 	Square,
 	ChevronLeft,
 	ChevronRight,
-	ShieldX,
-	ShieldCheck
+	CheckCircle,
+	XCircle,
+	Clock
 } from "lucide-react";
 import PageTitle from "@/components/page-title";
-import ChangeLocation from "@/components/changeLocation";
-import { useShiftStore } from "@/store/useShiftStore";
 import {
 	Select,
 	SelectContent,
@@ -75,11 +74,6 @@ const ReportsPage = () => {
 	const [groupByLocation, setGroupByLocation] = useState(false);
 	const [isExecuted, setIsExecuted] = useState(false);
 	const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
-
-	// State for ChangeLocation (visual/global context)
-	const { location } = useShiftStore();
-	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<string>(location);
-	const [areaSeleccionada, setAreaSeleccionada] = useState<string>("");
 
 	useEffect(() => {
 		const currentDate = new Date();
@@ -238,44 +232,46 @@ const ReportsPage = () => {
 					</div>
 					<div className="flex flex-col gap-4 items-end">
 						<div className="flex gap-4">
-							<div className="w-[200px]">
-								<ChangeLocation
-									ubicacionSeleccionada={ubicacionSeleccionada}
-									areaSeleccionada={areaSeleccionada}
-									setUbicacionSeleccionada={setUbicacionSeleccionada}
-									setAreaSeleccionada={setAreaSeleccionada}
-								/>
+							<div className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition duration-100`}>
+								<div className="flex gap-6">
+									<CheckCircle className="text-primary w-10 h-10" />
+									<span className="flex items-center font-bold text-4xl">
+										{0}
+									</span>
+								</div>
+								<div className="flex items-center space-x-0">
+									<div className="h-1 w-1/2 bg-cyan-100"></div>
+									<div className="h-1 w-1/2 bg-blue-500"></div>
+								</div>
+								<span className="text-md">Total Asistencias</span>
 							</div>
-							<div className="flex gap-4">
-								<div className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition duration-100`}>
-									<div className="flex gap-6">
-										<ShieldX className="text-primary w-10 h-10" />
-										<span className="flex items-center font-bold text-4xl">
-											{totalFaltas}
-										</span>
-									</div>
-									<div className="flex items-center space-x-0">
-										<div className="h-1 w-1/2 bg-cyan-100"></div>
-										<div className="h-1 w-1/2 bg-blue-500"></div>
-									</div>
-									<span className="text-md">Total Faltas</span>
+							<div className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition duration-100`}>
+								<div className="flex gap-6">
+									<XCircle className="text-primary w-10 h-10" />
+									<span className="flex items-center font-bold text-4xl">
+										{totalFaltas}
+									</span>
 								</div>
-								<div className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition duration-100`}>
-									<div className="flex gap-6">
-										<ShieldCheck className="text-primary w-10 h-10" />
-										<span className="flex items-center font-bold text-4xl">
-											{totalRetardos}
-										</span>
-									</div>
-									<div className="flex items-center space-x-0">
-										<div className="h-1 w-1/2 bg-cyan-100"></div>
-										<div className="h-1 w-1/2 bg-blue-500"></div>
-									</div>
-									<span className="text-md">Total Retardos</span>
+								<div className="flex items-center space-x-0">
+									<div className="h-1 w-1/2 bg-cyan-100"></div>
+									<div className="h-1 w-1/2 bg-blue-500"></div>
 								</div>
+								<span className="text-md">Total Faltas</span>
+							</div>
+							<div className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition duration-100`}>
+								<div className="flex gap-6">
+									<Clock className="text-primary w-10 h-10" />
+									<span className="flex items-center font-bold text-4xl">
+										{totalRetardos}
+									</span>
+								</div>
+								<div className="flex items-center space-x-0">
+									<div className="h-1 w-1/2 bg-cyan-100"></div>
+									<div className="h-1 w-1/2 bg-blue-500"></div>
+								</div>
+								<span className="text-md">Total Retardos</span>
 							</div>
 						</div>
-
 					</div>
 				</div>
 

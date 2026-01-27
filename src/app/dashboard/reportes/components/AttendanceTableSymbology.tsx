@@ -2,11 +2,11 @@ import React from "react";
 import { CheckCircle, XCircle, Clock, MinusCircle } from "lucide-react";
 
 const STATUS_OPTIONS = [
-  { key: "presente", label: "Asistencia", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
-  { key: "retardo", label: "Retardo", icon: <Clock className="w-4 h-4 text-blue-500" /> },
-  { key: "falta", label: "Falta", icon: <XCircle className="w-4 h-4 text-red-500" /> },
-  { key: "falta_por_retardo", label: "Falta por retardo", icon: <XCircle className="w-4 h-4 text-yellow-500" /> },
-  { key: "sin_registro", label: "Sin Asistencia", icon: <MinusCircle className="w-4 h-4 text-gray-500" /> },
+  { key: "presente", label: "Asistencia", icon: <CheckCircle className="w-6 h-6 text-green-500 font-extrabold" /> },
+  { key: "retardo", label: "Retardo", icon: <Clock className="w-6 h-6 text-blue-500 font-extrabold" /> },
+  { key: "falta", label: "Falta", icon: <XCircle className="w-6 h-6 text-red-500 font-extrabold" /> },
+  { key: "falta_por_retardo", label: "Falta por retardo", icon: <XCircle className="w-6 h-6 text-yellow-500 font-extrabold" /> },
+  { key: "sin_registro", label: "Sin Asistencia", icon: <MinusCircle className="w-6 h-6 text-gray-500 font-extrabold" /> },
 ];
 
 interface AttendanceTableSymbologyProps {
@@ -40,7 +40,7 @@ const AttendanceTableSymbology: React.FC<AttendanceTableSymbologyProps> = ({
           onClick={() => handleToggle(opt.key)}
         >
           {opt.icon}
-          <span className="text-xs">{opt.label}</span>
+          <span className="text-xs font-semibold">{opt.label}</span>
           {/* <span className={`ml-1 w-3 h-3 rounded border ${selectedStatus.includes(opt.key) ? "bg-blue-400 border-blue-600" : "bg-white border-gray-300"}`}></span> */}
         </button>
       ))}
