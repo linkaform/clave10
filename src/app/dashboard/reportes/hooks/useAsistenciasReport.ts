@@ -8,6 +8,7 @@ export const useReportAsistencias = ({ enabled = false, dateRange, locations, gr
         isLoading: isLoadingReportAsistencias,
         error: errorReportAsistencias,
         refetch: refetchReportAsistencias,
+        isFetching: isFetchingReportAsistencias,
     } = useQuery<any>({
         queryKey: ["getReportAsistencias", { dateRange, locations, groupBy }],
         enabled,
@@ -26,6 +27,7 @@ export const useReportAsistencias = ({ enabled = false, dateRange, locations, gr
     return {
         reportAsistencias,
         isLoadingReportAsistencias,
+        isFetchingReportAsistencias,
         errorReportAsistencias,
         refetchReportAsistencias,
     };

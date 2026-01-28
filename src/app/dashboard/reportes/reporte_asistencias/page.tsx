@@ -67,7 +67,7 @@ const ReportsPage = () => {
 		groupBy: 'employees'
 	});
 
-	const { reportAsistencias, isLoadingReportAsistencias, errorReportAsistencias, refetchReportAsistencias } = useReportAsistencias(filters);
+	const { reportAsistencias, isLoadingReportAsistencias, isFetchingReportAsistencias, errorReportAsistencias, refetchReportAsistencias } = useReportAsistencias(filters);
 	const { reportLocations } = useReportLocations({ enabled: true });
 
 	const [showReport, setShowReport] = useState(false);
@@ -304,9 +304,9 @@ const ReportsPage = () => {
 						<Button
 							className="bg-blue-600"
 							onClick={handleExecute}
-							disabled={isLoadingReportAsistencias || isInitializing}
+							disabled={isLoadingReportAsistencias || isFetchingReportAsistencias || isInitializing}
 						>
-							{isLoadingReportAsistencias ? (
+							{isLoadingReportAsistencias || isFetchingReportAsistencias ? (
 								<>
 									<div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
 									Cargando...
@@ -326,7 +326,7 @@ const ReportsPage = () => {
 					<div className="flex justify-center items-center p-12">
 						<div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
 					</div>
-				) : isLoadingReportAsistencias ? (
+				) : isLoadingReportAsistencias || isFetchingReportAsistencias ? (
 					<div className="flex justify-center items-center p-12">
 						<div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
 					</div>
