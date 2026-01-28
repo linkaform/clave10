@@ -41,7 +41,7 @@ interface EmployeeAttendance {
   employee_id: number;
   nombre: string;
   ubicacion: string;
-  asistencia_mes: { status: StatusType; dia: number, closed?: boolean, ubicacion?: string }[];
+  asistencia_mes: { status: StatusType; dia: number, closed?: boolean, ubicacion?: string, fecha_inicio?: string, fecha_cierre?: string }[];
   resumen: { asistencias: number; retardos: number; faltas: number };
 }
 
@@ -402,6 +402,8 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                   const config = statusConfig[status] || statusConfig["sin_registro"];
                   const isClosed = dayObj?.closed;
                   const closedClass = isClosed ? "ring-2 ring-gray-800 ring-offset-1" : "";
+                  const fechaInicio = dayObj?.fecha_inicio?.substring(10, 16) || "Sin registrar";
+                  const fechaFin = dayObj?.fecha_cierre?.substring(10, 16) || "Sin registrar";
 
                   return (
                     <td
@@ -411,7 +413,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                       <button
                         type="button"
                         className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color} ${closedClass}`}
-                        title={config.label}
+                        title={`Inicio: ${fechaInicio} - Cierre: ${fechaFin}`}
                         onClick={() => {
                           setSelectedUserId([emp.employee_id]);
                           setSelectedNames([emp.nombre]);
