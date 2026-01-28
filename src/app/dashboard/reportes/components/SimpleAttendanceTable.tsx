@@ -41,7 +41,7 @@ interface EmployeeAttendance {
   employee_id: number;
   nombre: string;
   ubicacion: string;
-  asistencia_mes: { status: StatusType; dia: number, closed?: boolean }[];
+  asistencia_mes: { status: StatusType; dia: number, closed?: boolean, ubicacion?: string }[];
   resumen: { asistencias: number; retardos: number; faltas: number };
 }
 
@@ -128,48 +128,32 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
     return result;
   }, [data, search, searchUbicacion]);
 
-  // Filtra empleados por status seleccionado en el día actual
-  const statusFilteredData = useMemo(() => {
-    if (!selectedStatus || selectedStatus.length === 0) return filteredData;
-    return filteredData.filter(emp => {
-      const dayObj = emp.asistencia_mes.find(d => d.dia === filterDay);
-      return (
-        (dayObj && selectedStatus.includes(dayObj.status)) ||
-        !dayObj
-      );
-    });
-  }, [filteredData, selectedStatus, filterDay]);
-
-  // Agrupa empleados por ubicación si se activa
-  const locationMap = useMemo(() => {
-    const map = new Map<string, EmployeeAttendance[]>();
-    statusFilteredData.forEach(emp => {
-      if (!map.has(emp.ubicacion)) map.set(emp.ubicacion, []);
-      map.get(emp.ubicacion)!.push(emp);
-    });
-    return map;
-  }, [statusFilteredData]);
-
-
-  const mergedData = useMemo(() => {
-    if (groupByLocation) return statusFilteredData;
+  // 1. Process data for merging (resolving priorities) OR keep as is if grouping by location
+  const preProcessedData = useMemo(() => {
+    if (groupByLocation) return filteredData;
 
     const map = new Map<number, EmployeeAttendance>();
 
-    statusFilteredData.forEach(emp => {
+    filteredData.forEach(emp => {
       if (!map.has(emp.employee_id)) {
-        map.set(emp.employee_id, { ...emp, asistencia_mes: [...emp.asistencia_mes] });
+        // Inicializamos con los dias ya taggeados con la ubicacion actual
+        const initializedDays = emp.asistencia_mes.map(d => ({ ...d, ubicacion: emp.ubicacion }));
+        map.set(emp.employee_id, { ...emp, asistencia_mes: initializedDays });
       } else {
         const merged = map.get(emp.employee_id)!;
         emp.asistencia_mes.forEach(dayObj => {
-          const idx = merged.asistencia_mes.findIndex(d => d.dia === dayObj.dia);
+          // Taggeamos el dia con la ubicacion actual antes de procesar
+          const dayWithLoc = { ...dayObj, ubicacion: emp.ubicacion };
+
+          const idx = merged.asistencia_mes.findIndex(d => d.dia === dayWithLoc.dia);
           if (idx === -1) {
-            merged.asistencia_mes.push(dayObj);
+            merged.asistencia_mes.push(dayWithLoc);
           } else {
             const mergedDay = merged.asistencia_mes[idx];
+            // Resolve priority: Presente > Retardo > others
             const bestStatus =
-              statusPriority[dayObj.status] > statusPriority[mergedDay.status]
-                ? dayObj
+              statusPriority[dayWithLoc.status] > statusPriority[mergedDay.status]
+                ? dayWithLoc
                 : mergedDay;
             merged.asistencia_mes[idx] = bestStatus;
           }
@@ -177,21 +161,12 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
       }
     });
 
-    // Agrupa todos los status por día y deja solo el de mayor prioridad
+    // Cleanup and Recalculate summaries after merge
     map.forEach(emp => {
-      const dayMap = new Map<number, { status: StatusType; dia: number }[]>();
-      emp.asistencia_mes.forEach(d => {
-        if (!dayMap.has(d.dia)) dayMap.set(d.dia, []);
-        dayMap.get(d.dia)!.push(d);
-      });
-      emp.asistencia_mes = Array.from(dayMap.values()).map(arr =>
-        arr.reduce((prev, curr) =>
-          statusPriority[curr.status] > statusPriority[prev.status] ? curr : prev
-        )
-      );
+      // Sort days
       emp.asistencia_mes.sort((a, b) => a.dia - b.dia);
 
-      // --- Recalcula el resumen aquí ---
+      // Recalculate summary
       let asistencias = 0, retardos = 0, faltas = 0;
       emp.asistencia_mes.forEach(d => {
         if (d.status === "presente") asistencias++;
@@ -202,7 +177,37 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
     });
 
     return Array.from(map.values());
-  }, [statusFilteredData, groupByLocation]);
+  }, [filteredData, groupByLocation]);
+
+  // 2. Apply status filter to the PRE-PROCESSED data
+  const finalData = useMemo(() => {
+    if (!selectedStatus || selectedStatus.length === 0) return preProcessedData;
+
+    return preProcessedData.filter(emp => {
+      // Check the specific day we are filtering on (filterDay)
+      // Note: filterDay relies on the column being clicked. 
+      // If we want to filter if *any* day matches, logic would differ, 
+      // but usually this table filters based on the selected day column context?
+      // Actually, looking at the UI, the Table header sets 'filterDay'.
+
+      const dayObj = emp.asistencia_mes.find(d => d.dia === filterDay);
+      const status = dayObj ? dayObj.status : "sin_registro";
+
+      return selectedStatus.includes(status);
+    });
+  }, [preProcessedData, selectedStatus, filterDay]);
+
+  // 3. If grouping by location, build the map from the FINAL data
+  const locationMap = useMemo(() => {
+    if (!groupByLocation) return new Map<string, EmployeeAttendance[]>();
+
+    const map = new Map<string, EmployeeAttendance[]>();
+    finalData.forEach(emp => {
+      if (!map.has(emp.ubicacion)) map.set(emp.ubicacion, []);
+      map.get(emp.ubicacion)!.push(emp);
+    });
+    return map;
+  }, [finalData, groupByLocation]);
 
   // Semanas del mes
   const weeks = useMemo(() => getWeeks(daysInMonth, month, year), [daysInMonth, month, year]);
@@ -365,7 +370,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                             setSelectedUserId([emp.employee_id]);
                             setSelectedNames([emp.nombre]);
                             setSelectedDay(day);
-                            setSelectedUbicacion(emp.ubicacion);
+                            setSelectedUbicacion(dayObj?.ubicacion || emp.ubicacion);
                             setModalOpen(true);
                           }}
                         >
@@ -380,7 +385,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                 </tr>
               ))
             )
-            : mergedData.map((emp, empIdx) => (
+            : finalData.map((emp, empIdx) => (
               <tr key={emp.employee_id} className={empIdx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                 <td
                   className="sticky left-0 bg-white z-10 p-2 border-b font-medium align-top min-w-[180px] w-[200px]"
@@ -411,7 +416,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                           setSelectedUserId([emp.employee_id]);
                           setSelectedNames([emp.nombre]);
                           setSelectedDay(day);
-                          setSelectedUbicacion(emp.ubicacion);
+                          setSelectedUbicacion(dayObj?.ubicacion || emp.ubicacion);
                           setModalOpen(true);
                         }}
                       >
