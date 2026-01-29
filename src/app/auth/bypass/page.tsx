@@ -20,6 +20,11 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
+import { getShift } from "@/lib/get-shift";
+import { errorMsj } from "@/lib/utils";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { useBoothStore } from "@/store/useBoothStore";
 
 const formSchema = z.object({
   username: z.string()
@@ -36,6 +41,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const { setAuth } = useAuthStore();
+  const { setBooth } = useBoothStore();
+  const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -54,7 +61,23 @@ export default function LoginPage() {
 
       if (response.success) {
         setAuth(response.jwt, response.session_id, response.user.name, response.user.email, response.user.id, response.user.thumb );
-
+        const shiftData = await getShift({});
+         const hasError = (!shiftData?.success) || (shiftData?.response?.data?.status_code === 400);
+         if (hasError) {
+           const textMsj = errorMsj(shiftData);
+           toast.error(`Error al obtener load shift, Error: ${textMsj?.text}`);
+         } else {
+           const area = shiftData?.response?.data?.location?.area || shiftData?.response?.data?.guard?.area;
+           const location = shiftData?.response?.data?.location?.name || shiftData?.response?.data?.guard?.location;
+           
+           setBooth(area, location);
+ 
+           queryClient.setQueryData(
+             ["getShift"],
+             shiftData?.response?.data
+           );
+         }
+ 
         router.push("/");
       } else {
         form.setError("password", {

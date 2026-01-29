@@ -668,3 +668,7 @@ export function customToast(text: string, variant: ToastVariant) {
     },
   });
 }
+
+export function uniqueArray(arr: string[]) {
+  return [...new Set(arr)];
+}

@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
 import { List } from "lucide-react";
-import { formatDateToString, formatFecha } from "@/lib/utils";
+import { formatDateToString, formatFecha, uniqueArray } from "@/lib/utils";
 import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
 // import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
@@ -154,7 +154,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted??[]);
 	const pickerRef = useRef<any>(null);
 	const { assets,assetsLoading} = useSearchPass(true);
-
+	const assetsUnique= uniqueArray(assets?.Visita_a)
 	const [areasTodas, setAreasTodas] = useState<any[]>([]);
 
 	const isExcluded = (key: string) =>
@@ -559,7 +559,7 @@ return (
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
-											{assets?.Visita_a?.map((item: string) => (
+											{assetsUnique.map((item: string) => (
 												<SelectItem key={item} value={item}>
 													{item}
 												</SelectItem>

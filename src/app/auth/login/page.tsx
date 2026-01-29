@@ -43,7 +43,6 @@ export default function LoginPage() {
   const { setAuth } = useAuthStore();
   const queryClient = useQueryClient();
   const {setBooth}= useBoothStore()
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
@@ -57,23 +56,26 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
       const response = await getLogin(values.username, values.password);
-
       if (response.success) {
         setAuth(response.jwt, response.session_id, response.user.name, response.user.email, response.user.id, response.user.thumb);
-        await queryClient.prefetchQuery({
-          queryKey: ["getShift", undefined, undefined],
-          queryFn: async () => {
-            const data = await getShift({}); 
-            const hasError = (!data?.success) || (data?.response?.data?.status_code === 400 )
-            if (hasError) {
-                const textMsj = errorMsj(data)
-                toast.error(`Error al obtener load shift, Error: ${textMsj?.text}`);
-            } 
-              setBooth(data?.response?.data?.location?.area || data?.response?.data?.guard?.area,
-                data?.response?.data?.location?.name|| data?.response?.data?.guard?.location);
-            return data.response?.data;
-          },
-        });
+        const shiftData = await getShift({});
+         const hasError = (!shiftData?.success) || (shiftData?.response?.data?.status_code === 400);
+         
+         if (hasError) {
+           const textMsj = errorMsj(shiftData);
+           toast.error(`Error al obtener load shift, Error: ${textMsj?.text}`);
+         } else {
+           const area = shiftData?.response?.data?.location?.area || shiftData?.response?.data?.guard?.area;
+           const location = shiftData?.response?.data?.location?.name || shiftData?.response?.data?.guard?.location;
+           
+           setBooth(area, location);
+ 
+           queryClient.setQueryData(
+             ["getShift"],
+             shiftData?.response?.data
+           );
+         }
+ 
         router.push("/");
       } else {
         form.setError("password", {
@@ -164,7 +166,7 @@ export default function LoginPage() {
                   </Button>
                 </div>
 
-                <Button
+                <button
                   className="flex w-3/4 mx-auto bg-button-primary hover:bg-bg-button-primary"
                   type="submit"
                   disabled={isLoading}
@@ -177,7 +179,7 @@ export default function LoginPage() {
                   ) : (
                     "Login"
                   )}
-                </Button>
+                </button>
               </CardContent>
             </Card>
           </form>
