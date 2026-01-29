@@ -13,6 +13,7 @@ import { Card, CardContent } from "../ui/card";
 import { EquipoConcesionado } from "../concesionados-agregar-equipos";
 import { Dispatch, SetStateAction } from "react";
 import { History } from "lucide-react";
+import HistorialDevoluciones, { Devolucion } from "../concesionados-historial-devoluciones";
 
 interface ConcesionadosDetalleSeguimientoProps {
   title: string;
@@ -29,6 +30,46 @@ export const ConcesionadosDetalleSeguimiento: React.FC<ConcesionadosDetalleSegui
   setIsSuccess,
   isSuccess
 }) => {
+
+  const devolucionesDemo: Devolucion[] = [
+    {
+      id: 1,
+      unidadesDevueltas: 1,
+      unidadesTotales: 2,
+      estatus: "En Proceso",
+      progreso: 50,
+      fecha: "15/01/2024",
+      equipo: "Laptop Dell XPS 15",
+      solicitante: "Juan Pérez Martínez",
+      motivo: "Equipo defectuoso - pantalla con fallas",
+      comentarios: "La pantalla presenta líneas verticales intermitentes. Se ha devuelto una unidad para revisión técnica.",
+    },
+    {
+      id: 2,
+      unidadesDevueltas: 3,
+      unidadesTotales: 3,
+      estatus: "Completado",
+      progreso: 100,
+      fecha: "10/01/2024",
+      equipo: "Monitor LG UltraWide 34 pulgadas",
+      solicitante: "María García López",
+      motivo: "Finalización de proyecto",
+      fechaDevolucion: "20/01/2024",
+      comentarios: "Devolución completa de equipos asignados al proyecto X. Todos los monitores en excelente estado.",
+    },
+    {
+      id: 3,
+      unidadesDevueltas: 0,
+      unidadesTotales: 5,
+      estatus: "Pendiente",
+      progreso: 0,
+      fecha: "25/01/2024",
+      equipo: "Teclado Mecánico Logitech MX Keys",
+      solicitante: "Carlos López Ramírez",
+      motivo: "Cambio de área - Transferencia a oficina remota",
+      comentarios: "Pendiente coordinar fecha de devolución con el empleado.",
+    },
+  ];
   return (
     <Dialog open={isSuccess}  onOpenChange={setIsSuccess}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -57,9 +98,11 @@ export const ConcesionadosDetalleSeguimiento: React.FC<ConcesionadosDetalleSegui
         </div>
         </div>
 
-        <div>
-        <History/> HISTORIAL DE DEVOLUCIONES
+        <div className="flex gap-2">
+        <History className="text-green-500"/> HISTORIAL DE DEVOLUCIONES
         </div>
+        <HistorialDevoluciones devoluciones={devolucionesDemo}></HistorialDevoluciones>
+
         {data?.evidencia && data?.evidencia.length>0 ?
         <div className="w-full flex flex-col">
             <p className="font-bold mb-2">Evidencia: </p>
