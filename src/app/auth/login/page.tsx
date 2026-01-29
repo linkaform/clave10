@@ -166,7 +166,7 @@ export default function LoginPage() {
                   </Button>
                 </div>
 
-                <button
+                <Button
                   className="flex w-3/4 mx-auto bg-button-primary hover:bg-bg-button-primary"
                   type="submit"
                   disabled={isLoading}
@@ -179,7 +179,7 @@ export default function LoginPage() {
                   ) : (
                     "Login"
                   )}
-                </button>
+                </Button>
               </CardContent>
             </Card>
           </form>
