@@ -10,8 +10,8 @@ import { Imagen } from "@/components/upload-Image";
 import { useEffect } from "react";
 import { useBoothStore } from "@/store/useBoothStore";
 
-export const useGetShift = (  area?: string,
-  location?: string) => {  
+export const useGetShift = (area?: string,
+  location?: string) => {
   const { setBooth } = useBoothStore();
   const { setCheckin_id } = useShiftStore();
 
@@ -34,38 +34,39 @@ export const useGetShift = (  area?: string,
     refetch,
   } = useQuery<any>({
     queryKey: ["getShift", area, location],
-    enabled: !!area && !!location,
+    enabled: true,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const params: { area?: string; location?: string } = {area, location};
+      const params: { area?: string; location?: string } = { area, location };
       const data = await getShift(params);
-      const hasError = (!data?.success) || (data?.response?.data?.status_code === 400 )
+      const hasError = (!data?.success) || (data?.response?.data?.status_code === 400)
       if (hasError) {
-          const textMsj = errorMsj(data)
-          toast.error(`Error al obtener load shift, Error: ${textMsj?.text}`);
-      } 
-          // setLocation(data.response?.data.location.name)
-          // setArea(data.response?.data.location.area)
-          // setTurno(data.response?.data.guard.status_turn == "Turno Abierto")
-          // setDownloadPass(data.response?.data?.booth_config ?? [])
-        return data.response?.data
-      
-		}});
-
-    useEffect(() => {
-
-      if (shift?.location?.name|| shift?.guard?.location) {
-        setBooth(
-          shift?.location?.area || shift?.guard?.area,
-          shift?.location?.name|| shift?.guard?.location
-        );
+        const textMsj = errorMsj(data)
+        toast.error(`Error al obtener load shift, Error: ${textMsj?.text}`);
       }
+      // setLocation(data.response?.data.location.name)
+      // setArea(data.response?.data.location.area)
+      // setTurno(data.response?.data.guard.status_turn == "Turno Abierto")
+      // setDownloadPass(data.response?.data?.booth_config ?? [])
+      return data.response?.data
 
-      if (shift?.id) {
-        setCheckin_id(shift?.id);
-      }
-    }, [shift?.id, setCheckin_id, shift?.location?.name, shift?.guard?.location, shift?.location?.area, setBooth, shift?.guard?.area]);
-    
+    }
+  });
+
+  useEffect(() => {
+
+    if (shift?.location?.name || shift?.guard?.location) {
+      setBooth(
+        shift?.location?.area || shift?.guard?.area,
+        shift?.location?.name || shift?.guard?.location
+      );
+    }
+
+    if (shift?.id) {
+      setCheckin_id(shift?.id);
+    }
+  }, [shift?.id, setCheckin_id, shift?.location?.name, shift?.guard?.location, shift?.location?.area, setBooth, shift?.guard?.area]);
+
   return {
     shift,
     isLoading,
@@ -75,7 +76,7 @@ export const useGetShift = (  area?: string,
     turno: shift?.guard?.status_turn === "Turno Abierto",
     downloadPass: shift?.booth_config ?? [],
     area: shift?.location?.area,
-    location: shift?.location?.name|| shift?.guard?.location,
+    location: shift?.location?.name || shift?.guard?.location,
   };
 };
 
@@ -100,19 +101,19 @@ export const useStartShift = () => {
         nombre_suplente,
         checkin_id,
       };
-      
+
       if (area) params.area = area;
       if (location) params.location = location;
-      
+
       const response = await startShift(params);
 
       const hasError = !response?.success || response?.response?.data?.status_code === 400;
-      
+
       if (hasError) {
         const textMsj = errorMsj(response);
         throw new Error(textMsj?.text || "Error al iniciar turno");
       }
-      
+
       return response.response?.data;
     },
     onSuccess: (response: any) => {
@@ -121,10 +122,10 @@ export const useStartShift = () => {
       // if (checkin_id) {
       //   setCheckin_id(checkin_id);
       // }
-      
+
       queryClient.invalidateQueries({ queryKey: ["getShift"] });
       queryClient.invalidateQueries({ queryKey: ["getGuardSupport"] });
-      
+
       toast.success("Turno iniciado correctamente.");
     },
     onError: (err: Error) => {
@@ -148,7 +149,7 @@ export const useCloseShift = () => {
       checkin_id
     }: {
       fotografia: Imagen[];
-      checkin_id:string| undefined;
+      checkin_id: string | undefined;
     }) => {
       const params: any = {
         checkin_id,
@@ -156,21 +157,21 @@ export const useCloseShift = () => {
       };
       if (area) params.area = area;
       if (location) params.location = location;
-      
+
       const response = await closeShift(params);
-      
+
       const hasError = !response?.success || response?.response?.data?.status_code === 400;
-      
+
       if (hasError) {
         const textMsj = errorMsj(response);
         throw new Error(textMsj?.text || "Error al cerrar turno");
       }
-      
+
       return response.response?.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["getShift"] });
-      
+
       toast.success("Turno cerrado correctamente.");
     },
     onError: (err: Error) => {
@@ -195,23 +196,23 @@ export const useForceCloseShift = () => {
       const params: any = { checkin_id };
       if (area) params.area = area;
       if (location) params.location = location;
-      
+
       const response = await closeShift(params);
-      
+
       const hasError = !response?.success || response?.response?.data?.status_code === 400;
-      
+
       if (hasError) {
         const textMsj = errorMsj(response);
         throw new Error(textMsj?.text || "Error al forzar cierre de turno");
       }
-      
+
       return response.response?.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ["getShift", variables.area || "", variables.location || ""] 
+      queryClient.invalidateQueries({
+        queryKey: ["getShift", variables.area || "", variables.location || ""]
       });
-      
+
       toast.success("El cierre forzado se ejecutó con éxito.");
     },
     onError: (err: Error) => {
