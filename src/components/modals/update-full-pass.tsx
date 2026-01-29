@@ -31,7 +31,7 @@ import DateTime from "@/components/dateTime";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { EntryPassModalUpdate } from "./add-pass-modal-update";
 import Multiselect from "multiselect-react-dropdown";
-import { useShiftStore } from "@/store/useShiftStore";
+import { useBoothStore } from "@/store/useBoothStore";
 
  const linkSchema = z.object({
 	link: z.string().url({ message: "Por favor, ingresa una URL válida." }), 
@@ -161,13 +161,13 @@ import { useShiftStore } from "@/store/useShiftStore";
 	  
 const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, setModalEditarAbierto, modalEditarAbierto }) => {
 	console.log("DATAPASS", dataPass.ubicacion)
-	const { location } = useShiftStore()
+	const { location } = useBoothStore()
 	const [tipoVisita, setTipoVisita] = useState(dataPass.tipo_visita_pase || "fecha_fija");
 	const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>(dataPass.config_dias_acceso||[]);
 	const [config_dia_de_acceso, set_config_dia_de_acceso] = useState(dataPass.config_dia_de_acceso);
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
-	const { ubicacionesDefaultFormatted ,dataLocations:ubicaciones, dataAreas, isLoadingAreas:loadingCatAreas } = useCatalogoPaseAreaLocation(location, true, location?true:false)
+	const { ubicacionesDefaultFormatted ,dataLocations:ubicaciones, dataAreas, isLoadingAreas:loadingCatAreas } = useCatalogoPaseAreaLocation(location??"", true, location?true:false)
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted??[]);
 	const ubicacionesFormattedUpdate = ubicacionesSeleccionadas?.map((u: any) => (u.name));
 	const userEmailSoter = localStorage.getItem("userEmail_soter")||"";

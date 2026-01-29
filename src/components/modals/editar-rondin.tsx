@@ -27,8 +27,8 @@ import { Input } from "../ui/input";
 import { format } from "date-fns";
 import Multiselect from "multiselect-react-dropdown";
 import { useEditarRondin } from "@/hooks/Rondines/useEditarRondin";
-import { useShiftStore } from "@/store/useShiftStore";
 import { useCatalogAreasRondin } from "@/hooks/Rondines/useCatalogAreasRondin";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface EditarRondinModalProps {
   	title: string;
@@ -75,12 +75,12 @@ export const EditarRondinModal: React.FC<EditarRondinModalProps> = ({
     modalEditarAbierto,
     onClose
 }) => { 
-    const { location } = useShiftStore()
+    const { location } = useBoothStore()
 
     const areasFormatted = data?.areas?.map((u: any) => ({ id: u, name: u }))
 	const [areasSeleccionadas, setAreasSeleccionadas] = useState<any[]>(areasFormatted??[]); 
 	const { editarRondinMutation, isLoading} = useEditarRondin()
-	const { data:catalogAreasRondin} = useCatalogAreasRondin(location, modalEditarAbierto)
+	const { data:catalogAreasRondin} = useCatalogAreasRondin(location??"", modalEditarAbierto)
 	const [date, setDate] = useState<Date|"">("");
 
 	const form = useForm<z.infer<typeof formSchema>>({

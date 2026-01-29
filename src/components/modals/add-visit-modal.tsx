@@ -37,7 +37,7 @@ import { useEffect, useState } from "react";
 
 import { useSearchPass } from "@/hooks/useSearchPass";
 import LoadImage, { Imagen } from "../upload-Image";
-import { useShiftStore } from "@/store/useShiftStore";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface Props {
 title: string;
@@ -79,7 +79,7 @@ const [identificacion, setIdentificacion] = useState<Imagen[]>([]);
 const [fotoError, setFotoError] = useState(false);
 const [idError, setIdError] = useState(false);
 const { assets, registerNewVisit } = useSearchPass(openModal);
-const {location} =useShiftStore()
+const {location} =useBoothStore()
 const [formSubmitted, setFormSubmitted] = useState(false);
 
 const form = useForm<z.infer<typeof formSchema>>({
@@ -133,7 +133,7 @@ function onSubmit(data: z.infer<typeof formSchema>) {
 	}
 	
 	if (!valid) return;
-	registerNewVisit.mutate({ location, access_pass });
+	registerNewVisit.mutate({ location:location??"", access_pass });
 }
 
 	useEffect(()=>{

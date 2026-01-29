@@ -42,9 +42,9 @@ import { AreasList } from "@/components/areas-list-draggable";
 import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
 import { RondinesBitacoraTable } from "./bitacoras-table";
 import ChecksImagesSection from "@/components/ChecksImagesSection";
-import { useShiftStore } from "@/store/useShiftStore";
 import IncidenciasRondinesTable from "../incidencias-rondines/table";
 import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
+import { useBoothStore } from "@/store/useBoothStore";
 
 const MapView = dynamic(() => import("@/components/map-v2"), {
 	ssr: false,
@@ -132,7 +132,7 @@ const RondinesTable:React.FC<ListProps> = ({ data, isLoading,
 	const [rondinSeleccionado, setRondinSeleccionado] = useState<Recorrido | null>(null);
 	const [verRondin, setVerRondin] = useState(false);
 	const [nuevasAreasSeleccionadas, setNuevasAreasSeleccionadas] = useState<any[]>([]);
-	const {location} = useShiftStore()
+	const {location} = useBoothStore()
 	const [selectedIncidencias, setSelectedIncidencias] = useState<string[]>([])
 	const {listIncidenciasRondin} = useIncidenciaRondin("", "");
 	const [openModal, setOpenModal] = useState(false);
@@ -575,7 +575,7 @@ const RondinesTable:React.FC<ListProps> = ({ data, isLoading,
 						<TabsContent value="fotos">
 						<div>
 							<ChecksImagesSection
-								location={location}
+								location={location??""}
 								showTabs={false}
 							/>
 						</div>

@@ -29,11 +29,11 @@ import { Input } from "../ui/input";
 import { format } from "date-fns";
 import Multiselect from "multiselect-react-dropdown";
 import { useEffect, useRef, useState } from "react";
-import { useShiftStore } from "@/store/useShiftStore";
 import { useCatalogAreasRondin } from "@/hooks/Rondines/useCatalogAreasRondin";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { Switch } from "../ui/switch";
 import { useEditarRondin } from "@/hooks/Rondines/useEditarRondin";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface AddRondinModalProps {
   	title: string;
@@ -129,7 +129,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 	folio=""
 }) => {
     const [isSuccess, setIsSuccess] = useState(false);
-	const { location } = useShiftStore()
+	const { location } = useBoothStore()
 	const [areasSeleccionadas, setAreasSeleccionadas] = useState<any[]>([]);
 	const { createRondinMutation, isLoading} = useRondines()
 	const { editarRondinMutation, isLoading:isLoadingEdit} = useEditarRondin()

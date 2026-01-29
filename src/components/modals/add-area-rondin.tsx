@@ -7,12 +7,12 @@ import {
   } from "../ui/dialog"
   import { useState, useEffect, Dispatch, SetStateAction } from "react"
   import { Button } from "../ui/button"
-  import { useShiftStore } from "@/store/useShiftStore"
   import { ListaAreas } from "../areas-list-rondines"
   import { Area_rondin } from "../areas-list-draggable"
 import { useCatalogAreasRondinFormatted } from "@/hooks/Rondines/useCatalogoAreaRondinFormatted"
 import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin"
 import { Loader2 } from "lucide-react"
+import { useBoothStore } from "@/store/useBoothStore"
   
   interface AreaModalProps {
     title: string
@@ -35,9 +35,9 @@ import { Loader2 } from "lucide-react"
   }) => {
     const [isOpenModal, setOpenModal] = useState(false)
     const [selectedAreas, setSelectedAreas] = useState<string[]>([])
-    const { location } = useShiftStore()
+    const { location } = useBoothStore()
   	const { editAreasRodindMutation, isLoading : isLoadingEditAreas} = useEditAreasRondin();
-    const { data, isLoading, refetch } = useCatalogAreasRondinFormatted(location, isOpenModal)
+    const { data, isLoading, refetch } = useCatalogAreasRondinFormatted(location??"", isOpenModal)
     console.log("getron", rondin)
     useEffect(() => {
       if (isOpenModal) {

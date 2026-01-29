@@ -12,7 +12,7 @@ import {
 import SearchInput from "../search-input";
 import { useGetSupportGuards } from "@/hooks/useGetSupportGuards";
 import Image from "next/image";
-import { useShiftStore } from "@/store/useShiftStore";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface AddGuardModalProps {
   title: string;
@@ -36,7 +36,7 @@ export const AddGuardModal: React.FC<AddGuardModalProps> = ({
   const [open, setIsOpen] = useState(false)
 
   const { supportGuards, addSupportGuardMutation, isLoading } = useGetSupportGuards(open);
-  const { location, area } = useShiftStore();
+  const { location, area } = useBoothStore();
   const [selectedGuard, setSelectedGuard] = useState<any>("");
   const [searchText, setSearchText] = useState<string>("");
 
@@ -128,8 +128,8 @@ export const AddGuardModal: React.FC<AddGuardModalProps> = ({
               }
 
              addSupportGuardMutation.mutate({
-                area,
-                location,
+                area:area??"",
+                location:location??"",
                 checkin_id: checkInID,
                 support_guards: [
                   { user_id: selectedGuard.user_id, name: selectedGuard.name },

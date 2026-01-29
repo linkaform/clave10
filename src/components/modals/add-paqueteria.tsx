@@ -29,11 +29,11 @@ import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApo
 import DateTime from "../dateTime";
 import { Loader2 } from "lucide-react";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
-import { useShiftStore } from "@/store/useShiftStore";
 import { usePaqueteria } from "@/hooks/usePaqueteria";
 import LoadImage, { Imagen } from "../upload-Image";
 import { useCatalogoProveedores } from "@/hooks/useCatalogoProveedores";
 import { useGetLockers } from "@/hooks/useGetLockers";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface AddFallaModalProps {
   	title: string;
@@ -68,13 +68,13 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
 	isSuccess,
 	setIsSuccess,
 }) => {
-	const {location, area} = useShiftStore()
-	const [conSelected, setConSelected] = useState<string>(area);
-	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location);
+	const {location, area} = useBoothStore()
+	const [conSelected, setConSelected] = useState<string>(area??"");
+	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"");
 	const { dataAreas:areas, dataLocations:ubicaciones, isLoadingAreas:loadingAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true,  ubicacionSeleccionada?true:false);
 	const { data:dataAreaEmpleadoApoyo, isLoading:loadingAreaEmpleadoApoyo,} = useCatalogoAreaEmpleadoApoyo(isSuccess);
 	const { dataProveedores, isLoadingProveedores} = useCatalogoProveedores(isSuccess)
-	const { createPaqueteriaMutation, isLoading} = usePaqueteria(ubicacionSeleccionada, area, "", false, "", "", "")
+	const { createPaqueteriaMutation, isLoading} = usePaqueteria(ubicacionSeleccionada, area??"", "", false, "", "", "")
 	const { data:responseGetLockers, isLoading:loadingGetLockers } = useGetLockers(ubicacionSeleccionada ?? false,"", "Disponible", isSuccess);
 	const [date, setDate] = useState<Date|"">("");
 	const [evidencia, setEvidencia] = useState<Imagen[]>([])
@@ -100,8 +100,8 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
 		if(isSuccess){
 			reset()
 			setDate(new Date())
-			setUbicacionSeleccionada(location)
-			setConSelected(area)
+			setUbicacionSeleccionada(location??"")
+			setConSelected(area??"")
 			reset({
 				ubicacion_paqueteria:location,
 				area_paqueteria: area

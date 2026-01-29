@@ -7,11 +7,12 @@ import { toast } from "sonner"; // Importar Sonner
 import { useShiftStore } from "@/store/useShiftStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import useAuthStore from "@/store/useAuthStore";
+import { useBoothStore } from "@/store/useBoothStore";
 
 export const useGetSupportGuards = (enableGetGuards:boolean) => {
   const queryClient = useQueryClient();
-
-  const { area, location, setLoading } = useShiftStore();
+  const {area, location} = useBoothStore()
+  const {setLoading } = useShiftStore();
 
   const { userNameSoter } = useAuthStore();
 

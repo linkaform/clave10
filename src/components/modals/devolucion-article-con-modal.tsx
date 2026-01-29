@@ -26,8 +26,8 @@ import { useArticulosConcesionados } from "@/hooks/useArticulosConcesionados";
 import { ArrowRightLeft, Loader2 } from "lucide-react";
 import DateTime from "../dateTime";
 import { format } from "date-fns";
-import { useShiftStore } from "@/store/useShiftStore";
 import LoadImage from "../upload-Image";
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface AddACModalProps {
   	title: string;
@@ -51,9 +51,9 @@ export const DevolucionArticuloConModal: React.FC<AddACModalProps> = ({
   title,
 	data
 }) => {
-	const { area, location } = useShiftStore();
+	const { area, location } = useBoothStore();
 	const [isSuccess, setIsSuccess] =useState(false)
-	const { editarArticulosConMutation, isLoading} = useArticulosConcesionados(location, area, "",false, "", "", "")
+	const { editarArticulosConMutation, isLoading} = useArticulosConcesionados(location??"", area??"", "",false, "", "", "")
 	// const [isActiveDevolucion, setIsActiveDevolucion] = useState<string>("entregado");
 	const [date, setDate] = useState<Date|"">(new Date());
 

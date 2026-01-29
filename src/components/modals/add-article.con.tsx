@@ -103,7 +103,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   const { createArticulosConMutation, editarArticulosConMutation, isLoading } = 
     useArticulosConcesionados(ubicacionSeleccionada, area??"", "", false, "", "", "");
   
-  const { dataCon, dataConSub, isLoadingCon, isLoadingConSub } = 
+  const { dataCon, isLoadingCon } = 
     useCatalogoConcesion(ubicacionSeleccionada, conSelected, isSuccess);
   
   const [date, setDate] = useState<Date | "">("");
@@ -116,7 +116,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
       ubicacion_concesion: "",
       caseta_concesion: "",
       fecha_concesion: "",
-      solicita_concesion: "",
+      solicita_concesion: "empleado",
       area_concesion: "",
       equipo_concesion: "",
       observacion_concesion: "",
@@ -302,7 +302,47 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                   </FormItem>
                 )}
               />
-              <FormField
+
+                <FormField
+                    control={form.control}
+                    name="solicita_concesion"
+                    defaultValue="si"
+                    render={({ field }: any) => (
+                        <FormItem>
+                            <FormLabel>Solicitante:</FormLabel>
+                            <FormControl>
+                                <div className="flex gap-2 ">
+                                    <button
+                                    type="button"
+                                    onClick={() => field.onChange("empleado")}
+                                    className={`px-6 py-2 rounded ${
+                                        field.value === "empleado"
+                                        ? "bg-blue-600 text-white "
+                                        : "bg-white-200 text-blue-600 border border-blue-500 "
+                                    }`}
+                                    >
+                                    Empleado
+                                    </button>
+                                    <button
+                                    type="button"
+                                    onClick={() => field.onChange("otro")}
+                                    className={`px-6 py-2 rounded ${
+                                        field.value === "otro"
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-white-200 text-blue-600 border border-blue-500"
+                                    }`}
+                                    >
+                                    Otro
+                                    </button>
+                                </div>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+     
+
+              {/* <FormField
                 control={form.control}
                 name="solicita_concesion"
                 render={({ field }: any) => (
@@ -327,7 +367,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
 
               {tipoCon == "otro" &&
                 <FormField
@@ -348,7 +388,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                   )}
                 />}
 
-              {(tipoCon == "compartida" || tipoCon == "persona") &&
+              {(tipoCon == "empleado" ) &&
                 <FormField
                   control={form.control}
                   name="persona_nombre_concesion"
@@ -392,12 +432,36 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                   )}
                 />
               }
+
+            <div className="mt-3">
+              <Controller
+                control={form.control}
+                name="evidencia"
+                render={({ field, fieldState }) => (
+                  <div className="flex ">
+                    <div className="flex flex-col">
+                      <LoadImage
+                        id="identificacion"
+                        titulo={"Evidencia"}
+                        imgArray={field.value || []}
+                        setImg={field.onChange}
+                        showWebcamOption={true}
+                        facingMode="environment"
+                        showArray={true}
+                        limit={10} />
+                      {fieldState.error && <span className="block w-full text-red-500 text-sm mt-1">{fieldState.error.message}</span>}
+                    </div>
+                  </div>)
+                }
+              />
+            </div>
+
               <FormField
                 control={form.control}
                 name="area_concesion"
                 render={({ field }: any) => (
                   <FormItem>
-                    <FormLabel>Nombre del area:</FormLabel>
+                    <FormLabel>Departamento:</FormLabel>
                     <FormControl>
                       <Select {...field} className="input"
                         onValueChange={(value: string) => {
@@ -433,67 +497,8 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="equipo_concesion"
-                render={({ field }: any) => (
-                  <FormItem>
-                    <FormLabel>Nombre del equipo:</FormLabel>
-                    <FormControl>
-                      <Select {...field} className="input"
-                        onValueChange={(value: string) => {
-                          field.onChange(value);
-                        }}
-                        value={field.value}
-                      >
-                        <SelectTrigger className="w-full">
-                          {isLoadingConSub && conSelected ? (
-                            <SelectValue placeholder="Cargando articulos..." />
-                          ) : (<>
-                            {dataConSub?.length > 0 ? (<SelectValue placeholder="Selecciona una opción..." />)
-                              : (<SelectValue placeholder="Selecciona una categoria para ver las opciones..." />)}
-                          </>)}
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dataConSub?.length > 0 ? (
-                            dataConSub?.map((item: string, index: number) => {
-                              return (
-                                <SelectItem key={index} value={item}>
-                                  {item}
-                                </SelectItem>
-                              );
-                            })
-                          ) : (
-                            <><SelectItem disabled value={"no opciones"}>No hay opciones disponibles</SelectItem></>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+             
 
-              <Controller
-                control={form.control}
-                name="evidencia"
-                render={({ field, fieldState }) => (
-                  <div className="flex ">
-                    <div className="flex flex-col">
-                      <LoadImage
-                        id="identificacion"
-                        titulo={"Evidencia"}
-                        imgArray={field.value || []}
-                        setImg={field.onChange}
-                        showWebcamOption={true}
-                        facingMode="environment"
-                        showArray={true}
-                        limit={10} />
-                      {fieldState.error && <span className="block w-full text-red-500 text-sm mt-1">{fieldState.error.message}</span>}
-                    </div>
-                  </div>)
-                }
-              />
               <div className="col-span-1 md:col-span-2">
                 <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} ></ConcesionadosAgregarEquipos>
               </div>

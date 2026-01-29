@@ -57,6 +57,8 @@ const formSchema = z.object({
 	precio:z.string().optional()
 });
 
+
+
 export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps> = ({
 	title,
 	children,
@@ -223,7 +225,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                                     <FormItem>
                                         <FormLabel>Unidades:</FormLabel>
                                         <FormControl>
-                                            <Input type="number" placeholder="Responsable..." {...field}
+                                            <Input type="number" placeholder="Unidades..." {...field}
                                                onChange={(e) => {
 													const value = e.target.value === '' ? 0 : Number(e.target.value);
 													field.onChange(value);
@@ -244,7 +246,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 									<FormItem>
 										<FormLabel>Comentarios: *</FormLabel>
 										<FormControl>
-											<Textarea placeholder="Acciones Tomadas..." {...field}
+											<Textarea placeholder="Comentarios..." {...field}
 												onChange={(e) => {
 													field.onChange(e);
 												}}

@@ -1,10 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { Dispatch, SetStateAction, useState } from "react";
-import { Calculator, Edit, Eye, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { ArrowRightLeft, Calculator, Eye } from "lucide-react";
 import { ConcesionadosAgregarEquipoModal } from "./modals/concesionados-agregar-equipos-modal";
 import { Imagen } from "./upload-Image";
-import { ConcesionadosVerEquipo } from "./modals/concesionados-ver-equipo";
+import { ConcesionadosDetalleSeguimiento } from "./modals/conceisonados-detalle-seg";
 
 export interface EquipoConcesionado {
 	categoria?: string;
@@ -21,7 +20,7 @@ interface AgregarEquiposListProps {
     setEquipos: Dispatch<SetStateAction<EquipoConcesionado[]>>
 }
 
-const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos})=> {
+const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos})=> {
 	const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
 	const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
 	const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState<EquipoConcesionado>({});
@@ -42,15 +41,15 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 		setOpenAgregarEquiposModal(true);
 	};
 	
-	const handleDeleteEquipo  = (index: number) => {
-		const nuevaspersonasInvolucradas = [...equipos];
-		nuevaspersonasInvolucradas.splice(index, 1);
-		setEquipos(nuevaspersonasInvolucradas);
-		toast.success("Seguimiento eliminado correctamente.")
-	};
+	// const handleDeleteEquipo  = (index: number) => {
+	// 	const nuevaspersonasInvolucradas = [...equipos];
+	// 	nuevaspersonasInvolucradas.splice(index, 1);
+	// 	setEquipos(nuevaspersonasInvolucradas);
+	// 	toast.success("Seguimiento eliminado correctamente.")
+	// };
 
     return (
-    <div >
+    <div>
 		<div className="mt-3 flex justify-between">
 			<div className="text-lg font-bold">Equipos</div>
 			<div className="cursor-pointer  bg-blue-500 hover:bg-blue-600 text-white mr-5 rounded-md p-2 px-4 text-center text-sm" onClick={()=>{setOpenAgregarEquiposModal(!openAgregarEquiposModal);
@@ -60,14 +59,14 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 			</div>
 		</div>
 
-		<ConcesionadosVerEquipo
+		<ConcesionadosDetalleSeguimiento
 		title={"Equipo"}
 		setIsSuccess={setOpenVerEquiposModal}
 		isSuccess={openVerEquiposModal}
 		data={agregarEquipoSeleccion}
 		>
 			<div></div>
-		</ConcesionadosVerEquipo>
+		</ConcesionadosDetalleSeguimiento>
 
 		<ConcesionadosAgregarEquipoModal
                 title="Nuevo Equipo"
@@ -95,9 +94,21 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 			{equipos && equipos.length > 0 ? (
 			equipos.map((item, index) => (
 				<tr key={index} className="border-t border-gray-200">
-				<td className="px-4 py-2 max-w-[200px] truncate" title={item?.equipo || "-"}> {item?.equipo || "-"} </td>
+				<td className="px-4 py-2 max-w-[200px] truncate" title={item?.equipo || "-"}> {item?.equipo || "-"}</td>
 				<td className="px-4 py-2">{item.unidades||"-"}</td>
-				<td className="px-4 py-2">{item.precio||"-"}</td>
+				<td className="px-4 py-2"> 
+                    <div
+                        className={`inline-flex items-center justify-center px-2  text-sm font-semibold rounded-md border capitalize
+                        ${
+                            item.precio=="Pendiente"
+                            ? "bg-red-100 text-red-700 border-red-700"
+                            : "bg-green-100 text-green-700 border-green-700"
+                        }
+                        `}
+                    >
+                        {item?.precio}
+                    </div>
+                </td>
 				<td className="px-4 py-2 ">
 					<div className="flex items-center justify-center gap-2">
                     <div
@@ -112,15 +123,15 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 						className="hover:cursor-pointer text-blue-500 hover:text-blue-600"
 						onClick={() => handleEditEquipo(item, index)}
 					>
-						<Edit />
+						<ArrowRightLeft/>
 					</div>
-					<div
+					{/* <div
 						title="Borrar"
 						className="hover:cursor-pointer text-red-500 hover:text-red-600"
 						onClick={() => handleDeleteEquipo(index)}
 					>
 						<Trash2 />
-					</div>
+					</div> */}
 					</div>
 				</td>
 				</tr>
@@ -142,4 +153,4 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
   );
 };
 
-export default ConcesionadosAgregarEquipos;
+export default ConcesionadosSeguimientos;

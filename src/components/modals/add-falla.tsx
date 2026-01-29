@@ -35,7 +35,6 @@ import LoadFile from "../upload-file";
 import { CircleAlert, Edit, Loader2, Trash2 } from "lucide-react";
 import { useFallas } from "@/hooks/Fallas/useFallas";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
-import { useShiftStore } from "@/store/useShiftStore";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Card, CardContent } from "../ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../ui/carousel";
@@ -45,6 +44,7 @@ import { toast } from "sonner";
 import { convertirDateToISO, formatForMultiselect } from "@/lib/utils";
 // import Select from "multiselect-react-dropdown";
 import Select from 'react-select';
+import { useBoothStore } from "@/store/useBoothStore";
 
 interface AddFallaModalProps {
   	title: string;
@@ -87,10 +87,10 @@ export const AddFallaModal: React.FC<AddFallaModalProps> = ({
 	const [subconcepto, setSubConcepto] = useState<string>("");
 	const [catalagoSub, setCatalogoSub] = useState<string[]>([]);
 	const [catalagoFallas, setFallas] = useState<string[]>([]);
-	const { location } = useShiftStore();
-	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location);
+	const { location } = useBoothStore();
+	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"");
 	const { dataAreas:areas, dataLocations:ubicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, isSuccess,  ubicacionSeleccionada?true:false);
-	const { data:dataAreaEmpleado, refetch: refetchAreaEmpleado,  } = useCatalogoAreaEmpleado(isSuccess, location, "Incidencias");
+	const { data:dataAreaEmpleado, refetch: refetchAreaEmpleado,  } = useCatalogoAreaEmpleado(isSuccess, location??"", "Incidencias");
 	const { data:dataAreaEmpleadoApoyo,  refetch: refetchAreaEmpleadoApoyo, } = useCatalogoAreaEmpleadoApoyo(isSuccess);
 	const { data:dataFallas, refetch: refetchFallas} = useCatalogoFallas(subconcepto, isSuccess);
 	const { createFallaMutation, isLoading} = useFallas("","", "abierto", false, "", "", "")
@@ -137,9 +137,9 @@ export const AddFallaModal: React.FC<AddFallaModalProps> = ({
 			refetchAreaEmpleado()
 			refetchAreaEmpleadoApoyo()
 			refetchFallas()
-			setUbicacionSeleccionada(location)
+			setUbicacionSeleccionada(location??"")
 			setSeguimientos([])
-			form.setValue("falla_ubicacion", location);
+			form.setValue("falla_ubicacion", location??"");
 		}
 	},[isSuccess])
 
