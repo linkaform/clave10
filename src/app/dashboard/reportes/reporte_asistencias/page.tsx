@@ -151,20 +151,75 @@ const ReportsPage = () => {
 	};
 
 	const handlePrevMonth = () => {
+		let newMonth = month;
+		let newYear = year;
+
 		if (month === 1) {
-			setMonth(12);
-			setYear(year - 1);
+			newMonth = 12;
+			newYear = year - 1;
 		} else {
-			setMonth(month - 1);
+			newMonth = month - 1;
+		}
+
+		setMonth(newMonth);
+		setYear(newYear);
+
+		// Si ya se ejecutó el reporte, ejecutar automáticamente con el nuevo mes
+		if (isExecuted) {
+			// Usar setTimeout para asegurar que el estado se actualice primero
+			setTimeout(() => {
+				const newFilters = {
+					enabled: true,
+					dateRange: timeframe,
+					locations: [...selectedLocations],
+					groupBy: groupingMode,
+					month: newMonth,
+					year: newYear
+				};
+				setFilters(newFilters);
+			}, 0);
 		}
 	};
 
 	const handleNextMonth = () => {
+		// Obtener el mes y año actuales
+		const currentDate = new Date();
+		const currentMonth = currentDate.getMonth() + 1;
+		const currentYear = currentDate.getFullYear();
+
+		// Calcular el siguiente mes
+		let newMonth = month;
+		let newYear = year;
+
 		if (month === 12) {
-			setMonth(1);
-			setYear(year + 1);
+			newMonth = 1;
+			newYear = year + 1;
 		} else {
-			setMonth(month + 1);
+			newMonth = month + 1;
+		}
+
+		// Prevenir navegación a meses futuros
+		if (newYear > currentYear || (newYear === currentYear && newMonth > currentMonth)) {
+			return; // No permitir avanzar más allá del mes actual
+		}
+
+		setMonth(newMonth);
+		setYear(newYear);
+
+		// Si ya se ejecutó el reporte, ejecutar automáticamente con el nuevo mes
+		if (isExecuted) {
+			// Usar setTimeout para asegurar que el estado se actualice primero
+			setTimeout(() => {
+				const newFilters = {
+					enabled: true,
+					dateRange: timeframe,
+					locations: [...selectedLocations],
+					groupBy: groupingMode,
+					month: newMonth,
+					year: newYear
+				};
+				setFilters(newFilters);
+			}, 0);
 		}
 	};
 
