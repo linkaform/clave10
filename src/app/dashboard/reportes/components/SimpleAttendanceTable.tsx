@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { CheckCircle, XCircle, Clock, MinusCircle, CalendarOff, ChevronLeft, ChevronRight, X } from "lucide-react";
-import AttendanceDetailModal from "./AttendanceDetailModal";
+import AttendanceCarouselModal from "./AttendanceCarouselModal";
 
 type StatusType = "presente" | "retardo" | "falta" | "falta_por_retardo" | "dia_libre" | "sin_registro";
 
@@ -434,13 +434,14 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
             ))}
         </tbody>
       </table>
-      <AttendanceDetailModal
+      <AttendanceCarouselModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         userIds={selectedUserId}
         names={selectedNames}
         selectedDay={selectedDay ?? 1}
         ubicacion={selectedUbicacion}
+        daysInMonth={daysInMonth}
       />
     </div>
   );
