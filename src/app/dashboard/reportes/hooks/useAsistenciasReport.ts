@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getAttendanceDetail, getReportAsistencias, getReportLocations } from "../endpoints/asistenciasReport";
 import { asistenciasReport } from "../types/report";
 
-export const useReportAsistencias = ({ enabled = false, dateRange, locations, groupBy }: asistenciasReport) => {
+export const useReportAsistencias = ({ enabled = false, dateRange, locations, groupBy, month, year }: asistenciasReport) => {
     const {
         data: reportAsistencias,
         isLoading: isLoadingReportAsistencias,
@@ -10,13 +10,15 @@ export const useReportAsistencias = ({ enabled = false, dateRange, locations, gr
         refetch: refetchReportAsistencias,
         isFetching: isFetchingReportAsistencias,
     } = useQuery<any>({
-        queryKey: ["getReportAsistencias", { dateRange, locations, groupBy }],
+        queryKey: ["getReportAsistencias", { dateRange, locations, groupBy, month, year }],
         enabled,
         queryFn: async () => {
             const data = await getReportAsistencias({
                 dateRange,
                 locations,
-                groupBy
+                groupBy,
+                month,
+                year
             });
             return data ?? [];
         },

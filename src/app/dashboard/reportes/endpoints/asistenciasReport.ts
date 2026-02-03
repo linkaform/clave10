@@ -1,14 +1,16 @@
 import { asistenciasReport } from "../types/report";
 import { API_ENDPOINTS } from "@/config/api";
 
-export const getReportAsistencias = async ({ dateRange, locations, groupBy }: asistenciasReport) => {
+export const getReportAsistencias = async ({ dateRange, locations, groupBy, month, year }: asistenciasReport) => {
     try {
         const payload = {
             option: "get_report",
             script_name: "asistencia_report.py",
             date_range: dateRange,
             locations,
-            group_by: groupBy
+            group_by: groupBy,
+            month,
+            year
         };
 
         const userJwt = localStorage.getItem("access_token");

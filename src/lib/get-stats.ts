@@ -1,17 +1,19 @@
 import { API_ENDPOINTS } from "@/config/api";
 
 export const getStats = async (
-    location:string, area:string,page:string) => {
+    location: string | string[], area: string, page: string, month?: number, year?: number) => {
     const payload = {
         area,
         location,
         page,
+        month,
+        year,
         option: "get_stats",
         script_name: "get_stats.py",
     };
-  
-    const userJwt = localStorage.getItem("access_token"); 
-  
+
+    const userJwt = localStorage.getItem("access_token");
+
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -20,8 +22,7 @@ export const getStats = async (
         },
         body: JSON.stringify(payload),
     });
-  
+
     const data = await response.json();
     return data;
-  };
-  
+};

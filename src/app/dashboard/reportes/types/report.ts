@@ -3,4 +3,6 @@ export interface asistenciasReport {
     dateRange: string;
     locations: string[];
     groupBy: string;
+    month?: number;
+    year?: number;
 }

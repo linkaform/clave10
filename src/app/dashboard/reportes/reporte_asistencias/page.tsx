@@ -39,6 +39,7 @@ import { asistenciasReport } from "../types/report";
 import LocationShiftAttendanceTable from "../components/LocationShiftAttendanceTable";
 import { SimpleAttendanceTable } from "../components/SimpleAttendanceTable";
 import AttendanceTableSymbology from "../components/AttendanceTableSymbology";
+import { useGetStats } from "@/hooks/useGetStats";
 
 const areFiltersEqual = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -64,11 +65,14 @@ const ReportsPage = () => {
 		enabled: false,
 		dateRange: 'mes',
 		locations: [],
-		groupBy: 'employees'
+		groupBy: 'employees',
+		month,
+		year
 	});
 
 	const { reportAsistencias, isLoadingReportAsistencias, isFetchingReportAsistencias, errorReportAsistencias, refetchReportAsistencias } = useReportAsistencias(filters);
 	const { reportLocations } = useReportLocations({ enabled: true });
+	const { data: stats } = useGetStats(true, selectedLocations, "", 'Asistencias', month, year)
 
 	const [showReport, setShowReport] = useState(false);
 	const [groupByLocation, setGroupByLocation] = useState(false);
@@ -107,7 +111,9 @@ const ReportsPage = () => {
 			enabled: true,
 			dateRange: timeframe,
 			locations: [...selectedLocations],
-			groupBy: groupingMode
+			groupBy: groupingMode,
+			month,
+			year
 		};
 		if (isExecuted && areFiltersEqual(filters, newFilters)) {
 			refetchReportAsistencias();
@@ -163,7 +169,6 @@ const ReportsPage = () => {
 	};
 
 	const totalFaltas = data.reduce((acc, row) => acc + ((row as any).resumen?.faltas || 0), 0);
-	const totalRetardos = data.reduce((acc, row) => acc + ((row as any).resumen?.retardos || 0), 0);
 
 	return (
 		<div>
@@ -236,7 +241,7 @@ const ReportsPage = () => {
 								<div className="flex gap-6">
 									<CheckCircle className="text-primary w-10 h-10" />
 									<span className="flex items-center font-bold text-4xl">
-										{0}
+										{reportAsistencias?.length ? stats?.total_asistencias : 0}
 									</span>
 								</div>
 								<div className="flex items-center space-x-0">
@@ -262,7 +267,7 @@ const ReportsPage = () => {
 								<div className="flex gap-6">
 									<Clock className="text-primary w-10 h-10" />
 									<span className="flex items-center font-bold text-4xl">
-										{totalRetardos}
+										{reportAsistencias?.length ? stats?.total_retardos : 0}
 									</span>
 								</div>
 								<div className="flex items-center space-x-0">
