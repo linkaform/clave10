@@ -351,6 +351,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                     {emp.nombre}
                   </td>
                   {daysToShow.map((day, i) => {
+                    const isTodayCol = day === filterDay && selectedStatus.length > 0;
                     if (!day) {
                       return <td key={i} className="p-1 border-b text-center bg-gray-100"></td>;
                     }
@@ -361,7 +362,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                     const closedClass = isClosed ? "ring-2 ring-gray-800 ring-offset-1" : "";
 
                     return (
-                      <td key={i} className="p-1 border-b text-center">
+                      <td key={i} className={`p-1 border-b text-center ${isTodayCol ? "bg-yellow-300" : ""}`}>
                         <button
                           type="button"
                           className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color} ${closedClass}`}
