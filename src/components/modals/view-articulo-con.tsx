@@ -10,20 +10,52 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import ConcesionadosAgregarEquipos, { EquipoConcesionado } from "../concesionados-agregar-equipos";
 import ConcesionadosSeguimientos from "../concesionados-seguimientos";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Imagen } from "../upload-Image";
+import { capitalizeFirstLetter } from "@/lib/utils";
 
+export type Concesion = {
+  _id: string;
+  folio: string;
+  status_concesion: string;
+  fecha_concesion: string;
+  observacion_concesion?: string;
+  tipo_persona_solicita: "empleado" | "otro";
+  persona_nombre_concesion?: string;
+  persona_id_concesion?: number[];
+  persona_email_concesion?: string[];
+  persona_nombre_otro?: string;
+  persona_email_otro?: string;
+  persona_identificacion_otro?: Imagen[];
+
+  ubicacion_concesion?: string;
+  caseta_concesion?: string;
+  firma?:Imagen[]
+  grupo_equipos?: EquipoConcesionado[];
+};
 interface ViewArtModalProps {
   title: string;
-  data:EquipoConcesionado[]
+  data:Concesion
   isSuccess: boolean;
   children: React.ReactNode;
 }
 
 export const ViewArticuloCon: React.FC<ViewArtModalProps> = ({
+  data,
   title,
   children,
 }) => {
   const [equipos, setEquipos]=useState<EquipoConcesionado[]>([])
+
+  useEffect(()=>{
+    if(data.grupo_equipos){
+      setEquipos(data.grupo_equipos)
+    }
+  },[data])
+  const totalCantidadPendientes = equipos
+  .filter(item => item.status_concesion_equipo === "pendiente")
+  .reduce((acc, item) => acc + (item.cantidad_equipo_concesion ?? 0), 0);
+
   return (
     <Dialog>
     <DialogTrigger asChild>{children}</DialogTrigger>
@@ -47,29 +79,29 @@ export const ViewArticuloCon: React.FC<ViewArtModalProps> = ({
   
               <div className="w-full flex gap-2">
                 <p className="font-bold">
-                  Ubicación: <span className="font-normal">{} Monterrrey</span>
+                  Ubicación: <span className="font-normal">{data.ubicacion_concesion} </span>
                 </p>
               </div>
   
               <div className="w-full flex gap-2">
                 <p className="font-bold">
-                  Fecha y hora concesion: <span className="font-normal">{} 12 - 07 - 2026</span>
+                  Fecha y hora concesion: <span className="font-normal">{data.fecha_concesion}</span>
                 </p>
               </div>
   
               <div className="w-full flex gap-2">
                 <p className="font-bold">
-                  Emplreado: <span className="font-normal">{} Emiliano Zapata</span>
+                  Emplreado: <span className="font-normal">{data.persona_nombre_concesion}</span>
                 </p>
               </div>
               <div className="w-full flex gap-2">
                 <p className="font-bold">
-                  Estado: <span className="text-red-500 font-bold">{} Pendiente</span>
+                  Estado: <span className="text-red-500 font-bold">{capitalizeFirstLetter(data.status_concesion)}</span>
                 </p>
               </div>
   
               <div className="col-span-1 md:col-span-2">
-                <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} ></ConcesionadosAgregarEquipos>
+                <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} mode={"editar"}></ConcesionadosAgregarEquipos>
               </div>
             </div>
           </div>
@@ -79,9 +111,9 @@ export const ViewArticuloCon: React.FC<ViewArtModalProps> = ({
   
         <TabsContent value="seguimientos" className="mt-4">
           <div className="space-y-4">
-           <div><span className="font-bold">Equipos pendientes:</span><span>4</span> </div> 
+           <div><span className="font-bold">Equipos pendientes: </span><span>{totalCantidadPendientes}</span> </div> 
               <div className="col-span-1 md:col-span-2">
-                <ConcesionadosSeguimientos equipos={[{equipo:"Laptop",unidades:2,precio:"Pendiente"},{equipo:"Laptop",unidades:2,precio:"Completo"}]} setEquipos={setEquipos} ></ConcesionadosSeguimientos>
+                <ConcesionadosSeguimientos equipos={equipos} setEquipos={setEquipos} mode={"vista"}></ConcesionadosSeguimientos>
               </div>
           </div>
         </TabsContent>

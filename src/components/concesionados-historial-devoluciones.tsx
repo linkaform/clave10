@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronUp, Package, Calendar, User, FileText, RotateCcw } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 export interface Devolucion {
   id: number;
   unidadesDevueltas: number;
   unidadesTotales: number;
-  estatus: "Pendiente" | "Completado" | "En Proceso";
+  estatus: "pendiente" | "abierto" | "En Proceso";
   progreso: number; // 0-100
   fecha: string;
   equipo: string;
@@ -39,9 +40,9 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
 
   const getEstatusColor = (estatus: string) => {
     switch (estatus) {
-      case "Completado":
+      case "abierto":
         return "bg-green-100 text-green-700 border-green-700";
-      case "Pendiente":
+      case "pendiente":
         return "bg-red-100 text-red-700 border-red-700";
       case "En Proceso":
         return "bg-yellow-100 text-yellow-700 border-yellow-700";
@@ -52,9 +53,9 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
 
   const getProgressColor = (estatus: string) => {
     switch (estatus) {
-      case "Completado":
+      case "abierto":
         return "bg-green-500";
-      case "Pendiente":
+      case "pendiente":
         return "bg-red-500";
       case "En Proceso":
         return "bg-yellow-500";
@@ -91,7 +92,7 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
                       devolucion.estatus
                     )}`}
                   >
-                    {devolucion.estatus}
+                    {devolucion.estatus=="abierto" ? "Completado":"Pendiente"}
                   </div>
                 </div>
 
@@ -138,41 +139,35 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
             {expandedIndex === index && (
               <div className="border-t border-gray-200 bg-gray-50 p-4 animate-fadeIn">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-2">
-                    <Package className="w-4 h-4 text-blue-500 mt-1" />
+                <div className="flex items-start gap-2">
+                    <User className="w-4 h-4 text-blue-500 mt-1" />
                     <div>
-                      <p className="text-xs text-gray-500">Equipo</p>
+                      <p className="text-sm text-blue-500 font-bold">Precio unitario ($)</p>
                       <p className="text-sm font-medium text-gray-700">
-                        {devolucion.equipo}
+                        {formatCurrency(200)}
                       </p>
                     </div>
                   </div>
-
                   <div className="flex items-start gap-2">
                     <User className="w-4 h-4 text-blue-500 mt-1" />
                     <div>
-                      <p className="text-xs text-gray-500">Solicitante</p>
+                      <p className="text-sm text-blue-500 font-bold">Subtotal ($)</p>
                       <p className="text-sm font-medium text-gray-700">
-                        {devolucion.solicitante}
+                        {formatCurrency(400)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2">
-                    <Calendar className="w-4 h-4 text-blue-500 mt-1" />
-                    <div>
-                      <p className="text-xs text-gray-500">Fecha de Solicitud</p>
-                      <p className="text-sm font-medium text-gray-700">
-                        {devolucion.fecha}
-                      </p>
-                    </div>
+                  <div className="col-span-2 text-sm font-bold text-gray-800">
+                  Sobre la devolucion
                   </div>
+
 
                   {devolucion.fechaDevolucion && (
                     <div className="flex items-start gap-2">
                       <Calendar className="w-4 h-4 text-green-500 mt-1" />
                       <div>
-                        <p className="text-xs text-gray-500">Fecha de Devolución</p>
+                        <p className="text-xs text-gray-500">Fecha y hora de la devolución</p>
                         <p className="text-sm font-medium text-gray-700">
                           {devolucion.fechaDevolucion}
                         </p>
@@ -180,12 +175,13 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
                     </div>
                   )}
 
-                  <div className="flex items-start gap-2 md:col-span-2">
-                    <FileText className="w-4 h-4 text-blue-500 mt-1" />
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-500">Motivo</p>
+
+                  <div className="flex items-start gap-2">
+                    <User className="w-4 h-4 text-blue-500 mt-1" />
+                    <div>
+                      <p className="text-xs text-gray-500">Empleado (entrega)</p>
                       <p className="text-sm font-medium text-gray-700">
-                        {devolucion.motivo}
+                        {devolucion.solicitante}
                       </p>
                     </div>
                   </div>
@@ -194,14 +190,14 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
                     <div className="flex items-start gap-2 md:col-span-2">
                       <FileText className="w-4 h-4 text-blue-500 mt-1" />
                       <div className="flex-1">
-                        <p className="text-xs text-gray-500">Comentarios Adicionales</p>
+                        <p className="text-xs text-gray-500">Comentarios</p>
                         <p className="text-sm text-gray-700">{devolucion.comentarios}</p>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {devolucion.estatus === "Pendiente" && (
+                {devolucion.estatus == "pendiente" && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <button
                       onClick={(e) => handleDevolver(devolucion.id, e)}

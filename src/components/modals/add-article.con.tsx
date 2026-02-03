@@ -28,7 +28,6 @@ import DateTime from "../dateTime";
 import { Loader2 } from "lucide-react";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { useArticulosConcesionados } from "@/hooks/useArticulosConcesionados";
-import { useCatalogoConcesion } from "@/hooks/useCatalogoConcesion";
 import { Input } from "../ui/input";
 import LoadImage, { Imagen } from "../upload-Image";
 import ConcesionadosAgregarEquipos from "../concesionados-agregar-equipos";
@@ -99,12 +98,12 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   
   const { data: dataAreaEmpleadoApoyo, isLoading: loadingAreaEmpleadoApoyo } = 
     useCatalogoAreaEmpleadoApoyo(isSuccess);
-  
+  console.log("conSelected",conSelected)
   const { createArticulosConMutation, editarArticulosConMutation, isLoading } = 
     useArticulosConcesionados(ubicacionSeleccionada, area??"", "", false, "", "", "");
   
-  const { dataCon, isLoadingCon } = 
-    useCatalogoConcesion(ubicacionSeleccionada, conSelected, isSuccess);
+  // const { dataCon, isLoadingCon } = 
+  //   useCatalogoConcesion(ubicacionSeleccionada, conSelected, isSuccess);
   
   const [date, setDate] = useState<Date | "">("");
 
@@ -314,7 +313,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                                 <div className="flex gap-2 ">
                                     <button
                                     type="button"
-                                    onClick={() => field.onChange("empleado")}
+                                    onClick={() => {field.onChange("empleado"); form.setValue("persona_text", "");}}
                                     className={`px-6 py-2 rounded ${
                                         field.value === "empleado"
                                         ? "bg-blue-600 text-white "
@@ -325,7 +324,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                                     </button>
                                     <button
                                     type="button"
-                                    onClick={() => field.onChange("otro")}
+                                    onClick={() => {field.onChange("otro"); form.setValue("persona_nombre_concesion","")}}
                                     className={`px-6 py-2 rounded ${
                                         field.value === "otro"
                                         ? "bg-blue-600 text-white"
@@ -341,34 +340,6 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                     )}
                 />
      
-
-              {/* <FormField
-                control={form.control}
-                name="solicita_concesion"
-                render={({ field }: any) => (
-                  <FormItem>
-                    <FormLabel>Tipo de concesion:</FormLabel>
-                    <FormControl>
-                      <Select {...field} className="input"
-                        onValueChange={(value: string) => {
-                          field.onChange(value);
-                        }}
-                        value={field.value}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Seleciona una opcion..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem key={"persona"} value={"persona"}>Persona</SelectItem>
-                          <SelectItem key={"otro"} value={"otro"}>Otro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              /> */}
-
               {tipoCon == "otro" &&
                 <FormField
                   control={form.control}
@@ -404,7 +375,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                         >
                           <SelectTrigger className="w-full">
                             {loadingAreaEmpleadoApoyo ? (
-                              <SelectValue placeholder="Cargando articulos..." />
+                              <SelectValue placeholder="Cargando empleados..." />
                             ) : (<>
                               {dataAreaEmpleadoApoyo?.length > 0 ? (<SelectValue placeholder="Selecciona una opción..." />)
                                 : (<SelectValue placeholder="Selecciona una categoria para ver las opciones..." />)
@@ -432,7 +403,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                   )}
                 />
               }
-
+          {tipoCon == "otro" &&
             <div className="mt-3">
               <Controller
                 control={form.control}
@@ -455,52 +426,9 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                 }
               />
             </div>
-
-              <FormField
-                control={form.control}
-                name="area_concesion"
-                render={({ field }: any) => (
-                  <FormItem>
-                    <FormLabel>Departamento:</FormLabel>
-                    <FormControl>
-                      <Select {...field} className="input"
-                        onValueChange={(value: string) => {
-                          field.onChange(value);
-                          setConSelected(value);
-                        }}
-                        value={field.value}
-                      >
-                        <SelectTrigger className="w-full">
-                          {isLoadingCon && conSelected ? (
-                            <SelectValue placeholder="Cargando articulos..." />
-                          ) : (<>
-                            {dataCon?.length > 0 ? (<SelectValue placeholder="Selecciona una opción..." />)
-                              : (<SelectValue placeholder="Selecciona una categoria para ver las opciones..." />)}
-                          </>)}
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dataCon?.length > 0 ? (
-                            dataCon?.map((item: string, index: number) => {
-                              return (
-                                <SelectItem key={index} value={item}>
-                                  {item}
-                                </SelectItem>
-                              );
-                            })
-                          ) : (
-                            <><SelectItem disabled value={"no opciones"}>No hay opciones disponibles</SelectItem></>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-             
-
+            }
               <div className="col-span-1 md:col-span-2">
-                <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} ></ConcesionadosAgregarEquipos>
+                <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} mode={"vista"}></ConcesionadosAgregarEquipos>
               </div>
               <FormField
                 control={form.control}

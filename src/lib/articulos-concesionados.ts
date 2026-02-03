@@ -24,10 +24,10 @@ export const getListArticulosCon = async (location:string, area:string,status:st
     const payload = {
         dateFrom:date1,
         dateTo: date2, 
-        filterDate,
-        status:"",
+        filterDate:filterDate,
+        status:status,
         location:"",
-        area:"",
+        area:area,
         option: "get_articles",
         script_name: "articulos_consecionados.py",
     };

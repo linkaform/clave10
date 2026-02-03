@@ -172,7 +172,7 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
 
                 <div className="flex items-center gap-3">
                   {/* Botón Devolver - Solo para estatus Pendiente */}
-                  {devolucion.estatus === "Pendiente" && (
+                  {devolucion.estatus === "pendiente" && (
                     <button
                       onClick={(e) => handleDevolver(devolucion.id, e)}
                       className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
@@ -286,7 +286,7 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
                 </div>
 
                 {/* Botón Devolver en el detalle expandido - Solo para Pendiente */}
-                {devolucion.estatus === "Pendiente" && (
+                {devolucion.estatus === "pendiente" && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <button
                       onClick={(e) => handleDevolver(devolucion.id, e)}

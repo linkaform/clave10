@@ -12,6 +12,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Card, CardContent } from "../ui/card";
 import { EquipoConcesionado } from "../concesionados-agregar-equipos";
 import { Dispatch, SetStateAction } from "react";
+import { formatCurrency } from "@/lib/utils";
 
 interface ConcesionadosVerEquipoProps {
   title: string;
@@ -43,30 +44,30 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
             
             <div className="w-full flex gap-2">
             <p className="font-bold">
-                Categoría: <span className="font-normal">{data?.categoria}</span>
+                Categoría: <span className="font-normal">{data?.categoria|| data?.categoria_equipo_concesion}</span>
             </p>
             </div>
 
             <div className="w-full flex gap-2">
             <p className="font-bold">
-                Equipo: <span className="font-normal">{data?.equipo}</span>
+                Equipo: <span className="font-normal">{data?.equipo||data?.nombre_equipo}</span>
             </p>
             </div>
 
             <div className="col-span-2 w-full flex gap-2">
             <p className="font-bold">
-                Unidades: <span className="font-normal">{data?.unidades}</span>
+                Unidades: <span className="font-normal">{data?.unidades||data?.cantidad_equipo_concesion}</span>
             </p>
             </div>
 
             <div className="w-full flex gap-2">
             <p className="font-bold text-blue-500 ">
-                Precio Unitario($) <span className="font-normal">{data?.precio}</span>
+                Precio Unitario($) <span className="font-normal">{data?.precio ?formatCurrency(data?.precio):"-"}</span>
             </p>
             </div>
             <div className="w-full flex gap-2">
             <p className="font-bold  text-blue-500 ">
-                Subtotal($) <span className="font-normal">{data?.precio}</span>
+                Subtotal($) <span className="font-normal">{data?.total?formatCurrency(data?.total):"-"}</span>
             </p>
             </div>
 
@@ -74,7 +75,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
 
             <div className="w-full flex gap-2">
             <p className="font-bold">
-                Comentario: <span className="font-normal">{data?.comentarios}</span>
+                Comentario: <span className="font-normal">{data?.comentarios||data?.comentario_entrega}</span>
             </p>
             </div>
 

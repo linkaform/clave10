@@ -5,23 +5,34 @@ import { toast } from "sonner";
 import { ConcesionadosAgregarEquipoModal } from "./modals/concesionados-agregar-equipos-modal";
 import { Imagen } from "./upload-Image";
 import { ConcesionadosVerEquipo } from "./modals/concesionados-ver-equipo";
+import { formatCurrency } from "@/lib/utils";
 
 export interface EquipoConcesionado {
+	categoria_equipo_concesion?: string;
+	status_concesion_equipo?: string;
+	comentario_entrega?: string;
+	nombre_equipo?: string;
+	cantidad_equipo_concesion?: number;
+	costo_equipo_concesion?: number[]; 
+	evidencia_entrega?: Imagen[];      
+	imagen_equipo_concesion?: Imagen[]; 
+
 	categoria?: string;
 	equipo?: string;
 	unidades?: number;
 	comentarios?: string;
 	evidencia?: Imagen[];
-	precio?: string;
-	total?:string;
+	precio?: number;
+	total?:number;
   }
 
 interface AgregarEquiposListProps {
     equipos: EquipoConcesionado[];
     setEquipos: Dispatch<SetStateAction<EquipoConcesionado[]>>
+	mode: "vista" | "editar"
 }
 
-const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos})=> {
+const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode})=> {
 	const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
 	const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
 	const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState<EquipoConcesionado>({});
@@ -48,7 +59,16 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 		setEquipos(nuevaspersonasInvolucradas);
 		toast.success("Seguimiento eliminado correctamente.")
 	};
-
+	const totalGeneral = equipos.reduce((acc, item) => {
+		const totalItem = item.total ? (item.total) : 0;
+		console.log(item)
+		return acc + totalItem;
+	  }, 0);
+	const totalGeneral2 = equipos.reduce((acc, item) => {
+	const cantidad = item.cantidad_equipo_concesion ?? 0;
+	const costo = item.costo_equipo_concesion?.[0] ?? 0; // tomamos el primer valor del array
+	return acc + cantidad * costo;
+	}, 0);
     return (
     <div >
 		<div className="mt-3 flex justify-between">
@@ -95,9 +115,15 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 			{equipos && equipos.length > 0 ? (
 			equipos.map((item, index) => (
 				<tr key={index} className="border-t border-gray-200">
-				<td className="px-4 py-2 max-w-[200px] truncate" title={item?.equipo || "-"}> {item?.equipo || "-"} </td>
-				<td className="px-4 py-2">{item.unidades||"-"}</td>
-				<td className="px-4 py-2">{item.precio||"-"}</td>
+				<td className="px-4 py-2 max-w-[200px] truncate" title={item?.equipo || item?.nombre_equipo || "-"}> {item?.equipo || item?.nombre_equipo || "-"} </td>
+				<td className="px-4 py-2">{item?.unidades||item?.cantidad_equipo_concesion||"-"}</td>
+				<td className="px-4 py-2"> {item.total
+						? formatCurrency(item.total)
+						: formatCurrency(
+							(item.cantidad_equipo_concesion ?? 0) *
+							(item.costo_equipo_concesion?.[0] ?? 0)
+						)
+					}</td>
 				<td className="px-4 py-2 ">
 					<div className="flex items-center justify-center gap-2">
                     <div
@@ -107,20 +133,23 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 					>
 						<Eye />
 					</div>
-					<div
-						title="Editar"
-						className="hover:cursor-pointer text-blue-500 hover:text-blue-600"
-						onClick={() => handleEditEquipo(item, index)}
-					>
-						<Edit />
-					</div>
-					<div
-						title="Borrar"
-						className="hover:cursor-pointer text-red-500 hover:text-red-600"
-						onClick={() => handleDeleteEquipo(index)}
-					>
-						<Trash2 />
-					</div>
+					{mode=="editar"&&
+					<div className="flex">
+						<div
+							title="Editar"
+							className="hover:cursor-pointer text-blue-500 hover:text-blue-600"
+							onClick={() => handleEditEquipo(item, index)}
+						>
+							<Edit />
+						</div>
+						<div
+							title="Borrar"
+							className="hover:cursor-pointer text-red-500 hover:text-red-600"
+							onClick={() => handleDeleteEquipo(index)}
+						>
+							<Trash2 />
+						</div>
+					</div>}
 					</div>
 				</td>
 				</tr>
@@ -135,7 +164,7 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 		</table>
         <div className="flex gap-2 items-center text-blue-500">
                 <span className="flex font-bold text-lg"><Calculator/> Total:</span>
-                <span className="font-bold text-lg">{0}</span>
+                <span className="font-bold text-lg">{formatCurrency(totalGeneral || totalGeneral2)}</span>
         </div>
 
     </div>

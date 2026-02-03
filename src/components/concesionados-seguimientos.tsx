@@ -1,43 +1,34 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { Dispatch, SetStateAction, useState } from "react";
 import { ArrowRightLeft, Calculator, Eye } from "lucide-react";
-import { ConcesionadosAgregarEquipoModal } from "./modals/concesionados-agregar-equipos-modal";
-import { Imagen } from "./upload-Image";
 import { ConcesionadosDetalleSeguimiento } from "./modals/conceisonados-detalle-seg";
-
-export interface EquipoConcesionado {
-	categoria?: string;
-	equipo?: string;
-	unidades?: number;
-	comentarios?: string;
-	evidencia?: Imagen[];
-	precio?: string;
-	total?:string;
-  }
+import { EquipoConcesionado } from "./concesionados-agregar-equipos";
+import { NuevaDevolucionEquipoModal } from "./modals/concesionados-nueva-devolucion";
 
 interface AgregarEquiposListProps {
     equipos: EquipoConcesionado[];
     setEquipos: Dispatch<SetStateAction<EquipoConcesionado[]>>
+	mode:string
 }
 
-const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos})=> {
+const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, mode})=> {
 	const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
 	const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
 	const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState<EquipoConcesionado>({});
-	const [editarAgregarEquiposModal, setEditarAgregarEquiposModal] = useState(false)
+	const [nuevaDevolucionModal, setNuevaDevolucionEquiposModal] = useState(false)
 	const [indiceSeleccionado, setIndiceSeleccionado]= useState<number | null>(null)
-
+	console.log("indiceSeleccionado",indiceSeleccionado)
     const handleViewEquipo = (item: any, index: number) => {
 		setAgregarEquipoSeleccion(item);
 		setIndiceSeleccionado(index);
-		setEditarAgregarEquiposModal(false)
+		setNuevaDevolucionEquiposModal(false)
 		setOpenVerEquiposModal(true);
 	};
 
-	const handleEditEquipo = (item: any, index: number) => {
+	const handleNuevaDevolucion = (item: any, index: number) => {
 		setAgregarEquipoSeleccion(item);
 		setIndiceSeleccionado(index);
-		setEditarAgregarEquiposModal(true)
+		setNuevaDevolucionEquiposModal(true)
 		setOpenAgregarEquiposModal(true);
 	};
 	
@@ -51,12 +42,13 @@ const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, 
     return (
     <div>
 		<div className="mt-3 flex justify-between">
-			<div className="text-lg font-bold">Equipos</div>
-			<div className="cursor-pointer  bg-blue-500 hover:bg-blue-600 text-white mr-5 rounded-md p-2 px-4 text-center text-sm" onClick={()=>{setOpenAgregarEquiposModal(!openAgregarEquiposModal);
-				setEditarAgregarEquiposModal(false)
-			}}>
-				Agregar Equipo
-			</div>
+			{mode!=="vista" &&
+			<><div className="text-lg font-bold">Equipos</div><div className="cursor-pointer  bg-blue-500 hover:bg-blue-600 text-white mr-5 rounded-md p-2 px-4 text-center text-sm" onClick={() => {
+					setOpenAgregarEquiposModal(!openAgregarEquiposModal);
+					setNuevaDevolucionEquiposModal(false);
+				} }>
+					Agregar Equipo
+			</div></>}
 		</div>
 
 		<ConcesionadosDetalleSeguimiento
@@ -68,17 +60,25 @@ const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, 
 			<div></div>
 		</ConcesionadosDetalleSeguimiento>
 
-		<ConcesionadosAgregarEquipoModal
+		<NuevaDevolucionEquipoModal 	
+			title={"Devolución de Equipos"}
+			setIsSuccess={setNuevaDevolucionEquiposModal}
+			isSuccess={nuevaDevolucionModal}
+			equipoSelecionado={agregarEquipoSeleccion}
+		>
+			<div></div>
+		</NuevaDevolucionEquipoModal>
+		{/* <ConcesionadosAgregarEquipoModal
                 title="Nuevo Equipo"
                 isSuccess={openAgregarEquiposModal}
                 setIsSuccess={setOpenAgregarEquiposModal}
                 agregarEquiposSeleccion={agregarEquipoSeleccion}
                 setEquipos={setEquipos}
-                setEditarAgregarEquiposModal={setEditarAgregarEquiposModal}
+                setNuevaDevolucionEquiposModal={setNuevaDevolucionEquiposModal}
                 editarAgregarEquiposModal={editarAgregarEquiposModal}
                 indice={indiceSeleccionado} >
 			<div></div>
-		</ConcesionadosAgregarEquipoModal>
+		</ConcesionadosAgregarEquipoModal> */}
 
 		
 		<table className="min-w-full table-auto mb-5 border">
@@ -86,7 +86,7 @@ const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, 
 			<tr className="bg-gray-100">
 				<th className="px-4 py-2 text-left border-b border-gray-300">Equipo</th>
 				<th className="px-4 py-2 text-left border-b border-gray-300">Unidades</th>
-				<th className="px-4 py-2 text-left border-b border-gray-300">Precio($)</th>
+				<th className="px-4 py-2 text-left border-b border-gray-300">Estatus</th>
 				<th></th>
 			</tr>
 			</thead>
@@ -94,19 +94,19 @@ const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, 
 			{equipos && equipos.length > 0 ? (
 			equipos.map((item, index) => (
 				<tr key={index} className="border-t border-gray-200">
-				<td className="px-4 py-2 max-w-[200px] truncate" title={item?.equipo || "-"}> {item?.equipo || "-"}</td>
-				<td className="px-4 py-2">{item.unidades||"-"}</td>
+				<td className="px-4 py-2 max-w-[200px] truncate" title={item?.equipo || item?.nombre_equipo}> {item?.equipo || item?.nombre_equipo}</td>
+				<td className="px-4 py-2">{item.unidades||item?.cantidad_equipo_concesion}</td>
 				<td className="px-4 py-2"> 
                     <div
                         className={`inline-flex items-center justify-center px-2  text-sm font-semibold rounded-md border capitalize
                         ${
-                            item.precio=="Pendiente"
+                            item.status_concesion_equipo=="pendiente"
                             ? "bg-red-100 text-red-700 border-red-700"
                             : "bg-green-100 text-green-700 border-green-700"
                         }
                         `}
                     >
-                        {item?.precio}
+                        {(item?.status_concesion_equipo=="pendiente" ? "Pendiente":"Completo") }
                     </div>
                 </td>
 				<td className="px-4 py-2 ">
@@ -121,7 +121,7 @@ const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, 
 					<div
 						title="Editar"
 						className="hover:cursor-pointer text-blue-500 hover:text-blue-600"
-						onClick={() => handleEditEquipo(item, index)}
+						onClick={() => handleNuevaDevolucion(item, index)}
 					>
 						<ArrowRightLeft/>
 					</div>

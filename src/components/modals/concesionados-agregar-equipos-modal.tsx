@@ -35,6 +35,8 @@ import {
 import { Calculator } from "lucide-react";
 import LoadImage from "../upload-Image";
 import { EquipoConcesionado } from "../concesionados-agregar-equipos";
+import { formatCurrency } from "@/lib/utils";
+import Image from "next/image";
 
 interface AgregarEquiposModalProps {
 	title: string;
@@ -54,11 +56,28 @@ const formSchema = z.object({
 	unidades: z.number().optional(),
 	comentarios:  z.string().optional(),
 	evidencia:  z.array(z.any()).optional(),
-	precio:z.string().optional()
+	precio:z.number().optional()
 });
 
-
-
+type Equipo = {
+	value: string;
+	label: string;
+	img: string;
+	precio:number;
+  };
+  
+const equiposPorCategoria: Record<string, Equipo[]> ={
+	Herramienta: [
+		{ value: "Martillo", label: "Martillo", img: "https://m.media-amazon.com/images/I/61CTt-OrpzL.jpg", precio:200 },
+		{ value: "Desarmador", label: "Desarmador", img: "https://incom.mx/cdn/shop/files/URREA_9308M-DESARMADOR_PUNTAS_INTERCAMBIABLES-F1.jpg?v=1752030405", precio:185 },
+	  ],
+	Electricas: [
+		{ value: "Taladro", label: "Taladro", img: "https://yaqui.com.mx/cdn/shop/products/TALI-20A_e5f53438-0d59-48a3-9daa-ba9ec1ceab32.jpg?v=1746478029", precio:545 },
+	  ],
+	Computacion: [
+		{ value: "Laptop", label: "Laptop", img: "https://m.media-amazon.com/images/I/81+fSmSTdRL._AC_UF894,1000_QL80_.jpg" , precio:3400},
+	  ],
+  };
 export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps> = ({
 	title,
 	children,
@@ -79,7 +98,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 			unidades: 0,
 			comentarios: "",
 			evidencia: [],
-			precio: "",
+			precio: 0,
 		},
 	});
 
@@ -93,7 +112,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                 unidades: 0,
 				evidencia:[],
                 comentarios: "",
-                precio: "",
+                precio:0,
               });
         }
 
@@ -116,7 +135,8 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
             unidades: values.unidades,
             comentarios: values.comentarios,
             evidencia: values.evidencia,
-			precio:values.precio
+			precio:values.precio,
+			total: subtotal
         }
         if(editarAgregarEquiposModal){
             setEditarAgregarEquiposModal(false)
@@ -137,14 +157,41 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         setEditarAgregarEquiposModal(false);
 	};
 
+
     useEffect(() => {
         if(form.formState.errors){
             console.log("Errores:", form.formState.errors)
         }
     }, [form.formState.errors])
 
+	const categoriaSeleccionada = form.watch("categoria") as string | undefined;
+	const equipoSeleccionado = form.watch("equipo") as string | undefined;
+	const unidades = form.watch("unidades") as number | undefined;
 
-      
+	useEffect(() => {
+		form.setValue("equipo", "");
+	  }, [categoriaSeleccionada]);
+	
+	const equipoData =
+	categoriaSeleccionada && equiposPorCategoria[categoriaSeleccionada]
+	? equiposPorCategoria[categoriaSeleccionada].find(
+		(e) => e.value === equipoSeleccionado
+		)
+	: undefined;
+
+	const subtotal =
+	equipoData && unidades
+	  ? equipoData.precio * unidades
+	  : 0;
+
+	  useEffect(() => {
+		if (equipoData?.precio) {
+		  form.setValue("precio", equipoData.precio);
+		} else {
+		  form.setValue("precio", 0);
+		}
+	  }, [equipoData]);
+
 	return (
 		<Dialog onOpenChange={setIsSuccess} open={isSuccess} modal>
 			<DialogTrigger>{children}</DialogTrigger>
@@ -180,6 +227,12 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 												<SelectItem key={"Herramienta"} value={"Herramienta"}>
                                                     Herramienta
 												</SelectItem>
+												<SelectItem key={"Computacion"} value={"Computacion"}>
+                                                    Computación
+												</SelectItem>
+												<SelectItem key={"Electricas"} value={"Electricas"}>
+                                                    Eléctricas
+												</SelectItem>
 											</SelectContent>
 										</Select>
 
@@ -206,9 +259,12 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
-												<SelectItem key={"Martillo"} value={"Martillo"}>
-                                                    Martillo
+											{categoriaSeleccionada &&
+											equiposPorCategoria[categoriaSeleccionada]?.map((equipo) => (
+												<SelectItem key={equipo.value} value={equipo.value}>
+												{equipo.label}
 												</SelectItem>
+											))}
 											</SelectContent>
 										</Select>
 
@@ -217,6 +273,19 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 									</FormItem>
 								)}
 							/>
+
+						{equipoData?.img && (
+						<div className="mt-4 flex justify-center">
+							<Image
+							width={100}
+							height={100}
+							src={equipoData.img}
+							alt={equipoData.label}
+							className="h-40 object-contain rounded-md border"
+							/>
+						</div>
+						)}
+
                        <div className="col-span-2">
                             <FormField
                                 control={form.control}
@@ -259,7 +328,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 							/>
                             <div className="flex gap-2 items-center text-blue-500 mt-2">
                                 <span className="flex font-bold text-lg"><Calculator/> Subtotal($):</span>
-                                <span className="font-bold text-lg">{0}</span>
+                                <span className="font-bold text-lg">{formatCurrency(subtotal)}</span>
                             </div>
                         </div>
 

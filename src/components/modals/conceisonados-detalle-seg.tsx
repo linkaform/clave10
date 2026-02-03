@@ -48,7 +48,7 @@ export const ConcesionadosDetalleSeguimiento: React.FC<ConcesionadosDetalleSegui
       id: 2,
       unidadesDevueltas: 3,
       unidadesTotales: 3,
-      estatus: "Completado",
+      estatus: "abierto",
       progreso: 100,
       fecha: "10/01/2024",
       equipo: "Monitor LG UltraWide 34 pulgadas",
@@ -61,7 +61,7 @@ export const ConcesionadosDetalleSeguimiento: React.FC<ConcesionadosDetalleSegui
       id: 3,
       unidadesDevueltas: 0,
       unidadesTotales: 5,
-      estatus: "Pendiente",
+      estatus: "pendiente",
       progreso: 0,
       fecha: "25/01/2024",
       equipo: "Teclado Mecánico Logitech MX Keys",
@@ -70,6 +70,11 @@ export const ConcesionadosDetalleSeguimiento: React.FC<ConcesionadosDetalleSegui
       comentarios: "Pendiente coordinar fecha de devolución con el empleado.",
     },
   ];
+  console.log("data",data)
+
+  // const devolucionesFiltradas = devolucionesDemo.filter(
+  //   (devolucion) => devolucion.estatus.toLowerCase() === (data.status_concesion_equipo?.toLowerCase() ?? "")
+  // );
   return (
     <Dialog open={isSuccess}  onOpenChange={setIsSuccess}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -86,13 +91,13 @@ export const ConcesionadosDetalleSeguimiento: React.FC<ConcesionadosDetalleSegui
             
             <div className="w-full flex gap-2">
             <p className="font-bold">
-                Categoría: <span className="font-normal">Herramienta</span>
+                Categoría: <span className="font-normal">{data?.cantidad_equipo_concesion}</span>
             </p>
             </div>
 
             <div className="w-full flex gap-2">
             <p className="font-bold">
-                Equipo: <span className="font-normal">Martilla</span>
+                Equipo: <span className="font-normal">{data?.nombre_equipo}</span>
             </p>
             </div>
         </div>
