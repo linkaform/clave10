@@ -213,7 +213,6 @@ const ArticulosPage = () => {
 					onClose={closeModal}
 				/>
 				<AddArticuloConModal
-					title={"Crear Artículo Concesionado"}
 					isSuccess={isSuccessCon}
 					setIsSuccess={setIsSuccessCon}
 					// onClose={closeModalCon}

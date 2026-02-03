@@ -50,7 +50,6 @@ interface ArticuloData {
 }
 
 interface AddFallaModalProps {
-  title: string;
   isSuccess: boolean;
   setIsSuccess: Dispatch<SetStateAction<boolean>>;
   mode?: 'create' | 'edit';
@@ -82,7 +81,6 @@ const formSchema = z.object({
 });
 
 export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
-  title,
   isSuccess,
   setIsSuccess,
   mode = 'create',
@@ -214,7 +212,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
       <DialogContent className="max-w-3xl overflow-y-auto max-h-[80vh] flex flex-col" onInteractOutside={(e) => e.preventDefault()} aria-describedby="">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl text-center font-bold">
-            {title}
+           Nueva Concesión
           </DialogTitle>
         </DialogHeader>
         <div className="flex-grow overflow-y-auto p-4">
@@ -413,7 +411,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                     <div className="flex flex-col">
                       <LoadImage
                         id="identificacion"
-                        titulo={"Evidencia"}
+                        titulo={"Identificación"}
                         imgArray={field.value || []}
                         setImg={field.onChange}
                         showWebcamOption={true}
