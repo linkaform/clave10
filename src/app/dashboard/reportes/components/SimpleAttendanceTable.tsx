@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { CheckCircle, XCircle, Clock, MinusCircle, CalendarOff, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { CheckCircle, XCircle, Clock, MinusCircle, CalendarOff, ChevronLeft, ChevronRight, X, LogOut } from "lucide-react";
 import AttendanceCarouselModal from "./AttendanceCarouselModal";
 
-type StatusType = "presente" | "retardo" | "falta" | "falta_por_retardo" | "dia_libre" | "sin_registro";
+type StatusType = "presente" | "retardo" | "falta" | "falta_por_retardo" | "dia_libre" | "sin_registro" | "cerrado";
 
 const statusConfig: Record<StatusType, { color: string; icon: JSX.Element; label: string }> = {
   presente: {
@@ -34,6 +34,11 @@ const statusConfig: Record<StatusType, { color: string; icon: JSX.Element; label
     color: "bg-gray-100 text-gray-400",
     icon: <MinusCircle className="w-4 h-4" />,
     label: "Sin registro",
+  },
+  cerrado: {
+    color: "bg-gray-100 text-gray-400",
+    icon: <LogOut className="w-4 h-4" />,
+    label: "Cerrado",
   },
 };
 
@@ -85,6 +90,7 @@ const statusPriority: Record<StatusType, number> = {
   falta_por_retardo: 3,
   falta: 2,
   sin_registro: 1,
+  cerrado: 0,
 };
 
 export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
@@ -359,13 +365,13 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                     const status = dayObj?.status || "sin_registro";
                     const config = statusConfig[status] || statusConfig["sin_registro"];
                     const isClosed = dayObj?.closed;
-                    const closedClass = isClosed ? "ring-2 ring-gray-800 ring-offset-1" : "";
+                    const usedIcon = isClosed ? statusConfig["cerrado"].icon : config.icon;
 
                     return (
                       <td key={i} className={`p-1 border-b text-center ${isTodayCol ? "bg-yellow-300" : ""}`}>
                         <button
                           type="button"
-                          className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color} ${closedClass}`}
+                          className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
                           title={config.label}
                           onClick={() => {
                             setSelectedUserId([emp.employee_id]);
@@ -375,7 +381,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                             setModalOpen(true);
                           }}
                         >
-                          {config.icon}
+                          {usedIcon}
                         </button>
                       </td>
                     );
@@ -402,7 +408,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                   const status = dayObj?.status || "sin_registro";
                   const config = statusConfig[status] || statusConfig["sin_registro"];
                   const isClosed = dayObj?.closed;
-                  const closedClass = isClosed ? "ring-2 ring-gray-800 ring-offset-1" : "";
+                  const usedIcon = isClosed ? statusConfig["cerrado"].icon : config.icon;
                   const fechaInicio = dayObj?.fecha_inicio?.substring(10, 16) || "Sin registrar";
                   const fechaFin = dayObj?.fecha_cierre?.substring(10, 16) || "Sin registrar";
 
@@ -413,7 +419,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                     >
                       <button
                         type="button"
-                        className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color} ${closedClass}`}
+                        className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
                         title={`Inicio: ${fechaInicio} - Cierre: ${fechaFin}`}
                         onClick={() => {
                           setSelectedUserId([emp.employee_id]);
@@ -423,7 +429,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                           setModalOpen(true);
                         }}
                       >
-                        {config.icon}
+                        {usedIcon}
                       </button>
                     </td>
                   );
