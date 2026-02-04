@@ -118,6 +118,9 @@ export default function LoginPage() {
                             placeholder="Usuario"
                             className="mb-5 placeholder:text-[#3D4D5C] bg-[#F0F2F5] h-[56px]  rounded-lg"
                             type="text"
+                            onBlur={() => {
+                              field.onChange(field.value?.trim());
+                            }}
                           />
                         </FormControl>
                         <FormMessage className="my-10" />
@@ -127,37 +130,39 @@ export default function LoginPage() {
                 </div>
 
                 <div className="w-full mt-5">
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <div className="w-full relative">
-                            <Input
-                              {...field}
-                              placeholder="Password"
-                              className="w-full mb-5 placeholder:text-[#3D4D5C] bg-[#F0F2F5]  h-[56px]  rounded-lg"
-                              type={showPassword ? "password" : "text"}
-                            />
-
-                            <div
-                              className="absolute right-3 top-4"
-                              onClick={() => setShowPassword(!showPassword)}
-                            >
-                              {!showPassword && (
-                                <Eye className="text-gray-light" />
-                              )}
-                              {showPassword && (
-                                <EyeOff className="text-gray-light" />
-                              )}
-                            </div>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className="w-full relative">
+                        <Input
+                          {...field}
+                          onBlur={() => {
+                            field.onChange(field.value?.trim());
+                          }}
+                          placeholder="Password"
+                          className="w-full mb-5 placeholder:text-[#3D4D5C] bg-[#F0F2F5] h-[56px] rounded-lg"
+                          type={showPassword ? "password" : "text"}
+                        />
+                          <div
+                            className="absolute right-3 top-4 cursor-pointer"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {!showPassword && (
+                              <Eye className="text-gray-light" />
+                            )}
+                            {showPassword && (
+                              <EyeOff className="text-gray-light" />
+                            )}
                           </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 </div>
 
                 <div className="flex justify-start w-full">

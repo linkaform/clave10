@@ -32,6 +32,7 @@ import { Input } from "../ui/input";
 import LoadImage, { Imagen } from "../upload-Image";
 import ConcesionadosAgregarEquipos from "../concesionados-agregar-equipos";
 import { useBoothStore } from "@/store/useBoothStore";
+import Image from "next/image";
 
 interface ArticuloData {
   status_concesion?: string;
@@ -205,7 +206,25 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
 
   const buttonText = mode === 'edit' ? 'Actualizar Artículo' : 'Crear Artículo';
   const loadingText = mode === 'edit' ? 'Actualizando Artículo...' : 'Creando Artículo...';
-
+  
+  const convertirTextoAImagen = (texto: string): string => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+    canvas.width = 400;
+    canvas.height = 100;
+    
+    ctx.fillStyle = '#ffffff'; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold italic 32px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(texto, canvas.width / 2, canvas.height / 2);
+    
+    return canvas.toDataURL('image/png');
+  };
   return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
       <DialogTrigger>{children}</DialogTrigger>
@@ -426,7 +445,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
             </div>
             }
               <div className="col-span-1 md:col-span-2">
-                <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} mode={"vista"}></ConcesionadosAgregarEquipos>
+                <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} mode={"editar"}></ConcesionadosAgregarEquipos>
               </div>
               <FormField
                 control={form.control}
@@ -455,14 +474,25 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
 									<FormItem>
 										<FormLabel>Firma: *</FormLabel>
 										<FormControl>
-											<Input className="border-none font-medium" placeholder="Escribe tu firma..." {...field}
+											<Input className="border-none font-bold italic"  style={{ fontFamily: 'Georgia, serif' }} placeholder="Escribe tu firma..." {...field}
 												onChange={(e) => {
 													field.onChange(e);
 												}}
 												value={field.value || ""}
 											/>
+                      
 										</FormControl>
-										<FormMessage />
+                    {field.value && (
+                    <div className="mt-2 p-4 border rounded bg-white">
+                      <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
+                      <Image 
+                        src={convertirTextoAImagen(field.value)} 
+                        alt="Firma" 
+                        className="max-w-full"
+                      />
+                    </div>
+                  )}
+                    <FormMessage />
 									</FormItem>
 								)}
 							/>
@@ -490,6 +520,8 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
               </>
             ) : (buttonText)}
           </Button>
+
+          
         </div>
 
       </DialogContent>

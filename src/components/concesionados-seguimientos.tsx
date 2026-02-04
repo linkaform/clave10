@@ -1,43 +1,55 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { Dispatch, SetStateAction, useState } from "react";
-import { ArrowRightLeft, Calculator, Eye } from "lucide-react";
+import {  Calculator, History } from "lucide-react";
 import { ConcesionadosDetalleSeguimiento } from "./modals/conceisonados-detalle-seg";
 import { EquipoConcesionado } from "./concesionados-agregar-equipos";
 import { NuevaDevolucionEquipoModal } from "./modals/concesionados-nueva-devolucion";
+import HistorialDevoluciones from "./concesionados-historial-devoluciones";
 
 interface AgregarEquiposListProps {
     equipos: EquipoConcesionado[];
     setEquipos: Dispatch<SetStateAction<EquipoConcesionado[]>>
 	mode:string
 }
-
+const nuevoEquipoEnProceso: EquipoConcesionado = {
+	categoria_equipo_concesion: "Electrónicos",
+	status_concesion_equipo: "en proceso",
+	comentario_entrega: "Equipo en proceso de entrega",
+	nombre_equipo: "Laptop HP",
+	cantidad_equipo_concesion: 1,
+	costo_equipo_concesion: [15000],
+	evidencia_entrega: [],
+	imagen_equipo_concesion: []
+  };
+  
+  const nuevoEquipoCompleto: EquipoConcesionado = {
+	categoria_equipo_concesion: "Artículos de Oficina",
+	status_concesion_equipo: "completo",
+	comentario_entrega: "Entrega completada exitosamente",
+	nombre_equipo: "Silla Ergonómica",
+	cantidad_equipo_concesion: 1,
+	costo_equipo_concesion: [3500],
+	evidencia_entrega: [
+	  {
+		file_name: "evidencia1.jpg",
+		file_url: "https://ejemplo.com/evidencia1.jpg"
+	  }
+	],
+	imagen_equipo_concesion: [
+	  {
+		file_name: "silla.jpg",
+		file_url: "https://ejemplo.com/silla.jpg"
+	  }
+	]
+  };
 const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, mode})=> {
 	const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
 	const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
-	const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState<EquipoConcesionado>({});
+	const [agregarEquipoSeleccion] = useState<any>({});
 	const [nuevaDevolucionModal, setNuevaDevolucionEquiposModal] = useState(false)
-	const [indiceSeleccionado, setIndiceSeleccionado]= useState<number | null>(null)
-	console.log("indiceSeleccionado",indiceSeleccionado)
-    const handleViewEquipo = (item: any, index: number) => {
-		setAgregarEquipoSeleccion(item);
-		setIndiceSeleccionado(index);
-		setNuevaDevolucionEquiposModal(false)
-		setOpenVerEquiposModal(true);
-	};
+	console.log("equipos",equipos)
+	const equiposActualizados = [...equipos, nuevoEquipoEnProceso, nuevoEquipoCompleto];
 
-	const handleNuevaDevolucion = (item: any, index: number) => {
-		setAgregarEquipoSeleccion(item);
-		setIndiceSeleccionado(index);
-		setNuevaDevolucionEquiposModal(true)
-		setOpenAgregarEquiposModal(true);
-	};
-	
-	// const handleDeleteEquipo  = (index: number) => {
-	// 	const nuevaspersonasInvolucradas = [...equipos];
-	// 	nuevaspersonasInvolucradas.splice(index, 1);
-	// 	setEquipos(nuevaspersonasInvolucradas);
-	// 	toast.success("Seguimiento eliminado correctamente.")
-	// };
 
     return (
     <div>
@@ -68,83 +80,14 @@ const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, 
 		>
 			<div></div>
 		</NuevaDevolucionEquipoModal>
-		{/* <ConcesionadosAgregarEquipoModal
-                title="Nuevo Equipo"
-                isSuccess={openAgregarEquiposModal}
-                setIsSuccess={setOpenAgregarEquiposModal}
-                agregarEquiposSeleccion={agregarEquipoSeleccion}
-                setEquipos={setEquipos}
-                setNuevaDevolucionEquiposModal={setNuevaDevolucionEquiposModal}
-                editarAgregarEquiposModal={editarAgregarEquiposModal}
-                indice={indiceSeleccionado} >
-			<div></div>
-		</ConcesionadosAgregarEquipoModal> */}
+	
+  		<div className="flex gap-2">
+        <History className="text-green-500"/> <span className="mb-2 font-bold text-gray-800"> HISTORIAL DE DEVOLUCIONES</span>
+        </div>
 
-		
-		<table className="min-w-full table-auto mb-5 border">
-			<thead>
-			<tr className="bg-gray-100">
-				<th className="px-4 py-2 text-left border-b border-gray-300">Equipo</th>
-				<th className="px-4 py-2 text-left border-b border-gray-300">Unidades</th>
-				<th className="px-4 py-2 text-left border-b border-gray-300">Estatus</th>
-				<th></th>
-			</tr>
-			</thead>
-			<tbody>
-			{equipos && equipos.length > 0 ? (
-			equipos.map((item, index) => (
-				<tr key={index} className="border-t border-gray-200">
-				<td className="px-4 py-2 max-w-[200px] truncate" title={item?.equipo || item?.nombre_equipo}> {item?.equipo || item?.nombre_equipo}</td>
-				<td className="px-4 py-2">{item.unidades||item?.cantidad_equipo_concesion}</td>
-				<td className="px-4 py-2"> 
-                    <div
-                        className={`inline-flex items-center justify-center px-2  text-sm font-semibold rounded-md border capitalize
-                        ${
-                            item.status_concesion_equipo=="pendiente"
-                            ? "bg-red-100 text-red-700 border-red-700"
-                            : "bg-green-100 text-green-700 border-green-700"
-                        }
-                        `}
-                    >
-                        {(item?.status_concesion_equipo=="pendiente" ? "Pendiente":"Completo") }
-                    </div>
-                </td>
-				<td className="px-4 py-2 ">
-					<div className="flex items-center justify-center gap-2">
-                    <div
-						title="Editar"
-						className="hover:cursor-pointer text-blue-500 hover:text-blue-600"
-						onClick={() => handleViewEquipo(item, index)}
-					>
-						<Eye />
-					</div>
-					<div
-						title="Editar"
-						className="hover:cursor-pointer text-blue-500 hover:text-blue-600"
-						onClick={() => handleNuevaDevolucion(item, index)}
-					>
-						<ArrowRightLeft/>
-					</div>
-					{/* <div
-						title="Borrar"
-						className="hover:cursor-pointer text-red-500 hover:text-red-600"
-						onClick={() => handleDeleteEquipo(index)}
-					>
-						<Trash2 />
-					</div> */}
-					</div>
-				</td>
-				</tr>
-			))) : (
-				<tr>
-				<td colSpan={8} className="text-center text-gray-500 py-4">
-					No hay equipos agregados.
-				</td>
-				</tr>
-			)}
-			</tbody>
-		</table>
-        <div className="flex gap-2 items-center text-blue-500">
+        <HistorialDevoluciones equipos={equiposActualizados}></HistorialDevoluciones>
+
+        <div className="flex gap-2 items-center text-blue-500 mt-2">
                 <span className="flex font-bold text-lg"><Calculator/> Total:</span>
                 <span className="font-bold text-lg">{0}</span>
         </div>

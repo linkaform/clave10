@@ -26,6 +26,8 @@ export interface EquipoConcesionado {
 	total?:number;
   }
 
+
+
 interface AgregarEquiposListProps {
     equipos: EquipoConcesionado[];
     setEquipos: Dispatch<SetStateAction<EquipoConcesionado[]>>
@@ -35,11 +37,11 @@ interface AgregarEquiposListProps {
 const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode})=> {
 	const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
 	const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
-	const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState<EquipoConcesionado>({});
+	const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState({});
 	const [editarAgregarEquiposModal, setEditarAgregarEquiposModal] = useState(false)
 	const [indiceSeleccionado, setIndiceSeleccionado]= useState<number | null>(null)
 
-    const handleViewEquipo = (item: any, index: number) => {
+	const handleViewEquipo = (item: any, index: number) => {
 		setAgregarEquipoSeleccion(item);
 		setIndiceSeleccionado(index);
 		setEditarAgregarEquiposModal(false)
@@ -84,7 +86,7 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 		title={"Equipo"}
 		setIsSuccess={setOpenVerEquiposModal}
 		isSuccess={openVerEquiposModal}
-		data={agregarEquipoSeleccion}
+		data={agregarEquipoSeleccion as any}
 		>
 			<div></div>
 		</ConcesionadosVerEquipo>
@@ -134,7 +136,7 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 						<Eye />
 					</div>
 					{mode=="editar"&&
-					<div className="flex">
+					<div className="flex gap-2">
 						<div
 							title="Editar"
 							className="hover:cursor-pointer text-blue-500 hover:text-blue-600"

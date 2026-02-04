@@ -34,7 +34,6 @@ export type Concesion = {
   grupo_equipos?: EquipoConcesionado[];
 };
 interface ViewArtModalProps {
-  title: string;
   data:Concesion
   isSuccess: boolean;
   children: React.ReactNode;
@@ -42,7 +41,6 @@ interface ViewArtModalProps {
 
 export const ViewArticuloCon: React.FC<ViewArtModalProps> = ({
   data,
-  title,
   children,
 }) => {
   const [equipos, setEquipos]=useState<EquipoConcesionado[]>([])
@@ -63,7 +61,7 @@ export const ViewArticuloCon: React.FC<ViewArtModalProps> = ({
     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="text-2xl text-center font-bold">
-          {title}
+          Detalle de la Concesión
         </DialogTitle>
       </DialogHeader>
   
@@ -101,7 +99,7 @@ export const ViewArticuloCon: React.FC<ViewArtModalProps> = ({
               </div>
   
               <div className="col-span-1 md:col-span-2">
-                <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} mode={"editar"}></ConcesionadosAgregarEquipos>
+                <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} mode={"vista"}></ConcesionadosAgregarEquipos>
               </div>
             </div>
           </div>

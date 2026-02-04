@@ -19,9 +19,10 @@ export interface Articulo_con_record {
     nombre_concesion:string,
     fecha_devolucion_concesion:string,
     status_concesion:string,
-    persona_nombre_concesion:string
+    persona_nombre_concesion:string,
     evidencia:Imagen[],
-    persona_text:string
+    persona_text:string,
+    persona_nombre_otro:string
 }
 
 
@@ -32,7 +33,6 @@ const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
   return (
     <><div className="flex space-x-2">
       <ViewArticuloCon
-        title="Información del Artículo Concesionado"
         data={articulo} isSuccess={false}>
         <div className="cursor-pointer" title="Ver Artículo">
           <Eye />
@@ -44,7 +44,8 @@ const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
         title={"Devolución de Equipos"}
         setIsSuccess={setNuevaDevolucionEquiposModal}
         isSuccess={nuevaDevolucionModal}
-        equipoSelecionado={{}} >
+        equipoSelecionado={{}} 
+        >
           <div><ArrowLeftRight /> </div>
     </NuevaDevolucionEquipoModal>
     </div>
@@ -98,9 +99,15 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
     {
       accessorKey: "persona_nombre_concesion",
       header: "Empleado",
-      cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("persona_nombre_concesion")}</div>
-      ),
+      cell: ({ row }) => {
+        const nombreConcesion = row.getValue("persona_nombre_concesion");
+        const nombreOtro = row.original.persona_nombre_otro;
+        const nombre = nombreConcesion || nombreOtro || "";
+        
+        return (
+          <div className="capitalize">{String(nombre)}</div>
+        );
+      },
       enableSorting: true,
     },
     {
@@ -108,14 +115,6 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       header: "Departamento",
       cell: ({ row }) => (
         <div className="capitalize">{row.getValue("caseta_concesion")}</div>
-      ),
-      enableSorting: true,
-    },
-    {
-      accessorKey: "persona_nombre_otro",
-      header: "Otro",
-      cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("persona_nombre_otro")}</div>
       ),
       enableSorting: true,
     },

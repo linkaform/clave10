@@ -62,12 +62,19 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
 
             <div className="w-full flex gap-2">
             <p className="font-bold text-blue-500 ">
-                Precio Unitario($) <span className="font-normal">{data?.precio ?formatCurrency(data?.precio):"-"}</span>
+                Precio Unitario($) <span className="font-normal">{formatCurrency(data?.precio ?? data?.costo_equipo_concesion?.[0] ?? 0)}</span>
             </p>
             </div>
             <div className="w-full flex gap-2">
             <p className="font-bold  text-blue-500 ">
-                Subtotal($) <span className="font-normal">{data?.total?formatCurrency(data?.total):"-"}</span>
+                Subtotal($) <span className="font-normal"> 
+                {data?.total
+                ? formatCurrency(data.total)
+                : formatCurrency(
+                    (data?.cantidad_equipo_concesion ?? 0) *
+                    (data?.costo_equipo_concesion?.[0] ?? 0)
+                  )}
+              </span>
             </p>
             </div>
 
@@ -82,13 +89,13 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
         </div>
         </div>
     
-        {data?.evidencia && data?.evidencia.length>0 ?
+        {data?.evidencia_entrega && data?.evidencia_entrega.length>0 ?
         <div className="w-full flex flex-col">
             <p className="font-bold mb-2">Evidencia: </p>
             <div className="flex justify-center">
                 <Carousel className="w-36 ">
                     <CarouselContent>
-                        {data?.evidencia.map((a, index) => (
+                        {data?.evidencia_entrega.map((a, index) => (
                         <CarouselItem key={index}>
                             <div className="p-1">
                             <Card>
@@ -99,6 +106,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
                                         src= {a.file_url || "/nouser.svg"}
                                         alt="Imagen"
                                         className="w-42 h-42 object-contain bg-gray-200 rounded-lg" 
+                                        unoptimized
                                     />
                                 </CardContent>
                             </Card>
