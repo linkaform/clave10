@@ -366,13 +366,15 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                     const config = statusConfig[status] || statusConfig["sin_registro"];
                     const isClosed = dayObj?.closed;
                     const usedIcon = isClosed ? statusConfig["cerrado"].icon : config.icon;
+                    const fechaInicio = dayObj?.fecha_inicio?.substring(10, 16) || "Sin registrar";
+                    const fechaFin = dayObj?.fecha_cierre?.substring(10, 16) || "Sin registrar";
 
                     return (
                       <td key={i} className={`p-1 border-b text-center ${isTodayCol ? "bg-yellow-300" : ""}`}>
                         <button
                           type="button"
                           className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
-                          title={config.label}
+                          title={`Inicio: ${fechaInicio}\nCierre: ${fechaFin}\nStatus: ${config.label}`}
                           onClick={() => {
                             setSelectedUserId([emp.employee_id]);
                             setSelectedNames([emp.nombre]);
@@ -420,7 +422,7 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                       <button
                         type="button"
                         className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
-                        title={`Inicio: ${fechaInicio} - Cierre: ${fechaFin}`}
+                        title={`Inicio: ${fechaInicio}\nCierre: ${fechaFin}\nStatus: ${config.label}`}
                         onClick={() => {
                           setSelectedUserId([emp.employee_id]);
                           setSelectedNames([emp.nombre]);
