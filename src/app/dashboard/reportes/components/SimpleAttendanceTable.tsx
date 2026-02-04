@@ -1,8 +1,34 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { CheckCircle, XCircle, Clock, MinusCircle, CalendarOff, ChevronLeft, ChevronRight, X, LogOut } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  MinusCircle,
+  CalendarOff,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  LogOut,
+  Haze,
+  House,
+  Frown,
+  Repeat,
+  Ambulance
+} from "lucide-react";
 import AttendanceCarouselModal from "./AttendanceCarouselModal";
 
-type StatusType = "presente" | "retardo" | "falta" | "falta_por_retardo" | "dia_libre" | "sin_registro" | "cerrado";
+type StatusType = "presente" |
+  "retardo" |
+  "falta" |
+  "falta_por_retardo" |
+  "dia_libre" |
+  "sin_registro" |
+  "cerrado" |
+  "vacaciones" |
+  "días_personales" |
+  "enfermedad" |
+  "vuelta_personal" |
+  "accidente";
 
 const statusConfig: Record<StatusType, { color: string; icon: JSX.Element; label: string }> = {
   presente: {
@@ -39,6 +65,31 @@ const statusConfig: Record<StatusType, { color: string; icon: JSX.Element; label
     color: "bg-gray-100 text-gray-400",
     icon: <LogOut className="w-4 h-4" />,
     label: "Cerrado",
+  },
+  vacaciones: {
+    color: "bg-black text-white",
+    icon: <Haze className="w-4 h-4" />,
+    label: "Vacaciones",
+  },
+  días_personales: {
+    color: "bg-cyan-300 text-gray-600",
+    icon: <House className="w-4 h-4" />,
+    label: "Días personales",
+  },
+  enfermedad: {
+    color: "bg-lime-400 text-gray-600",
+    icon: <Frown className="w-4 h-4" />,
+    label: "Enfermedad",
+  },
+  vuelta_personal: {
+    color: "bg-purple-300 text-gray-600",
+    icon: <Repeat className="w-4 h-4" />,
+    label: "Vuelta personal",
+  },
+  accidente: {
+    color: "bg-rose-400 text-gray-600",
+    icon: <Ambulance className="w-4 h-4" />,
+    label: "Accidente",
   },
 };
 
@@ -84,6 +135,11 @@ function getWeeks(daysInMonth: number, month: number, year: number) {
 }
 
 const statusPriority: Record<StatusType, number> = {
+  accidente: 11,
+  enfermedad: 10,
+  vuelta_personal: 9,
+  días_personales: 8,
+  vacaciones: 7,
   presente: 6,
   retardo: 5,
   dia_libre: 4,
