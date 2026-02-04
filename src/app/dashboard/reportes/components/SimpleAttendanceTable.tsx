@@ -340,60 +340,66 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
         </thead>
         <tbody>
           {groupByLocation
-            ? [...locationMap.entries()].map(([ubicacion, empleados]) =>
-              empleados.map((emp, empIdx) => (
-                <tr key={emp.employee_id} className={empIdx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                  {empIdx === 0 && (
-                    <td
-                      rowSpan={empleados.length}
-                      className="sticky left-0 bg-white z-10 p-2 border-b font-semibold align-top"
-                    >
-                      {ubicacion}
-                    </td>
-                  )}
-                  <td
-                    className={`sticky left-[120px] bg-white z-10 p-2 border-b font-medium align-top min-w-[180px] w-[200px]`}
-                  >
-                    {emp.nombre}
-                  </td>
-                  {daysToShow.map((day, i) => {
-                    const isTodayCol = day === filterDay && selectedStatus.length > 0;
-                    if (!day) {
-                      return <td key={i} className="p-1 border-b text-center bg-gray-100"></td>;
-                    }
-                    const dayObj = emp.asistencia_mes.find(d => d.dia === day);
-                    const status = dayObj?.status || "sin_registro";
-                    const config = statusConfig[status] || statusConfig["sin_registro"];
-                    const isClosed = dayObj?.closed;
-                    const usedIcon = isClosed ? statusConfig["cerrado"].icon : config.icon;
-                    const fechaInicio = dayObj?.fecha_inicio?.substring(10, 16) || "Sin registrar";
-                    const fechaFin = dayObj?.fecha_cierre?.substring(10, 16) || "Sin registrar";
-
-                    return (
-                      <td key={i} className={`p-1 border-b text-center ${isTodayCol ? "bg-yellow-300" : ""}`}>
-                        <button
-                          type="button"
-                          className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
-                          title={`Inicio: ${fechaInicio}\nCierre: ${fechaFin}\nStatus: ${config.label}`}
-                          onClick={() => {
-                            setSelectedUserId([emp.employee_id]);
-                            setSelectedNames([emp.nombre]);
-                            setSelectedDay(day);
-                            setSelectedUbicacion(dayObj?.ubicacion || emp.ubicacion);
-                            setModalOpen(true);
-                          }}
-                        >
-                          {usedIcon}
-                        </button>
+            ? [...locationMap.entries()]
+              .sort((a, b) => {
+                if (!a[0]) return 1;
+                if (!b[0]) return -1;
+                return a[0].localeCompare(b[0]);
+              })
+              .map(([ubicacion, empleados]) =>
+                empleados.map((emp, empIdx) => (
+                  <tr key={emp.employee_id} className={empIdx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                    {empIdx === 0 && (
+                      <td
+                        rowSpan={empleados.length}
+                        className="sticky left-0 bg-white z-10 p-2 border-b font-semibold align-top"
+                      >
+                        {ubicacion}
                       </td>
-                    );
-                  })}
-                  <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.retardos}</td>
-                  <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.faltas}</td>
-                  <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.asistencias}</td>
-                </tr>
-              ))
-            )
+                    )}
+                    <td
+                      className={`sticky left-[120px] bg-white z-10 p-2 border-b font-medium align-top min-w-[180px] w-[200px]`}
+                    >
+                      {emp.nombre}
+                    </td>
+                    {daysToShow.map((day, i) => {
+                      const isTodayCol = day === filterDay && selectedStatus.length > 0;
+                      if (!day) {
+                        return <td key={i} className="p-1 border-b text-center bg-gray-100"></td>;
+                      }
+                      const dayObj = emp.asistencia_mes.find(d => d.dia === day);
+                      const status = dayObj?.status || "sin_registro";
+                      const config = statusConfig[status] || statusConfig["sin_registro"];
+                      const isClosed = dayObj?.closed;
+                      const usedIcon = isClosed ? statusConfig["cerrado"].icon : config.icon;
+                      const fechaInicio = dayObj?.fecha_inicio?.substring(10, 16) || "Sin registrar";
+                      const fechaFin = dayObj?.fecha_cierre?.substring(10, 16) || "Sin registrar";
+
+                      return (
+                        <td key={i} className={`p-1 border-b text-center ${isTodayCol ? "bg-yellow-300" : ""}`}>
+                          <button
+                            type="button"
+                            className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
+                            title={`Inicio: ${fechaInicio}\nCierre: ${fechaFin}\nStatus: ${config.label}`}
+                            onClick={() => {
+                              setSelectedUserId([emp.employee_id]);
+                              setSelectedNames([emp.nombre]);
+                              setSelectedDay(day);
+                              setSelectedUbicacion(dayObj?.ubicacion || emp.ubicacion);
+                              setModalOpen(true);
+                            }}
+                          >
+                            {usedIcon}
+                          </button>
+                        </td>
+                      );
+                    })}
+                    <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.retardos}</td>
+                    <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.faltas}</td>
+                    <td className="px-1 py-2 border-b border-gray-200 text-center font-semibold text-xs">{emp.resumen.asistencias}</td>
+                  </tr>
+                ))
+              )
             : finalData.map((emp, empIdx) => (
               <tr key={emp.employee_id} className={empIdx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                 <td
