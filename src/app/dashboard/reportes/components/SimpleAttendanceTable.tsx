@@ -9,11 +9,11 @@ import {
   ChevronRight,
   X,
   LogOut,
-  Haze,
-  House,
-  Frown,
-  Repeat,
-  Ambulance
+  Ambulance,
+  TreePalm,
+  Thermometer,
+  Footprints,
+  Headphones
 } from "lucide-react";
 import AttendanceCarouselModal from "./AttendanceCarouselModal";
 
@@ -67,27 +67,27 @@ const statusConfig: Record<StatusType, { color: string; icon: JSX.Element; label
     label: "Cerrado",
   },
   vacaciones: {
-    color: "bg-black text-white",
-    icon: <Haze className="w-4 h-4" />,
+    color: "bg-[#3B82F6] text-white",
+    icon: <TreePalm className="w-4 h-4" />,
     label: "Vacaciones",
   },
   días_personales: {
-    color: "bg-cyan-300 text-gray-600",
-    icon: <House className="w-4 h-4" />,
+    color: "bg-[#A855F7] text-white",
+    icon: <Headphones className="w-4 h-4" />,
     label: "Días personales",
   },
   enfermedad: {
-    color: "bg-lime-400 text-gray-600",
-    icon: <Frown className="w-4 h-4" />,
+    color: "bg-[#EF4444] text-white",
+    icon: <Thermometer className="w-4 h-4" />,
     label: "Enfermedad",
   },
   vuelta_personal: {
-    color: "bg-purple-300 text-gray-600",
-    icon: <Repeat className="w-4 h-4" />,
+    color: "bg-[#F97316] text-white",
+    icon: <Footprints className="w-4 h-4" />,
     label: "Vuelta personal",
   },
   accidente: {
-    color: "bg-rose-400 text-gray-600",
+    color: "bg-[#B91C1C] text-white",
     icon: <Ambulance className="w-4 h-4" />,
     label: "Accidente",
   },
