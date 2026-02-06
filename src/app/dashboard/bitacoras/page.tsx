@@ -25,6 +25,8 @@ const BitacorasPage = () => {
 	const [areaSeleccionada, setAreaSeleccionada] = useState("todas");
 	const [equiposData, setEquiposData] = useState<Bitacora_record[]>([]);
 	const [vehiculosData, setVehiculosData] = useState<Bitacora_record[]>([]);
+	const [isPersonasDentro, setIsPersonasDentro] = useState(false);
+	console.log("isPersonasDentro",isPersonasDentro)
 
 	const [date1, setDate1] = useState<Date|"">("")
 	const [date2, setDate2] = useState<Date|"">("")
@@ -128,10 +130,12 @@ const BitacorasPage = () => {
 					setSelectedTab("Personal")
 				}
 				setDateFilter("")
-		}else{
-			setDateFilter( filter=="today"? filter:"")
-			setSelectedOption(option); 
-			setSelectedTab(tab)
+				setIsPersonasDentro(false)
+			}else{
+				setDateFilter( filter=="today"? filter:"")
+				setSelectedOption(option); 
+				setSelectedTab(tab)
+				setIsPersonasDentro(true)
 		}
 	};
 
@@ -255,6 +259,7 @@ return (
 				<div className="">
 					<BitacorasTable data={listBitacoras} isLoading={isLoadingListBitacoras} 
 					date1={date1} date2={date2} setDate1={setDate1} setDate2={setDate2} dateFilter={dateFilter} setDateFilter={setDateFilter} Filter={Filter}
+					isPersonasDentro={isPersonasDentro} ubicacionSeleccionada={ubicacionSeleccionada}
 					/>
 				</div>
 				</TabsContent>

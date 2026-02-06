@@ -17,3 +17,22 @@ export const getAreasByLocations = async (locations: string[]) => {
     const data = await response.json();
     return data;
 };
+
+export const forceQuitAllPersons = async (location: string) => {
+    const userJwt = localStorage.getItem("access_token");
+    const response = await fetch(API_ENDPOINTS.runScript, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${userJwt}`,
+        },
+        body: JSON.stringify({
+            script_name: "script_turnos.py",
+            option: "force_quit_all_persons",
+            location,
+        }),
+    });
+    const data = await response.json();
+    return data;
+};
+
