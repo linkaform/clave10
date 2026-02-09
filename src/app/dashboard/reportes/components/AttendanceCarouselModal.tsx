@@ -54,7 +54,10 @@ const AttendanceCarouselModal: React.FC<AttendanceCarouselModalProps> = ({
             <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 bg-transparent border-none shadow-none flex flex-col items-center justify-center outline-none">
                 <DialogTitle className="sr-only">Detalle de Asistencia</DialogTitle>
 
-                <div className="flex items-center justify-center w-full h-full gap-0 perspective-1000">
+                <div
+                    className="flex items-center justify-center w-full h-full gap-0 perspective-1000 cursor-default"
+                    onClick={onClose}
+                >
 
                     {/* Previous Day Card (Left) */}
                     <div
@@ -64,7 +67,10 @@ const AttendanceCarouselModal: React.FC<AttendanceCarouselModalProps> = ({
                             transition-all duration-300 ease-in-out select-none
                             ${prevDay < 1 ? 'opacity-0 pointer-events-none' : 'opacity-40 hover:opacity-60 cursor-pointer scale-[0.85] hover:scale-[0.9] origin-right translate-x-12 z-10'}
                         `}
-                        onClick={prevDay >= 1 ? handlePrev : undefined}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (prevDay >= 1) handlePrev();
+                        }}
                     >
                         {prevDay >= 1 && (
                             <div className="w-full h-full bg-white rounded-xl shadow-2xl overflow-hidden blur-[2px] hover:blur-[1px] transition-all">
@@ -81,7 +87,10 @@ const AttendanceCarouselModal: React.FC<AttendanceCarouselModalProps> = ({
                     </div>
 
                     {/* Active Day Card (Center) */}
-                    <div className="relative z-30 w-full max-w-[500px] h-full max-h-[750px] transition-all duration-300">
+                    <div
+                        className="relative z-30 w-full max-w-[500px] h-full max-h-[750px] transition-all duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="w-full h-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
                             <AttendanceDetailContent
                                 names={names}
@@ -101,7 +110,10 @@ const AttendanceCarouselModal: React.FC<AttendanceCarouselModalProps> = ({
                             transition-all duration-300 ease-in-out select-none
                             ${nextDay > daysInMonth ? 'opacity-0 pointer-events-none' : 'opacity-40 hover:opacity-60 cursor-pointer scale-[0.85] hover:scale-[0.9] origin-left -translate-x-12 z-10'}
                         `}
-                        onClick={nextDay <= daysInMonth ? handleNext : undefined}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (nextDay <= daysInMonth) handleNext();
+                        }}
                     >
                         {nextDay <= daysInMonth && (
                             <div className="w-full h-full bg-white rounded-xl shadow-2xl overflow-hidden blur-[2px] hover:blur-[1px] transition-all">
