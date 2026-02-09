@@ -16,6 +16,7 @@ import {
   Headphones
 } from "lucide-react";
 import AttendanceCarouselModal from "./AttendanceCarouselModal";
+import { Tooltip } from "@/components/ui/tooltip";
 
 type StatusType = "presente" |
   "retardo" |
@@ -431,22 +432,40 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                       const fechaInicio = dayObj?.fecha_inicio?.substring(10, 16) || "Sin registrar";
                       const fechaFin = dayObj?.fecha_cierre?.substring(10, 16) || "Sin registrar";
 
+                      const tooltipContent = (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2 pb-1 border-b border-gray-100">
+                            <div className={`p-1 rounded-full ${config.color}`}>
+                              {React.cloneElement(usedIcon as React.ReactElement, { className: "w-3 h-3" })}
+                            </div>
+                            <span className="text-sm font-bold text-gray-800">{config.label}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                            <span className="text-gray-500">Inicio:</span>
+                            <span className="font-medium text-gray-900">{fechaInicio}</span>
+                            <span className="text-gray-500">Cierre:</span>
+                            <span className="font-medium text-gray-900">{fechaFin}</span>
+                          </div>
+                        </div>
+                      );
+
                       return (
                         <td key={i} className={`p-1 border-b text-center ${isTodayCol ? "bg-yellow-300" : ""}`}>
-                          <button
-                            type="button"
-                            className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
-                            title={`Inicio: ${fechaInicio}\nCierre: ${fechaFin}\nStatus: ${config.label}`}
-                            onClick={() => {
-                              setSelectedUserId([emp.employee_id]);
-                              setSelectedNames([emp.nombre]);
-                              setSelectedDay(day);
-                              setSelectedUbicacion(dayObj?.ubicacion || emp.ubicacion);
-                              setModalOpen(true);
-                            }}
-                          >
-                            {usedIcon}
-                          </button>
+                          <Tooltip content={tooltipContent}>
+                            <button
+                              type="button"
+                              className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color} transition-transform hover:scale-110 active:scale-95 shadow-sm`}
+                              onClick={() => {
+                                setSelectedUserId([emp.employee_id]);
+                                setSelectedNames([emp.nombre]);
+                                setSelectedDay(day);
+                                setSelectedUbicacion(dayObj?.ubicacion || emp.ubicacion);
+                                setModalOpen(true);
+                              }}
+                            >
+                              {usedIcon}
+                            </button>
+                          </Tooltip>
                         </td>
                       );
                     })}
@@ -476,25 +495,43 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
                   const fechaInicio = dayObj?.fecha_inicio?.substring(10, 16) || "Sin registrar";
                   const fechaFin = dayObj?.fecha_cierre?.substring(10, 16) || "Sin registrar";
 
+                  const tooltipContent = (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2 pb-1 border-b border-gray-100">
+                        <div className={`p-1 rounded-full ${config.color}`}>
+                          {React.cloneElement(usedIcon as React.ReactElement, { className: "w-3 h-3" })}
+                        </div>
+                        <span className="text-sm font-bold text-gray-800">{config.label}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                        <span className="text-gray-500">Inicio:</span>
+                        <span className="font-medium text-gray-900">{fechaInicio}</span>
+                        <span className="text-gray-500">Cierre:</span>
+                        <span className="font-medium text-gray-900">{fechaFin}</span>
+                      </div>
+                    </div>
+                  );
+
                   return (
                     <td
                       key={i}
                       className={`p-1 border-b text-center ${isTodayCol ? "bg-yellow-300" : ""}`}
                     >
-                      <button
-                        type="button"
-                        className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color}`}
-                        title={`Inicio: ${fechaInicio}\nCierre: ${fechaFin}\nStatus: ${config.label}`}
-                        onClick={() => {
-                          setSelectedUserId([emp.employee_id]);
-                          setSelectedNames([emp.nombre]);
-                          setSelectedDay(day);
-                          setSelectedUbicacion(dayObj?.ubicacion || emp.ubicacion);
-                          setModalOpen(true);
-                        }}
-                      >
-                        {usedIcon}
-                      </button>
+                      <Tooltip content={tooltipContent}>
+                        <button
+                          type="button"
+                          className={`inline-flex items-center justify-center rounded-full w-7 h-7 ${config.color} transition-transform hover:scale-110 active:scale-95 shadow-sm`}
+                          onClick={() => {
+                            setSelectedUserId([emp.employee_id]);
+                            setSelectedNames([emp.nombre]);
+                            setSelectedDay(day);
+                            setSelectedUbicacion(dayObj?.ubicacion || emp.ubicacion);
+                            setModalOpen(true);
+                          }}
+                        >
+                          {usedIcon}
+                        </button>
+                      </Tooltip>
                     </td>
                   );
                 })}
