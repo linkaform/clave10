@@ -29,6 +29,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
   setIsSuccess,
   isSuccess
 }) => {
+  console.log("DATA",data)
   return (
     <Dialog open={isSuccess}  onOpenChange={setIsSuccess}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -44,35 +45,35 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
             
             <div className="w-full flex gap-2">
             <p className="font-bold">
-                Categoría: <span className="font-normal">{data?.categoria|| data?.categoria_equipo_concesion}</span>
+                Categoría: <span className="font-normal">{data?.categoria_equipo_concesion}</span>
             </p>
             </div>
 
             <div className="w-full flex gap-2">
             <p className="font-bold">
-                Equipo: <span className="font-normal">{data?.equipo||data?.nombre_equipo}</span>
+                Equipo: <span className="font-normal">{data?.nombre_equipo}</span>
             </p>
             </div>
 
             <div className="col-span-2 w-full flex gap-2">
             <p className="font-bold">
-                Unidades: <span className="font-normal">{data?.unidades||data?.cantidad_equipo_concesion}</span>
+                Unidades: <span className="font-normal">{data?.cantidad_equipo_concesion}</span>
             </p>
             </div>
 
             <div className="w-full flex gap-2">
             <p className="font-bold text-blue-500 ">
-                Precio Unitario($) <span className="font-normal">{formatCurrency(data?.precio ?? data?.costo_equipo_concesion?.[0] ?? 0)}</span>
+                Precio Unitario: <span className="font-normal">{formatCurrency(data?.costo_equipo_concesion??0)}</span>
             </p>
             </div>
             <div className="w-full flex gap-2">
             <p className="font-bold  text-blue-500 ">
-                Subtotal($) <span className="font-normal"> 
+                Subtotal: <span className="font-normal"> 
                 {data?.total
                 ? formatCurrency(data.total)
                 : formatCurrency(
                     (data?.cantidad_equipo_concesion ?? 0) *
-                    (data?.costo_equipo_concesion?.[0] ?? 0)
+                    (data?.costo_equipo_concesion ?? 0)
                   )}
               </span>
             </p>
@@ -82,20 +83,20 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
 
             <div className="w-full flex gap-2">
             <p className="font-bold">
-                Comentario: <span className="font-normal">{data?.comentarios||data?.comentario_entrega}</span>
+                Comentario: <span className="font-normal">{data?.comentario_entrega}</span>
             </p>
             </div>
 
         </div>
         </div>
     
-        {data?.evidencia_entrega && data?.evidencia_entrega.length>0 ?
+        {data?.imagen_equipo_concesion && data?.imagen_equipo_concesion.length>0 ?
         <div className="w-full flex flex-col">
             <p className="font-bold mb-2">Evidencia: </p>
             <div className="flex justify-center">
                 <Carousel className="w-36 ">
                     <CarouselContent>
-                        {data?.evidencia_entrega.map((a, index) => (
+                        {data?.imagen_equipo_concesion.map((a, index) => (
                         <CarouselItem key={index}>
                             <div className="p-1">
                             <Card>

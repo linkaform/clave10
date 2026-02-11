@@ -1,11 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { Dispatch, SetStateAction, useState } from "react";
-import { Calculator, Edit, Eye, Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import { ConcesionadosAgregarEquipoModal } from "./modals/concesionados-agregar-equipos-modal";
+import { ArrowLeftRightIcon, Calculator, Eye } from "lucide-react";
 import { Imagen } from "./upload-Image";
 import { ConcesionadosVerEquipo } from "./modals/concesionados-ver-equipo";
-import { formatCurrency } from "@/lib/utils";
+import { capitalizeFirstLetter, formatCurrency } from "@/lib/utils";
 
 export interface EquipoConcesionado {
 	id_movimiento?:string;
@@ -29,13 +27,13 @@ interface AgregarEquiposListProps {
 	mode: "vista" | "editar"
 }
 
-const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode})=> {
+const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mode})=> {
 	const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
 	const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
 	const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState({});
 	const [editarAgregarEquiposModal, setEditarAgregarEquiposModal] = useState(false)
 	const [indiceSeleccionado, setIndiceSeleccionado]= useState<number | null>(null)
-
+	console.log(editarAgregarEquiposModal, indiceSeleccionado)
 
 
 	const handleViewEquipo = (item: any, index: number) => {
@@ -52,12 +50,12 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 		setOpenAgregarEquiposModal(true);
 	};
 	
-	const handleDeleteEquipo  = (index: number) => {
-		const nuevaspersonasInvolucradas = [...equipos];
-		nuevaspersonasInvolucradas.splice(index, 1);
-		setEquipos(nuevaspersonasInvolucradas);
-		toast.success("Seguimiento eliminado correctamente.")
-	};
+	// const handleDeleteEquipo  = (index: number) => {
+	// 	const nuevaspersonasInvolucradas = [...equipos];
+	// 	nuevaspersonasInvolucradas.splice(index, 1);
+	// 	setEquipos(nuevaspersonasInvolucradas);
+	// 	toast.success("Seguimiento eliminado correctamente.")
+	// };
 	const totalGeneral = equipos.reduce((acc, item) => {
 		const totalItem = item.total ? (item.total) : 0;
 		console.log(item)
@@ -89,7 +87,18 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 			<div></div>
 		</ConcesionadosVerEquipo>
 
-		<ConcesionadosAgregarEquipoModal
+
+		{/* <NuevaDevolucionEquipoModal 	
+			title={"Devolución de Equipos"}
+			setIsSuccess={setNuevaDevolucionEquiposModal}
+			isSuccess={nuevaDevolucionModal}
+			equipoSelecionado={agregarEquipoSeleccion}
+		>
+			<div></div>
+		</NuevaDevolucionEquipoModal> */}
+
+        
+		{/* <ConcesionadosAgregarEquipoModal
                 title="Nuevo Equipo"
                 isSuccess={openAgregarEquiposModal}
                 setIsSuccess={setOpenAgregarEquiposModal}
@@ -99,7 +108,7 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
                 editarAgregarEquiposModal={editarAgregarEquiposModal}
                 indice={indiceSeleccionado} >
 			<div></div>
-		</ConcesionadosAgregarEquipoModal>
+		</ConcesionadosAgregarEquipoModal> */}
 
 		
 		<table className="min-w-full table-auto mb-5 border">
@@ -107,7 +116,7 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 			<tr className="bg-gray-100">
 				<th className="px-4 py-2 text-left border-b border-gray-300">Equipo</th>
 				<th className="px-4 py-2 text-left border-b border-gray-300">Unidades</th>
-				<th className="px-4 py-2 text-left border-b border-gray-300">Precio($)</th>
+				<th className="px-4 py-2 text-left border-b border-gray-300">Estatus</th>
 				<th></th>
 			</tr>
 			</thead>
@@ -117,13 +126,17 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 				<tr key={index} className="border-t border-gray-200">
 				<td className="px-4 py-2 max-w-[200px] truncate" title={item?.nombre_equipo || "-"}> {item?.nombre_equipo || "-"} </td>
 				<td className="px-4 py-2">{item?.cantidad_equipo_concesion||"-"}</td>
-				<td className="px-4 py-2"> {item.total
-						? formatCurrency(item.total)
-						: formatCurrency(
-							(item.cantidad_equipo_concesion ?? 0) *
-							(item.costo_equipo_concesion ?? 0)
-						)
-					}</td>
+                <td className="px-4 py-2">
+                <span className={`px-3 py-1 rounded-md text-sm font-bold border-2 ${
+                    item.status_concesion_equipo === "abierto" 
+                    ? "bg-green-100 text-green-700 border-green-700" 
+                    : item.status_concesion_equipo === "pendiente"
+                    ? "bg-red-100 text-red-700 border-red-700"
+                    : "bg-gray-100 text-gray-700 border-gray-700"
+                }`}>
+                    {capitalizeFirstLetter(item.status_concesion_equipo??"")}
+                </span>
+                </td>
 				<td className="px-4 py-2 ">
 					<div className="flex items-center justify-center gap-2">
                     <div
@@ -133,23 +146,15 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
 					>
 						<Eye />
 					</div>
-					{mode=="editar"&&
 					<div className="flex gap-2">
 						<div
 							title="Editar"
 							className="hover:cursor-pointer text-blue-500 hover:text-blue-600"
 							onClick={() => handleEditEquipo(item, index)}
 						>
-							<Edit />
+							<ArrowLeftRightIcon />
 						</div>
-						<div
-							title="Borrar"
-							className="hover:cursor-pointer text-red-500 hover:text-red-600"
-							onClick={() => handleDeleteEquipo(index)}
-						>
-							<Trash2 />
-						</div>
-					</div>}
+					</div>
 					</div>
 				</td>
 				</tr>
@@ -171,4 +176,4 @@ const ConcesionadosAgregarEquipos:React.FC<AgregarEquiposListProps> = ({ equipos
   );
 };
 
-export default ConcesionadosAgregarEquipos;
+export default ConcesionadosSegEquipos;

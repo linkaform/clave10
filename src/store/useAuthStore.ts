@@ -16,7 +16,7 @@ interface AuthState {
   
   setAuth: (token: string, userId: string, userNameSoter: string, userEmailSoter: string, userIdSoter: number, userPhoto:string) => void;
   setUserPhoto: (photoUrl: string) => void;
-  logout: () => void;
+  logout: (queryClient?: any) => void;
 }
 
 const useAuthStore = create<AuthState>((set) => {
@@ -55,18 +55,21 @@ const useAuthStore = create<AuthState>((set) => {
       set({ userPhoto: photoUrl });
     },
 
-    logout: () => {
+    logout: (queryClient?: any) => {
       window.location.href = '/auth/login';
-
+      
       // Elimina los valores de localStorage
       localStorage.removeItem("access_token");
       localStorage.removeItem("user_id");
-
+      if (queryClient) {
+        queryClient.removeQueries({ queryKey: ['serchPass'] });
+      }
+    
       localStorage.removeItem("userName_soter");
       localStorage.removeItem("userEmail_soter");
       localStorage.removeItem("userId_soter" );
       localStorage.removeItem("userPhoto_soter");
-      
+ 
       set({ token: null, userId: null,userNameSoter: null, userEmailSoter: null, userIdSoter: 0 ,isAuth: false , userPhoto:null});
       useAccessStore.getState().clearPassCode();
       useAreasLocationStore.getState().clearAreasLocation();

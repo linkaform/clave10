@@ -17,7 +17,7 @@ const nuevoEquipoEnProceso: EquipoConcesionado = {
 	comentario_entrega: "Equipo en proceso de entrega",
 	nombre_equipo: "Laptop HP",
 	cantidad_equipo_concesion: 1,
-	costo_equipo_concesion: [15000],
+	costo_equipo_concesion: 15000,
 	evidencia_entrega: [],
 	imagen_equipo_concesion: []
   };
@@ -28,7 +28,7 @@ const nuevoEquipoEnProceso: EquipoConcesionado = {
 	comentario_entrega: "Entrega completada exitosamente",
 	nombre_equipo: "Silla Ergonómica",
 	cantidad_equipo_concesion: 1,
-	costo_equipo_concesion: [3500],
+	costo_equipo_concesion: 3500,
 	evidencia_entrega: [
 	  {
 		file_name: "evidencia1.jpg",
@@ -45,12 +45,17 @@ const nuevoEquipoEnProceso: EquipoConcesionado = {
 const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, mode})=> {
 	const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
 	const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
-	const [agregarEquipoSeleccion] = useState<any>({});
+	const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState<any>({});
 	const [nuevaDevolucionModal, setNuevaDevolucionEquiposModal] = useState(false)
-	console.log("equipos",equipos)
 	const equiposActualizados = [...equipos, nuevoEquipoEnProceso, nuevoEquipoCompleto];
 
+	const onDevolver = (equipo: any) => {
+		console.log("DATA PARA DEVOLUCIIOON", equipo)
 
+		setAgregarEquipoSeleccion(equipo[0]);
+		setNuevaDevolucionEquiposModal(true);
+	  };
+	  
     return (
     <div>
 		<div className="mt-3 flex justify-between">
@@ -85,7 +90,7 @@ const ConcesionadosSeguimientos:React.FC<AgregarEquiposListProps> = ({ equipos, 
         <History className="text-green-500"/> <span className="mb-2 font-bold text-gray-800"> HISTORIAL DE DEVOLUCIONES</span>
         </div>
 
-        <HistorialDevoluciones equipos={equiposActualizados}></HistorialDevoluciones>
+        <HistorialDevoluciones equipos={equiposActualizados} onDevolver={onDevolver}></HistorialDevoluciones>
 
         <div className="flex gap-2 items-center text-blue-500 mt-2">
                 <span className="flex font-bold text-lg"><Calculator/> Total:</span>

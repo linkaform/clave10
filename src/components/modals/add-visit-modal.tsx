@@ -38,6 +38,8 @@ import { useEffect, useState } from "react";
 import { useSearchPass } from "@/hooks/useSearchPass";
 import LoadImage, { Imagen } from "../upload-Image";
 import { useBoothStore } from "@/store/useBoothStore";
+import { uniqueArray } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 interface Props {
 title: string;
@@ -78,9 +80,11 @@ const [fotografia, setFotografia] = useState<Imagen[]>([]);
 const [identificacion, setIdentificacion] = useState<Imagen[]>([]);
 const [fotoError, setFotoError] = useState(false);
 const [idError, setIdError] = useState(false);
-const { assets, registerNewVisit } = useSearchPass(openModal);
+const { assets, registerNewVisit, loading } = useSearchPass(openModal);
 const {location} =useBoothStore()
 const [formSubmitted, setFormSubmitted] = useState(false);
+const assetsUnique= uniqueArray(assets?.Visita_a)
+
 
 const form = useForm<z.infer<typeof formSchema>>({
 	resolver: zodResolver(formSchema),
@@ -262,7 +266,7 @@ return (
 					</SelectTrigger>
 					</FormControl>
 					<SelectContent>
-					{assets?.Visita_a?.map((item: string) => (
+					{assetsUnique?.map((item: string) => (
 						<SelectItem key={item} value={item}>
 						{item}
 						</SelectItem>
@@ -310,10 +314,11 @@ return (
 
 			<Button
 				type="submit"
+				disabled={loading}
 				onClick={()=>{setFormSubmitted(true)}}
 				className="w-full  bg-blue-500 hover:bg-blue-600 text-white "
 			>
-				Agregar
+				{loading?<> <Loader2 className="animate-spin"/> Cargando...</>:"Crear Visita"}
 			</Button>
 			</div>
 		</form>

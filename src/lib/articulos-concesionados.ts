@@ -4,15 +4,14 @@ import { API_ENDPOINTS } from "@/config/api"
 export interface InputArticuloCon {
     status_concesion:string,
     ubicacion_concesion:string,
-    solicita_concesion:string,
+    // solicita_concesion:string,
     persona_nombre_concesion:string,
     caseta_concesion:string,
     fecha_concesion:string,
     area_concesion:string,
-    equipo_concesion:string,
     observacion_concesion:string,
     evidencia:Imagen[],
-    persona_text:string
+    // persona_text:string
 }
 export interface InputOutArticuloCon {
     fecha_devolucion_concesion:string,

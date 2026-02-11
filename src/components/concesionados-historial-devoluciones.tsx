@@ -19,7 +19,7 @@ export interface Devolucion {
 
 interface HistorialDevolucionesProps {
   equipos: EquipoConcesionado[];
-  onDevolver?: (id: number) => void;
+  onDevolver?: (equipo: EquipoConcesionado) => void; 
 }
 
 type FiltroEstatus = "todos" | "abierto" | "en proceso" | "completo";
@@ -35,10 +35,10 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
     setExpandedIndex(expandedIndex === index ? null : index);
   };
 
-  const handleDevolver = (id: number, e: React.MouseEvent) => {
+  const handleDevolver = (equipo: EquipoConcesionado, e: React.MouseEvent) => {
     e.stopPropagation(); 
     if (onDevolver) {
-      onDevolver(id);
+      onDevolver(equipo); 
     }
   };
 
@@ -239,7 +239,7 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
                     dev.status_concesion_equipo == "abierto") && (
                     <div className="mt-4 pt-4 border-t border-gray-200 flex justify-center">
                       <button
-                        onClick={(e) => handleDevolver(0, e)}
+                        onClick={(e) => handleDevolver(dev, e)}
                         className="w-1/2 size-10 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-md font-small transition-colors"
                       >
                         <RotateCcw className="w-5 h-5" />

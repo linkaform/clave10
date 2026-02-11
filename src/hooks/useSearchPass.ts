@@ -72,6 +72,10 @@ export const useSearchPass = (enable:boolean, cat?:string) => {
   } = useQuery<SearchAccessPass>({
     queryKey: ["serchPass",area, location, passCode],
     enabled:!!(area && location && passCode),
+    staleTime: Infinity, 
+    gcTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false, 
     queryFn: async () => {
       const data = await searchAccessPass(area??"", location??"", passCode)
       const textMsj = errorMsj(data) 

@@ -34,6 +34,7 @@ export type Comentarios={
 
 
 export type Access_pass={
+  created_from:string,
     nombre:string,
     empresa?:string,
     email:string,
@@ -62,6 +63,7 @@ export type Access_pass={
 
 
 export type Update_full_pass = {
+      created_from:string,
       nombre_pase: string,
       email_pase: string,
       telefono_pase: string,

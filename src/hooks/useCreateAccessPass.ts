@@ -26,6 +26,7 @@ export type Comentarios={
 
 
 export type Access_pass={
+  created_from:string,
     selected_visita_a?: string,
     nombre:string,
     empresa?:string,

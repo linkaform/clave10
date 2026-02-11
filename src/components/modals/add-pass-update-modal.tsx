@@ -59,6 +59,7 @@ export const EntryPassModal: React.FC<EntryPassModalProps> = ({
 
   const onSubmit = async () => {
     const accessPassData: Access_pass = {
+      created_from:"web",
       nombre: data.nombre,
       empresa: data?.empresa??"",
       email: data.email,

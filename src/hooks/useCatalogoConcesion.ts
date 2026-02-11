@@ -3,7 +3,7 @@ import { errorMsj } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export const useCatalogoConcesion = (location:string,tipo:string, isModalOpen:boolean) => {
+export const useCatalogoConcesion = (location:string, tipo:string, isModalOpen:boolean) => {
   const { data: dataCon, isLoading:isLoadingCon, error: errorCon } = useQuery<any>({
     queryKey: ["getTipoConcesion", location], 
     enabled:isModalOpen,
@@ -19,9 +19,6 @@ export const useCatalogoConcesion = (location:string,tipo:string, isModalOpen:bo
     },
    
     refetchOnWindowFocus: true, 
-    refetchInterval: 60000,
-    refetchOnReconnect: true, 
-    staleTime: 1000 * 60 * 5, 
   });
 
   const { data: dataConSub, isLoading: isLoadingConSub, error: errorConSub } = useQuery<any>({

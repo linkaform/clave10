@@ -73,7 +73,7 @@ const PasesEntradaTable:React.FC<ListProps> = ({ isLoading, pases, onSearch})=>{
       },
       {
         accessorKey: "pase",
-        header: "Foto",
+        header: "Nombre",
         cell: ({ row }: { row: Row<any> }) => {
           const foto = row.original.foto;
           const nombre = row.original.nombre;
@@ -117,6 +117,29 @@ const PasesEntradaTable:React.FC<ListProps> = ({ isLoading, pases, onSearch})=>{
         },
         enableSorting: false, 
       },
+      {
+        accessorKey: "visita_a",
+        header: "Visita a",
+        cell: ({ row }: { row: Row<any> }) => {
+          const visitaA = row.getValue("visita_a");
+          let nombre = "-";
+          
+          if (Array.isArray(visitaA) && visitaA.length > 0) {
+            nombre = visitaA[0]?.nombre || "-";
+          } else if (typeof visitaA === "string") {
+            nombre = visitaA;
+          }
+          
+          return <div>{nombre}</div>;
+        },
+        enableSorting: true,
+      },   
+      {
+        accessorKey: "autorizado_por",
+        header: "Autorizado Por",
+        cell: ({ row }: { row: Row<any> }) => <div>{row.getValue("autorizado_por")}</div>,
+        enableSorting: true,
+      },   
       {
         accessorKey: "ubicacion",
         header: "Ubicación",

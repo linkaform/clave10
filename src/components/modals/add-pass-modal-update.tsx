@@ -87,6 +87,7 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
 
   const onSubmitEdit = async () => {
     const accessPassData = {
+      created_from:"web",
       nombre_pase: dataPass.nombre,
       email_pase: dataPass.email,
       telefono_pase: dataPass.telefono,

@@ -39,7 +39,6 @@ import { useGetPdf } from "@/hooks/usetGetPdf";
 import useAuthStore from "@/store/useAuthStore";
 import { toast } from "sonner";
 import { imprimirYDescargarPDF } from "@/lib/utils";
-import { useGetShift } from "@/hooks/useGetShift";
 import { useBoothStore } from "@/store/useBoothStore";
 
 interface AddBadgeModalProps {
@@ -95,7 +94,6 @@ export const AddBadgeModal: React.FC<AddBadgeModalProps> = ({
 	pase_id
 }) => {
 	const { area, location } = useBoothStore();
-	const { downloadPass} = useGetShift(area, location);
 	const { userIdSoter } = useAuthStore();
 	const { data:responseGetLockers, isLoading:loadingGetLockers, refetch: refetchLockers } = useGetLockers(location??"", area??"", status, modalAgregarBadgeAbierto);
 	const { data:responseGetGafetes, isLoading:loadingGetGafetes, refetch: refetchGafetes } = useGetGafetes(location??"", area??"", status, modalAgregarBadgeAbierto);
@@ -212,13 +210,13 @@ return (
 				<div>
 				<Button
 					onClick={() =>{setModalAgregarBadgeAbierto(false);printPase();}}
-					disabled={!downloadPass.includes("impresion_de_pase")}
+					// disabled={!downloadPass.includes("impresion_de_pase")}
 					className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
 				>
 				 <Printer/>  Imprimir pase de entrada
 				 
 				</Button>
-				{!downloadPass.includes("impresion_de_pase") && <div className="text-red-500 text-sm" >No tienes habilitada la descarga de pases de entrada.</div>}
+				{/* {!downloadPass.includes("impresion_de_pase") && <div className="text-red-500 text-sm" >No tienes habilitada la descarga de pases de entrada.</div>} */}
 				</div>
 
 				<Button className="w-full  bg-blue-500 hover:bg-blue-600 text-white" type="submit" onClick={()=>{setShowOptions(false)}}>

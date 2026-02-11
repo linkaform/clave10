@@ -4,8 +4,7 @@ import {
 import {  ArrowLeftRight, Eye } from "lucide-react";
 import { ViewArticuloCon } from "@/components/modals/view-articulo-con";
 import { Imagen } from "@/components/upload-Image";
-import { NuevaDevolucionEquipoModal } from "@/components/modals/concesionados-nueva-devolucion";
-import { useState } from "react";
+import { SeguimientosModalArticuloCon } from "@/components/modals/concesionados-seguimientos-modal";
 
 export interface Articulo_con_record {
     _id:string,
@@ -28,7 +27,6 @@ export interface Articulo_con_record {
 
 const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
   const articulo = row.original;
-  const [nuevaDevolucionModal, setNuevaDevolucionEquiposModal] = useState(false);
 
   return (
     <><div className="flex space-x-2">
@@ -40,14 +38,10 @@ const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
       </ViewArticuloCon>
 
     
-    <NuevaDevolucionEquipoModal
-        title={"Devolución de Equipos"}
-        setIsSuccess={setNuevaDevolucionEquiposModal}
-        isSuccess={nuevaDevolucionModal}
-        equipoSelecionado={{}} 
-        >
-          <div><ArrowLeftRight /> </div>
-    </NuevaDevolucionEquipoModal>
+      <SeguimientosModalArticuloCon data={articulo} isSuccess={false}>
+      <div><ArrowLeftRight /> </div>
+      </SeguimientosModalArticuloCon>
+
     </div>
     </>
   );

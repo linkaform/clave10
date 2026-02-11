@@ -59,13 +59,13 @@ export const ConcesionadosDetalleSeguimiento: React.FC<ConcesionadosDetalleSegui
 
       
 
-        {data?.evidencia && data?.evidencia.length>0 ?
+        {data?.imagen_equipo_concesion && data?.imagen_equipo_concesion.length>0 ?
         <div className="w-full flex flex-col">
             <p className="font-bold mb-2">Evidencia: </p>
             <div className="flex justify-center">
                 <Carousel className="w-36 ">
                     <CarouselContent>
-                        {data?.evidencia.map((a, index) => (
+                        {data?.imagen_equipo_concesion.map((a, index) => (
                         <CarouselItem key={index}>
                             <div className="p-1">
                             <Card>

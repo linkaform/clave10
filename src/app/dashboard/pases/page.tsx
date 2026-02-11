@@ -71,6 +71,22 @@ const ListaPasesPage = () => {
                   <div className="flex gap-6">
                     <Sun className="text-primary w-10 h-10" />
                     <span className="flex items-center font-bold text-4xl">
+                    {stats?.por_autorizar ?? 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-0">
+                    <div className="h-1 w-1/2 bg-cyan-100"></div>
+                    <div className="h-1 w-1/2 bg-blue-500"></div>
+                  </div>
+                  <span className="text-md">Por Autorizar</span>
+                </div>
+
+                <div className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition duration-100 ${
+                  dateFilter== "today" && selectedOption[0]=="entrada" ? 'bg-blue-100' : 'hover:bg-gray-100'}`} 
+                  onClick={() => {handleTabChange("Personal",["entrada"], "today");}}>
+                  <div className="flex gap-6">
+                    <Sun className="text-primary w-10 h-10" />
+                    <span className="flex items-center font-bold text-4xl">
                     {stats?.pases_proceso ?? 0}
                     </span>
                   </div>

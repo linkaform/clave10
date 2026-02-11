@@ -79,7 +79,7 @@ export const EditarArticuloModal: React.FC<EditarFallaModalProps> = ({
 	const { data:dataAreaEmpleado, isLoading:loadingAreaEmpleado } = useCatalogoAreaEmpleado(showLoadingModal|| isSuccess, ubicacionSeleccionada, "Objetos Perdidos");
     const [tipoArt, setTipoArt] = useState<string>(data.tipo_articulo_perdido);
 	
-    const { data: dataArticulos ,dataArticuloSub, isLoading: isLoadingArticles,isLoadingArticuloSub} = useCatalogoArticulos(tipoArt, showLoadingModal|| isSuccess);
+    const { data: dataArticulos , isLoading: isLoadingArticles} = useCatalogoArticulos(tipoArt, showLoadingModal|| isSuccess);
 	const { editarArticulosPerdidosMutation, isLoading} = useArticulosPerdidos("","", "abierto", false, "", "", "")
 	const [evidencia , setEvidencia] = useState<Imagen[]>([]);
 	const [date, setDate] = useState<Date|"">("");
@@ -247,12 +247,12 @@ export const EditarArticuloModal: React.FC<EditarFallaModalProps> = ({
 							value={field.value} 
 						>
 							<SelectTrigger className="w-full">
-								{isLoadingArticuloSub && tipoArt ? (
+								{isLoadingArticles && tipoArt ? (
                                     <>
                                     <div >Cargando articulos...</div>
                                     </>
 								):(<>
-								{dataArticuloSub?.length > 0 ?( <>
+								{dataArticulos?.length > 0 ?( <>
                                     <SelectValue placeholder="Selecciona una opcion..." />
                                     </>)
 								:( <>
@@ -263,8 +263,8 @@ export const EditarArticuloModal: React.FC<EditarFallaModalProps> = ({
 								
 							</SelectTrigger>
 							<SelectContent>
-							{dataArticuloSub?.length>0 ? (
-								dataArticuloSub?.map((item:string, index:number) => {
+							{dataArticulos?.length>0 ? (
+								dataArticulos?.map((item:string, index:number) => {
 									return (
 										<SelectItem key={index} value={item}>
 											{item}

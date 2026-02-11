@@ -28,12 +28,11 @@ export const useArticulosConcesionados = (location:string, area:string, status:s
      const createArticulosConMutation = useMutation({
         mutationFn: async ({ data_article} : { data_article: InputArticuloCon }) => {
             const response = await crearArticuloCon(data_article);
-            const hasError= response.response.data.status_code
-
-            if(hasError == 400|| hasError == 401){
-                const textMsj = errorMsj(response.response.data) 
-                throw new Error(`Error al crear artículo concesionado, Error: ${textMsj?.text}`);
-            }else{
+            const hasError = (!response?.success) || (response?.response?.data?.status_code === 400 )
+            if (hasError) {
+                const textMsj = errorMsj(response)
+                throw new Error(`Error al crear seguimiento, Error: ${textMsj?.text}`);
+            } else {
                 return response.response?.data
             }
         },

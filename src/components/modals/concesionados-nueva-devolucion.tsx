@@ -87,8 +87,8 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
 	useEffect(() => {
         if (isSuccess){
             reset({
-				entrega_tipo:"empleado",
-				estatus: equipoSelecionado.status_concesion_equipo||"completo",
+				entrega_tipo:"",
+				estatus: "",
                 unidades: 0,
 				evidencia:[],
                 comentarios: "",
@@ -160,7 +160,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                 {title}
                 </DialogTitle>
             </DialogHeader>
-				<div className="font-bold ml-3">Equipo: {"Dragonsito"}</div>
+				<div className="font-bold ml-3">Equipo: { equipoSelecionado?.nombre_equipo}</div>
                 <div className="flex-grow overflow-y-auto px-2">
                 <Form {...form}>
 					<form  >

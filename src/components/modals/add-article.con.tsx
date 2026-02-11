@@ -20,7 +20,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { Textarea } from "../ui/textarea";
-import { Dispatch, ReactNode, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, ReactNode, SetStateAction, useEffect, useRef, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { format } from 'date-fns';
 import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
@@ -30,24 +30,34 @@ import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation
 import { useArticulosConcesionados } from "@/hooks/useArticulosConcesionados";
 import { Input } from "../ui/input";
 import LoadImage, { Imagen } from "../upload-Image";
-import ConcesionadosAgregarEquipos from "../concesionados-agregar-equipos";
+import ConcesionadosAgregarEquipos, { EquipoConcesionado } from "../concesionados-agregar-equipos";
 import { useBoothStore } from "@/store/useBoothStore";
+import { useUploadImage } from "@/hooks/useUploadImage";
+import { base64ToFile } from "@/lib/utils";
+import { toast } from "sonner";
 import Image from "next/image";
 
+
 interface ArticuloData {
+  ubicacion_concesion?: string;
+  area_concesion?: string;
+  caseta_concesion?: string;
   status_concesion?: string;
   persona_nombre_concesion?: string;
-  ubicacion_concesion?: string;
-  caseta_concesion?: string;
+  persona_email_concesion?: string | string[]; // Puede ser string o array de strings
+  persona_id_concesion?: number | number[]; // Puede ser número o array de numeros
+  persona_nombre_otro?: string;
+  persona_email_otro?: string;
+  persona_identificacion_otro?: Imagen[];
   fecha_concesion?: string;
-  solicita_concesion?: string;
-  area_concesion?: string;
-  equipo_concesion?: string;
+  equipos?: EquipoConcesionado[];
   observacion_concesion?: string;
+  evidencia?: Imagen[];
+  firma?: Imagen; // Solo es imagen sin array
+
+  solicita_concesion?: string;
+  equipo_concesion?: string;
   persona_text?: string;
-  evidencia?:Imagen[];
-  firma?:string;
-  equipos?:any[]
 }
 
 interface AddFallaModalProps {
@@ -58,27 +68,41 @@ interface AddFallaModalProps {
   children:ReactNode;
 }
 
+const imagenSchema = z.object({
+  file_url: z.string(),
+  file_name: z.string(),
+});
+
+export const equipoSchema = z.object({
+  id_movimiento: z.string().optional(),
+  categoria_equipo_concesion: z.string(),
+  nombre_equipo: z.string(),
+  costo_equipo_concesion: z.union([z.number(), z.array(z.number())]).optional(), // Puede ser número o array
+  imagen_equipo_concesion: z.array(imagenSchema).optional(),
+  cantidad_equipo_concesion: z.number(),
+  evidencia_entrega: z.array(imagenSchema).optional(),
+  comentario_entrega: z.string().optional(),
+});
+
 const formSchema = z.object({
+  ubicacion_concesion: z.string().optional(),
+  area_concesion: z.string().optional(),
+  caseta_concesion: z.string().optional(),
   status_concesion: z.string().optional(),
   persona_nombre_concesion: z.string().optional(),
-  ubicacion_concesion: z.string().optional(),
-  caseta_concesion: z.string().optional(),
+  persona_email_concesion: z.union([z.string(), z.array(z.string())]).optional(),
+  persona_id_concesion: z.union([z.number(), z.array(z.number())]).optional(),
+  persona_nombre_otro: z.string().optional(),
+  persona_email_otro: z.string().optional(),
+  persona_identificacion_otro: z.array(imagenSchema).optional(),
   fecha_concesion: z.string().optional(),
+  equipos: z.array(equipoSchema).optional().default([]),
+  observacion_concesion: z.string().optional(),
+  evidencia: z.array(imagenSchema).optional().default([]),
+  firma: imagenSchema.optional(),
   solicita_concesion: z.string().min(2, {
     message: "Este campo es requerido.",
   }),
-  area_concesion: z.string().optional(),
-  equipo_concesion: z.string().optional(),
-  observacion_concesion: z.string().optional(),
-  persona_text: z.string().optional(),
-  evidencia: z.array(
-    z.object({
-      file_url: z.string(),
-      file_name: z.string(),
-    })
-  ).optional().default([]),
-  firma: z.string().optional(),
-  equipos:z.array(z.any()).optional()
 });
 
 export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
@@ -89,61 +113,61 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   children
 }) => {
   const [conSelected, setConSelected] = useState<string>("");
+  console.log(conSelected)
   const { location, area } = useBoothStore();
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"");
   const [equipos, setEquipos]= useState<any[]>([])
   const { dataAreas: areas, dataLocations: ubicaciones, isLoadingAreas: loadingAreas, isLoadingLocations: loadingUbicaciones } = 
     useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, ubicacionSeleccionada ? true : false);
-  
   const { data: dataAreaEmpleadoApoyo, isLoading: loadingAreaEmpleadoApoyo } = 
     useCatalogoAreaEmpleadoApoyo(isSuccess);
-  console.log("conSelected",conSelected)
   const { createArticulosConMutation, editarArticulosConMutation, isLoading } = 
     useArticulosConcesionados(ubicacionSeleccionada, area??"", "", false, "", "", "");
-  
-  // const { dataCon, isLoadingCon } = 
-  //   useCatalogoConcesion(ubicacionSeleccionada, conSelected, isSuccess);
-  
   const [date, setDate] = useState<Date | "">("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      ubicacion_concesion: "",
+      area_concesion: "",
+      caseta_concesion: "",
       status_concesion: "",
       persona_nombre_concesion: "",
-      ubicacion_concesion: "",
-      caseta_concesion: "",
+      persona_email_concesion: "",
+      persona_id_concesion: undefined,
+      persona_nombre_otro: "",
+      persona_email_otro: "",
+      persona_identificacion_otro: [],
       fecha_concesion: "",
-      solicita_concesion: "empleado",
-      area_concesion: "",
-      equipo_concesion: "",
+      equipos: [],
       observacion_concesion: "",
-      persona_text: "",
       evidencia: [],
-      firma:"",
-      equipos:[]
+      firma: undefined, 
+      solicita_concesion: "empleado",
     },
   });
-
+  
   const { reset } = form;
-
   useEffect(() => {
     if (isSuccess) {
       if (mode === 'edit' && initialData) {
         reset({
+          ubicacion_concesion: initialData.ubicacion_concesion || "",
+          area_concesion: initialData.area_concesion || "",
+          caseta_concesion: initialData.caseta_concesion || "",
           status_concesion: initialData.status_concesion || "",
           persona_nombre_concesion: initialData.persona_nombre_concesion || "",
-          ubicacion_concesion: initialData.ubicacion_concesion || "",
-          caseta_concesion: initialData.caseta_concesion || "",
+          persona_email_concesion: initialData.persona_email_concesion || "",
+          persona_id_concesion: initialData.persona_id_concesion || undefined,
+          persona_nombre_otro: initialData.persona_nombre_otro || "",
+          persona_email_otro: initialData.persona_email_otro || "",
+          persona_identificacion_otro: initialData.persona_identificacion_otro || [],
           fecha_concesion: initialData.fecha_concesion || "",
-          solicita_concesion: initialData.solicita_concesion || "",
-          area_concesion: initialData.area_concesion || "",
-          equipo_concesion: initialData.equipo_concesion || "",
+          equipos: initialData.equipos || [],
           observacion_concesion: initialData.observacion_concesion || "",
-          persona_text: initialData.persona_text || "",
           evidencia: initialData.evidencia || [],
-          firma:initialData.firma || "",
-          equipos:initialData.equipos || [],
+          firma: initialData.firma || undefined, 
+          solicita_concesion: initialData.solicita_concesion || "",
         });
         if (initialData.ubicacion_concesion) {
           setUbicacionSeleccionada(initialData.ubicacion_concesion);
@@ -170,25 +194,36 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   }, [isLoading]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+
+    if (!equipos || equipos.length === 0) {
+      toast.error("Debe agregar al menos un equipo antes de enviar.");
+      form.setError("equipos", { 
+        type: "manual", 
+        message: "Debe agregar al menos un equipo." 
+      });
+      return; 
+    }
     if (date) {
       const formattedDate = format(new Date(date), 'yyyy-MM-dd HH:mm:ss');
       const formatData = {
+        ubicacion_concesion: values.ubicacion_concesion ?? "",
+        area_concesion: values.area_concesion ?? "",
+        caseta_concesion: values.caseta_concesion ?? "",
         status_concesion: mode === 'create' ? "abierto" : (values.status_concesion || "abierto"),
         persona_nombre_concesion: values.persona_nombre_concesion ?? "",
-        ubicacion_concesion: values.ubicacion_concesion ?? "",
-        caseta_concesion: values.caseta_concesion ?? "",
+        persona_email_concesion: values.persona_email_concesion ?? "",
+        persona_id_concesion: values.persona_id_concesion ?? undefined,
+        persona_nombre_otro: values.persona_nombre_otro ?? "",
+        persona_email_otro: values.persona_email_otro ?? "",
+        persona_identificacion_otro: values.persona_identificacion_otro ?? [],
         fecha_concesion: formattedDate ?? "",
-        solicita_concesion: values.solicita_concesion ?? "persona",
-        area_concesion: values.area_concesion ?? "",
-        equipo_concesion: values.equipo_concesion ?? "",
+        equipos:equipos ?? [],
         observacion_concesion: values.observacion_concesion ?? "",
-        persona_text: values.persona_text ?? "",
         evidencia: values.evidencia ?? [],
-        firma:values.firma || "",
-        equipos: values.equipos ?? [],
+        firma: values.firma ?? undefined, 
       };
-
       if (mode === 'edit') {
+        
         editarArticulosConMutation.mutate({data_article_update: formatData , folio:""});
       } else {
         createArticulosConMutation.mutate({ data_article: formatData });
@@ -225,6 +260,50 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
     
     return canvas.toDataURL('image/png');
   };
+
+  useEffect(() => {
+    form.setValue("equipos", equipos);
+  }, [equipos, form]);
+
+
+  const [textoFirma, setTextoFirma] = useState('');
+  const [vistaPrevia, setVistaPrevia] = useState<string>('');
+  const { uploadImageMutation, response, isLoading:isLoadingImage } = useUploadImage();
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  
+  const handleTextoChange = async (texto: string) => {
+    setTextoFirma(texto);
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    if (texto.trim()) {
+      timeoutRef.current = setTimeout(async () => {
+        try {
+          const imagenBase64 = await convertirTextoAImagen(texto);
+          setVistaPrevia(imagenBase64);
+          const imagenFile = base64ToFile(imagenBase64, `firma_${Date.now()}`);
+          uploadImageMutation.mutate({ img: imagenFile });
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      }, 800);
+    } else {
+      setVistaPrevia('');
+      form.setValue('firma', undefined);
+    }
+  };
+  
+  useEffect(() => {
+    if (response?.file_url) {
+      form.setValue('firma', {
+        file_url: response.file_url,
+        file_name: response.file_name??""
+      });
+    }
+  }, [response]);
+
   return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
       <DialogTrigger>{children}</DialogTrigger>
@@ -270,7 +349,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
               />
               <FormField
                 control={form.control}
-                name="caseta_concesion"
+                name="area_concesion"
                 render={({ field }: any) => (
                   <FormItem>
                     <FormLabel>Area:</FormLabel>
@@ -330,7 +409,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                                 <div className="flex gap-2 ">
                                     <button
                                     type="button"
-                                    onClick={() => {field.onChange("empleado"); form.setValue("persona_text", "");}}
+                                    onClick={() => {field.onChange("empleado");}}
                                     className={`px-6 py-2 rounded ${
                                         field.value === "empleado"
                                         ? "bg-blue-600 text-white "
@@ -360,7 +439,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
               {tipoCon == "otro" &&
                 <FormField
                   control={form.control}
-                  name="persona_text"
+                  name="persona_nombre_otro"
                   render={({ field }: any) => (
                     <FormItem className="col-span-1">
                       <FormLabel>Persona: </FormLabel>
@@ -444,9 +523,16 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
               />
             </div>
             }
+
               <div className="col-span-1 md:col-span-2">
                 <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} mode={"editar"}></ConcesionadosAgregarEquipos>
+                {form.formState.errors.equipos && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {form.formState.errors.equipos.message}
+                  </p>
+                )}
               </div>
+
               <FormField
                 control={form.control}
                 name="observacion_concesion"
@@ -467,36 +553,50 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
 
                 <div className="flex col-span-2 w-1/2 ">
 
-              <FormField
-								control={form.control}
-								name="firma"
-								render={({ field }: any) => (
-									<FormItem>
-										<FormLabel>Firma: *</FormLabel>
-										<FormControl>
-											<Input className="border-none font-bold italic"  style={{ fontFamily: 'Georgia, serif' }} placeholder="Escribe tu firma..." {...field}
-												onChange={(e) => {
-													field.onChange(e);
-												}}
-												value={field.value || ""}
-											/>
-                      
-										</FormControl>
-                    {field.value && (
-                    <div className="mt-2 p-4 border rounded bg-white">
-                      <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
-                      <Image 
-                        src={convertirTextoAImagen(field.value)} 
-                        alt="Firma" 
-                        className="max-w-full"
-                      />
-                    </div>
+                <FormField
+                  control={form.control}
+                  name="firma"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Firma</FormLabel>
+                      <FormControl>
+                        <div className="space-y-4">
+                          <Input 
+                            className="border-none font-bold italic" 
+                            style={{ fontFamily: 'Georgia, serif' }} 
+                            placeholder="Escribe tu firma..." 
+                            value={textoFirma}
+                            disabled={isLoadingImage}
+                            onChange={(e) => handleTextoChange(e.target.value)}
+                          />
+                          
+                          {vistaPrevia && (
+                            <div className="border rounded-md p-4 bg-gray-50">
+                              <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
+                              <Image 
+                                height={250}
+                                width={200}
+                                src={vistaPrevia} 
+                                alt="Vista previa de firma" 
+                                className="max-w-full h-auto"
+                              />
+                            </div>
+                          )}
+                          
+                          {isLoadingImage && (
+                            <p className="text-sm text-gray-500 flex items-center gap-2">
+                              <span className="animate-spin">⏳</span>
+                              Subiendo firma...
+                            </p>
+                          )}
+                        </div>
+      
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                    <FormMessage />
-									</FormItem>
-								)}
-							/>
-                </div>
+                />
+              </div>
 
             </form>
           </Form>

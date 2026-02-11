@@ -152,10 +152,15 @@ import { useBoothStore } from "@/store/useBoothStore";
 	const [ubicacionSeleccionada,setUbicacionSeleccionada] = useState("")
 	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingAreas:loadingCatAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, location?true:false);
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted??[]);
+	console.log("QUIE PASA",ubicacionesDefaultFormatted)
 	const pickerRef = useRef<any>(null);
 	const { assets,assetsLoading} = useSearchPass(true);
 	const assetsUnique= uniqueArray(assets?.Visita_a)
+	assetsUnique.unshift("Usuario Actual");
+	console.log("assets", assetsUnique)
 	const [areasTodas, setAreasTodas] = useState<any[]>([]);
+	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
+
 
 	const isExcluded = (key: string) =>
 		Array.isArray(excludes?.pases) &&
@@ -220,6 +225,10 @@ import { useBoothStore } from "@/store/useBoothStore";
 	.filter((u: any) => u !== null && u !== undefined)
 	.map((u: any) => ({ id: u, name: u }));
 	
+	const visitaAFormatted = (assetsUnique || [])
+	.filter((u: any) => u !== null && u !== undefined)
+	.map((u: any) => ({ id: u, name: u }));
+
 	const [userIdSoter] = useState<number|null>(()=>{
 		return Number(typeof window !== "undefined"? window?.localStorage.getItem("userId_soter"):0) 
 	});
@@ -372,8 +381,8 @@ import { useBoothStore } from "@/store/useBoothStore";
 			message: "Selecciona al menos una ubicación"
 			});
 		}
-
 		const formattedData = {
+			created_from:"web",
 			selected_visita_a: data.selected_visita_a,
 			nombre: data.nombre,
 			empresa:data.empresa,
@@ -385,7 +394,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 			descripcion: data.descripcion,
 			perfil_pase: data.perfil_pase,
 			status_pase:"Proceso",
-			visita_a: userNameSoter?? "",//userNameSoter,
+			visita_a: visitaASeleccionadas?.map(u => u.name) ?? [],
 			custom:true,
 			link:{
 				link : `${protocol}//${host}/dashboard/pase-update`,
@@ -546,7 +555,7 @@ return (
 						  
 						)}
 
-						<FormField
+						{/* <FormField
 							control={form.control}
 							name="selected_visita_a"
 							render={({ field }) => (
@@ -569,7 +578,29 @@ return (
 									<FormMessage />
 								</FormItem>
 							)}
-						/>	
+						/>	 */}
+
+						<FormField
+						control={form.control}
+						name="ubicaciones"
+						render={() => (
+							<FormItem>
+							<FormLabel>
+								<span className="text-red-500">*</span> Visita a:
+							</FormLabel>
+
+							<Multiselect
+								options={visitaAFormatted ?? []}
+								selectedValues={visitaASeleccionadas}
+								onSelect={setVisitaASeleccionadas}
+								onRemove={setVisitaASeleccionadas}
+								displayValue="name"
+							/>
+
+							<FormMessage />
+							</FormItem>
+						)}
+						/>
 
 						{selected && (
 							<Image

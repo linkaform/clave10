@@ -80,7 +80,7 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
 	const { dataAreas:areas, dataLocations:ubicaciones, isLoadingAreas:loadingAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true,  ubicacionSeleccionada?true:false);
 
 	const { data:dataAreaEmpleado, isLoading:loadingAreaEmpleado, refetch: refetchAreaEmpleado, } = useCatalogoAreaEmpleado(isSuccess, ubicacionSeleccionada,"Objetos Perdidos" );
-	const { data:dataArticulos, isLoading:isLoadingArticulos,dataArticuloSub, isLoadingArticuloSub } = useCatalogoArticulos(tipoArt, isSuccess);
+	const { data:dataArticulos, isLoading:isLoadingArticulos } = useCatalogoArticulos(tipoArt, isSuccess);
 	const { createArticulosPerdidosMutation, isLoading} = useArticulosPerdidos("","", "abierto", false,  "", "", "")
 	const { data:responseGetLockers, isLoading:loadingGetLockers } = useGetLockers(ubicacionSeleccionada ?? false,"", "Disponible", isSuccess);
     const [isActiveInterno, setIsActiveInterno] = useState<string|null>("interno");
@@ -248,18 +248,18 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
 							value={field.value} 
 						>
 							<SelectTrigger className="w-full">
-								{isLoadingArticuloSub && tipoArt ? (
+								{isLoadingArticulos && tipoArt ? (
 									<SelectValue placeholder="Cargando articulos..." />
 								):(<>
-								{dataArticuloSub?.length > 0 ?(<SelectValue placeholder="Selecciona una opción..." />)
+								{dataArticulos?.length > 0 ?(<SelectValue placeholder="Selecciona una opción..." />)
 								:(<SelectValue placeholder="Selecciona una categoria para ver las opciones..." />)
 								}
 								</>)}
 								
 							</SelectTrigger>
 							<SelectContent>
-							{dataArticuloSub?.length>0 ? (
-								dataArticuloSub?.map((item:string, index:number) => {
+							{dataArticulos?.length>0 ? (
+								dataArticulos?.map((item:string, index:number) => {
 									return (
 										<SelectItem key={index} value={item}>
 											{item}
