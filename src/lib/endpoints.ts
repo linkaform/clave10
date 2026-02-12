@@ -1,5 +1,4 @@
 import { API_ENDPOINTS } from "@/config/api";
-import { AccessPass } from "./interfaces";
 
 export const getAreasByLocations = async (locations: string[]) => {
     const userJwt = localStorage.getItem("access_token");
@@ -37,7 +36,7 @@ export const forceQuitAllPersons = async (location: string) => {
     return data;
 };
 
-export const getGoogleWalletPassUrl = async (access_pass: AccessPass, qr_code: string) => {
+export const getGoogleWalletPassUrl = async (qr_code: string) => {
     const userJwt = localStorage.getItem("access_token");
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
@@ -48,7 +47,6 @@ export const getGoogleWalletPassUrl = async (access_pass: AccessPass, qr_code: s
         body: JSON.stringify({
             script_name: "create_pass_google_wallet.py",
             qr_code,
-            access_pass,
         }),
     });
     const data = await response.json();

@@ -30,7 +30,6 @@ import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
 import { API_ENDPOINTS } from "@/config/api";
 import { getGoogleWalletPassUrl } from "@/lib/endpoints";
-import { AccessPass } from "@/lib/interfaces";
 
 	const grupoEquipos = z.array(
 		z.object({
@@ -225,9 +224,8 @@ const PaseUpdate = () =>{
 	  }, [error]);
 
 	const handleClickGoogleButton = async () => {
-		console.log('==========', dataCatalogos)
-		const pass_selected = dataCatalogos?.pass_selected;
-		if (!pass_selected) {
+		const record_id = dataCatalogos?.pass_selected?._id;
+		if (!record_id) {
 			toast.error('No hay pase disponible', {
                 style: {
                     background: "#dc2626",
@@ -237,18 +235,6 @@ const PaseUpdate = () =>{
             });
 			return;
 		}
-		const format_visita_a = pass_selected?.visita_a?.map((item: any) => item.nombre);
-		const qr_code = id;
-		const access_pass: AccessPass = {
-			nombre: pass_selected?.nombre,
-			visita_a: format_visita_a,
-			empresa: pass_selected?.empresa,
-			ubicaciones: pass_selected?.ubicacion,
-			num_accesos: pass_selected?.limite_de_acceso,
-			fecha_desde: pass_selected?.fecha_de_expedicion,
-			fecha_hasta: pass_selected?.fecha_de_caducidad,
-			geolocations: pass_selected?.ubicaciones_geolocation
-		}
 		try {
 			toast.loading("Obteniendo tu pase...", {
 				style: {
@@ -257,7 +243,7 @@ const PaseUpdate = () =>{
 					border: 'none'
 				},
 			});
-			const data = await getGoogleWalletPassUrl(access_pass, qr_code);
+			const data = await getGoogleWalletPassUrl(record_id);
 			const url = data?.response?.data?.google_wallet_url || "";
 			if (url) {
 				window.open(url, '_blank');

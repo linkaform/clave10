@@ -21,6 +21,7 @@ import { data_correo } from "@/lib/send_correo";
 import Image from "next/image";
 import { useSendCorreoSms } from "@/hooks/useSendCorreo";
 import { API_ENDPOINTS } from "@/config/api";
+import { getGoogleWalletPassUrl } from "@/lib/endpoints";
 
 interface updatedPassModalProps {
 	title: string;
@@ -55,6 +56,7 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 	passData,
 	updateResponse
 }) => {
+	console.log('==========1', updateResponse)
 	const [enviarCorreo, setEnviarCorreo] = useState<string[]>([]);
 	const { createSendCorreoSms, isLoadingCorreo} = useSendCorreoSms();
 	const [enablePdf, setEnablePdf] = useState(false)
@@ -84,18 +86,50 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 		}
 	}
 	
-	const handleClickGoogleButton = () => {
-		const url = passData?.pass_selected?.google_wallet_pass_url;
-		if (url) {
-			window.open(url, '_blank');
-		} else {
+	const handleClickGoogleButton = async () => {
+		const record_id = updateResponse?.json?.id;
+		if (!record_id) {
 			toast.error('No hay pase disponible', {
-                style: {
-                    background: "#dc2626",
-                    color: "#fff",
-                    border: 'none'
-                },
-            });
+				style: {
+					background: "#dc2626",
+					color: "#fff",
+					border: 'none'
+				},
+			});
+			return;
+		}
+		try {
+			toast.loading("Obteniendo tu pase...", {
+				style: {
+					background: "#000",
+					color: "#fff",
+					border: 'none'
+				},
+			});
+			const data = await getGoogleWalletPassUrl(record_id);
+			const url = data?.response?.data?.google_wallet_url || "";
+			if (url) {
+				window.open(url, '_blank');
+			} else {
+				toast.error('No hay pase disponible', {
+					style: {
+						background: "#dc2626",
+						color: "#fff",
+						border: 'none'
+					},
+				});
+			}
+			toast.dismiss();
+		} catch (error) {
+			console.log(error)
+			toast.error("Error al obtener pase", {
+				style: {
+					background: "#dc2626",
+					color: "#fff",
+					border: 'none'
+				},
+			});
+			toast.dismiss();
 		}
 	}
 
