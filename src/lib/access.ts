@@ -192,6 +192,8 @@ export const getAccessAssets = async (location: string, cat?:string) => {
 };
 
 export interface AccessPass {
+  created_from:string;
+  ubicaciones: string[] | undefined;
   nombre: string;
   empresa: string;
   visita_a: string;
@@ -219,7 +221,8 @@ export const addNewVisit = async (
       identificacion: access_pass.identificacion || [],
       email: access_pass.email || "",
       telefono: access_pass.telefono || "",
-      status_pase: 'activo',
+      created_from:access_pass.created_from,
+      ubicaciones: access_pass.ubicaciones
     },
     option: "create_access_pass",
     script_name: "pase_de_acceso.py",

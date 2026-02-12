@@ -113,11 +113,13 @@ function onSubmit(data: z.infer<typeof formSchema>) {
 		nombre: data.nombre,
 		empresa: data.empresa,
 		// area:"",
+		created_from:"nueva_visita",
 		visita_a: data.visita_a,
 		perfil_pase: data.perfil_pase,
 		foto: fotografia ,
 		identificacion: identificacion,
-		status_pase:"activo"
+		status_pase:"activo",
+		ubicaciones:[location??""]
 	};
 
 	let valid = true;
