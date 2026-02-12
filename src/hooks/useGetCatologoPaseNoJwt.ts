@@ -36,8 +36,14 @@ export interface PassSelected {
   qr_pase: QrPase[]
   foto?: Foto[]
   identificacion?: Foto[]
+  empresa: string
   google_wallet_pass_url: string
   pdf_to_img: Foto[]
+  limite_de_acceso: number
+  ubicaciones_geolocation: {
+    latitude: number
+    longitude: number
+  }[]
 }
 
 export interface VisitaA {

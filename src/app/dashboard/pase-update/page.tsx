@@ -29,6 +29,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
 import { API_ENDPOINTS } from "@/config/api";
+import { getGoogleWalletPassUrl } from "@/lib/endpoints";
+import { AccessPass } from "@/lib/interfaces";
 
 	const grupoEquipos = z.array(
 		z.object({
@@ -222,11 +224,10 @@ const PaseUpdate = () =>{
 		}
 	  }, [error]);
 
-	const handleClickGoogleButton = () => {
-		const url = dataCatalogos?.pass_selected?.google_wallet_pass_url;
-		if (url) {
-			window.open(url, '_blank');
-		} else {
+	const handleClickGoogleButton = async () => {
+		console.log('==========', dataCatalogos)
+		const pass_selected = dataCatalogos?.pass_selected;
+		if (!pass_selected) {
 			toast.error('No hay pase disponible', {
                 style: {
                     background: "#dc2626",
@@ -234,6 +235,52 @@ const PaseUpdate = () =>{
                     border: 'none'
                 },
             });
+			return;
+		}
+		const format_visita_a = pass_selected?.visita_a?.map((item: any) => item.nombre);
+		const qr_code = id;
+		const access_pass: AccessPass = {
+			nombre: pass_selected?.nombre,
+			visita_a: format_visita_a,
+			empresa: pass_selected?.empresa,
+			ubicaciones: pass_selected?.ubicacion,
+			num_accesos: pass_selected?.limite_de_acceso,
+			fecha_desde: pass_selected?.fecha_de_expedicion,
+			fecha_hasta: pass_selected?.fecha_de_caducidad,
+			geolocations: pass_selected?.ubicaciones_geolocation
+		}
+		try {
+			toast.loading("Obteniendo tu pase...", {
+				style: {
+					background: "#000",
+					color: "#fff",
+					border: 'none'
+				},
+			});
+			const data = await getGoogleWalletPassUrl(access_pass, qr_code);
+			const url = data?.response?.data?.google_wallet_url || "";
+			if (url) {
+				window.open(url, '_blank');
+			} else {
+				toast.error('No hay pase disponible', {
+					style: {
+						background: "#dc2626",
+						color: "#fff",
+						border: 'none'
+					},
+				});
+			}	
+			toast.dismiss();
+		} catch (error) {
+			console.log(error)
+			toast.error("Error al obtener pase", {
+                style: {
+                    background: "#dc2626",
+                    color: "#fff",
+                    border: 'none'
+                },
+            });
+			toast.dismiss();
 		}
 	}
 
