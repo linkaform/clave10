@@ -49,10 +49,13 @@ interface ListProps {
 	Filter: () => void;
 	isPersonasDentro: boolean;
 	ubicacionSeleccionada: string;
+	printPase: (paseId:string) => void;
+	setPaseIdSeleccionado : React.Dispatch<React.SetStateAction<string>>;
 }
 
 
-const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter, setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada }) => {
+const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter, 
+	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada , printPase, setPaseIdSeleccionado}) => {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[]
@@ -74,6 +77,11 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 		pageSize: 23,
 	});
 
+	const printPaseFn=(id:string)=>{
+		console.log("ID PARA IMPRESIOND E PASE", id)
+		setPaseIdSeleccionado(id)
+		printPase(id);
+	}
 	const handleRegresarGafete = (bitacora: Bitacora_record) => {
 		setBitacoraSeleccionada(bitacora);
 		setModalRegresarGafeteAbierto(true);
@@ -95,7 +103,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 	const [globalFilter, setGlobalFilter] = React.useState("");
 	const columns = useMemo(() => {
 		if (isLoading) return [];
-		return getBitacorasColumns(handleRegresarGafete, handleAgregarBadge, handleSalida);
+		return getBitacorasColumns(handleRegresarGafete, handleAgregarBadge, handleSalida, printPaseFn);
 	}, [isLoading]);
 	const memoizedData = useMemo(() => data || [], [data]);
 
@@ -123,6 +131,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 			globalFilter,
 		}
 	});
+
 
 
 	return (

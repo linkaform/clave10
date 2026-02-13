@@ -12,15 +12,19 @@ import EquiposTable from "@/components/table/bitacoras/equipos/table";
 import ChangeLocation from "@/components/changeLocation";
 import { Comentarios_bitacoras, VisitaA } from "@/components/table/bitacoras/equipos/equipos-columns";
 import { Bitacora_record } from "@/components/table/bitacoras/bitacoras-columns";
-import { arraysIguales, dateToString } from "@/lib/utils";
+import { arraysIguales, dateToString, imprimirYDescargarPDF } from "@/lib/utils";
 import { useBitacoras } from "@/hooks/Bitacora/useBitacoras";
 import { toast } from "sonner";
 import { useGetStats } from "@/hooks/useGetStats";
 import { useBoothStore } from "@/store/useBoothStore";
+import Swal from "sweetalert2";
+import useAuthStore from "@/store/useAuthStore";
+import { getPdf } from "@/lib/get-pdf";
 
 const BitacorasPage = () => {
 	const { tab, filter, option, from, setFrom} = useShiftStore()
 	const {location } = useBoothStore();
+	const {userIdSoter} = useAuthStore()
 	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState("" );
 	const [areaSeleccionada, setAreaSeleccionada] = useState("todas");
 	const [equiposData, setEquiposData] = useState<Bitacora_record[]>([]);
@@ -38,7 +42,8 @@ const BitacorasPage = () => {
 		ubicacionSeleccionada, areaSeleccionada == "todas" ? "": areaSeleccionada, selectedOption, ubicacionSeleccionada&&areaSeleccionada?true:false, dates[0], dates[1], dateFilter)
 	const { data: stats } = useGetStats(ubicacionSeleccionada&& areaSeleccionada?true:false,ubicacionSeleccionada, areaSeleccionada=="todas"?"":areaSeleccionada, 'Bitacoras')
 	const [selectedTab, setSelectedTab] = useState<string>(tab ? tab: "Personal"); 
-
+	const [paseIdSeleccionado, setPaseIdSeleccionado]= useState("")
+	console.log(paseIdSeleccionado)
 	useEffect(() => {
 		if (location) {
 		  setUbicacionSeleccionada(location);
@@ -152,8 +157,57 @@ const BitacorasPage = () => {
 			toast.error("Escoge un rango de fechas.")
 		}
 	};
-
-
+	const printPase = async (paseId: string) => {
+		console.log("Imprimiendo pase ID:", paseId);
+		
+		Swal.fire({
+			title: 'Preparando documento',
+			html: 'Cargando PDF para imprimir...',
+			allowOutsideClick: false,
+			allowEscapeKey: false,
+			didOpen: () => {
+				Swal.showLoading();
+			}
+		});
+		
+		try {
+			const result = await getPdf(userIdSoter, paseId);
+	  
+			const data = result?.response?.data;
+	  
+			if (!data || data.status_code !== 200) {
+				const errorMsg = data?.json?.error || "Error desconocido del servidor";
+	  
+				toast.error(`Error del servidor: ${errorMsg}`, {
+					style: {
+						backgroundColor: "#f44336",
+						color: "#fff",
+					},
+				});
+				Swal.close();
+				return;
+			}
+	  
+			const downloadUrl = data?.json?.download_url || data?.data?.download_url;
+	  
+			if (downloadUrl) {
+				imprimirYDescargarPDF(downloadUrl);
+				Swal.close();
+			} else {
+				toast.warning("No se encontró URL de descarga");
+				Swal.close();
+			}
+		} catch (err) {
+			console.error("Error al obtener PDF:", err);
+			toast.error(`Error inesperado: ${err}`, {
+				style: {
+					backgroundColor: "#f44336",
+					color: "#fff",
+				},
+			});
+			Swal.close();
+		}
+	};
 return (
     <div className="">
 		<div className="p-6 space-y-1 pt-3 w-full mx-auto ">
@@ -260,6 +314,7 @@ return (
 					<BitacorasTable data={listBitacoras} isLoading={isLoadingListBitacoras} 
 					date1={date1} date2={date2} setDate1={setDate1} setDate2={setDate2} dateFilter={dateFilter} setDateFilter={setDateFilter} Filter={Filter}
 					isPersonasDentro={isPersonasDentro} ubicacionSeleccionada={ubicacionSeleccionada}
+					printPase={printPase} setPaseIdSeleccionado={setPaseIdSeleccionado}
 					/>
 				</div>
 				</TabsContent>

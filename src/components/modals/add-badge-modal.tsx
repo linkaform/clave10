@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect } from "react";
 import { useGetLockers } from "@/hooks/useGetLockers";
 import { useGetGafetes } from "@/hooks/useGetGafetes";
 
@@ -102,7 +102,7 @@ export const AddBadgeModal: React.FC<AddBadgeModalProps> = ({
 	  refetch,
 	} = useGetPdf(userIdSoter, pase_id, false);
 	
-const[showOptions, setShowOptions] = useState(true)
+// const[showOptions, setShowOptions] = useState(true)
 	const form = useForm<z.infer<typeof FormSchema>>({
 		resolver: zodResolver(FormSchema),
 		defaultValues: {
@@ -198,7 +198,7 @@ return (
 		<div className="cursor-pointer" onClick={handleOpenModal}>
 			<IdCard />
 		</div>
-		{showOptions? (
+		{false? (
 			<DialogContent className="max-w-lg overflow-y-auto max-h-[80vh] flex flex-col" aria-describedby="">
 				<DialogHeader className="flex-shrink-0">
 			<DialogTitle className="text-2xl text-center font-bold">
@@ -219,7 +219,7 @@ return (
 				{/* {!downloadPass.includes("impresion_de_pase") && <div className="text-red-500 text-sm" >No tienes habilitada la descarga de pases de entrada.</div>} */}
 				</div>
 
-				<Button className="w-full  bg-blue-500 hover:bg-blue-600 text-white" type="submit" onClick={()=>{setShowOptions(false)}}>
+				<Button className="w-full  bg-blue-500 hover:bg-blue-600 text-white" type="submit" >
 				<IdCard/> {("Asignar gafete")}
 				</Button>
 			</div>

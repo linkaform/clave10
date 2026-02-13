@@ -7,7 +7,7 @@ import { capitalizeFirstLetter } from "@/lib/utils";
 import {
 		ColumnDef,  
 	} from "@tanstack/react-table";
-import { Car, Eye, Forward, Hammer, IdCard} from "lucide-react";
+import { Car, Eye, Forward, Hammer, IdCard, Printer} from "lucide-react";
 import { useState } from "react";
 
 export interface Bitacora_record {
@@ -81,14 +81,14 @@ export interface Areas_bitacora {
 }
 
 const OptionsCell: React.FC<{ row: any , onReturnGafete: (bitacora: Bitacora_record) => void , 
-	onAddBadgeClick: (bitacora: Bitacora_record) => void , onDoOutClick: (bitacora: Bitacora_record) => void }> = 
-	({ row, onReturnGafete, onAddBadgeClick ,onDoOutClick}) => {
+	onAddBadgeClick: (bitacora: Bitacora_record) => void , onDoOutClick: (bitacora: Bitacora_record) => void ,
+	onPrintPaseFn:(id:string)=>void}> = 
+	({ row, onReturnGafete, onAddBadgeClick ,onDoOutClick, onPrintPaseFn}) => {
 	const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
 	const [equipos, setEquipos] = useState<Equipo[]>([]);
 
 	if (!row?.original) return null;
 	const bitacora = row.original;
-
 	bitacora.formated_visita = Array.isArray(bitacora.visita_a) 
 	? bitacora.visita_a.map((item: VisitaA) => item.nombre).join(', ') 
 	: '';
@@ -139,7 +139,17 @@ const OptionsCell: React.FC<{ row: any , onReturnGafete: (bitacora: Bitacora_rec
 					<IdCard />
 				</div>}
 			</>
-			)}
+			)}	
+			{ bitacora.status_visita?.toLowerCase() !="salida" &&	
+				<div
+				className="cursor-pointer"
+				title="Regresar gafete"
+				onClick={() => {
+					onPrintPaseFn(bitacora.pase_id)}}
+				>
+					<Printer /> 
+				</div>
+			}
 
 			{ !bitacora?.fecha_salida ? (
 				<div
@@ -156,7 +166,8 @@ const OptionsCell: React.FC<{ row: any , onReturnGafete: (bitacora: Bitacora_rec
 };
 
 export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) => void, 
-	onAddBadgeClick: (bitacora: Bitacora_record) => void, onDoOutClick: (bitacora: Bitacora_record) => void): ColumnDef<Bitacora_record>[] => [
+	onAddBadgeClick: (bitacora: Bitacora_record) => void, onDoOutClick: (bitacora: Bitacora_record) => void,
+	printPaseFn:(id:string)=>void): ColumnDef<Bitacora_record>[] => [
 	{
 		id: "options",
 		header: "Opciones",
@@ -164,8 +175,7 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 			
 			return <OptionsCell row={row} key={row.original._id} 
 			onReturnGafete={()=>{onReturnGafete(row.original)}} onAddBadgeClick={()=>{onAddBadgeClick(row.original)}} onDoOutClick={()=>{
-				onDoOutClick(row.original)
-			}}/>;
+				onDoOutClick(row.original) }}  onPrintPaseFn={()=>{printPaseFn(row.original.pase_id)}}/>;
 		},
 		enableSorting: false,
 		enableHiding: false,
