@@ -129,6 +129,7 @@ const OptionsCell: React.FC<{ row: any , onReturnGafete: (bitacora: Bitacora_rec
 				</div>
 			):(
 			<>
+				{ bitacora.status_visita?.toLowerCase() !="salida" &&	
 				<div
 				className="cursor-pointer"
 				title="Agregar gafete"
@@ -136,7 +137,7 @@ const OptionsCell: React.FC<{ row: any , onReturnGafete: (bitacora: Bitacora_rec
 					onAddBadgeClick(bitacora)}}
 				>
 					<IdCard />
-				</div>
+				</div>}
 			</>
 			)}
 
