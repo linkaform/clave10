@@ -582,7 +582,7 @@ return (
 
 						<FormField
 						control={form.control}
-						name="ubicaciones"
+						name="visita_a"
 						render={() => (
 							<FormItem>
 							<FormLabel>

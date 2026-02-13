@@ -231,30 +231,7 @@ return (
 				</FormItem>
 			)}
 			/>
-			{/* <FormField
-			control={form.control}
-			name="area"
-			render={({ field }) => (
-				<FormItem>
-				<FormLabel>* Departamento</FormLabel>
-				<Select onValueChange={(value) => field.onChange(value)}>
-					<FormControl>
-					<SelectTrigger>
-						<SelectValue placeholder="Selecciona una opción" />
-					</SelectTrigger>
-					</FormControl>
-					<SelectContent>
-					{assets?.Areas.map((departamento: string) => (
-						<SelectItem key={departamento} value={departamento}>
-						{departamento}
-						</SelectItem>
-					))}
-					</SelectContent>
-				</Select>
-				<FormMessage />
-				</FormItem>
-			)}
-			/> */}
+			
 			<FormField
 			control={form.control}
 			name="visita_a"

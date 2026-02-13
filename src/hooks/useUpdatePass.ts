@@ -15,7 +15,7 @@ export type Update_pass = {
   descripcion?: string,
   perfil_pase?: string,
   status_pase?: string,
-  visita_a?: string,
+  visita_a?: any[],
   link?: {
     link: string,
     docs: string,
@@ -82,6 +82,7 @@ export const useUpdateAccessPass = () => {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["getMyPases"] });
           queryClient.invalidateQueries({ queryKey: ["getUserContacts"] });
+          queryClient.invalidateQueries({ queryKey: ["serchPass"]})
           toast.success("Pase de entrada actualizado correctamente.");
         },
         onError: (err) => {

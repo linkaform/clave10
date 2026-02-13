@@ -10,24 +10,29 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import {
-  Form,
-} from "../ui/form";
-
+import Multiselect from 'multiselect-react-dropdown';
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useEffect, useState } from "react";
-
+import {
+	Form,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
 
 import LoadImage, { Imagen } from "../upload-Image";
 import { useUpdateAccessPass } from "@/hooks/useUpdatePass";
 import { EqipmentLocalPassModal } from "./add-local-equipo";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import useAuthStore from "@/store/useAuthStore";
-import { Car, Laptop } from "lucide-react";
+import { Car, Laptop, Loader2 } from "lucide-react";
 import { VehicleLocalPassModal } from "./add-local-vehicule";
 import { toast } from "sonner";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
+import { uniqueArray } from "@/lib/utils";
+import { useSearchPass } from "@/hooks/useSearchPass";
 
 interface Props {
   title: string;
@@ -36,20 +41,21 @@ interface Props {
   dataCatalogos:any;
 }
 const formSchema = z.object({
-  foto: z.array(
-	  z.object({
-		file_url: z.string(),
-		file_name: z.string(),
-	  })
-	).optional(),
-  identificacion:  z.array(
-	  z.object({
-		file_url: z.string(),
-		file_name: z.string(),
-	  })
-	).optional(),
-  area: z.string().optional(),
-  status_pase: z.string().optional(),
+    visita_a: z.array(z.any()).optional(),
+    foto: z.array(
+        z.object({
+            file_url: z.string(),
+            file_name: z.string(),
+        })
+        ).optional(),
+    identificacion:  z.array(
+        z.object({
+            file_url: z.string(),
+            file_name: z.string(),
+        })
+        ).optional(),
+    area: z.string().optional(),
+    status_pase: z.string().optional(),
 });
 
 export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCatalogos}) => {
@@ -57,8 +63,8 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
     const [openModal, setOpenModal] = useState(false);
     const [fotografia, setFotografia] = useState<Imagen[]>([]);
     const [identificacion, setIdentificacion] = useState<Imagen[]>([]);
-    const { updatePassMutation } = useUpdateAccessPass();
-
+    const { updatePassMutation ,isLoadingUpdate} = useUpdateAccessPass();
+    console.log("dataCatalogos",dataCatalogos)
 	const [agregarEquiposActive, setAgregarEquiposActive] = useState(false);
 	const [agregarVehiculosActive, setAgregarVehiculosActive] = useState(false);
 
@@ -69,6 +75,16 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
     const [errorFotografia, setErrorFotografia] = useState("")
 	const [errorIdentificacion, setErrorIdentificacion] = useState("")
 
+    const { assets,assetsLoading} = useSearchPass(true);
+	const assetsUnique= uniqueArray(assets?.Visita_a)
+	assetsUnique.unshift("Usuario Actual");
+    
+	const visitaAFormatted = (assetsUnique || [])
+	.filter((u: any) => u !== null && u !== undefined)
+	.map((u: any) => ({ id: u, name: u }));
+    console.log("visitaAFormatted",visitaAFormatted)
+	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{id:"Usuario Actual",name:"Usuario Actual"}]);
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -76,6 +92,7 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
         identificacion: [],
         area: "",
         status_pase:"activo",
+        visita_a:[]
         },
     });
 
@@ -88,18 +105,20 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
         };
 
     function onSubmit(data: z.infer<typeof formSchema>) {
+        console.log("SELECCIONADOS", visitaASeleccionadas)
         const access_pass = {
             grupo_vehiculos: vehicles,
             grupo_equipos: equipos,
             status_pase: "activo",
             walkin_fotografia:fotografia,
             walkin_identificacion:identificacion,
-            folio: id,
+            folio: dataCatalogos._id,
             account_id: userIdSoter,
             nombre: dataCatalogos?.nombre||"",
             ubicacion: dataCatalogos?.ubicacion||"",
             email: dataCatalogos?.email||"",
-            telefono:dataCatalogos?.telefono||""
+            telefono:dataCatalogos?.telefono||"",
+            visita_a: visitaASeleccionadas.map((item: any) => item.id)
 
         };
         if (showIneIden?.includes("foto") && fotografia.length<=0) {
@@ -116,7 +135,11 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
         if(errorFotografia || errorIdentificacion){
             toast.error("Faltan campos llenar")
         }else{
-            updatePassMutation.mutate({access_pass, id, account_id:userIdSoter})
+            updatePassMutation.mutate({access_pass, id:dataCatalogos._id, account_id:userIdSoter},{
+                onSuccess() {
+                    setOpenModal(false)
+                },
+            })
         }
         // updatePassMutation.mutate({access_pass, id, account_id:userIdSoter})
         //   registerNewVisit.mutate({ location, access_pass });
@@ -162,7 +185,7 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
                 <>
                 <div className="flex flex-col flex-wrap space-y-5 max-w-5xl mx-auto">
                     <div className="flex flex-col space-y-5">
-                        {/* Nombre */}
+                        
                         <div className="flex flex-col sm:flex-row justify-between gap-4">
                             <div className="w-full flex gap-2">
                             <p className="font-bold whitespace-nowrap">Nombre:</p>
@@ -170,7 +193,6 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
                             </div>
                         </div>
 
-                        {/* Email y Teléfono */}
                         <div className="flex flex-col sm:flex-row justify-between gap-4">
                             <div className="w-full flex gap-2">
                             <p className="font-bold whitespace-nowrap">Email:</p>
@@ -183,51 +205,76 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
                             </div>
                         </div>
 
-                        {/* Visita y Ubicación */}
                         <div className="flex flex-col sm:flex-row justify-between gap-4">
-                            <div className="w-full flex gap-2">
-                            <p className="font-bold whitespace-nowrap">Visita a:</p>
-                            <p className="w-full break-words">
-                                {dataCatalogos?.visita_a?.[0]?.nombre || ""}
-                            </p>
-                            </div>
+                            <div>
+                            <FormField
+                                control={form.control}
+                                name="visita_a"
+                                render={() => (
+                                    <FormItem>
+                                    <FormLabel>
+                                        <span className="font-bold
+                                        ">Visita a:</span>
+                                    </FormLabel>
 
-                            <div className="w-full flex gap-2">
-                            <p className="font-bold whitespace-nowrap">Ubicación:</p>
-                            <p className="w-full break-words">
-                                {dataCatalogos?.ubicacion}
-                            </p>
+                                    <Multiselect
+                                        options={visitaAFormatted ?? []}
+                                        selectedValues={visitaASeleccionadas}
+                                        onSelect={setVisitaASeleccionadas}
+                                        onRemove={setVisitaASeleccionadas}
+                                        displayValue="name"
+                                    />
+
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
                             </div>
                         </div>
-                        
+
+                        <div className="flex flex-col sm:flex-row justify-between gap-4">
+                            <div className="w-full flex gap-2">
+                                <p className="font-bold whitespace-nowrap">Ubicación:</p>
+                                <p className="w-full break-words">
+                                    {dataCatalogos?.ubicacion}
+                                </p>
+                            </div>
+                        </div>
 
                         <div className="flex justify-between gap-3">
-                            {showIneIden?.includes("foto")&& 
-                                <div className="w-full md:w-1/2 pr-2">
-                                        <LoadImage
-                                            id="fotografia"
-                                            titulo={"Fotografía"}
-                                            setImg={setFotografia}
-                                            showWebcamOption={true}
-                                            facingMode="user" 
-                                            imgArray={fotografia} 
-                                            showArray={true} 
-                                            limit={1}/>
-                                        {errorFotografia !=="" && <span className="text-red-500 text-sm">{errorFotografia}</span>}
-                                </div>}
-                                {showIneIden?.includes("iden")&& <div className="w-full md:w-1/2">
-                                        <LoadImage
-                                        id="identificacion"
-                                        titulo={"Identificación"}
-                                        setImg={setIdentificacion}
-                                        showWebcamOption={true}
-                                        facingMode="environment" 
-                                        imgArray={identificacion} 
-                                        showArray={true} 
-                                        limit={1}
-                                        />
-                                        {errorIdentificacion !=="" && <span className="text-red-500 text-sm">{errorIdentificacion}</span>}
-                                </div>}
+                        {showIneIden?.includes("foto") && 
+                        (!dataCatalogos?.foto || dataCatalogos.foto.length === 0) &&
+                            <div className="w-full md:w-1/2 pr-2">
+                                <LoadImage
+                                    id="fotografia"
+                                    titulo={"Fotografía"}
+                                    setImg={setFotografia}
+                                    showWebcamOption={true}
+                                    facingMode="user" 
+                                    imgArray={fotografia} 
+                                    showArray={true} 
+                                    limit={1}
+                                />
+                                {errorFotografia !== "" && <span className="text-red-500 text-sm">{errorFotografia}</span>}
+                            </div>
+                        }
+
+                        {showIneIden?.includes("iden") && 
+                        (!dataCatalogos?.identificacion || dataCatalogos.identificacion.length === 0) && 
+                            <div className="w-full md:w-1/2">
+                                <LoadImage
+                                    id="identificacion"
+                                    titulo={"Identificación"}
+                                    setImg={setIdentificacion}
+                                    showWebcamOption={true}
+                                    facingMode="environment" 
+                                    imgArray={identificacion} 
+                                    showArray={true} 
+                                    limit={1}
+                                />
+                                {errorIdentificacion !== "" && <span className="text-red-500 text-sm">{errorIdentificacion}</span>}
+                            </div>
+                        }
                         </div> 
                         <div className="flex flex-col gap-y-6">
                             <div>
@@ -328,19 +375,6 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
                             </div>
                         </div>
                     </div>
-                        {/* <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8"> 
-                                <div className="text-center mt-10 flex justify-center">
-                                    <Button
-                                        className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-1/2"
-                                        variant="secondary"
-                                        type="submit"
-                                    >
-                                        Siguiente
-                                    </Button>
-                                </div>
-                            </form>
-                        </Form>  */}
                 </div>
                 </>
 
@@ -357,9 +391,10 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
 
                 <Button
                     type="submit"
+                    disabled={isLoadingUpdate}
                     className="w-full  bg-blue-500 hover:bg-blue-600 text-white "
                 >
-                    Actualizar
+                   {isLoadingUpdate?<> <Loader2 className="animate-spin"/> {"Actualizando pase..."} </>: "Actualizar pase"} 
                 </Button>
                 </div>
             </form>
