@@ -315,6 +315,7 @@ return (
 					date1={date1} date2={date2} setDate1={setDate1} setDate2={setDate2} dateFilter={dateFilter} setDateFilter={setDateFilter} Filter={Filter}
 					isPersonasDentro={isPersonasDentro} ubicacionSeleccionada={ubicacionSeleccionada}
 					printPase={printPase} setPaseIdSeleccionado={setPaseIdSeleccionado}
+					personasDentro={stats?.personas_dentro}
 					/>
 				</div>
 				</TabsContent>

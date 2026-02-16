@@ -15,6 +15,7 @@ interface ForceQuitConfirmationModalProps {
   onConfirm: () => void;
   locationName?: string;
   isLoading?: boolean;
+  personasDentro: number;
 }
 
 const ForceQuitConfirmationModal: React.FC<ForceQuitConfirmationModalProps> = ({
@@ -23,21 +24,25 @@ const ForceQuitConfirmationModal: React.FC<ForceQuitConfirmationModalProps> = ({
   onConfirm,
   locationName,
   isLoading = false,
+  personasDentro
 }) => {
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
       <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
         <div className="bg-gradient-to-br from-red-600 to-red-700 p-8 flex flex-col items-center justify-center text-white relative">
           <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(circle_at_30%_30%,#fff_0%,transparent_70%)] pointer-events-none" />
-          <div className="bg-white/20 p-4 rounded-full mb-4 backdrop-blur-sm border border-white/30 animate-in zoom-in-50 duration-500">
+          <div className="bg-white/20 p-4 rounded-full mb-4 backdrop-blur-sm border border-white/30 animate-in zoom-in-50 duration-500 relative">
             <Users className="w-12 h-12 text-white" />
+            <div className="absolute -top-1 -right-1 bg-white text-red-600 text-xs font-bold px-2 py-1 rounded-full shadow-sm">
+              {personasDentro}
+            </div>
           </div>
           <DialogHeader className="space-y-1">
             <DialogTitle className="text-3xl font-extrabold text-center tracking-tight text-white">
               Salida Masiva
             </DialogTitle>
             <DialogDescription className="text-red-100 text-center font-medium opacity-90">
-              Se marcara salida a todas las personas que se encuentren dentro de la ubicacion seleccionada en los filtros.
+              Se marcará salida a las <span className="font-bold text-white underline decoration-2 underline-offset-4">{personasDentro} personas</span> que se encuentran dentro de la ubicación seleccionada.
             </DialogDescription>
           </DialogHeader>
         </div>

@@ -51,11 +51,12 @@ interface ListProps {
 	ubicacionSeleccionada: string;
 	printPase: (paseId:string) => void;
 	setPaseIdSeleccionado : React.Dispatch<React.SetStateAction<string>>;
+	personasDentro: number;
 }
 
 
 const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter, 
-	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada , printPase, setPaseIdSeleccionado}) => {
+	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada , printPase, setPaseIdSeleccionado, personasDentro}) => {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[]
@@ -232,6 +233,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 					open={modalForceQuitAbierto}
 					locationName={ubicacionSeleccionada}
 					isLoading={isForcingQuit}
+					personasDentro={personasDentro}
 					onClose={() => setModalForceQuitAbierto(false)}
 					onConfirm={async () => {
 						setIsForcingQuit(true);
