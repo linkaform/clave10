@@ -281,6 +281,16 @@ const PaseUpdate = () =>{
 		const record_id = dataCatalogos?.pass_selected?._id;
 		const userJwt = localStorage.getItem("access_token");
 
+		toast.info("En mantenimiento...", {
+			style: {
+				background: "#000",
+				color: "#fff",
+				border: 'none'
+			},
+		});
+		toast.dismiss();
+		return;
+
 		toast.loading("Obteniendo tu pase...", {
 			style: {
 				background: "#000",

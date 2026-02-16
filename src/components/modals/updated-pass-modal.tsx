@@ -58,6 +58,7 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 }) => {
 	console.log('==========1', updateResponse)
 	const [enviarCorreo, setEnviarCorreo] = useState<string[]>([]);
+	const [urlGooglePass, setUrlGooglePass] = useState<string>("");
 	const { createSendCorreoSms, isLoadingCorreo} = useSendCorreoSms();
 	const [enablePdf, setEnablePdf] = useState(false)
 	const [smsSent, setSmsSent] = useState(false);
@@ -88,6 +89,10 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 	
 	const handleClickGoogleButton = async () => {
 		const record_id = updateResponse?.json?.id;
+		if (urlGooglePass) {
+			window.open(urlGooglePass, '_blank');
+			return;
+		}
 		if (!record_id) {
 			toast.error('No hay pase disponible', {
 				style: {
@@ -109,6 +114,7 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 			const data = await getGoogleWalletPassUrl(record_id);
 			const url = data?.response?.data?.google_wallet_url || "";
 			if (url) {
+				setUrlGooglePass(url);
 				window.open(url, '_blank');
 			} else {
 				toast.error('No hay pase disponible', {
@@ -136,6 +142,16 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 	const handleClickAppleButton = async () => {
 		const record_id = passData?.pass_selected?._id;
 		const userJwt = localStorage.getItem("access_token");
+
+		toast.info("En mantenimiento...", {
+			style: {
+				background: "#000",
+				color: "#fff",
+				border: 'none'
+			},
+		});
+		toast.dismiss();
+		return;
 
 		toast.loading("Obteniendo tu pase...", {
 			style: {
