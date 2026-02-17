@@ -152,7 +152,6 @@ import { useBoothStore } from "@/store/useBoothStore";
 	const [ubicacionSeleccionada,setUbicacionSeleccionada] = useState("")
 	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingAreas:loadingCatAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, location?true:false);
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted??[]);
-	console.log("QUIE PASA",ubicacionesDefaultFormatted)
 	const pickerRef = useRef<any>(null);
 	const { assets,assetsLoading} = useSearchPass(true);
 	const assetsUnique= uniqueArray(assets?.Visita_a)
@@ -381,6 +380,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 			message: "Selecciona al menos una ubicación"
 			});
 		}
+		console.log("DATA", data, date)
 		const formattedData = {
 			created_from:"web",
 			selected_visita_a: data.selected_visita_a,
@@ -407,8 +407,8 @@ import { useBoothStore } from "@/store/useBoothStore";
 			fechaFija: date !=="" ? formatDateToString(date):"",
 			fecha_desde_visita: tipoVisita === "fecha_fija"? 
 				(date !=="" ? formatDateToString(date): "") : 
-				(data.fecha_desde_visita !== "" ? formatFecha(data.fecha_desde_visita)+` 00:00:00`: ""),
-			fecha_desde_hasta: data.fecha_desde_hasta !=="" ? formatFecha(data.fecha_desde_hasta)+` 00:00:00` : "",
+				(data.fecha_desde_visita !== "" ? formatFecha(data.fecha_desde_visita)+` 23:59:00`: ""),
+			fecha_desde_hasta: data.fecha_desde_hasta !=="" ? formatFecha(data.fecha_desde_hasta)+` 23:59:00` : "",
 			config_dia_de_acceso: config_dia_de_acceso === "limitar_días_de_acceso" ? config_dia_de_acceso : "cualquier_día",
 			config_dias_acceso: config_dias_acceso,
 			config_limitar_acceso: Number(data.config_limitar_acceso) || 0,

@@ -93,21 +93,26 @@ export const useSearchPass = (enable:boolean, cat?:string) => {
 
 
 
-  const { data: assets , isLoading:assetsLoading} = useQuery<any>({
-    queryKey: ["getAssetsAccess",cat],
-    enabled:!!location&&enable,
+  const { data: assets, isLoading: assetsLoading } = useQuery<any>({
+    queryKey: ["getAssetsAccess", cat],
+    enabled: !!location && enable,
     queryFn: async () => {
-    console.log("location HOO", location)
-
-      const data = await getAccessAssets(location??"",cat)
-      return data.response?.data || {}
+        const cached = localStorage.getItem(`assets_${location}`);
+        if (cached) {
+            return JSON.parse(cached);
+        }
+        
+        const data = await getAccessAssets(location ?? "", cat)
+        const result = data.response?.data || {}
+        localStorage.setItem(`assets_${location}`, JSON.stringify(result));
+        return result;
     },
-    // refetchOnWindowFocus: false,
-    // refetchInterval: 60000,
-    // refetchOnReconnect: true,
-    // staleTime: 1000 * 60 * 5,
-  })
-
+    staleTime: Infinity,        
+    gcTime: Infinity,           
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,  
+    refetchOnMount: false,
+});
 
   const exitRegisterAccess = useMutation({
     mutationFn: async () => {

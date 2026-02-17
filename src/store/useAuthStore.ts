@@ -57,8 +57,6 @@ const useAuthStore = create<AuthState>((set) => {
 
     logout: (queryClient?: any) => {
       window.location.href = '/auth/login';
-      
-      // Elimina los valores de localStorage
       localStorage.removeItem("access_token");
       localStorage.removeItem("user_id");
       if (queryClient) {
@@ -76,8 +74,6 @@ const useAuthStore = create<AuthState>((set) => {
       useMenuStore.getState().clearMenu();
       useGuardSelectionStore.getState().clearSelectedGuards();
       useShiftStore.getState().clearShift();
-
-      // Restablece el estado
       localStorage.clear();
     },
   };

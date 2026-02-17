@@ -232,14 +232,25 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
                             </div>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row justify-between gap-4">
-                            <div className="w-full flex gap-2">
-                                <p className="font-bold whitespace-nowrap">Ubicación:</p>
-                                <p className="w-full break-words">
-                                    {dataCatalogos?.ubicacion}
-                                </p>
-                            </div>
-                        </div>
+                        <div className="w-full flex gap-2">
+						<p className="font-bold whitespace-nowrap">Ubicación:</p>
+						<div className="relative group w-full break-words">
+							{dataCatalogos?.ubicacion[0]}
+							{dataCatalogos?.ubicacion.length > 1 && (
+							<span className="text-blue-600 cursor-pointer ml-1 underline relative">
+								+{dataCatalogos?.ubicacion.length - 1}
+								{/* Tooltip container */}
+								<div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
+								{Array.isArray(dataCatalogos?.ubicacion) && dataCatalogos?.ubicacion.length > 1 && (
+									dataCatalogos?.ubicacion.slice(1).map((ubic:string, idx:number) => (
+										<div key={idx}>{ubic}</div>
+									))
+									)}
+								</div>
+							</span>
+							)}
+						</div>
+						</div>
 
                         <div className="flex justify-between gap-3">
                         {showIneIden?.includes("foto") && 

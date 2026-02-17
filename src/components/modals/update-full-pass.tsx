@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
-import { formatDateToString } from "@/lib/utils";
+import { formatDateToString, uniqueArray } from "@/lib/utils";
 import { useGetConfSeguridad } from "@/hooks/useGetConfSeguridad";
 import AreasList from "@/components/areas-list";
 import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
@@ -32,6 +32,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { EntryPassModalUpdate } from "./add-pass-modal-update";
 import Multiselect from "multiselect-react-dropdown";
 import { useBoothStore } from "@/store/useBoothStore";
+import { useSearchPass } from "@/hooks/useSearchPass";
 
  const linkSchema = z.object({
 	link: z.string().url({ message: "Por favor, ingresa una URL válida." }), 
@@ -79,7 +80,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 		descripcion: z.string().optional(),
 		perfil_pase: z.string().min(1),
 		status_pase:z.string().min(1),
-		visita_a: z.string().min(1),
+		visita_a: z.string().nullable().optional(),
 		custom: z.boolean().optional(),
 		link: linkSchema,
 		enviar_correo_pre_registro:z.array(z.string()).optional(),
@@ -197,6 +198,15 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	const [date, setDate] = React.useState<Date| "">(dataPass.tipo_visita_pase=="fecha_fija" ?
 				new Date(dataPass.fecha_desde_visita): new Date(dataPass.fecha_desde_visita));
 
+	const { assets} = useSearchPass(true);
+	const assetsUnique= uniqueArray(assets?.Visita_a)
+	assetsUnique.unshift("Usuario Actual");
+	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{name:dataPass?.visita_a?.nombre,label:dataPass?.visita_a?.nombre}]);
+
+	const visitaAFormatted = (assetsUnique || [])
+		.filter((u: any) => u !== null && u !== undefined)
+		.map((u: any) => ({ id: u, name: u }));
+
 	const [fechaDesde, setFechaDesde] = useState<string>('');
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
@@ -302,6 +312,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 
 
 	const onSubmit = (data: z.infer<typeof formSchema>) => {
+		console.log("PRUEBAS DE EDICION", data)
 		const formattedData = {
 			_id: dataPass._id,
 			folio: dataPass.folio,
@@ -313,7 +324,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			descripcion:data.descripcion||"",
 			perfil_pase: dataPass.perfil_pase||"",
 			status_pase:data.status_pase||"",
-			visita_a: data?.visita_a ||"",
+			visita_a: visitaASeleccionadas?.map(u => u.name) ?? [],
 			custom: true,
 			link:{
 				link : dataPass.link.link,
@@ -440,6 +451,28 @@ return (
 				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 					
+					<FormField
+						control={form.control}
+						name="visita_a"
+						render={() => (
+							<FormItem>
+							<FormLabel>
+								<span className="text-red-500">*</span> Visita a:
+							</FormLabel>
+
+							<Multiselect
+								options={visitaAFormatted ?? []}
+								selectedValues={visitaASeleccionadas}
+								onSelect={setVisitaASeleccionadas}
+								onRemove={setVisitaASeleccionadas}
+								displayValue="name"
+							/>
+
+							<FormMessage />
+							</FormItem>
+						)}
+						/>
+
 						<FormField
 							control={form.control}
 							name="nombre"
