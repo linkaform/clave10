@@ -80,7 +80,7 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
               });
             });
             setOpenGeneratedPass(false);
-            // router.push(`/dashboard/pases`);
+            router.push(`/dashboard/pases`);
             // window.open(link, "_blank");
           }}
         >

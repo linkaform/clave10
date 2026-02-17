@@ -201,11 +201,13 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	const { assets} = useSearchPass(true);
 	const assetsUnique= uniqueArray(assets?.Visita_a)
 	assetsUnique.unshift("Usuario Actual");
-	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{name:dataPass?.visita_a?.nombre,label:dataPass?.visita_a?.nombre}]);
 
 	const visitaAFormatted = (assetsUnique || [])
 		.filter((u: any) => u !== null && u !== undefined)
 		.map((u: any) => ({ id: u, name: u }));
+
+	console.log("VISITAA",dataPass?.visita_a )
+	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{id:dataPass?.visita_a?.nombre,name:dataPass?.visita_a?.nombre}]);
 
 	const [fechaDesde, setFechaDesde] = useState<string>('');
 	const form = useForm<z.infer<typeof formSchema>>({

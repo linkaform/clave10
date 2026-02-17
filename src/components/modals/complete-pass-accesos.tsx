@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { uniqueArray } from "@/lib/utils";
 import { useSearchPass } from "@/hooks/useSearchPass";
+import { AccessPass } from "@/lib/access";
 
 interface Props {
   title: string;
@@ -82,8 +83,13 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
 	const visitaAFormatted = (assetsUnique || [])
 	.filter((u: any) => u !== null && u !== undefined)
 	.map((u: any) => ({ id: u, name: u }));
-    console.log("visitaAFormatted",visitaAFormatted)
-	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{id:"Usuario Actual",name:"Usuario Actual"}]);
+
+    const visitaDataFormateada = (dataCatalogos?.visita_a || []).map((item: any) => ({
+        id: item.nombre,
+        name: item.nombre
+      }));
+      
+	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>(visitaDataFormateada.length>0 ? visitaDataFormateada : [{id:"Usuario Actual",name:"Usuario Actual"}]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -105,44 +111,83 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
         };
 
     function onSubmit(data: z.infer<typeof formSchema>) {
-        console.log("SELECCIONADOS", visitaASeleccionadas)
-        const access_pass = {
-            grupo_vehiculos: vehicles,
-            grupo_equipos: equipos,
-            status_pase: "activo",
-            walkin_fotografia:fotografia,
-            walkin_identificacion:identificacion,
-            folio: dataCatalogos._id,
-            account_id: userIdSoter,
-            nombre: dataCatalogos?.nombre||"",
-            ubicacion: dataCatalogos?.ubicacion||"",
-            email: dataCatalogos?.email||"",
-            telefono:dataCatalogos?.telefono||"",
-            visita_a: visitaASeleccionadas.map((item: any) => item.id)
+        const access_pass:any = {};
 
-        };
-        if (showIneIden?.includes("foto") && fotografia.length<=0) {
-            setErrorFotografia("Este campo es requerido.");
-        }else{
-            setErrorFotografia("-")
+        if (vehicles?.length > 0) {
+            access_pass.grupo_vehiculos = vehicles;
+        }
+    
+        if (equipos?.length > 0) {
+            access_pass.grupo_equipos = equipos;
+        }
+    
+        if (fotografia?.length > 0) {
+            access_pass.walkin_fotografia = fotografia;
+        }
+    
+        if (identificacion?.length > 0) {
+            access_pass.walkin_identificacion = identificacion;
         }
 
-        if (showIneIden?.includes("iden") && identificacion.length<=0) {
-                setErrorIdentificacion("Este campo es requerido.")
-        }else{
-            setErrorIdentificacion("-")
+        const originalIds = visitaDataFormateada
+        .map((v: { id: any }) => v.id)
+        .sort();
+      
+        const currentIds = visitaASeleccionadas
+            .map((v: any) => v.id)
+            .sort();
+        
+        const isSame =
+            JSON.stringify(originalIds) === JSON.stringify(currentIds);
+        
+        if (!isSame) {
+            access_pass.visita_a = currentIds;
         }
-        if(errorFotografia || errorIdentificacion){
-            toast.error("Faltan campos llenar")
-        }else{
-            updatePassMutation.mutate({access_pass, id:dataCatalogos._id, account_id:userIdSoter},{
-                onSuccess() {
-                    setOpenModal(false)
-                },
-            })
+        
+            
+        const originalFotos = dataCatalogos?.walkin_fotografia || [];
+        const originalIdentificacion = dataCatalogos?.walkin_identificacion || [];
+        let hasError=false;
+        if (showIneIden?.includes("foto")) {
+            const noHayOriginal = originalFotos.length === 0;
+            const noSubioNueva = fotografia.length === 0;
+          
+            if (noHayOriginal && noSubioNueva) {
+                setErrorFotografia("Este campo es requerido.");
+                hasError = true;
+            } else {
+                setErrorFotografia("");
+            }
+          }
+          
+        if (showIneIden?.includes("iden")) {
+            const noHayOriginal = originalIdentificacion.length === 0;
+            const noSubioNueva = identificacion.length === 0;
+            
+            if (noHayOriginal && noSubioNueva) {
+                setErrorIdentificacion("Este campo es requerido.");
+                hasError = true;
+            } else {
+                setErrorIdentificacion("");
+            }
         }
-        // updatePassMutation.mutate({access_pass, id, account_id:userIdSoter})
-        //   registerNewVisit.mutate({ location, access_pass });
+        if (Object.keys(access_pass).length === 0) {
+            toast.warning("No se modificaron datos", {
+                style: {
+                    background: "#FEF3C7", 
+                    color: "#92400E"
+                }
+            });
+        
+            setOpenModal(false);
+            return;
+        }
+        
+        updatePassMutation.mutate({access_pass, id:dataCatalogos._id, account_id:userIdSoter},{
+            onSuccess: () => {
+                setOpenModal(false);
+            }
+        })
     }
 
     useEffect(()=>{
@@ -157,16 +202,6 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
     const handleRemoveEq = (index: number) => {
         setEquipos((prev) => prev.filter((_, i) => i !== index))
     }
-
-
-
-    useEffect(()=>{
-		if (errorFotografia === "-" && errorIdentificacion === "-") {
-			setOpenModal(true); 
-	} else {
-            setOpenModal(false); 
-	}
-	},[errorFotografia,errorIdentificacion ])
 
 
     return (
@@ -253,8 +288,7 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
 						</div>
 
                         <div className="flex justify-between gap-3">
-                        {showIneIden?.includes("foto") && 
-                        (!dataCatalogos?.foto || dataCatalogos.foto.length === 0) &&
+                        {showIneIden?.includes("foto") &&
                             <div className="w-full md:w-1/2 pr-2">
                                 <LoadImage
                                     id="fotografia"
@@ -271,7 +305,6 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
                         }
 
                         {showIneIden?.includes("iden") && 
-                        (!dataCatalogos?.identificacion || dataCatalogos.identificacion.length === 0) && 
                             <div className="w-full md:w-1/2">
                                 <LoadImage
                                     id="identificacion"
