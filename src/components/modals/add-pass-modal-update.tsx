@@ -48,6 +48,10 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
   const account_id = userIdSoter;
   const { updatePaseEntradaFullMutation, responseCreatePase, isLoading} = usePaseEntrada(dataPass?.ubicacion??"")
   const [hostPro, setHostPro] = useState({ protocol: '', host: '' });
+	const telefonoFormateado = dataPass?.telefono?.startsWith("+")
+	? dataPass?.telefono
+	: `+52${dataPass?.telefono}`;
+
 
 	useEffect(() => {
 	  if (typeof window !== "undefined") {
@@ -84,13 +88,13 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
         ];
 
 
-
+  console.log("FORMAT DATA", dataPass?.telefono)
   const onSubmitEdit = async () => {
     const accessPassData = {
       created_from:"web",
       nombre_pase: dataPass.nombre,
       email_pase: dataPass.email,
-      telefono_pase: dataPass.telefono,
+      telefono_pase: telefonoFormateado,
       ubicacion: dataPass.ubicacion,
       tema_cita: dataPass.tema_cita,
       descripcion: dataPass.descripcion,

@@ -60,7 +60,7 @@ export const OptionsCell: React.FC<{ row: any,onEditarClick: (pase: any) => void
     descripcion: rowData.descripcion,
     perfil_pase: rowData.tipo_de_pase,
     status_pase: rowData.estatus,
-    visita_a: rowData.visita_a[0]||[{}],
+    visita_a: rowData.visita_a||[],
     custom: false,
     link: {
       link: rowData.link,

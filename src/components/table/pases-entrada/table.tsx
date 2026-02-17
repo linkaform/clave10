@@ -57,7 +57,48 @@ const PasesEntradaTable:React.FC<ListProps> = ({ isLoading, pases, onSearch})=>{
 
 
     const handleEditar = (pase: any) => {
-      setPaseSeleccionado(pase);
+      const telefonoLimpio = (() => {
+        if (!pase.telefono) return "";
+    
+        const soloNumeros = pase.telefono.replace(/\D/g, "");
+    
+        if (soloNumeros.startsWith("52")) {
+          return `+${soloNumeros}`;
+        }
+    
+        return `+52${soloNumeros}`;
+      })();
+    
+        const visitaALimpia = Array.isArray(pase.visita_a)
+        ? pase.visita_a
+            .filter((v: any) => {
+              if (!v) return false;
+              if (typeof v === "string") return true;
+              if (typeof v === "object" && v.nombre) return true;
+              return false;
+            })
+            .map((v: any) => {
+              const nombre = typeof v === "string" ? v : v.nombre;
+              return {
+                id: nombre,
+                name: nombre,
+              };
+            })
+        : [];
+
+      console.log("visitaALimpia", visitaALimpia)
+      const ubicacionLimpia = Array.isArray(pase.ubicacion)
+        ? pase.ubicacion.filter(Boolean)
+        : [];
+    
+      const paseLimpio = {
+        ...pase,
+        telefono: telefonoLimpio,
+        visita_a: visitaALimpia,
+        ubicacion: ubicacionLimpia,
+      };
+    
+      setPaseSeleccionado(paseLimpio);
       setModalEditarAbierto(true);
     };
  
