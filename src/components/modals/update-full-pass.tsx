@@ -64,6 +64,7 @@ const areasSchema = z.array(
 
 const formSchema = z
 	.object({
+		created_from:z.string().optional(),
 		nombre: z.string().min(2, {
 			message: "Por favor, ingresa un tu nombre completo",
 		}),
@@ -256,6 +257,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
+			created_from:"web",
 			nombre: dataPass.nombre,
 			email: dataPass.email || "",
 			telefono: dataPass.telefono || "",
@@ -514,7 +516,9 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 													selectedValues={visitaASeleccionadas}
 													onSelect={setVisitaASeleccionadas}
 													onRemove={setVisitaASeleccionadas}
-													displayValue="name" 
+													displayValue="name"   
+													closeOnSelect={true}
+													avoidHighlightFirstOption
 												/>
 
 												<FormMessage />

@@ -341,7 +341,7 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
       
       ):null}
       
-      <Button className="w-full h-12  bg-blue-500 hover:bg-blue-600 text-white" onClick={onSubmitEdit}>
+      <Button className="w-full h-12  bg-blue-500 hover:bg-blue-600 text-white" onClick={onSubmitEdit} disabled={isLoading}> 
             { !isLoading ? (<>
               {("Editar pase")}
             </>) :(<> <Loader2 className="animate-spin"/> {"Actualizando pase..."} </>)}
