@@ -407,7 +407,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 			fechaFija: date !=="" ? formatDateToString(date):"",
 			fecha_desde_visita: tipoVisita === "fecha_fija"? 
 				(date !=="" ? formatDateToString(date): "") : 
-				(data.fecha_desde_visita !== "" ? formatFecha(data.fecha_desde_visita)+` 23:59:00`: ""),
+				(data.fecha_desde_visita !== "" ? formatFecha(data.fecha_desde_visita)+` 00:00:00`: ""),
 			fecha_desde_hasta: data.fecha_desde_hasta !=="" ? formatFecha(data.fecha_desde_hasta)+` 23:59:00` : "",
 			config_dia_de_acceso: config_dia_de_acceso === "limitar_días_de_acceso" ? config_dia_de_acceso : "cualquier_día",
 			config_dias_acceso: config_dias_acceso,

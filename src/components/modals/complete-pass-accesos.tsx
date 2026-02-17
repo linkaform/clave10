@@ -89,6 +89,7 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
         name: item.nombre
       }));
       
+    
 	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>(visitaDataFormateada.length>0 ? visitaDataFormateada : [{id:"Usuario Actual",name:"Usuario Actual"}]);
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -101,6 +102,11 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
         visita_a:[]
         },
     });
+
+    useEffect(()=>{
+        setErrorFotografia("")
+        setErrorIdentificacion("")
+      },[])
 
     const handleCheckboxChange = (name:string) => {
         if (name === "agregar-equipos") {
@@ -149,28 +155,27 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
         const originalIdentificacion = dataCatalogos?.walkin_identificacion || [];
         let hasError=false;
         if (showIneIden?.includes("foto")) {
-            const noHayOriginal = originalFotos.length === 0;
-            const noSubioNueva = fotografia.length === 0;
-          
-            if (noHayOriginal && noSubioNueva) {
+            const originalEstaVacio = !originalFotos || originalFotos.length === 0;
+        
+            if (originalEstaVacio && fotografia.length === 0) {
                 setErrorFotografia("Este campo es requerido.");
                 hasError = true;
             } else {
                 setErrorFotografia("");
             }
-          }
-          
+        }
+        
         if (showIneIden?.includes("iden")) {
-            const noHayOriginal = originalIdentificacion.length === 0;
-            const noSubioNueva = identificacion.length === 0;
-            
-            if (noHayOriginal && noSubioNueva) {
+            const originalEstaVacio = !originalIdentificacion || originalIdentificacion.length === 0;
+        
+            if (originalEstaVacio && identificacion.length === 0) {
                 setErrorIdentificacion("Este campo es requerido.");
                 hasError = true;
             } else {
                 setErrorIdentificacion("");
             }
         }
+
         if (Object.keys(access_pass).length === 0) {
             toast.warning("No se modificaron datos", {
                 style: {
@@ -189,11 +194,6 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
             }
         })
     }
-
-    useEffect(()=>{
-        console.log("errores", form.formState.errors)
-    },[form.formState.errors])
-
 
     const handleRemove = (index: number) => {
         setVehicles((prev) => prev.filter((_, i) => i !== index))
