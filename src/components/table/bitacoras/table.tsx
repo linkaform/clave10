@@ -49,14 +49,15 @@ interface ListProps {
 	Filter: () => void;
 	isPersonasDentro: boolean;
 	ubicacionSeleccionada: string;
-	printPase: (paseId:string) => void;
-	setPaseIdSeleccionado : React.Dispatch<React.SetStateAction<string>>;
+	printPase: (paseId: string) => void;
+	setPaseIdSeleccionado: React.Dispatch<React.SetStateAction<string>>;
 	personasDentro: number;
+	refreshData: () => Promise<void>;
 }
 
 
-const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter, 
-	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada , printPase, setPaseIdSeleccionado, personasDentro}) => {
+const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter,
+	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada, printPase, setPaseIdSeleccionado, personasDentro, refreshData }) => {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[]
@@ -78,7 +79,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 		pageSize: 23,
 	});
 
-	const printPaseFn=(id:string)=>{
+	const printPaseFn = (id: string) => {
 		console.log("ID PARA IMPRESIOND E PASE", id)
 		setPaseIdSeleccionado(id)
 		printPase(id);
@@ -242,6 +243,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 							const msg = data?.response?.data?.json?.msg;
 							setModalForceQuitAbierto(false);
 							toast.success(msg);
+							await refreshData();
 						} catch (error) {
 							toast.error("Error al registrar salida masiva, contacta soporte.");
 							console.error(error);
