@@ -488,6 +488,7 @@ return (
 			isSuccess={isSuccess}
 			setIsSuccess={setIsSuccess}
 			onClose={closeModal}
+			from={"pase"}
 		/>
 
 		<div className="flex flex-col space-y-5 max-w-3xl mx-auto">

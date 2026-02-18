@@ -59,7 +59,7 @@ interface EntryPassUpdateModalProps {
   isSuccess: boolean;
   setIsSuccess: Dispatch<SetStateAction<boolean>>;
   onClose: ()=> void;
- 
+  from:string
 }
 
 export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
@@ -68,6 +68,7 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
   isSuccess,
   setIsSuccess,
   onClose,
+  from
 }) => {
   const items =
   dataPass?.tipo_visita_pase === "fecha_fija"
@@ -345,7 +346,8 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 				link={link}
 				openGeneratedPass={openGeneratedPass}
 				setOpenGeneratedPass={setOpenGeneratedPass} 
-				modalConfirmacion={setIsSuccess}/>
+				from={from}
+				/>
 				
 			):null}
 			

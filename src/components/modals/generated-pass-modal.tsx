@@ -11,7 +11,7 @@ interface GeneratedPassModalProps {
   link: string;
   openGeneratedPass: boolean;
   setOpenGeneratedPass: Dispatch<SetStateAction<boolean>>;
-  modalConfirmacion:Dispatch<SetStateAction<boolean>>;
+  from:string
 }
 
 export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
@@ -20,7 +20,7 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
   link,
   openGeneratedPass,
   setOpenGeneratedPass,
-  modalConfirmacion
+  from=""
 }) => {
   const router = useRouter();
 
@@ -80,9 +80,13 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
               });
             });
             setOpenGeneratedPass(false);
-            window.location.reload();
-            router.push(`/dashboard/pases`);
-            // window.open(link, "_blank");
+            if(from=="historial"){
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            }else{
+              router.push(`/dashboard/pases`);
+            }
           }}
         >
           <Copy className="mr-2" />

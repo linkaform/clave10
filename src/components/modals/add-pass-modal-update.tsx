@@ -27,6 +27,7 @@ interface EntryPassModalUpdateProps {
   onClose: ()=> void;
   id:string;
   folio:string;
+  from:string
 }
 
 export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
@@ -37,6 +38,7 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
   onClose,
   id,
   folio,
+  from
 }) => {
   const {userEmailSoter , userIdSoter}= useAuthStore()
   const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
@@ -92,6 +94,7 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
       created_from:"web",
       nombre_pase: dataPass.nombre,
       email_pase: dataPass.email,
+      empresa_pase: dataPass.empresa??"",
       telefono_pase: telefonoFormateado,
       ubicacion: dataPass.ubicacion,
       tema_cita: dataPass.tema_cita,
@@ -335,7 +338,7 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
               link={link}
               openGeneratedPass={openGeneratedPass}
               setOpenGeneratedPass={setOpenGeneratedPass}
-              modalConfirmacion={setIsSuccess}/>
+              from={from}/>
       
       ):null}
       
