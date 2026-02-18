@@ -52,7 +52,6 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
 	? dataPass?.telefono
 	: `+52${dataPass?.telefono}`;
 
-
 	useEffect(() => {
 	  if (typeof window !== "undefined") {
 		const protocol = window.location.protocol;
@@ -88,7 +87,6 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
         ];
 
 
-  console.log("FORMAT DATA", dataPass?.telefono)
   const onSubmitEdit = async () => {
     const accessPassData = {
       created_from:"web",

@@ -80,6 +80,7 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
               });
             });
             setOpenGeneratedPass(false);
+            window.location.reload();
             router.push(`/dashboard/pases`);
             // window.open(link, "_blank");
           }}
@@ -90,7 +91,7 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
         <Button
         variant="outline"
         className="text-gray-700 bg-gray-100 hover:bg-gray-200"
-        onClick={() => { router.push(`/dashboard/pases`);}}
+        onClick={() => {window.location.reload(); router.push(`/dashboard/pases`);}}
       >
         Cerrar
       </Button>

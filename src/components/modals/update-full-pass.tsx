@@ -155,7 +155,6 @@ interface AreaAcceso {
 
 
 const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, setModalEditarAbierto, modalEditarAbierto }) => {
-	console.log("DATAPASS", dataPass.ubicacion)
 	const { location } = useBoothStore()
 	const [tipoVisita, setTipoVisita] = useState(dataPass.tipo_visita_pase || "fecha_fija");
 	const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>(dataPass.config_dias_acceso || []);
@@ -302,6 +301,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	useEffect(() => {
 		if (dataPass) {
 			setAreasList(areasFormateadas)
+			form.setValue("email", dataPass?.email);
 		}
 	}, [dataPass])
 
@@ -495,7 +495,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 					<div className="flex flex-col space-y-5 max-w-3xl mx-auto">
 
 						<div className="">
-							<p className="font-bold">Tipo de pase : <span className="font-normal" > {dataPass?.tipo_de_pase}</span></p>
+							<p className="font-bold">Tipo de pase : <span className="font-normal" > {dataPass?.perfil_pase}</span></p>
 						</div>
 
 						<Form {...form}>
@@ -558,9 +558,6 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 											</FormItem>
 										)}
 									/>
-								</div>
-
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 									<FormField
 										control={form.control}
 										name="email"
@@ -580,6 +577,10 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 											</FormItem>
 										)}
 									/>
+								</div>
+
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+									
 
 									<FormField
 										control={form.control}

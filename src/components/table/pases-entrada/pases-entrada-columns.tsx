@@ -54,6 +54,7 @@ export const OptionsCell: React.FC<{ row: any,onEditarClick: (pase: any) => void
     folio:rowData.folio,
     nombre: rowData.nombre,
     email: rowData.email,
+    empresa:rowData.empresa,
     telefono: rowData.telefono,
     ubicacion: rowData.ubicacion,
     tema_cita: rowData.tema_cita,
