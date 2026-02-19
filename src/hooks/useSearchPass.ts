@@ -1,5 +1,5 @@
 import { Imagen } from "@/components/upload-Image"
-import { AccessPass, addNewVisit, exitRegister, getAccessAssets, searchAccessPass } from "@/lib/access"
+import { addNewVisit, exitRegister, getAccessAssets, searchAccessPass } from "@/lib/access"
 import { Equipo, Vehiculo } from "@/lib/update-pass"
 import { errorMsj } from "@/lib/utils"
 import { useAccessStore } from "@/store/useAccessStore"
@@ -158,12 +158,8 @@ export const useSearchPass = (enable:boolean, cat?:string) => {
 
 
      const registerNewVisit = useMutation({
-      mutationFn: ({ location, access_pass }: { location: string; access_pass: AccessPass }) =>
-        addNewVisit(location, access_pass),
-    
-      onMutate: () => {
-        setLoading(true);
-      },
+      mutationFn: ({ location, access_pass }: { location: string; access_pass: any }) => addNewVisit(location, access_pass),
+      onMutate: () => { setLoading(true);},
       onSuccess: (response) => {
         const id = response?.response?.data?.json?.id;
     

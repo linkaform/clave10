@@ -207,7 +207,7 @@ export interface AccessPass {
 
 export const addNewVisit = async (
   location: string,
-  access_pass: AccessPass
+  access_pass: any
 ) => {
   const payload = {
     location,
@@ -222,8 +222,24 @@ export const addNewVisit = async (
       email: access_pass.email || "",
       telefono: access_pass.telefono || "",
       created_from:access_pass.created_from,
-      ubicaciones: access_pass.ubicaciones
-    },
+      ubicaciones: access_pass.ubicaciones,
+      tipo_visita_pase: access_pass.tipo_visita_pase || "rango_de_fechas",
+      fechaFija: access_pass.fechaFija || "",
+      fecha_desde_visita: access_pass.fechaFija !== ""
+      ? ""
+      : access_pass.fecha_desde_visita !== ""
+        ? access_pass.fecha_desde_visita + " 00:00:00"
+        : new Date().toISOString().split("T")[0] + " 00:00:00",
+    
+    fecha_desde_hasta: access_pass.fechaFija !== ""
+      ? ""
+      : access_pass.fecha_desde_hasta !== ""
+        ? access_pass.fecha_desde_hasta + " 23:59:00"
+        : new Date().toISOString().split("T")[0] + " 23:59:00",
+      config_dia_de_acceso: access_pass.config_dia_de_acceso || "cualquier_día",
+      config_dias_acceso: access_pass.config_dias_acceso || [],
+      config_limitar_acceso: access_pass.config_limitar_acceso || 0,
+      },
     option: "create_access_pass",
     script_name: "pase_de_acceso.py",
   };

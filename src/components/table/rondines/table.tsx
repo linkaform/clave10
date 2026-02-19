@@ -285,7 +285,7 @@ const RondinesTable:React.FC<ListProps> = ({ data, isLoading,
 				<div className="flex flex-wrap gap-2">
 				{activeTab !== "Bitacora" && (
 					<>
-					<AddRondinModal title="Crear Rondín" mode="create" folio={rondinSeleccionado?.folio}>
+					<AddRondinModal title="Crear Rondín" mode="create" folio={rondinSeleccionado?.folio} >
 						<Button className="w-full md:w-auto bg-blue-500 hover:bg-blue-600">
 						<Plus />
 						Crear Rondín

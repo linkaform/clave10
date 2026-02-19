@@ -827,26 +827,8 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 															setUbicacionSeleccionada(selectedOption?.value ?? ""); 
 														  }}
 														isClearable
-														// styles={{
-														// 	menuPortal: (base) => ({ ...base, zIndex: 9999 ,pointerEvents: "auto",}),
-														// }}
+														
 													/>
-													
-													{/* <Select 
-														placeholder="Ubicación"
-														className=" border border-slate-100 rounded-2xl"
-														options={ubicaciones && ubicaciones.length>0 ? formatForMultiselect(ubicaciones):[] }  
-														value={ubicacionSeleccionada}
-														onChange={(selectedOption) => {
-															field.onChange(selectedOption?.value ?? "");
-															setUbicacionSeleccionada(selectedOption?.value ?? ""); 
-														  }}
-														isClearable
-														menuPortalTarget={typeof window !== "undefined" ? document.body : null}
-														styles={{
-															menuPortal: (base) => ({ ...base, zIndex: 9999 ,pointerEvents: "auto",}),
-														}}
-														/> */}
 													<FormMessage />
 												</FormItem>
 											)}

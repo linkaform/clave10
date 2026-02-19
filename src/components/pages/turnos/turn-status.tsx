@@ -97,10 +97,10 @@ const TurnStatus = ({
 	
 	useEffect(()=>{
 		console.log("userNameSoter", userIdSoter,isUserActiveTurn)
-		if(shift?.guard?.start_turn_image.length>0 && isUserActiveTurn)
+		if(shift?.guard?.start_turn_image?.length>0 && isUserActiveTurn)
 			setEvidencia(shift?.guard?.start_turn_image)
 		if(shift?.guard?.end_turn_image  && isUserActiveTurn)
-			setIdentificacion(shift?.guard?.end_turn_image.length)
+			setIdentificacion(shift?.guard?.end_turn_image?.length)
 	
 	},[shift?.guard?.start_turn_image, shift?.guard?.end_turn_image, setEvidencia, setIdentificacion, shift?.booth_status?.guard_on_dutty, userIdSoter, shift?.guard?.user_id, isUserActiveTurn])
 

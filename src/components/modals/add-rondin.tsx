@@ -22,6 +22,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import MultiSelect from 'react-select';
 import DateTime from "../dateTime";
 import { Loader2 } from "lucide-react";
 import { useRondines } from "@/hooks/Rondines/useRondines";
@@ -30,10 +31,11 @@ import { format } from "date-fns";
 import Multiselect from "multiselect-react-dropdown";
 import { useEffect, useRef, useState } from "react";
 import { useCatalogAreasRondin } from "@/hooks/Rondines/useCatalogAreasRondin";
-import { capitalizeFirstLetter } from "@/lib/utils";
+import { capitalizeFirstLetter, formatForMultiselect, formatForSelectString } from "@/lib/utils";
 import { Switch } from "../ui/switch";
 import { useEditarRondin } from "@/hooks/Rondines/useEditarRondin";
 import { useBoothStore } from "@/store/useBoothStore";
+import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 
 interface AddRondinModalProps {
   	title: string;
@@ -126,14 +128,13 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 	mode="create",
 	rondinData,
 	rondinId,
-	folio=""
+	folio="",
 }) => {
     const [isSuccess, setIsSuccess] = useState(false);
 	const { location } = useBoothStore()
 	const [areasSeleccionadas, setAreasSeleccionadas] = useState<any[]>([]);
 	const { createRondinMutation, isLoading} = useRondines()
 	const { editarRondinMutation, isLoading:isLoadingEdit} = useEditarRondin()
-	const { data:catalogAreasRondin, isLoading:isLoadingAreas} = useCatalogAreasRondin(location??"", isSuccess)
 	const [date, setDate] = useState<Date|"">("");
 	const [que_dias_de_la_semana , set_que_dias_de_la_semana] =useState<string[]>([])
 	const [en_que_semana_sucede, set_en_que_semana_sucede] = useState<string>("");
@@ -143,8 +144,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 	const [esRepetirCada, setEsRepetirCada] = useState<boolean | null>(null);
 	const [mostrarFrecuencia, setMostrarFrecuencia] = useState(false);
 	const [noRecurrente, setNoRecurrente] = useState(false)
+	const[ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"")
+	const { dataLocations:ubicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, isSuccess,  location?true:false);
+	const { data:catalogAreasRondin, isLoading:isLoadingAreas} = useCatalogAreasRondin(ubicacionSeleccionada??"", isSuccess)
 
-	
 	const [dropdownOffset, setDropdownOffset] = useState({
 		distance: 40,
 		width: "100%",
@@ -586,6 +589,31 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 				<form onSubmit={(e)=>{e.stopPropagation();
 					 form.handleSubmit(onSubmit)();
 					 }} className="grid grid-cols-1 md:grid-cols-1 gap-5 ">
+
+
+					<FormField
+						control={form.control}
+						name="ubicacion"
+						render={({ field }:any) => (
+							<FormItem>
+								<FormLabel>Ubicación:</FormLabel>
+								<MultiSelect tabSelectsValue={false} blurInputOnSelect
+									placeholder="Ubicacion"
+									className="border border-slate-100 rounded-2xl"
+									value={formatForSelectString(ubicacionSeleccionada)}
+									options={ formatForMultiselect(ubicaciones)} 
+									onChange={(selectedOption) => {
+										field.onChange(selectedOption ? selectedOption.value :"");
+										setUbicacionSeleccionada(selectedOption?.value ?? ""); 
+										}}
+									isClearable
+									
+								/>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
 					<FormField
 						control={form.control}
 						name="nombre_rondin"
