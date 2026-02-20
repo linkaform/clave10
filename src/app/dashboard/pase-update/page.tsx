@@ -17,7 +17,7 @@ import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
 import LoadImage from "@/components/upload-Image";
-import { Car, Laptop, Loader2 } from "lucide-react";
+import { Car, Laptop, Loader2, X } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import Image from "next/image";
@@ -30,7 +30,7 @@ import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
 import { API_ENDPOINTS } from "@/config/api";
 import { getGoogleWalletPassUrl } from "@/lib/endpoints";
-
+import * as AccordionPrimitive from "@radix-ui/react-accordion";
 	const grupoEquipos = z.array(
 		z.object({
 			nombre: z.string().optional(),
@@ -509,277 +509,264 @@ return (
 				passData={dataCatalogos}
 			/>
 		{dataCatalogos?.pass_selected?.estatus == "proceso" ? (
-			<>
-			<div className="flex flex-col flex-wrap space-y-5 max-w-5xl mx-auto">
-				<div className="text-center">
-						<h1 className="font-bold text-2xl">Pase De Entrada</h1>
-				</div>
-				<div className="flex flex-col space-y-5">
-					{/* Nombre */}
-					<div className="flex flex-col sm:flex-row justify-between gap-4">
-						<div className="w-full flex gap-2">
-						<p className="font-bold whitespace-nowrap">Nombre:</p>
-						<p>{dataCatalogos?.pass_selected?.nombre}</p>
-						</div>
-					</div>
+		<div className="max-w-xl mx-auto px-4 py-6 space-y-6 pt-0">
 
-					{/* Email y Teléfono */}
-					<div className="flex flex-col sm:flex-row justify-between gap-4">
-						<div className="w-full flex gap-2">
-						<p className="font-bold whitespace-nowrap">Email:</p>
-						<p className="w-full break-words">{dataCatalogos?.pass_selected?.email}</p>
-						</div>
-					{dataCatalogos?.pass_selected?.telefono &&
-						<div className="w-full flex gap-2">
-						<p className="font-bold whitespace-nowrap">Teléfono:</p>
-						<p className="text-sm">{dataCatalogos?.pass_selected?.telefono}</p>
-						</div>
-					}
-					</div>
+			<h1 className="font-bold text-2xl text-center text-slate-800">Pase De Entrada</h1>
 
-					{/* Visita y Ubicación */}
-					<div className="flex flex-col sm:flex-row justify-between gap-4">
-						<div className="w-full flex gap-2">
-						<p className="font-bold whitespace-nowrap">Visita a:</p>
-						<p className="w-full break-words">
-							{dataCatalogos?.pass_selected?.visita_a?.[0]?.nombre || ""}
-						</p>
-						</div>
-
-						{/* <div className="w-full flex gap-2">
-						<p className="font-bold whitespace-nowrap">Ubicación:</p>
-						<p className="w-full break-words">
-							{dataCatalogos?.pass_selected?.ubicacion}
-						</p>
-						</div> */}
-
-						<div className="w-full flex gap-2">
-						<p className="font-bold whitespace-nowrap">Ubicación:</p>
-						<div className="relative group w-full break-words">
-							{dataCatalogos?.pass_selected?.ubicacion[0]}
-							{dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
-							<span className="text-blue-600 cursor-pointer ml-1 underline relative">
-								+{dataCatalogos?.pass_selected?.ubicacion.length - 1}
-								{/* Tooltip container */}
-								<div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
-								{Array.isArray(dataCatalogos?.pass_selected?.ubicacion) && dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
-									dataCatalogos?.pass_selected?.ubicacion.slice(1).map((ubic:string, idx:number) => (
-										<div key={idx}>{ubic}</div>
-									))
-									)}
-								</div>
-							</span>
-							)}
-						</div>
-						</div>
-
-					</div>
-					
-
-					<div className="flex flex-col sm:flex-row justify-between gap-3">
-						{showIneIden?.includes("foto")&& 
-							<div className="w-full md:w-1/2 pr-2">
-								<Controller
-									control={form.control}
-									name="walkin_fotografia"
-									render={({ field, fieldState }) => (
-									<div className="flex ">
-										<span className="text-red-500 mr-1">*</span>
-										<div className="felx flex-col">
-										<LoadImage
-											id="fotografia"
-											titulo={"Fotografía"}
-											showWebcamOption={true}
-											imgArray={field.value||[]} 
-											setImg={field.onChange} 
-											facingMode="user" 
-											showArray={true} 
-											limit={1}/>
-											{fieldState.error && <span className="block w-full text-red-500 text-sm mt-1">{fieldState.error.message}</span>}
-										</div>
-									</div>)
-								}/>
-							</div>
-							}
-							{showIneIden?.includes("iden")&& 
-							<div className="w-full flex md:w-1/2">
-								<Controller
-									control={form.control}
-									name="walkin_identificacion"
-									render={({ field, fieldState }) => (
-										<div className="flex ">
-											<span className="text-red-500 mr-1">*</span>
-											<div className="flex flex-col">
-												<LoadImage
-												id="identificacion"
-												titulo={"Identificación"}
-												imgArray={field.value||[]} 
-												setImg={field.onChange} 
-												showWebcamOption={true}
-												facingMode="environment" 
-												showArray={true} 
-												limit={1}/>
-												{fieldState.error && <span className="block w-full text-red-500 text-sm mt-1">{fieldState.error.message}</span>}
-											</div>
-										</div>)
-									}/>
-							</div> 
-							}
-					</div> 
-					<div className="flex flex-col gap-y-6">
-						<div>
-							<div className="flex items-center gap-x-10">
-							<span className="font-bold text-xl">Lista de Vehículos</span>
-							<VehicleLocalPassModal title="Nuevo Vehiculo" vehicles={vehicles} setVehiculos={setVehiculos} isAccesos={false} fetch={false}>
-								<button
-								type="button"
-								onClick={() => handleCheckboxChange("agregar-vehiculos")}
-								className="px-4 py-2 rounded-md transition-all duration-300 border-2 border-blue-400 bg-transparent hover:bg-slate-100"
-								>
-								<div className="flex items-center gap-2">
-									<div className="text-blue-600 sm:hidden text-xl font-bold">+</div>
-									<Car className="text-blue-600" />
-									<div className="text-blue-600 hidden sm:block">Agregar Vehículos</div>
-								</div>
-								</button>
-							</VehicleLocalPassModal>
-							</div>
-							<div className="mt-2 text-gray-600">
-								
-							<Accordion type="multiple" className="w-full">
-								{vehicles.map((vehiculo, index) => (
-									<AccordionItem key={index} value={`vehiculo-${index}`}>
-									<AccordionTrigger>
-										{vehiculo.tipo}
-									</AccordionTrigger>
-									<AccordionContent>
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 text-sm">
-										<p><strong>Tipo:</strong> {vehiculo.tipo}</p>
-										<p><strong>Marca:</strong> {vehiculo.marca}</p>
-										<p><strong>Modelo:</strong> {vehiculo.modelo}</p>
-										<p><strong>Placas:</strong> {vehiculo.placas}</p>
-										<p><strong>Estado:</strong> {vehiculo.estado}</p>
-										<p><strong>Color:</strong> {vehiculo.color}</p>
-										</div>
-							
-										<div className="flex justify-end px-4 pb-4">
-										<Button variant="destructive" size="sm" onClick={() => handleRemove(index)}>
-											Eliminar
-										</Button>
-										</div>
-									</AccordionContent>
-									</AccordionItem>
-								))}
-								{vehicles.length==0?(
-								<div>No se han agregado vehiculos.</div>):null}
-							</Accordion>
-							</div>
-						</div>
-
-						<div>
-							<div className="flex items-center gap-x-10">
-							<span className="font-bold text-xl">Lista de Equipos</span>
-							<EqipmentLocalPassModal title="Nuevo Equipo" equipos={equipos} setEquipos={setEquipos} isAccesos={false}>
-								<button
-								type="button"
-								onClick={() => handleCheckboxChange("agregar-equipos")}
-								className="px-4 py-2 rounded-md transition-all duration-300 border-2 border-blue-400 bg-transparent hover:bg-slate-100"
-								>
-								<div className="flex items-center gap-2">
-									<div className="text-blue-600 sm:hidden text-xl font-bold">+</div>
-									<Laptop className="text-blue-600" />
-									<div className="text-blue-600 hidden sm:block">Agregar Equipos</div>
-								</div>
-								</button>
-							</EqipmentLocalPassModal>
-							</div>
-
-							<div className="mt-2 text-gray-600">
-							<Accordion type="multiple" className="w-full">
-								{equipos.map((equipo, index) => (
-									<AccordionItem key={index} value={`equipo-${index}`}>
-									<AccordionTrigger>
-										{equipo.tipo}
-									</AccordionTrigger>
-									<AccordionContent>
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 text-sm">
-										<p><strong>Tipo:</strong> {equipo.tipo}</p>
-										<p><strong>Nombre:</strong> {equipo.nombre}</p>
-										<p><strong>Marca:</strong> {equipo.marca}</p>
-										<p><strong>Modelo:</strong> {equipo.modelo}</p>
-										<p><strong>No. Serie:</strong> {equipo.serie}</p>
-										<p><strong>Color:</strong> {equipo.color}</p>
-										</div>
-							
-										<div className="flex justify-end px-4 pb-4">
-										<Button variant="destructive" size="sm" onClick={() => handleRemoveEq(index)}>
-											Eliminar
-										</Button>
-										</div>
-									</AccordionContent>
-									</AccordionItem>
-								))}
-								{equipos.length==0?(
-								<div>No se han agregado equipos.</div>):null}
-							</Accordion>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				
-
-				<div className="flex items-center space-x-2 text-slate-500">
-					
-				</div>
-
-					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8"> 
-							<FormField
-								control={form.control}
-								name="acepto_aviso_privacidad"
-								render={({ field }) => (
-									<FormItem>
-									<FormControl>
-										<div className="flex items-center gap-2">
-										<Checkbox
-											checked={field.value}
-											onCheckedChange={field.onChange}
-											id="aviso"
-										/>
-										<Label htmlFor="aviso" className="text-sm text-slate-500">
-										<span className="text-red-500 mr-1">*</span> 
-											He leído y acepto el{" "}
-											<button
-											type="button"
-											onClick={() => setMostrarAviso(true)}
-											className="text-blue-600 underline hover:text-blue-800"
-											>
-											aviso de privacidad
-											</button>
-										</Label>
-										</div>
-									</FormControl>
-
-									<FormMessage />
-									</FormItem>
-								)}
-								/>
-
-							<div className="text-center mt-10 flex justify-center">
-								<Button
-									className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-1/2"
-									variant="secondary"
-									type="submit"
-								>
-									Siguiente
-								</Button>
-							</div>
-						</form>
-					</Form> 
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+			<div className="flex gap-2">
+				<p className="font-bold text-slate-800 whitespace-nowrap">Nombre:</p>
+				<p className="text-slate-800">{dataCatalogos?.pass_selected?.nombre}</p>
 			</div>
-			</>
-		): (<>
+
+			<div className="flex gap-2">
+				<p className="font-bold text-slate-800 whitespace-nowrap">Email:</p>
+				<p className="text-slate-800 break-words">{dataCatalogos?.pass_selected?.email}</p>
+			</div>
+
+			{dataCatalogos?.pass_selected?.telefono && (
+				<div className="flex gap-2">
+				<p className="font-bold text-slate-800 whitespace-nowrap">Teléfono:</p>
+				<p className="text-slate-800">{dataCatalogos?.pass_selected?.telefono}</p>
+				</div>
+			)}
+
+			<div className="flex gap-2">
+				<p className="font-bold text-slate-800 whitespace-nowrap">Visita a:</p>
+				<p className="text-slate-800 break-words">
+				{dataCatalogos?.pass_selected?.visita_a?.[0]?.nombre || ""}
+				</p>
+			</div>
+
+			<div className="flex gap-2">
+				<p className="font-bold text-slate-800 whitespace-nowrap">Ubicación:</p>
+				<div className="relative group break-words text-slate-800">
+				{dataCatalogos?.pass_selected?.ubicacion[0]}
+				{dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
+					<span className="text-blue-600 cursor-pointer ml-1 underline relative">
+					+{dataCatalogos?.pass_selected?.ubicacion.length - 1}
+					<div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
+						{dataCatalogos?.pass_selected?.ubicacion.slice(1).map((ubic: string, idx: number) => (
+						<div key={idx}>{ubic}</div>
+						))}
+					</div>
+					</span>
+				)}
+				</div>
+			</div>
+			</div>
+
+			<div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+			{showIneIden?.includes("foto") && (
+				<Controller
+				control={form.control}
+				name="walkin_fotografia"
+				render={({ field, fieldState }) => (
+					<div className="flex gap-1">
+					<span className="text-red-500 mt-1">*</span>
+					<div className="w-full">
+						<LoadImage
+						id="fotografia"
+						titulo={"Fotografía"}
+						showWebcamOption={true}
+						imgArray={field.value || []}
+						setImg={field.onChange}
+						facingMode="user"
+						showArray={true}
+						limit={1}
+						/>
+						{fieldState.error && (
+						<span className="text-red-500 text-xs mt-1 block">{fieldState.error.message}</span>
+						)}
+					</div>
+					</div>
+				)}
+				/>
+			)}
+
+			{showIneIden?.includes("iden") && (
+				<Controller
+				control={form.control}
+				name="walkin_identificacion"
+				render={({ field, fieldState }) => (
+					<div className="flex gap-1">
+					<span className="text-red-500 mt-1">*</span>
+					<div className="w-full">
+						<LoadImage
+						id="identificacion"
+						titulo={"Identificación"}
+						imgArray={field.value || []}
+						setImg={field.onChange}
+						showWebcamOption={true}
+						facingMode="environment"
+						showArray={true}
+						limit={1}
+						/>
+						{fieldState.error && (
+						<span className="text-red-500 text-xs mt-1 block">{fieldState.error.message}</span>
+						)}
+					</div>
+					</div>
+				)}
+				/>
+			)}
+			</div>
+
+			<div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+
+
+			<div className="space-y-2">
+				<div className="flex items-center justify-between">
+				<span className="font-semibold text-slate-700">Vehículos</span>
+				<VehicleLocalPassModal title="Nuevo Vehiculo" vehicles={vehicles} setVehiculos={setVehiculos} isAccesos={false} fetch={false}>
+					<button
+					type="button"
+					className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors"
+					>
+					<Car size={15} />
+					<span className="hidden sm:block">Agregar</span>
+					<span className="sm:hidden font-bold">+</span>
+					</button>
+				</VehicleLocalPassModal>
+				</div>
+
+				<Accordion type="multiple" className="w-full">
+				{vehicles.map((vehiculo, index) => (
+					<AccordionItem key={index} value={`vehiculo-${index}`}>
+					<AccordionTrigger className="text-sm">{vehiculo.tipo}</AccordionTrigger>
+					<AccordionContent>
+						<div className="grid grid-cols-2 gap-2 p-3 text-xs text-slate-600">
+						<p><strong>Tipo:</strong> {vehiculo.tipo}</p>
+						<p><strong>Marca:</strong> {vehiculo.marca}</p>
+						<p><strong>Modelo:</strong> {vehiculo.modelo}</p>
+						<p><strong>Placas:</strong> {vehiculo.placas}</p>
+						<p><strong>Estado:</strong> {vehiculo.estado}</p>
+						<p><strong>Color:</strong> {vehiculo.color}</p>
+						</div>
+						<div className="flex justify-end px-3 pb-2">
+						<Button variant="destructive" size="sm" onClick={() => handleRemove(index)}>
+							Eliminar
+						</Button>
+						</div>
+					</AccordionContent>
+					</AccordionItem>
+				))}
+				{vehicles.length === 0 && (
+					<p className="text-xs text-gray-400 py-2">No se han agregado vehículos.</p>
+				)}
+				</Accordion>
+			</div>
+
+			{/* Equipos */}
+			<div className="space-y-2">
+				<div className="flex items-center justify-between">
+					<span className="font-semibold text-slate-700">Equipos</span>
+					<EqipmentLocalPassModal title="Nuevo Equipo" equipos={equipos} setEquipos={setEquipos} isAccesos={false}>
+					<button
+						type="button"
+						className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors"
+					>
+						<Laptop size={15} />
+						<span className="hidden sm:block">Agregar</span>
+						<span className="sm:hidden font-bold">+</span>
+					</button>
+					</EqipmentLocalPassModal>
+				</div>
+				<Accordion type="multiple" className="w-full ">
+				{equipos.map((equipo, index) => (
+					<AccordionPrimitive.Item
+					key={index}
+					value={`equipo-${index}`}
+					className="border-b border-gray-100 my-2"
+					>
+					<div className="flex items-center justify-between bg-gray-50 hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors">
+						
+						<AccordionPrimitive.Trigger className="flex items-center gap-2 text-sm font-medium text-slate-700 flex-1 text-left">
+						<Laptop size={14} className="text-blue-400 shrink-0" />
+						<span>{equipo.tipo || "Equipo sin tipo"}</span>
+						</AccordionPrimitive.Trigger>
+
+						<button
+						type="button"
+						onClick={() => handleRemoveEq(index)}
+						className="w-5 h-5 rounded-full bg-red-200 hover:bg-red-300 flex items-center justify-center transition-colors shrink-0 ml-2"
+						title="Eliminar"
+						>
+						<X size={11} className="text-red-600" />
+						</button>
+					</div>
+
+					<AccordionPrimitive.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+						<div className="grid grid-cols-2 gap-2 px-3 pt-1 pb-3 text-xs text-slate-600">
+						<p><strong>Tipo:</strong> {equipo.tipo}</p>
+						<p><strong>Nombre:</strong> {equipo.nombre}</p>
+						<p><strong>Marca:</strong> {equipo.marca}</p>
+						<p><strong>Modelo:</strong> {equipo.modelo}</p>
+						<p><strong>No. Serie:</strong> {equipo.serie}</p>
+						<p><strong>Color:</strong> {equipo.color}</p>
+						</div>
+					</AccordionPrimitive.Content>
+
+					</AccordionPrimitive.Item>
+				))}
+
+				{equipos.length === 0 && (
+					<p className="text-xs text-gray-400 py-2">No se han agregado equipos.</p>
+				)}
+				</Accordion>
+			</div>
+
+			<div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+
+			{/* Form aviso + botón */}
+			<Form {...form}>
+			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+				<FormField
+				control={form.control}
+				name="acepto_aviso_privacidad"
+				render={({ field }) => (
+					<FormItem>
+					<FormControl>
+						<div className="flex items-center gap-2">
+						<Checkbox
+							checked={field.value}
+							onCheckedChange={field.onChange}
+							id="aviso"
+						/>
+						<Label htmlFor="aviso" className="text-sm text-slate-500">
+							<span className="text-red-500 mr-1">*</span>
+							He leído y acepto el{" "}
+							<button
+							type="button"
+							onClick={() => setMostrarAviso(true)}
+							className="text-blue-600 underline hover:text-blue-800"
+							>
+							aviso de privacidad
+							</button>
+						</Label>
+						</div>
+					</FormControl>
+					<FormMessage />
+					</FormItem>
+				)}
+				/>
+
+				<div className="flex justify-center">
+				<Button
+					className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-1/2"
+					variant="secondary"
+					type="submit"
+				>
+					Siguiente
+				</Button>
+				</div>
+			</form>
+			</Form>
+
+		</div>
+		) : (<>
 		{dataCatalogos?.pass_selected?.estatus =="activo" || dataCatalogos?.pass_selected?.estatus =="vencido" ?(<>
 			<div className="flex flex-col items-center justify-start  space-y-3 max-w-2xl mx-auto h-screen">
 					<span className="font-bold text-3xl text-slate-800">{dataCatalogos?.pass_selected?.nombre}</span>

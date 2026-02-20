@@ -224,14 +224,14 @@ export const addNewVisit = async (
       created_from:access_pass.created_from,
       ubicaciones: access_pass.ubicaciones,
       tipo_visita_pase: access_pass.tipo_visita_pase || "rango_de_fechas",
-      fechaFija: access_pass.fechaFija || "",
+      fechaFija: access_pass.fechaFija? access_pass.fechaFija.replace("T", " ")+":00" || ""  :"",
       fecha_desde_visita: access_pass.fechaFija !== ""
-      ? ""
+      ?  access_pass.fechaFija? access_pass.fechaFija.replace("T", " ")+":00" || ""  :""
       : access_pass.fecha_desde_visita !== ""
         ? access_pass.fecha_desde_visita + " 00:00:00"
         : new Date().toISOString().split("T")[0] + " 00:00:00",
     
-    fecha_desde_hasta: access_pass.fechaFija !== ""
+      fecha_desde_hasta: access_pass.fechaFija !== ""
       ? ""
       : access_pass.fecha_desde_hasta !== ""
         ? access_pass.fecha_desde_hasta + " 23:59:00"
