@@ -38,8 +38,8 @@ export function GuardiasApoyoTable({ shift }: { shift: any; }) {
   const { checkoutSupportGuardsMutation } = useGetSupportGuards(false);
   const checkInID = shift?.booth_status?.checkin_id || "";
   const { toggleGuardSelection, clearSelectedGuards } = useGuardSelectionStore();
-  const location = shift?.location.name?? "";
-  const area = shift?.location.area?? "";
+  const location = shift?.location?.name?? "";
+  const area = shift?.location?.area?? "";
 
   React.useEffect(() => {
     clearSelectedGuards(); 
