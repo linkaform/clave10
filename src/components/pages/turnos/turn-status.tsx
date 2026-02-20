@@ -47,8 +47,8 @@ const TurnStatus = ({
 	const [openCloseView, setOpenCloseView] = useState(false);
 
 	const [openDeletePhoto, setOpenDeletePhoto] = useState(false);
-	const location = shift?.location.name?? "";
-	const area = shift?.location.area?? ""
+	const location = shift?.location?.name?? "";
+	const area = shift?.location?.area?? ""
 
   useEffect(() => {
 	
@@ -272,7 +272,7 @@ const TurnStatus = ({
       	</CloseShiftModal>
 
 		<>
-			{shift?.booth_status.status=="No Disponible" && shift?.guard?.status_turn === "Turno Cerrado" ?
+			{shift?.booth_status?.status=="No Disponible" && shift?.guard?.status_turn === "Turno Cerrado" ?
 			<div className="text-red-500 break-all ml-2">
 				* Fuerce el cierre de la caseta para iniciar turno
 			</div>
