@@ -202,7 +202,7 @@ export const AddIncidenciaRondinesModal: React.FC<AddIncidenciaModalProps> = ({
 	const [documento , setDocumento] = useState<Imagen[]>([]);
 
 	const[ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"")
-	const { dataAreas:areas, dataLocations:ubicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, isSuccess,  location?true:false);
+	const { dataAreas:areas, dataLocations:ubicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, isSuccess);
 	const { createIncidenciaMutation, isLoading } = useCreateIncidenciaRondin();
 
 	console.log(areas, ubicaciones)

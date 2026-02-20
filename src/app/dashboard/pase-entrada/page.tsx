@@ -87,12 +87,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 		message:
 		  "Ingrese un número válido mayor a 0 para el límite de accesos.",
 	}),
-	areas: z.array(
-		z.object({
-			nombre_area: z.string().optional(),         
-			comentario_area: z.string().optional(),     
-		})
-	),
+	areas: z.array(z.string()),
 	comentarios:z.array(
 		z.object({
 			tipo_comentario: z.string().optional(),      
@@ -104,7 +99,8 @@ import { useBoothStore } from "@/store/useBoothStore";
 		mensaje: z.string().min(1, { message: "El mensaje no puede estar vacío." }),  
 		numero: z.string().optional()
 	}),
-	todas_las_areas: z.boolean().optional()
+	todas_las_areas: z.boolean().optional(),
+	sala: z.string().optional()
   }) 
   .refine((data) => {
 		if (data.tipo_visita_pase === 'rango_de_fechas') {
@@ -141,25 +137,26 @@ import { useBoothStore } from "@/store/useBoothStore";
   });
 
   const PaseEntradaPage = () =>  {
-	const [tipoVisita, setTipoVisita] = useState("rango_de_fechas");
+	const [tipoVisita] = useState("rango_de_fechas");
 	const { location } = useBoothStore();
 	
 	const { excludes }= useMenuStore()
-	const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>([]);
-	const [config_dia_de_acceso, set_config_dia_de_acceso] = useState("cualquier_día");
+	const [config_dias_acceso] = useState<string[]>([]);
+	const [config_dia_de_acceso] = useState("cualquier_día");
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
 	const [ubicacionSeleccionada,setUbicacionSeleccionada] = useState("")
-	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingAreas:loadingCatAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, location?true:false);
+	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingAreas:loadingCatAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true);
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted??[]);
 	const pickerRef = useRef<any>(null);
 	const { assets,assetsLoading} = useSearchPass(true);
 	const assetsUnique= uniqueArray(assets?.Visita_a)
 	assetsUnique.unshift("Usuario Actual");
-	console.log("assets", assetsUnique)
 	const [areasTodas, setAreasTodas] = useState<any[]>([]);
+	const [salasTodas, setSalasTodas] = useState<any[]>([]);
 	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
-
+	const [areasSeleccionadas,setAreasSeleccionadas]  = useState<any[]>([])
+	const [salasSeleccionadas,setSalasSeleccionadas]  = useState<any[]>([])
 
 	const isExcluded = (key: string) =>
 		Array.isArray(excludes?.pases) &&
@@ -178,18 +175,49 @@ import { useBoothStore } from "@/store/useBoothStore";
 	
 	  const fetchAreasTodas = async () => {
 		const resultados = await Promise.all(
-		  ubicacionesSeleccionadas.map(async (ubicacion) => {
-			const res = await getCatalogoPasesAreaNoApi(ubicacion.id);
-			const areas = res?.response?.data?.areas_by_location ?? [];
-			return areas.map((area: string) => ({
-			  nombre: area,
-			  locationId: ubicacion.id,
-			  nombreUbicacion: ubicacion.nombre,
+			ubicacionesSeleccionadas.map(async (ubicacion) => {
+			  const res = await getCatalogoPasesAreaNoApi(ubicacion.id);
+			  const areas = res?.response?.data?.areas_by_location ?? [];
+			  const salas = res?.response?.data?.salas_by_location ?? [];
+		  
+			  const areasFormatted = areas.map((area: string) => ({
+				nombre: area,
+				locationId: ubicacion.id,
+				nombreUbicacion: ubicacion.nombre,
+				tipo: "area",
+			  }));
+		  
+			  const salasFormatted = salas.map((sala: string) => ({
+				nombre: sala,
+				locationId: ubicacion.id,
+				nombreUbicacion: ubicacion.nombre,
+				tipo: "sala",
+			  }));
+			  console.log(salasFormatted, ubicacion)
+		  
+			  return [...areasFormatted, ...salasFormatted];
+			})
+		  );
+		  
+		  const flat = resultados.flat();
+		  
+		  const areasFormatted = flat
+			.filter((item) => item.tipo === "area")
+			.map((area) => ({
+			  value: area.nombre,
+			  name: area.nombre,
+			  label: `${area.nombre} — ${area.locationId}`,
 			}));
-		  })
-		);
-	
-		setAreasTodas(resultados.flat());
+		  const salasFormatted = flat
+			.filter((item) => item.tipo === "sala")
+			.map((sala) => ({
+			  value: sala.nombre,
+			  name: sala.nombre,
+			  label: `${sala.nombre} — ${sala.locationId}`,
+			}));
+			
+		  setAreasTodas(areasFormatted);
+		  setSalasTodas(salasFormatted);
 	  };
 	
 	  fetchAreasTodas();
@@ -207,6 +235,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 		}))
 	);
 	}, [areasTodas]);
+
 
 	useEffect(() => {
 	  const picker = pickerRef.current;
@@ -268,14 +297,14 @@ import { useBoothStore } from "@/store/useBoothStore";
 	const [areasList, setAreasList] = useState<Areas[]>([]);
 	// const [isActive, setIsActive] = useState(false);
 	// const [isActiveSMS, setIsActiveSMS] = useState(false);
-	const [isActiveFechaFija, setIsActiveFechaFija] = useState(false);
-	const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(true);
-	const [isActivelimitarDias, setIsActiveLimitarDias] = useState(true);
-	const [isActiveCualquierDia, setIsActiveCualquierDia] = useState(true);
-	const [isActivelimitarDiasSemana, setIsActiveLimitarDiasSemana] = useState(false);
-	const [isActiveAdvancedOptions, setIsActiveAdvancedOptions] = useState(false);
+	// const [isActiveFechaFija] = useState(true);
+	// const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(true);
+	// const [isActivelimitarDias, setIsActiveLimitarDias] = useState(false);
+	// const [isActiveCualquierDia, setIsActiveCualquierDia] = useState(true);
+	// const [isActivelimitarDiasSemana, setIsActiveLimitarDiasSemana] = useState(false);
+	const [isActiveAdvancedOptions] = useState(false);
 	const [date, setDate] = React.useState<Date| "">("");
-	const [fechaDesde, setFechaDesde] = useState<string>('');
+	// const [fechaDesde, setFechaDesde] = useState<string>('');
 	const [selected, setSelected] = useState<Contacto |null>(null);
 	const [isOpenModal, setOpenModal] = useState(false);
 	const [todasAreas,setTodasAreas] = useState(false)
@@ -318,19 +347,20 @@ import { useBoothStore } from "@/store/useBoothStore";
 				mensaje: "SOY UN MENSAJE",
 				numero: "528120084370",
 			},
-			todas_las_areas:todasAreas
+			todas_las_areas:todasAreas,
+			sala:""
 		},
 	});
 
-	const toggleDia = (dia: string) => {
-		set_config_dias_acceso((prev) => {
-		const updatedDias = prev.includes(dia)
-			? prev.filter((d) => d !== dia) 
-			: [...prev, dia]; 
-		return updatedDias;
-		});
-		
-	};
+	// const toggleDia = (dia: string) => {
+	// 	set_config_dias_acceso((prev) => {
+	// 	const updatedDias = prev.includes(dia)
+	// 		? prev.filter((d) => d !== dia) 
+	// 		: [...prev, dia]; 
+	// 	return updatedDias;
+	// 	});
+	// };
+
 	useEffect(() => {
 		if (!ubicacionesSeleccionadas) return;
 	  
@@ -392,7 +422,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 			ubicaciones:ubicacionesSeleccionadas?.map(u => u.id) ?? [],
 			tema_cita: data.tema_cita,
 			descripcion: data.descripcion,
-			perfil_pase: data.perfil_pase,
+			perfil_pase: data.perfil_pase|| "",
 			status_pase:"Proceso",
 			visita_a: visitaASeleccionadas?.map(u => u.name) ?? [],
 			custom:true,
@@ -412,69 +442,66 @@ import { useBoothStore } from "@/store/useBoothStore";
 			config_dia_de_acceso: config_dia_de_acceso === "limitar_días_de_acceso" ? config_dia_de_acceso : "cualquier_día",
 			config_dias_acceso: config_dias_acceso,
 			config_limitar_acceso: Number(data.config_limitar_acceso) || 0,
-			areas:areasList,
+			areas:areasSeleccionadas?.map(u => u.value) ?? [],
 			comentarios: comentariosList,
 			enviar_pre_sms:{
 				from: "enviar_pre_sms",
 				mensaje: "SOY UN MENSAJE",
 				numero: data.telefono,
 			},
-			todas_las_areas:todasAreas
+			todas_las_areas:todasAreas,
+			sala: salasSeleccionadas.length>0 ? salasSeleccionadas[0].value :""
 		};
-		if(tipoVisita == "fecha_fija" && date == ""){
-			form.setError("fechaFija", { type: "manual", message: "Fecha Fija es requerida cuando el tipo de pase es 'fecha fija'." });
-		}else if(tipoVisita == "rango_de_fechas" && (formattedData.fecha_desde_visita == "" || formattedData.fecha_desde_hasta == "" ) ){
-			form.setError("fecha_desde_hasta", { type: "manual", message: "Ambas fechas son requeridas" });
-		}else{
+	
 			setModalData(formattedData);
 			setIsSuccess(true);
-		}
 		
 	};
 
-	const handleToggleAdvancedOptions = () => {
-		setIsActiveAdvancedOptions(!isActiveAdvancedOptions);
-	};
+	console.log("ERRORES",form.formState.errors)
+	// const handleToggleAdvancedOptions = () => {
+	// 	setIsActiveAdvancedOptions(!isActiveAdvancedOptions);
+	// };
 
-	const handleToggleTipoVisitaPase = (tipo:string) => {
-		if ( tipo == "fecha_fija" ){
-			form.setValue('fecha_desde_hasta', '')
-			form.setValue('fecha_desde_visita', '')
-			setIsActiveFechaFija(true)
-			setIsActiveRangoFecha(false)
-		} else {
-			form.setValue('fechaFija', '')
-			setDate("")
-			setIsActiveFechaFija(false)
-			setIsActiveRangoFecha(true)
-		}
-		setTipoVisita(tipo)
-	};
-	const handleToggleDiasAcceso = (tipo:string) => {
-		if (tipo == "cualquier_día") {
-			setIsActiveCualquierDia(true)
-			setIsActiveLimitarDiasSemana(false)
-		} else {
-			setIsActiveCualquierDia(false)
-			setIsActiveLimitarDiasSemana(true)
-		}
-		set_config_dia_de_acceso(tipo)
-	};
+	// const handleToggleTipoVisitaPase = (tipo:string) => {
+	// 	if ( tipo == "fecha_fija" ){
+	// 		form.setValue('fecha_desde_hasta', '')
+	// 		form.setValue('fecha_desde_visita', '')
+	// 		setIsActiveFechaFija(true)
+	// 		setIsActiveRangoFecha(false)
+	// 	} else {
+	// 		form.setValue('fechaFija', '')
+	// 		setDate("")
+	// 		setIsActiveFechaFija(false)
+	// 		setIsActiveRangoFecha(true)
+	// 	}
+	// 	setTipoVisita(tipo)
+	// };
+	// const handleToggleDiasAcceso = (tipo:string) => {
+	// 	if (tipo == "cualquier_día") {
+	// 		setIsActiveCualquierDia(true)
+	// 		setIsActiveLimitarDiasSemana(false)
+	// 	} else {
+	// 		setIsActiveCualquierDia(false)
+	// 		setIsActiveLimitarDiasSemana(true)
+	// 	}
+	// 	set_config_dia_de_acceso(tipo)
+	// };
 
-	const handleToggleLimitarDias = () => {
-		setIsActiveLimitarDias(!isActivelimitarDias);
-	};
+	// const handleToggleLimitarDias = () => {
+	// 	setIsActiveLimitarDias(!isActivelimitarDias);
+	// };
 
-	const handleFechaDesdeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setFechaDesde(e.target.value);
-		form.setValue('fecha_desde_hasta', '');
-	};
+	// const handleFechaDesdeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+	// 	setFechaDesde(e.target.value);
+	// 	form.setValue('fecha_desde_hasta', '');
+	// };
 
-	function getNextDay(date: string | number | Date) {
-		const currentDate = new Date(date);
-		currentDate.setDate(currentDate.getDate() + 1); 
-		return currentDate.toISOString().split('T')[0]; 
-	}
+	// function getNextDay(date: string | number | Date) {
+	// 	const currentDate = new Date(date);
+	// 	currentDate.setDate(currentDate.getDate() + 1); 
+	// 	return currentDate.toISOString().split('T')[0]; 
+	// }
 
 	const closeModal = () => {
 		setIsSuccess(false); 
@@ -516,7 +543,7 @@ return (
 			</div> */}
 
 			<Form {...form}>
-				<form className="space-y-8">
+				<form className="space-y-5">
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 					{assetsLoading ? (
 						<div className="flex justify-start items-center py-4">
@@ -773,13 +800,13 @@ return (
 
 					<h1 className="font-bold text-xl">Sobre vigencia y acceso</h1>
 					<div className="flex items-center flex-wrap gap-5">
-						<FormLabel>Vigencia: </FormLabel>
+						{/* <FormLabel>Vigencia: </FormLabel> */}
 						<Controller
 							control={form.control}
 							name="tipo_visita_pase"
 							render={() => (
 								<FormItem>
-								<Button
+								{/* <Button
 									type="button"
 									onClick={()=>{handleToggleTipoVisitaPase("rango_de_fechas")}}
 									className={`px-4 py-2 rounded-md transition-all duration-300 ${
@@ -794,8 +821,8 @@ return (
 									)}
 										
 									</div>
-								</Button>
-								<Button
+								</Button> */}
+								{/* <Button
 									type="button"
 									onClick={()=>{handleToggleTipoVisitaPase("fecha_fija")}}
 									className={`px-4 py-2 rounded-md transition-all duration-300 ${
@@ -810,9 +837,9 @@ return (
 									)}
 										
 									</div>
-								</Button>
+								</Button> */}
 						
-								{tipoVisita === "rango_de_fechas" && (
+								{/* {tipoVisita === "rango_de_fechas" && (
 									<Button
 									type="button"
 									onClick={()=>{handleToggleLimitarDias()}}
@@ -829,7 +856,7 @@ return (
 										
 									</div>
 									</Button>
-								)}
+								)} */}
 								<FormMessage />
 								</FormItem>
 							)}
@@ -838,7 +865,7 @@ return (
 
 					<div>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-						{tipoVisita === "fecha_fija" && (
+						{/* {tipoVisita === "fecha_fija" && ( */}
 							<FormField
 								control={form.control}
 								name="fechaFija"
@@ -855,9 +882,34 @@ return (
 									</FormItem>
 								)}
 							/>
-						)}
 
-						{tipoVisita === "rango_de_fechas" && (
+							<FormField
+								control={form.control}
+								name="config_limitar_acceso"
+								render={({ field }:any) => (
+									<FormItem>
+										<FormLabel>Limitar número de accesos:</FormLabel>
+											<FormControl>
+												<Input
+												placeholder="Ejemplo: 5"
+												type="number"
+												min={0} 
+												step={1} 
+												{...field} 
+												value={field.value ? Number(field.value) : 0}
+												onChange={(e) => {
+													const newValue = e.target.value ? Number(e.target.value) : 0;
+													field.onChange(newValue); 
+												}}/>  
+											</FormControl>
+										<FormMessage />
+									</FormItem>
+								)} 
+							/>
+
+						{/* )} */}
+
+						{/* {tipoVisita === "rango_de_fechas" && (
 							<><div className="grid grid-cols-1 md:grid-cols-1 gap-2">
 							<FormField
 								control={form.control}
@@ -871,10 +923,10 @@ return (
 									<Input
 										type="date"
 										{...field}
-										min={new Date().toISOString().split('T')[0]} // Corta el exceso de datos
+										min={new Date().toISOString().split('T')[0]} 
 										onChange={(e) => {
-										field.onChange(e); // Propagar el valor a react-hook-form
-										handleFechaDesdeChange(e); // Guardar la fecha seleccionada en el estado
+										field.onChange(e); 
+										handleFechaDesdeChange(e); 
 
 										}}
 									/>
@@ -905,10 +957,10 @@ return (
 								)} />
 							</div>
 							</>
-						)}
+						)} */}
 						</div>
 
-						{tipoVisita === "rango_de_fechas" && (
+						{/* {tipoVisita === "rango_de_fechas" && (
 							<><div className="grid  gap-5 mt-3">
 								<FormField
 									control={form.control}
@@ -999,41 +1051,73 @@ return (
 								</div>
 								)}
 							</div>
+							</>
+						)} */}
 
-						{isActivelimitarDias && (
-							<div className="w-1/3 mt-3">
-								<FormField
-									control={form.control}
-									name="config_limitar_acceso"
-									render={({ field }:any) => (
-										<FormItem>
-											<FormLabel>Limitar número de accesos:</FormLabel>
-												<FormControl>
-													<Input
-													placeholder="Ejemplo: 5"
-													type="number"
-													min={0} 
-													step={1} 
-													{...field} 
-													value={field.value ? Number(field.value) : 0}
-													onChange={(e) => {
-														const newValue = e.target.value ? Number(e.target.value) : 0;
-														field.onChange(newValue); 
-													}}/>  
-												</FormControl>
-											<FormMessage />
-										</FormItem>
-									)} 
-								/>
+
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-3">
+								
 							</div>
-						)}
-						</>
-						)}
 					</div>
+					<div className="grid grid-cols-1 md:grid-cols-2  gap-5 mt-3">
+						<FormField
+							control={form.control}
+							name="visita_a"
+							render={() => (
+								<FormItem>
+								<FormLabel>
+									<span className="text-red-500">*</span> Salas:
+								</FormLabel>
 
+								<Multiselect
+									selectionLimit={1}
+									options={salasTodas ?? []}
+									selectedValues={salasSeleccionadas}
+									onSelect={(selected: any[]) => {
+										setSalasSeleccionadas(selected);
+									}}
+									onRemove={(selected: any[]) => {
+										setSalasSeleccionadas(selected);
+									}}
+									displayValue="label"
+								/>
+
+								<FormMessage />
+								</FormItem>
+							)}
+							/>
+					</div>
 				{!isExcluded("areas") &&
-					<div className="flex gap-2">
-						<div className="flex gap-2 flex-wrap">
+					<div className="grid grid-cols-1 md:grid-cols-2  gap-5 mt-3">
+						<FormField
+						control={form.control}
+						name="visita_a"
+						render={() => (
+							<FormItem>
+							<FormLabel>
+								<span className="text-red-500">*</span> Áreas:
+							</FormLabel>
+
+							<Multiselect
+								options={areasTodas ?? []}
+								selectedValues={areasSeleccionadas}
+								onSelect={(selected: any[]) => {
+									setAreasSeleccionadas(selected);
+									setAreasList(selected.map((a) => a.value));
+								}}
+								onRemove={(selected: any[]) => {
+									setAreasSeleccionadas(selected);
+									setAreasList(selected.map((a) => a.value));
+								}}
+								displayValue="label"
+							/>
+
+							<FormMessage />
+							</FormItem>
+						)}
+						/>
+
+						{/* <div className="flex gap-2 flex-wrap">
 							<Button
 							disabled={todasAreas}
 							type="button"
@@ -1050,10 +1134,10 @@ return (
 								)}
 							</div>
 							</Button>
-						</div>
+						</div> */}
 
 
-						<div className="flex items-center flex-wrap gap-5">
+						<div className="flex items-center flex-wrap gap- mt-7">
 							<FormLabel>Todas las áreas: {`(no / si)`}:  </FormLabel>
 							<div className="flex items-center flex-wrap gap-5">
 							<Switch

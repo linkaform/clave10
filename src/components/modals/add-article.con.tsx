@@ -118,7 +118,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"");
   const [equipos, setEquipos]= useState<any[]>([])
   const { dataAreas: areas, dataLocations: ubicaciones, isLoadingAreas: loadingAreas, isLoadingLocations: loadingUbicaciones } = 
-    useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, ubicacionSeleccionada ? true : false);
+    useCatalogoPaseAreaLocation(ubicacionSeleccionada, true);
   const { data: dataAreaEmpleadoApoyo, isLoading: loadingAreaEmpleadoApoyo } = 
     useCatalogoAreaEmpleadoApoyo(isSuccess);
   const { createArticulosConMutation, editarArticulosConMutation, isLoading } = 

@@ -7,16 +7,17 @@ import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-export const useCatalogoPaseAreaLocation = (location:string, enableLocation:boolean, enableArea:boolean) => {
+export const useCatalogoPaseAreaLocation = (location:string, enableLocation:boolean, area?:boolean) => {
   const {
     setAreas,
     setLocations
   } = useAreasLocationStore();
   const [ubicacionesDefault, setUbicacionesDefault] = useState<string[]>([])
   const [ubicacionesDefaultFormatted, setubicacionesDefaultFormatted] = useState<any[]>([])
+  console.log(area)
   const { data: dataAreas, isLoading:isLoadingAreas, error:errorAreas, isFetching:isFetchingAreas, refetch:refetchAreas } = useQuery<any>({
     queryKey: ["getCatalogoPasesAreaNoApi", location], 
-    enabled:enableArea,
+    enabled:!!location,
     queryFn: async () => {
         
         const data = await getCatalogoPasesAreaNoApi(location); 

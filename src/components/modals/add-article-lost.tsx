@@ -77,7 +77,7 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
 	const { location } = useBoothStore();
 	// const [catalagoSub, setCatalogoSub] = useState<string[]>([]);
 	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState("");
-	const { dataAreas:areas, dataLocations:ubicaciones, isLoadingAreas:loadingAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true,  ubicacionSeleccionada?true:false);
+	const { dataAreas:areas, dataLocations:ubicaciones, isLoadingAreas:loadingAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true);
 
 	const { data:dataAreaEmpleado, isLoading:loadingAreaEmpleado, refetch: refetchAreaEmpleado, } = useCatalogoAreaEmpleado(isSuccess, ubicacionSeleccionada,"Objetos Perdidos" );
 	const { data:dataArticulos, isLoading:isLoadingArticulos } = useCatalogoArticulos(tipoArt, isSuccess);

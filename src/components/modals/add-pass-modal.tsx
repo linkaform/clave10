@@ -11,12 +11,13 @@ import CalendarDays from "../calendar-days";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { CalendarClock, Loader2 } from "lucide-react";
 import { GeneratedPassModal } from "./generated-pass-modal";
-import { Access_pass, Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
+import { Access_pass, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { usePaseEntrada } from "@/hooks/usePaseEntrada";
 import useAuthStore from "@/store/useAuthStore";
 import { Badge } from "../ui/badge";
 import { capitalizeFirstLetter } from "@/lib/utils";
+import { Separator } from "../ui/separator";
 
 
 export type Visita={
@@ -51,7 +52,7 @@ interface EntryPassUpdateModalProps {
     config_dia_de_acceso:string;
     config_dias_acceso: string[];
     config_limitar_acceso: number;
-    areas: Areas[];
+    areas: string[];
     comentarios: Comentarios[];
     enviar_pre_sms: enviar_pre_sms;
 	todas_las_areas:boolean;
@@ -131,7 +132,7 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
       config_dia_de_acceso: dataPass.config_dia_de_acceso,
       config_dias_acceso: dataPass.config_dias_acceso,
       config_limitar_acceso: dataPass.config_limitar_acceso,
-      areas: dataPass.areas,
+      areas: dataPass.areas.map((a: any) => typeof a === "string" ? { nombre_area: a, comentario_area: "" } : a),
       comentarios: dataPass.comentarios,
       enviar_pre_sms: {
         from: dataPass.enviar_pre_sms.from,
@@ -198,7 +199,6 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 				</DialogTitle>
 			</DialogHeader>
 			<div className="flex-grow overflow-y-auto p-4 ">
-				{/* Sobre la visita */}
 				<div className="w-full flex gap-2 mb-3">
 					<p className="font-bold flex-shrink-0">Nombre Completo : </p>
 					<p className="">{dataPass?.nombre} </p>
@@ -208,7 +208,7 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 				<div className="flex justify-between flex-col sm:flex-row  sm:space-x-5 space-y-5 sm:space-y-0 ">
 					<div className="w-full flex gap-2 ">
 					<p className="font-bold flex-shrink-0">Tipo de pase : </p>
-					<p >Visita General</p>
+					<p >{dataPass?.perfil_pase}</p>
 					</div>
 
 					<div className="w-full flex gap-2">
@@ -249,24 +249,16 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 					</div>
 				</div>
 
+				<Separator/>
+
 				{dataPass?.areas.length>0 && (
 				<div className="">
-					<p className="text-xl font-bold mb-2">Áreas</p>
-					<Accordion type="single" collapsible>
-					{dataPass?.areas.map((area, index) => (
-						<AccordionItem key={index} value={`area-${index}`}>
-						<AccordionTrigger><div className="w-80 truncate text-left">{`${area.nombre_area}`}</div></AccordionTrigger>
-						<AccordionContent>
-							<p className="font-medium mb-1">
-							Area: <span className="">{area.nombre_area || "N/A"}</span>
-							</p>
-							<p className="font-medium mb-1">
-							Comentario: <span className="">{area.commentario_area || "N/A"}</span>
-							</p>
-						</AccordionContent>
-						</AccordionItem>
+					<p className="text-xl font-bold mb-2 mt-2">Áreas</p>
+					{dataPass.areas.map((area, index: number) => (
+					<span key={index} className="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full font-medium">
+						{area || "—"}
+					</span>
 					))}
-					</Accordion>
 				</div>
 				)}
 
