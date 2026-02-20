@@ -618,48 +618,60 @@ return (
 
 
 			<div className="space-y-2">
-				<div className="flex items-center justify-between">
+			<div className="flex items-center justify-between">
 				<span className="font-semibold text-slate-700">Vehículos</span>
 				<VehicleLocalPassModal title="Nuevo Vehiculo" vehicles={vehicles} setVehiculos={setVehiculos} isAccesos={false} fetch={false}>
-					<button
+				<button
 					type="button"
 					className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors"
-					>
+				>
 					<Car size={15} />
 					<span className="hidden sm:block">Agregar</span>
 					<span className="sm:hidden font-bold">+</span>
-					</button>
+				</button>
 				</VehicleLocalPassModal>
-				</div>
+			</div>
 
-				<Accordion type="multiple" className="w-full">
+			<Accordion type="multiple" className="w-full">
 				{vehicles.map((vehiculo, index) => (
-					<AccordionItem key={index} value={`vehiculo-${index}`}>
-					<AccordionTrigger className="text-sm">{vehiculo.tipo}</AccordionTrigger>
-					<AccordionContent>
-						<div className="grid grid-cols-2 gap-2 p-3 text-xs text-slate-600">
+				<AccordionPrimitive.Item
+					key={index}
+					value={`vehiculo-${index}`}
+					className="border-b border-gray-100 my-2"
+				>
+					<div className="flex items-center justify-between bg-gray-50 hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors">
+					<AccordionPrimitive.Trigger className="flex items-center gap-2 text-sm font-medium text-slate-700 flex-1 text-left">
+						<Car size={14} className="text-blue-400 shrink-0" />
+						<span>{vehiculo.tipo || "Vehículo sin tipo"}</span>
+					</AccordionPrimitive.Trigger>
+					<button
+						type="button"
+						onClick={() => handleRemove(index)}
+						className="w-5 h-5 rounded-full bg-red-200 hover:bg-red-300 flex items-center justify-center transition-colors shrink-0 ml-2"
+						title="Eliminar"
+					>
+						<X size={11} className="text-red-600" />
+					</button>
+					</div>
+
+					<AccordionPrimitive.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+					<div className="grid grid-cols-2 gap-2 px-3 pt-1 pb-3 text-xs text-slate-600">
 						<p><strong>Tipo:</strong> {vehiculo.tipo}</p>
 						<p><strong>Marca:</strong> {vehiculo.marca}</p>
 						<p><strong>Modelo:</strong> {vehiculo.modelo}</p>
 						<p><strong>Placas:</strong> {vehiculo.placas}</p>
 						<p><strong>Estado:</strong> {vehiculo.estado}</p>
 						<p><strong>Color:</strong> {vehiculo.color}</p>
-						</div>
-						<div className="flex justify-end px-3 pb-2">
-						<Button variant="destructive" size="sm" onClick={() => handleRemove(index)}>
-							Eliminar
-						</Button>
-						</div>
-					</AccordionContent>
-					</AccordionItem>
+					</div>
+					</AccordionPrimitive.Content>
+				</AccordionPrimitive.Item>
 				))}
-				{vehicles.length === 0 && (
-					<p className="text-xs text-gray-400 py-2">No se han agregado vehículos.</p>
-				)}
-				</Accordion>
-			</div>
 
-			{/* Equipos */}
+				{vehicles.length === 0 && (
+				<p className="text-xs text-gray-400 py-2">No se han agregado vehículos.</p>
+				)}
+			</Accordion>
+			</div>
 			<div className="space-y-2">
 				<div className="flex items-center justify-between">
 					<span className="font-semibold text-slate-700">Equipos</span>
@@ -720,7 +732,6 @@ return (
 
 			<div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
-			{/* Form aviso + botón */}
 			<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 				<FormField
