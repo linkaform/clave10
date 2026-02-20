@@ -24,7 +24,7 @@ import { getPdf } from "@/lib/get-pdf";
 const BitacorasPage = () => {
 	const { tab, filter, option, from, setFrom } = useShiftStore()
 	const { location } = useBoothStore();
-	const { userIdSoter } = useAuthStore()
+	const { userParentId } = useAuthStore()
 	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState("");
 	const [areaSeleccionada, setAreaSeleccionada] = useState("todas");
 	const [equiposData, setEquiposData] = useState<Bitacora_record[]>([]);
@@ -178,7 +178,7 @@ const BitacorasPage = () => {
 		});
 
 		try {
-			const result = await getPdf(userIdSoter, paseId);
+			const result = await getPdf(userParentId, paseId);
 
 			const data = result?.response?.data;
 
