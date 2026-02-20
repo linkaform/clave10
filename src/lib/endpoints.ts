@@ -53,3 +53,20 @@ export const getGoogleWalletPassUrl = async (qr_code: string) => {
     return data;
 };
 
+export const getImgPassUrl = async (qr_code: string) => {
+    const userJwt = localStorage.getItem("access_token");
+    const response = await fetch(API_ENDPOINTS.runScript, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${userJwt}`,
+        },
+        body: JSON.stringify({
+            script_name: "pase_de_acceso_use_api.py",
+            option: "get_pass_img",
+            qr_code,
+        }),
+    });
+    const data = await response.json();
+    return data;
+};

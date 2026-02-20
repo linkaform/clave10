@@ -21,7 +21,7 @@ import { data_correo } from "@/lib/send_correo";
 import Image from "next/image";
 import { useSendCorreoSms } from "@/hooks/useSendCorreo";
 import { API_ENDPOINTS } from "@/config/api";
-import { getGoogleWalletPassUrl } from "@/lib/endpoints";
+import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
 
 interface updatedPassModalProps {
 	title: string;
@@ -61,6 +61,8 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 	const [urlGooglePass, setUrlGooglePass] = useState<string>("");
 	const { createSendCorreoSms, isLoadingCorreo} = useSendCorreoSms();
 	const [enablePdf, setEnablePdf] = useState(false)
+	const [urlImgPass, setUrlImgPass] = useState<string>("");
+	const [loadingImgPass, setLoadingImgPass] = useState(false);
 	const [smsSent, setSmsSent] = useState(false);
 	const [emailSent, setEmailSent] = useState(false);
 	const downloadImgUrl = Array.isArray(updateResponse?.json?.pdf_to_img) && updateResponse?.json?.pdf_to_img.length > 0
@@ -86,6 +88,27 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 			}
 		}
 	}
+
+	const onDescargarPNG = async (imgUrl: string) => {
+		try {
+			const response = await fetch(imgUrl);
+			if (!response.ok) throw new Error("No se pudo obtener la imagen");
+		
+			const blob = await response.blob();
+			const url = URL.createObjectURL(blob);
+		
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = "pase.png";
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			URL.revokeObjectURL(url);
+			toast.success("¡Pase descargado correctamente!");
+		} catch (error) {
+			toast.error("Error al descargar la imagen: " + error);
+		}
+	};
 	
 	const handleClickGoogleButton = async () => {
 		const record_id = updateResponse?.json?.id;
@@ -206,6 +229,62 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 					border: 'none'
 				},
 			});
+		}
+	}
+
+	const handleClickImgButton = async () => {
+		const record_id = passData?.pass_selected?._id;
+		if (urlImgPass) {
+			onDescargarPNG(urlImgPass);
+			return;
+		}
+		if (!record_id) {
+			toast.error('No hay pase disponible', {
+				style: {
+					background: "#dc2626",
+					color: "#fff",
+					border: 'none'
+				},
+			});
+			return;
+		}
+		try {
+			setLoadingImgPass(true);
+			toast.loading("Obteniendo tu pase...", {
+				style: {
+					background: "#000",
+					color: "#fff",
+					border: 'none'
+				},
+			});
+			const data = await getImgPassUrl(record_id);
+			const url = data?.response?.data || "";
+			if (url) {
+				setUrlImgPass(url);
+				onDescargarPNG(url);
+				setLoadingImgPass(false);
+			} else {
+				toast.error('No hay pase disponible', {
+					style: {
+						background: "#dc2626",
+						color: "#fff",
+						border: 'none'
+					},
+				});
+			}
+			toast.dismiss();
+			setLoadingImgPass(false);
+		} catch (error) {
+			console.log(error)
+			toast.error("Error al obtener pase", {
+				style: {
+					background: "#dc2626",
+					color: "#fff",
+					border: 'none'
+				},
+			});
+			toast.dismiss();
+			setLoadingImgPass(false);
 		}
 	}
 	
@@ -360,8 +439,8 @@ return (
 						</Button>
 					</DialogClose>
 					<Button
-						className="w-full bg-blue-500 hover:bg-blue-600 text-white" onClick={()=>{setEnablePdf(true)}}>
-						{isLoadingCorreo ? ("Cargando..."): ("Descargar Pase")}
+						className="w-full bg-blue-500 hover:bg-blue-600 text-white" onClick={()=>handleClickImgButton()} disabled={loadingImgPass}>
+						{loadingImgPass ? ("Cargando..."): ("Descargar Pase")}
 					</Button>
 					</div> 
 		</DialogContent>
