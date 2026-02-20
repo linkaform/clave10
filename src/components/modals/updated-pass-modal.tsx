@@ -59,7 +59,7 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 	console.log('==========1', updateResponse)
 	const [enviarCorreo, setEnviarCorreo] = useState<string[]>([]);
 	const [urlGooglePass, setUrlGooglePass] = useState<string>("");
-	const { createSendCorreoSms, isLoadingCorreo} = useSendCorreoSms();
+	const { createSendCorreoSms } = useSendCorreoSms();
 	const [enablePdf, setEnablePdf] = useState(false)
 	const [urlImgPass, setUrlImgPass] = useState<string>("");
 	const [loadingImgPass, setLoadingImgPass] = useState(false);
