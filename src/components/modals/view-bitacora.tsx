@@ -66,7 +66,10 @@ const statusColor =
             <InfoCard
               label="Visita a"
               value={data?.visita_a?.length > 0 ? data.visita_a[0].nombre : "—"}
-              className="col-span-2"
+            />
+            <InfoCard
+              label="Sala"
+              value={data?.sala || "—"}
             />
           </div>
 

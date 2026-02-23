@@ -43,6 +43,7 @@ export interface Bitacora_record {
     formated_comentarios?:string
 	formated_visita?:string
 	pase_id:string
+	sala?:string
 }
 
 export type Comentarios_bitacoras={
@@ -76,7 +77,8 @@ export interface Vehiculo_bitacora {
 	nombre_estado: string
 }
 export interface Areas_bitacora {
-	incidente_area: string
+	note_booth: string
+	incidente_area?: string
 	commentario_area: string
 }
 
