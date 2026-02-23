@@ -17,7 +17,8 @@ import {
 	User,
 	CheckCircle2,
 	XCircle,
-	AlertCircle
+	AlertCircle,
+	Handshake
 } from "lucide-react";
 
 import { MakeCallModal } from "@/components/modals/make-call-modal";
@@ -142,6 +143,22 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 										)}
 									</div>
 								</div>
+								
+								{searchPass?.sala ? (
+									<>
+										<div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-100">
+											<Handshake className="w-4 h-4" />
+										</div>
+										<div className="space-y-0.5 flex-1 overflow-hidden">
+											<p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sala</p>
+											<div className="relative group/tooltip flex items-center flex-wrap gap-1">
+												<span className="text-slate-900 font-medium truncate max-w-full">
+													{searchPass?.sala}
+												</span>
+											</div>
+										</div>
+									</>
+								): null}
 							</div>
 
 							{/* Empresa y Motivo */}
