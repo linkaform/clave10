@@ -7,14 +7,19 @@ import { useShiftStore } from "@/store/useShiftStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { errorMsj } from "@/lib/utils";
 import { Imagen } from "@/components/upload-Image";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useBoothStore } from "@/store/useBoothStore";
 
 export const useGetShift = (area?: string,
   location?: string) => {
-  const { setBooth } = useBoothStore();
   const { setCheckin_id } = useShiftStore();
-
+  const {setBooth}= useBoothStore()
+  const setBoothRef = useRef(setBooth);
+  const setCheckin_idRef = useRef(setCheckin_id);
+  
+  useEffect(() => { setBoothRef.current = setBooth; }, [setBooth]);
+  useEffect(() => { setCheckin_idRef.current = setCheckin_id; }, [setCheckin_id]);
+  
   // const {
   //   area,
   //   location,
@@ -52,21 +57,31 @@ export const useGetShift = (area?: string,
 
     }
   });
-
   useEffect(() => {
-
     if (shift?.location?.name || shift?.guard?.location) {
-      setBooth(
+      setBoothRef.current(
         shift?.location?.area || shift?.guard?.area,
         shift?.location?.name || shift?.guard?.location
       );
     }
-
     if (shift?.id) {
-      setCheckin_id(shift?.id);
+      setCheckin_idRef.current(shift?.id);
     }
-  }, [shift?.id, setCheckin_id, shift?.location?.name, shift?.guard?.location, shift?.location?.area, setBooth, shift?.guard?.area]);
+  }, [shift?.id, shift?.location?.name, shift?.guard?.location, shift?.location?.area, shift?.guard?.area]);
 
+  useEffect(() => {
+    if (shift?.guard?.config_exception) {
+      toast.warning(shift.guard.config_exception.msg, {
+        duration: 6000,
+        style: {
+          background: "#FEF08A",
+          color: "#854D0E",
+          border: "1px solid #EAB308",
+        },
+      });
+    }
+  }, [shift?.guard?.config_exception]);
+  
   return {
     shift,
     isLoading,

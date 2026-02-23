@@ -885,7 +885,7 @@ return (
 											</FormLabel>
 											<FormControl>
 												<DateTimePicker date={date ? new Date(date) : undefined} setDate={(d: Date | undefined) => setDate(d as Date)}
-  															allowPast />
+  															allowPast minuteStep={15} />
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -1080,7 +1080,7 @@ return (
 							render={() => (
 								<FormItem>
 								<FormLabel>
-									<span className="text-red-500">*</span> Salas:
+									 Salas:
 								</FormLabel>
 
 								<Multiselect
@@ -1110,7 +1110,7 @@ return (
 						render={() => (
 							<FormItem>
 							<FormLabel>
-								<span className="text-red-500">*</span> Áreas:
+								 Áreas:
 							</FormLabel>
 
 							<Multiselect

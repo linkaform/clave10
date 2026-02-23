@@ -18,19 +18,19 @@ interface ClockPickerProps {
   hour: number;
   minute: number;
   onChange: (value: TimeValue) => void;
+  minuteStep?: 1 | 15;
 }
 
 interface DateTimePickerProps {
   date: Date | undefined;
   setDate: (date: Date | undefined) => void;
-  /** Si true, permite seleccionar fechas pasadas. Default: false */
   allowPast?: boolean;
-  /** Si false, solo selecciona fecha sin hora. Default: true */
   showTime?: boolean;
   placeholder?: string;
+  minuteStep?: 1 | 15;
 }
 
-function ClockPicker({ hour, minute, onChange }: ClockPickerProps) {
+function ClockPicker({ hour, minute, onChange, minuteStep = 1 }: ClockPickerProps) {
   const [mode, setMode] = useState<ClockMode>("hour");
   const clockRef = useRef<SVGSVGElement>(null);
   const isDragging = useRef<boolean>(false);
@@ -47,6 +47,16 @@ function ClockPicker({ hour, minute, onChange }: ClockPickerProps) {
     if (mode === "hour") return toAngle(hour % 12 === 0 ? 12 : hour % 12, 12);
     return toAngle(minute, 60);
   };
+
+  const snapMinute = useCallback(
+    (raw: number): number => {
+      if (minuteStep === 15) {
+        return Math.round(raw / 15) * 15 % 60;
+      }
+      return raw;
+    },
+    [minuteStep]
+  );
 
   const angleToValue = useCallback(
     (cx: number, cy: number): void => {
@@ -65,10 +75,10 @@ function ClockPicker({ hour, minute, onChange }: ClockPickerProps) {
         onChange({ hour: val, minute });
       } else {
         const raw = Math.round(angle / 6) % 60;
-        onChange({ hour, minute: raw });
+        onChange({ hour, minute: snapMinute(raw) });
       }
     },
-    [mode, hour, minute, onChange, CENTER]
+    [mode, hour, minute, onChange, CENTER, snapMinute]
   );
 
   const handlePointer = useCallback(
@@ -108,7 +118,10 @@ function ClockPicker({ hour, minute, onChange }: ClockPickerProps) {
 
   const hours: number[] = Array.from({ length: 12 }, (_, i) => i + 1);
   const hoursInner: number[] = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0];
-  const minutes: number[] = Array.from({ length: 12 }, (_, i) => i * 5);
+
+  const minutes: number[] = minuteStep === 15
+    ? [0, 15, 30, 45]
+    : Array.from({ length: 12 }, (_, i) => i * 5);
 
   const numPos = (i: number, total: number, rr: number): { x: number; y: number } => {
     const a = ((i / total) * 360 - 90) * (Math.PI / 180);
@@ -186,7 +199,7 @@ function ClockPicker({ hour, minute, onChange }: ClockPickerProps) {
           {mode === "minute" && (
             <>
               {minutes.map((m: number, i: number) => {
-                const pos = numPos(i, 12, MINUTE_R);
+                const pos = numPos(i, minutes.length, MINUTE_R);
                 const active = isActiveMinute(m);
                 return (
                   <g key={m}>
@@ -198,7 +211,7 @@ function ClockPicker({ hour, minute, onChange }: ClockPickerProps) {
                   </g>
                 );
               })}
-              {Array.from({ length: 60 }, (_: unknown, i: number) => {
+              {minuteStep === 1 && Array.from({ length: 60 }, (_: unknown, i: number) => {
                 if (i % 5 === 0) return null;
                 const a = ((i / 60) * 360 - 90) * (Math.PI / 180);
                 const r1 = MINUTE_R - 12;
@@ -229,6 +242,7 @@ export default function DateTimePicker({
   allowPast = false,
   showTime = true,
   placeholder,
+  minuteStep = 1,
 }: DateTimePickerProps) {
   const now = new Date();
   const defaultPlaceholder = showTime ? "Selecciona fecha y hora" : "Selecciona una fecha";
@@ -391,7 +405,7 @@ export default function DateTimePicker({
               }}
             />
           ) : (
-            <ClockPicker hour={hour} minute={minute} onChange={handleTimeChange} />
+            <ClockPicker hour={hour} minute={minute} onChange={handleTimeChange} minuteStep={minuteStep} />
           )}
         </div>
         {view === "clock" && (
