@@ -30,7 +30,6 @@ import { Contacto } from "@/lib/get-user-contacts";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { usePaseEntrada } from "@/hooks/usePaseEntrada";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import DateTime from "@/components/dateTime";
 import { Switch } from "@/components/ui/switch";
 import { useSearchPass } from "@/hooks/useSearchPass";
 import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
@@ -38,6 +37,7 @@ import AreasList from "@/components/areas-list";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import ComentariosList from "@/components/comentarios-list";
 import { useBoothStore } from "@/store/useBoothStore";
+import DateTimePicker from "@/components/dateTimePicker";
 
 
  const formSchema = z
@@ -137,12 +137,12 @@ import { useBoothStore } from "@/store/useBoothStore";
   });
 
   const PaseEntradaPage = () =>  {
-	const [tipoVisita] = useState("rango_de_fechas");
+	const [tipoVisita, setTipoVisita] = useState("fecha_fija");
 	const { location } = useBoothStore();
 	
-	const { excludes }= useMenuStore()
-	const [config_dias_acceso] = useState<string[]>([]);
-	const [config_dia_de_acceso] = useState("cualquier_día");
+	const { excludes , includes}= useMenuStore()
+	const [config_dias_acceso,set_config_dias_acceso] = useState<string[]>([]);
+	const [config_dia_de_acceso,set_config_dia_de_acceso] = useState("cualquier_día");
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
 	const [ubicacionSeleccionada,setUbicacionSeleccionada] = useState("")
@@ -161,6 +161,11 @@ import { useBoothStore } from "@/store/useBoothStore";
 	const isExcluded = (key: string) =>
 		Array.isArray(excludes?.pases) &&
 		excludes.pases.includes(key);
+	
+	const isIncluded = (key: string) => 
+		Array.isArray(includes?.pases_incluir) &&
+		includes.pases_incluir.includes(key);
+
 
 	useEffect(()=>{
 		if(location)
@@ -297,14 +302,15 @@ import { useBoothStore } from "@/store/useBoothStore";
 	const [areasList, setAreasList] = useState<Areas[]>([]);
 	// const [isActive, setIsActive] = useState(false);
 	// const [isActiveSMS, setIsActiveSMS] = useState(false);
-	// const [isActiveFechaFija] = useState(true);
-	// const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(true);
-	// const [isActivelimitarDias, setIsActiveLimitarDias] = useState(false);
-	// const [isActiveCualquierDia, setIsActiveCualquierDia] = useState(true);
-	// const [isActivelimitarDiasSemana, setIsActiveLimitarDiasSemana] = useState(false);
+	const [isActiveFechaFija, setIsActiveFechaFija] = useState(true);
+	const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(false);
+	const [isActivelimitarDias, setIsActiveLimitarDias] = useState(false);
+	const [isActiveCualquierDia, setIsActiveCualquierDia] = useState(true);
+	const [isActivelimitarDiasSemana, setIsActiveLimitarDiasSemana] = useState(false);
 	const [isActiveAdvancedOptions] = useState(false);
 	const [date, setDate] = React.useState<Date| "">("");
-	// const [fechaDesde, setFechaDesde] = useState<string>('');
+	const [ fechaDesde,setFechaDesde] = useState<string>('');
+	console.log(fechaDesde)
 	const [selected, setSelected] = useState<Contacto |null>(null);
 	const [isOpenModal, setOpenModal] = useState(false);
 	const [todasAreas,setTodasAreas] = useState(false)
@@ -352,14 +358,14 @@ import { useBoothStore } from "@/store/useBoothStore";
 		},
 	});
 
-	// const toggleDia = (dia: string) => {
-	// 	set_config_dias_acceso((prev) => {
-	// 	const updatedDias = prev.includes(dia)
-	// 		? prev.filter((d) => d !== dia) 
-	// 		: [...prev, dia]; 
-	// 	return updatedDias;
-	// 	});
-	// };
+	const toggleDia = (dia: string) => {
+		set_config_dias_acceso((prev) => {
+		const updatedDias = prev.includes(dia)
+			? prev.filter((d) => d !== dia) 
+			: [...prev, dia]; 
+		return updatedDias;
+		});
+	};
 
 	useEffect(() => {
 		if (!ubicacionesSeleccionadas) return;
@@ -463,39 +469,38 @@ import { useBoothStore } from "@/store/useBoothStore";
 	// 	setIsActiveAdvancedOptions(!isActiveAdvancedOptions);
 	// };
 
-	// const handleToggleTipoVisitaPase = (tipo:string) => {
-	// 	if ( tipo == "fecha_fija" ){
-	// 		form.setValue('fecha_desde_hasta', '')
-	// 		form.setValue('fecha_desde_visita', '')
-	// 		setIsActiveFechaFija(true)
-	// 		setIsActiveRangoFecha(false)
-	// 	} else {
-	// 		form.setValue('fechaFija', '')
-	// 		setDate("")
-	// 		setIsActiveFechaFija(false)
-	// 		setIsActiveRangoFecha(true)
-	// 	}
-	// 	setTipoVisita(tipo)
-	// };
-	// const handleToggleDiasAcceso = (tipo:string) => {
-	// 	if (tipo == "cualquier_día") {
-	// 		setIsActiveCualquierDia(true)
-	// 		setIsActiveLimitarDiasSemana(false)
-	// 	} else {
-	// 		setIsActiveCualquierDia(false)
-	// 		setIsActiveLimitarDiasSemana(true)
-	// 	}
-	// 	set_config_dia_de_acceso(tipo)
-	// };
+	const handleToggleTipoVisitaPase = (tipo:string) => {
+		if ( tipo == "fecha_fija" ){
+			form.setValue('fecha_desde_hasta', '')
+			form.setValue('fecha_desde_visita', '')
+			setIsActiveFechaFija(true)
+			setIsActiveRangoFecha(false)
+		} else {
+			form.setValue('fechaFija', '')
+			setDate("")
+			setIsActiveFechaFija(false)
+			setIsActiveRangoFecha(true)
+		}
+		setTipoVisita(tipo)
+	};
+	const handleToggleDiasAcceso = (tipo:string) => {
+		if (tipo == "cualquier_día") {
+			setIsActiveCualquierDia(true)
+			setIsActiveLimitarDiasSemana(false)
+		} else {
+			setIsActiveCualquierDia(false)
+			setIsActiveLimitarDiasSemana(true)
+		}
+		set_config_dia_de_acceso(tipo)
+	};
 
-	// const handleToggleLimitarDias = () => {
-	// 	setIsActiveLimitarDias(!isActivelimitarDias);
-	// };
-
-	// const handleFechaDesdeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-	// 	setFechaDesde(e.target.value);
-	// 	form.setValue('fecha_desde_hasta', '');
-	// };
+	const handleToggleLimitarDias = () => {
+		setIsActiveLimitarDias(!isActivelimitarDias);
+	};
+	const handleFechaDesdeChange = (d: Date | undefined) => {
+		setFechaDesde(d ? d.toISOString().split("T")[0] : "");
+		form.setValue("fecha_desde_hasta", "");
+	  };
 
 	// function getNextDay(date: string | number | Date) {
 	// 	const currentDate = new Date(date);
@@ -707,7 +712,7 @@ return (
 							render={({ field }: any) => (
 							<FormItem>
 								<FormLabel>
-								Teléfono
+								Teléfono: 
 								</FormLabel>
 								<FormControl>
 								<PhoneInput
@@ -740,7 +745,7 @@ return (
 						render={() => (
 							<FormItem>
 							<FormLabel>
-								<span className="text-red-500">*</span> Ubicaciones del pase
+								<span className="text-red-500">*</span> Ubicaciones del pase:
 							</FormLabel>
 
 							<Multiselect
@@ -765,7 +770,7 @@ return (
 									Motivo de visita:
 								</FormLabel>{" "}
 								<FormControl>
-								<Input placeholder="" {...field}
+								<Input placeholder="Motivo de la visita" {...field}
 								/>
 								</FormControl>
 								<FormMessage />
@@ -800,29 +805,32 @@ return (
 
 					<h1 className="font-bold text-xl">Sobre vigencia y acceso</h1>
 					<div className="flex items-center flex-wrap gap-5">
-						{/* <FormLabel>Vigencia: </FormLabel> */}
+						<FormLabel>Vigencia: </FormLabel>
 						<Controller
 							control={form.control}
 							name="tipo_visita_pase"
 							render={() => (
 								<FormItem>
-								{/* <Button
-									type="button"
-									onClick={()=>{handleToggleTipoVisitaPase("rango_de_fechas")}}
-									className={`px-4 py-2 rounded-md transition-all duration-300 ${
-									isActiveRangoFecha ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-transparent"
-									} hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]  mr-2`}
-								>
-									<div className="flex flex-wrap items-center">
-									{isActiveRangoFecha ? (
-										<><div className="">Vigencia</div></>
-									):(
-										<><div className="text-blue-600">Vigencia</div></>
-									)}
-										
-									</div>
-								</Button> */}
-								{/* <Button
+								{!isExcluded("vigencia") && 
+									<Button
+										type="button"
+										onClick={() => { if (!isExcluded("vigencia")) handleToggleTipoVisitaPase("rango_de_fechas") }}
+										disabled={isExcluded("vigencia")}
+										className={`px-4 py-2 rounded-md transition-all duration-300 ${
+											isActiveRangoFecha ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-transparent"
+										} hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] mr-2
+										${isExcluded("vigencia") ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
+									>
+										<div className="flex flex-wrap items-center">
+											{isActiveRangoFecha ? (
+												<><div className="">Vigencia</div></>
+											) : (
+												<><div className="text-blue-600">Vigencia</div></>
+											)}
+										</div>
+									</Button>
+								}
+								<Button
 									type="button"
 									onClick={()=>{handleToggleTipoVisitaPase("fecha_fija")}}
 									className={`px-4 py-2 rounded-md transition-all duration-300 ${
@@ -837,9 +845,9 @@ return (
 									)}
 										
 									</div>
-								</Button> */}
+								</Button>
 						
-								{/* {tipoVisita === "rango_de_fechas" && (
+								{tipoVisita === "rango_de_fechas" && (
 									<Button
 									type="button"
 									onClick={()=>{handleToggleLimitarDias()}}
@@ -856,7 +864,7 @@ return (
 										
 									</div>
 									</Button>
-								)} */}
+								)}
 								<FormMessage />
 								</FormItem>
 							)}
@@ -865,102 +873,109 @@ return (
 
 					<div>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-						{/* {tipoVisita === "fecha_fija" && ( */}
-							<FormField
-								control={form.control}
-								name="fechaFija"
-								render={() => (
-									<FormItem>
-										<FormLabel>
-											<span className="text-red-500">*</span> Fecha y Hora de
-											Visita:
-										</FormLabel>
-										<FormControl>
-											<DateTime date={date} setDate={setDate} />
-										</FormControl>
-									<FormMessage />
-									</FormItem>
-								)}
-							/>
+						{tipoVisita === "fecha_fija" && (
+							<><FormField
+									control={form.control}
+									name="fechaFija"
+									render={() => (
+										<FormItem>
+											<FormLabel>
+												<span className="text-red-500">*</span> Fecha y Hora de
+												Visita:
+											</FormLabel>
+											<FormControl>
+												<DateTimePicker date={date ? new Date(date) : undefined} setDate={(d: Date | undefined) => setDate(d as Date)}
+  															allowPast />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)} />
+									</>
 
+						)} 
+
+					
+
+						{tipoVisita === "rango_de_fechas" && (
+						<div className="grid grid-cols-1 md:grid-cols-1 gap-2">
+							<FormField
+							control={form.control}
+							name="fecha_desde_visita"
+							render={({ field }: any) => (
+								<FormItem>
+								<FormLabel>
+									<span className="text-red-500">*</span> Fecha desde:
+								</FormLabel>
+								<FormControl>
+								<DateTimePicker
+									date={field.value ? new Date(field.value) : undefined}
+									setDate={(d: Date | undefined) => {
+										const str = d ? d.toISOString().split("T")[0] : "";
+										field.onChange(str);
+										handleFechaDesdeChange(d);
+									}}
+									showTime={false}
+									/>
+
+								</FormControl>
+								<FormMessage />
+								</FormItem>
+							)}
+							/>
+							<FormField
+							control={form.control}
+							name="fecha_desde_hasta"
+							render={({ field }: any) => (
+								<FormItem>
+								<FormLabel>
+									<span className="text-red-500">*</span> Vigencia:
+								</FormLabel>
+								<FormControl>
+								<DateTimePicker
+								date={field.value ? new Date(field.value) : undefined}
+								setDate={(d: Date | undefined) => {
+									const str = d ? d.toISOString().split("T")[0] : "";
+									field.onChange(str);
+								}}
+								showTime={false}
+								/>
+								</FormControl>
+								<FormMessage />
+								</FormItem>
+							)}
+							/>
+						</div>
+						)}
+						</div>
+						{(tipoVisita === "fecha_fija" || (tipoVisita === "rango_de_fechas" && isActivelimitarDias)) && (
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-3">
 							<FormField
 								control={form.control}
 								name="config_limitar_acceso"
-								render={({ field }:any) => (
+								render={({ field }: any) => (
 									<FormItem>
 										<FormLabel>Limitar número de accesos:</FormLabel>
-											<FormControl>
-												<Input
+										<FormControl>
+											<Input
 												placeholder="Ejemplo: 5"
 												type="number"
-												min={0} 
-												step={1} 
-												{...field} 
+												min={0}
+												step={1}
+												{...field}
 												value={field.value ? Number(field.value) : 0}
 												onChange={(e) => {
 													const newValue = e.target.value ? Number(e.target.value) : 0;
-													field.onChange(newValue); 
-												}}/>  
-											</FormControl>
+													field.onChange(newValue);
+												}}
+											/>
+										</FormControl>
 										<FormMessage />
 									</FormItem>
-								)} 
+								)}
 							/>
-
-						{/* )} */}
-
-						{/* {tipoVisita === "rango_de_fechas" && (
-							<><div className="grid grid-cols-1 md:grid-cols-1 gap-2">
-							<FormField
-								control={form.control}
-								name="fecha_desde_visita"
-								render={({ field }:any) => (
-								<FormItem>
-									<FormLabel>
-									<span className="text-red-500">*</span> Fecha desde:
-									</FormLabel>
-									<FormControl>
-									<Input
-										type="date"
-										{...field}
-										min={new Date().toISOString().split('T')[0]} 
-										onChange={(e) => {
-										field.onChange(e); 
-										handleFechaDesdeChange(e); 
-
-										}}
-									/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-								)} />
-							<FormField
-								control={form.control}
-								name="fecha_desde_hasta"
-								render={({ field }:any) => (
-								<FormItem>
-									<FormLabel>
-									<span className="text-red-500">*</span> Vigencia:
-									</FormLabel>
-									<FormControl>
-									<Input
-										type="date"
-										{...field}
-										min={fechaDesde ? getNextDay(fechaDesde) : new Date().toISOString().split('T')[0]}
-										onChange={(e) => {
-										field.onChange(e); 
-										}}
-									/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-								)} />
-							</div>
-							</>
-						)} */}
 						</div>
-
-						{/* {tipoVisita === "rango_de_fechas" && (
+					)}
+						{tipoVisita === "rango_de_fechas" && (
 							<><div className="grid  gap-5 mt-3">
 								<FormField
 									control={form.control}
@@ -1052,13 +1067,12 @@ return (
 								)}
 							</div>
 							</>
-						)} */}
+						)} 
 
 
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-3">
-								
-							</div>
+							
 					</div>
+				{isIncluded("salas") && 
 					<div className="grid grid-cols-1 md:grid-cols-2  gap-5 mt-3">
 						<FormField
 							control={form.control}
@@ -1087,6 +1101,7 @@ return (
 							)}
 							/>
 					</div>
+				}
 				{!isExcluded("areas") &&
 					<div className="grid grid-cols-1 md:grid-cols-2  gap-5 mt-3">
 						<FormField

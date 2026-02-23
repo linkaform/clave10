@@ -9,7 +9,8 @@ export const useGetMenu = () => {
 		setLabels,
 		labels,
 		setMenuItems,
-        setExcludes
+        setExcludes,
+        setIncludes
 	} = useMenuStore();
 	
 	const { isLoading:isLoadingMenu, error:errorMenu, refetch: refetfchMenu } = useQuery<any>({
@@ -22,6 +23,7 @@ export const useGetMenu = () => {
 		if(data.response?.data.menus){
 			const dataRaw =data.response?.data.menus
             const excludeInputs =data.response?.data.exclude_inputs
+            const includeInputs =data.response?.data.include_inputs
 			setLabels(dataRaw);
             const transformedData = dataRaw.map((item: string) => {
                 let text = item;
@@ -41,6 +43,7 @@ export const useGetMenu = () => {
                 };
             })
             setExcludes(excludeInputs)
+            setIncludes(includeInputs)
             setMenuItems(transformedData)
         }
 		
