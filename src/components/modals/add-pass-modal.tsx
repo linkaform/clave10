@@ -96,11 +96,12 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 
   const [sendData, setSendData] = useState<Access_pass|null>(null)
   const [sendPreSms, setSendPreSms] = useState<enviar_pre_sms|null>(null)
-  const {userIdSoter }= useAuthStore()
+  const {userIdSoter, userParentId}= useAuthStore()
   const { createPaseEntradaMutation , responseCreatePase, isLoading} = usePaseEntrada([])
   const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
   const [link, setLink] = useState("");
   const[ account_id, setAccount_id] = useState<number|null>(null)
+  console.log(account_id)
   const [hostPro, setHostPro] = useState({ protocol: '', host: '' });
 
   const onSubmit = async () => {
@@ -183,7 +184,7 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
           docs+="-"
         }
       })
-      setLink(`${hostPro.protocol}//${hostPro.host}/dashboard/pase-update?id=${responseCreatePase?.json.id}&user=${account_id}&docs=${docs}`)
+      setLink(`${hostPro.protocol}//${hostPro.host}/dashboard/pase-update?id=${responseCreatePase?.json.id}&user=${userParentId}&docs=${docs}`)
       setOpenGeneratedPass(true)
   },[responseCreatePase])
 
