@@ -20,15 +20,13 @@ export const ChangeBoothModal: React.FC<ChangeBoothProps> = ({
   children,
 }) => {
   const [open, setIsOpen] = useState(false);
-  const {setBooth} = useBoothStore();
   const [searchTerm, setSearchTerm] = useState("");
   const { booths, isLoading } = useHandleBooth(open);
+  const setBooth = useBoothStore((state) => state.setBooth)
 
   const filteredBooths = useMemo(() => {
     if (!booths) return [];
-    
     if (!searchTerm.trim()) return booths;
-
     const search = searchTerm.toLowerCase();
     return booths.filter(
       (item) =>
@@ -44,6 +42,11 @@ export const ChangeBoothModal: React.FC<ChangeBoothProps> = ({
     }
   };
 
+  const handleSelectBooth = (area: string, location: string) => {
+    setBooth(area, location)
+    setIsOpen(false)
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -56,7 +59,7 @@ export const ChangeBoothModal: React.FC<ChangeBoothProps> = ({
 
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
-            <div className="w-16 h-16 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+            <div className="w-16 h-16 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
           </div>
         ) : (
           <>
@@ -75,13 +78,9 @@ export const ChangeBoothModal: React.FC<ChangeBoothProps> = ({
               {filteredBooths.length > 0 ? (
                 filteredBooths.map((item, index) => (
                   <div
-                    key={index}
+                    key={item?.id ?? index}
                     className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer transition-colors"
-                    onClick={() =>{
-                      console.log("CAMBIO DE CASRTA", item?.area, item?.location)
-                      setBooth(item?.area, item?.location);
-                      setIsOpen(false);
-                    }}
+                    onClick={() => handleSelectBooth(item?.area, item?.location)}
                   >
                     <div className="mr-4 bg-gray-100 p-4 rounded-lg">
                       <Flag />

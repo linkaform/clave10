@@ -17,7 +17,9 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { userEmailSoter, userNameSoter, userPhoto, userIdSoter , setUserPhoto} = useAuthStore();
   const [openNombreSuplenteModal, setOpenNombreSuplenteModal] = useState(false)
-  const { location, area} = useBoothStore()
+  
+  const location = useBoothStore((state) => state.location);
+  const area = useBoothStore((state) => state.area);
   const getInitials = (name: string | null) => {
     if (!name) return "N/A";
     return name
@@ -113,13 +115,16 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
         </div>
 
         <ChangeBoothModal title="Cambiar caseta">
-          <Button
-            className="w-full  bg-blue-500 text-white hover:bg-blue-600"
-            disabled={shift?.guard?.status_turn == "Turno Abierto"}
-          >
-            Cambiar Caseta
-          </Button>
-        </ChangeBoothModal>
+        <Button
+          className="w-full bg-blue-500 text-white hover:bg-blue-600"
+          disabled={
+            shift?.guard?.status_turn == "Turno Abierto" ||
+            !!shift?.guard?.config_exception
+          }
+        >
+          Cambiar Caseta
+        </Button>
+      </ChangeBoothModal>
 
           <Button
             className="w-full  bg-violet-600 text-white hover:bg-violet-700"
