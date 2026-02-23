@@ -20,7 +20,7 @@ import { useForm} from "react-hook-form";
 import { data_correo } from "@/lib/send_correo";
 import Image from "next/image";
 import { useSendCorreoSms } from "@/hooks/useSendCorreo";
-import { API_ENDPOINTS } from "@/config/api";
+// import { API_ENDPOINTS } from "@/config/api";
 import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
 
 interface updatedPassModalProps {
@@ -162,75 +162,75 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 		}
 	}
 
-	const handleClickAppleButton = async () => {
-		const record_id = passData?.pass_selected?._id;
-		const userJwt = localStorage.getItem("access_token");
+	// const handleClickAppleButton = async () => {
+	// 	const record_id = passData?.pass_selected?._id;
+	// 	const userJwt = localStorage.getItem("access_token");
 
-		toast.info("En mantenimiento...", {
-			style: {
-				background: "#000",
-				color: "#fff",
-				border: 'none'
-			},
-		});
-		toast.dismiss();
-		return;
+	// 	toast.info("En mantenimiento...", {
+	// 		style: {
+	// 			background: "#000",
+	// 			color: "#fff",
+	// 			border: 'none'
+	// 		},
+	// 	});
+	// 	toast.dismiss();
+	// 	return;
 
-		toast.loading("Obteniendo tu pase...", {
-			style: {
-				background: "#000",
-				color: "#fff",
-				border: 'none'
-			},
-		});
+	// 	toast.loading("Obteniendo tu pase...", {
+	// 		style: {
+	// 			background: "#000",
+	// 			color: "#fff",
+	// 			border: 'none'
+	// 		},
+	// 	});
 
-		try {
-			const response = await fetch(API_ENDPOINTS.runScript, {
-				method: 'POST',
-				body: JSON.stringify({
-					script_name: 'create_pass_apple_wallet.py',
-					record_id
-				}),
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Bearer ' + userJwt
-				},
-			});
-			const data = await response.json();
-			const file_url = data?.response?.file_url;
+	// 	try {
+	// 		const response = await fetch(API_ENDPOINTS.runScript, {
+	// 			method: 'POST',
+	// 			body: JSON.stringify({
+	// 				script_name: 'create_pass_apple_wallet.py',
+	// 				record_id
+	// 			}),
+	// 			headers: {
+	// 				'Content-Type': 'application/json',
+	// 				'Authorization': 'Bearer ' + userJwt
+	// 			},
+	// 		});
+	// 		const data = await response.json();
+	// 		const file_url = data?.response?.file_url;
 
-			toast.dismiss();
-			toast.success("Pase obtenido correctamente.", {
-				style: {
-					background: "#000",
-					color: "#fff",
-					border: 'none'
-				},
-			});
+	// 		toast.dismiss();
+	// 		toast.success("Pase obtenido correctamente.", {
+	// 			style: {
+	// 				background: "#000",
+	// 				color: "#fff",
+	// 				border: 'none'
+	// 			},
+	// 		});
 
-			const fileResponse = await fetch(file_url);
-			const blob = await fileResponse.blob();
-			const pkpassBlob = new Blob([blob], { type: 'application/vnd.apple.pkpass' });
-			const url = window.URL.createObjectURL(pkpassBlob);
+	// 		const fileResponse = await fetch(file_url);
+	// 		const blob = await fileResponse.blob();
+	// 		const pkpassBlob = new Blob([blob], { type: 'application/vnd.apple.pkpass' });
+	// 		const url = window.URL.createObjectURL(pkpassBlob);
 
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = 'pass.pkpass';
-			document.body.appendChild(a);
-			a.click();
-			a.remove();
-			window.URL.revokeObjectURL(url);
-		} catch (error) {
-			toast.dismiss();
-			toast.error(`${error}` || "Hubo un error al obtener su pase.", {
-				style: {
-					background: "#000",
-					color: "#fff",
-					border: 'none'
-				},
-			});
-		}
-	}
+	// 		const a = document.createElement('a');
+	// 		a.href = url;
+	// 		a.download = 'pass.pkpass';
+	// 		document.body.appendChild(a);
+	// 		a.click();
+	// 		a.remove();
+	// 		window.URL.revokeObjectURL(url);
+	// 	} catch (error) {
+	// 		toast.dismiss();
+	// 		toast.error(`${error}` || "Hubo un error al obtener su pase.", {
+	// 			style: {
+	// 				background: "#000",
+	// 				color: "#fff",
+	// 				border: 'none'
+	// 			},
+	// 		});
+	// 	}
+	// }
 
 	const handleClickImgButton = async () => {
 		const record_id = passData?.pass_selected?._id;
@@ -421,9 +421,9 @@ return (
 								<button type="button" onClick={handleClickGoogleButton}>
 									<Image src="/esES_add_to_google_wallet_add-wallet-badge.png" alt="Add to Google Wallet" width={150} height={150} className="mt-2" />
 								</button>
-								<button type="button" onClick={handleClickAppleButton}>
+								{/* <button type="button" onClick={handleClickAppleButton}>
 									<Image src="/ESMX_Add_to_Apple_Wallet_RGB_101821.svg" alt="Add to Apple Wallet" width={150} height={150} className="mt-2" />
-								</button>
+								</button> */}
 							</div>
 						</div>
 						</>

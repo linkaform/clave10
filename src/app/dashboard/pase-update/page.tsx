@@ -28,8 +28,8 @@ import { formatEquipos, formatVehiculos } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
-import { API_ENDPOINTS } from "@/config/api";
-import { getGoogleWalletPassUrl } from "@/lib/endpoints";
+// import { API_ENDPOINTS } from "@/config/api";
+import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 	const grupoEquipos = z.array(
 		z.object({
@@ -133,16 +133,15 @@ const PaseUpdate = () =>{
 	const[account_id, setAccount_id] = useState<number|null>(null)
 	const [enablePdf, setEnablePdf] = useState(false)
 	const [enableInfo, setEnableInfo] = useState(false)
-	const { data: responsePdf, isLoading: loadingPdf} = useGetPdf(account_id, id, enablePdf);
+	const { data: responsePdf} = useGetPdf(account_id, id, enablePdf);
 	const { data: dataCatalogos, isLoading: loadingDataCatalogos, error} = useGetCatalogoPaseNoJwt(account_id, id, enableInfo );
 	const [agregarEquiposActive, setAgregarEquiposActive] = useState(false);
 	const [agregarVehiculosActive, setAgregarVehiculosActive] = useState(false);
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
+	const [urlImgPass, setUrlImgPass] = useState<string>("");
+	const [loadingImgPass, setLoadingImgPass] = useState(false);
 	const downloadUrl=responsePdf?.response?.data?.data?.download_url
-	const downloadImgUrl = Array.isArray(dataCatalogos?.pass_selected?.pdf_to_img) && dataCatalogos?.pass_selected?.pdf_to_img.length > 0
-		? dataCatalogos?.pass_selected?.pdf_to_img[0]?.file_url
-		: "";
 	const requireFoto = showIneIden?.includes("foto") ?? false;
 	const requireIden = showIneIden?.includes("iden") ?? false;
 
@@ -211,6 +210,66 @@ const PaseUpdate = () =>{
 		}
 	};
 
+	const handleClickImgButton = async () => {
+		const record_id = dataCatalogos?.pass_selected?._id;
+		const passImg = dataCatalogos?.pass_selected?.pdf_to_img;
+		if (urlImgPass) {
+			onDescargarPNG(urlImgPass);
+			return;
+		} else if (passImg) {
+			onDescargarPNG(passImg[0].file_url);
+			return;
+		}
+		if (!record_id) {
+			toast.error('No hay pase disponible', {
+				style: {
+					background: "#dc2626",
+					color: "#fff",
+					border: 'none'
+				},
+			});
+			return;
+		}
+		try {
+			setLoadingImgPass(true);
+			toast.loading("Obteniendo tu pase...", {
+				style: {
+					background: "#000",
+					color: "#fff",
+					border: 'none'
+				},
+			});
+			const data = await getImgPassUrl(record_id);
+			const url = data?.response?.data || "";
+			if (url) {
+				setUrlImgPass(url);
+				onDescargarPNG(url);
+				setLoadingImgPass(false);
+			} else {
+				toast.error('No hay pase disponible', {
+					style: {
+						background: "#dc2626",
+						color: "#fff",
+						border: 'none'
+					},
+				});
+			}
+			toast.dismiss();
+			setLoadingImgPass(false);
+		} catch (error) {
+			console.log(error)
+			toast.error("Error al obtener pase", {
+				style: {
+					background: "#dc2626",
+					color: "#fff",
+					border: 'none'
+				},
+			});
+			toast.dismiss();
+			setLoadingImgPass(false);
+		}
+	}
+
 	useEffect(() => {
 		if (error) {
 		  toast.error(error.message,{
@@ -277,75 +336,75 @@ const PaseUpdate = () =>{
 		}
 	}
 
-	const handleClickAppleButton = async () => {
-		const record_id = dataCatalogos?.pass_selected?._id;
-		const userJwt = localStorage.getItem("access_token");
+	// const handleClickAppleButton = async () => {
+	// 	const record_id = dataCatalogos?.pass_selected?._id;
+	// 	const userJwt = localStorage.getItem("access_token");
 
-		toast.info("En mantenimiento...", {
-			style: {
-				background: "#000",
-				color: "#fff",
-				border: 'none'
-			},
-		});
-		toast.dismiss();
-		return;
+	// 	toast.info("En mantenimiento...", {
+	// 		style: {
+	// 			background: "#000",
+	// 			color: "#fff",
+	// 			border: 'none'
+	// 		},
+	// 	});
+	// 	toast.dismiss();
+	// 	return;
 
-		toast.loading("Obteniendo tu pase...", {
-			style: {
-				background: "#000",
-				color: "#fff",
-				border: 'none'
-			},
-		});
+	// 	toast.loading("Obteniendo tu pase...", {
+	// 		style: {
+	// 			background: "#000",
+	// 			color: "#fff",
+	// 			border: 'none'
+	// 		},
+	// 	});
 
-		try {
-			const response = await fetch(API_ENDPOINTS.runScript, {
-				method: 'POST',
-				body: JSON.stringify({
-					script_name: 'create_pass_apple_wallet.py',
-					record_id
-				}),
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Bearer ' + userJwt
-				},
-			});
-			const data = await response.json();
-			const file_url = data?.response?.file_url;
+	// 	try {
+	// 		const response = await fetch(API_ENDPOINTS.runScript, {
+	// 			method: 'POST',
+	// 			body: JSON.stringify({
+	// 				script_name: 'create_pass_apple_wallet.py',
+	// 				record_id
+	// 			}),
+	// 			headers: {
+	// 				'Content-Type': 'application/json',
+	// 				'Authorization': 'Bearer ' + userJwt
+	// 			},
+	// 		});
+	// 		const data = await response.json();
+	// 		const file_url = data?.response?.file_url;
 
-			toast.dismiss();
-			toast.success("Pase obtenido correctamente.", {
-				style: {
-					background: "#000",
-					color: "#fff",
-					border: 'none'
-				},
-			});
+	// 		toast.dismiss();
+	// 		toast.success("Pase obtenido correctamente.", {
+	// 			style: {
+	// 				background: "#000",
+	// 				color: "#fff",
+	// 				border: 'none'
+	// 			},
+	// 		});
 
-			const fileResponse = await fetch(file_url);
-			const blob = await fileResponse.blob();
-			const pkpassBlob = new Blob([blob], { type: 'application/vnd.apple.pkpass' });
-			const url = window.URL.createObjectURL(pkpassBlob);
+	// 		const fileResponse = await fetch(file_url);
+	// 		const blob = await fileResponse.blob();
+	// 		const pkpassBlob = new Blob([blob], { type: 'application/vnd.apple.pkpass' });
+	// 		const url = window.URL.createObjectURL(pkpassBlob);
 
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = 'pass.pkpass';
-			document.body.appendChild(a);
-			a.click();
-			a.remove();
-			window.URL.revokeObjectURL(url);
-		} catch (error) {
-			toast.dismiss();
-			toast.error(`${error}` || "Hubo un error al obtener su pase.", {
-				style: {
-					background: "#000",
-					color: "#fff",
-					border: 'none'
-				},
-			});
-		}
-	}
+	// 		const a = document.createElement('a');
+	// 		a.href = url;
+	// 		a.download = 'pass.pkpass';
+	// 		document.body.appendChild(a);
+	// 		a.click();
+	// 		a.remove();
+	// 		window.URL.revokeObjectURL(url);
+	// 	} catch (error) {
+	// 		toast.dismiss();
+	// 		toast.error(`${error}` || "Hubo un error al obtener su pase.", {
+	// 			style: {
+	// 				background: "#000",
+	// 				color: "#fff",
+	// 				border: 'none'
+	// 			},
+	// 		});
+	// 	}
+	// }
 
 
 
@@ -841,45 +900,39 @@ return (
 						</>}
 					</div>
 
-					<div className="flex flex-row gap-3">
+					<div className="flex flex-row gap-3 items-center">
 						<button type="button" onClick={handleClickGoogleButton}>
-							<Image src="/esES_add_to_google_wallet_add-wallet-badge.png" alt="Add to Google Wallet" width={150} height={150} className="mt-2" />
+							<Image src="/esES_add_to_google_wallet_add-wallet-badge.png" alt="Add to Google Wallet" width={150} height={150} />
 						</button>
 
-						<button type="button" onClick={handleClickAppleButton}>
+						{/* <button type="button" onClick={handleClickAppleButton}>
 							<Image src="/ESMX_Add_to_Apple_Wallet_RGB_101821.svg" alt="Add to Apple Wallet" width={150} height={150} className="mt-2" />
-						</button>
+						</button> */}
+						<div className="flex flex-col gap-2">
+							<Button
+								className="w-40 m-0 bg-yellow-400 hover:bg-yellow-600 text-black font-bold rounded-2xl"
+								type="button"
+								onClick={() => handleClickImgButton()}
+								disabled={loadingImgPass}
+							>
+								{!loadingImgPass ? ("Descargar Pase") : (<><Loader2 className="animate-spin" />Descargando...</>)}
+							</Button>
+
+							<Button
+								className={`hidden w-40 m-0 ${isActualizarOpen ? "bg-red-500 hover:bg-red-600" : "bg-blue-500 hover:bg-blue-600"
+									}`}
+								type="button"
+								onClick={() => {
+									setIsActualizarOpen(!isActualizarOpen);
+								}}
+								disabled={loadingDataCatalogos}
+							>
+								{isActualizarOpen ? "Cerrar" : "Actualizar información"}
+							</Button>
+						</div>
 					</div>
 				
-					<div className="flex flex-col gap-2">
-						<Button
-							className="w-40 m-0 bg-yellow-500 hover:bg-yellow-600"
-							type="button"
-							onClick={() => {
-								if (downloadImgUrl) {
-									onDescargarPNG(downloadImgUrl);
-								} else {
-									toast.error("No hay imagen disponible para descargar.");
-								}
-							}}
-							disabled={loadingPdf}
-							>
-							{!loadingPdf ? ("Descargar Pase") : (<><Loader2 className="animate-spin" />Descargando...</>)}
-						</Button>
-
-						<Button
-						className={`hidden w-40 m-0 ${
-							isActualizarOpen ? "bg-red-500 hover:bg-red-600" : "bg-blue-500 hover:bg-blue-600"
-						}`}
-						type="button"
-						onClick={() =>{
-							setIsActualizarOpen(!isActualizarOpen);
-						}}
-						disabled={loadingDataCatalogos}
-						>
-						{isActualizarOpen ? "Cerrar" : "Actualizar información"}
-						</Button>
-					</div>
+					
 
 					{loadingDataCatalogos ?(
 							<div className="flex justify-center items-center h-screen">
