@@ -40,14 +40,13 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
   folio,
   from
 }) => {
-  const {userEmailSoter , userIdSoter}= useAuthStore()
+  const {userEmailSoter , userIdSoter, userParentId}= useAuthStore()
   const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
   const [sendDataUpdate, setSendDataUpdate] = useState<Update_full_pass|null>(null)
 
  
   const [docs, setDocs] = useState("");
   const [link, setLink] = useState("");
-  const account_id = userIdSoter;
   const { updatePaseEntradaFullMutation, responseCreatePase, isLoading} = usePaseEntrada(dataPass?.ubicacion??"")
   const [hostPro, setHostPro] = useState({ protocol: '', host: '' });
 	const telefonoFormateado = dataPass?.telefono?.startsWith("+")
@@ -157,7 +156,7 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
         }
       })
 
-      setLink(`${hostPro.protocol}//${hostPro.host}/dashboard/pase-update?id=${responseCreatePase?.json.id}&user=${account_id}&docs=${docs}`)
+      setLink(`${hostPro.protocol}//${hostPro.host}/dashboard/pase-update?id=${responseCreatePase?.json.id}&user=${userParentId}&docs=${docs}`)
       
     }
   },[responseCreatePase])
