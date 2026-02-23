@@ -176,10 +176,10 @@ const statusColor =
                     className="border border-gray-100 rounded-xl px-4 shadow-none"
                   >
                     <AccordionTrigger className="text-sm font-medium text-gray-800 hover:no-underline py-3">
-                      {area.note_booth}
+                      {area.incidente_area}
                     </AccordionTrigger>
                     <AccordionContent className="pb-3">
-                      <DetailRow label="Área" value={area.note_booth} />
+                      <DetailRow label="Área" value={area.incidente_area} />
                       <DetailRow label="Comentario" value={area.commentario_area} />
                     </AccordionContent>
                   </AccordionItem>

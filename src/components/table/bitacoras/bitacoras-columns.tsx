@@ -76,7 +76,7 @@ export interface Vehiculo_bitacora {
 	nombre_estado: string
 }
 export interface Areas_bitacora {
-	note_booth: string
+	incidente_area: string
 	commentario_area: string
 }
 
