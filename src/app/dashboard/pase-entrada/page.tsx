@@ -416,7 +416,6 @@ import DateTimePicker from "@/components/dateTimePicker";
 			message: "Selecciona al menos una ubicación"
 			});
 		}
-		console.log("DATA", data, date)
 		const formattedData = {
 			created_from:"web",
 			selected_visita_a: data.selected_visita_a,
