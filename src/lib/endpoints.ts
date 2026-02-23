@@ -45,7 +45,7 @@ export const getGoogleWalletPassUrl = async (qr_code: string) => {
             Authorization: `Bearer ${userJwt}`,
         },
         body: JSON.stringify({
-            script_name: "create_pass_google_wallet.py",
+            script_id: 146540,
             qr_code,
         }),
     });
