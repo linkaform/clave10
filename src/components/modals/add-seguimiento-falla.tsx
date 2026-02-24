@@ -271,7 +271,6 @@ console.log(enviarSeguimiento)
 									showWebcamOption={true}
 									facingMode="user"
 									imgArray={evidencia}
-									showArray={true}
 									limit={10}
 								/>
 							</div>

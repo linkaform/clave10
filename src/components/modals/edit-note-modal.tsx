@@ -228,7 +228,6 @@ export const EditNoteModal: React.FC<EditNoteModalProps> = ({
                 showWebcamOption={true}
                 facingMode='environment'
                 imgArray={evidencia}
-                showArray={true}
                 limit={10}
               />
             </div>

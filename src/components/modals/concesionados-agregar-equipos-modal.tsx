@@ -454,7 +454,6 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 											imgArray={field.value||[]} 
 											setImg={field.onChange} 
 											facingMode="user" 
-											showArray={true} 
 											limit={1}/>
 											{fieldState.error && <span className="block w-full text-red-500 text-sm mt-1">{fieldState.error.message}</span>}
 										</div>

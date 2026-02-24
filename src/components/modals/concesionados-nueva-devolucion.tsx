@@ -240,7 +240,6 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
 									setImg={field.onChange}
 									showWebcamOption={true}
 									facingMode="environment"
-									showArray={true}
 									limit={10} />
 								{fieldState.error && <span className="block w-full text-red-500 text-sm mt-1">{fieldState.error.message}</span>}
 								</div>
@@ -408,7 +407,6 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
 											imgArray={field.value||[]} 
 											setImg={field.onChange} 
 											facingMode="user" 
-											showArray={true} 
 											limit={1}/>
 											{fieldState.error && <span className="block w-full text-red-500 text-sm mt-1">{fieldState.error.message}</span>}
 										</div>

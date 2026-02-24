@@ -297,7 +297,6 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
                                     showWebcamOption={true}
                                     facingMode="user" 
                                     imgArray={fotografia} 
-                                    showArray={true} 
                                     limit={1}
                                 />
                                 {errorFotografia !== "" && <span className="text-red-500 text-sm">{errorFotografia}</span>}
@@ -313,7 +312,6 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
                                     showWebcamOption={true}
                                     facingMode="environment" 
                                     imgArray={identificacion} 
-                                    showArray={true} 
                                     limit={1}
                                 />
                                 {errorIdentificacion !== "" && <span className="text-red-500 text-sm">{errorIdentificacion}</span>}

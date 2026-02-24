@@ -167,7 +167,6 @@ export const DevolucionArticuloConModal: React.FC<AddACModalProps> = ({
                               }}
                               
                               facingMode="user" 
-                              showArray={true} 
                               limit={1}/>
                               {fieldState.error && <span className="block w-full text-red-500 text-sm mt-1">{fieldState.error.message}</span>}
                             </div>

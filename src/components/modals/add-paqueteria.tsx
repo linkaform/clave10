@@ -310,7 +310,6 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                         showWebcamOption={true}
                         facingMode="environment"
                         imgArray={evidencia}
-                        showArray={true}
                         limit={10}
                         />
 				</div>
