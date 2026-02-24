@@ -500,7 +500,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                 />
               }
           {tipoCon == "otro" &&
-            <div className="mt-3">
+            <div >
               <Controller
                 control={form.control}
                 name="evidencia"
@@ -514,7 +514,6 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                         setImg={field.onChange}
                         showWebcamOption={true}
                         facingMode="environment"
-                        showArray={true}
                         limit={10} />
                       {fieldState.error && <span className="block w-full text-red-500 text-sm mt-1">{fieldState.error.message}</span>}
                     </div>

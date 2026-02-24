@@ -4,7 +4,7 @@ import React, { Dispatch, SetStateAction, useRef, useState } from "react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { useUploadImage } from "@/hooks/useUploadImage";
-import { Camera, Trash2, UploadCloud, ImagePlus } from "lucide-react";
+import { Camera, Trash2, UploadCloud } from "lucide-react";
 import Webcam from "react-webcam";
 import { base64ToFile, quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
 import Image from "next/image";
@@ -22,9 +22,7 @@ interface CalendarDaysProps {
   showWebcamOption: boolean;
   facingMode: string;
   imgArray: any;
-  showArray: boolean;
-  limit: number;
-  showTakePhoto?: boolean;
+  limit?: number; // ← opcional, default 50
 }
 
 const LoadImage: React.FC<CalendarDaysProps> = ({
@@ -34,42 +32,48 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   showWebcamOption,
   facingMode,
   imgArray,
-  showArray,
-  limit,
-  showTakePhoto = false,
+  limit = 50, // ← default 50
 }) => {
-    const [loadingWebcam, setLoadingWebcam] = useState(false);
-    const [hideWebcam, setHideWebcam] = useState(true);
-    const [hideButtonWebcam, setHideButtonWebcam] = useState(false);
-    const [webcamReady, setWebcamReady] = useState(false);
-    const { uploadImageMutation, isLoading } = useUploadImage();
-    const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loadingWebcam, setLoadingWebcam] = useState(false);
+  const [hideWebcam, setHideWebcam] = useState(true);
+  const [hideButtonWebcam, setHideButtonWebcam] = useState(false);
+  const [webcamReady, setWebcamReady] = useState(false);
+  const { uploadImageMutation, isLoading } = useUploadImage();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const webcamRef = useRef<Webcam | null>(null);
-    const videoConstraints = { width: 320, height: 240, facingMode };
+  const webcamRef = useRef<Webcam | null>(null);
+  const videoConstraints = { width: 320, height: 240, facingMode };
 
-    async function handleFileChange(event: any) {
-        const files: File[] = Array.from(event.target.files || []);
-        if (!files.length) return;
-    
-        const results = await Promise.all(
-        files.map((file) => {
-            const tipoMime = file.type;
-            const extension = tipoMime.split("/")[1];
-            const nuevoNombre = `${quitarAcentosYMinusculasYEspacios(id)}.${extension}`;
-            const nuevoArchivo = new File([file], nuevoNombre, { type: file.type });
-            return uploadImageMutation.mutateAsync({ img: nuevoArchivo });
-        })
-        );
-    
-        const nuevos = results.filter(
-        (r) => r?.file_url && !imgArray?.some((i: Imagen) => i.file_url === r.file_url)
-        );
-        if (nuevos.length > 0) setImg([...(imgArray ?? []), ...nuevos]);
-    
-        setHideWebcam(true);
-        setHideButtonWebcam(false);
-    }
+  const reachedLimit = (imgArray?.length ?? 0) >= limit;
+
+  async function handleFileChange(event: any) {
+    const files: File[] = Array.from(event.target.files || []);
+    if (!files.length) return;
+
+    const espaciosDisponibles = limit - (imgArray?.length ?? 0);
+    const filesToUpload = files.slice(0, espaciosDisponibles);
+
+    const results = await Promise.all(
+      filesToUpload.map((file) => {
+        const tipoMime = file.type;
+        const extension = tipoMime.split("/")[1];
+        const nuevoNombre = `${quitarAcentosYMinusculasYEspacios(id)}.${extension}`;
+        const nuevoArchivo = new File([file], nuevoNombre, { type: file.type });
+        return uploadImageMutation.mutateAsync({ img: nuevoArchivo });
+      })
+    );
+
+    const nuevos = results.filter(
+      (r) => r?.file_url && !imgArray?.some((i: Imagen) => i.file_url === r.file_url)
+    );
+    if (nuevos.length > 0) setImg([...(imgArray ?? []), ...nuevos]);
+
+    setHideWebcam(true);
+    setHideButtonWebcam(false);
+
+    // limpiar input para permitir subir el mismo archivo de nuevo
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
   function cleanPhoto() {
     setImg([]);
@@ -98,29 +102,27 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   }
 
   async function takeAndSavePhoto() {
+    if (reachedLimit) return;
+
     const imageSrc = webcamRef.current?.getScreenshot() || "";
     const base64 = base64ToFile(imageSrc, quitarAcentosYMinusculasYEspacios(id));
     const tipoMime = base64.type;
     const extension = tipoMime.split("/")[1];
     const nuevoNombre = `${quitarAcentosYMinusculasYEspacios(id)}.${extension}`;
     const nuevoArchivo = new File([base64], nuevoNombre, { type: base64.type });
-    
+
     const result = await uploadImageMutation.mutateAsync({ img: nuevoArchivo });
     if (result?.file_url) setImg([...(imgArray ?? []), result]);
-  
-    if (showTakePhoto && imgArray.length < limit) {
-      setHideWebcam(true);
-      setHideButtonWebcam(false);
-    } else {
-      setHideWebcam(true);
-      setHideButtonWebcam(true);
-    }
+
+    setHideWebcam(true);
+    setHideButtonWebcam(false);
     setWebcamReady(false);
   }
 
-
-  const handleButtonClick = () => fileInputRef.current?.click();
-  const isEmpty = hideWebcam && (!imgArray || imgArray.length === 0);
+  const handleButtonClick = () => {
+    if (reachedLimit) return;
+    fileInputRef.current?.click();
+  };
 
   const Spinner = () => (
     <svg aria-hidden="true" className="w-4 h-4 animate-spin text-gray-200 fill-blue-500" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -132,12 +134,15 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   return (
     <div className="w-full">
 
-      {/* Header */}
       <div className="flex items-center justify-between mb-1">
-        <Label>{titulo}</Label>
+        <div className="flex items-center gap-2">
+          <Label>{titulo}</Label>
+          {/* <span className={`text-xs font-medium ${reachedLimit ? "text-red-400" : "text-gray-400"}`}>
+            {imgArray?.length ?? 0}/{limit}
+          </span> */}
+        </div>
 
-        <div className="flex items-center gap-1.5">
-          {/* Eliminar */}
+        <div className="flex items-center gap-1.5 ml-2">
           <button
             type="button"
             onClick={cleanPhoto}
@@ -147,10 +152,8 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
             <Trash2 size={13} />
           </button>
 
-          {/* Cámara */}
-          {showWebcamOption && !hideButtonWebcam && (
+          {showWebcamOption && !hideButtonWebcam && !reachedLimit && (
             <>
-              {/* Botón abrir cámara: solo cuando está oculta */}
               {hideWebcam && (
                 <button
                   type="button"
@@ -162,7 +165,6 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
                 </button>
               )}
 
-              {/* Botón tomar foto: solo cuando el video ya está listo */}
               {!hideWebcam && !loadingWebcam && webcamReady && (
                 <button
                   type="button"
@@ -175,33 +177,35 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
             </>
           )}
 
-          {/* Input oculto */}
-          {showArray && (imgArray?.length ?? 0) < limit && (
-            <Input
-              type="file"
-              accept="image/*,video/*"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              multiple 
-            />
-          )}
+          <Input
+            type="file"
+            accept="image/*,video/*"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+            multiple
+          />
 
-          {/* Upload */}
           <button
             type="button"
             onClick={handleButtonClick}
-            title="Subir archivo"
-            className="bg-violet-500 hover:bg-violet-600 text-white w-7 h-7 rounded-lg flex items-center justify-center transition-colors shadow-sm"
+            disabled={reachedLimit}
+            title={reachedLimit ? `Límite de ${limit} archivos alcanzado` : "Subir archivo"}
+            className="bg-violet-500 hover:bg-violet-600 text-white w-7 h-7 rounded-lg flex items-center justify-center transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <UploadCloud size={13} />
           </button>
         </div>
       </div>
 
+      {reachedLimit && (
+        <p className="text-red-400 text-xs mb-1">
+          Límite de {limit} {limit === 1 ? "archivo" : "archivos"} alcanzado
+        </p>
+      )}
+
       <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-2" />
 
-      {/* Contenido */}
       {isLoading ? (
         <div className="flex items-center gap-2 py-1">
           <Spinner />
@@ -209,11 +213,8 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
         </div>
       ) : (
         <>
-          {/* Webcam */}
           {!hideWebcam && (
             <div className="mt-1 w-48">
-
-              {/* Spinner en lugar del canvas mientras carga */}
               {loadingWebcam && (
                 <div className="w-48 h-36 rounded-xl bg-gray-100 flex flex-col items-center justify-center gap-2">
                   <Spinner />
@@ -221,7 +222,6 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
                 </div>
               )}
 
-              {/* Canvas: montado siempre pero oculto hasta que esté listo */}
               <div className={loadingWebcam ? "hidden" : "block"}>
                 <Webcam
                   ref={webcamRef}
@@ -236,27 +236,9 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
                   onUserMedia={handleUserMedia}
                 />
               </div>
-
             </div>
           )}
 
-          {/* Estado vacío */}
-          {isEmpty && (
-            <button
-              type="button"
-              onClick={handleButtonClick}
-              className="flex items-center gap-2 py-1 group transition-all"
-            >
-              <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-blue-50 flex items-center justify-center transition-colors shrink-0">
-                <ImagePlus size={14} className="text-gray-400 group-hover:text-blue-400 transition-colors" />
-              </div>
-              <span className="text-sm text-gray-400 group-hover:text-blue-400 transition-colors">
-                Agregar archivo
-              </span>
-            </button>
-          )}
-
-          {/* Galería */}
           {hideWebcam && imgArray?.length > 0 && (
             <div className="w-full flex justify-center mt-1">
               <Carousel className="w-52">

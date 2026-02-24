@@ -4,7 +4,7 @@ import React, { Dispatch, SetStateAction, useEffect, useRef } from "react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { useUploadImage } from "@/hooks/useUploadImage";
-import { Trash2, UploadCloud, FilePlus } from "lucide-react";
+import { Trash2, UploadCloud } from "lucide-react";
 import {  reemplazarGuionMinuscula } from "@/lib/utils";
 import { Imagen } from "./upload-Image";
 
@@ -124,20 +124,7 @@ const LoadFile: React.FC<CalendarDaysProps> = ({ id, titulo, setDocs, docArray, 
         </div>
       ) : (
         <>
-          {isEmpty && (
-            <button
-              type="button"
-              onClick={handleButtonClick}
-              className="flex items-center gap-2 py-1 group transition-all"
-            >
-              <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-blue-50 flex items-center justify-center transition-colors shrink-0">
-                <FilePlus size={14} className="text-gray-400 group-hover:text-blue-400 transition-colors" />
-              </div>
-              <span className="text-sm text-gray-400 group-hover:text-blue-400 transition-colors">
-                Agregar archivo
-              </span>
-            </button>
-          )}
+        
 
           {!isEmpty && (
             <ul className="space-y-1.5 max-h-[8.5rem] overflow-y-auto pr-1">
