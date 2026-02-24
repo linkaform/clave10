@@ -287,8 +287,8 @@ const PaseUpdate = () =>{
 		const record_id = dataCatalogos?.pass_selected?._id;
 		const google_pass_url = dataCatalogos?.pass_selected?.google_wallet_pass_url;
 
-		if(google_pass_url){
-			window.open(google_pass_url, '_blank');
+		if(google_pass_url || urlGooglePass){
+			window.open(google_pass_url || urlGooglePass, '_blank');
 			return;
 		}
 
