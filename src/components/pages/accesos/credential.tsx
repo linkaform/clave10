@@ -247,7 +247,7 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 													variant="ghost"
 													className="h-8 w-8 rounded-lg bg-white border shadow-sm text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
 													onClick={() => {
-														if (!visita.phone) {
+														if (!visita.telefono) {
 															toast.error("¡El teléfono no ha sido configurado!");
 															return;
 														}
