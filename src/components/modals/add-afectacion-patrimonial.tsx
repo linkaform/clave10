@@ -310,9 +310,7 @@ export const AfectacionPatrimonialModal: React.FC<IncidenciaModalProps> = ({
                                     showWebcamOption={true}
                                     facingMode="environment"
                                     imgArray={evidencia}
-                                    showArray={true}
                                     limit={10}
-                                    showTakePhoto={true}
                                     />
 
                                 <LoadFile

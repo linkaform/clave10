@@ -510,7 +510,6 @@ export const EditarFallaModal: React.FC<EditarFallaModalProps> = ({
 											showWebcamOption={true}
 											facingMode="user"
 											imgArray={evidencia}
-											showArray={true}
 											limit={10} />
 									</div>
 									<div className="flex justify-between">

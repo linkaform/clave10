@@ -315,9 +315,7 @@ export const SeguimientoIncidenciaLista: React.FC<IncidenciaModalProps> = ({
 									showWebcamOption={true}
 									facingMode="user"
 									imgArray={evidencia}
-									showArray={true}
 									limit={10}
-									showTakePhoto={true}
 								/>
 							</div>
 

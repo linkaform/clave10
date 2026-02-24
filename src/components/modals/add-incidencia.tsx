@@ -956,9 +956,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 											showWebcamOption={true}
 											facingMode="environment"
 											imgArray={evidencia}
-											showArray={true}
 											limit={10}
-											showTakePhoto={true}
 											/>
 
 										<LoadFile

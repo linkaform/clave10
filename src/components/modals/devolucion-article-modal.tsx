@@ -164,7 +164,6 @@ export const DevolucionArticuloModal: React.FC<AddFallaModalProps> = ({
                                 showWebcamOption={true}
                                 facingMode="user" 
                                 imgArray={foto} 
-                                showArray={true} 
                                 limit={10}
                                 />
                         </div>
@@ -178,7 +177,6 @@ export const DevolucionArticuloModal: React.FC<AddFallaModalProps> = ({
                                 showWebcamOption={true}
                                 facingMode="user" 
                                 imgArray={iden} 
-                                showArray={true} 
                                 limit={10}
                                 />
                         </div>

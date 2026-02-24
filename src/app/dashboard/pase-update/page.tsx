@@ -633,7 +633,6 @@ return (
 						imgArray={field.value || []}
 						setImg={field.onChange}
 						facingMode="user"
-						showArray={true}
 						limit={1}
 						/>
 						{fieldState.error && (
@@ -660,7 +659,6 @@ return (
 						setImg={field.onChange}
 						showWebcamOption={true}
 						facingMode="environment"
-						showArray={true}
 						limit={1}
 						/>
 						{fieldState.error && (

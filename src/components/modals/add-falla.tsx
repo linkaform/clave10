@@ -551,7 +551,6 @@ export const AddFallaModal: React.FC<AddFallaModalProps> = ({
 									// setErrorImagen={setErrorEvidencia}
 									facingMode="user"
 									imgArray={evidencia}
-									showArray={true}
 									limit={10}
 									/>
 							</div>

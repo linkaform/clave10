@@ -314,7 +314,6 @@ export const EditarPaqueteria: React.FC<EditarFallaModalProps> = ({
                         showWebcamOption={true}
                         facingMode="environment"
                         imgArray={evidencia}
-                        showArray={true}
                         limit={10}
                         />
 				</div>

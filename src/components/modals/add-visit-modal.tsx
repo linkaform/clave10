@@ -276,7 +276,6 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               showWebcamOption={true}
               facingMode="environment"
               imgArray={fotografia}
-              showArray={true}
               limit={10}
             />
 
@@ -291,7 +290,6 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               showWebcamOption={true}
               facingMode="environment"
               imgArray={identificacion}
-              showArray={true}
               limit={10}
             />
 
