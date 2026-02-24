@@ -36,7 +36,7 @@ export const forceQuitAllPersons = async (location: string) => {
     return data;
 };
 
-export const getGoogleWalletPassUrl = async (qr_code: string) => {
+export const getGoogleWalletPassUrl = async (account_id: number, qr_code: string) => {
     const userJwt = localStorage.getItem("access_token");
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
@@ -46,6 +46,7 @@ export const getGoogleWalletPassUrl = async (qr_code: string) => {
         },
         body: JSON.stringify({
             script_name: "create_pass_google_wallet.py",
+            account_id,
             qr_code,
         }),
     });
@@ -53,7 +54,7 @@ export const getGoogleWalletPassUrl = async (qr_code: string) => {
     return data;
 };
 
-export const getImgPassUrl = async (qr_code: string) => {
+export const getImgPassUrl = async (account_id: number, qr_code: string) => {
     const userJwt = localStorage.getItem("access_token");
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
@@ -64,6 +65,7 @@ export const getImgPassUrl = async (qr_code: string) => {
         body: JSON.stringify({
             script_name: "pase_de_acceso_use_api.py",
             option: "get_pass_img",
+            account_id,
             qr_code,
         }),
     });

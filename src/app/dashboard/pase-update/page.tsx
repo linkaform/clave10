@@ -130,7 +130,7 @@ export type formatData = z.infer<ReturnType<typeof createSchema>>;
 const PaseUpdate = () =>{
 	const [id, setId] = useState("")
 	const [showIneIden, setShowIneIden] = useState<string[]|undefined>([])
-	const[account_id, setAccount_id] = useState<number|null>(null)
+	const[account_id, setAccount_id] = useState<number>(0)
 	const [enablePdf, setEnablePdf] = useState(false)
 	const [enableInfo, setEnableInfo] = useState(false)
 	const { data: responsePdf} = useGetPdf(account_id, id, enablePdf);
@@ -240,7 +240,7 @@ const PaseUpdate = () =>{
 					border: 'none'
 				},
 			});
-			const data = await getImgPassUrl(record_id);
+			const data = await getImgPassUrl(account_id, record_id);
 			const url = data?.response?.data || "";
 			if (url) {
 				setUrlImgPass(url);
@@ -310,7 +310,7 @@ const PaseUpdate = () =>{
 					border: 'none'
 				},
 			});
-			const data = await getGoogleWalletPassUrl(record_id);
+			const data = await getGoogleWalletPassUrl(account_id, record_id);
 			const url = data?.response?.data?.google_wallet_url || "";
 			if (url) {
 				setUrlGooglePass(url);
@@ -568,6 +568,7 @@ return (
 				setIsSuccess={setIsSuccess}
 				onClose={closeModal}
 				passData={dataCatalogos}
+				parentUserId={account_id}
 			/>
 		{dataCatalogos?.pass_selected?.estatus == "proceso" ? (
 		<div className="max-w-xl mx-auto px-4 py-6 space-y-6 pt-0">

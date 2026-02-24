@@ -28,6 +28,7 @@ interface EntryPassModal2Props {
 	setIsSuccess: Dispatch<SetStateAction<boolean>>;
 	onClose: ()=> void;
 	passData: any;
+	parentUserId: number;
 }
 
 export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
@@ -35,7 +36,7 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
 	data,
 	isSuccess,
 	passData,
-	setIsSuccess,onClose
+	setIsSuccess,onClose, parentUserId
 }) => {
 	const [response,setResponse] = useState<any>(null);
 	const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
@@ -266,6 +267,7 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
 								closePadre={handleClose}
 								passData={passData}
 								updateResponse={response}
+								parentUserId={parentUserId}
 								/>
 						
 							<Button className="w-full bg-blue-500 hover:bg-blue-600 text-white" type="submit" onClick={onSubmit} disabled={isLoadingUpdate}>
