@@ -202,13 +202,14 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 				</DialogTitle>
 			</DialogHeader>
 			<div className="flex-grow overflow-y-auto p-4 ">
-				<div className="w-full flex gap-2 mb-3">
-					<p className="font-bold flex-shrink-0">Nombre Completo : </p>
-					<p className="">{dataPass?.nombre} </p>
-				</div>
+				<div className="flex flex-col space-y-5 ">
+					<div className="w-full flex gap-2 ">
+						<p className="font-bold flex-shrink-0">Nombre Completo : </p>
+						<p className="">{dataPass?.nombre} </p>
+					</div>
 
-				<div className="flex flex-col space-y-5 mb-3">
 				<div className="flex justify-between flex-col sm:flex-row  sm:space-x-5 space-y-5 sm:space-y-0 ">
+
 					<div className="w-full flex gap-2 ">
 					<p className="font-bold flex-shrink-0">Tipo de pase : </p>
 					<p >{dataPass?.perfil_pase}</p>
@@ -242,9 +243,14 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 
 				<div className="flex justify-between flex-col sm:flex-row sm:space-x-5 space-y-5 sm:space-y-0">
 					<div className="w-full  flex gap-2">
-					<p className="font-bold flex-shrink-0">Tema cita : </p>
+					<p className="font-bold flex-shrink-0">Motivo de la visita : </p>
 					<p className="w-full break-words">{dataPass?.tema_cita}</p>
 					</div>
+					{ dataPass?.sala !=="" ?
+					<div className="w-full  flex gap-2">
+					<p className="font-bold flex-shrink-0">Sala : </p>
+					<p className="w-full break-words">{dataPass?.sala}</p>
+					</div>:null}
 				</div>
 					<div className="w-full flex gap-2">
 						<p className="font-bold flex-shrink-0">Descripción : </p>
