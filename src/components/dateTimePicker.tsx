@@ -18,7 +18,7 @@ interface ClockPickerProps {
   hour: number;
   minute: number;
   onChange: (value: TimeValue) => void;
-  minuteStep?: 1 | 15;
+  minuteStep?: 1 | 5 | 15;
 }
 
 interface DateTimePickerProps {
@@ -27,10 +27,10 @@ interface DateTimePickerProps {
   allowPast?: boolean;
   showTime?: boolean;
   placeholder?: string;
-  minuteStep?: 1 | 15;
+  minuteStep?: 1 | 5 | 15;
 }
 
-function ClockPicker({ hour, minute, onChange, minuteStep = 1 }: ClockPickerProps) {
+function ClockPicker({ hour, minute, onChange, minuteStep = 5 }: ClockPickerProps) {
   const [mode, setMode] = useState<ClockMode>("hour");
   const clockRef = useRef<SVGSVGElement>(null);
   const isDragging = useRef<boolean>(false);
@@ -53,6 +53,9 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 1 }: ClockPickerProp
       if (minuteStep === 15) {
         return Math.round(raw / 15) * 15 % 60;
       }
+      if (minuteStep === 5) {
+        return Math.round(raw / 5) * 5 % 60;
+      }
       return raw;
     },
     [minuteStep]
@@ -64,16 +67,22 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 1 }: ClockPickerProp
       const rect = clockRef.current.getBoundingClientRect();
       const x = cx - rect.left - CENTER;
       const y = cy - rect.top - CENTER;
+      // Angle from top (12 o'clock), going clockwise, 0–360
       let angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
       if (angle < 0) angle += 360;
       const dist = Math.sqrt(x * x + y * y);
 
       if (mode === "hour") {
-        const raw = Math.round(angle / 30) % 12 || 12;
+        // Each hour = 30°. We use floor+offset to avoid the "one hour behind" rounding issue.
+        const segment = Math.round(angle / 30) % 12;
         const isInner = dist < 58;
-        const val = isInner ? (raw === 12 ? 0 : raw + 12) : raw;
+        // segment 0 → 12 (outer) or 0 (inner/midnight)
+        const val = isInner
+          ? segment === 0 ? 0 : segment + 12
+          : segment === 0 ? 12 : segment;
         onChange({ hour: val, minute });
       } else {
+        // Each minute = 6°
         const raw = Math.round(angle / 6) % 60;
         onChange({ hour, minute: snapMinute(raw) });
       }
@@ -119,11 +128,20 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 1 }: ClockPickerProp
   const hours: number[] = Array.from({ length: 12 }, (_, i) => i + 1);
   const hoursInner: number[] = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0];
 
-  const minutes: number[] = minuteStep === 15
-    ? [0, 15, 30, 45]
-    : Array.from({ length: 12 }, (_, i) => i * 5);
+  const minuteMarks: number[] =
+    minuteStep === 15
+      ? [0, 15, 30, 45]
+      : minuteStep === 5
+      ? Array.from({ length: 12 }, (_, i) => i * 5)
+      : Array.from({ length: 12 }, (_, i) => i * 5);
 
-  const numPos = (i: number, total: number, rr: number): { x: number; y: number } => {
+  // Hours: i=0 → hour 1 at 30° from top; i=11 → hour 12 at top
+  const hourPos = (i: number, rr: number): { x: number; y: number } => {
+    const a = (((i + 1) / 12) * 360 - 90) * (Math.PI / 180);
+    return { x: CENTER + rr * Math.cos(a), y: CENTER + rr * Math.sin(a) };
+  };
+  // Minutes: i=0 → 0 min at top
+  const minutePos = (i: number, total: number, rr: number): { x: number; y: number } => {
     const a = ((i / total) * 360 - 90) * (Math.PI / 180);
     return { x: CENTER + rr * Math.cos(a), y: CENTER + rr * Math.sin(a) };
   };
@@ -168,7 +186,7 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 1 }: ClockPickerProp
           {mode === "hour" && (
             <>
               {hours.map((h: number, i: number) => {
-                const pos = numPos(i, 12, HOUR_R);
+                const pos = hourPos(i, HOUR_R);
                 const active = isActiveHour(h);
                 return (
                   <g key={h}>
@@ -181,7 +199,7 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 1 }: ClockPickerProp
                 );
               })}
               {hoursInner.map((h: number, i: number) => {
-                const pos = numPos(i, 12, INNER_HOUR_R);
+                const pos = hourPos(i, INNER_HOUR_R);
                 const active = isActiveHour(h);
                 return (
                   <g key={`inner-${h}`}>
@@ -198,8 +216,8 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 1 }: ClockPickerProp
 
           {mode === "minute" && (
             <>
-              {minutes.map((m: number, i: number) => {
-                const pos = numPos(i, minutes.length, MINUTE_R);
+              {minuteMarks.map((m: number, i: number) => {
+                const pos = minutePos(i, minuteMarks.length, MINUTE_R);
                 const active = isActiveMinute(m);
                 return (
                   <g key={m}>
@@ -242,7 +260,7 @@ export default function DateTimePicker({
   allowPast = false,
   showTime = true,
   placeholder,
-  minuteStep = 1,
+  minuteStep = 5,
 }: DateTimePickerProps) {
   const now = new Date();
   const defaultPlaceholder = showTime ? "Selecciona fecha y hora" : "Selecciona una fecha";

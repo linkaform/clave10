@@ -884,7 +884,7 @@ return (
 											</FormLabel>
 											<FormControl>
 												<DateTimePicker date={date ? new Date(date) : undefined} setDate={(d: Date | undefined) => setDate(d as Date)}
-  															allowPast minuteStep={15} />
+  															allowPast minuteStep={5} />
 											</FormControl>
 											<FormMessage />
 										</FormItem>
