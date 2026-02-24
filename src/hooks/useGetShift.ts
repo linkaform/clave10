@@ -27,7 +27,7 @@ export const useGetShift = (area?: string,
   // } = useShiftStore();
 
   const {
-    data: shift,
+    data: allData,
     isLoading,
     error,
     isFetching,
@@ -44,14 +44,11 @@ export const useGetShift = (area?: string,
         const textMsj = errorMsj(data)
         toast.error(`Error al obtener load shift, Error: ${textMsj?.text}`);
       }
-      // setLocation(data.response?.data.location.name)
-      // setArea(data.response?.data.location.area)
-      // setTurno(data.response?.data.guard.status_turn == "Turno Abierto")
-      // setDownloadPass(data.response?.data?.booth_config ?? [])
-      return data.response?.data
-
+      return data
     }
   });
+
+  const shift = allData?.response?.data;
 
   useEffect(() => {
 
@@ -77,6 +74,7 @@ export const useGetShift = (area?: string,
     downloadPass: shift?.booth_config ?? [],
     area: shift?.location?.area,
     location: shift?.location?.name || shift?.guard?.location,
+    allData
   };
 };
 
