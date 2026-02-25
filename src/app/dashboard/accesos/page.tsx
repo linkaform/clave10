@@ -52,7 +52,7 @@ import { Equipo , Vehiculo} from "@/lib/update-pass";
 import { useBoothStore } from "@/store/useBoothStore";
 
 const AccesosPage = () => {
-  const { isAuth, userIdSoter } = useAuthStore();
+  const { isAuth, userParentId } = useAuthStore();
   const { area, location } = useBoothStore();
   const { shift, isLoading:loadingShift, turno, downloadPass} = useGetShift(area,location);
   const {setTab, setFilter, setOption} = useShiftStore();
@@ -71,7 +71,7 @@ const AccesosPage = () => {
   const [loading, setLoading]= useState(false);
   const {
 	refetch,
-  } = useGetPdf(userIdSoter, id??"", false);
+  } = useGetPdf(userParentId, id??"", false);
 
   useEffect(() => {
 	if(searchPass){
