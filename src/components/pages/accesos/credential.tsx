@@ -240,7 +240,7 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 												</Button>
 											</MakeCallModal>
 
-											<SendMessageModal title="Enviar Mensaje">
+											<SendMessageModal title="Enviar Aviso">
 												<Button
 													size="icon"
 													variant="ghost"
