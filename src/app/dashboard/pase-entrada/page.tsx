@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
 import { List } from "lucide-react";
-import { formatDateToString, formatFecha, uniqueArray } from "@/lib/utils";
+import { formatDateToString, formatFecha, isExcluded, uniqueArray } from "@/lib/utils";
 import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
 // import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
@@ -160,10 +160,6 @@ import { useBoothStore } from "@/store/useBoothStore";
 	const [areasTodas, setAreasTodas] = useState<any[]>([]);
 	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
 
-
-	const isExcluded = (key: string) =>
-		Array.isArray(excludes?.pases) &&
-		excludes.pases.includes(key);
 
 	useEffect(()=>{
 		if(location)
@@ -1031,7 +1027,7 @@ return (
 						)}
 					</div>
 
-				{!isExcluded("areas") &&
+				{isExcluded("areas",excludes?? undefined) &&
 					<div className="flex gap-2">
 						<div className="flex gap-2 flex-wrap">
 							<Button
@@ -1080,7 +1076,7 @@ return (
 					/>
 				</> )
 			}
-			{!isExcluded("comentarios") &&
+			{isExcluded("comentarios", excludes?? undefined) &&
 			<>
 				<div className="font-bold text-xl">Comentarios/ Instrucciones:</div><ComentariosList
 				comentarios={comentariosList}
