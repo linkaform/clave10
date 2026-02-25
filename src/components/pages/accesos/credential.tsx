@@ -45,9 +45,9 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 	};
 
 	return (
-		<div className="h-fit overflow-y-auto w-full">
-			<Card className="w-full max-w-xl mx-auto border-none shadow-lg bg-white overflow-hidden">
-				<CardHeader className="bg-slate-50 border p-6">
+		<div className="flex flex-col h-full w-full">
+			<Card className="flex flex-col w-full max-w-xl mx-auto border-none shadow-lg bg-white overflow-hidden h-full">
+				<CardHeader className="bg-slate-50 border-b p-6 flex-shrink-0">
 					<div className="flex justify-between items-center">
 						<div className="flex items-center gap-2 text-slate-500">
 							<Hash className="w-4 h-4" />
@@ -64,7 +64,7 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 					</div>
 				</CardHeader>
 
-				<CardContent className="p-0 border">
+				<CardContent className="p-0 border-x border-b flex-1 overflow-y-auto">
 					{/* Identity Section */}
 					<div className="p-6 flex flex-col items-center gap-4 bg-white pb-8">
 						<div className="flex items-center justify-center gap-6">

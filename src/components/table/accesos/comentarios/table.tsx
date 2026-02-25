@@ -9,11 +9,10 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Plus } from "lucide-react";
+import { Plus, MessageSquare } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -36,17 +35,13 @@ interface TableProps {
   allComments?: any[] | undefined
 }
 
-  export const ComentariosAccesosTable: React.FC<TableProps> = ({ allComments }) => {
+export const ComentariosAccesosTable: React.FC<TableProps> = ({ allComments }) => {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
-  const [columnVisibility, setColumnVisibility] =React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: 8,
-  });
   const [globalFilter, setGlobalFilter] = React.useState("");
 
   const table = useReactTable({
@@ -56,57 +51,59 @@ interface TableProps {
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
 
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
-      pagination,
       globalFilter,
     },
   });
 
   return (
-    <div className="w-full">
-      
-
-    
-        {/* Botones a la derecha */}
-        <div className="flex justify-between ">
-        <div className="mb-3">
-          <h1 className="text-2xl font-bold">Descripción/ Comentario</h1>
+    <div className="flex flex-col h-full w-full bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* Encabezado del Widget */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gray-50/80 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-white rounded-md shadow-sm border border-gray-100">
+            <MessageSquare className="w-4 h-4 text-gray-600" />
+          </div>
+          <h2 className="text-sm font-semibold text-gray-700 tracking-tight">Comentarios</h2>
         </div>
+
         <CommentPassModal title="Comentario al pase">
-            <Button className="bg-green-600 text-sm hover:bg-green-700 text-white px-2 py-1 h-9">
-              <Plus />
-              Comentario
-            </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 px-2.5 text-xs font-medium text-green-700 hover:text-green-800 hover:bg-green-100/50 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Añadir
+          </Button>
         </CommentPassModal>
-    
-        </div>
+      </div>
 
-      <div className="w-full mt-0">
-        <ScrollArea className="h-36 w-full border rounded-md">
+      {/* Contenedor de la Tabla Scrollable */}
+      <div className="flex-1 min-h-[200px] overflow-hidden bg-white">
+        <ScrollArea className="h-full w-full max-h-[300px]">
           <Table>
-            <TableHeader className="bg-[#F0F2F5] ">
+            <TableHeader className="sticky top-0 bg-white z-10">
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
+                <TableRow key={headerGroup.id} className="hover:bg-transparent border-b border-gray-100">
                   {headerGroup.headers.map((header) => {
                     return (
-                      <TableHead key={header.id} className="h-7">
+                      <TableHead key={header.id} className="h-8 px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                       </TableHead>
                     );
                   })}
@@ -119,9 +116,10 @@ interface TableProps {
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
+                    className="group transition-colors hover:bg-gray-50/50 border-b border-gray-50 last:border-none"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                      <TableCell key={cell.id} className="py-2.5 px-4 text-sm text-gray-700 font-medium">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
@@ -134,16 +132,18 @@ interface TableProps {
                 <TableRow>
                   <TableCell
                     colSpan={AccesosComentarioColumns.length}
-                    className="h-24 text-center"
+                    className="h-32 text-center"
                   >
-                    No hay registros disponibles{" "}
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <p className="text-xs">Aún no hay comentarios</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         </ScrollArea>
-      </div>   
+      </div>
     </div>
   );
 }

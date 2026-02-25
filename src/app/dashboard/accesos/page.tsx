@@ -462,23 +462,23 @@ const AccesosPage = () => {
 
 			{ searchPass ? (
 			<>
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
-					<div className="row-span-3  flex flex-col p-4 ">
+				<div className="grid grid-cols-1 md:grid-cols-3">
+					<div className="row-span-3 flex flex-col p-4 ">
 						<Credentials searchPass={searchPass} />
 					</div>
-					<div className="flex flex-col p-4 gap-3 ">
+					<div className="flex flex-col pl-0 p-4 gap-3 ">
 						<ComentariosAccesosTable allComments={allComments} />
 						<PermisosTable certificaciones={certificaciones}/>
 					</div>
 
-					<div className="flex flex-col p-4 gap-3 ">
+					<div className="flex flex-col pl-0 p-4 gap-3 ">
 						<UltimosAccesosTable ultimosAccesos={ultimosAccesos} /> 
-							<AccesosPermitidosTable accesosPermitidos={accesosPermitidos} />
+						<AccesosPermitidosTable accesosPermitidos={accesosPermitidos} />
 					</div>
 
 						
-					  <div className="col-span-2 col-start-2 pr-4">
-					 	<div className="fbg-slate-400 ml-5">
+					  <div className="col-span-2 col-start-2 pr-4 mb-5">
+					 	<div className="fbg-slate-400">
 					 		<div className="">
 					 			<EquiposAutorizadosTable equipos={equipos} setEquipos={setEquipos} setSelectedEquipos={setSelectedEquipos} selectedEquipos={selectedEquipos} tipoMovimiento={tipoMovimiento}/>
 					 		</div>
