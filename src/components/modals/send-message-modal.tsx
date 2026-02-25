@@ -53,7 +53,7 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.tipo === "sms" && !searchPass?.visita_a?.[0]?.telefono) {
+    if (values.tipo === "sms" && !searchPass?.anfitrion_data?.new_user_phone) {
       form.setError("tipo", {
         type: "manual",
         message: "No tiene configurado SMS (sin teléfono)",
@@ -61,7 +61,7 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
       return;
     }
 
-    if (values.tipo === "email" && !searchPass?.visita_a?.[0]?.email) {
+    if (values.tipo === "email" && !searchPass?.anfitrion_data?.new_user_email) {
       form.setError("tipo", {
         type: "manual",
         message: "No tiene configurado Email",
@@ -72,9 +72,9 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
     const data_msj = {
       email_from: localStorage.getItem("userEmail_soter") ?? "",
       nombre: searchPass?.nombre ?? "",
-      email_to: searchPass?.visita_a?.[0]?.email ?? "",
+      email_to: searchPass?.anfitrion_data?.new_user_email ?? "",
       mensaje: values.message,
-      phone_to: searchPass?.visita_a?.[0]?.telefono ?? "",
+      phone_to: searchPass?.anfitrion_data?.new_user_phone ?? "",
       tipo: values.tipo,
     };
 
@@ -144,7 +144,7 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
                           field.onChange("sms");
                           form.clearErrors("tipo");
                         }}
-                        disabled={!searchPass?.visita_a?.[0]?.telefono}
+                        disabled={!searchPass?.anfitrion_data?.new_user_phone}
                         className={`px-6 py-2 rounded ${
                           field.value === "sms"
                             ? "bg-blue-600 text-white"
@@ -159,7 +159,7 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
                           field.onChange("email");
                           form.clearErrors("tipo");
                         }}
-                        disabled={!searchPass?.visita_a?.[0]?.email}
+                        disabled={!searchPass?.anfitrion_data?.new_user_email}
                         className={`px-6 py-2 rounded ${
                           field.value === "email"
                             ? "bg-blue-600 text-white"
@@ -170,12 +170,12 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
                       </button>
                     </div>
                   </FormControl>
-                  {!searchPass?.visita_a?.[0]?.telefono && (
+                  {!searchPass?.anfitrion_data?.new_user_phone && (
                     <p className="text-red-500 text-sm mt-1">
                       No tiene configurado SMS (sin teléfono)
                     </p>
                   )}
-                  {!searchPass?.visita_a?.[0]?.email && (
+                  {!searchPass?.anfitrion_data?.new_user_email && (
                     <p className="text-red-500 text-sm mt-1">
                       No tiene configurado Email
                     </p>

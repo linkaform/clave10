@@ -47,6 +47,7 @@ export interface SearchAccessPass {
   link:string
   limite_de_acceso?: number;
   total_entradas?:string;
+  anfitrion_data?:any;
 }
 
 
