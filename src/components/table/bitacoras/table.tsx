@@ -156,7 +156,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 					<div className="flex w-full max-w-sm items-center space-x-2">
 						<input
 							type="text"
-							placeholder="Buscar"
+							placeholder="Buscar registros..."
 							value={globalFilter || ''}
 							onChange={(e) => setGlobalFilter(e.target.value)}
 							className=" border border-gray-300 rounded-md p-2 placeholder-gray-600 w-full"
@@ -263,14 +263,17 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 
 			</div>
 
-			<div className="">
-				<Table>
-					<TableHeader className="bg-blue-100 hover:bg-blue-100">
+			<div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">
+				<Table className="text-xs">
+					<TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
 						{table.getHeaderGroups().map((headerGroup: any) => (
-							<TableRow key={headerGroup.id}>
+							<TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
 								{headerGroup.headers.map((header: any) => {
 									return (
-										<TableHead key={header.id} className="px-1">
+										<TableHead
+											key={header.id}
+											className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none whitespace-nowrap ${header.id === 'options' ? 'w-1' : ''}`}
+										>
 											{header.isPlaceholder
 												? null
 												: flexRender(
@@ -290,10 +293,13 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 								<TableRow
 									key={row.id}
 									data-state={row.getIsSelected() && "selected"}
-
+									className="hover:bg-slate-100 transition-colors border-slate-50"
 								>
 									{row.getVisibleCells().map((cell: any) => (
-										<TableCell key={cell.id} className="p-1 pl-1">
+										<TableCell
+											key={cell.id}
+											className={`py-2 px-3 border-r border-slate-100 last:border-r-0 ${cell.column.id === 'options' ? 'w-1' : ''} font-normal`}
+										>
 											{flexRender(
 												cell.column.columnDef.cell,
 												cell.getContext(),
@@ -301,15 +307,22 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 										</TableCell>
 									))}
 								</TableRow>
+
 							))
 						) : (
 							<TableRow>
 								<TableCell
-									colSpan={table.getVisibleFlatColumns().length}
-									className="h-36 text-center font-medium"
+									colSpan={columns.length}
+									className="h-32 text-center"
 								>
-									{isLoading ? (<div className='text-xl font-semibold'>Cargando registros... </div>) :
-										(<div className='text-xl font-semibold'>No hay registros disponibles...</div>)}
+									{isLoading ? (
+										<div className="flex flex-col items-center gap-2 text-slate-300">
+											<div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
+											<span className="text-xs font-normal">Cargando registros...</span>
+										</div>
+									) : (
+										<span className="text-xs text-slate-300 font-normal">No se encontraron registros</span>
+									)}
 								</TableCell>
 							</TableRow>
 						)}
