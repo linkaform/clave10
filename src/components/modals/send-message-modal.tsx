@@ -20,7 +20,6 @@ import {
 import { Textarea } from "../ui/textarea";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useSearchPass } from "@/hooks/useSearchPass";
 import { useEffect, useState } from "react";
 import { useEnviarMensaje } from "@/hooks/useSendSMSAndEmail";
 import { MessageSquare, Smartphone, Mail, Send, AlertCircle } from "lucide-react";
@@ -28,6 +27,7 @@ import { MessageSquare, Smartphone, Mail, Send, AlertCircle } from "lucide-react
 interface SendMessageModalProps {
   title: string;
   children: React.ReactNode;
+  data?: any;
 }
 
 const formSchema = z.object({
@@ -40,10 +40,11 @@ const formSchema = z.object({
 export const SendMessageModal: React.FC<SendMessageModalProps> = ({
   title,
   children,
+  data,
 }) => {
-  const { searchPass } = useSearchPass(false);
   const [open, setOpen] = useState(false);
   const { enviarMensajeMutation } = useEnviarMensaje();
+  console.log(data);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -54,7 +55,7 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.tipo === "sms" && !searchPass?.anfitrion_data?.new_user_phone) {
+    if (values.tipo === "sms" && !data?.telefono) {
       form.setError("tipo", {
         type: "manual",
         message: "El anfitrión no tiene número de teléfono registrado.",
@@ -62,7 +63,7 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
       return;
     }
 
-    if (values.tipo === "email" && !searchPass?.anfitrion_data?.new_user_email) {
+    if (values.tipo === "email" && !data?.email) {
       form.setError("tipo", {
         type: "manual",
         message: "El anfitrión no tiene correo electrónico registrado.",
@@ -72,10 +73,10 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
 
     const data_msj = {
       email_from: localStorage.getItem("userEmail_soter") ?? "",
-      nombre: searchPass?.nombre ?? "",
-      email_to: searchPass?.anfitrion_data?.new_user_email ?? "",
+      nombre: data?.nombre ?? "",
+      email_to: data?.email ?? "",
       mensaje: values.message,
-      phone_to: searchPass?.anfitrion_data?.new_user_phone ?? "",
+      phone_to: data?.telefono ?? "",
       tipo: values.tipo,
     };
 
@@ -97,8 +98,8 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
     }
   }, [form, open]);
 
-  const hasPhone = !!searchPass?.anfitrion_data?.new_user_phone;
-  const hasEmail = !!searchPass?.anfitrion_data?.new_user_email;
+  const hasPhone = !!data?.telefono;
+  const hasEmail = !!data?.email;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

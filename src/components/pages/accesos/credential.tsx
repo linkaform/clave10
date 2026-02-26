@@ -209,16 +209,20 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 						<div className="space-y-3">
 							<p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Visita a:</p>
 							<div className="space-y-2">
-								{searchPass?.visita_a?.map((visita, index) => (
+								{searchPass?.anfitrions_data?.map((visita: any, index: number) => {
+								if(!visita.name) {
+									return null
+								}
+								return(
 									<div
 										key={index}
 										className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 group transition-all hover:bg-white hover:shadow-md hover:border-indigo-100"
 									>
 										<div className="flex items-center gap-3">
 											<div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs">
-												{visita.nombre?.charAt(0)}
+												{visita.name?.charAt(0)}
 											</div>
-											<span className="font-semibold text-slate-700">{visita.nombre}</span>
+											<span className="font-semibold text-slate-700">{visita.name}</span>
 										</div>
 										<div className="flex gap-2 opacity-80 group-hover:opacity-100">
 											<MakeCallModal
@@ -240,7 +244,7 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 												</Button>
 											</MakeCallModal>
 
-											<SendMessageModal title="Enviar Aviso">
+											<SendMessageModal title="Enviar Aviso" data={visita}>
 												<Button
 													size="icon"
 													variant="ghost"
@@ -257,7 +261,8 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 											</SendMessageModal>
 										</div>
 									</div>
-								))}
+								)}
+							)}
 							</div>
 						</div>
 
