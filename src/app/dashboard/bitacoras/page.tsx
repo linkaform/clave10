@@ -20,6 +20,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 import Swal from "sweetalert2";
 import useAuthStore from "@/store/useAuthStore";
 import { getPdf } from "@/lib/get-pdf";
+import BitacoraImages from "@/components/pages/bitacoras/BitacoraImages";
 
 const BitacorasPage = () => {
 	const { tab, filter, option, from, setFrom } = useShiftStore()
@@ -38,10 +39,16 @@ const BitacorasPage = () => {
 
 	const [dates, setDates] = useState<string[]>([])
 	const [dateFilter, setDateFilter] = useState<string>(filter)
+	const [selectedTab, setSelectedTab] = useState<string>(tab ? tab : "Personal");
 	const [pagination, setPagination] = useState({
 		pageIndex: 0,
 		pageSize: 20,
 	});
+	const [paginationFotos, setPaginationFotos] = useState({
+		pageIndex: 0,
+		pageSize: 100,
+	});
+
 	const refreshData = async () => {
 		await Promise.all([
 			refetchBitacoras(),
@@ -49,10 +56,20 @@ const BitacorasPage = () => {
 		]);
 	};
 
+	const currentPagination = selectedTab === "Fotos" ? paginationFotos : pagination;
+
 	const { listBitacoras, isLoadingListBitacoras, refetchBitacoras } = useBitacoras(
-		ubicacionSeleccionada, areaSeleccionada == "todas" ? "" : areaSeleccionada, selectedOption, ubicacionSeleccionada && areaSeleccionada ? true : false, dates[0], dates[1], dateFilter, pagination.pageSize, pagination.pageIndex * pagination.pageSize)
+		ubicacionSeleccionada,
+		areaSeleccionada == "todas" ? "" : areaSeleccionada,
+		selectedOption,
+		ubicacionSeleccionada && areaSeleccionada ? true : false,
+		dates[0],
+		dates[1],
+		dateFilter,
+		currentPagination.pageSize,
+		currentPagination.pageIndex * currentPagination.pageSize
+	)
 	const { data: stats, refetch: refetchStats } = useGetStats(ubicacionSeleccionada && areaSeleccionada ? true : false, ubicacionSeleccionada, areaSeleccionada == "todas" ? "" : areaSeleccionada, 'Bitacoras')
-	const [selectedTab, setSelectedTab] = useState<string>(tab ? tab : "Personal");
 	const [paseIdSeleccionado, setPaseIdSeleccionado] = useState("")
 	console.log(paseIdSeleccionado)
 	useEffect(() => {
@@ -152,12 +169,23 @@ const BitacorasPage = () => {
 			setSelectedOption(option);
 			setSelectedTab(tab)
 			setIsPersonasDentro(true)
-			setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+			// Reset page index on tab change, but keep the tab-specific page size
+			if (tab === "Fotos") {
+				setPaginationFotos(prev => ({ ...prev, pageIndex: 0 }));
+			} else {
+				setPagination(prev => ({ ...prev, pageIndex: 0 }));
+			}
 		}
 	};
 
 	const handleTabChangeE = (newTab: any) => {
 		setSelectedTab(newTab);
+		// Reset page index when switching via tabs
+		if (newTab === "Fotos") {
+			setPaginationFotos(prev => ({ ...prev, pageIndex: 0 }));
+		} else {
+			setPagination(prev => ({ ...prev, pageIndex: 0 }));
+		}
 	};
 
 	const Filter = () => {
@@ -328,6 +356,20 @@ const BitacorasPage = () => {
 								pagination={pagination}
 								setPagination={setPagination}
 							/>
+						</div>
+					</TabsContent>
+
+					<TabsContent value="Fotos">
+						<div className="">
+							<BitacoraImages data={listBitacoras?.records} isLoading={isLoadingListBitacoras}
+								date1={date1} date2={date2} setDate1={setDate1} setDate2={setDate2} dateFilter={dateFilter} setDateFilter={setDateFilter} Filter={Filter}
+								isPersonasDentro={isPersonasDentro} ubicacionSeleccionada={ubicacionSeleccionada}
+								printPase={printPase} setPaseIdSeleccionado={setPaseIdSeleccionado}
+								personasDentro={stats?.personas_dentro}
+								refreshData={refreshData}
+								total={listBitacoras?.total_records}
+								pagination={paginationFotos}
+								setPagination={setPaginationFotos} />
 						</div>
 					</TabsContent>
 

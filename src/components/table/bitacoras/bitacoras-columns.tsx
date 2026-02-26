@@ -205,7 +205,7 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 			accessorKey: "nombre_visitante",
 			header: "Visitante",
 			cell: ({ row }) => (
-				<div className="text-xs font-normal text-slate-900 capitalize leading-tight max-w-[150px] whitespace-nowrap overflow-hidden text-ellipsis">{row.getValue("nombre_visitante") ?? ""}</div>
+				<div className="text-xs font-normal text-slate-900 capitalize leading-tight min-w-[120px]">{row.getValue("nombre_visitante") ?? ""}</div>
 			),
 			enableSorting: true,
 		},
@@ -217,7 +217,7 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 
 				return (
 					<Badge
-						className={`text-white w-full justify-center px-2 py-1 min-h-[16px] text-[12px] font-bold tracking-wider border-none shadow-none whitespace-nowrap ${!isAbierto
+						className={`text-white w-full justify-center px-2 py-0.5 min-h-[16px] text-[10px] font-bold tracking-wider border-none shadow-none ${!isAbierto
 							? "bg-rose-600 hover:bg-rose-700"
 							: "bg-emerald-600 hover:bg-emerald-700"
 							}`}
@@ -232,7 +232,7 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 			accessorKey: "fecha_entrada",
 			header: "Entrada",
 			cell: ({ row }) => (
-				<div className="text-xs font-normal text-slate-900 whitespace-nowrap">{row.getValue("fecha_entrada") ?? ""}</div>
+				<div className="text-xs font-normal text-slate-900 leading-tight min-w-[80px]">{row.getValue("fecha_entrada") ?? ""}</div>
 			),
 			enableSorting: true,
 		},
@@ -240,7 +240,7 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 			accessorKey: "fecha_salida",
 			header: "Salida",
 			cell: ({ row }) => (
-				<div className="text-xs font-normal text-slate-900 whitespace-nowrap">{row.getValue("fecha_salida") ?? ""}</div>
+				<div className="text-xs font-normal text-slate-900 leading-tight min-w-[80px]">{row.getValue("fecha_salida") ?? ""}</div>
 			),
 			enableSorting: true,
 		},
@@ -248,7 +248,7 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 			accessorKey: "perfil_visita",
 			header: "Tipo",
 			cell: ({ row }) => (
-				<div className="text-xs font-normal text-slate-900 capitalize whitespace-nowrap">{row.getValue("perfil_visita") ?? ""}</div>
+				<div className="text-xs font-normal text-slate-900 capitalize leading-tight">{row.getValue("perfil_visita") ?? ""}</div>
 			),
 			enableSorting: true,
 		},
@@ -256,7 +256,7 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 			accessorKey: "contratista",
 			header: "Empresa",
 			cell: ({ row }) => (
-				<div className="text-xs font-normal text-slate-900 capitalize truncate max-w-[120px] whitespace-nowrap">{row.getValue("contratista") ?? ""}</div>
+				<div className="text-xs font-normal text-slate-900 capitalize leading-tight min-w-[100px]">{row.getValue("contratista") ?? ""}</div>
 			),
 			enableSorting: true,
 		},
@@ -266,7 +266,7 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 			cell: ({ row }) => {
 				const visita_a = (row.getValue("visita_a") ?? []) as VisitaA[];
 				return (
-					<div className="text-xs font-normal text-slate-900 capitalize truncate max-w-[120px] whitespace-nowrap">{visita_a.length > 0 ? visita_a[0]?.nombre : ""}</div>
+					<div className="text-xs font-normal text-slate-900 capitalize leading-tight min-w-[100px]">{visita_a.length > 0 ? visita_a[0]?.nombre : ""}</div>
 				)
 			},
 			enableSorting: true,
@@ -276,7 +276,7 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 			accessorKey: "caseta_entrada",
 			header: "Caseta entrada",
 			cell: ({ row }) => (
-				<div className="text-xs font-normal text-slate-900 capitalize whitespace-nowrap">{row.getValue("caseta_entrada")}</div>
+				<div className="text-xs font-normal text-slate-900 capitalize leading-tight min-w-[100px]">{row.getValue("caseta_entrada")}</div>
 			),
 			enableSorting: true,
 		},
@@ -284,7 +284,7 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 			accessorKey: "nombre_area_salida",
 			header: "Caseta salida",
 			cell: ({ row }) => (
-				<div className="text-xs font-normal text-slate-900 capitalize whitespace-nowrap">{row.getValue("nombre_area_salida")}</div>
+				<div className="text-xs font-normal text-slate-900 capitalize leading-tight min-w-[100px]">{row.getValue("nombre_area_salida")}</div>
 			),
 			enableSorting: true,
 		},
@@ -326,13 +326,19 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 			accessorKey: "comentarios",
 			header: "Comentarios",
 			cell: ({ row }) => {
-				const comentarios = row.getValue("comentarios") as Comentarios_bitacoras[] ?? ""
+				const comentarios = row.getValue("comentarios") as Comentarios_bitacoras[] ?? []
 				return (
-					<div className="text-xs font-normal text-slate-500 italic leading-tight truncate max-w-[150px] whitespace-nowrap">
-						{Array.isArray(comentarios) ? (
-							comentarios.map((comentario) => comentario?.comentario).join(", ")
+					<div className="text-[11px] font-normal text-slate-600 leading-relaxed py-1 max-w-[250px] whitespace-normal">
+						{Array.isArray(comentarios) && comentarios.length > 0 ? (
+							<ul className="list-disc list-inside space-y-1">
+								{comentarios.map((com, idx) => (
+									<li key={idx} className="break-words">
+										{com?.comentario}
+									</li>
+								))}
+							</ul>
 						) : (
-							<span>{comentarios}</span>
+							<span className="text-slate-400 italic">---</span>
 						)}
 					</div>
 				);

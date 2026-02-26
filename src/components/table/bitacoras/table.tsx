@@ -148,6 +148,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 				<div className="flex w-1/2 justify-start gap-4 ">
 					<TabsList className="bg-blue-500 text-white">
 						<TabsTrigger value="Personal">Personal</TabsTrigger>
+						<TabsTrigger value="Fotos">Fotos</TabsTrigger>
 						<TabsTrigger value="Vehiculos">Vehículos</TabsTrigger>
 						<TabsTrigger value="Equipos">Equipos</TabsTrigger>
 						<TabsTrigger value="Locker">Locker</TabsTrigger>
@@ -272,7 +273,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 									return (
 										<TableHead
 											key={header.id}
-											className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none whitespace-nowrap ${header.id === 'options' ? 'w-1' : ''}`}
+											className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none ${header.id === 'options' ? 'w-1' : ''}`}
 										>
 											{header.isPlaceholder
 												? null
