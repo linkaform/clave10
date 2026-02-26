@@ -38,16 +38,20 @@ const BitacorasPage = () => {
 
 	const [dates, setDates] = useState<string[]>([])
 	const [dateFilter, setDateFilter] = useState<string>(filter)
-	const { listBitacoras, isLoadingListBitacoras, refetchBitacoras } = useBitacoras(
-		ubicacionSeleccionada, areaSeleccionada == "todas" ? "" : areaSeleccionada, selectedOption, ubicacionSeleccionada && areaSeleccionada ? true : false, dates[0], dates[1], dateFilter)
-	const { data: stats, refetch: refetchStats } = useGetStats(ubicacionSeleccionada && areaSeleccionada ? true : false, ubicacionSeleccionada, areaSeleccionada == "todas" ? "" : areaSeleccionada, 'Bitacoras')
-
+	const [pagination, setPagination] = useState({
+		pageIndex: 0,
+		pageSize: 20,
+	});
 	const refreshData = async () => {
 		await Promise.all([
 			refetchBitacoras(),
 			refetchStats()
 		]);
 	};
+
+	const { listBitacoras, isLoadingListBitacoras, refetchBitacoras } = useBitacoras(
+		ubicacionSeleccionada, areaSeleccionada == "todas" ? "" : areaSeleccionada, selectedOption, ubicacionSeleccionada && areaSeleccionada ? true : false, dates[0], dates[1], dateFilter, pagination.pageSize, pagination.pageIndex * pagination.pageSize)
+	const { data: stats, refetch: refetchStats } = useGetStats(ubicacionSeleccionada && areaSeleccionada ? true : false, ubicacionSeleccionada, areaSeleccionada == "todas" ? "" : areaSeleccionada, 'Bitacoras')
 	const [selectedTab, setSelectedTab] = useState<string>(tab ? tab : "Personal");
 	const [paseIdSeleccionado, setPaseIdSeleccionado] = useState("")
 	console.log(paseIdSeleccionado)
@@ -122,10 +126,10 @@ const BitacorasPage = () => {
 	};
 
 	useEffect(() => {
-		if (listBitacoras) {
-			if (Array.isArray(listBitacoras)) {
-				setEquiposData(processBitacorasE(listBitacoras))
-				setVehiculosData(processBitacorasV(listBitacoras))
+		if (listBitacoras?.records) {
+			if (Array.isArray(listBitacoras.records)) {
+				setEquiposData(processBitacorasE(listBitacoras.records))
+				setVehiculosData(processBitacorasV(listBitacoras.records))
 			} else {
 				setEquiposData(processBitacorasE([]))
 				setVehiculosData(processBitacorasV([]))
@@ -148,6 +152,7 @@ const BitacorasPage = () => {
 			setSelectedOption(option);
 			setSelectedTab(tab)
 			setIsPersonasDentro(true)
+			setPagination((prev) => ({ ...prev, pageIndex: 0 }));
 		}
 	};
 
@@ -313,12 +318,15 @@ const BitacorasPage = () => {
 				<Tabs defaultValue="Personal" className="w-full" value={selectedTab} onValueChange={handleTabChangeE}>
 					<TabsContent value="Personal">
 						<div className="">
-							<BitacorasTable data={listBitacoras} isLoading={isLoadingListBitacoras}
+							<BitacorasTable data={listBitacoras?.records} isLoading={isLoadingListBitacoras}
 								date1={date1} date2={date2} setDate1={setDate1} setDate2={setDate2} dateFilter={dateFilter} setDateFilter={setDateFilter} Filter={Filter}
 								isPersonasDentro={isPersonasDentro} ubicacionSeleccionada={ubicacionSeleccionada}
 								printPase={printPase} setPaseIdSeleccionado={setPaseIdSeleccionado}
 								personasDentro={stats?.personas_dentro}
 								refreshData={refreshData}
+								total={listBitacoras?.total_records}
+								pagination={pagination}
+								setPagination={setPagination}
 							/>
 						</div>
 					</TabsContent>

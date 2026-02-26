@@ -35,6 +35,7 @@ import { ReturnGafeteModal } from "@/components/modals/return-gafete-modal";
 import ForceQuitConfirmationModal from "@/components/modals/force-quit-confirmation";
 import { forceQuitAllPersons } from "@/lib/endpoints";
 import { toast } from "sonner";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 
 interface ListProps {
@@ -53,11 +54,14 @@ interface ListProps {
 	setPaseIdSeleccionado: React.Dispatch<React.SetStateAction<string>>;
 	personasDentro: number;
 	refreshData: () => Promise<void>;
+	total: number | undefined;
+	pagination: { pageIndex: number; pageSize: number };
+	setPagination: React.Dispatch<React.SetStateAction<{ pageIndex: number; pageSize: number }>>;
 }
 
 
 const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter,
-	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada, printPase, setPaseIdSeleccionado, personasDentro, refreshData }) => {
+	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada, printPase, setPaseIdSeleccionado, personasDentro, refreshData, total, pagination, setPagination }) => {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[]
@@ -74,10 +78,10 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 	const [columnVisibility, setColumnVisibility] =
 		React.useState<VisibilityState>({});
 	const [rowSelection, setRowSelection] = React.useState({});
-	const [pagination, setPagination] = React.useState({
-		pageIndex: 0,
-		pageSize: 23,
-	});
+	// const [pagination, setPagination] = React.useState({
+	// 	pageIndex: 0,
+	// 	pageSize: 23,
+	// });
 
 	const printPaseFn = (id: string) => {
 		console.log("ID PARA IMPRESIOND E PASE", id)
@@ -124,6 +128,8 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 		onPaginationChange: setPagination,
 		globalFilterFn: 'includesString',
 
+		manualPagination: true,
+		rowCount: total || 0,
 		state: {
 			sorting,
 			columnFilters,
@@ -312,26 +318,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 				</Table>
 			</div>
 
-			<div className="flex items-center justify-end space-x-2 py-4">
-				<div className="space-x-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => table.previousPage()}
-						disabled={!table.getCanPreviousPage()}
-					>
-						Anterior
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => table.nextPage()}
-						disabled={!table.getCanNextPage()}
-					>
-						Siguiente
-					</Button>
-				</div>
-			</div>
+			<DataTablePagination table={table} total={total} />
 		</div>
 	);
 }
