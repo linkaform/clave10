@@ -123,14 +123,15 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
                 location,
                 enviar_pre_sms,
               });
-            const hasError= data.response.data.status_code
+              console.log("data",data)
+            const status_code = data?.response?.data?.status_code
+            console.log('02232332', status_code)
 
-            if(hasError == 400 || hasError == 401){
-                const textMsj = errorMsj(data.response.data) 
-                throw new Error(`Error al crear pase, Error: ${textMsj?.text}`);
+            if(!status_code || (status_code == 400 || status_code == 401 || status_code == 404)){
+              throw new Error(`Error al crear pase, solicita ayuda a soporte.`);
             }else{
-                setResponseCreatePase(data.response?.data)
-                return data.response?.data
+                setResponseCreatePase(data?.response?.data)
+                return data?.response?.data
             }
         },
         onMutate: () => {

@@ -130,7 +130,7 @@ export type formatData = z.infer<ReturnType<typeof createSchema>>;
 const PaseUpdate = () =>{
 	const [id, setId] = useState("")
 	const [showIneIden, setShowIneIden] = useState<string[]|undefined>([])
-	const[account_id, setAccount_id] = useState<number|null>(null)
+	const[account_id, setAccount_id] = useState<number>(0)
 	const [enablePdf, setEnablePdf] = useState(false)
 	const [enableInfo, setEnableInfo] = useState(false)
 	const { data: responsePdf} = useGetPdf(account_id, id, enablePdf);
@@ -140,6 +140,7 @@ const PaseUpdate = () =>{
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
 	const [urlImgPass, setUrlImgPass] = useState<string>("");
+	const [urlGooglePass, setUrlGooglePass] = useState<string>("");
 	const [loadingImgPass, setLoadingImgPass] = useState(false);
 	const downloadUrl=responsePdf?.response?.data?.data?.download_url
 	const requireFoto = showIneIden?.includes("foto") ?? false;
@@ -239,7 +240,7 @@ const PaseUpdate = () =>{
 					border: 'none'
 				},
 			});
-			const data = await getImgPassUrl(record_id);
+			const data = await getImgPassUrl(account_id, record_id);
 			const url = data?.response?.data || "";
 			if (url) {
 				setUrlImgPass(url);
@@ -286,8 +287,8 @@ const PaseUpdate = () =>{
 		const record_id = dataCatalogos?.pass_selected?._id;
 		const google_pass_url = dataCatalogos?.pass_selected?.google_wallet_pass_url;
 
-		if(google_pass_url){
-			window.open(google_pass_url, '_blank');
+		if(google_pass_url || urlGooglePass){
+			window.open(google_pass_url || urlGooglePass, '_blank');
 			return;
 		}
 
@@ -309,9 +310,10 @@ const PaseUpdate = () =>{
 					border: 'none'
 				},
 			});
-			const data = await getGoogleWalletPassUrl(record_id);
+			const data = await getGoogleWalletPassUrl(account_id, record_id);
 			const url = data?.response?.data?.google_wallet_url || "";
 			if (url) {
+				setUrlGooglePass(url);
 				window.open(url, '_blank');
 			} else {
 				toast.error('No hay pase disponible', {
@@ -566,6 +568,7 @@ return (
 				setIsSuccess={setIsSuccess}
 				onClose={closeModal}
 				passData={dataCatalogos}
+				parentUserId={account_id}
 			/>
 		{dataCatalogos?.pass_selected?.estatus == "proceso" ? (
 		<div className="max-w-xl mx-auto px-4 py-6 space-y-6 pt-0">

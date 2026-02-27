@@ -13,13 +13,13 @@ import { useBoothStore } from "@/store/useBoothStore";
 export const useGetShift = (area?: string,
   location?: string) => {
   const { setCheckin_id } = useShiftStore();
-  const {setBooth}= useBoothStore()
+  const { setBooth } = useBoothStore()
   const setBoothRef = useRef(setBooth);
   const setCheckin_idRef = useRef(setCheckin_id);
-  
+
   useEffect(() => { setBoothRef.current = setBooth; }, [setBooth]);
   useEffect(() => { setCheckin_idRef.current = setCheckin_id; }, [setCheckin_id]);
-  
+
   // const {
   //   area,
   //   location,
@@ -32,7 +32,7 @@ export const useGetShift = (area?: string,
   // } = useShiftStore();
 
   const {
-    data: shift,
+    data: allData,
     isLoading,
     error,
     isFetching,
@@ -49,14 +49,12 @@ export const useGetShift = (area?: string,
         const textMsj = errorMsj(data)
         toast.error(`Error al obtener load shift, Error: ${textMsj?.text}`);
       }
-      // setLocation(data.response?.data.location.name)
-      // setArea(data.response?.data.location.area)
-      // setTurno(data.response?.data.guard.status_turn == "Turno Abierto")
-      // setDownloadPass(data.response?.data?.booth_config ?? [])
-      return data.response?.data
-
+      return data
     }
   });
+
+  const shift = allData?.response?.data;
+
   useEffect(() => {
     if (shift?.location?.name || shift?.guard?.location) {
       setBoothRef.current(
@@ -81,7 +79,7 @@ export const useGetShift = (area?: string,
       });
     }
   }, [shift?.guard?.config_exception]);
-  
+
   return {
     shift,
     isLoading,
@@ -92,6 +90,7 @@ export const useGetShift = (area?: string,
     downloadPass: shift?.booth_config ?? [],
     area: shift?.location?.area,
     location: shift?.location?.name || shift?.guard?.location,
+    allData
   };
 };
 

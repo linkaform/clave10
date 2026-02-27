@@ -37,6 +37,7 @@ interface updatedPassModalProps {
 	closePadre:()=>void;
 	passData: any;
 	updateResponse: any;
+	parentUserId: number;
 }
  const formSchema = z
 		.object({
@@ -54,7 +55,8 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 	hasTelefono,
 	closePadre,
 	passData,
-	updateResponse
+	updateResponse,
+	parentUserId
 }) => {
 	console.log('==========1', updateResponse)
 	const [enviarCorreo, setEnviarCorreo] = useState<string[]>([]);
@@ -77,7 +79,7 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 			setSmsSent(true);
 		}
 		try {
-			await sendSmsOrEmail(folio, envio, account_id);
+			await sendSmsOrEmail(folio, envio, parentUserId);
 		} catch (err) {
 			console.error("Error:", err);
 			if (envio.includes("enviar_correo")) {
@@ -134,7 +136,7 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 					border: 'none'
 				},
 			});
-			const data = await getGoogleWalletPassUrl(record_id);
+			const data = await getGoogleWalletPassUrl(parentUserId, record_id);
 			const url = data?.response?.data?.google_wallet_url || "";
 			if (url) {
 				setUrlGooglePass(url);
@@ -257,7 +259,7 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 					border: 'none'
 				},
 			});
-			const data = await getImgPassUrl(record_id);
+			const data = await getImgPassUrl(parentUserId, record_id);
 			const url = data?.response?.data || "";
 			if (url) {
 				setUrlImgPass(url);

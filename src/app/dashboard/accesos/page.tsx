@@ -39,7 +39,7 @@ import { useGetShift } from "@/hooks/useGetShift";
 import { exitRegister, registerIncoming } from "@/lib/access";
 import { PermisosTable } from "@/components/table/accesos/permisos-certificaciones/table";
 import useAuthStore from "@/store/useAuthStore";
-import { esHexadecimal, imprimirYDescargarPDF } from "@/lib/utils";
+import { esHexadecimal, imprimirYDescargarPDF, isExcluded } from "@/lib/utils";
 import Link from "next/link";
 import { useGetStats } from "@/hooks/useGetStats";
 import { ScanPassOptionsModal } from "@/components/modals/scan-pass-options";
@@ -50,10 +50,12 @@ import Image from "next/image";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { Equipo , Vehiculo} from "@/lib/update-pass";
 import { useBoothStore } from "@/store/useBoothStore";
+import { useMenuStore } from "@/store/useGetMenuStore";
 
 const AccesosPage = () => {
-  const { isAuth, userIdSoter } = useAuthStore();
+  const { isAuth, userParentId } = useAuthStore();
   const { area, location } = useBoothStore();
+  const { excludes }= useMenuStore()
   const { shift, isLoading:loadingShift, turno, downloadPass} = useGetShift(area,location);
   const {setTab, setFilter, setOption} = useShiftStore();
   const { passCode, setPassCode, clearPassCode, selectedEquipos, setSelectedEquipos, setSelectedVehiculos, selectedVehiculos, setTipoMovimiento, tipoMovimiento} = useAccessStore();
@@ -71,7 +73,7 @@ const AccesosPage = () => {
   const [loading, setLoading]= useState(false);
   const {
 	refetch,
-  } = useGetPdf(userIdSoter, id??"", false);
+  } = useGetPdf(userParentId, id??"", false);
 
   useEffect(() => {
 	if(searchPass){
@@ -84,6 +86,7 @@ const AccesosPage = () => {
 		setTipoMovimiento(searchPass?.tipo_movimiento)
 	}
   }, [searchPass?.grupo_equipos, searchPass?.grupo_vehiculos, searchPass?.tipo_movimiento]);
+
 
 
   const handleGetPdf = async () => {
@@ -417,7 +420,7 @@ const AccesosPage = () => {
 									Escanear Pase
 								</Button>
 					</ScanPassOptionsModal>
-					{!passCode && (
+					{!passCode && isExcluded("nueva_visita", excludes?? undefined) && (
 						<AddVisitModal title="Nueva Visita">
 						<Button className="bg-green-600 hover:bg-green-700 text-white">
 							<Plus />
@@ -462,23 +465,23 @@ const AccesosPage = () => {
 
 			{ searchPass ? (
 			<>
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
-					<div className="row-span-3  flex flex-col p-4 ">
+				<div className="grid grid-cols-1 md:grid-cols-3">
+					<div className="row-span-3 flex flex-col p-4 ">
 						<Credentials searchPass={searchPass} />
 					</div>
-					<div className="flex flex-col p-4 gap-3 ">
+					<div className="flex flex-col pl-0 p-4 gap-3 ">
 						<ComentariosAccesosTable allComments={allComments} />
 						<PermisosTable certificaciones={certificaciones}/>
 					</div>
 
-					<div className="flex flex-col p-4 gap-3 ">
+					<div className="flex flex-col pl-0 p-4 gap-3 ">
 						<UltimosAccesosTable ultimosAccesos={ultimosAccesos} /> 
-							<AccesosPermitidosTable accesosPermitidos={accesosPermitidos} />
+						<AccesosPermitidosTable accesosPermitidos={accesosPermitidos} />
 					</div>
 
 						
-					  <div className="col-span-2 col-start-2 pr-4">
-					 	<div className="fbg-slate-400 ml-5">
+					  <div className="col-span-2 col-start-2 pr-4 mb-5">
+					 	<div className="fbg-slate-400">
 					 		<div className="">
 					 			<EquiposAutorizadosTable equipos={equipos} setEquipos={setEquipos} setSelectedEquipos={setSelectedEquipos} selectedEquipos={selectedEquipos} tipoMovimiento={tipoMovimiento}/>
 					 		</div>

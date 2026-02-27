@@ -46,9 +46,9 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 	};
 
 	return (
-		<div className="h-fit overflow-y-auto w-full">
-			<Card className="w-full max-w-xl mx-auto border-none shadow-lg bg-white overflow-hidden">
-				<CardHeader className="bg-slate-50 border p-6">
+		<div className="flex flex-col h-full w-full">
+			<Card className="flex flex-col w-full max-w-xl mx-auto border-none shadow-lg bg-white overflow-hidden h-full">
+				<CardHeader className="bg-slate-50 border-b p-6 flex-shrink-0">
 					<div className="flex justify-between items-center">
 						<div className="flex items-center gap-2 text-slate-500">
 							<Hash className="w-4 h-4" />
@@ -65,7 +65,7 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 					</div>
 				</CardHeader>
 
-				<CardContent className="p-0 border">
+				<CardContent className="p-0 border-x border-b flex-1 overflow-y-auto">
 					{/* Identity Section */}
 					<div className="p-6 flex flex-col items-center gap-4 bg-white pb-8">
 						<div className="flex items-center justify-center gap-6">
@@ -226,16 +226,20 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 						<div className="space-y-3">
 							<p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Visita a:</p>
 							<div className="space-y-2">
-								{searchPass?.visita_a?.map((visita, index) => (
+								{searchPass?.anfitrions_data?.map((visita: any, index: number) => {
+								if(!visita.name) {
+									return null
+								}
+								return(
 									<div
 										key={index}
 										className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 group transition-all hover:bg-white hover:shadow-md hover:border-indigo-100"
 									>
 										<div className="flex items-center gap-3">
 											<div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs">
-												{visita.nombre?.charAt(0)}
+												{visita.name?.charAt(0)}
 											</div>
-											<span className="font-semibold text-slate-700">{visita.nombre}</span>
+											<span className="font-semibold text-slate-700">{visita.name}</span>
 										</div>
 										<div className="flex gap-2 opacity-80 group-hover:opacity-100">
 											<MakeCallModal
@@ -257,7 +261,7 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 												</Button>
 											</MakeCallModal>
 
-											<SendMessageModal title="Enviar Mensaje">
+											<SendMessageModal title="Enviar Aviso" data={visita}>
 												<Button
 													size="icon"
 													variant="ghost"
@@ -274,7 +278,8 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 											</SendMessageModal>
 										</div>
 									</div>
-								))}
+								)}
+							)}
 							</div>
 						</div>
 

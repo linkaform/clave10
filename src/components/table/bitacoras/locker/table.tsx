@@ -65,7 +65,7 @@ const data: Locker[] = [
     numeroGafete: "A58",
     planta: "Planta 1",
   },
- 
+
 ];
 
 export function LockerTable() {
@@ -109,26 +109,27 @@ export function LockerTable() {
 
   return (
     <div className="w-full">
-		<div className="flex justify-between items-start my-1 gap-3">
-			<div className="flex w-full justify-start gap-4">
-				<TabsList className="bg-blue-500 text-white">
-					<TabsTrigger value="Personal">Personal</TabsTrigger>
-					<TabsTrigger value="Vehiculos">Vehículos</TabsTrigger>
-          <TabsTrigger value="Equipos">Equipos</TabsTrigger>
-					<TabsTrigger value="Locker">Locker</TabsTrigger>
-				</TabsList>
+      <div className="flex justify-between items-start my-1 gap-3">
+        <div className="flex w-full justify-start gap-4">
+          <TabsList className="bg-blue-500 text-white">
+            <TabsTrigger value="Personal">Personal</TabsTrigger>
+            <TabsTrigger value="Fotos">Fotos</TabsTrigger>
+            <TabsTrigger value="Vehiculos">Vehículos</TabsTrigger>
+            <TabsTrigger value="Equipos">Equipos</TabsTrigger>
+            <TabsTrigger value="Locker">Locker</TabsTrigger>
+          </TabsList>
 
-        <div className="flex w-full max-w-sm items-center space-x-2">
-				<input
-					type="text"
-					placeholder="Buscar"
-					value={globalFilter}
-					onChange={(e) => setGlobalFilter(e.target.value)}
-					className=" border border-gray-300 rounded-md p-2 placeholder-gray-600 w-full" 
-				/>
-					<Search />
-				</div>
-			</div> 
+          <div className="flex w-full max-w-sm items-center space-x-2">
+            <input
+              type="text"
+              placeholder="Buscar"
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className=" border border-gray-300 rounded-md p-2 placeholder-gray-600 w-full"
+            />
+            <Search />
+          </div>
+        </div>
 
         {/* Botones a la derecha */}
         <div className="flex items-center justify-end space-x-4">
@@ -177,9 +178,9 @@ export function LockerTable() {
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}

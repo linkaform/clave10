@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "upload.wikimedia.org", // Wikipedia (para la imagen "Image Not Found")
       },
+      {
+        protocol: 'https',
+        hostname: 'app.linkaform.com',
+        pathname: '/media/**',
+      },
     ],
   },
 };

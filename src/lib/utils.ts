@@ -7,6 +7,9 @@ import catalogo from '../app/catalogo.json';
 import Swal from "sweetalert2"
 
 
+export const isExcluded = (key: string, excludes?: { pases?: string[] }): boolean =>
+  !(Array.isArray(excludes?.pases) && excludes!.pases.includes(key));
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }

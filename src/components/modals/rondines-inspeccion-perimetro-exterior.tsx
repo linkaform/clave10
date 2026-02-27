@@ -35,7 +35,7 @@ export const ViewRondinesDetallePerimetroExt: React.FC<ViewRondinesDetalleAreaPr
     
     const [incidenteSeleccionado, setIncidenteSeleccionado] = useState<any | null>(null);
     const [view, setView] = useState<"lista" | "detalle">("lista");
-    const {userIdSoter} = useAuthStore()
+    const {userParentId} = useAuthStore()
     const [diaSeleccionado, setDiaSeleccionado] = useState<number>(diaSelected || 0);
     const recordId = selectedRondin?.resumen?.find((item: { dia: number }) => item.dia === diaSeleccionado)?.record_id;
     
@@ -43,7 +43,7 @@ export const ViewRondinesDetallePerimetroExt: React.FC<ViewRondinesDetalleAreaPr
 
     const { data: getBitacoraById, isLoadingRondin:isLoadingBitacoraById } = useBitacoraById(recordId ?? "");
     console.log("selectedRondin?.resumen",selectedRondin)
-    const {refetch, isFetching} = useGetPdfIncidencias(recordId, 592, userIdSoter, `Bitacora_de_Rondines_${"63214929-10"}`)
+    const {refetch, isFetching} = useGetPdfIncidencias(recordId, 592, userParentId, `Bitacora_de_Rondines_${"63214929-10"}`)
 
     const handleGetPdf = async () => {
 		try {

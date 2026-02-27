@@ -14,8 +14,8 @@ export interface Bitacora_record {
 	motivo_visita: string
 	folio: string
 	contratista: unknown[]
-	foto_url: string
-	identificacion_url:string
+	fotografia: {file_url: string, file_name: string}[]
+	identificacion: {file_url: string, file_name: string}[]
 	id_locker: string
 	id_gafet: string
 	ubicacion: string
