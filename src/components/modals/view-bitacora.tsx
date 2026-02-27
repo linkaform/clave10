@@ -1,17 +1,17 @@
 import { Button } from "../ui/button";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
 } from "../ui/dialog";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
 } from "../ui/accordion";
 import { Bitacora_record } from "../table/bitacoras/bitacoras-columns";
 import { Badge } from "../ui/badge";
@@ -31,15 +31,15 @@ import Image from "next/image";
 import { ScrollArea } from "../ui/scroll-area";
 
 interface ViewListBitacoraModalProps {
-  title: string;
-  data: Bitacora_record;
-  children: React.ReactNode;
+	title: string;
+	data: Bitacora_record;
+	children: React.ReactNode;
 }
 
 export const ViewListBitacoraModal: React.FC<ViewListBitacoraModalProps> = ({
-  title,
-  data,
-  children,
+	title,
+	data,
+	children,
 }) => {
 	return (
 		<Dialog>
@@ -324,48 +324,3 @@ export const ViewListBitacoraModal: React.FC<ViewListBitacoraModalProps> = ({
 		</Dialog>
 	);
 };
-
-/* ── Helpers ── */
-
-const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm font-bold text-gray-400 mb-3">
-    {children}
-  </p>
-);
-
-const InfoCard = ({
-  label,
-  value,
-  className = "",
-}: {
-  label: string;
-  value: string;
-  className?: string;
-}) => (
-  <div className={`bg-gray-50 rounded-xl p-3 ${className}`}>
-    <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-    <p className="text-sm font-medium text-gray-800">{value}</p>
-  </div>
-);
-
-const DetailRow = ({ label, value }: { label: string; value?: string }) => (
-  <div className="py-0.5">
-    <span className="text-xs text-gray-400">{label}: </span>
-    <span className="text-sm text-gray-700">{value || "N/A"}</span>
-  </div>
-);
-
-const PhotoCard = ({ label, src }: { label: string; src: string }) => (
-	<div className="flex flex-col gap-1.5">
-	  <p className="text-xs text-gray-400">{label}</p>
-	  <div className="rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
-		<Image
-		  width={192}
-		  height={192}
-		  src={src || "/nouser.svg"}
-		  alt={label}
-		  className="w-full h-full object-cover"
-		/>
-	  </div>
-	</div>
-  );
