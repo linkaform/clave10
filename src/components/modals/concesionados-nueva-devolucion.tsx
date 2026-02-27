@@ -56,7 +56,6 @@ const formSchema = z.object({
 });
 
 
-
 export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = ({
 	title,
 	children,
@@ -374,7 +373,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
 								name="comentarios"
 								render={({ field }: any) => (
 									<FormItem>
-										<FormLabel>Comentarios: *</FormLabel>
+										<FormLabel>Comentarios: </FormLabel>
 										<FormControl>
 											<Textarea placeholder="Comentarios..." {...field}
 												onChange={(e) => {
@@ -398,7 +397,6 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
 									name="evidencia"
 									render={({ field, fieldState }) => (
 									<div className="flex">
-										<span className="text-red-500 mr-1">*</span>
 										<div className="felx flex-col">
 										<LoadImage
 											id="fotografia"

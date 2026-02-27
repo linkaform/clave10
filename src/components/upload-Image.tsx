@@ -22,7 +22,7 @@ interface CalendarDaysProps {
   showWebcamOption: boolean;
   facingMode: string;
   imgArray: any;
-  limit?: number; // ← opcional, default 50
+  limit?: number;
 }
 
 const LoadImage: React.FC<CalendarDaysProps> = ({
@@ -32,7 +32,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   showWebcamOption,
   facingMode,
   imgArray,
-  limit = 50, // ← default 50
+  limit = 50, 
 }) => {
   const [loadingWebcam, setLoadingWebcam] = useState(false);
   const [hideWebcam, setHideWebcam] = useState(true);
@@ -49,10 +49,29 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   async function handleFileChange(event: any) {
     const files: File[] = Array.from(event.target.files || []);
     if (!files.length) return;
-
+  
+    const validFiles = files.filter((file) => {
+      const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+      const maxSize = 50 * 1024 * 1024;
+      if (!validTypes.includes(file.type)) {
+        alert(`El archivo "${file.name}" no es un formato válido. Solo se permiten jpg, jpeg o png.`);
+        return false;
+      }
+      if (file.size > maxSize) {
+        alert(`El archivo "${file.name}" supera los 50MB permitidos.`);
+        return false;
+      }
+      return true;
+    });
+  
+    if (!validFiles.length) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+  
     const espaciosDisponibles = limit - (imgArray?.length ?? 0);
-    const filesToUpload = files.slice(0, espaciosDisponibles);
-
+    const filesToUpload = validFiles.slice(0, espaciosDisponibles);
+  
     const results = await Promise.all(
       filesToUpload.map((file) => {
         const tipoMime = file.type;
@@ -62,19 +81,18 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
         return uploadImageMutation.mutateAsync({ img: nuevoArchivo });
       })
     );
-
+  
     const nuevos = results.filter(
       (r) => r?.file_url && !imgArray?.some((i: Imagen) => i.file_url === r.file_url)
     );
     if (nuevos.length > 0) setImg([...(imgArray ?? []), ...nuevos]);
-
+  
     setHideWebcam(true);
     setHideButtonWebcam(false);
-
-    // limpiar input para permitir subir el mismo archivo de nuevo
+  
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
-
+  
   function cleanPhoto() {
     setImg([]);
     setHideWebcam(true);
@@ -179,7 +197,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
 
           <Input
             type="file"
-            accept="image/*,video/*"
+            accept="image/jpeg,image/jpg,image/png"
             ref={fileInputRef}
             onChange={handleFileChange}
             className="hidden"

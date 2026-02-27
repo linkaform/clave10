@@ -20,24 +20,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
-import { List } from "lucide-react";
-import { formatDateToString, formatFecha, isExcluded, uniqueArray } from "@/lib/utils";
+import { List, UserRound, CalendarDays, Layers, MessageSquare } from "lucide-react";
+import { formatDateToString, formatFecha, isExcluded } from "@/lib/utils";
 import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
-// import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
 import { Contacto } from "@/lib/get-user-contacts";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { usePaseEntrada } from "@/hooks/usePaseEntrada";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import DateTime from "@/components/dateTime";
 import { Switch } from "@/components/ui/switch";
-import { useSearchPass } from "@/hooks/useSearchPass";
-import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 import AreasList from "@/components/areas-list";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import ComentariosList from "@/components/comentarios-list";
 import { useBoothStore } from "@/store/useBoothStore";
+import { useAssetsByLocations } from "@/hooks/assetsQueries";
+import DateTimePicker from "@/components/dateTimerPicker";
 
 
  const formSchema = z
@@ -150,16 +148,15 @@ import { useBoothStore } from "@/store/useBoothStore";
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
 	const [ubicacionSeleccionada,setUbicacionSeleccionada] = useState("")
-	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingAreas:loadingCatAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, location?true:false);
-	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted??[]);
+	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, false);
+	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>();
 	const pickerRef = useRef<any>(null);
-	const { assets,assetsLoading} = useSearchPass(true);
-	const assetsUnique= uniqueArray(assets?.Visita_a)
-	assetsUnique.unshift("Usuario Actual");
-	console.log("assets", assetsUnique)
-	const [areasTodas, setAreasTodas] = useState<any[]>([]);
+	const { visitas, perfiles, areas, isLoading:assetsLoading } = useAssetsByLocations(
+		ubicacionesSeleccionadas?.length 
+		  ? ubicacionesSeleccionadas 
+		  : ubicacionesDefaultFormatted ?? []
+	  );
 	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
-
 
 	useEffect(()=>{
 		if(location)
@@ -167,50 +164,11 @@ import { useBoothStore } from "@/store/useBoothStore";
 	},[location])
 
 	useEffect(() => {
-	  if (!ubicacionesSeleccionadas?.length) {
-		setAreasTodas([]);
-		return;
-	  }
-	
-	  const fetchAreasTodas = async () => {
-		const resultados = await Promise.all(
-		  ubicacionesSeleccionadas.map(async (ubicacion) => {
-			const res = await getCatalogoPasesAreaNoApi(ubicacion.id);
-			const areas = res?.response?.data?.areas_by_location ?? [];
-			return areas.map((area: string) => ({
-			  nombre: area,
-			  locationId: ubicacion.id,
-			  nombreUbicacion: ubicacion.nombre,
-			}));
-		  })
-		);
-	
-		setAreasTodas(resultados.flat());
-	  };
-	
-	  fetchAreasTodas();
-	}, [setAreasTodas, ubicacionesSeleccionadas]);
-	
-
-	const [areasDisponibles, setAreasDisponibles] = useState<any[]>([]);
-
-	useEffect(() => {
-	setAreasDisponibles(
-		areasTodas.map((area) => ({
-		value: `${area.nombre}`,
-		label: `${area.nombre} — ${area.locationId}`,
-		areaId: area.nombre,
-		}))
-	);
-	}, [areasTodas]);
-
-	useEffect(() => {
 	  const picker = pickerRef.current;
 	  if (picker) {
 		const handleChange = (e: any) => {
 		  setDate(new Date( formatFecha(e.target.value+":00")))
 		};
-  
 		picker.addEventListener('value-changed', handleChange);
 		return () => picker.removeEventListener('value-changed', handleChange);
 	  }
@@ -220,25 +178,17 @@ import { useBoothStore } from "@/store/useBoothStore";
 	.filter((u: any) => u !== null && u !== undefined)
 	.map((u: any) => ({ id: u, name: u }));
 	
-	const visitaAFormatted = (assetsUnique || [])
-	.filter((u: any) => u !== null && u !== undefined)
-	.map((u: any) => ({ id: u, name: u }));
-
 	const [userIdSoter] = useState<number|null>(()=>{
 		return Number(typeof window !== "undefined"? window?.localStorage.getItem("userId_soter"):0) 
 	});
-
 	const[userNameSoter] = useState<string|null>(()=>{
 		return typeof window !== "undefined"? window?.localStorage.getItem("userName_soter"):""
 	})
 	const [userEmailSoter] = useState<string|null>(()=>{
 		return typeof window !== "undefined"? window?.localStorage.getItem("userEmail_soter"):""
 	})
-
-
 	const [host, setHost] = useState<string>();
 	const [protocol,setProtocol] = useState<string>();
-
 
 	useEffect(() => {
 		if (typeof window !== "undefined" && typeof window?.location !== "undefined") {
@@ -253,7 +203,6 @@ import { useBoothStore } from "@/store/useBoothStore";
 		}
 	}, [ubicacionesDefaultFormatted]); 
 
-
 	const ubicacionesSeleccionadasLista = ubicacionesSeleccionadas?.map((u: any) => (u.name));
 	const { dataConfigLocation, isLoadingConfigLocation } = usePaseEntrada(ubicacionesSeleccionadasLista ?? [])
 
@@ -262,16 +211,14 @@ import { useBoothStore } from "@/store/useBoothStore";
 	const [formatedEnvio, setFormatedEnvio] = useState<string[]>([])
 	const [comentariosList, setComentariosList] = useState<Comentarios[]>([]);
 	const [areasList, setAreasList] = useState<Areas[]>([]);
-	// const [isActive, setIsActive] = useState(false);
-	// const [isActiveSMS, setIsActiveSMS] = useState(false);
 	const [isActiveFechaFija, setIsActiveFechaFija] = useState(false);
 	const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(true);
 	const [isActivelimitarDias, setIsActiveLimitarDias] = useState(true);
 	const [isActiveCualquierDia, setIsActiveCualquierDia] = useState(true);
 	const [isActivelimitarDiasSemana, setIsActiveLimitarDiasSemana] = useState(false);
 	const [isActiveAdvancedOptions, setIsActiveAdvancedOptions] = useState(false);
-	const [date, setDate] = React.useState<Date| "">("");
-	const [fechaDesde, setFechaDesde] = useState<string>('');
+	const [date, setDate] = React.useState<Date| undefined>();
+	// const [fechaDesde, setFechaDesde] = useState<string>('');
 	const [selected, setSelected] = useState<Contacto |null>(null);
 	const [isOpenModal, setOpenModal] = useState(false);
 	const [todasAreas,setTodasAreas] = useState(false)
@@ -285,7 +232,6 @@ import { useBoothStore } from "@/store/useBoothStore";
 			empresa:"",
 			email: "",
 			telefono: "",
-			// ubicacion:"",
 			ubicaciones:[],
 			tema_cita:"",
 			descripcion:"",
@@ -325,17 +271,15 @@ import { useBoothStore } from "@/store/useBoothStore";
 			: [...prev, dia]; 
 		return updatedDias;
 		});
-		
 	};
+
 	useEffect(() => {
 		if (!ubicacionesSeleccionadas) return;
-	  
 		form.reset({
 		  ...form.getValues(),
 		  ubicaciones: ubicacionesSeleccionadas.map(u => u.id),
 		});
-	  }, [form, ubicacionesSeleccionadas]);
-	  
+	}, [form, ubicacionesSeleccionadas]);
 
 	useEffect(()=>{
 		if ( selected ) {
@@ -350,21 +294,14 @@ import { useBoothStore } from "@/store/useBoothStore";
 		if(dataConfigLocation){
 			const docs: string[] = []
 			dataConfigLocation?.requerimientos?.map((value:string)=>{
-				if(value=="identificacion") {
-					docs.push("agregarIdentificacion")}
-				if(value=="fotografia") {
-					docs.push("agregarFoto")}
+				if(value=="identificacion") { docs.push("agregarIdentificacion") }
+				if(value=="fotografia") { docs.push("agregarFoto") }
 			})
 			setFormatedDocs(docs)
-
 			const envioCS: string[] = []
 			dataConfigLocation?.envios?.map((envio: string) => {
-				if(envio == "correo") {
-					envioCS.push("enviar_correo_pre_registro")
-				}
-				if(envio == "sms") {
-					envioCS.push("enviar_sms_pre_registro")
-				}
+				if(envio == "correo") { envioCS.push("enviar_correo_pre_registro") }
+				if(envio == "sms") { envioCS.push("enviar_sms_pre_registro") }
 			})
 			setFormatedEnvio(envioCS)
 		}
@@ -372,62 +309,57 @@ import { useBoothStore } from "@/store/useBoothStore";
 
 	const onSubmit = (data: z.infer<typeof formSchema>) => {
 		if (!data.ubicaciones?.length) {
-			form.setError("ubicaciones", {
-			message: "Selecciona al menos una ubicación"
-			});
+			form.setError("ubicaciones", { message: "Selecciona al menos una ubicación" });
 		}
-		console.log("DATA", data, date)
 		const formattedData = {
 			created_from:"web",
 			selected_visita_a: data.selected_visita_a,
 			nombre: data.nombre,
-			empresa:data.empresa,
+			empresa: data.empresa,
 			email: data.email,
 			telefono: data.telefono,
-			ubicacion: ubicacionesSeleccionadas[0]?.id || "",
-			ubicaciones:ubicacionesSeleccionadas?.map(u => u.id) ?? [],
+			ubicaciones: ubicacionesSeleccionadas?.map(u => u.id) ?? [],
 			tema_cita: data.tema_cita,
 			descripcion: data.descripcion,
 			perfil_pase: data.perfil_pase,
-			status_pase:"Proceso",
+			status_pase: "Proceso",
 			visita_a: visitaASeleccionadas?.map(u => u.name) ?? [],
-			custom:true,
+			custom: true,
 			link:{
-				link : `${protocol}//${host}/dashboard/pase-update`,
-				docs : formatedDocs,
-				creado_por_id: userIdSoter ,// userIdSoter,
-				creado_por_email: userEmailSoter,// userEmailSoter
+				link: `${protocol}//${host}/dashboard/pase-update`,
+				docs: formatedDocs,
+				creado_por_id: userIdSoter,
+				creado_por_email: userEmailSoter,
 			},
-			enviar_correo_pre_registro: formatedEnvio, 
+			enviar_correo_pre_registro: formatedEnvio,
 			tipo_visita_pase: tipoVisita,
-			fechaFija: date !=="" ? formatDateToString(date):"",
-			fecha_desde_visita: tipoVisita === "fecha_fija"? 
-				(date !=="" ? formatDateToString(date): "") : 
-				(data.fecha_desde_visita !== "" ? formatFecha(data.fecha_desde_visita)+` 00:00:00`: ""),
-			fecha_desde_hasta: data.fecha_desde_hasta !=="" ? formatFecha(data.fecha_desde_hasta)+` 23:59:00` : "",
+			fechaFija: date ? formatDateToString(date) : "",
+			fecha_desde_visita: tipoVisita === "fecha_fija"
+				? (date ? formatDateToString(date) : "")
+				: (data.fecha_desde_visita !== "" ? formatFecha(data.fecha_desde_visita) + ` 00:00:00` : ""),
+			fecha_desde_hasta: data.fecha_desde_hasta !== "" ? formatFecha(data.fecha_desde_hasta) + ` 23:59:00` : "",
 			config_dia_de_acceso: config_dia_de_acceso === "limitar_días_de_acceso" ? config_dia_de_acceso : "cualquier_día",
 			config_dias_acceso: config_dias_acceso,
 			config_limitar_acceso: Number(data.config_limitar_acceso) || 0,
-			areas:areasList,
+			areas: areasList,
 			comentarios: comentariosList,
 			enviar_pre_sms:{
 				from: "enviar_pre_sms",
 				mensaje: "SOY UN MENSAJE",
 				numero: data.telefono,
 			},
-			todas_las_areas:todasAreas
+			todas_las_areas: todasAreas
 		};
-		if(tipoVisita == "fecha_fija" && date == ""){
+	
+		if(tipoVisita == "fecha_fija" && !date){
 			form.setError("fechaFija", { type: "manual", message: "Fecha Fija es requerida cuando el tipo de pase es 'fecha fija'." });
-		}else if(tipoVisita == "rango_de_fechas" && (formattedData.fecha_desde_visita == "" || formattedData.fecha_desde_hasta == "" ) ){
+		} else if(tipoVisita == "rango_de_fechas" && (formattedData.fecha_desde_visita == "" || formattedData.fecha_desde_hasta == "")){
 			form.setError("fecha_desde_hasta", { type: "manual", message: "Ambas fechas son requeridas" });
-		}else{
+		} else {
 			setModalData(formattedData);
 			setIsSuccess(true);
 		}
-		
 	};
-
 	const handleToggleAdvancedOptions = () => {
 		setIsActiveAdvancedOptions(!isActiveAdvancedOptions);
 	};
@@ -440,12 +372,13 @@ import { useBoothStore } from "@/store/useBoothStore";
 			setIsActiveRangoFecha(false)
 		} else {
 			form.setValue('fechaFija', '')
-			setDate("")
+			setDate(undefined)
 			setIsActiveFechaFija(false)
 			setIsActiveRangoFecha(true)
 		}
 		setTipoVisita(tipo)
 	};
+
 	const handleToggleDiasAcceso = (tipo:string) => {
 		if (tipo == "cualquier_día") {
 			setIsActiveCualquierDia(true)
@@ -462,642 +395,590 @@ import { useBoothStore } from "@/store/useBoothStore";
 	};
 
 	const handleFechaDesdeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setFechaDesde(e.target.value);
+		// setFechaDesde(e.target.value);
+		console.log(e)
 		form.setValue('fecha_desde_hasta', '');
 	};
 
-	function getNextDay(date: string | number | Date) {
-		const currentDate = new Date(date);
-		currentDate.setDate(currentDate.getDate() + 1); 
-		return currentDate.toISOString().split('T')[0]; 
-	}
-
-	const closeModal = () => {
-		setIsSuccess(false); 
-	};
+	// function getNextDay(date: string | number | Date) {
+	// 	const currentDate = new Date(date);
+	// 	currentDate.setDate(currentDate.getDate() + 1); 
+	// 	return currentDate.toISOString().split('T')[0]; 
+	// }
 
 return (
-	<div className="p-8">
+	<div className="min-h-screen bg-gray-100 py-5 px-4">
 		<EntryPassModal
 			title={"Confirmación"}
 			dataPass={modalData}
 			isSuccess={isSuccess}
 			setIsSuccess={setIsSuccess}
-			onClose={closeModal}
+			onClose={() => setIsSuccess(false)}
 			from={"pase"}
 		/>
 
-		<div className="flex flex-col space-y-5 max-w-3xl mx-auto">
-			<div className="text-center">
-				<h1 className="font-bold text-2xl">Crear pase de entrada</h1>
-			</div>
-
-			<div className="flex justify-between flex-col sm:flex-row">
-				<p className="font-bold text-xl">Sobre la visita</p>
-				<Button
-					className="bg-blue-500 text-white hover:text-white hover:bg-blue-600 w-40"
-					variant="outline"
-					onClick={()=>{setOpenModal(true)}}
-				>
-					<List size={36} />
-					Mis contactos
-				</Button>
-				<MisContactosModal title="Mis Contactos" setSelected={setSelected} isOpenModal={isOpenModal} setOpenModal={setOpenModal}>
-				</MisContactosModal> 
-
-			</div>
-
-			{/* <div className="">
-				<p className="font-bold">Tipo de pase : <span className="font-normal" > Visita General</span></p>
-			</div> */}
-
-			<Form {...form}>
-				<form className="space-y-8">
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-					{assetsLoading ? (
-						<div className="flex justify-start items-center py-4">
-							 <div className="w-6 h-6 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin" /> <span className="ml-2 text-gray-500">Cargando perfiles...</span>
-						</div>
-						) : (
-						
-							<FormField
-							control={form.control}
-							name="perfil_pase"
-							render={({ field }) => (
-							  <FormItem className="w-full">
-								<FormLabel>Tipo de pase:</FormLabel>
-						  
-								<FormControl>
-								  <Select
-									value={field.value}
-									onValueChange={field.onChange}
-								  >
-									<SelectTrigger className="w-full" >
-									  <SelectValue placeholder="Selecciona una opción" />
-									</SelectTrigger>
-						  
-									<SelectContent>
-									  {assets?.Perfiles?.map((item: string) => (
-										<SelectItem key={item} value={item}>
-										  {item}
-										</SelectItem>
-									  ))}
-									</SelectContent>
-								</Select>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						  />
-						  
-						)}
-
-						{/* <FormField
-							control={form.control}
-							name="selected_visita_a"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Visita a: </FormLabel>
-									<Select onValueChange={(value) => field.onChange(value)}>
-										<FormControl>
-											<SelectTrigger>
-												<SelectValue placeholder="Usuario actual" />
-											</SelectTrigger>
-										</FormControl>
-										<SelectContent>
-											{assetsUnique.map((item: string) => (
-												<SelectItem key={item} value={item}>
-													{item}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>	 */}
-
-						<FormField
-						control={form.control}
-						name="visita_a"
-						render={() => (
-							<FormItem>
-							<FormLabel>
-								<span className="text-red-500">*</span> Visita a:
-							</FormLabel>
-
-							<Multiselect
-								options={visitaAFormatted ?? []}
-								selectedValues={visitaASeleccionadas}
-								onSelect={setVisitaASeleccionadas}
-								onRemove={setVisitaASeleccionadas}
-								displayValue="name"
-							/>
-
-							<FormMessage />
-							</FormItem>
-						)}
-						/>
-
-						{selected && (
-							<Image
-								className="dark:invert h-32 w-32 object-cover rounded-full bg-gray-300"
-								src={
-								selected?.fotografia &&
-								Array.isArray(selected.fotografia) &&
-								selected.fotografia[0]?.file_url?.trim()
-									? selected.fotografia[0].file_url
-									: "/nouser.svg"
-								}
-								alt="foto"
-								width={150}
-								height={50}
-							/>
-						)}
-
-						<FormField
-							control={form.control}
-							name="nombre"
-							render={({ field}:any)=> (
-								<FormItem>
-									<FormLabel className="">
-										<span className="text-red-500">*</span> Nombre Completo:
-									</FormLabel>{" "}
-									<FormControl>
-										<Input placeholder="Nombre Completo" {...field} 
-										/>
-									</FormControl>
-								<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="empresa"
-							render={({ field}:any)=> (
-								<FormItem>
-									<FormLabel className="">
-										Empresa:
-									</FormLabel>{" "}
-									<FormControl>
-										<Input placeholder="Empresa" {...field} 
-										/>
-									</FormControl>
-								<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</div>
-
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-						<FormField
-							control={form.control}
-							name="email"
-							render={({ field }: any) => (
-							<FormItem>
-								<FormLabel className="">
-								<span className="text-red-500">*</span> Email:
-								</FormLabel>{" "}
-								<FormControl>
-								<Input placeholder="example@example.com" {...field}
-								onChange={(e) => {
-									field.onChange(e);
-								}}
-								/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="telefono"
-							render={({ field }: any) => (
-							<FormItem>
-								<FormLabel>
-								Teléfono
-								</FormLabel>
-								<FormControl>
-								<PhoneInput
-									{...field}
-									// value={`${selected?.telefono||""}`}
-									onChange={(value:string) => {
-									form.setValue("telefono", value || "");
-									}}
-									placeholder="Teléfono"
-									defaultCountry="MX"
-									international={false}
-									withCountryCallingCode={false}
-									containerComponentProps={{
-									className:
-										"flex h-10 w-full rounded-md border border-input bg-background pl-3 py-0 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-									}}
-									numberInputProps={{
-									className: "pl-3",
-									}}
-								/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-							)}
-						/>
-
-						<FormField
-						control={form.control}
-						name="ubicaciones"
-						render={() => (
-							<FormItem>
-							<FormLabel>
-								<span className="text-red-500">*</span> Ubicaciones del pase
-							</FormLabel>
-
-							<Multiselect
-								options={ubicacionesFormatted ?? []}
-								selectedValues={ubicacionesSeleccionadas}
-								onSelect={setUbicacionesSeleccionadas}
-								onRemove={setUbicacionesSeleccionadas}
-								displayValue="name"
-							/>
-
-							<FormMessage />
-							</FormItem>
-						)}
-						/>
-											
-						<FormField
-							control={form.control}
-							name="tema_cita"
-							render={({ field }:any) => (
-							<FormItem>
-								<FormLabel className="">
-									Motivo de visita:
-								</FormLabel>{" "}
-								<FormControl>
-								<Input placeholder="" {...field}
-								/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-							)}
-						/>
-					</div>
-				
-
-					<div className="grid gap-5">
-						<FormField
-						control={form.control}
-						name="descripcion"
-						render={({ field }:any) => (
-							<FormItem>
-							<FormLabel className="">
-								Descripción/ Comentarios:
-							</FormLabel>{" "}
-							<FormControl>
-							<Textarea
-								placeholder="Escribe un comentario"
-								{...field}
-								rows={2}
-								/>
-							</FormControl>
-							<FormMessage />
-							</FormItem>
-						)}
-						/>         
-					</div>
-					
-
-					<h1 className="font-bold text-xl">Sobre vigencia y acceso</h1>
-					<div className="flex items-center flex-wrap gap-5">
-						<FormLabel>Vigencia: </FormLabel>
-						<Controller
-							control={form.control}
-							name="tipo_visita_pase"
-							render={() => (
-								<FormItem>
-								<Button
-									type="button"
-									onClick={()=>{handleToggleTipoVisitaPase("rango_de_fechas")}}
-									className={`px-4 py-2 rounded-md transition-all duration-300 ${
-									isActiveRangoFecha ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-transparent"
-									} hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]  mr-2`}
-								>
-									<div className="flex flex-wrap items-center">
-									{isActiveRangoFecha ? (
-										<><div className="">Vigencia</div></>
-									):(
-										<><div className="text-blue-600">Vigencia</div></>
-									)}
-										
-									</div>
-								</Button>
-								<Button
-									type="button"
-									onClick={()=>{handleToggleTipoVisitaPase("fecha_fija")}}
-									className={`px-4 py-2 rounded-md transition-all duration-300 ${
-									isActiveFechaFija ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-transparent"
-									} hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] mr-2`}
-								>
-									<div className="flex flex-wrap items-center">
-									{isActiveFechaFija ? (
-										<><div className="">Fecha Fija</div></>
-									):(
-										<><div className="text-blue-600">Fecha Fija</div></>
-									)}
-										
-									</div>
-								</Button>
-						
-								{tipoVisita === "rango_de_fechas" && (
-									<Button
-									type="button"
-									onClick={()=>{handleToggleLimitarDias()}}
-									className={`px-4 py-2 rounded-md transition-all duration-300 ${
-										isActivelimitarDias ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-transparent"
-									} hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-									>
-									<div className="flex flex-wrap items-center">
-										{isActivelimitarDias ? (
-										<><div className="">Limitar Accesos</div></>
-										):(
-										<><div className="text-blue-600">Limitar Accesos</div></>
-										)}
-										
-									</div>
-									</Button>
-								)}
-								<FormMessage />
-								</FormItem>
-							)}
-							/>
-					</div>
-
-					<div>
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-						{tipoVisita === "fecha_fija" && (
-							<FormField
-								control={form.control}
-								name="fechaFija"
-								render={() => (
-									<FormItem>
-										<FormLabel>
-											<span className="text-red-500">*</span> Fecha y Hora de
-											Visita:
-										</FormLabel>
-										<FormControl>
-											<DateTime date={date} setDate={setDate} />
-										</FormControl>
-									<FormMessage />
-									</FormItem>
-								)}
-							/>
-						)}
-
-						{tipoVisita === "rango_de_fechas" && (
-							<><div className="grid grid-cols-1 md:grid-cols-1 gap-2">
-							<FormField
-								control={form.control}
-								name="fecha_desde_visita"
-								render={({ field }:any) => (
-								<FormItem>
-									<FormLabel>
-									<span className="text-red-500">*</span> Fecha desde:
-									</FormLabel>
-									<FormControl>
-									<Input
-										type="date"
-										{...field}
-										min={new Date().toISOString().split('T')[0]} // Corta el exceso de datos
-										onChange={(e) => {
-										field.onChange(e); // Propagar el valor a react-hook-form
-										handleFechaDesdeChange(e); // Guardar la fecha seleccionada en el estado
-
-										}}
-									/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-								)} />
-							<FormField
-								control={form.control}
-								name="fecha_desde_hasta"
-								render={({ field }:any) => (
-								<FormItem>
-									<FormLabel>
-									<span className="text-red-500">*</span> Vigencia:
-									</FormLabel>
-									<FormControl>
-									<Input
-										type="date"
-										{...field}
-										min={fechaDesde ? getNextDay(fechaDesde) : new Date().toISOString().split('T')[0]}
-										onChange={(e) => {
-										field.onChange(e); 
-										}}
-									/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-								)} />
+		<Form {...form}>
+		<form onSubmit={(e) => e.preventDefault()}>
+			<div className="flex flex-col space-y-5 max-w-3xl mx-auto">
+				<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
+				<div className="text-center mb-2">
+					<h1 className="font-bold text-2xl text-gray-800">Crear pase de entrada</h1>
+					<p className="text-sm text-gray-400 mt-1">Completa la información para registrar la visita</p>
+				</div>
+					<div className="flex items-center justify-between mb-5">
+						<div className="flex items-center gap-2">
+							<div className="p-2 bg-blue-50 rounded-xl">
+								<UserRound className="w-4 h-4 text-blue-600" />
 							</div>
-							</>
-						)}
+							<p className="font-semibold text-gray-700">Sobre la visita</p>
 						</div>
+						<Button
+							className="bg-blue-500 text-white hover:bg-blue-600 rounded-full px-4 py-2 text-sm flex items-center gap-2"
+							variant="outline"
+							onClick={()=>{setOpenModal(true)}}
+						>
+							<List size={16} />
+							Mis contactos
+						</Button>
+						<MisContactosModal title="Mis Contactos" setSelected={setSelected} isOpenModal={isOpenModal} setOpenModal={setOpenModal} />
+					</div>
 
-						{tipoVisita === "rango_de_fechas" && (
-							<><div className="grid  gap-5 mt-3">
+					<div className="space-y-8">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+								{assetsLoading ? (
+									<div className="flex items-center gap-2 py-3">
+										<div className="w-5 h-5 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+										<span className="text-sm text-gray-400">Cargando perfiles...</span>
+									</div>
+								) : (
+									<FormField
+										control={form.control}
+										name="perfil_pase"
+										render={({ field }) => (
+											<FormItem className="w-full">
+												<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo de pase</FormLabel>
+												<FormControl>
+													<Select value={field.value} onValueChange={field.onChange}>
+														<SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300">
+															<SelectValue placeholder="Selecciona una opción" />
+														</SelectTrigger>
+														<SelectContent>
+															{perfiles?.map((item: any) => (
+																<SelectItem key={item.id + item.name} value={item.id}>{item.name}</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+
 								<FormField
 									control={form.control}
-									name="config_dia_de_acceso"
+									name="visita_a"
 									render={() => (
 										<FormItem>
-											<FormLabel>Días de acceso:</FormLabel>
-											<Controller
-												control={form.control}
-												name="config_dia_de_acceso"
-												render={({ }) => (
-													<FormItem>
-													<Button
-														type="button"
-														onClick={()=>{handleToggleDiasAcceso("cualquier_día")}}
-														className={`px-4 py-2 rounded-md transition-all duration-300 ${
-														isActiveCualquierDia ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-transparent"
-														} hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)] mr-2`}
-													>
-														<div className="flex flex-wrap items-center">
-														{isActiveCualquierDia ? (
-															<><div className="">Cualquier Día</div></>
-														):(
-															<><div className="text-blue-600">Cualquier Día</div></>
-														)}
-														</div>
-													</Button>
-													<Button
-														type="button"
-														onClick={()=>{handleToggleDiasAcceso("limitar_días_de_acceso")}}
-														className={`px-4 py-2 rounded-md transition-all duration-300 ${
-														isActivelimitarDiasSemana ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-transparent"
-														} hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]  mr-2`}
-													>
-														<div className="flex flex-wrap items-center">
-														{isActivelimitarDiasSemana ? (
-															<><div className="">Limitar Días de Acceso</div></>
-														):(
-															<><div className="text-blue-600">Limitar Días de Acceso</div></>
-														)}
-														</div>
-													</Button>
-													<FormMessage />
-													</FormItem>
-												)}
+											<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+												<span className="text-red-400">*</span> Visita a
+											</FormLabel>
+											<Multiselect
+												options={visitas ?? []}
+												selectedValues={visitaASeleccionadas}
+												onSelect={setVisitaASeleccionadas}
+												onRemove={setVisitaASeleccionadas}
+												displayValue="name"
+												style={{
+													chips: { background: "#2563eb", borderRadius: "20px" },
+													searchBox: { borderRadius: "12px", border: "1px solid #e5e7eb", background: "#f9fafb" },
+												}}
 											/>
 											<FormMessage />
 										</FormItem>
-									)} 
+									)}
 								/>
 
-								{config_dia_de_acceso === "limitar_días_de_acceso" && (
-								<div>
-									<FormLabel>Seleccione los días de acceso:</FormLabel>
-										<div className="flex flex-wrap mt-2 mb-5">
-											{[
-											"Lunes",
-											"Martes",
-											"Miércoles",
-											"Jueves",
-											"Viernes",
-											"Sábado",
-											"Domingo"
-											].map((dia) => {
-											return (
-												<FormItem key={dia?.toLowerCase()} className="flex items-center space-x-3">
-													<FormControl>
-														<Button
-														type="button"
-														onClick={() => toggleDia(dia?.toLocaleLowerCase())}
-														className={`m-2 px-4 py-2 rounded-md transition-all duration-300 
-														${config_dias_acceso.includes(dia?.toLowerCase()) ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-white"}
-														hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-														>
-															<div className="flex flex-wrap">
-																{config_dias_acceso.includes(dia?.toLowerCase()) ? (
-																	<><div className="">{dia}</div></>
-																) : (
-																	<><div className="text-blue-600">{dia}</div></>
-																)}
-															</div>
-														</Button>
-													</FormControl>
-												</FormItem>
-											);
-											})}
-										</div>
-								</div>
+								{selected && (
+									<Image
+										className="dark:invert h-14 w-14 object-cover rounded-full bg-gray-200 border-2 border-blue-100"
+										src={
+											selected?.fotografia &&
+											Array.isArray(selected.fotografia) &&
+											selected.fotografia[0]?.file_url?.trim()
+												? selected.fotografia[0].file_url
+												: "/nouser.svg"
+										}
+										alt="foto"
+										width={56}
+										height={56}
+									/>
 								)}
-							</div>
 
-						{isActivelimitarDias && (
-							<div className="w-1/3 mt-3">
 								<FormField
 									control={form.control}
-									name="config_limitar_acceso"
-									render={({ field }:any) => (
+									name="nombre"
+									render={({ field}:any)=> (
 										<FormItem>
-											<FormLabel>Limitar número de accesos:</FormLabel>
-												<FormControl>
-													<Input
-													placeholder="Ejemplo: 5"
-													type="number"
-													min={0} 
-													step={1} 
-													{...field} 
-													value={field.value ? Number(field.value) : 0}
-													onChange={(e) => {
-														const newValue = e.target.value ? Number(e.target.value) : 0;
-														field.onChange(newValue); 
-													}}/>  
-												</FormControl>
+											<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+												<span className="text-red-400">*</span> Nombre Completo
+											</FormLabel>
+											<FormControl>
+												<Input placeholder="Nombre Completo" className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300" {...field} />
+											</FormControl>
 											<FormMessage />
 										</FormItem>
-									)} 
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="empresa"
+									render={({ field}:any)=> (
+										<FormItem>
+											<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Empresa</FormLabel>
+											<FormControl>
+												<Input placeholder="Empresa" className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+								<FormField
+									control={form.control}
+									name="email"
+									render={({ field }: any) => (
+										<FormItem>
+											<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+												<span className="text-red-400">*</span> Email
+											</FormLabel>
+											<FormControl>
+												<Input placeholder="example@example.com" className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300" {...field}
+													onChange={(e) => { field.onChange(e); }}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="telefono"
+									render={({ field }: any) => (
+										<FormItem>
+											<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teléfono</FormLabel>
+											<FormControl>
+												<PhoneInput
+													{...field}
+													onChange={(value:string) => { form.setValue("telefono", value || ""); }}
+													placeholder="Teléfono"
+													defaultCountry="MX"
+													international={false}
+													withCountryCallingCode={false}
+													containerComponentProps={{
+														className: "flex h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-3 py-0 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+													}}
+													numberInputProps={{ className: "pl-3 bg-transparent" }}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="ubicaciones"
+									render={() => (
+										<FormItem>
+											<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+												<span className="text-red-400">*</span> Ubicaciones del pase
+											</FormLabel>
+											<Multiselect
+												options={ubicacionesFormatted ?? []}
+												selectedValues={ubicacionesSeleccionadas}
+												onSelect={setUbicacionesSeleccionadas}
+												onRemove={setUbicacionesSeleccionadas}
+												displayValue="name"
+												style={{
+													chips: { background: "#2563eb", borderRadius: "20px" },
+													searchBox: { borderRadius: "12px", border: "1px solid #e5e7eb", background: "#f9fafb" },
+												}}
+											/>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="tema_cita"
+									render={({ field }:any) => (
+										<FormItem>
+											<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Motivo de visita</FormLabel>
+											<FormControl>
+												<Input placeholder="" className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div className="grid gap-5">
+								<FormField
+									control={form.control}
+									name="descripcion"
+									render={({ field }:any) => (
+										<FormItem>
+											<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Descripción / Comentarios</FormLabel>
+											<FormControl>
+												<Textarea
+													placeholder="Escribe un comentario"
+													className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300 resize-none"
+													{...field}
+													rows={2}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+					</div>
+				</div>
+
+				<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
+					<div className="flex items-center gap-2 mb-5">
+						<div className="p-2 bg-blue-50 rounded-xl">
+							<CalendarDays className="w-4 h-4 text-blue-600" />
+						</div>
+						<h1 className="font-semibold text-gray-700">Vigencia y acceso</h1>
+					</div>
+
+					<div className="space-y-8">
+							<div className="flex items-center flex-wrap gap-3">
+								<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-2">Vigencia:</FormLabel>
+								<Controller
+									control={form.control}
+									name="tipo_visita_pase"
+									render={() => (
+										<FormItem>
+											<Button
+												type="button"
+												onClick={()=>{handleToggleTipoVisitaPase("rango_de_fechas")}}
+												className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+													isActiveRangoFecha
+														? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
+														: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
+												} mr-2`}
+											>
+												Vigencia
+											</Button>
+											<Button
+												type="button"
+												onClick={()=>{handleToggleTipoVisitaPase("fecha_fija")}}
+												className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+													isActiveFechaFija
+														? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
+														: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
+												} mr-2`}
+											>
+												Fecha Fija
+											</Button>
+
+											{tipoVisita === "rango_de_fechas" && (
+												<Button
+													type="button"
+													onClick={()=>{handleToggleLimitarDias()}}
+													className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+														isActivelimitarDias
+															? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
+															: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
+													}`}
+												>
+													Limitar Accesos
+												</Button>
+											)}
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div>
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+									{tipoVisita === "fecha_fija" && (
+										<FormField
+											control={form.control}
+											name="fechaFija"
+											render={() => (
+												<FormItem>
+													<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+														<span className="text-red-400">*</span> Fecha y Hora de Visita
+													</FormLabel>
+													<FormControl>
+														<DateTimePicker date={date} setDate={setDate} allowPast={true}/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
+
+									{tipoVisita === "rango_de_fechas" && (
+										<div className="grid grid-cols-1 md:grid-cols-1 gap-2">
+											<FormField
+												control={form.control}
+												name="fecha_desde_visita"
+												render={({ field }:any) => (
+													<FormItem>
+														<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+															<span className="text-red-400">*</span> Fecha desde
+														</FormLabel>
+														<FormControl>
+														<DateTimePicker
+															showTime={false}
+															allowPast={true}
+															
+															placeholder="Selecciona fecha desde"
+															date={field.value ? new Date(field.value) : undefined}
+															setDate={(date) => {
+															field.onChange(date ? date.toISOString().split("T")[0] : "");
+															handleFechaDesdeChange({ target: { value: date ? date.toISOString().split("T")[0] : "" } } as any);
+															}}
+														/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="fecha_desde_hasta"
+												render={({ field }:any) => (
+													<FormItem>
+														<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+															<span className="text-red-400">*</span> Vigencia hasta
+														</FormLabel>
+														<FormControl>
+														<DateTimePicker
+															showTime={false}
+															allowPast={true}
+															placeholder="Selecciona vigencia hasta"
+															date={field.value ? new Date(field.value) : undefined}
+															setDate={(date) => {
+															field.onChange(date ? date.toISOString().split("T")[0] : "");
+															}}
+														/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</div>
+									)}
+								</div>
+
+								{tipoVisita === "rango_de_fechas" && (
+									<div className="grid gap-5 mt-5">
+										<FormField
+											control={form.control}
+											name="config_dia_de_acceso"
+											render={() => (
+												<FormItem>
+													<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Días de acceso</FormLabel>
+													<Controller
+														control={form.control}
+														name="config_dia_de_acceso"
+														render={({ }) => (
+															<FormItem>
+																<Button
+																	type="button"
+																	onClick={()=>{handleToggleDiasAcceso("cualquier_día")}}
+																	className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+																		isActiveCualquierDia
+																			? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
+																			: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
+																	} mr-2`}
+																>
+																	Cualquier Día
+																</Button>
+																<Button
+																	type="button"
+																	onClick={()=>{handleToggleDiasAcceso("limitar_días_de_acceso")}}
+																	className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+																		isActivelimitarDiasSemana
+																			? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
+																			: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
+																	} mr-2`}
+																>
+																	Limitar Días de Acceso
+																</Button>
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										{config_dia_de_acceso === "limitar_días_de_acceso" && (
+											<div>
+												<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Seleccione los días de acceso</FormLabel>
+												<div className="flex flex-wrap gap-2 mt-3">
+													{["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"].map((dia) => (
+														<FormItem key={dia?.toLowerCase()} className="flex items-center space-x-3">
+															<FormControl>
+																<Button
+																	type="button"
+																	onClick={() => toggleDia(dia?.toLocaleLowerCase())}
+																	className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+																		config_dias_acceso.includes(dia?.toLowerCase())
+																			? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
+																			: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
+																	}`}
+																>
+																	{dia}
+																</Button>
+															</FormControl>
+														</FormItem>
+													))}
+												</div>
+											</div>
+										)}
+									</div>
+								)}
+
+								{isActivelimitarDias && tipoVisita === "rango_de_fechas" && (
+									<div className="w-1/3 mt-5 mb-5">
+										<FormField
+											control={form.control}
+											name="config_limitar_acceso"
+											render={({ field }:any) => (
+												<FormItem>
+													<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Limitar número de accesos</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="Ejemplo: 5"
+															type="number"
+															min={0}
+															step={1}
+															className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
+															{...field}
+															value={field.value ? Number(field.value) : 0}
+															onChange={(e) => {
+																const newValue = e.target.value ? Number(e.target.value) : 0;
+																field.onChange(newValue);
+															}}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</div>
+								)}
+							</div>
+					</div>
+
+				{isExcluded("areas", excludes ?? undefined) &&
+					<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6 my-5">
+						<div className="flex items-center gap-2 mb-5">
+							<div className="p-2 bg-blue-50 rounded-xl">
+								<Layers className="w-4 h-4 text-blue-600" />
+							</div>
+							<h1 className="font-semibold text-gray-700">Áreas de acceso</h1>
+						</div>
+
+						<div className="flex items-center justify-between flex-wrap gap-4">
+							<Button
+								disabled={todasAreas}
+								type="button"
+								onClick={handleToggleAdvancedOptions}
+								className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+									isActiveAdvancedOptions
+										? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
+										: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
+								}`}
+							>
+								Áreas de acceso
+							</Button>
+
+							<div className="flex items-center gap-3">
+								<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Todas las áreas:</FormLabel>
+								<Switch
+									className="data-[state=checked]:bg-blue-600"
+									checked={todasAreas}
+									onCheckedChange={(checked) => setTodasAreas(checked)}
+									aria-readonly
+								/>
+							</div>
+						</div>
+
+						{isActiveAdvancedOptions && (
+							<div className="mt-4">
+								<AreasList
+									areas={areasList}
+									setAreas={setAreasList}
+									catAreas={areas}
+									loadingCatAreas={assetsLoading}
+									existingAreas={false}
 								/>
 							</div>
 						)}
-						</>
-						)}
 					</div>
+				}
 
-				{isExcluded("areas",excludes?? undefined) &&
-					<div className="flex gap-2">
-						<div className="flex gap-2 flex-wrap">
-							<Button
-							disabled={todasAreas}
-							type="button"
-							onClick={handleToggleAdvancedOptions}
-							className={`px-4 py-2 rounded-md transition-all duration-300 ${
-									isActiveAdvancedOptions ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-transparent"
-								} hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-							>
-							<div className="flex flex-wrap">
-								{isActiveAdvancedOptions ? (
-								<div>Áreas de acceso</div>
-								) : (
-								<div className="text-blue-600">Áreas de acceso</div>
-								)}
+				{isExcluded("comentarios", excludes ?? undefined) &&
+					<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
+						<div className="flex items-center gap-2 mb-5">
+							<div className="p-2 bg-blue-50 rounded-xl">
+								<MessageSquare className="w-4 h-4 text-blue-600" />
 							</div>
-							</Button>
+							<h1 className="font-semibold text-gray-700">Comentarios / Instrucciones</h1>
 						</div>
-
-
-						<div className="flex items-center flex-wrap gap-5">
-							<FormLabel>Todas las áreas: {`(no / si)`}:  </FormLabel>
-							<div className="flex items-center flex-wrap gap-5">
-							<Switch
-							className="data-[state=checked]:bg-blue-600"
-								checked={todasAreas}
-								onCheckedChange={(checked) => setTodasAreas(checked)}
-								aria-readonly
-							/>
-						</div>
-						</div>
-
+						<ComentariosList
+							comentarios={comentariosList}
+							setComentarios={setComentariosList}
+							tipo={"Pase"}
+						/>
 					</div>
-					}
-				</form>
-			</Form>
-			
-			{isActiveAdvancedOptions&& (
-				<><div className="font-bold text-xl">Areas de acceso:</div>
-					<AreasList
-						areas={areasList}
-						setAreas={setAreasList}
-						catAreas={areasDisponibles}
-						loadingCatAreas={loadingCatAreas} existingAreas={false} 
-					/>
-				</> )
-			}
-			{isExcluded("comentarios", excludes?? undefined) &&
-			<>
-				<div className="font-bold text-xl">Comentarios/ Instrucciones:</div><ComentariosList
-				comentarios={comentariosList}
-				setComentarios={setComentariosList}
-				tipo={"Pase"} />
-			</>
-		}
-				<div className="text-center">
+				}
+
+				<div className="text-center pb-8">
 					<Button
-						className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-2/3 md:w-1/2 lg:w-1/2"
+						className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-2/3 md:w-1/2 rounded-full mt-5 py-3 font-semibold shadow-sm shadow-blue-200 transition-all"
 						variant="secondary"
 						type="submit"
-						onClick={(e)=>{e.preventDefault()
+						onClick={(e)=>{
+							e.preventDefault()
 							form.handleSubmit(onSubmit)()
 						}}
-						disabled= {loadingCatAreas || isLoadingConfigLocation || loadingUbicaciones  }
+						disabled={assetsLoading || isLoadingConfigLocation || loadingUbicaciones}
 					>
-						{loadingCatAreas == false && isLoadingConfigLocation == false && loadingUbicaciones == false  ? ("Siguiente") : ("Cargando...")} 
+						{assetsLoading == false && isLoadingConfigLocation == false && loadingUbicaciones == false
+							? "Siguiente →"
+							: (
+								<span className="flex items-center justify-center gap-2">
+									<span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+									Cargando...
+								</span>
+							)
+						}
 					</Button>
 				</div>
-		</div>
+
+				</div>
+			</div>
+		</form>
+		</Form>
+		
 	</div>
 );
 };
