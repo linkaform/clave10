@@ -98,15 +98,9 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
     }
   }, [form, open]);
 
-<<<<<<< Updated upstream
   const hasPhone = !!data?.telefono;
   const hasEmail = !!data?.email;
 
-=======
-  const hasPhone = !!searchPass?.anfitrion_data?.new_user_phone;
-  const hasEmail = !!searchPass?.anfitrion_data?.new_user_email;
-console.log("searchPass?.anfitrion_data?.new_user_email", searchPass, )
->>>>>>> Stashed changes
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
