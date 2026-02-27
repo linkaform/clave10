@@ -418,7 +418,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 								name="comentario_entrega"
 								render={({ field }: any) => (
 									<FormItem>
-										<FormLabel>Comentarios: *</FormLabel>
+										<FormLabel>Comentarios: </FormLabel>
 										<FormControl>
 											<Textarea placeholder="Comentarios..." {...field}
 												onChange={(e) => {
