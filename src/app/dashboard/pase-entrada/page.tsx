@@ -463,7 +463,6 @@ import DateTimePicker from "@/components/dateTimePicker";
 		
 	};
 
-	console.log("ERRORES",form.formState.errors)
 	// const handleToggleAdvancedOptions = () => {
 	// 	setIsActiveAdvancedOptions(!isActiveAdvancedOptions);
 	// };

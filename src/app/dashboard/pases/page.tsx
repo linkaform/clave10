@@ -16,7 +16,6 @@ const ListaPasesPage = () => {
   const [skip, setSkip] = useState(0);
   const [searchName, setSearchName] = useState("");
   const { location } = useBoothStore();
-	console.log("LOCATION",location)
 
 	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<string>("");
 	const [areaSeleccionada, setAreaSeleccionada] = useState("todas");

@@ -134,7 +134,6 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
         // }
         setIsSuccess(false)
 	}
-	console.log("ERRORES",form?.formState?.errors)
 
 	const handleClose = () => {
 		setIsSuccess(false);

@@ -222,7 +222,6 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         }
         setIsSuccess(false)
 	}
-	console.log("ERRORES",form?.formState?.errors)
 
 	const handleClose = () => {
 		setIsSuccess(false);
