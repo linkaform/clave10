@@ -25,23 +25,36 @@ export const useGetMenu = () => {
             const excludeInputs =data.response?.data.exclude_inputs
             const includeInputs =data.response?.data.include_inputs
 			setLabels(dataRaw);
-            const transformedData = dataRaw.map((item: string) => {
+            const transformedData = dataRaw.flatMap((item: string) => {
                 let text = item;
+              
                 if (item === "incidencias") {
-                    text = "Incidencias / Fallas";
+                  text = "Incidencias / Fallas";
                 } else if (item === "articulos") {
-                    text = "Artículos Perdidos / Concesionados";
+                  text = "Artículos Perdidos / Concesionados";
+                } else if (item === "pases") {
+                  text = "Pases de entrada";
+                } else {
+                  text = capitalizeFirstLetter(item);
                 }
-                else if (item === "pases") {
-                    text = "Pases de entrada";
-                }else{
-                    text = capitalizeFirstLetter(item);
-                }
-                return {
-                    id: item,
-                    label: text,
+              
+                const baseItem = {
+                  id: item,
+                  label: text,
                 };
-            })
+              
+                if (item === "pases") {
+                  return [
+                    baseItem,
+                    {
+                      id: "nuevo_pase",
+                      label: "Nuevo pase",
+                    },
+                  ];
+                }
+              
+                return [baseItem];
+              });
             setExcludes(excludeInputs)
             setIncludes(includeInputs)
             setMenuItems(transformedData)
