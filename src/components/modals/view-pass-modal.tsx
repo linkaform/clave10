@@ -26,6 +26,7 @@ import { capitalizeFirstLetter } from "@/lib/utils";
 import ModalDescargarPase from "./download-pase-options"; // Ajusta la ruta según tu estructura
 import { Imagen } from "../upload-Image";
 import { Equipo } from "@/lib/update-pass";
+import { getImgPassUrl } from "@/lib/endpoints";
 
 type Vehiculo_custom = {
   tipo_vehiculo: string,
@@ -80,13 +81,14 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({
   children,
 }) => {
   const [open, setOpen] = useState(false)
-  const { userIdSoter } = useAuthStore()
+  const { userIdSoter, userParentId } = useAuthStore()
   const account_id = userIdSoter;
   const [enablePdf, setEnablePdf] = useState(false)
-  const { data: responsePdf } = useGetPdf(account_id, data._id, enablePdf);
+  const { data: responsePdf } = useGetPdf(userParentId, data._id, enablePdf);
+  const [loadingImgPass, setLoadingImgPass] = useState(false);
+  const [urlImgPass, setUrlImgPass] = useState<string>("");
   const { createSendCorreoSms, createSendSms, isLoadingCorreo, isLoadingSms } = useSendCorreoSms();
   const downloadUrl = responsePdf?.response?.data?.data?.download_url
-  const [loadingPassUrl, setLoadingPassUrl] = useState(false);
 
   const [openAddMail, setOpenAddMail] = useState(false)
   const [openAddPhone, setOpenAddPhone] = useState(false)
@@ -167,36 +169,91 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({
     }
   }
 
-  async function downloadPassPng(downloadURL: string) {
-    if (!downloadURL) {
-      toast.error("No hay un pdf disponible para descargar.");
-      return;
+  const onDescargarPNG = async (imgUrl: string) => {
+      try {
+        const response = await fetch(imgUrl);
+        if (!response.ok) throw new Error("No se pudo obtener la imagen");
+      
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+      
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "pase.png";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast.success("¡Pase descargado correctamente!");
+      } catch (error) {
+        toast.error("Error al descargar la imagen: " + error);
+      }
+    };
+  
+    const handleClickImgButton = async () => {
+      const record_id = data?._id;
+      const passImg = data?.pdf_to_img;
+      console.log(data);
+      console.log(record_id, passImg);
+      if (urlImgPass) {
+        onDescargarPNG(urlImgPass);
+        return;
+      } else if (passImg && passImg.length > 0) {
+        onDescargarPNG(passImg[0]?.file_url ?? '');
+        return;
+      }
+      if (!record_id) {
+        toast.error('No hay pase disponible', {
+          style: {
+            background: "#dc2626",
+            color: "#fff",
+            border: 'none'
+          },
+        });
+        return;
+      }
+      try {
+        setLoadingImgPass(true);
+        toast.loading("Obteniendo tu pase...", {
+          style: {
+            background: "#000",
+            color: "#fff",
+            border: 'none'
+          },
+        });
+        const data = await getImgPassUrl(userParentId ?? 0, record_id);
+        const url = data?.response?.data || "";
+        if (url) {
+          setUrlImgPass(url);
+          onDescargarPNG(url);
+          setLoadingImgPass(false);
+        } else {
+          toast.error('No hay pase disponible', {
+            style: {
+              background: "#dc2626",
+              color: "#fff",
+              border: 'none'
+            },
+          });
+        }
+        toast.dismiss();
+        setLoadingImgPass(false);
+      } catch (error) {
+        console.log(error)
+        toast.error("Error al obtener pase", {
+          style: {
+            background: "#dc2626",
+            color: "#fff",
+            border: 'none'
+          },
+        });
+        toast.dismiss();
+        setLoadingImgPass(false);
+      }
     }
-    setLoadingPassUrl(true);
-    try {
-      const response = await fetch(downloadURL);
-      if (!response.ok) throw new Error("No se pudo obtener el archivo");
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "pase_de_entrada.png";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      toast.error("Error al descargar el pase: " + error);
-    } finally {
-      setLoadingPassUrl(false);
-    }
-  }
 
   const handleDescargarImagen = () => {
-    downloadPassPng(data?.pdf_to_img[0]?.file_url ?? '');
+    handleClickImgButton();
     setModalOpen(false);
   };
 
@@ -450,8 +507,8 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({
               )
             }
           </Button>
-          <Button className="w-full  bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => setModalOpen(true)} disabled={loadingPassUrl}>
-            {!loadingPassUrl ? ("Descargar Pase") : (<><Loader2 className="animate-spin" />Descargando Pase...</>)}
+          <Button className="w-full  bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => setModalOpen(true)} disabled={loadingImgPass}>
+            {!loadingImgPass ? ("Descargar Pase") : (<><Loader2 className="animate-spin" />Descargando Pase...</>)}
           </Button>
         </div>
         <ModalDescargarPase
