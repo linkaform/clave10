@@ -1,3 +1,5 @@
+import { API_ENDPOINTS } from "@/config/api";
+
 export interface LoginResponse {
     error: string;
     code: number;
@@ -51,7 +53,7 @@ export interface LoginResponse {
 
 export const getLogin = async (email: string, password: string, bypass_username?: string): Promise<LoginResponse> => {
 
-      const response = await fetch('https://app.linkaform.com/api/infosync/user_admin/login/', {
+      const response = await fetch(API_ENDPOINTS.login, {
         method: 'POST',
         body: JSON.stringify({
           username: email,
