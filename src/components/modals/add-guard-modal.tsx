@@ -122,6 +122,7 @@ export const AddGuardModal: React.FC<AddGuardModalProps> = ({
           </DialogClose>
           <Button
             className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+            disabled={addSupportGuardMutation.isPending || !selectedGuard}
             onClick={() => {
               if (!selectedGuard) {
                 return;
@@ -138,7 +139,14 @@ export const AddGuardModal: React.FC<AddGuardModalProps> = ({
             
             }}
           >
-            Agregar
+            {addSupportGuardMutation.isPending ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Agregando...
+              </div>
+            ) : (
+              "Agregar"
+            )}
           </Button>
         </div>
 
