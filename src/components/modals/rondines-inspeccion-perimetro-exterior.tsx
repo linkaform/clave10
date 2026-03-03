@@ -73,8 +73,9 @@ export const ViewRondinesDetallePerimetroExt: React.FC<ViewRondinesDetalleAreaPr
 			}
 			
 			const downloadUrl = data?.json?.download_url;
+            const fileName = data?.json?.file_name || "Reporte.pdf";
 			if (downloadUrl) {
-			  onDescargarPDF(downloadUrl);
+			  onDescargarPDF(downloadUrl, fileName);
 			} else {
 			  toast.warning("No se encontró URL de descarga");
 			}
@@ -91,9 +92,9 @@ export const ViewRondinesDetallePerimetroExt: React.FC<ViewRondinesDetalleAreaPr
         
 	};
 
-	async function onDescargarPDF(download_url: string) {
+	async function onDescargarPDF(download_url: string, fileName?: string) {
 		try {
-			await descargarPdfPase(download_url, "Seguimientio_de_incidente.pdf");
+			await descargarPdfPase(download_url, fileName || "Seguimientio_de_incidente.pdf");
 			toast.success("¡PDF descargado correctamente!");
 		} catch (error) {
 			toast.error("Error al descargar el PDF: " + error);
