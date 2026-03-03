@@ -60,7 +60,7 @@ const formSchema = z.object({
 });
 
 export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCatalogos}) => {
-    const { userIdSoter} = useAuthStore()
+    const { userIdSoter, userParentId} = useAuthStore()
     const [openModal, setOpenModal] = useState(false);
     const [fotografia, setFotografia] = useState<Imagen[]>([]);
     const [identificacion, setIdentificacion] = useState<Imagen[]>([]);
@@ -188,7 +188,7 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id , dataCat
             return;
         }
         
-        updatePassMutation.mutate({access_pass, id:dataCatalogos._id, account_id:userIdSoter},{
+        updatePassMutation.mutate({access_pass, id:dataCatalogos._id, account_id:userParentId ?? 0},{
             onSuccess: () => {
                 setOpenModal(false);
             }
