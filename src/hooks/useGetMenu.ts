@@ -47,8 +47,8 @@ export const useGetMenu = () => {
                   return [
                     baseItem,
                     {
-                      id: "nuevo_pase",
-                      label: "Nuevo pase",
+                      id: "crear_pase",
+                      label: "Crear pase",
                     },
                   ];
                 }

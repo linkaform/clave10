@@ -12,6 +12,7 @@ import {
 	FormItem,
 	FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
@@ -81,6 +82,9 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 			account_id: z.number().optional(),
 	  
 			nombre: z.string().nullable().optional(),
+			empresa: z.string().min(2, {
+				message: "Por favor, ingresa el nombre de tu empresa",
+			}),
 			ubicacion: z.string().nullable().optional(),
 			email: z.string().nullable().optional(),
 			telefono: z.string().nullable().optional(),
@@ -161,13 +165,6 @@ const PaseUpdate = () =>{
 		[requireFoto, requireIden]
 	  );
 	  
-	useEffect(()=>{
-		if(dataCatalogos){
-			setEquipos(dataCatalogos.pass_selected?.grupo_equipos ??[])
-			setVehiculos(dataCatalogos.pass_selected?.grupo_vehiculos ??[])
-		}
-	},[dataCatalogos])
-
 	const form = useForm<z.infer<typeof formSchema>>({
 			resolver: zodResolver(formSchema),
 			defaultValues: {
@@ -179,12 +176,29 @@ const PaseUpdate = () =>{
 			folio: "",
 			account_id: 0,
 			nombre:"",
+			empresa:"",
 			ubicacion:"",
 			email:"",
 			telefono:"",
 			acepto_aviso_privacidad:false,
 	}
 	});
+
+	useEffect(()=>{
+		if(dataCatalogos){
+			setEquipos(dataCatalogos.pass_selected?.grupo_equipos ??[])
+			setVehiculos(dataCatalogos.pass_selected?.grupo_vehiculos ??[])
+			
+			// Rellenar formulario con datos del pase
+			form.setValue("nombre", dataCatalogos.pass_selected?.nombre || "");
+			form.setValue("empresa", dataCatalogos.pass_selected?.empresa || "");
+			form.setValue("email", dataCatalogos.pass_selected?.email || "");
+			form.setValue("telefono", dataCatalogos.pass_selected?.telefono || "");
+			form.setValue("ubicacion", dataCatalogos.pass_selected?.ubicacion?.[0] || "");
+			form.setValue("account_id", account_id);
+			form.setValue("folio", id);
+		}
+	},[dataCatalogos, form, account_id, id])
 	  
 	  useEffect(() => {
 		form.trigger();
@@ -419,7 +433,8 @@ const PaseUpdate = () =>{
 				walkin_identificacion:data.walkin_identificacion??[],
 				folio: id,
 				account_id: account_id,
-				nombre: dataCatalogos?.pass_selected?.nombre||"",
+				nombre: data.nombre || dataCatalogos?.pass_selected?.nombre || "",
+				empresa: data.empresa || "",
 				ubicacion: dataCatalogos?.pass_selected?.ubicacion||[],
 				email: dataCatalogos?.pass_selected?.email||"",
 				telefono:dataCatalogos?.pass_selected?.telefono||"",
@@ -432,6 +447,7 @@ const PaseUpdate = () =>{
 	};
 
 	const updateInfoActivePass= () => {
+		const data = form.getValues();
 		const formattedData = {
 			grupo_vehiculos: vehicles,
 			grupo_equipos: equipos,
@@ -441,7 +457,8 @@ const PaseUpdate = () =>{
 			account_id: account_id,
 			email: dataCatalogos?.pass_selected?.email||"",
 			telefono:dataCatalogos?.pass_selected?.telefono||"",
-			nombre: dataCatalogos?.pass_selected?.nombre||"",
+			nombre: data.nombre || dataCatalogos?.pass_selected?.nombre || "",
+			empresa: data.empresa || "",
 		};
 		setIsSuccess(true)
 		setModalData(formattedData);
@@ -575,50 +592,68 @@ return (
 
 			<h1 className="font-bold text-2xl text-center text-slate-800">Pase De Entrada</h1>
 
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-			<div className="flex gap-2">
-				<p className="font-bold text-slate-800 whitespace-nowrap">Nombre:</p>
-				<p className="text-slate-800">{dataCatalogos?.pass_selected?.nombre}</p>
-			</div>
+			<Form {...form}>
+				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+						<div className="flex gap-2">
+							<p className="font-bold text-slate-800 whitespace-nowrap">Nombre:</p>
+							<p className="text-slate-800">{dataCatalogos?.pass_selected?.nombre}</p>
+						</div>
 
-			<div className="flex gap-2">
-				<p className="font-bold text-slate-800 whitespace-nowrap">Email:</p>
-				<p className="text-slate-800 break-words">{dataCatalogos?.pass_selected?.email}</p>
-			</div>
+						<div className="flex gap-2">
+							<p className="font-bold text-slate-800 whitespace-nowrap">Email:</p>
+							<p className="text-slate-800 break-words">{dataCatalogos?.pass_selected?.email}</p>
+						</div>
 
-			{dataCatalogos?.pass_selected?.telefono && (
-				<div className="flex gap-2">
-				<p className="font-bold text-slate-800 whitespace-nowrap">Teléfono:</p>
-				<p className="text-slate-800">{dataCatalogos?.pass_selected?.telefono}</p>
-				</div>
-			)}
+						{dataCatalogos?.pass_selected?.telefono && (
+							<div className="flex gap-2">
+							<p className="font-bold text-slate-800 whitespace-nowrap">Teléfono:</p>
+							<p className="text-slate-800">{dataCatalogos?.pass_selected?.telefono}</p>
+							</div>
+						)}
 
-			<div className="flex gap-2">
-				<p className="font-bold text-slate-800 whitespace-nowrap">Visita a:</p>
-				<p className="text-slate-800 break-words">
-				{dataCatalogos?.pass_selected?.visita_a?.[0]?.nombre || ""}
-				</p>
-			</div>
+						<div className="flex gap-2">
+							<p className="font-bold text-slate-800 whitespace-nowrap">Visita a:</p>
+							<p className="text-slate-800 break-words">
+							{dataCatalogos?.pass_selected?.visita_a?.[0]?.nombre || ""}
+							</p>
+						</div>
 
-			<div className="flex gap-2">
-				<p className="font-bold text-slate-800 whitespace-nowrap">Ubicación:</p>
-				<div className="relative group break-words text-slate-800">
-				{dataCatalogos?.pass_selected?.ubicacion[0]}
-				{dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
-					<span className="text-blue-600 cursor-pointer ml-1 underline relative">
-					+{dataCatalogos?.pass_selected?.ubicacion.length - 1}
-					<div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
-						{dataCatalogos?.pass_selected?.ubicacion.slice(1).map((ubic: string, idx: number) => (
-						<div key={idx}>{ubic}</div>
-						))}
+						<div className="flex gap-2">
+							<p className="font-bold text-slate-800 whitespace-nowrap">Ubicación:</p>
+							<div className="relative group break-words text-slate-800">
+							{dataCatalogos?.pass_selected?.ubicacion[0]}
+							{dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
+								<span className="text-blue-600 cursor-pointer ml-1 underline relative">
+								+{dataCatalogos?.pass_selected?.ubicacion.length - 1}
+								<div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
+									{dataCatalogos?.pass_selected?.ubicacion.slice(1).map((ubic: string, idx: number) => (
+									<div key={idx}>{ubic}</div>
+									))}
+								</div>
+								</span>
+							)}
+							</div>
+						</div>
 					</div>
-					</span>
-				)}
-				</div>
-			</div>
-			</div>
 
-			<div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+					<FormField
+						control={form.control}
+						name="empresa"
+						render={({ field }) => (
+							<FormItem className="flex flex-col gap-1 space-y-0">
+								<p className="font-bold text-slate-800 whitespace-nowrap text-sm">
+									<span className="text-red-500 mr-1">*</span>Empresa:
+								</p>
+								<FormControl>
+									<Input {...field} value={field.value || ""} placeholder="Ingresa la empresa" />
+								</FormControl>
+								<FormMessage className="text-xs" />
+							</FormItem>
+						)}
+					/>
+
+					<div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 			{showIneIden?.includes("foto") && (
@@ -792,8 +827,6 @@ return (
 
 			<div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
-			<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 				<FormField
 				control={form.control}
 				name="acepto_aviso_privacidad"

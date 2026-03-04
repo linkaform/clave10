@@ -18,7 +18,11 @@ export default function Home() {
 
 
     const handleClick = (menuName: string) => {
-        router.push(`/dashboard/${menuName}`); 
+        if (menuName === "crear_pase") {
+            router.push(`/dashboard/pase-entrada`);
+        } else {
+            router.push(`/dashboard/${menuName}`);
+        }
     };
 
     return (

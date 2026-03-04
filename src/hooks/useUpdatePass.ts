@@ -40,7 +40,8 @@ export type Update_pass = {
   enviar_correo?: string[],
   acepto_aviso_privacidad?:string,
 	acepto_aviso_datos_personales?:string,
-	conservar_datos_por?:string
+	conservar_datos_por?:string,
+  empresa_pase?:string
 }
 
 

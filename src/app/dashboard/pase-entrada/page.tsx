@@ -35,7 +35,6 @@ import { useSearchPass } from "@/hooks/useSearchPass";
 import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 import AreasList from "@/components/areas-list";
 import { useMenuStore } from "@/store/useGetMenuStore";
-import ComentariosList from "@/components/comentarios-list";
 import { useBoothStore } from "@/store/useBoothStore";
 import DateTimePicker from "@/components/dateTimePicker";
 
@@ -157,6 +156,8 @@ import DateTimePicker from "@/components/dateTimePicker";
 	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
 	const [areasSeleccionadas,setAreasSeleccionadas]  = useState<any[]>([])
 	const [salasSeleccionadas,setSalasSeleccionadas]  = useState<any[]>([])
+	const [customVisitaA, setCustomVisitaA] = useState("");
+	const multiselectRef = useRef<any>(null);
 
 	const isExcluded = (key: string) =>
 		Array.isArray(excludes?.pases) &&
@@ -571,7 +572,10 @@ return (
 									</SelectTrigger>
 						  
 									<SelectContent>
-									  {assets?.Perfiles?.map((item: string) => (
+									  <SelectItem key="visita_general" value="Visita General">
+										Visita General
+									  </SelectItem>
+									  {assets?.Perfiles?.filter((item: string) => item !== "visita_general").map((item: string) => (
 										<SelectItem key={item} value={item}>
 										  {item}
 										</SelectItem>
@@ -621,13 +625,45 @@ return (
 							</FormLabel>
 
 							<Multiselect
+								ref={multiselectRef}
 								options={visitaAFormatted ?? []}
 								selectedValues={visitaASeleccionadas}
 								onSelect={setVisitaASeleccionadas}
 								onRemove={setVisitaASeleccionadas}
+								onSearch={(value: string) => {
+									// Limitar a aproximadamente un nombre completo largo (ej: 70 caracteres)
+									if (value.length <= 70) {
+										setCustomVisitaA(value);
+									} else if (multiselectRef.current && multiselectRef.current.searchBox && multiselectRef.current.searchBox.current) {
+										// Si excede, forzar el valor anterior en el input nativo
+										multiselectRef.current.searchBox.current.value = value.substring(0, 70);
+									}
+								}}
+								onKeyPressFn={(e: any) => {
+									if (e.key === 'Enter' && customVisitaA.trim()) {
+										e.preventDefault();
+										// Nombre base limitado para dejar espacio al sufijo
+										const baseName = customVisitaA.trim().substring(0, 50);
+										const finalValue = `${baseName}(No Registrado)`;
+										const newItem = { id: finalValue, name: finalValue };
+										if (!visitaASeleccionadas.find(item => item.name === finalValue)) {
+											setVisitaASeleccionadas([...visitaASeleccionadas, newItem]);
+										}
+										setCustomVisitaA("");
+										if (multiselectRef.current && multiselectRef.current.searchBox && multiselectRef.current.searchBox.current) {
+											const input = multiselectRef.current.searchBox.current;
+											input.value = "";
+											input.blur();
+											setTimeout(() => {
+												input.focus();
+											}, 10);
+										}
+									}
+								}}
 								displayValue="name"
+								placeholder=""
+								emptyRecordMsg={customVisitaA ? `Presiona Enter para agregar "${customVisitaA}"` : "No hay opciones disponibles"}
 							/>
-
 							<FormMessage />
 							</FormItem>
 						)}
@@ -710,7 +746,7 @@ return (
 							render={({ field }: any) => (
 							<FormItem>
 								<FormLabel>
-								Teléfono: 
+								Teléfono(opcional): 
 								</FormLabel>
 								<FormControl>
 								<PhoneInput
@@ -765,7 +801,7 @@ return (
 							render={({ field }:any) => (
 							<FormItem>
 								<FormLabel className="">
-									Motivo de visita:
+									Asunto:
 								</FormLabel>{" "}
 								<FormControl>
 								<Input placeholder="Motivo de la visita" {...field}
@@ -878,12 +914,10 @@ return (
 									render={() => (
 										<FormItem>
 											<FormLabel>
-												<span className="text-red-500">*</span> Fecha y Hora de
-												Visita:
+												<span className="text-red-500">*</span> Vigente hasta el día:
 											</FormLabel>
 											<FormControl>
-												<DateTimePicker date={date ? new Date(date) : undefined} setDate={(d: Date | undefined) => setDate(d as Date)}
-  															allowPast minuteStep={5} />
+												<DateTimePicker date={date ? new Date(date) : undefined} setDate={(d: Date | undefined) => setDate(d as Date)} showTime={false} />
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -1151,10 +1185,10 @@ return (
 
 
 						<div className="flex items-center flex-wrap gap- mt-7">
-							<FormLabel>Todas las áreas: {`(no / si)`}:  </FormLabel>
+							<FormLabel>Todas las áreas{`(no / si)`}:  </FormLabel>
 							<div className="flex items-center flex-wrap gap-5">
 							<Switch
-							className="data-[state=checked]:bg-blue-600"
+							className="ml-2 data-[state=checked]:bg-blue-600"
 								checked={todasAreas}
 								onCheckedChange={(checked) => setTodasAreas(checked)}
 								aria-readonly
@@ -1179,13 +1213,24 @@ return (
 			}
 			{!isExcluded("comentarios") &&
 			<>
-				<div className="font-bold text-xl">Comentarios/ Instrucciones:</div><ComentariosList
-				comentarios={comentariosList}
-				setComentarios={setComentariosList}
-				tipo={"Pase"} />
+				<div className="font-bold text-xl">Comentarios/ Instrucciones:</div>
+				<Textarea
+					placeholder="Escribe un comentario o instrucción"
+					rows={3}
+					className="mt-2"
+					onChange={(e) => {
+						const value = e.target.value;
+						setComentariosList([
+							{
+								tipo_comentario: "Pase",
+								comentario_pase: value,
+							},
+						]);
+					}}
+				/>
 			</>
 		}
-				<div className="text-center">
+				<div className="text-center mt-5">
 					<Button
 						className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-2/3 md:w-1/2 lg:w-1/2"
 						variant="secondary"

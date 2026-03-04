@@ -10,6 +10,7 @@ import {
     Calendar,
     Briefcase,
     Maximize2,
+    Filter as FilterIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +21,8 @@ import { catalogoFechas } from "@/lib/utils";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { Bitacora_record } from "@/components/table/bitacoras/bitacoras-columns";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 interface ListProps {
     data: Bitacora_record[] | undefined;
@@ -58,24 +61,62 @@ const BitacoraImages: React.FC<ListProps> = ({
 }) => {
     const [globalFilter, setGlobalFilter] = useState("");
     const [selectedRecord, setSelectedRecord] = useState<Bitacora_record | null>(null);
+    const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+    const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
+    const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    // Filter Options Extraction
+    const filterOptions = React.useMemo(() => {
+        if (!data) return { status: [], profiles: [], locations: [] };
+        const status = new Set<string>();
+        const profiles = new Set<string>();
+        const locations = new Set<string>();
+
+        data.forEach(record => {
+            if (record.status_visita) status.add(record.status_visita);
+            if (record.perfil_visita) profiles.add(record.perfil_visita);
+            if (record.caseta_entrada) locations.add(record.caseta_entrada);
+        });
+
+        return {
+            status: Array.from(status).sort(),
+            profiles: Array.from(profiles).sort(),
+            locations: Array.from(locations).sort(),
+        };
+    }, [data]);
 
     const filteredData = React.useMemo(() => {
         if (!data) return [];
-        if (!globalFilter) return data;
 
-        const search = globalFilter.toLowerCase();
         return data.filter(record => {
+            // Search filter
+            const search = globalFilter.toLowerCase();
             const contratistaStr = Array.isArray(record.contratista)
                 ? record.contratista.join(', ')
                 : String(record.contratista || '');
 
-            return (
+            const matchesSearch = !globalFilter || (
                 record.nombre_visitante?.toLowerCase().includes(search) ||
                 record.folio?.toLowerCase().includes(search) ||
                 contratistaStr.toLowerCase().includes(search)
             );
+
+            // Sidebar filters
+            const matchesStatus = selectedStatus.length === 0 || selectedStatus.includes(record.status_visita);
+            const matchesProfile = selectedProfiles.length === 0 || selectedProfiles.includes(record.perfil_visita);
+            const matchesLocation = selectedLocations.length === 0 || selectedLocations.includes(record.caseta_entrada);
+
+            return matchesSearch && matchesStatus && matchesProfile && matchesLocation;
         });
-    }, [data, globalFilter]);
+    }, [data, globalFilter, selectedStatus, selectedProfiles, selectedLocations]);
+
+    const clearFilters = () => {
+        setSelectedStatus([]);
+        setSelectedProfiles([]);
+        setSelectedLocations([]);
+        setGlobalFilter("");
+    };
 
     // Pagination helper (providing a full mock for DataTablePagination)
     const tablePlaceholder = {
@@ -145,58 +186,238 @@ const BitacoraImages: React.FC<ListProps> = ({
                 </div>
             </div>
 
-            {/* Gallery Grid */}
-            <div className="min-h-[400px]">
-                {isLoading ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-10 gap-1">
-                        {[...Array(20)].map((_, i) => (
-                            <div key={i} className="aspect-square bg-slate-100 animate-pulse rounded-sm border border-slate-200" />
-                        ))}
+            {/* Main Content Area with Sidebar */}
+            <div className="flex flex-col lg:flex-row gap-6">
+                {/* Mobile Filter Toggle */}
+                <div className="lg:hidden flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
+                    <Button
+                        variant="ghost"
+                        className="flex items-center gap-2 text-slate-700 font-bold"
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    >
+                        <FilterIcon className="w-4 h-4" />
+                        {isSidebarOpen ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+                    </Button>
+                    {(selectedStatus.length > 0 || selectedProfiles.length > 0 || selectedLocations.length > 0) && (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">
+                            {selectedStatus.length + selectedProfiles.length + selectedLocations.length} Activos
+                        </Badge>
+                    )}
+                </div>
+
+                {/* Sidebar - eCommerce Style */}
+                <aside className={`
+                    ${isSidebarOpen ? 'block' : 'hidden'} lg:block
+                    w-full lg:w-64 shrink-0 space-y-8 animate-in slide-in-from-left duration-300
+                `}>
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Filtros</h2>
+                        {(selectedStatus.length > 0 || selectedProfiles.length > 0 || selectedLocations.length > 0) && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={clearFilters}
+                                className="h-auto p-0 text-[10px] text-blue-600 hover:text-blue-700 font-bold uppercase tracking-tighter"
+                            >
+                                Limpiar todo
+                            </Button>
+                        )}
                     </div>
-                ) : filteredData.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-10 gap-1 animate-in fade-in duration-500">
-                        {filteredData.map((record, index) => {
-                            const photoUrl = record.fotografia?.[0]?.file_url;
 
-                            return (
-                                <div
-                                    key={record._id || index}
-                                    onClick={() => setSelectedRecord(record)}
-                                    className="group relative bg-slate-100 rounded-sm overflow-hidden border border-slate-100 shadow-sm hover:ring-2 hover:ring-blue-500/50 cursor-pointer transition-all duration-300"
-                                >
-                                    <div className="aspect-square relative overflow-hidden">
-                                        {photoUrl ? (
-                                            <img
-                                                src={photoUrl}
-                                                alt={record.nombre_visitante}
-                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                                loading="lazy"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50">
-                                                <User className="w-8 h-8 mb-1" />
-                                                <span className="text-[8px] uppercase font-medium">Sin foto</span>
-                                            </div>
-                                        )}
+                    {/* Filter Category: Estatus */}
+                    <div className="space-y-4">
+                        <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Estatus</h3>
+                        <div className="space-y-2.5">
+                            {filterOptions.status.map(status => (
+                                <label key={status} className="flex items-center gap-3 cursor-pointer group">
+                                    <Checkbox
+                                        checked={selectedStatus.includes(status)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedStatus(prev =>
+                                                checked
+                                                    ? [...prev, status]
+                                                    : prev.filter(s => s !== status)
+                                            );
+                                        }}
+                                        className="border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 rounded"
+                                    />
+                                    <span className={`text-sm transition-colors ${selectedStatus.includes(status) ? 'text-blue-700 font-bold' : 'text-slate-600 group-hover:text-slate-900'}`}>
+                                        {status}
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
 
-                                        {/* Minimal Hover Hint */}
-                                        <div className="absolute inset-0 bg-blue-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                            <Maximize2 className="w-5 h-5 text-white drop-shadow-md" />
-                                        </div>
+                    {/* Filter Category: Perfil */}
+                    <div className="space-y-4">
+                        <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Perfil de Visita</h3>
+                        <div className="space-y-2.5">
+                            {filterOptions.profiles.map(profile => (
+                                <label key={profile} className="flex items-center gap-3 cursor-pointer group">
+                                    <Checkbox
+                                        checked={selectedProfiles.includes(profile)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedProfiles(prev =>
+                                                checked
+                                                    ? [...prev, profile]
+                                                    : prev.filter(p => p !== profile)
+                                            );
+                                        }}
+                                        className="border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 rounded"
+                                    />
+                                    <span className={`text-sm transition-colors ${selectedProfiles.includes(profile) ? 'text-blue-700 font-bold' : 'text-slate-600 group-hover:text-slate-900'}`}>
+                                        {profile}
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Filter Category: Ubicación */}
+                    {filterOptions.locations.length > 0 && (
+                        <div className="space-y-4">
+                            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Ubicación / Caseta</h3>
+                            <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
+                                {filterOptions.locations.map(location => (
+                                    <label key={location} className="flex items-center gap-3 cursor-pointer group">
+                                        <Checkbox
+                                            checked={selectedLocations.includes(location)}
+                                            onCheckedChange={(checked) => {
+                                                setSelectedLocations(prev =>
+                                                    checked
+                                                        ? [...prev, location]
+                                                        : prev.filter(l => l !== location)
+                                                );
+                                            }}
+                                            className="border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 rounded"
+                                        />
+                                        <span className={`text-sm transition-colors ${selectedLocations.includes(location) ? 'text-blue-700 font-bold' : 'text-slate-600 group-hover:text-slate-900'}`}>
+                                            {location}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </aside>
+
+                {/* Gallery Grid */}
+                <div className="flex-1 min-h-[500px]">
+                    {isLoading ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                            {[...Array(8)].map((_, i) => (
+                                <div key={i} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                                    <div className="aspect-[4/5] bg-slate-100 animate-pulse" />
+                                    <div className="p-4 space-y-3">
+                                        <div className="h-4 bg-slate-100 animate-pulse rounded w-3/4" />
+                                        <div className="h-3 bg-slate-100 animate-pulse rounded w-1/2" />
+                                        <div className="h-8 bg-slate-100 animate-pulse rounded w-full mt-4" />
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
-                        <div className="bg-white p-4 rounded-full shadow-sm mb-4">
-                            <Search className="w-8 h-8 text-slate-300" />
+                            ))}
                         </div>
-                        <h3 className="text-slate-900 font-medium">No se encontraron resultados</h3>
-                        <p className="text-slate-500 text-sm">Prueba ajustando los filtros o la búsqueda.</p>
-                    </div>
-                )}
+                    ) : filteredData.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 animate-in fade-in duration-500">
+                            {filteredData.map((record, index) => {
+                                const photoUrl = record.fotografia?.[0]?.file_url?.replace('.jpeg', '.thumbnail');
+                                const isEntrada = record.status_visita === 'Entrada';
+
+                                return (
+                                    <div
+                                        key={record._id || index}
+                                        onClick={() => setSelectedRecord(record)}
+                                        className="group bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all duration-300 cursor-pointer flex flex-col"
+                                    >
+                                        {/* Image Container */}
+                                        <div className="aspect-[4/5] relative overflow-hidden bg-slate-100">
+                                            {photoUrl ? (
+                                                <img
+                                                    src={photoUrl}
+                                                    alt={record.nombre_visitante}
+                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                                    loading="lazy"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
+                                                    <User className="w-12 h-12 mb-2 opacity-50" />
+                                                    <span className="text-[10px] uppercase font-bold tracking-widest">Sin Foto</span>
+                                                </div>
+                                            )}
+
+                                            {/* Status Badge Over Image */}
+                                            <div className="absolute top-3 left-3">
+                                                <span className={`text-[10px] font-bold px-2 py-1 rounded-md shadow-sm border ${isEntrada
+                                                    ? 'bg-emerald-500/90 text-white border-emerald-400'
+                                                    : 'bg-red-500/90 text-white border-red-400'
+                                                    }`}>
+                                                    {record.status_visita?.toUpperCase()}
+                                                </span>
+                                            </div>
+
+                                            {/* Quick View Overlay */}
+                                            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                                <div className="bg-white/90 backdrop-blur-sm p-3 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                                    <Maximize2 className="w-5 h-5 text-blue-600" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Content Section */}
+                                        <div className="p-4 flex-1 flex flex-col">
+                                            <div className="mb-auto">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                                                        {record.folio}
+                                                    </span>
+                                                </div>
+                                                <h3 className="text-sm font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
+                                                    {record.nombre_visitante}
+                                                </h3>
+                                                <p className="text-[11px] text-slate-500 mt-1 font-medium italic">
+                                                    {record.perfil_visita}
+                                                </p>
+                                            </div>
+
+                                            <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                                                <div className="flex items-center gap-2 text-slate-600">
+                                                    <Calendar className="w-3.5 h-3.5" />
+                                                    <span className="text-[10px] font-medium">{record.fecha_entrada}</span>
+                                                </div>
+                                                {record.visita_a && record.visita_a.length > 0 && (
+                                                    <div className="flex items-center gap-2 text-slate-600">
+                                                        <User className="w-3.5 h-3.5" />
+                                                        <span className="text-[10px] font-medium truncate">
+                                                            Visitó a: <span className="font-bold text-slate-900">{record.visita_a[0].nombre}</span>
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {record.contratista && (
+                                                    <div className="flex items-center gap-2 text-slate-600">
+                                                        <Briefcase className="w-3.5 h-3.5" />
+                                                        <span className="text-[10px] font-medium truncate">
+                                                            {Array.isArray(record.contratista)
+                                                                ? (record.contratista as any[]).join(', ')
+                                                                : String(record.contratista || 'N/A')}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                            <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                                <Search className="w-8 h-8 text-slate-300" />
+                            </div>
+                            <h3 className="text-slate-900 font-medium">No se encontraron resultados</h3>
+                            <p className="text-slate-500 text-sm">Prueba ajustando los filtros o la búsqueda.</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Pagination */}
