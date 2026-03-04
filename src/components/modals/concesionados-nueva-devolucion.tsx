@@ -41,6 +41,7 @@ interface NuevaDevolucionModalProps {
   isSuccess: boolean;
   setIsSuccess: Dispatch<SetStateAction<boolean>>;
   equipoSelecionado: EquipoConcesionado;
+  dataConcesion:any
 }
 
 const formSchema = z.object({
@@ -60,7 +61,8 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
   children,
   isSuccess,
   setIsSuccess,
-  equipoSelecionado
+  equipoSelecionado,
+  dataConcesion
 }) => {
   const { data: dataAreaEmpleadoApoyo, isLoading: loadingAreaEmpleadoApoyo } =
     useCatalogoAreaEmpleadoApoyo(isSuccess);
@@ -111,9 +113,10 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
   }
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log("dataConcesion",dataConcesion)
 	devolverEquipoMutation.mutate({
-	  record_id: equipoSelecionado?.id_movimiento ?? "",
-	  status: 'parcial',
+	  record_id: dataConcesion?._id ?? "",
+	  status: 'parical',
 	  entregado_por: values.entrega_tipo as "empleado" | "otro",
 	  quien_entrega: values.entrega_tipo === "empleado"
 		? values.entrega_concesion ?? ""

@@ -58,7 +58,6 @@ export const ViewArticuloCon: React.FC<ViewArtModalProps> = ({ data, children })
   useEffect(() => {
     if (data.grupo_equipos) setEquipos(data.grupo_equipos);
   }, [data]);
-
   const totalCantidadPendientes = equipos
     .filter((item) => item.status_concesion_equipo === "pendiente")
     .reduce((acc, item) => acc + (item.cantidad_equipo_concesion ?? 0), 0);
@@ -149,7 +148,7 @@ export const ViewArticuloCon: React.FC<ViewArtModalProps> = ({ data, children })
                     <span className="text-sm font-bold text-red-600">{totalCantidadPendientes}</span>
                   </div>
                 </div>
-                <ConcesionadosSeguimientos equipos={equipos} setEquipos={setEquipos} mode="vista" />
+                <ConcesionadosSeguimientos equipos={equipos} setEquipos={setEquipos} mode="vista" dataConcesion={data}/>
               </div>
             </TabsContent>
           </Tabs>

@@ -2,14 +2,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { errorMsj } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
-import { devolucionEquipoConcesionado, InputDevolucionEquipo } from "@/lib/devolucion-concesion";
+import { devolucionEquipoConcesionado, InputDevolucionEquipo, InputDevolucionTotal } from "@/lib/devolucion-concesion";
+
+
 
 export const useDevolucionEquipo = () => {
   const queryClient = useQueryClient();
   const { isLoading, setLoading } = useShiftStore();
 
   const devolverEquipoMutation = useMutation({
-    mutationFn: async (data: InputDevolucionEquipo) => {
+    mutationFn: async (data: InputDevolucionEquipo| InputDevolucionTotal) => {
       const response = await devolucionEquipoConcesionado(data);
       const hasError = (!response?.success) || (response?.response?.data?.status_code === 400 )
       if (hasError) {

@@ -12,22 +12,35 @@ interface EquipoDevolucion {
   state: string;
   evidencia: EvidenciaDevolucion[];
 }
-
+export interface InputDevolucionTotal {
+  record_id: string;
+  status: "total";
+  state: "complete" | "lost" | "damage";
+  quien_entrega: string;
+  company?: string;
+  identificacion_entrega?: {
+    file_name: string;
+    file_url: string;
+  };
+  comentarios?: string;
+  evidencia?: { file_url: string; file_name?: string }[];
+}
 export interface InputDevolucionEquipo {
   record_id: string;
   status:string;
+  state?:string;
   quien_entrega: string;
   quien_entrega_company?: string;
-  identificacion_entrega?: Imagen[];
+  identificacion_entrega?: Imagen;
   entregado_por: "empleado" | "otro";
   equipos: EquipoDevolucion[];
 }
 
-export const devolucionEquipoConcesionado = async (data: InputDevolucionEquipo) => {
+export const devolucionEquipoConcesionado = async (data: InputDevolucionEquipo | InputDevolucionTotal) => {
   const payload = {
     script_name: "articulos_consecionados.py",
     option: "update_article",
-    data,
+    ...data,
   };
 
   const userJwt = localStorage.getItem("access_token");

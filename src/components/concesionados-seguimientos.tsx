@@ -11,15 +11,17 @@ interface AgregarEquiposListProps {
   equipos: EquipoConcesionado[];
   setEquipos: Dispatch<SetStateAction<EquipoConcesionado[]>>;
   mode: string;
+  dataConcesion: any
 }
 
-const ConcesionadosSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos, mode }) => {
+const ConcesionadosSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos, mode ,dataConcesion}) => {
   const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
   const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
   const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState<any>({});
   const [nuevaDevolucionModal, setNuevaDevolucionEquiposModal] = useState(false);
 
   const { devolverEquipoMutation , isLoading } = useDevolucionEquipo();
+  console.log("dsataaaaaa", dataConcesion)
 
   const equiposActualizados = [...equipos];
 
@@ -28,18 +30,20 @@ const ConcesionadosSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos,
     setNuevaDevolucionEquiposModal(true);
   };
 
-  const onDevolverTodo = (equipo: EquipoConcesionado) => {
+  const onDevolverTodo = () => {
+    console.log("data concesiona", dataConcesion)
+     //PONER AQUI DATA
     devolverEquipoMutation.mutate({
-      record_id: equipo?.id_movimiento ?? "",
-      status: "total",
-      entregado_por: "empleado",
-      quien_entrega: "Emiliano Zapata",
-      equipos: [{
-        id_movimiento: equipo?.id_movimiento ?? "",
-        cantidad_devuelta: equipo?.cantidad_equipo_concesion ?? 0,
+        record_id: dataConcesion._id, 
+        status:"total",
         state: "complete",
-        evidencia: [],
-      }],
+        quien_entrega: "Nombre de quien entrega",
+        company: "Nombre Empresa",
+        identificacion_entrega : {
+          file_name:"foto.jpg",
+          file_url:""
+        },
+        comentarios:"Poner aqui comentarios globales"
     });
   };
 
@@ -76,6 +80,7 @@ const ConcesionadosSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos,
         setIsSuccess={setNuevaDevolucionEquiposModal}
         isSuccess={nuevaDevolucionModal}
         equipoSelecionado={agregarEquipoSeleccion}
+        dataConcesion={dataConcesion}
       >
         <div />
       </NuevaDevolucionEquipoModal>
@@ -84,7 +89,7 @@ const ConcesionadosSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos,
         <History className="text-green-500" />
         <span className="mb-2 font-bold text-gray-700 text-sm">HISTORIAL DE DEVOLUCIONES</span>
       </div>
-
+            
       <HistorialDevoluciones
         equipos={equiposActualizados}
         onDevolver={onDevolver}

@@ -40,7 +40,6 @@ export const devolucionSchema = z.object({
   }
 ).refine(
   (data) => {
-    // Si el estatus es "Completado", debe tener fecha de devolución
     if (data.estatus === "Completado") {
       return !!data.fechaDevolucion;
     }
@@ -52,7 +51,6 @@ export const devolucionSchema = z.object({
   }
 ).refine(
   (data) => {
-    // Si el estatus es "Completado", las unidades devueltas deben ser iguales a las totales
     if (data.estatus === "Completado") {
       return data.unidadesDevueltas === data.unidadesTotales;
     }
@@ -85,7 +83,6 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
 }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
-  // Validar las devoluciones al cargar
   React.useEffect(() => {
     try {
         devolucionSchema.parse(devoluciones);
@@ -144,14 +141,12 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
             key={devolucion.id}
             className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm"
           >
-            {/* Header del Accordion */}
             <div
               className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
               onClick={() => toggleAccordion(index)}
             >
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4 flex-1">
-                  {/* Unidades */}
                   <div className="flex items-center gap-2">
                     <Package className="w-5 h-5 text-gray-600" />
                     <span className="font-semibold text-gray-700">
@@ -159,7 +154,6 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
                     </span>
                   </div>
 
-                  {/* Estatus Badge */}
                   <div
                     className={`inline-flex items-center justify-center px-3 py-1 text-xs font-semibold rounded-full border ${getEstatusColor(
                       devolucion.estatus
@@ -170,7 +164,6 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {/* Botón Devolver - Solo para estatus Pendiente */}
                   {devolucion.estatus === "pendiente" && (
                     <button
                       onClick={(e) => handleDevolver(devolucion.id, e)}
@@ -181,7 +174,6 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
                     </button>
                   )}
 
-                  {/* Icono de expandir/colapsar */}
                   <div className="text-gray-500">
                     {expandedIndex === index ? (
                       <ChevronUp className="w-5 h-5" />
@@ -192,7 +184,6 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
                 </div>
               </div>
 
-              {/* Barra de Progreso */}
               <div className="mt-3">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs text-gray-600">Progreso</span>
@@ -211,11 +202,9 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
               </div>
             </div>
 
-            {/* Contenido expandido */}
             {expandedIndex === index && (
               <div className="border-t border-gray-200 bg-gray-50 p-4 animate-fadeIn">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Equipo */}
                   <div className="flex items-start gap-2">
                     <Package className="w-4 h-4 text-blue-500 mt-1" />
                     <div>
@@ -226,7 +215,6 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
                     </div>
                   </div>
 
-                  {/* Solicitante */}
                   <div className="flex items-start gap-2">
                     <User className="w-4 h-4 text-blue-500 mt-1" />
                     <div>
@@ -237,7 +225,6 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
                     </div>
                   </div>
 
-                  {/* Fecha de Solicitud */}
                   <div className="flex items-start gap-2">
                     <Calendar className="w-4 h-4 text-blue-500 mt-1" />
                     <div>
@@ -248,7 +235,6 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
                     </div>
                   </div>
 
-                  {/* Fecha de Devolución */}
                   {devolucion.fechaDevolucion && (
                     <div className="flex items-start gap-2">
                       <Calendar className="w-4 h-4 text-green-500 mt-1" />
@@ -260,8 +246,6 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
                       </div>
                     </div>
                   )}
-
-                  {/* Motivo */}
                   <div className="flex items-start gap-2 md:col-span-2">
                     <FileText className="w-4 h-4 text-blue-500 mt-1" />
                     <div className="flex-1">
@@ -272,7 +256,6 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
                     </div>
                   </div>
 
-                  {/* Comentarios */}
                   {devolucion.comentarios && (
                     <div className="flex items-start gap-2 md:col-span-2">
                       <FileText className="w-4 h-4 text-blue-500 mt-1" />
@@ -284,7 +267,6 @@ const DevolverEquipoModal: React.FC<HistorialDevolucionesProps> = ({
                   )}
                 </div>
 
-                {/* Botón Devolver en el detalle expandido - Solo para Pendiente */}
                 {devolucion.estatus === "pendiente" && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <button

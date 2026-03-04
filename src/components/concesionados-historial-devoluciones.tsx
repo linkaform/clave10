@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, Package, Calendar, User, FileText, RotateCcw, PackageCheck, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Package, Calendar, User, FileText, RotateCcw, Loader2, PackageCheck } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { EquipoConcesionado } from "./concesionados-agregar-equipos";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
@@ -9,7 +9,7 @@ import { Button } from "./ui/button";
 interface HistorialDevolucionesProps {
   equipos: EquipoConcesionado[];
   onDevolver?: (equipo: EquipoConcesionado) => void;
-  onDevolverTodo?: (equipo: EquipoConcesionado) => void;
+  onDevolverTodo?: () => void;
   isLoadingTodo: boolean;
 }
 
@@ -68,9 +68,8 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
     e.stopPropagation();
     onDevolver?.(equipo);
   };
-  const handleDevolverTodo = (equipo: EquipoConcesionado, e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDevolverTodo?.(equipo);
+  const handleDevolverTodo = () => {
+    onDevolverTodo?.();
   };
 
   const equiposFiltrados = equipos.filter((equipo) =>
@@ -91,6 +90,17 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
     <div className="space-y-4">
 
       <div className="flex gap-2 flex-wrap">
+         <Button
+            disabled={isLoadingTodo}
+            onClick={() => handleDevolverTodo()}
+            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
+          >
+            {isLoadingTodo
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>
+              : <><PackageCheck className="w-4 h-4" /> Devolver todo</>
+            }
+          </Button>
+
         {botonesFiltro.map((boton) => (
           <button
             key={boton.value}
@@ -258,16 +268,7 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
                           <RotateCcw className="w-4 h-4" />
                           Devolver 
                         </Button>
-                        <Button
-                        disabled={isLoadingTodo}
-                        onClick={(e) => handleDevolverTodo(dev, e)}
-                        className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
-                      >
-                        {isLoadingTodo
-                          ? <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>
-                          : <><PackageCheck className="w-4 h-4" /> Devolver todo</>
-                        }
-                      </Button>
+                       
                       </div>
                     )}
                   </div>
