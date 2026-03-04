@@ -18,14 +18,11 @@ import { toast } from "sonner";
 import { useGetStats } from "@/hooks/useGetStats";
 import { useBoothStore } from "@/store/useBoothStore";
 import Swal from "sweetalert2";
-import useAuthStore from "@/store/useAuthStore";
-import { getPdf } from "@/lib/get-pdf";
 import BitacoraImages from "@/components/pages/bitacoras/BitacoraImages";
 
 const BitacorasPage = () => {
 	const { tab, filter, option, from, setFrom } = useShiftStore()
 	const { location } = useBoothStore();
-	const { userParentId } = useAuthStore()
 	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState("");
 	const [areaSeleccionada, setAreaSeleccionada] = useState("todas");
 	const [equiposData, setEquiposData] = useState<Bitacora_record[]>([]);
@@ -197,9 +194,7 @@ const BitacorasPage = () => {
 			toast.error("Escoge un rango de fechas.")
 		}
 	};
-	const printPase = async (paseId: string) => {
-		console.log("Imprimiendo pase ID:", paseId);
-
+	const printPase = async (urlEtiqueta: string) => {
 		Swal.fire({
 			title: 'Preparando documento',
 			html: 'Cargando PDF para imprimir...',
@@ -211,24 +206,7 @@ const BitacorasPage = () => {
 		});
 
 		try {
-			const result = await getPdf(userParentId, paseId);
-
-			const data = result?.response?.data;
-
-			if (!data || data.status_code !== 200) {
-				const errorMsg = data?.json?.error || "Error desconocido del servidor";
-
-				toast.error(`Error del servidor: ${errorMsg}`, {
-					style: {
-						backgroundColor: "#f44336",
-						color: "#fff",
-					},
-				});
-				Swal.close();
-				return;
-			}
-
-			const downloadUrl = data?.json?.download_url || data?.data?.download_url;
+			const downloadUrl = urlEtiqueta;
 
 			if (downloadUrl) {
 				imprimirYDescargarPDF(downloadUrl);

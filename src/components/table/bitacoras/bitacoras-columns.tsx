@@ -44,6 +44,7 @@ export interface Bitacora_record {
 	formated_visita?:string
 	pase_id:string
 	sala?:string
+	url_de_etiqueta?:string
 }
 
 export type Comentarios_bitacoras = {
@@ -161,7 +162,7 @@ const OptionsCell: React.FC<{
 						<Printer className="w-5 h-5" />
 					</div>
 				) : (
-					<div className={iconClass(false)} title="Imprimir Pase" onClick={() => onPrintPaseFn(bitacora.pase_id)}>
+					<div className={iconClass(false)} title="Imprimir Pase" onClick={() => onPrintPaseFn(bitacora.url_de_etiqueta)}>
 						<Printer className="w-5 h-5" />
 					</div>
 				)}
@@ -190,7 +191,7 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 				return <OptionsCell row={row} key={row.original._id}
 					onReturnGafete={() => { onReturnGafete(row.original) }} onAddBadgeClick={() => { onAddBadgeClick(row.original) }} onDoOutClick={() => {
 						onDoOutClick(row.original)
-					}} onPrintPaseFn={() => { printPaseFn(row.original.pase_id) }} />;
+					}} onPrintPaseFn={() => { printPaseFn(row.original.url_de_etiqueta ?? '') }} />;
 			},
 			enableSorting: false,
 			enableHiding: false,
