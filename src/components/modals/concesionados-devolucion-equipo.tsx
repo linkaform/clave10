@@ -4,11 +4,10 @@ import { toast } from "sonner";
 
 
 interface HistorialDevolucionesProps {
-  devoluciones: Devolucion[];
+  devoluciones: any[];
   onDevolver?: (id: number) => void;
 }
 import { z } from "zod";
-import { Devolucion } from "../concesionados-historial-devoluciones";
 
 export const devolucionSchema = z.object({
   id: z.number().positive("El ID debe ser un número positivo"),

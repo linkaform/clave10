@@ -150,7 +150,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
         reset({
           ubicacion_concesion: initialData.ubicacion_concesion || "",
           area_concesion: initialData.area_concesion || "",
-          caseta_concesion: initialData.area || "",
+          caseta_concesion: initialData.area_concesion || "",
           status_concesion: initialData.status_concesion || "",
           persona_nombre_concesion: initialData.persona_nombre_concesion || "",
           persona_email_concesion: initialData.persona_email_concesion || "",

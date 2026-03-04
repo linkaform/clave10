@@ -51,7 +51,8 @@ const formSchema = z.object({
   unidades: z.number().optional(),
   comentarios: z.string().optional(),
   evidencia: z.array(z.any()).optional(),
-  precio: z.number().optional(),
+  precio: z.number().optional(), 
+  identificacion_entrega: z.array(z.any()).optional(),
 });
 
 export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = ({
@@ -112,17 +113,13 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
   function onSubmit(values: z.infer<typeof formSchema>) {
 	devolverEquipoMutation.mutate({
 	  record_id: equipoSelecionado?.id_movimiento ?? "",
-	  status: equipoSelecionado?.status_concesion_equipo??"",
+	  status: 'parcial',
 	  entregado_por: values.entrega_tipo as "empleado" | "otro",
 	  quien_entrega: values.entrega_tipo === "empleado"
 		? values.entrega_concesion ?? ""
 		: values.entrega_concesion_otro ?? "",
-	  quien_entrega_company: values.entrega_tipo === "otro"
-		? values.entrega_concesion_otro
-		: undefined,
-	  identificacion_entrega: values.entrega_tipo === "otro"
-		? values.evidencia?.[0]
-		: undefined,
+	  quien_entrega_company: "Demo",
+	  identificacion_entrega: values.identificacion_entrega ? values.identificacion_entrega[0]: [],
 	  equipos: [{
 		id_movimiento: equipoSelecionado?.id_movimiento ?? "",
 		cantidad_devuelta: values.unidades ?? 0,
@@ -199,7 +196,8 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                   )}
                 />
 
-                {tipoCon === "otro" && (
+               <div className="mt-2 ">
+               {tipoCon === "otro" && (
                   <FormField
                     control={form.control}
                     name="entrega_concesion_otro"
@@ -216,8 +214,10 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                     )}
                   />
                 )}
+               </div>
+      
 
-                {tipoCon === "otro" && (
+                {/* {tipoCon === "otro" && (
                   <Controller
                     control={form.control}
                     name="evidencia"
@@ -238,10 +238,10 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                       </div>
                     )}
                   />
-                )}
+                )} */}
 
                 {tipoCon === "empleado" && (
-                  <FormField
+                  <><FormField
                     control={form.control}
                     name="entrega_concesion"
                     render={({ field }: any) => (
@@ -252,28 +252,47 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                         <Select {...field} onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="bg-white border-gray-200">
-                              <SelectValue placeholder={
-                                loadingAreaEmpleadoApoyo ? "Cargando empleados..." :
+                              <SelectValue placeholder={loadingAreaEmpleadoApoyo ? "Cargando empleados..." :
                                 dataAreaEmpleadoApoyo?.length > 0 ? "Selecciona una opción..." :
-                                "Sin opciones disponibles"
-                              } />
+                                  "Sin opciones disponibles"} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {dataAreaEmpleadoApoyo?.length > 0
                               ? dataAreaEmpleadoApoyo.map((item: string, index: number) => (
-                                  <SelectItem key={index} value={item}>{item}</SelectItem>
-                                ))
-                              : <SelectItem disabled value="no opciones">No hay opciones disponibles</SelectItem>
-                            }
+                                <SelectItem key={index} value={item}>{item}</SelectItem>
+                              ))
+                              : <SelectItem disabled value="no opciones">No hay opciones disponibles</SelectItem>}
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
-                    )}
-                  />
+                    )} />
+                  </>
                 )}
               </div>
+
+              <div className=" p-5 py-2">
+                      <h3 className="font-semibold text-gray-500 mb-3 text-xs uppercase">Fotografia</h3>
+                      <Controller
+                        control={form.control}
+                        name="identificacion_entrega"
+                        render={({ field, fieldState }) => (
+                          <div className="flex flex-col">
+                            <LoadImage
+                              id="fotografia"
+                              titulo="Fotografía de la persona"
+                              showWebcamOption={true}
+                              imgArray={field.value || []}
+                              setImg={(imgs) => field.onChange(imgs)}
+                              facingMode="user"
+                              limit={10} />
+                            {fieldState.error && (
+                              <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>
+                            )}
+                          </div>
+                        )} />
+                    </div>
 
               <div className=" p-5 py-0">
                 <FormField
@@ -298,7 +317,8 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                   )}
                 />
 
-                <FormField
+               <div className="py-2">
+               <FormField
                   control={form.control}
                   name="estatus"
                   defaultValue="completo"
@@ -329,9 +349,10 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                     </FormItem>
                   )}
                 />
+               </div>
 
                 <div className="mt-2">
-				<FormField
+				        <FormField
                   control={form.control}
                   name="comentarios"
                   render={({ field }: any) => (

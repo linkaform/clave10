@@ -33,7 +33,7 @@ const ConcesionadosSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos,
       record_id: equipo?.id_movimiento ?? "",
       status: "total",
       entregado_por: "empleado",
-      quien_entrega: "",
+      quien_entrega: "Emiliano Zapata",
       equipos: [{
         id_movimiento: equipo?.id_movimiento ?? "",
         cantidad_devuelta: equipo?.cantidad_equipo_concesion ?? 0,

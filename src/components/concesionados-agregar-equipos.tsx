@@ -13,7 +13,7 @@ export interface EquipoConcesionado {
   cantidad_equipo_devuelto?:string;
   cantidad_equipo_pendiente?:string;
   nombre_equipo?: string;
-  costo_equipo_concesion?: number[];
+  costo_equipo_concesion?: number;
   imagen_equipo_concesion?: Imagen[];
   cantidad_equipo_concesion?: number;
   evidencia_entrega?: Imagen[];

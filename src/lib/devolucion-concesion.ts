@@ -18,7 +18,7 @@ export interface InputDevolucionEquipo {
   status:string;
   quien_entrega: string;
   quien_entrega_company?: string;
-  identificacion_entrega?: Imagen;
+  identificacion_entrega?: Imagen[];
   entregado_por: "empleado" | "otro";
   equipos: EquipoDevolucion[];
 }
