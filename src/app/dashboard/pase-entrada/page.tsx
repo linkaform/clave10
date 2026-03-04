@@ -149,6 +149,7 @@ import DateTimePicker from "@/components/dateTimerPicker";
 	const [modalData, setModalData] = useState<any>(null);
 	const [ubicacionSeleccionada,setUbicacionSeleccionada] = useState("")
 	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, false);
+	console.log("ubicacionesDefaultFormatted", ubicacionSeleccionada)
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>();
 	const pickerRef = useRef<any>(null);
 	const { visitas, perfiles, areas, isLoading:assetsLoading } = useAssetsByLocations(
@@ -162,6 +163,11 @@ import DateTimePicker from "@/components/dateTimerPicker";
 		if(location)
 			setUbicacionSeleccionada(location)
 	},[location])
+	useEffect(() => {
+		if (ubicacionesDefaultFormatted) {
+			setUbicacionesSeleccionadas(ubicacionesDefaultFormatted)
+		}
+	}, [ubicacionesDefaultFormatted]); 
 
 	useEffect(() => {
 	  const picker = pickerRef.current;
@@ -197,11 +203,6 @@ import DateTimePicker from "@/components/dateTimerPicker";
 		}
 	}, []); 
 
-	useEffect(() => {
-		if (ubicacionesDefaultFormatted) {
-			setUbicacionesSeleccionadas(ubicacionesDefaultFormatted)
-		}
-	}, [ubicacionesDefaultFormatted]); 
 
 	const ubicacionesSeleccionadasLista = ubicacionesSeleccionadas?.map((u: any) => (u.name));
 	const { dataConfigLocation, isLoadingConfigLocation } = usePaseEntrada(ubicacionesSeleccionadasLista ?? [])

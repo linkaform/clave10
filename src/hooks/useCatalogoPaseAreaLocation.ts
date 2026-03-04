@@ -41,6 +41,7 @@ export const useCatalogoPaseAreaLocation = (location:string, enableLocation:bool
         }else {
           setLocations(data.response?.data.ubicaciones_user)
           setUbicacionesDefault(data.response?.data.ubicaciones_default)
+          console.log("data.response",data.response)
           setubicacionesDefaultFormatted(data.response?.data.ubicaciones_default?.map((u: any) => ({ id: u, name: u }))) 
           return data.response?.data.ubicaciones_user
         }

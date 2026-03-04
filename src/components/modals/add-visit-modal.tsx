@@ -3,7 +3,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "../ui/button";
-
 import {
   Dialog,
   DialogClose,
@@ -20,7 +19,6 @@ import {
   FormLabel,
   FormMessage,
 } from "../ui/form";
-
 import {
   Select,
   SelectContent,
@@ -28,17 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-
 import { Input } from "../ui/input";
-
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { useEffect, useState } from "react";
-
+import { useEffect, useMemo, useState } from "react";
 import { useSearchPass } from "@/hooks/useSearchPass";
 import LoadImage, { Imagen } from "../upload-Image";
 import { useBoothStore } from "@/store/useBoothStore";
-import { uniqueArray } from "@/lib/utils";
+import { getRequerimientos, uniqueArray } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -46,41 +41,49 @@ interface Props {
   children: React.ReactNode;
 }
 
-const formSchema = z.object({
-  nombre: z.string().min(2, {
-    message: "Campo requerido",
-  }),
-  empresa: z.string().min(2, {
-    message: "Campo requerido",
-  }),
-  foto: z.array(
-    z.object({
-      file_url: z.string(),
-      file_name: z.string(),
+const createSchema = (requireFoto: boolean, requireIden: boolean) =>
+  z
+    .object({
+      nombre: z.string().min(2, { message: "Campo requerido" }),
+      empresa: z.string().min(2, { message: "Campo requerido" }),
+      foto: z
+        .array(z.object({ file_url: z.string(), file_name: z.string() }))
+        .default([]),
+      identificacion: z
+        .array(z.object({ file_url: z.string(), file_name: z.string() }))
+        .default([]),
+      area: z.string().optional(),
+      visita_a: z.string().min(1, { message: "Campo requerido" }),
+      perfil_pase: z.string().min(1, { message: "Campo requerido" }),
+      status_pase: z.string().optional(),
+      tipo_visita_pase: z.enum(["fecha_fija", "rango_de_fechas"]).optional(),
+      fechaFija: z.string().optional(),
+      fecha_desde_visita: z.string().optional(),
+      fecha_desde_hasta: z.string().optional(),
+      config_dia_de_acceso: z
+        .enum(["cualquier_día", "limitar_días_de_acceso"])
+        .optional(),
+      config_dias_acceso: z.array(z.string()).optional(),
+      config_limitar_acceso: z.number().optional(),
     })
-  ).optional(),
-  identificacion: z.array(
-    z.object({
-      file_url: z.string(),
-      file_name: z.string(),
-    })
-  ).optional(),
-  area: z.string().optional(),
-  visita_a: z.string().min(1, {
-    message: "Campo requerido",
-  }),
-  perfil_pase: z.string().min(1, {
-    message: "Campo requerido",
-  }),
-  status_pase: z.string().optional(),
-  tipo_visita_pase: z.enum(["fecha_fija", "rango_de_fechas"]).optional(),
-  fechaFija: z.string().optional(),
-  fecha_desde_visita: z.string().optional(),
-  fecha_desde_hasta: z.string().optional(),
-  config_dia_de_acceso: z.enum(["cualquier_día", "limitar_días_de_acceso"]).optional(),
-  config_dias_acceso: z.array(z.string()).optional(),
-  config_limitar_acceso: z.number().optional(),
-});
+    .superRefine((data, ctx) => {
+      if (requireFoto && data.foto.length === 0) {
+        ctx.addIssue({
+          path: ["foto"],
+          message: "La fotografía es obligatoria",
+          code: z.ZodIssueCode.custom,
+        });
+      }
+      if (requireIden && data.identificacion.length === 0) {
+        ctx.addIssue({
+          path: ["identificacion"],
+          message: "La identificación es obligatoria",
+          code: z.ZodIssueCode.custom,
+        });
+      }
+    });
+
+type formatData = z.infer<ReturnType<typeof createSchema>>;
 
 export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
   const [openModal, setOpenModal] = useState(false);
@@ -92,6 +95,15 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
   const { location } = useBoothStore();
   const [formSubmitted, setFormSubmitted] = useState(false);
   const assetsUnique = uniqueArray(assets?.Visita_a);
+
+  const requerimientos = getRequerimientos(location ?? "");
+  const requireFoto = requerimientos.includes("fotografia");
+  const requireIden = requerimientos.includes("identificacion");
+
+  const formSchema = useMemo(
+    () => createSchema(requireFoto, requireIden),
+    [requireFoto, requireIden]
+  );
 
   const [isActiveAdvanced, setIsActiveAdvanced] = useState(false);
   const [tipoVisita, setTipoVisita] = useState<"fecha_fija" | "rango_de_fechas">("rango_de_fechas");
@@ -105,7 +117,7 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
   const [fechaDesde, setFechaDesde] = useState<string>("");
   const today = new Date().toISOString().split("T")[0];
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<formatData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       nombre: "",
@@ -134,7 +146,20 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
     }
   }, [openModal]);
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
+  useEffect(() => {
+    if (!requireFoto || fotografia.length > 0) {
+      setFotoError(false);
+    } else {
+      setFotoError(true);
+    }
+    if (!requireIden || identificacion.length > 0) {
+      setIdError(false);
+    } else {
+      setIdError(true);
+    }
+  }, [formSubmitted, fotografia, identificacion, requireFoto, requireIden]);
+
+  function onSubmit(data: formatData) {
     const access_pass = {
       nombre: data.nombre,
       empresa: data.empresa,
@@ -145,54 +170,32 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
       identificacion: identificacion,
       status_pase: "activo",
       ubicaciones: [location ?? ""],
-	  tipo_visita_pase: tipoVisita,
-	  fechaFija: tipoVisita === "fecha_fija" ? (data.fechaFija ?? "") : "",
-	  fecha_desde_visita: tipoVisita === "rango_de_fechas" ? (data.fecha_desde_visita ?? "") : "",
-	  fecha_desde_hasta: tipoVisita === "rango_de_fechas" ? (data.fecha_desde_hasta ?? "") : "",
-	  config_dia_de_acceso: config_dia_de_acceso,
-	  config_dias_acceso: config_dias_acceso,
-	  config_limitar_acceso: isActivelimitarDias ? (Number(data.config_limitar_acceso) || 0) : 0,
+      tipo_visita_pase: tipoVisita,
+      fechaFija: tipoVisita === "fecha_fija" ? (data.fechaFija ?? "") : "",
+      fecha_desde_visita: tipoVisita === "rango_de_fechas" ? (data.fecha_desde_visita ?? "") : "",
+      fecha_desde_hasta: tipoVisita === "rango_de_fechas" ? (data.fecha_desde_hasta ?? "") : "",
+      config_dia_de_acceso: config_dia_de_acceso,
+      config_dias_acceso: config_dias_acceso,
+      config_limitar_acceso: isActivelimitarDias ? (Number(data.config_limitar_acceso) || 0) : 0,
     };
 
     let valid = true;
 
-    if (fotografia.length === 0) {
+    if (requireFoto && fotografia.length === 0) {
       setFotoError(true);
       valid = false;
-    } else {
-      setFotoError(false);
     }
 
-    if (identificacion.length === 0) {
+    if (requireIden && identificacion.length === 0) {
       setIdError(true);
       valid = false;
-    } else {
-      setIdError(false);
     }
 
     if (!valid) return;
-	console.log("ACCESS PASS DATA", access_pass)
+
+    console.log("ACCESS PASS DATA", access_pass);
     registerNewVisit.mutate({ location: location ?? "", access_pass });
   }
-
-  useEffect(() => {
-    if (openModal) {
-    }
-  }, [openModal]);
-
-  useEffect(() => {
-    if (fotografia.length > 0) {
-      setFotoError(false);
-    } else {
-      setFotoError(true);
-    }
-
-    if (identificacion.length > 0) {
-      setIdError(false);
-    } else {
-      setIdError(true);
-    }
-  }, [formSubmitted, fotografia, identificacion]);
 
   const handleToggleTipoVisitaPase = (tipo: "fecha_fija" | "rango_de_fechas") => {
     if (tipo === "fecha_fija") {
@@ -255,6 +258,7 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+
             <FormField
               control={form.control}
               name="nombre"
@@ -269,32 +273,38 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               )}
             />
 
-            <LoadImage
-              id="fotografia"
-              titulo={"Fotografía"}
-              setImg={setFotografia}
-              showWebcamOption={true}
-              facingMode="environment"
-              imgArray={fotografia}
-              limit={10}
-            />
-
-            {fotoError && (
-              <div className="text-red-500 text-sm">Faltan campos por llenar</div>
+            {requireFoto && (
+              <>
+                <LoadImage
+                  id="fotografia"
+                  titulo={"Fotografía"}
+                  setImg={setFotografia}
+                  showWebcamOption={true}
+                  facingMode="environment"
+                  imgArray={fotografia}
+                  limit={10}
+                />
+                {fotoError && (
+                  <div className="text-red-500 text-sm">La fotografía es obligatoria</div>
+                )}
+              </>
             )}
 
-            <LoadImage
-              id="identificacion"
-              titulo={"Identificación"}
-              setImg={setIdentificacion}
-              showWebcamOption={true}
-              facingMode="environment"
-              imgArray={identificacion}
-              limit={10}
-            />
-
-            {idError && (
-              <div className="text-red-500 text-sm">Faltan campos por llenar</div>
+            {requireIden && (
+              <>
+                <LoadImage
+                  id="identificacion"
+                  titulo={"Identificación"}
+                  setImg={setIdentificacion}
+                  showWebcamOption={true}
+                  facingMode="environment"
+                  imgArray={identificacion}
+                  limit={10}
+                />
+                {idError && (
+                  <div className="text-red-500 text-sm">La identificación es obligatoria</div>
+                )}
+              </>
             )}
 
             <FormField
@@ -361,20 +371,20 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               )}
             />
 
-			<Button
-				type="button"
-				onClick={() => setIsActiveAdvanced((prev) => !prev)}
-				className={`w-1/2 px-4 py-2 rounded-md transition-all duration-300 ${
-					isActiveAdvanced
-					? "bg-blue-600 text-white hover:bg-blue-700"
-					: "border-2 border-blue-400 bg-transparent text-blue-600 hover:bg-blue-200"
-				}`}
-				>
-				{isActiveAdvanced ? "Opciones avanzadas":"Ver opciones avanzadas"}
-			</Button>
+            <Button
+              type="button"
+              onClick={() => setIsActiveAdvanced((prev) => !prev)}
+              className={`w-1/2 px-4 py-2 rounded-md transition-all duration-300 ${
+                isActiveAdvanced
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "border-2 border-blue-400 bg-transparent text-blue-600 hover:bg-blue-200"
+              }`}
+            >
+              {isActiveAdvanced ? "Opciones avanzadas" : "Ver opciones avanzadas"}
+            </Button>
+
             {isActiveAdvanced && (
               <div className="space-y-6 p-4 border border-blue-100 rounded-md bg-blue-50">
-
                 <div className="flex items-center flex-wrap gap-3">
                   <FormLabel>Vigencia:</FormLabel>
                   <Button
@@ -571,7 +581,7 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               </div>
             )}
 
-            <p className="text-gray-400">**Campos requeridos </p>
+            <p className="text-gray-400">**Campos requeridos</p>
 
             <div className="flex gap-5">
               <DialogClose asChild>
@@ -586,7 +596,7 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               <Button
                 type="submit"
                 disabled={loading}
-                onClick={() => { setFormSubmitted(true); }}
+                onClick={() => setFormSubmitted(true)}
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white"
               >
                 {loading ? <><Loader2 className="animate-spin" /> Cargando...</> : "Crear Visita"}

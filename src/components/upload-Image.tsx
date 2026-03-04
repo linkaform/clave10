@@ -32,8 +32,10 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   showWebcamOption,
   facingMode,
   imgArray,
-  limit = 50, 
+  limit=50
 }) => {
+console.log("limiy", limit)
+
   const [loadingWebcam, setLoadingWebcam] = useState(false);
   const [hideWebcam, setHideWebcam] = useState(true);
   const [hideButtonWebcam, setHideButtonWebcam] = useState(false);
@@ -43,7 +45,6 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
 
   const webcamRef = useRef<Webcam | null>(null);
   const videoConstraints = { width: 320, height: 240, facingMode };
-
   const reachedLimit = (imgArray?.length ?? 0) >= limit;
 
   async function handleFileChange(event: any) {
@@ -187,7 +188,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
                 <button
                   type="button"
                   onClick={takeAndSavePhoto}
-                  className="bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 h-7 rounded-lg transition-colors shadow-sm"
+                  className="bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 h-8 rounded-lg transition-colors shadow-sm "
                 >
                   Tomar foto
                 </button>
