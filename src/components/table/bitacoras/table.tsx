@@ -13,7 +13,7 @@ import {
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { CalendarDays, LogOut, Search } from "lucide-react";
+import { CalendarDays, LogOut, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Table,
@@ -36,6 +36,7 @@ import ForceQuitConfirmationModal from "@/components/modals/force-quit-confirmat
 import { forceQuitAllPersons } from "@/lib/endpoints";
 import { toast } from "sonner";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { AddInternalVisitModal } from "@/components/modals/add-internal-visit-modal";
 
 
 interface ListProps {
@@ -165,6 +166,17 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 						<Search />
 					</div>
 				</div>
+
+				<AddInternalVisitModal title="Nueva Visita Interna">
+                <Button
+                  className="ml-3 bg-green-600 hover:bg-green-700 text-white shadow-sm flex items-center gap-1"
+                  variant="default"
+                >
+                  <Plus size={18} />
+                  Visita Interna
+                </Button>
+              </AddInternalVisitModal>
+
 				{isPersonasDentro ? (
 					<Button type="button" className={"bg-red-500 hover:bg-red-600 text-white"} onClick={() => setModalForceQuitAbierto(true)}> <LogOut className="text-white" />Sacar a todos</Button>
 				) : null}

@@ -18,20 +18,18 @@ import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
 import LoadImage from "@/components/upload-Image";
-import { Car, Laptop, Loader2, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import Image from "next/image";
-import { VehicleLocalPassModal } from "@/components/modals/add-local-vehicule";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { EqipmentLocalPassModal } from "@/components/modals/add-local-equipo";
 import { formatEquipos, formatVehiculos } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { User, Mail, Briefcase, Calendar, MapPin, Building2, Camera, IdCard, CheckCircle2, Download } from "lucide-react";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
 // import { API_ENDPOINTS } from "@/config/api";
 import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
-import * as AccordionPrimitive from "@radix-ui/react-accordion";
 	const grupoEquipos = z.array(
 		z.object({
 			nombre: z.string().optional(),
@@ -82,9 +80,7 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 			account_id: z.number().optional(),
 	  
 			nombre: z.string().nullable().optional(),
-			empresa: z.string().min(2, {
-				message: "Por favor, ingresa el nombre de tu empresa",
-			}),
+			empresa: z.string().optional(),
 			ubicacion: z.string().nullable().optional(),
 			email: z.string().nullable().optional(),
 			telefono: z.string().nullable().optional(),
@@ -139,8 +135,6 @@ const PaseUpdate = () =>{
 	const [enableInfo, setEnableInfo] = useState(false)
 	const { data: responsePdf} = useGetPdf(account_id, id, enablePdf);
 	const { data: dataCatalogos, isLoading: loadingDataCatalogos, error} = useGetCatalogoPaseNoJwt(account_id, id, enableInfo );
-	const [agregarEquiposActive, setAgregarEquiposActive] = useState(false);
-	const [agregarVehiculosActive, setAgregarVehiculosActive] = useState(false);
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
 	const [urlImgPass, setUrlImgPass] = useState<string>("");
@@ -512,15 +506,6 @@ const PaseUpdate = () =>{
 	}
 	},[errorFotografia,errorIdentificacion ])
 
-
-	const handleCheckboxChange = (name:string) => {
-	if (name === "agregar-equipos") {
-			setAgregarEquiposActive(!agregarEquiposActive);
-	} else if (name === "agregar-vehiculos") {
-			setAgregarVehiculosActive(!agregarVehiculosActive);
-	}
-	};
-
 	useEffect(()=>{
 		if(downloadUrl){
 			onDescargarPDF(downloadUrl)
@@ -560,560 +545,391 @@ const PaseUpdate = () =>{
 		setIsSuccess(false);  // Reinicia el estado para que el modal no se quede abierto.
 	};
 
-  const handleRemove = (index: number) => {
-	setVehiculos((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const handleRemoveEq = (index: number) => {
-	setEquipos((prev) => prev.filter((_, i) => i !== index))
-  }
-
-
   	if (mostrarAviso) {
 		return (
 			<AvisoPrivacidad setMostrarAviso={setMostrarAviso} radioSelected={radioSelected} setRadioSelected={setRadioSelected}/>
 		)
 	}
 
-
 return (
-	<div className="p-8">
+	<div className="min-h-screen bg-gray-50/50 pb-12">
 		<EntryPassModal2
-				title={"Confirmación"}
-				data={modalData}
-				isSuccess={isSuccess}
-				setIsSuccess={setIsSuccess}
-				onClose={closeModal}
-				passData={dataCatalogos}
-				parentUserId={account_id}
-			/>
+			title={"Confirmación de Pase de Entrada"}
+			data={modalData}
+			fechaDeReunion={dataCatalogos?.pass_selected?.fecha_de_caducidad ?? ""}
+			isSuccess={isSuccess}
+			setIsSuccess={setIsSuccess}
+			onClose={closeModal}
+			passData={dataCatalogos}
+			parentUserId={account_id}
+		/>
+
 		{dataCatalogos?.pass_selected?.estatus == "proceso" ? (
-		<div className="max-w-xl mx-auto px-4 py-6 space-y-6 pt-0">
+			<div className="max-w-4xl mx-auto px-4 pt-8 space-y-6">
+				{/* Encabezado */}
+				<div className="text-center space-y-1">
+					<h1 className="font-bold text-2xl text-slate-900 tracking-tight">Registro de Entrada</h1>
+					<p className="text-slate-500 text-sm">Completa los datos para generar tu pase de acceso</p>
+				</div>
 
-			<h1 className="font-bold text-2xl text-center text-slate-800">Pase De Entrada</h1>
+				<div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+					{/* Columna de Información Actual */}
+					<div className="lg:col-span-12">
+						<Card className="border-none shadow-sm bg-white overflow-hidden">
+							<div className="h-2 bg-red-600 w-full" />
+							<CardHeader className="pb-4">
+								<CardTitle className="text-lg font-bold flex items-center gap-2">
+									<User className="w-5 h-5 text-blue-600" />
+									Información de la Invitación
+								</CardTitle>
+								<CardDescription>Datos registrados previamente en tu invitación</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+									<div className="space-y-4">
+										<div className="flex items-start gap-3">
+											<div className="p-2 bg-gray-50 rounded-lg text-gray-500">
+												<User size={18} />
+											</div>
+											<div>
+												<p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Nombre</p>
+												<p className="text-sm font-semibold text-slate-700">{dataCatalogos?.pass_selected?.nombre}</p>
+											</div>
+										</div>
+										<div className="flex items-start gap-3">
+											<div className="p-2 bg-gray-50 rounded-lg text-gray-500">
+												<Mail size={18} />
+											</div>
+											<div className="overflow-hidden">
+												<p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Email</p>
+												<p className="text-sm font-semibold text-slate-700 truncate max-w-[200px]">{dataCatalogos?.pass_selected?.email}</p>
+											</div>
+										</div>
+									</div>
 
-			<Form {...form}>
-				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-						<div className="flex gap-2">
-							<p className="font-bold text-slate-800 whitespace-nowrap">Nombre:</p>
-							<p className="text-slate-800">{dataCatalogos?.pass_selected?.nombre}</p>
-						</div>
+									<div className="space-y-4">
+										<div className="flex items-start gap-3">
+											<div className="p-2 bg-gray-50 rounded-lg text-gray-500">
+												<Building2 size={18} />
+											</div>
+											<div>
+												<p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Visita a</p>
+												<p className="text-sm font-semibold text-slate-700">{dataCatalogos?.pass_selected?.visita_a?.[0]?.nombre || "N/A"}</p>
+											</div>
+										</div>
+										<div className="flex items-start gap-3">
+											<div className="p-2 bg-gray-50 rounded-lg text-gray-500">
+												<MapPin size={18} />
+											</div>
+											<div>
+												<p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Ubicación</p>
+												<div className="flex flex-wrap items-center gap-1">
+													<p className="text-sm font-semibold text-slate-700 leading-tight">{dataCatalogos?.pass_selected?.ubicacion[0]}</p>
+													{dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
+														<span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+															+{dataCatalogos?.pass_selected?.ubicacion.length - 1} más
+														</span>
+													)}
+												</div>
+											</div>
+										</div>
+									</div>
 
-						<div className="flex gap-2">
-							<p className="font-bold text-slate-800 whitespace-nowrap">Email:</p>
-							<p className="text-slate-800 break-words">{dataCatalogos?.pass_selected?.email}</p>
-						</div>
-
-						{dataCatalogos?.pass_selected?.telefono && (
-							<div className="flex gap-2">
-							<p className="font-bold text-slate-800 whitespace-nowrap">Teléfono:</p>
-							<p className="text-slate-800">{dataCatalogos?.pass_selected?.telefono}</p>
-							</div>
-						)}
-
-						<div className="flex gap-2">
-							<p className="font-bold text-slate-800 whitespace-nowrap">Visita a:</p>
-							<p className="text-slate-800 break-words">
-							{dataCatalogos?.pass_selected?.visita_a?.[0]?.nombre || ""}
-							</p>
-						</div>
-
-						<div className="flex gap-2">
-							<p className="font-bold text-slate-800 whitespace-nowrap">Ubicación:</p>
-							<div className="relative group break-words text-slate-800">
-							{dataCatalogos?.pass_selected?.ubicacion[0]}
-							{dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
-								<span className="text-blue-600 cursor-pointer ml-1 underline relative">
-								+{dataCatalogos?.pass_selected?.ubicacion.length - 1}
-								<div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
-									{dataCatalogos?.pass_selected?.ubicacion.slice(1).map((ubic: string, idx: number) => (
-									<div key={idx}>{ubic}</div>
-									))}
+									<div className="space-y-4">
+										<div className="flex items-start gap-3">
+											<div className="p-2 bg-gray-50 rounded-lg text-gray-500">
+												<Calendar size={18} />
+											</div>
+											<div>
+												<p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Fecha de reunión</p>
+												<p className="text-sm font-semibold text-slate-700">
+													{dataCatalogos?.pass_selected?.fecha_de_caducidad ? dataCatalogos.pass_selected.fecha_de_caducidad.slice(0, 10) : "N/A"}
+												</p>
+											</div>
+										</div>
+										{dataCatalogos?.pass_selected?.empresa && (
+											<div className="flex items-start gap-3">
+												<div className="p-2 bg-gray-50 rounded-lg text-gray-500">
+													<Briefcase size={18} />
+												</div>
+												<div>
+													<p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Empresa</p>
+													<p className="text-sm font-semibold text-slate-700">{dataCatalogos?.pass_selected?.empresa}</p>
+												</div>
+											</div>
+										)}
+									</div>
 								</div>
-								</span>
-							)}
-							</div>
-						</div>
+							</CardContent>
+						</Card>
 					</div>
 
-					<FormField
-						control={form.control}
-						name="empresa"
-						render={({ field }) => (
-							<FormItem className="flex flex-col gap-1 space-y-0">
-								<p className="font-bold text-slate-800 whitespace-nowrap text-sm">
-									<span className="text-red-500 mr-1">*</span>Empresa:
-								</p>
-								<FormControl>
-									<Input {...field} value={field.value || ""} placeholder="Ingresa la empresa" />
-								</FormControl>
-								<FormMessage className="text-xs" />
-							</FormItem>
-						)}
-					/>
+					{/* Formulario de Registro */}
+					<div className="lg:col-span-12">
+						<Form {...form}>
+							<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+									{/* Sección Foto */}
+									<Card className="md:col-span-2 border-none shadow-sm">
+										<CardHeader className="pb-2">
+											<CardTitle className="text-base font-bold flex items-center gap-2">
+												<Camera className="w-4 h-4 text-blue-600" />
+												* Fotografía
+											</CardTitle>
+											<CardDescription className="text-xs">Captura los documentos necesarios para tu ingreso</CardDescription>
+										</CardHeader>
+										<CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+											{showIneIden?.includes("foto") && (
+												<div className="space-y-2">
+													<Controller
+														control={form.control}
+														name="walkin_fotografia"
+														render={({ field, fieldState }) => (
+															<div className="relative group">
+																<div className={`p-4 rounded-2xl border-2 border-dashed transition-all ${fieldState.error ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-gray-50/50 hover:border-blue-400'}`}>
+																	<LoadImage
+																		id="fotografia"
+																		titulo={"Capturar Fotografía"}
+																		showWebcamOption={true}
+																		imgArray={field.value || []}
+																		setImg={field.onChange}
+																		facingMode="user"
+																		limit={1}
+																	/>
+																</div>
+																{fieldState.error && (
+																	<p className="text-xs font-medium text-red-500 mt-2 flex items-center gap-1">
+																		<X size={12} /> {fieldState.error.message}
+																	</p>
+																)}
+															</div>
+														)}
+													/>
+												</div>
+											)}
 
-					<div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+											{showIneIden?.includes("iden") && (
+												<div className="space-y-2">
+													<Controller
+														control={form.control}
+														name="walkin_identificacion"
+														render={({ field, fieldState }) => (
+															<div className="relative group">
+																<div className={`p-4 rounded-2xl border-2 border-dashed transition-all ${fieldState.error ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-gray-50/50 hover:border-blue-400'}`}>
+																	<LoadImage
+																		id="identificacion"
+																		titulo={"Escanear Identificación"}
+																		imgArray={field.value || []}
+																		setImg={field.onChange}
+																		showWebcamOption={true}
+																		facingMode="environment"
+																		limit={1}
+																	/>
+																</div>
+																{fieldState.error && (
+																	<p className="text-xs font-medium text-red-500 mt-2 flex items-center gap-1">
+																		<X size={12} /> {fieldState.error.message}
+																	</p>
+																)}
+															</div>
+														)}
+													/>
+												</div>
+											)}
+										</CardContent>
+									</Card>
 
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-			{showIneIden?.includes("foto") && (
-				<Controller
-				control={form.control}
-				name="walkin_fotografia"
-				render={({ field, fieldState }) => (
-					<div className="flex gap-1">
-					<span className="text-red-500 mt-1">*</span>
-					<div className="w-full">
-						<LoadImage
-						id="fotografia"
-						titulo={"Fotografía"}
-						showWebcamOption={true}
-						imgArray={field.value || []}
-						setImg={field.onChange}
-						facingMode="user"
-						limit={1}
-						/>
-						{fieldState.error && (
-						<span className="text-red-500 text-xs mt-1 block">{fieldState.error.message}</span>
-						)}
-					</div>
-					</div>
-				)}
-				/>
-			)}
-
-			{showIneIden?.includes("iden") && (
-				<Controller
-				control={form.control}
-				name="walkin_identificacion"
-				render={({ field, fieldState }) => (
-					<div className="flex gap-1">
-					<span className="text-red-500 mt-1">*</span>
-					<div className="w-full">
-						<LoadImage
-						id="identificacion"
-						titulo={"Identificación"}
-						imgArray={field.value || []}
-						setImg={field.onChange}
-						showWebcamOption={true}
-						facingMode="environment"
-						limit={1}
-						/>
-						{fieldState.error && (
-						<span className="text-red-500 text-xs mt-1 block">{fieldState.error.message}</span>
-						)}
-					</div>
-					</div>
-				)}
-				/>
-			)}
-			</div>
-
-			<div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-
-
-			<div className="space-y-2">
-			<div className="flex items-center justify-between">
-				<span className="font-semibold text-slate-700">Vehículos</span>
-				<VehicleLocalPassModal title="Nuevo Vehiculo" vehicles={vehicles} setVehiculos={setVehiculos} isAccesos={false} fetch={false}>
-				<button
-					type="button"
-					className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors"
-				>
-					<Car size={15} />
-					<span className="hidden sm:block">Agregar</span>
-					<span className="sm:hidden font-bold">+</span>
-				</button>
-				</VehicleLocalPassModal>
-			</div>
-
-			<Accordion type="multiple" className="w-full">
-				{vehicles.map((vehiculo, index) => (
-				<AccordionPrimitive.Item
-					key={index}
-					value={`vehiculo-${index}`}
-					className="border-b border-gray-100 my-2"
-				>
-					<div className="flex items-center justify-between bg-gray-50 hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors">
-					<AccordionPrimitive.Trigger className="flex items-center gap-2 text-sm font-medium text-slate-700 flex-1 text-left">
-						<Car size={14} className="text-blue-400 shrink-0" />
-						<span>{vehiculo.tipo || "Vehículo sin tipo"}</span>
-					</AccordionPrimitive.Trigger>
-					<button
-						type="button"
-						onClick={() => handleRemove(index)}
-						className="w-5 h-5 rounded-full bg-red-200 hover:bg-red-300 flex items-center justify-center transition-colors shrink-0 ml-2"
-						title="Eliminar"
-					>
-						<X size={11} className="text-red-600" />
-					</button>
-					</div>
-
-					<AccordionPrimitive.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-					<div className="grid grid-cols-2 gap-2 px-3 pt-1 pb-3 text-xs text-slate-600">
-						<p><strong>Tipo:</strong> {vehiculo.tipo}</p>
-						<p><strong>Marca:</strong> {vehiculo.marca}</p>
-						<p><strong>Modelo:</strong> {vehiculo.modelo}</p>
-						<p><strong>Placas:</strong> {vehiculo.placas}</p>
-						<p><strong>Estado:</strong> {vehiculo.estado}</p>
-						<p><strong>Color:</strong> {vehiculo.color}</p>
-					</div>
-					</AccordionPrimitive.Content>
-				</AccordionPrimitive.Item>
-				))}
-
-				{vehicles.length === 0 && (
-				<p className="text-xs text-gray-400 py-2">No se han agregado vehículos.</p>
-				)}
-			</Accordion>
-			</div>
-			<div className="space-y-2">
-				<div className="flex items-center justify-between">
-					<span className="font-semibold text-slate-700">Equipos</span>
-					<EqipmentLocalPassModal title="Nuevo Equipo" equipos={equipos} setEquipos={setEquipos} isAccesos={false}>
-					<button
-						type="button"
-						className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors"
-					>
-						<Laptop size={15} />
-						<span className="hidden sm:block">Agregar</span>
-						<span className="sm:hidden font-bold">+</span>
-					</button>
-					</EqipmentLocalPassModal>
-				</div>
-				<Accordion type="multiple" className="w-full ">
-				{equipos.map((equipo, index) => (
-					<AccordionPrimitive.Item
-					key={index}
-					value={`equipo-${index}`}
-					className="border-b border-gray-100 my-2"
-					>
-					<div className="flex items-center justify-between bg-gray-50 hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors">
-						
-						<AccordionPrimitive.Trigger className="flex items-center gap-2 text-sm font-medium text-slate-700 flex-1 text-left">
-						<Laptop size={14} className="text-blue-400 shrink-0" />
-						<span>{equipo.tipo || "Equipo sin tipo"}</span>
-						</AccordionPrimitive.Trigger>
-
-						<button
-						type="button"
-						onClick={() => handleRemoveEq(index)}
-						className="w-5 h-5 rounded-full bg-red-200 hover:bg-red-300 flex items-center justify-center transition-colors shrink-0 ml-2"
-						title="Eliminar"
-						>
-						<X size={11} className="text-red-600" />
-						</button>
-					</div>
-
-					<AccordionPrimitive.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-						<div className="grid grid-cols-2 gap-2 px-3 pt-1 pb-3 text-xs text-slate-600">
-						<p><strong>Tipo:</strong> {equipo.tipo}</p>
-						<p><strong>Nombre:</strong> {equipo.nombre}</p>
-						<p><strong>Marca:</strong> {equipo.marca}</p>
-						<p><strong>Modelo:</strong> {equipo.modelo}</p>
-						<p><strong>No. Serie:</strong> {equipo.serie}</p>
-						<p><strong>Color:</strong> {equipo.color}</p>
-						</div>
-					</AccordionPrimitive.Content>
-
-					</AccordionPrimitive.Item>
-				))}
-
-				{equipos.length === 0 && (
-					<p className="text-xs text-gray-400 py-2">No se han agregado equipos.</p>
-				)}
-				</Accordion>
-			</div>
-
-			<div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-
-				<FormField
-				control={form.control}
-				name="acepto_aviso_privacidad"
-				render={({ field }) => (
-					<FormItem>
-					<FormControl>
-						<div className="flex items-center gap-2">
-						<Checkbox
-							checked={field.value}
-							onCheckedChange={field.onChange}
-							id="aviso"
-						/>
-						<Label htmlFor="aviso" className="text-sm text-slate-500">
-							<span className="text-red-500 mr-1">*</span>
-							He leído y acepto el{" "}
-							<button
-							type="button"
-							onClick={() => setMostrarAviso(true)}
-							className="text-blue-600 underline hover:text-blue-800"
-							>
-							aviso de privacidad
-							</button>
-						</Label>
-						</div>
-					</FormControl>
-					<FormMessage />
-					</FormItem>
-				)}
-				/>
-
-				<div className="flex justify-center">
-				<Button
-					className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-1/2"
-					variant="secondary"
-					type="submit"
-				>
-					Siguiente
-				</Button>
-				</div>
-			</form>
-			</Form>
-
-		</div>
-		) : (<>
-		{dataCatalogos?.pass_selected?.estatus =="activo" || dataCatalogos?.pass_selected?.estatus =="vencido" ?(<>
-			<div className="flex flex-col items-center justify-start  space-y-3 max-w-2xl mx-auto h-screen">
-					<span className="font-bold text-3xl text-slate-800">{dataCatalogos?.pass_selected?.nombre}</span>
-					<div>
-						<p className="font-bold whitespace-nowrap">Visita General </p>
-					</div>
-					<div className="flex flex-col gap-2">
-						<div className="w-full flex sm:flex-row gap-2">
-							<p className="font-bold whitespace-nowrap">Visita a: </p>
-							<p className="w-full break-words">{dataCatalogos?.pass_selected?.visita_a[0] ? dataCatalogos?.pass_selected?.visita_a[0]?.nombre:""}</p>
-						</div>
-					
-						<div className="w-full flex gap-2">
-						<p className="font-bold whitespace-nowrap">Ubicación:</p>
-						<div className="relative group w-full break-words">
-							{dataCatalogos?.pass_selected?.ubicacion[0]}
-							{dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
-							<span className="text-blue-600 cursor-pointer ml-1 underline relative">
-								+{dataCatalogos?.pass_selected?.ubicacion.length - 1}
-								{/* Tooltip container */}
-								<div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
-								{Array.isArray(dataCatalogos?.pass_selected?.ubicacion) && dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
-									dataCatalogos?.pass_selected?.ubicacion.slice(1).map((ubic:string, idx:number) => (
-										<div key={idx}>{ubic}</div>
-									))
+									{/* Otros datos adicionales */}
+									{!dataCatalogos?.pass_selected?.empresa && (
+										<Card className="md:col-span-2 border-none shadow-sm">
+											<CardContent className="pt-6">
+												<FormField
+													control={form.control}
+													name="empresa"
+													render={({ field }) => (
+														<FormItem className="space-y-2">
+															<Label className="font-bold text-slate-700 flex items-center gap-2">
+																<Building2 size={16} className="text-blue-500" />
+																Empresa
+															</Label>
+															<FormControl>
+																<Input 
+																	{...field} 
+																	className="h-12 rounded-xl border-gray-200 focus:ring-blue-500" 
+																	placeholder="Ingresa el nombre de tu empresa" 
+																/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+											</CardContent>
+										</Card>
 									)}
 								</div>
-							</span>
-							)}
-						</div>
-						</div>
 
-						<div className="w-full flex  gap-2">
-							<p className="font-bold whitespace-nowrap">Fecha : </p>
-							<p className="text-sm">{dataCatalogos?.pass_selected?.fecha_de_expedicion}</p>
-						</div>
+								{/* Aviso Privacidad y Botón */}
+								<div className="flex flex-col items-center gap-6 pt-4">
+									<FormField
+										control={form.control}
+										name="acepto_aviso_privacidad"
+										render={({ field }) => (
+											<div className={`flex items-start gap-3 p-4 rounded-xl transition-colors ${field.value ? 'bg-blue-50/50' : 'bg-gray-100/50'}`}>
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
+													id="aviso"
+													className="mt-1 data-[state=checked]:bg-blue-600"
+												/>
+												<Label htmlFor="aviso" className="text-sm text-slate-600 leading-snug cursor-pointer">
+													He leído y acepto los términos del{" "}
+													<button
+														type="button"
+														onClick={() => setMostrarAviso(true)}
+														className="text-blue-600 font-bold hover:underline"
+													>
+														aviso de privacidad
+													</button> para el manejo de mis datos personales.
+												</Label>
+											</div>
+										)}
+									/>
+
+									<Button
+										className="h-14 px-12 rounded-2xl font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-200 transition-all active:scale-[0.98] w-full sm:w-auto"
+										type="submit"
+									>
+										Generar Pase
+									</Button>
+								</div>
+							</form>
+						</Form>
 					</div>
-					<div className="w-full flex-col">
-						{dataCatalogos?.pass_selected?.qr_pase[0]?.file_url ?
-							<>
-							<div className="w-full flex justify-center">
-								<Image
-									width={280}
-									height={280}
-									src={dataCatalogos?.pass_selected?.qr_pase[0]?.file_url ?? "/nouser.svg" } 
-									alt="Imagen"
-									className="w-42 h-42 object-contain bg-gray-200 rounded-lg" 
-								/>
+				</div>
+			</div>
+		) : (
+			<div className="max-w-4xl mx-auto px-4 pt-10 pb-20">
+				{dataCatalogos?.pass_selected?.estatus == "activo" || dataCatalogos?.pass_selected?.estatus == "vencido" ? (
+					<div className="flex flex-col items-center gap-8">
+						<div className="text-center space-y-2">
+							<h1 className="font-extrabold text-3xl text-slate-900 tracking-tight">{dataCatalogos?.pass_selected?.nombre}</h1>
+							<div className="inline-flex items-center px-4 py-1 bg-green-50 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider border border-green-100">
+								<CheckCircle2 size={14} className="mr-1.5" /> Pase Autorizado
 							</div>
-							</>
-						:<>
-						<div className="w-full flex justify-center">
-							<Image
-								width={280}
-								height={280}
-								src={"/nouser.svg" } 
-								alt="Imagen"
-								className="w-42 h-42 object-contain bg-gray-200 rounded-lg" 
-							/>
 						</div>
-						</>}
-					</div>
 
-					<div className="flex flex-row gap-3 items-center">
-						<button type="button" onClick={handleClickGoogleButton}>
-							<Image src="/esES_add_to_google_wallet_add-wallet-badge.png" alt="Add to Google Wallet" width={150} height={150} />
-						</button>
+						<Card className="w-full max-w-md border-none shadow-2xl relative overflow-hidden bg-white rounded-3xl">
+							<div className="absolute top-0 left-0 right-0 h-4 bg-blue-600" />
+							<CardContent className="p-8 pt-10 flex flex-col items-center">
+								{/* Info del Pase */}
+								<div className="w-full grid grid-cols-2 gap-4 mb-8 text-center sm:text-left">
+									<div>
+										<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Tipo de Acceso</p>
+										<p className="text-sm font-bold text-slate-700 mt-1">Visita General</p>
+									</div>
+									<div>
+										<p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Expedición</p>
+										<p className="text-sm font-bold text-slate-700 mt-1">{dataCatalogos?.pass_selected?.fecha_de_expedicion?.slice(0, 10)}</p>
+									</div>
+								</div>
 
-						{/* <button type="button" onClick={handleClickAppleButton}>
-							<Image src="/ESMX_Add_to_Apple_Wallet_RGB_101821.svg" alt="Add to Apple Wallet" width={150} height={150} className="mt-2" />
-						</button> */}
-						<div className="flex flex-col gap-2">
+								<div className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2 mb-8">
+									<div className="flex justify-between items-center text-xs">
+										<span className="text-gray-400 font-medium">Lugar:</span>
+										<span className="text-slate-700 font-bold truncate max-w-[200px]">{dataCatalogos?.pass_selected?.ubicacion[0]}</span>
+									</div>
+									<div className="flex justify-between items-center text-xs">
+										<span className="text-gray-400 font-medium">Anfitrión:</span>
+										<span className="text-slate-700 font-bold">{dataCatalogos?.pass_selected?.visita_a?.[0]?.nombre || "N/A"}</span>
+									</div>
+								</div>
+
+								{/* QR Section */}
+								<div className="relative group p-4 border-2 border-dashed border-gray-200 rounded-3xl bg-white shadow-inner">
+									<Image
+										width={240}
+										height={240}
+										src={dataCatalogos?.pass_selected?.qr_pase[0]?.file_url ?? "/nouser.svg"}
+										alt="Código QR de Acceso"
+										className="rounded-xl"
+									/>
+									<div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors pointer-events-none" />
+								</div>
+								
+								<p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-6 bg-blue-50 px-3 py-1 rounded-full">Presenta este QR al ingresar</p>
+							</CardContent>
+						</Card>
+
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md">
+							<Button 
+								variant="outline" 
+								className="h-14 border-gray-200 rounded-2xl font-bold flex gap-2 group hover:bg-gray-50"
+								onClick={handleClickGoogleButton}
+							>
+								<Image src="/esES_add_to_google_wallet_add-wallet-badge.png" alt="Google Wallet" width={24} height={24} className="opacity-80 group-hover:opacity-100" />
+								Google Wallet
+							</Button>
+
 							<Button
-								className="w-40 m-0 bg-yellow-400 hover:bg-yellow-600 text-black font-bold rounded-2xl"
-								type="button"
+								className="h-14 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded-2xl shadow-lg shadow-yellow-100 flex gap-2"
 								onClick={() => handleClickImgButton()}
 								disabled={loadingImgPass}
 							>
-								{!loadingImgPass ? ("Descargar Pase") : (<><Loader2 className="animate-spin" />Descargando...</>)}
+								{loadingImgPass ? <Loader2 className="animate-spin" /> : <Download size={20} />}
+								Descargar Imagen
 							</Button>
 
 							<Button
-								className={`hidden w-40 m-0 ${isActualizarOpen ? "bg-red-500 hover:bg-red-600" : "bg-blue-500 hover:bg-blue-600"
-									}`}
-								type="button"
-								onClick={() => {
-									setIsActualizarOpen(!isActualizarOpen);
-								}}
-								disabled={loadingDataCatalogos}
+								className="sm:col-span-2 h-14 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl flex gap-2 shadow-lg shadow-blue-100"
+								onClick={() => setIsActualizarOpen(!isActualizarOpen)}
 							>
-								{isActualizarOpen ? "Cerrar" : "Actualizar información"}
+								{isActualizarOpen ? "Ocultar Mis Datos" : "Ver Datos Registrados"}
 							</Button>
 						</div>
+
+						{isActualizarOpen && (
+							<Card className="w-full max-w-2xl border-none shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+								<CardContent className="p-8">
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+										<div className="space-y-3">
+											<p className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+												<Camera size={14} /> Fotografía Registrada
+											</p>
+											<div className="relative h-64 w-full overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
+												<Image
+													src={dataCatalogos?.pass_selected?.foto?.[0]?.file_url ?? "/nouser.svg"}
+													alt="Foto registrada"
+													fill
+													className="object-cover"
+												/>
+											</div>
+										</div>
+										<div className="space-y-3">
+											<p className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+												<IdCard size={14} /> Identificación
+											</p>
+											<div className="relative h-64 w-full overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
+												<Image
+													src={dataCatalogos?.pass_selected?.identificacion?.[0]?.file_url ?? "/nouser.svg"}
+													alt="ID registrada"
+													fill
+													className="object-cover"
+												/>
+											</div>
+										</div>
+										<div className="sm:col-span-2 flex justify-center pt-4">
+											<Button className="bg-blue-500 hover:bg-blue-600 rounded-xl px-8" onClick={updateInfoActivePass}>
+												Actualizar Documentos
+											</Button>
+										</div>
+									</div>
+								</CardContent>
+							</Card>
+						)}
 					</div>
-				
-					
-
-					{loadingDataCatalogos ?(
-							<div className="flex justify-center items-center h-screen">
-								<div className="w-24 h-24 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-					  		</div>
-					):(
-						<>
-							{isActualizarOpen==true?(
-							<><div className="flex flex-col items-center justify-start gap-5">
-								<div className="flex flex-col sm:flex-row gap-2 ">
-									<div className="flex flex-col">
-										<p>Fotografia actual: </p>
-										<Image
-											width={180}
-											height={180}
-											src={dataCatalogos?.pass_selected?.foto ? dataCatalogos?.pass_selected?.foto[0]?.file_url?? "/nouser.svg":"/nouser.svg"}
-											alt="Imagen"
-											className="w-42 h-42 object-cover bg-gray-200 rounded-lg" />
-									</div>
-									<div >
-										<p>Identificacion actual: </p>
-										<Image
-											width={180}
-											height={180}
-											src={dataCatalogos?.pass_selected?.identificacion ? dataCatalogos?.pass_selected?.identificacion[0]?.file_url : "/nouser.svg"}
-											alt="Imagen"
-											className="w-42 h-42  object-cover bg-gray-200 rounded-lg mb-2" />
-									</div>
-								</div>
-
-								<div className="flex flex-col gap-y-6">
-									<div>
-										<div className="flex items-center gap-x-10">
-										<span className="font-bold text-xl">Lista de Vehículos</span>
-										<VehicleLocalPassModal title="Nuevo Vehiculo" vehicles={vehicles} setVehiculos={setVehiculos} isAccesos={false} fetch={false}>
-											<button
-											type="button"
-											onClick={() => handleCheckboxChange("agregar-vehiculos")}
-											className="px-4 py-2 rounded-md transition-all duration-300 border-2 border-blue-400 bg-transparent hover:bg-slate-100"
-											>
-											<div className="flex items-center gap-2">
-												<div className="text-blue-600 sm:hidden text-xl font-bold">+</div>
-												<Car className="text-blue-600" />
-												<div className="text-blue-600 hidden sm:block">Agregar Vehículos</div>
-											</div>
-											</button>
-										</VehicleLocalPassModal>
-										</div>
-										<div className="mt-2 text-gray-600">
-											
-										<Accordion type="multiple" className="w-full">
-											{vehicles.map((vehiculo, index) => (
-												<AccordionItem key={index} value={`vehiculo-${index}`}>
-												<AccordionTrigger>
-													{vehiculo.tipo}
-												</AccordionTrigger>
-												<AccordionContent>
-													<div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 text-sm">
-													<p><strong>Tipo:</strong> {vehiculo.tipo}</p>
-													<p><strong>Marca:</strong> {vehiculo.marca}</p>
-													<p><strong>Modelo:</strong> {vehiculo.modelo}</p>
-													<p><strong>Placas:</strong> {vehiculo.placas}</p>
-													<p><strong>Estado:</strong> {vehiculo.estado}</p>
-													<p><strong>Color:</strong> {vehiculo.color}</p>
-													</div>
-										
-													<div className="flex justify-end px-4 pb-4">
-													<Button variant="destructive" size="sm" onClick={() => handleRemove(index)}>
-														Eliminar
-													</Button>
-													</div>
-												</AccordionContent>
-												</AccordionItem>
-											))}
-											{vehicles.length==0?(
-											<div>No se han agregado vehiculos.</div>):null}
-										</Accordion>
-										</div>
-									</div>
-
-									<div>
-										<div className="flex items-center gap-x-10">
-										<span className="font-bold text-xl">Lista de Equipos</span>
-										<EqipmentLocalPassModal title="Nuevo Equipo" equipos={equipos} setEquipos={setEquipos} isAccesos={false} fetch={false}>
-											<button
-											type="button"
-											onClick={() => handleCheckboxChange("agregar-equipos")}
-											className="px-4 py-2 rounded-md transition-all duration-300 border-2 border-blue-400 bg-transparent hover:bg-slate-100"
-											>
-											<div className="flex items-center gap-2">
-												<div className="text-blue-600 sm:hidden text-xl font-bold">+</div>
-												<Laptop className="text-blue-600" />
-												<div className="text-blue-600 hidden sm:block">Agregar Equipos</div>
-											</div>
-											</button>
-										</EqipmentLocalPassModal>
-										</div>
-										<div className="mt-2 text-gray-600">
-										<Accordion type="multiple" className="w-full">
-											{equipos.map((equipo, index) => (
-												<AccordionItem key={index} value={`equipo-${index}`}>
-												<AccordionTrigger>
-													{equipo.tipo}
-												</AccordionTrigger>
-												<AccordionContent>
-													<div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 text-sm">
-													<p><strong>Tipo:</strong> {equipo.tipo}</p>
-													<p><strong>Nombre:</strong> {equipo.nombre}</p>
-													<p><strong>Marca:</strong> {equipo.marca}</p>
-													<p><strong>Modelo:</strong> {equipo.modelo}</p>
-													<p><strong>No. Serie:</strong> {equipo.serie}</p>
-													<p><strong>Color:</strong> {equipo.color}</p>
-													</div>
-										
-													<div className="flex justify-end px-4 pb-4">
-													<Button variant="destructive" size="sm" onClick={() => handleRemoveEq(index)}>
-														Eliminar
-													</Button>
-													</div>
-												</AccordionContent>
-												</AccordionItem>
-											))}
-											{equipos.length==0?(
-											<div>No se han agregado equipos.</div>):null}
-										</Accordion>
-										</div>
-									</div>
-								</div>
-
-							
-								{/* <Button className="w-1/2  bg-blue-500 hover:bg-blue-600 my-2" type="submit" onClick={SendUpdate} disabled={isLoading}>
-								{!isLoading ? ("Actualizar"):(<><Loader2 className="animate-spin"/>Actualizando...</>)}
-								</Button> */}
-
-								<Button className="w-1/2  bg-blue-500 hover:bg-blue-600 my-2" type="submit" onClick={updateInfoActivePass} >
-								Actualizar
-								</Button>
-							</div>
-							
-							</>
-							):null}
-						</>
-					)}
-					
+				) : null}
 			</div>
-		</>):null}
-		</>)}
+		)}
 	</div>
 );
 };
