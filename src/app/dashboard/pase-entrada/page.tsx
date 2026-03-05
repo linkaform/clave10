@@ -469,18 +469,28 @@ return (
 												onRemove={setVisitaASeleccionadas}
 												onSearch={(value: string) => value.length <= 70 ? setCustomVisitaA(value) : null}
 												onKeyPressFn={(e: any) => {
-													if (e.key === 'Enter' && customVisitaA.trim()) {
+													if (e.key === 'Enter') {
 														e.preventDefault();
-														const baseName = customVisitaA.trim().substring(0, 50);
-														const finalValue = `${baseName}(No Registrado)`;
-														if (!visitaASeleccionadas.find(item => item.name === finalValue)) {
-															setVisitaASeleccionadas([...visitaASeleccionadas, { id: finalValue, name: finalValue }]);
+														if (customVisitaA.trim()) {
+															setTimeout(() => {
+																if (multiselectRef.current?.searchBox?.current?.value.trim() === "") {
+																	return; // Ya se seleccionó algo nativamente
+																}
+																const baseName = customVisitaA.trim().substring(0, 50);
+																const finalValue = `${baseName}(No Registrado)`;
+																if (!visitaASeleccionadas.find(item => item.name === finalValue)) {
+																	setVisitaASeleccionadas([...visitaASeleccionadas, { id: finalValue, name: finalValue }]);
+																}
+																setCustomVisitaA("");
+																if (multiselectRef.current?.searchBox?.current) {
+																	multiselectRef.current.searchBox.current.value = "";
+																}
+															}, 50);
 														}
-														setCustomVisitaA("");
 													}
 												}}
 												displayValue="name"
-												placeholder="Buscar anfitrión..."
+												placeholder=""
 												style={{
 													searchBox: { border: '1px solid #e2e8f0', background: '#f8fafc', borderRadius: '10px', minHeight: '42px' },
 													chips: { background: '#2563eb', borderRadius: '4px' }
