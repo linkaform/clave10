@@ -24,8 +24,6 @@ import {
 import { MakeCallModal } from "@/components/modals/make-call-modal";
 import { SendMessageModal } from "@/components/modals/send-message-modal";
 import { SearchAccessPass } from "@/hooks/useSearchPass";
-import { toast } from "sonner";
-import CalendarDays from "@/components/calendar-days";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 
@@ -242,40 +240,32 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 											<span className="font-semibold text-slate-700">{visita.name}</span>
 										</div>
 										<div className="flex gap-2 opacity-80 group-hover:opacity-100">
-											<MakeCallModal
-												title="¿Realizar llamada?"
-												description="Al realizar la llamada, se contactará al número de la persona seleccionada."
-											>
-												<Button
-													size="icon"
-													variant="ghost"
-													className="h-8 w-8 rounded-lg bg-white border shadow-sm text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-													onClick={() => {
-														if (!visita.telefono) {
-															toast.error("¡El teléfono no ha sido configurado!");
-															return;
-														}
-													}}
+											{visita.telefono ? (
+												<MakeCallModal
+													title="¿Realizar llamada?"
+													description="Al realizar la llamada, se contactará al número de la persona seleccionada."
 												>
-													<Phone className="h-4 w-4" />
-												</Button>
-											</MakeCallModal>
+													<Button
+														size="icon"
+														variant="ghost"
+														className="h-8 w-8 rounded-lg bg-white border shadow-sm text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+													>
+														<Phone className="h-4 w-4" />
+													</Button>
+												</MakeCallModal>
+											) : null}
 
-											<SendMessageModal title="Enviar Aviso" data={visita}>
-												<Button
-													size="icon"
-													variant="ghost"
-													className="h-8 w-8 rounded-lg bg-white border shadow-sm text-sky-600 hover:text-sky-700 hover:bg-sky-50"
-													onClick={() => {
-														if (!visita.email) {
-															toast.error("¡El email no ha sido configurado!");
-															return;
-														}
-													}}
-												>
-													<MessageSquare className="h-4 w-4" />
-												</Button>
-											</SendMessageModal>
+											{visita.email ? (
+												<SendMessageModal title="Enviar Aviso" data={visita}>
+													<Button
+														size="icon"
+														variant="ghost"
+														className="h-8 w-8 rounded-lg bg-white border shadow-sm text-sky-600 hover:text-sky-700 hover:bg-sky-50"
+													>
+														<MessageSquare className="h-4 w-4" />
+													</Button>
+												</SendMessageModal>
+											) : null}
 										</div>
 									</div>
 								)}
@@ -318,13 +308,6 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 												style={{ width: `${Math.min(100, (Number(searchPass?.total_entradas) / Number(searchPass?.limite_de_acceso)) * 100)}%` }}
 											/>
 										</div>
-									</div>
-								)}
-
-								{searchPass?.limitado_a_dias && (
-									<div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-										<p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Días Autorizados</p>
-										<CalendarDays diasDisponibles={searchPass?.limitado_a_dias} />
 									</div>
 								)}
 							</div>

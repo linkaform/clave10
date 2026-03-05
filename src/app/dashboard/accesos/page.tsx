@@ -26,8 +26,6 @@ import { ComentariosAccesosTable } from "@/components/table/accesos/comentarios/
 import Credentials from "@/components/pages/accesos/credential";
 import { AccesosPermitidosTable } from "@/components/table/accesos/accesos-permitidos/table";
 import { UltimosAccesosTable } from "@/components/table/accesos/ultimos-accesos/table";
-import { VehiculosAutorizadosTable } from "@/components/table/accesos/vehiculos-autorizados/table";
-import { EquiposAutorizadosTable } from "@/components/table/accesos/equipos-autorizados/table";
 import { useShiftStore } from "@/store/useShiftStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TemporaryPassesModal } from "@/components/modals/temporary-passes-modal";
@@ -37,9 +35,8 @@ import { AddVisitModal } from "@/components/modals/add-visit-modal";
 import { toast } from "sonner";
 import { useGetShift } from "@/hooks/useGetShift";
 import { exitRegister, registerIncoming } from "@/lib/access";
-import { PermisosTable } from "@/components/table/accesos/permisos-certificaciones/table";
 import useAuthStore from "@/store/useAuthStore";
-import { esHexadecimal, imprimirYDescargarPDF, isExcluded } from "@/lib/utils";
+import { esHexadecimal, isExcluded } from "@/lib/utils";
 import Link from "next/link";
 import { useGetStats } from "@/hooks/useGetStats";
 import { ScanPassOptionsModal } from "@/components/modals/scan-pass-options";
@@ -47,16 +44,15 @@ import Swal from "sweetalert2";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { UpdatePassModal } from "@/components/modals/complete-pass-accesos";
 import Image from "next/image";
-import { useGetPdf } from "@/hooks/usetGetPdf";
 import { Equipo , Vehiculo} from "@/lib/update-pass";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useMenuStore } from "@/store/useGetMenuStore";
 
 const AccesosPage = () => {
-  const { isAuth, userParentId } = useAuthStore();
+  const { isAuth } = useAuthStore();
   const { area, location } = useBoothStore();
   const { excludes }= useMenuStore()
-  const { shift, isLoading:loadingShift, turno, downloadPass} = useGetShift(area,location);
+  const { shift, isLoading:loadingShift, turno } = useGetShift(area,location);
   const {setTab, setFilter, setOption} = useShiftStore();
   const { passCode, setPassCode, clearPassCode, selectedEquipos, setSelectedEquipos, setSelectedVehiculos, selectedVehiculos, setTipoMovimiento, tipoMovimiento} = useAccessStore();
   const { isLoading, loading:loadingSearchPass, searchPass } = useSearchPass(false);
@@ -68,12 +64,10 @@ const AccesosPage = () => {
   const { loading:loadingLocationArea} = useAreasLocationStore();
   const [equipos, setEquipos]= useState<Equipo[]>([])
   const [vehiculos, setVehiculos]= useState<Vehiculo[]>([])
-  const inputRef = useRef<HTMLInputElement>(null);
   const [id, setId] = useState("");
+  console.log(equipos, vehiculos, tipoMovimiento, id)
+  const inputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading]= useState(false);
-  const {
-	refetch,
-  } = useGetPdf(userParentId, id??"", false);
 
   useEffect(() => {
 	if(searchPass){
@@ -86,57 +80,6 @@ const AccesosPage = () => {
 		setTipoMovimiento(searchPass?.tipo_movimiento)
 	}
   }, [searchPass?.grupo_equipos, searchPass?.grupo_vehiculos, searchPass?.tipo_movimiento]);
-
-
-
-  const handleGetPdf = async () => {
-	try {
-	  const result = await refetch();
-  
-	  if (result.error) {
-		toast.error(`Error de red: ${result.error}`, {
-		  style: {
-			backgroundColor: "#f44336",
-			color: "#fff",
-		  },
-		});
-		return;
-	  }
-  
-	  const data = result.data?.response?.data;
-  
-	  if (!data || data.status_code !== 200) {
-		const errorMsg =
-		  data?.json?.error ||
-		  result.data?.error ||
-		  "Error desconocido del servidor";
-  
-		toast.error(`Error de red: ${errorMsg}`, {
-		  style: {
-			backgroundColor: "#f44336",
-			color: "#fff",
-		  },
-		});
-		return;
-	  }
-  
-	  const downloadUrl = data?.json?.download_url;
-  
-	  if (downloadUrl) {
-		imprimirYDescargarPDF(downloadUrl); 
-	  } else {
-		toast.warning("No se encontró URL de descarga");
-	  }
-	} catch (err) {
-	  toast.error(`Error inesperado: ${err}`, {
-		style: {
-		  backgroundColor: "#f44336",
-		  color: "#fff",
-		},
-	  });
-	}
-  };
-
 
   const exitRegisterAccess = useMutation({
     mutationFn: async () => {
@@ -182,10 +125,6 @@ const AccesosPage = () => {
   });
 
   //COMENTADO
-  const certificaciones = Array.isArray(searchPass?.certificaciones)
-    ? searchPass.certificaciones
-    : []
-
   const ultimosAccesos = Array.isArray(searchPass?.ultimo_acceso)
     ? searchPass.ultimo_acceso
     : []
@@ -242,20 +181,6 @@ const AccesosPage = () => {
 		  color: 'white',
 		},
 	  });
-
-	  if(downloadPass.includes("impresion_de_pase")){
-		Swal.fire({
-			title: 'Preparando documento',
-			html: 'Cargando PDF para imprimir...',
-			allowOutsideClick: false,
-			allowEscapeKey: false,
-			didOpen: () => {
-			  Swal.showLoading();
-			}
-		  });
-	  	handleGetPdf();
-	  }
-
 
     },
     onError: (error) => {
@@ -465,34 +390,18 @@ const AccesosPage = () => {
 
 			{ searchPass ? (
 			<>
-				<div className="grid grid-cols-1 md:grid-cols-3">
-					<div className="row-span-3 flex flex-col p-4 ">
-						<Credentials searchPass={searchPass} />
+				<div className="flex justify-center w-full">
+					<div className="grid grid-cols-1 md:grid-cols-2 max-w-7xl w-full">
+						<div className="flex flex-col p-4 pr-0 w-full">
+							<Credentials searchPass={searchPass} />
+						</div>
+						<div className="flex flex-col p-4 pl-0 gap-4 w-full">
+							<ComentariosAccesosTable allComments={allComments} />
+							<UltimosAccesosTable ultimosAccesos={ultimosAccesos} /> 
+							<AccesosPermitidosTable accesosPermitidos={accesosPermitidos} />
+						</div>
 					</div>
-					<div className="flex flex-col pl-0 p-4 gap-3 ">
-						<ComentariosAccesosTable allComments={allComments} />
-						<PermisosTable certificaciones={certificaciones}/>
-					</div>
-
-					<div className="flex flex-col pl-0 p-4 gap-3 ">
-						<UltimosAccesosTable ultimosAccesos={ultimosAccesos} /> 
-						<AccesosPermitidosTable accesosPermitidos={accesosPermitidos} />
-					</div>
-
-						
-					  <div className="col-span-2 col-start-2 pr-4 mb-5">
-					 	<div className="fbg-slate-400">
-					 		<div className="">
-					 			<EquiposAutorizadosTable equipos={equipos} setEquipos={setEquipos} setSelectedEquipos={setSelectedEquipos} selectedEquipos={selectedEquipos} tipoMovimiento={tipoMovimiento}/>
-					 		</div>
-
-					 		<div className="">
-					 			<VehiculosAutorizadosTable vehiculos={vehiculos} setVehiculos={setVehiculos} setSelectedVehiculos={setSelectedVehiculos} selectedVehiculos={selectedVehiculos} tipoMovimiento={tipoMovimiento}/>
-					 		</div>
-					 	</div>
-					 </div>
 				</div>
-				
 			</>
 			):null}
 		</div>
