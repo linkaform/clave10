@@ -82,7 +82,7 @@ export const SeguimientosModalArticuloCon: React.FC<SegArtModalProps> = ({
 
         <DialogHeader className="flex-shrink-0 bg-white px-6 py-5 border-b">
           <DialogTitle className="text-2xl text-center font-bold text-gray-800">
-            Detalle de la Concesión
+            Detalle del Seguimiento
           </DialogTitle>
           <p className="text-center text-sm text-gray-400">Folio: {data.folio}</p>
         </DialogHeader>
@@ -102,7 +102,7 @@ export const SeguimientosModalArticuloCon: React.FC<SegArtModalProps> = ({
                 </div>
                 <Button
                   type="button"
-                  disabled={isLoading}
+                  disabled={isLoading || data.status_concesion === "devuelto"}
                   onClick={() => onDevolverTodo({} as EquipoConcesionado)}
                   className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm disabled:opacity-50"
                 >

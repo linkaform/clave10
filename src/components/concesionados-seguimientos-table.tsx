@@ -4,6 +4,7 @@ import { ArrowLeftRightIcon, Calculator, Eye } from "lucide-react";
 import { Imagen } from "./upload-Image";
 import { ConcesionadosVerEquipo } from "./modals/concesionados-ver-equipo";
 import { capitalizeFirstLetter, formatCurrency } from "@/lib/utils";
+import { NuevaDevolucionEquipoModal } from "./modals/concesionados-nueva-devolucion";
 
 export interface EquipoConcesionado {
 	id_movimiento?:string;
@@ -14,7 +15,6 @@ export interface EquipoConcesionado {
 	cantidad_equipo_concesion?: number;
 	evidencia_entrega?: Imagen[];      
 	comentario_entrega?: string;
-
 	status_concesion_equipo?: string;
 	total?:number;
   }
@@ -29,14 +29,14 @@ interface AgregarEquiposListProps {
 	data:any
 }
 
-const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mode, onDevolver,data})=> {
+const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mode,data})=> {
 	const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
 	const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
 	const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState({});
 	const [editarAgregarEquiposModal, setEditarAgregarEquiposModal] = useState(false)
 	const [indiceSeleccionado, setIndiceSeleccionado]= useState<number | null>(null)
 	console.log(editarAgregarEquiposModal, indiceSeleccionado)
-
+	const [openDevolucionEquiposModal, setOpenDevolucionEquiposModal] = useState(false);
 
 	const handleViewEquipo = (item: any, index: number) => {
 		setAgregarEquipoSeleccion(item);
@@ -47,10 +47,10 @@ const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mo
 
 	const handleDevolverEquipo = (item: any, index: number) => {
 		setAgregarEquipoSeleccion(item);
-		onDevolver(item)
+		// onDevolver(item)
 		setIndiceSeleccionado(index);
-		setEditarAgregarEquiposModal(true)
-		setOpenAgregarEquiposModal(true);
+		// setEditarAgregarEquiposModal(true)
+		setOpenDevolucionEquiposModal(true);
 	};
 	
 	// const handleDeleteEquipo  = (index: number) => {
@@ -92,14 +92,13 @@ const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mo
 		</ConcesionadosVerEquipo>
 
 
-		{/* <NuevaDevolucionEquipoModal 	
-			title={"Devolución de Equipos"}
-			setIsSuccess={setNuevaDevolucionEquiposModal}
-			isSuccess={nuevaDevolucionModal}
-			equipoSelecionado={agregarEquipoSeleccion}
-		>
+		<NuevaDevolucionEquipoModal 	
+				title={"Devolución de Equipos"}
+				setIsSuccess={setOpenDevolucionEquiposModal}
+				isSuccess={openDevolucionEquiposModal}
+				equipoSelecionado={agregarEquipoSeleccion} dataConcesion={data}		>
 			<div></div>
-		</NuevaDevolucionEquipoModal> */}
+		</NuevaDevolucionEquipoModal>
 
         
 		{/* <ConcesionadosAgregarEquipoModal
@@ -155,7 +154,7 @@ const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mo
 					{capitalizeFirstLetter(item.status_concesion_equipo ?? "")}
 					</span>
 				</td>
-				<td className="px-4 py-3">
+				<td className="px-4 py-3 flex">
 					<div className="flex items-center justify-center gap-3">
 					<div
 						title="Ver"
@@ -164,13 +163,14 @@ const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mo
 					>
 						<Eye className="w-5 h-5" />
 					</div>
+					{item.status_concesion_equipo!=="devuelto"&&
 					<div
 						title="Devolver"
 						className="hover:cursor-pointer text-blue-400 hover:text-blue-600 transition-colors"
 						onClick={() => handleDevolverEquipo(item, index)}
 					>
 						<ArrowLeftRightIcon className="w-5 h-5" />
-					</div>
+					</div>}
 					</div>
 				</td>
 				</tr>

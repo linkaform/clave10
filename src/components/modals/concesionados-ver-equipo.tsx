@@ -169,7 +169,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
                     <div className="flex items-center gap-2">
                       <Box className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                       <span className="text-xs text-gray-500">Unidades devueltas:</span>
-                      <span className="text-xs font-medium text-gray-700">{devItem.cantidad_devolucion||"-"} / {data?.cantidad_equipo_concesion}</span>
+                      <span className="text-xs font-medium text-gray-700">{devItem.cantidad_devolucion||"-"}</span>
                     </div>
                   
                   </div>

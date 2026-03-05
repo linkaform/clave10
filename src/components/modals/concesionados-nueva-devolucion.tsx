@@ -104,6 +104,8 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
 		return "complete";
 	  case "parcial":
 		return "lost";
+    case "perdido":
+      return "lost";
 	  case "dañado":
 	  case "danado": 
 		return "damage";
@@ -157,7 +159,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
 
           <Form {...form}>
             <form >
-              <div className=" p-5 py-2">
+              <div className=" py-2">
                 <FormField
                   control={form.control}
                   name="entrega_tipo"
@@ -274,7 +276,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                 )}
               </div>
 
-              <div className=" p-5 py-2">
+              <div className="  py-2">
                       <h3 className="font-semibold text-gray-500 mb-3 text-xs uppercase">Fotografia</h3>
                       <Controller
                         control={form.control}
@@ -295,39 +297,39 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                           </div>
                         )} />
                     </div>
-
-              <div className=" p-5 py-0">
-                <FormField
-                control={form.control}
-                name="unidades"
-                render={({ field }: any) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Unidades entregadas
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        className="bg-white border-gray-200"
-                        onChange={(e) => {
-                          const val = e.target.value === "" ? 0 : Number(e.target.value);
-                          const max = equipoSelecionado?.cantidad_equipo_concesion ?? 0;
-                          const clamped = Math.min(Math.max(val, 0), max); // 👈 entre 0 y max
-                          field.onChange(clamped);
-                        }}
-                        min={0}
-                        max={equipoSelecionado?.cantidad_equipo_concesion ?? undefined}
-                        value={Number(field.value) || 0}
-                      />
-                    </FormControl>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Máximo: {equipoSelecionado?.cantidad_equipo_concesion ?? 0} unidades
-                    </p>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <div className=" py-0">
+                  <FormField
+                    control={form.control}
+                    name="unidades"
+                    render={({ field }: any) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          Unidades entregadas
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            className="bg-white border-gray-200"
+                            onChange={(e) => {
+                              const val = e.target.value === "" ? 0 : Number(e.target.value);
+                              const pendientes = Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
+                              const clamped = Math.min(Math.max(val, 0), pendientes);
+                              field.onChange(clamped);
+                            }}
+                            min={0}
+                            max={Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0)}
+                            value={Number(field.value) || 0}
+                          />
+                        </FormControl>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {Number(equipoSelecionado?.cantidad_equipo_devuelto ?? 0)} de {equipoSelecionado?.cantidad_equipo_concesion ?? 0} devueltos — Pendientes: {Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0)}
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                <div className="py-2">
                <FormField
@@ -384,10 +386,11 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                     </FormItem>
                   )}
                 />
-				</div>
               </div>
-              <div className=" p-5">
-                <h3 className="font-semibold text-gray-700 mb-3">Evidencia</h3>
+              <div className=" mt-3">
+              <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Evidencia de la devolución
+                      </FormLabel>
                 <Controller
                   control={form.control}
                   name="evidencia"
@@ -395,7 +398,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                     <div className="flex flex-col">
                       <LoadImage
                         id="fotografia"
-                        titulo="Fotografía de la devolución"
+                        titulo="Cargar evidencia..."
                         showWebcamOption={true}
                         imgArray={field.value || []}
                         setImg={(imgs) => field.onChange(imgs)}
