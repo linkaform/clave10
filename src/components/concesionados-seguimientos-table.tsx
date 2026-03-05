@@ -25,9 +25,11 @@ interface AgregarEquiposListProps {
     equipos: EquipoConcesionado[];
     setEquipos: Dispatch<SetStateAction<EquipoConcesionado[]>>
 	mode: "vista" | "editar"
+	onDevolver: (equipo: EquipoConcesionado)=>void
+	data:any
 }
 
-const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mode})=> {
+const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mode, onDevolver,data})=> {
 	const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
 	const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
 	const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState({});
@@ -43,8 +45,9 @@ const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mo
 		setOpenVerEquiposModal(true);
 	};
 
-	const handleEditEquipo = (item: any, index: number) => {
+	const handleDevolverEquipo = (item: any, index: number) => {
 		setAgregarEquipoSeleccion(item);
+		onDevolver(item)
 		setIndiceSeleccionado(index);
 		setEditarAgregarEquiposModal(true)
 		setOpenAgregarEquiposModal(true);
@@ -83,6 +86,7 @@ const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mo
 		setIsSuccess={setOpenVerEquiposModal}
 		isSuccess={openVerEquiposModal}
 		data={agregarEquipoSeleccion as any}
+		dataConcesion={data}
 		>
 			<div></div>
 		</ConcesionadosVerEquipo>
@@ -111,66 +115,80 @@ const ConcesionadosSegEquipos:React.FC<AgregarEquiposListProps> = ({ equipos, mo
 		</ConcesionadosAgregarEquipoModal> */}
 
 		
-		<table className="min-w-full table-auto mb-5 border">
-			<thead>
-			<tr className="bg-gray-100">
-				<th className="px-4 py-2 text-left border-b border-gray-300">Equipo</th>
-				<th className="px-4 py-2 text-left border-b border-gray-300">Unidades</th>
-				<th className="px-4 py-2 text-left border-b border-gray-300">Estatus</th>
-				<th></th>
+		<table className="min-w-full table-auto mb-5">
+		<thead>
+			<tr className="bg-gray-100 border border-gray-200">
+			<th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Equipo</th>
+			<th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Unidades</th>
+			<th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Precio</th>
+			<th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Estatus</th>
+			<th></th>
 			</tr>
-			</thead>
-			<tbody>
+		</thead>
+		<tbody className="border border-gray-200 divide-y divide-gray-100">
 			{equipos && equipos.length > 0 ? (
 			equipos.map((item, index) => (
-				<tr key={index} className="border-t border-gray-200">
-				<td className="px-4 py-2 max-w-[200px] truncate" title={item?.nombre_equipo || "-"}> {item?.nombre_equipo || "-"} </td>
-				<td className="px-4 py-2">{item?.cantidad_equipo_concesion||"-"}</td>
-                <td className="px-4 py-2">
-                <span className={`px-3 py-1 rounded-md text-sm font-bold border-2 ${
-                    item.status_concesion_equipo === "abierto" 
-                    ? "bg-green-100 text-green-700 border-green-700" 
-                    : item.status_concesion_equipo === "pendiente"
-                    ? "bg-red-100 text-red-700 border-red-700"
-                    : "bg-gray-100 text-gray-700 border-gray-700"
-                }`}>
-                    {capitalizeFirstLetter(item.status_concesion_equipo??"")}
-                </span>
-                </td>
-				<td className="px-4 py-2 ">
-					<div className="flex items-center justify-center gap-2">
-                    <div
-						title="Editar"
-						className="hover:cursor-pointer text-blue-500 hover:text-blue-600"
+				<tr key={index} className="hover:bg-gray-50 transition-colors">
+				<td className="px-4 py-3 text-sm text-gray-700 max-w-[200px] truncate" title={item?.nombre_equipo || "-"}>
+					{item?.nombre_equipo || "-"}
+				</td>
+				<td className="px-4 py-3 text-sm text-gray-700">
+					{item?.cantidad_equipo_concesion || "-"}
+				</td>
+				<td className="px-4 py-3 text-sm text-gray-700">
+					{formatCurrency((item.costo_equipo_concesion ?? 0) * (item.cantidad_equipo_concesion ?? 0))}
+				</td>
+				<td className="px-4 py-3">
+					<span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+						item.status_concesion_equipo === "devuelto"
+						? "bg-green-100 text-green-700"
+						: item.status_concesion_equipo === "pendiente"
+						? "bg-yellow-100 text-yellow-700"
+						: item.status_concesion_equipo === "en proceso"
+						? "bg-yellow-100 text-yellow-700"
+						: item.status_concesion_equipo === "abierto"
+						? "bg-red-100 text-red-600"
+						: item.status_concesion_equipo === "damage"
+						? "bg-red-100 text-red-600"
+						: "bg-gray-100 text-gray-600"
+					}`}>
+					{capitalizeFirstLetter(item.status_concesion_equipo ?? "")}
+					</span>
+				</td>
+				<td className="px-4 py-3">
+					<div className="flex items-center justify-center gap-3">
+					<div
+						title="Ver"
+						className="hover:cursor-pointer text-blue-400 hover:text-blue-600 transition-colors"
 						onClick={() => handleViewEquipo(item, index)}
 					>
-						<Eye />
+						<Eye className="w-5 h-5" />
 					</div>
-					<div className="flex gap-2">
-						<div
-							title="Editar"
-							className="hover:cursor-pointer text-blue-500 hover:text-blue-600"
-							onClick={() => handleEditEquipo(item, index)}
-						>
-							<ArrowLeftRightIcon />
-						</div>
+					<div
+						title="Devolver"
+						className="hover:cursor-pointer text-blue-400 hover:text-blue-600 transition-colors"
+						onClick={() => handleDevolverEquipo(item, index)}
+					>
+						<ArrowLeftRightIcon className="w-5 h-5" />
 					</div>
 					</div>
 				</td>
 				</tr>
-			))) : (
-				<tr>
-				<td colSpan={8} className="text-center text-gray-500 py-4">
-					No hay equipos agregados.
+			))
+			) : (
+			<tr>
+				<td colSpan={5} className="text-center text-gray-400 py-6 text-sm">
+				No hay equipos agregados.
 				</td>
-				</tr>
+			</tr>
 			)}
-			</tbody>
+		</tbody>
 		</table>
-        <div className="flex gap-2 items-center text-blue-500">
-                <span className="flex font-bold text-lg"><Calculator/> Total:</span>
-                <span className="font-bold text-lg">{formatCurrency(totalGeneral || totalGeneral2)}</span>
-        </div>
+
+		<div className="flex gap-2 items-center text-blue-500">
+		<span className="flex font-bold text-lg"><Calculator /> Total:</span>
+		<span className="font-bold text-lg">{formatCurrency(totalGeneral || totalGeneral2)}</span>
+		</div>
 
     </div>
   );

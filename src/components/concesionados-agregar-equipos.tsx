@@ -94,6 +94,7 @@ const ConcesionadosAgregarEquipos: React.FC<AgregarEquiposListProps> = ({ equipo
         setIsSuccess={setOpenVerEquiposModal}
         isSuccess={openVerEquiposModal}
         data={agregarEquipoSeleccion as any}
+        dataConcesion={{}}
       >
         <div />
       </ConcesionadosVerEquipo>

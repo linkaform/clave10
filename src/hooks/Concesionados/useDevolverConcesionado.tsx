@@ -24,7 +24,7 @@ export const useDevolucionEquipo = () => {
     },
     onMutate: () => setLoading(true),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["getArticulosConcesionados"] });
+      queryClient.invalidateQueries({ queryKey: ["getListArticulosCon"] });
       toast.success("Equipo devuelto correctamente.");
     },
     onError: (err: Error) => {

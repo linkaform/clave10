@@ -113,25 +113,24 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
   }
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("dataConcesion",dataConcesion)
-	devolverEquipoMutation.mutate({
-	  record_id: dataConcesion?._id ?? "",
-	  status: 'parical',
-	  entregado_por: values.entrega_tipo as "empleado" | "otro",
-	  quien_entrega: values.entrega_tipo === "empleado"
-		? values.entrega_concesion ?? ""
-		: values.entrega_concesion_otro ?? "",
-	  quien_entrega_company: "Demo",
-	  identificacion_entrega: values.identificacion_entrega ? values.identificacion_entrega[0]: [],
-	  equipos: [{
-		id_movimiento: equipoSelecionado?.id_movimiento ?? "",
-		cantidad_devuelta: values.unidades ?? 0,
-		state: traducirEstatus(values.estatus)??'',
-		evidencia: values.evidencia ?? [],
-	  }],
-	}, {
-	  onSuccess: () => setIsSuccess(false),
-	});
+    devolverEquipoMutation.mutate({
+      record_id: dataConcesion?._id ?? "",
+      status: 'parical',
+      entregado_por: values.entrega_tipo as "empleado" | "otro",
+      quien_entrega: values.entrega_tipo === "empleado"
+      ? values.entrega_concesion ?? ""
+      : values.entrega_concesion_otro ?? "",
+      quien_entrega_company: "Demo",
+      identificacion_entrega: values.identificacion_entrega ? values.identificacion_entrega[0]: [],
+      equipos: [{
+      id_movimiento: equipoSelecionado?.id_movimiento ?? "",
+      cantidad_devuelta: values.unidades ?? 0,
+      state: traducirEstatus(values.estatus)??'',
+      evidencia: values.evidencia ?? [],
+      }],
+    }, {
+      onSuccess: () => setIsSuccess(false),
+    });
   }
 
   const handleClose = () => setIsSuccess(false);
@@ -299,26 +298,36 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
 
               <div className=" p-5 py-0">
                 <FormField
-                  control={form.control}
-                  name="unidades"
-                  render={({ field }: any) => (
-                    <FormItem>
-                      <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Unidades entregadas
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          className="bg-white border-gray-200"
-                          onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-                          value={Number(field.value) || 0}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                control={form.control}
+                name="unidades"
+                render={({ field }: any) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Unidades entregadas
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        className="bg-white border-gray-200"
+                        onChange={(e) => {
+                          const val = e.target.value === "" ? 0 : Number(e.target.value);
+                          const max = equipoSelecionado?.cantidad_equipo_concesion ?? 0;
+                          const clamped = Math.min(Math.max(val, 0), max); // 👈 entre 0 y max
+                          field.onChange(clamped);
+                        }}
+                        min={0}
+                        max={equipoSelecionado?.cantidad_equipo_concesion ?? undefined}
+                        value={Number(field.value) || 0}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Máximo: {equipoSelecionado?.cantidad_equipo_concesion ?? 0} unidades
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
                <div className="py-2">
                <FormField

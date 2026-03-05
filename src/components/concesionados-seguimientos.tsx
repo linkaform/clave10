@@ -95,6 +95,7 @@ const ConcesionadosSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos,
         onDevolver={onDevolver}
         onDevolverTodo={onDevolverTodo}
         isLoadingTodo={isLoading}
+        dataConcesion={dataConcesion}
       />
     </div>
   );

@@ -12,7 +12,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { EquipoConcesionado } from "../concesionados-agregar-equipos";
 import { Dispatch, SetStateAction } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { Calculator, ImageOff, Package } from "lucide-react";
+import { Box, Calculator, Calendar, ImageOff, Package, User } from "lucide-react";
 
 interface ConcesionadosVerEquipoProps {
   title: string;
@@ -20,6 +20,7 @@ interface ConcesionadosVerEquipoProps {
   children: React.ReactNode;
   setIsSuccess: Dispatch<SetStateAction<boolean>>;
   isSuccess: boolean;
+  dataConcesion:any
 }
 
 export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
@@ -28,6 +29,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
   children,
   setIsSuccess,
   isSuccess,
+  dataConcesion
 }) => {
   const getCosto = (costo: number | number[] | undefined): number => {
     if (Array.isArray(costo)) return costo[0] ?? 0;
@@ -36,8 +38,8 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
   const subtotal = data?.total
     ? data.total
     : (data?.cantidad_equipo_concesion ?? 0) * getCosto(data.costo_equipo_concesion);
-
-  return (
+  console.log("data", data)
+    return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess}>
       <DialogTrigger asChild>{children}</DialogTrigger>
 
@@ -71,8 +73,9 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
               </div>
               <div className="col-span-2">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Unidades</p>
-                <p className="text-sm text-gray-700">{data?.cantidad_equipo_concesion ?? "—"}</p>
+                <p className="text-sm text-gray-700">{data?.cantidad_equipo_devuelto} / {data?.cantidad_equipo_concesion ?? "—"}</p>
               </div>
+
               {data?.comentario_entrega && (
                 <div className="col-span-2">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Comentario</p>
@@ -138,9 +141,45 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
               </div>
             )}
           </div>
-
+          {(() => {
+          const devoluciones = dataConcesion?.grupo_equipos_devolucion?.filter(
+            (d:any) => d.id_movimiento_devolucion === data.id_movimiento
+          ) || [];
+          return devoluciones.length > 0 ? (
+            <div className="col-span-2 mt-2 px-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Sobre las devoluciones ({devoluciones.length})
+              </p>
+              <div className="flex flex-col gap-2">
+                {devoluciones.map((devItem:any, index:number) => (
+                  <div
+                    key={index}
+                    className="rounded-lg border border-gray-100 bg-gray-50 p-3 flex flex-col gap-1"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                      <span className="text-xs text-gray-500">Fecha:</span>
+                      <span className="text-xs font-medium text-gray-700">{devItem.fecha_devolucion_concesion||"-"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                      <span className="text-xs text-gray-500">Entrega:</span>
+                      <span className="text-xs font-medium text-gray-700">{devItem.quien_entrega||"-"} </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Box className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                      <span className="text-xs text-gray-500">Unidades devueltas:</span>
+                      <span className="text-xs font-medium text-gray-700">{devItem.cantidad_devolucion||"-"} / {data?.cantidad_equipo_concesion}</span>
+                    </div>
+                  
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null;
+        })()}
         </div>
-
+       
       
         <div className="flex-shrink-0 bg-white border-t px-6 py-4">
           <DialogClose asChild>

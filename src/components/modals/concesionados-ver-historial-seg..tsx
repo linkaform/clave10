@@ -10,10 +10,8 @@ import {
 import { EquipoConcesionado } from "../concesionados-agregar-equipos";
 import { useEffect, useState } from "react";
 import { Imagen } from "../upload-Image";
-import ConcesionadosSegEquipos from "../concesionados-seguimientos-table";
 import { NuevaDevolucionEquipoModal } from "./concesionados-nueva-devolucion";
-import { useDevolucionEquipo } from "@/hooks/Concesionados/useDevolverConcesionado";
-import { ClipboardList, Loader2, PackageCheck } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 
 export type Concesion = {
   _id: string;
@@ -32,7 +30,6 @@ export type Concesion = {
   caseta_concesion?: string;
   firma?: Imagen[];
   grupo_equipos?: EquipoConcesionado[];
-  grupo_equipos_devolucion:any
 };
 
 interface SegArtModalProps {
@@ -47,8 +44,8 @@ export const SeguimientosModalArticuloCon: React.FC<SegArtModalProps> = ({
 }) => {
   const [equipos, setEquipos] = useState<EquipoConcesionado[]>([]);
   const [nuevaDevolucionModal, setNuevaDevolucionModal] = useState(false);
-  const [equipoSeleccionado, setEquipoSeleccionado] = useState<EquipoConcesionado>({});
-  const { devolverEquipoMutation, isLoading } = useDevolucionEquipo();
+  const [equipoSeleccionado] = useState<EquipoConcesionado>({});
+//   const { devolverEquipoMutation, isLoading } = useDevolucionEquipo();
 
   useEffect(() => {
     if (data.grupo_equipos) setEquipos(data.grupo_equipos);
@@ -58,21 +55,21 @@ export const SeguimientosModalArticuloCon: React.FC<SegArtModalProps> = ({
     .filter((item) => item.status_concesion_equipo === "pendiente")
     .reduce((acc, item) => acc + (item.cantidad_equipo_concesion ?? 0), 0);
 
-  const onDevolver = (equipo: EquipoConcesionado) => {
-    setEquipoSeleccionado(equipo);
-    setNuevaDevolucionModal(true);
-  };
+//   const onDevolver = (equipo: EquipoConcesionado) => {
+//     setEquipoSeleccionado(equipo);
+//     setNuevaDevolucionModal(true);
+//   };
 
-  const onDevolverTodo = (equipo: EquipoConcesionado) => {
-    console.log(equipo)
-    devolverEquipoMutation.mutate({
-      record_id: data._id ?? "",
-      status: "total",
-      state: "complete",
-      quien_entrega: "",
-      evidencia: [],
-    });
-  };
+//   const onDevolverTodo = (equipo: EquipoConcesionado) => {
+//     console.log(equipo)
+//     devolverEquipoMutation.mutate({
+//       record_id: data._id ?? "",
+//       status: "total",
+//       state: "complete",
+//       quien_entrega: "",
+//       evidencia: [],
+//     });
+//   };
 
   return (
     <Dialog>
@@ -100,30 +97,12 @@ export const SeguimientosModalArticuloCon: React.FC<SegArtModalProps> = ({
                   <span className="text-xs font-semibold text-red-500">Pendientes:</span>
                   <span className="text-sm font-bold text-red-600">{totalCantidadPendientes}</span>
                 </div>
-                <Button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => onDevolverTodo({} as EquipoConcesionado)}
-                  className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm disabled:opacity-50"
-                >
-                  {isLoading
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>
-                    : <><PackageCheck className="w-4 h-4" /> Devolver todo</>
-                  }
-                </Button>
+               
               </div>
             </div>
           </div>
 
-          <div className=" p-5">
-            <ConcesionadosSegEquipos
-              equipos={equipos}
-              setEquipos={setEquipos}
-              mode="vista"
-              onDevolver={onDevolver}
-              data={data}
-            />
-          </div>
+        
 
         </div>
 

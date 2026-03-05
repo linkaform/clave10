@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, Package, Calendar, User, FileText, RotateCcw, Loader2, PackageCheck } from "lucide-react";
+import { ChevronDown, ChevronUp, Package, Calendar, User, FileText, RotateCcw, Loader2, PackageCheck, MessageSquare, Box } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { EquipoConcesionado } from "./concesionados-agregar-equipos";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
@@ -11,6 +11,7 @@ interface HistorialDevolucionesProps {
   onDevolver?: (equipo: EquipoConcesionado) => void;
   onDevolverTodo?: () => void;
   isLoadingTodo: boolean;
+  dataConcesion:any
 }
 
 type FiltroEstatus = "todos" | "abierto" | "en proceso" | "completo";
@@ -25,37 +26,27 @@ const getProgreso = (equipo: EquipoConcesionado) => {
                          "bg-red-400";
   return { porcentaje, color };
 };
-const getEstatusStyle = (estatus: string) => {
-  switch (estatus) {
-    case "completo":
-    case "devuelto":
-      return "bg-green-100 text-green-700 border-green-200";
-    case "pendiente":
-    case "abierto":
-      return "bg-yellow-100 text-yellow-700 border-yellow-200";
-    case "en proceso":
-      return "bg-yellow-100 text-yellow-700 border-yellow-200";
-    default:
-      return "bg-gray-100 text-gray-600 border-gray-200";
-  }
+const getEstatusStyle = (equipo: EquipoConcesionado) => {
+  const { porcentaje } = getProgreso(equipo);
+  if (porcentaje === 100) return "bg-green-100 text-green-700 border-green-200";
+  if (porcentaje > 0)     return "bg-yellow-100 text-yellow-700 border-yellow-200";
+  return "bg-red-100 text-red-700 border-red-200";
 };
 
-const getEstatusLabel = (estatus: string) => {
-  switch (estatus) {
-    case "abierto":return "En Proceso";
-    case "pendiente": return "Pendiente";
-    case "en proceso": return "En Proceso";
-    case "completo":
-    case "devuelto": return "Completo";
-    default: return estatus;
-  }
+const getEstatusLabel = (equipo: EquipoConcesionado) => {
+  const { porcentaje } = getProgreso(equipo);
+  if (porcentaje === 100) return "Completo";
+  if (porcentaje > 0)     return "En Proceso";
+  return "Pendiente";
 };
+
 
 const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
   equipos,
   onDevolver,
   onDevolverTodo,
-  isLoadingTodo
+  isLoadingTodo,
+  dataConcesion
 }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [filtroActivo, setFiltroActivo] = useState<FiltroEstatus>("todos");
@@ -147,8 +138,8 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${getEstatusStyle(dev.status_concesion_equipo ?? "")}`}>
-                        {getEstatusLabel(dev.status_concesion_equipo ?? "")}
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${getEstatusStyle(dev ?? "")}`}>
+                        {getEstatusLabel(dev ?? "")}
                       </span>
                       {isOpen
                         ? <ChevronUp className="w-4 h-4 text-gray-400" />
@@ -174,8 +165,9 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
                 {isOpen && (
                   <div className="border-t border-gray-100 bg-gray-50 p-4 space-y-4">
 
-                    {dev.status_concesion_equipo === "completo" || dev.status_concesion_equipo=="devuelto" && (
+                    { (
                       <div className="grid grid-cols-2 gap-3">
+                         
                         <div className="bg-white rounded-xl border border-blue-100 px-4 py-3">
                           <p className="text-xs text-gray-400 mb-0.5">Precio unitario</p>
                           <p className="text-sm font-bold text-blue-700"> {formatCurrency(getCosto(dev.costo_equipo_concesion))}</p>
@@ -186,30 +178,58 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
                             {formatCurrency((dev.cantidad_equipo_concesion ?? 0) * getCosto(dev.costo_equipo_concesion))}
                           </p>
                         </div>
-
+                        {dev.comentario_entrega && (
+                            <div className="flex items-start gap-2">
+                              <MessageSquare className="w-3.5 h-3.5 text-purple-400 mt-0.5 flex-shrink-0" />
+                              <span className="text-xs text-gray-600">{dev.comentario_entrega}</span>
+                            </div>
+                          )}
                         <div className="col-span-2">
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sobre la devolución</p>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="flex items-start gap-2">
-                              <Calendar className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-xs text-gray-400">Fecha de devolución</p>
-                                <p className="text-sm font-medium text-gray-700">12-02-14 3:30pm</p>
+                          {/* <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sobre las devoluciones</p> */}
+                          {(() => {
+                            const devoluciones = dataConcesion?.grupo_equipos_devolucion?.filter(
+                              (d:any) => d.id_movimiento_devolucion === dev.id_movimiento
+                            ) || [];
+                            console.log("DEVOLUCIONS")
+                            return devoluciones.length > 0 ? (
+                              <div className="col-span-2 mt-2">
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                Sobre las devoluciones ({devoluciones.length})
+                                </p>
+                                <div className="flex flex-col gap-2">
+                                  {devoluciones.map((devItem:any, index:number) => (
+                                    <div
+                                      key={index}
+                                      className="rounded-lg border border-gray-100 bg-gray-50 p-3 flex flex-col gap-1"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <Calendar className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                                        <span className="text-xs text-gray-500">Fecha:</span>
+                                        <span className="text-xs font-medium text-gray-700">{devItem.fecha_devolucion_concesion||"-"}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <User className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                                        <span className="text-xs text-gray-500">Entrega:</span>
+                                        <span className="text-xs font-medium text-gray-700">{devItem.quien_entrega||"-"}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Box className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                                        <span className="text-xs text-gray-500">Unidades:</span>
+                                        <span className="text-xs font-medium text-gray-700">{devItem.cantidad_devolucion||"-"} / {dev?.cantidad_equipo_concesion}</span>
+                                      </div>
+                                    
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <User className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-xs text-gray-400">Empleado (entrega)</p>
-                                <p className="text-sm font-medium text-gray-700">Emiliano Zapata</p>
-                              </div>
-                            </div>
-                          </div>
+                            ) : null;
+                          })()}
                         </div>
+
                       </div>
                     )}
 
-                    {(dev.status_concesion_equipo === "en proceso" || dev.status_concesion_equipo === "abierto" || dev.status_concesion_equipo === "devuelto"|| dev.status_concesion_equipo === "completo") &&
+                    {/* {(dev.status_concesion_equipo === "en proceso" || dev.status_concesion_equipo === "abierto" || dev.status_concesion_equipo === "devuelto"|| dev.status_concesion_equipo === "completo") &&
                       dev.comentario_entrega && (
                         <div className="flex items-start gap-2">
                           <FileText className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
@@ -218,10 +238,10 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
                             <p className="text-sm text-gray-700">{dev.comentario_entrega}</p>
                           </div>
                         </div>
-                    )}
+                    )} */}
 
                     
-                    {dev.imagen_equipo_concesion && dev.imagen_equipo_concesion.length > 0 && (dev.status_concesion_equipo === "devuelto"|| dev.status_concesion_equipo === "completo") &&(
+                    {dev.imagen_equipo_concesion &&(
                       <div className="flex items-start gap-2">
                         <FileText className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                         <div className="w-full">
