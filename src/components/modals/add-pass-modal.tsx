@@ -11,6 +11,7 @@ import CalendarDays from "../calendar-days";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { CalendarClock, Loader2 } from "lucide-react";
 import { GeneratedPassModal } from "./generated-pass-modal";
+import { GeneratedMultiplePassModal } from "./generated-multiple-pass-modal";
 import { Access_pass, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { usePaseEntrada } from "@/hooks/usePaseEntrada";
@@ -57,6 +58,7 @@ interface EntryPassUpdateModalProps {
     enviar_pre_sms: enviar_pre_sms;
 	todas_las_areas:boolean;
 	sala:string
+	invitados: {nombre: string; email: string;}[]
   };
   isSuccess: boolean;
   setIsSuccess: Dispatch<SetStateAction<boolean>>;
@@ -99,6 +101,7 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
   const {userIdSoter, userParentId}= useAuthStore()
   const { createPaseEntradaMutation , responseCreatePase, isLoading} = usePaseEntrada([])
   const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
+  const [multipleLinks, setMultipleLinks] = useState<{ nombre: string; link: string }[]>([]);
   const [link, setLink] = useState("");
   const[ account_id, setAccount_id] = useState<number|null>(null)
   console.log(account_id)
@@ -143,6 +146,10 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
       },
 	  todas_las_areas:dataPass.todas_las_areas,
 	  sala:dataPass.sala||"",
+	  invitados: dataPass.invitados.map((inv) => ({
+		nombre: inv.nombre,
+		email: inv.email,
+	  })),
     };
     const enviarPreSms : enviar_pre_sms= {
       from: dataPass.enviar_pre_sms.from,
@@ -170,22 +177,39 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 
 
   useEffect(()=>{
-    if(responseCreatePase?.status_code == 201){
+    if(!responseCreatePase) return;
+
+    let docs=""
+    sendData?.link?.docs?.map((d, index)=>{
+      if(d == "agregarIdentificacion"){
+        docs+="iden"
+      }
+      else if(d == "agregarFoto"){
+        docs+="foto"
+      }
+      if (index==0){
+        docs+="-"
+      }
+    })
+
+    if (Array.isArray(responseCreatePase)) {
+		console.log('----------------', responseCreatePase)
+      if (responseCreatePase.every((r: any) => r.status_code === 201)) {
+        const allGuests = dataPass.invitados
+		console.log('----------------allGuests', allGuests)
+        const builtLinks = responseCreatePase.map((resp: any, idx: number) => ({
+          nombre: allGuests[idx]?.nombre || `Invitado ${idx + 1}`,
+          link: `${hostPro.protocol}//${hostPro.host}/dashboard/pase-update?id=${resp.json.id}&user=${userParentId}&docs=${docs}`
+        }));
+        setMultipleLinks(builtLinks);
+        setOpenGeneratedPass(true);
+      }
+    } else {
+      if(responseCreatePase?.status_code == 201){
+        setLink(`${hostPro.protocol}//${hostPro.host}/dashboard/pase-update?id=${responseCreatePase?.json.id}&user=${userParentId}&docs=${docs}`)
+        setOpenGeneratedPass(true)
+      }
     }
-      let docs=""
-      sendData?.link.docs.map((d, index)=>{
-        if(d == "agregarIdentificacion"){
-          docs+="iden"
-        }
-        else if(d == "agregarFoto"){
-          docs+="foto"
-        }
-        if (index==0){
-          docs+="-"
-        }
-      })
-      setLink(`${hostPro.protocol}//${hostPro.host}/dashboard/pase-update?id=${responseCreatePase?.json.id}&user=${userParentId}&docs=${docs}`)
-      setOpenGeneratedPass(true)
   },[responseCreatePase])
 
   const handleClose = () => {
@@ -340,7 +364,16 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 				</Button>
 			</DialogClose>
 
-			{responseCreatePase?.status_code == 201 ? (
+			{Array.isArray(responseCreatePase) && responseCreatePase.length > 0 && responseCreatePase[0]?.status_code === 201 ? (
+				<GeneratedMultiplePassModal
+					title="Pases de Entrada Generados"
+					description="Se han generado múltiples pases. Copia el enlace correspondiente para cada invitado."
+					links={multipleLinks}
+					openGeneratedPass={openGeneratedPass}
+					setOpenGeneratedPass={setOpenGeneratedPass} 
+					from={from}
+				/>
+			) : responseCreatePase?.status_code == 201 ? (
 				<GeneratedPassModal
 				title="Pase de Entrada Generado "
 				description="El pase de entrada se ha generado correctamente. Por favor, copie el siguiente enlace y compártalo con el visitante para completar el proceso."

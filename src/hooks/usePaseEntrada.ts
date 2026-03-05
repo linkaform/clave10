@@ -124,14 +124,26 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
                 enviar_pre_sms,
               });
               console.log("data",data)
-            const status_code = data?.response?.data?.status_code
-            console.log('02232332', status_code)
+            const responseData = data?.response?.data;
 
-            if(!status_code || (status_code == 400 || status_code == 401 || status_code == 404)){
-              throw new Error(`Error al crear pase, solicita ayuda a soporte.`);
-            }else{
-                setResponseCreatePase(data?.response?.data)
-                return data?.response?.data
+            if (Array.isArray(responseData)) {
+              const hasError = responseData.some((r: any) => !r.status_code || r.status_code == 400 || r.status_code == 401 || r.status_code == 404);
+              if (hasError || responseData.length === 0) {
+                throw new Error(`Error al crear pases múltiples, solicita ayuda a soporte.`);
+              } else {
+                setResponseCreatePase(responseData);
+                return responseData;
+              }
+            } else {
+              const status_code = responseData?.status_code
+              console.log('02232332', status_code)
+
+              if(!status_code || (status_code == 400 || status_code == 401 || status_code == 404)){
+                throw new Error(`Error al crear pase, solicita ayuda a soporte.`);
+              }else{
+                  setResponseCreatePase(responseData)
+                  return responseData
+              }
             }
         },
         onMutate: () => {

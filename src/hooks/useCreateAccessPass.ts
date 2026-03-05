@@ -54,6 +54,7 @@ export type Access_pass={
     enviar_pre_sms:enviar_pre_sms,
     todas_las_areas?:boolean
     sala?:string
+    invitados?: {nombre: string; email: string;}[]
 }
 
 export const useCreateAccessPase = (location: string, access_pass: Access_pass|null, enviar_pre_sms: enviar_pre_sms|null) => {

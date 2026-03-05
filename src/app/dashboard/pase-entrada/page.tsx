@@ -33,6 +33,8 @@ import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { useBoothStore } from "@/store/useBoothStore";
 import DateTimePicker from "@/components/dateTimePicker";
+import { useFieldArray } from "react-hook-form";
+import { Plus, X } from "lucide-react";
 
 
  const formSchema = z
@@ -49,6 +51,10 @@ import DateTimePicker from "@/components/dateTimePicker";
 	}, {
 		  message: "Por favor, ingresa un correo electrónico válido.",
 	}),
+	invitados: z.array(z.object({
+		nombre: z.string().min(2, "Nombre requerido"),
+		email: z.string().email("Correo inválido").or(z.literal("")),
+	})).optional(),
 	telefono: z.string().optional(),
 	ubicaciones: z.array(z.string()).optional(),
 	tema_cita: z.string().optional(),
@@ -273,8 +279,14 @@ import DateTimePicker from "@/components/dateTimePicker";
 				numero: "528120084370",
 			},
 			todas_las_areas:false,
-			sala:""
+			sala:"",
+			invitados: []
 		},
+	});
+
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "invitados",
 	});
 
 	useEffect(() => {
@@ -371,6 +383,10 @@ import DateTimePicker from "@/components/dateTimePicker";
 				mensaje: "SOY UN MENSAJE",
 				numero: data.telefono,
 			},
+			invitados: [
+				{ nombre: data.nombre, email: data.email || "" },
+				...(data.invitados || [])
+			],
 			todas_las_areas: false,
 			sala: salasSeleccionadas.length > 0 ? salasSeleccionadas[0].value : ""
 		};
@@ -661,38 +677,109 @@ return (
 									</div>
 								)}
 
-								<div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 w-full">
-									<FormField
-										control={form.control}
-										name="nombre"
-										render={({ field }: any) => (
-											<FormItem className="space-y-1.5">
-												<FormLabel className="text-[13px] font-semibold text-slate-700">
-													<span className="text-red-500">*</span> Nombre Completo:
-												</FormLabel>
-												<FormControl>
-													<Input placeholder="Nombre del visitante" {...field} />
-												</FormControl>
-												<FormMessage className="text-[11px]" />
-											</FormItem>
-										)}
-									/>
+								<div className="flex-1 space-y-4 w-full">
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 w-full items-end">
+										<FormField
+											control={form.control}
+											name="nombre"
+											render={({ field }: any) => (
+												<FormItem className="space-y-1.5 font-sans">
+													<FormLabel className="text-[13px] font-semibold text-slate-700">
+														<span className="text-red-500">*</span> Nombre Completo:
+													</FormLabel>
+													<FormControl>
+														<Input placeholder="Nombre del visitante" {...field} />
+													</FormControl>
+													<FormMessage className="text-[11px]" />
+												</FormItem>
+											)}
+										/>
 
-									<FormField
-										control={form.control}
-										name="email"
-										render={({ field }: any) => (
-											<FormItem className="space-y-1.5">
-												<FormLabel className="text-[13px] font-semibold text-slate-700">
-													<span className="text-red-500">*</span> Email:
-												</FormLabel>
-												<FormControl>
-													<Input placeholder="correo@ejemplo.com" {...field} />
-												</FormControl>
-												<FormMessage className="text-[11px]" />
-											</FormItem>
-										)}
-									/>
+										<div className="flex items-end gap-3">
+											<FormField
+												control={form.control}
+												name="email"
+												render={({ field }: any) => (
+													<FormItem className="flex-1 space-y-1.5 font-sans">
+														<FormLabel className="text-[13px] font-semibold text-slate-700">
+															<span className="text-red-500">*</span> Email:
+														</FormLabel>
+														<FormControl>
+															<Input placeholder="correo@ejemplo.com" {...field} />
+														</FormControl>
+														<FormMessage className="text-[11px]" />
+													</FormItem>
+												)}
+											/>
+											{fields.length === 0 && (
+												<Button
+													type="button"
+													variant="outline"
+													size="icon"
+													onClick={() => append({ nombre: "", email: "" })}
+													className="h-10 w-10 border-blue-100 text-blue-600 hover:bg-blue-50 shrink-0"
+													title="Agregar otro invitado"
+												>
+													<Plus size={18} />
+												</Button>
+											)}
+											{fields.length > 0 && <div className="w-10 shrink-0" />}
+										</div>
+									</div>
+
+									{fields.map((field, index) => (
+										<div key={field.id} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 items-end animate-in fade-in slide-in-from-top-2 border-t border-slate-50 pt-3">
+											<FormField
+												control={form.control}
+												name={`invitados.${index}.nombre`}
+												render={({ field }) => (
+													<FormItem className="space-y-1.5 font-sans">
+														<FormControl>
+															<Input {...field} placeholder="Nombre del visitante" className="h-10 border-slate-200" />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<div className="flex items-end gap-3">
+												<FormField
+													control={form.control}
+													name={`invitados.${index}.email`}
+													render={({ field }) => (
+														<FormItem className="flex-1 space-y-1.5 font-sans">
+															<FormControl>
+																<Input {...field} placeholder="correo@ejemplo.com" className="h-10 border-slate-200" />
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<div className="flex gap-2 shrink-0">
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														onClick={() => remove(index)}
+														className="h-10 w-10 text-slate-400 hover:text-red-500 hover:bg-red-50"
+													>
+														<X size={18} />
+													</Button>
+													{index === fields.length - 1 && (
+														<Button
+															type="button"
+															variant="outline"
+															size="icon"
+															onClick={() => append({ nombre: "", email: "" })}
+															className="h-10 w-10 border-blue-100 text-blue-600 hover:bg-blue-50"
+															title="Agregar otro invitado"
+														>
+															<Plus size={18} />
+														</Button>
+													)}
+												</div>
+											</div>
+										</div>
+									))}
 								</div>
 							</div>
 						</div>
