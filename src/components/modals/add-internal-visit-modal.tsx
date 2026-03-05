@@ -28,6 +28,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 import { Loader2 } from "lucide-react";
 import Multiselect from "multiselect-react-dropdown";
 import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
+import { imprimirYDescargarPDF } from "@/lib/utils";
 
 interface Props {
   title: string;
@@ -45,7 +46,7 @@ const formSchema = z.object({
   visita_a: z.string().min(1, {
     message: "Campo requerido",
   }),
-  areas: z.array(z.string()).min(1, "Selecciona al menos una área"),
+  areas: z.array(z.string()).min(1, "Selecciona un área").max(1, "Solo puedes seleccionar un área"),
 });
 
 export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
@@ -65,14 +66,11 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
   const [areasSeleccionadas, setAreasSeleccionadas] = useState<any[]>([]);
 
   // Logic for Visita a (Integrated from pases pattern)
-  const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{ name: "Usuario Actual", label: "Usuario Actual" }]);
+  const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([]);
   const [customVisitaA, setCustomVisitaA] = useState("");
   const multiselectRef = useRef<any>(null);
 
   const assetsUnique = Array.from(new Set(assets?.Visita_a || []));
-  if (!assetsUnique.includes("Usuario Actual")) {
-    assetsUnique.unshift("Usuario Actual");
-  }
 
   const visitaAFormatted = assetsUnique.map((u: any) => ({ name: u, id: u }));
 
@@ -82,7 +80,7 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
       nombre: "",
       perfil_pase: "Interno",
       fecha: today,
-      visita_a: "Usuario Actual",
+      visita_a: "",
       areas: [],
     },
   });
@@ -126,7 +124,7 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
 
     const access_pass = {
       nombre: data.nombre,
-      perfil_pase: data.perfil_pase,
+      perfil_pase: "Interno",
       visita_a: visitaASeleccionadas.map((v) => v.name),
       foto: fotografia,
       status_pase: "activo",
@@ -142,12 +140,19 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
     registerNewVisit.mutate(
       { location: location ?? "", access_pass },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
+          console.log("Respuesta exitosa al crear visita interna:", data);
+          const downloadUrl = data?.response?.data?.json?.download_url || data?.response?.data?.url_de_etiqueta || data?.json?.download_url || data?.download_url || "";
+          
+          if (downloadUrl) {
+            imprimirYDescargarPDF(downloadUrl);
+          }
+
           setOpenModal(false);
           form.reset();
           setFotografia([]);
           setAreasSeleccionadas([]);
-          setVisitaASeleccionadas([{ name: "Usuario Actual", label: "Usuario Actual" }]);
+          setVisitaASeleccionadas([]);
           setFormSubmitted(false);
         },
       }
@@ -168,12 +173,20 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             
+            <FormItem>
+              <FormLabel>Fecha</FormLabel>
+              <FormControl>
+                <Input type="date" value={today} disabled className="bg-gray-100" />
+              </FormControl>
+              <p className="text-xs text-gray-500 italic">Se toma en cuenta la fecha actual.</p>
+            </FormItem>
+
             <FormField
               control={form.control}
               name="visita_a"
               render={() => (
                 <FormItem>
-                  <FormLabel>Visita a:</FormLabel>
+                  <FormLabel>Nombre completo:</FormLabel>
                   {assetsLoading ? (
                     <div className="flex items-center py-2">
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -184,8 +197,18 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
                       ref={multiselectRef}
                       options={visitaAFormatted}
                       selectedValues={visitaASeleccionadas}
-                      onSelect={setVisitaASeleccionadas}
-                      onRemove={setVisitaASeleccionadas}
+                      onSelect={(selectedList) => {
+                        setVisitaASeleccionadas(selectedList);
+                        const names = selectedList.map((v: any) => v.name).join(", ");
+                        form.setValue("visita_a", names);
+                        form.setValue("nombre", names);
+                      }}
+                      onRemove={(selectedList) => {
+                        setVisitaASeleccionadas(selectedList);
+                        const names = selectedList.map((v: any) => v.name).join(", ");
+                        form.setValue("visita_a", names);
+                        form.setValue("nombre", names);
+                      }}
                       onSearch={(value: string) => {
                         if (value.length <= 70) {
                           setCustomVisitaA(value);
@@ -194,19 +217,36 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
                         }
                       }}
                       onKeyPressFn={(e: any) => {
-                        if (e.key === "Enter" && customVisitaA.trim()) {
-                          const newValue = {
-                            name: `${customVisitaA}(No Registrado)`,
-                            id: `${customVisitaA}(No Registrado)`,
-                          };
-                          const updated = [...visitaASeleccionadas, newValue];
-                          setVisitaASeleccionadas(updated);
-                          setCustomVisitaA("");
-                          if (multiselectRef.current) {
-                            multiselectRef.current.resetSelectedValues(updated);
-                            if (multiselectRef.current.searchBox?.current) {
-                              multiselectRef.current.searchBox.current.value = "";
-                            }
+                        if (e.key === "Enter") {
+                          e.preventDefault(); // Evitamos mandar el form por accidente
+                          if (customVisitaA.trim()) {
+                            // Esperamos un instante para saber si el componente nativo ya seleccionó un item
+                            setTimeout(() => {
+                              if (multiselectRef.current?.searchBox?.current?.value.trim() === "") {
+                                return; // Ya se seleccionó "Andrea Martinez Martinez" de forma nativa
+                              }
+                              
+                              const val = customVisitaA.trim();
+                              const newValue = {
+                                name: `${val} (No Registrado)`,
+                                id: `${val} (No Registrado)`,
+                              };
+                              
+                              // Forzamos el uso de un solo elemento para respetar el selectionLimit=1
+                              const updated = [newValue];
+                              setVisitaASeleccionadas(updated);
+                              setCustomVisitaA("");
+                              
+                              form.setValue("visita_a", newValue.name);
+                              form.setValue("nombre", newValue.name);
+
+                              if (multiselectRef.current) {
+                                multiselectRef.current.resetSelectedValues(updated);
+                                if (multiselectRef.current.searchBox?.current) {
+                                  multiselectRef.current.searchBox.current.value = "";
+                                }
+                              }
+                            }, 50);
                           }
                         }
                       }}
@@ -217,6 +257,7 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
                           ? `Presiona Enter para agregar "${customVisitaA}"`
                           : "No hay opciones disponibles"
                       }
+                      selectionLimit={1}
                     />
                   )}
                   <FormMessage />
@@ -224,41 +265,14 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="nombre"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>* Nombre Completo</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Escribe el nombre" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormItem>
-              <FormLabel>Tipo de Visita</FormLabel>
-              <FormControl>
-                <Input value="Interno" disabled className="bg-gray-100" />
-              </FormControl>
-            </FormItem>
-
-            <FormItem>
-              <FormLabel>Fecha</FormLabel>
-              <FormControl>
-                <Input type="date" value={today} disabled className="bg-gray-100" />
-              </FormControl>
-              <p className="text-xs text-gray-500 italic">Informativo: Fecha de hoy</p>
-            </FormItem>
+            
 
             <FormField
               control={form.control}
               name="areas"
               render={() => (
                 <FormItem>
-                  <FormLabel>* Áreas</FormLabel>
+                  <FormLabel>* Área</FormLabel>
                   <Multiselect
                     options={areasTodas}
                     selectedValues={areasSeleccionadas}
@@ -271,7 +285,8 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
                       form.setValue("areas", selected.map((a: any) => a.id));
                     }}
                     displayValue="name"
-                    placeholder="Seleccione áreas"
+                    placeholder="Seleccione área"
+                    selectionLimit={1}
                   />
                   <FormMessage />
                 </FormItem>
