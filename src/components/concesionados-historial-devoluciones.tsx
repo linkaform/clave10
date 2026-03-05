@@ -14,7 +14,7 @@ interface HistorialDevolucionesProps {
   dataConcesion:any
 }
 
-type FiltroEstatus = "todos" | "abierto" | "en proceso" | "completo";
+type FiltroEstatus = "todos" | "abierto" | "en proceso" | "devuelto";
 
 const getProgreso = (equipo: EquipoConcesionado) => {
   const devuelto = Number(equipo.cantidad_equipo_devuelto ?? 0);
@@ -35,7 +35,7 @@ const getEstatusStyle = (equipo: EquipoConcesionado) => {
 
 const getEstatusLabel = (equipo: EquipoConcesionado) => {
   const { porcentaje } = getProgreso(equipo);
-  if (porcentaje === 100) return "Completo";
+  if (porcentaje === 100) return "Devuelto";
   if (porcentaje > 0)     return "En Proceso";
   return "Pendiente";
 };
@@ -69,9 +69,9 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
 
   const botonesFiltro: { label: string; value: FiltroEstatus }[] = [
     { label: "Todos", value: "todos" },
-    { label: "En Proceso", value: "abierto" },
+    { label: "Pendientes", value: "abierto" },
     { label: "En Proceso", value: "en proceso" },
-    { label: "Completado", value: "completo" },
+    { label: "Completado", value: "devuelto" },
   ];
   const getCosto = (costo: number | number[] | undefined): number => {
     if (Array.isArray(costo)) return costo[0] ?? 0;
@@ -80,8 +80,26 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
   return (
     <div className="space-y-4">
 
-      <div className="flex gap-2 flex-wrap">
-         <Button
+      <div className="flex gap-2 flex-wrap justify-between">
+
+        <div className=" flex gap-2">
+        {botonesFiltro.map((boton) => (
+          <button
+            key={boton.value}
+            onClick={() => setFiltroActivo(boton.value)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200  ${
+              filtroActivo === boton.value
+                ? "bg-blue-500 text-white shadow-sm"
+                : "border border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
+            }`}
+          >
+            {boton.label}
+          </button>
+        ))}
+        </div>
+
+        <div>
+        <Button
             disabled={isLoadingTodo}
             onClick={() => handleDevolverTodo()}
             className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
@@ -91,20 +109,8 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
               : <><PackageCheck className="w-4 h-4" /> Devolver todo</>
             }
           </Button>
+        </div>
 
-        {botonesFiltro.map((boton) => (
-          <button
-            key={boton.value}
-            onClick={() => setFiltroActivo(boton.value)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-              filtroActivo === boton.value
-                ? "bg-blue-500 text-white shadow-sm"
-                : "border border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
-            }`}
-          >
-            {boton.label}
-          </button>
-        ))}
       </div>
 
       <div className="max-h-[460px] overflow-y-auto space-y-3 pr-1">
@@ -190,7 +196,6 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
                             const devoluciones = dataConcesion?.grupo_equipos_devolucion?.filter(
                               (d:any) => d.id_movimiento_devolucion === dev.id_movimiento
                             ) || [];
-                            console.log("DEVOLUCIONS")
                             return devoluciones.length > 0 ? (
                               <div className="col-span-2 mt-2">
                                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">

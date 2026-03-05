@@ -49,7 +49,7 @@ const formSchema = z.object({
   entrega_concesion: z.string().optional(),
   entrega_concesion_otro: z.string().optional(),
   estatus: z.string().min(1, { message: "Este campo es obligatorio" }),
-  unidades: z.number().optional(),
+  unidades: z.coerce.number().min(0).optional(),
   comentarios: z.string().optional(),
   evidencia: z.array(z.any()).optional(),
   precio: z.number().optional(), 
@@ -137,7 +137,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
 
   const handleClose = () => setIsSuccess(false);
   const tipoCon = form.watch("entrega_tipo");
-
+  console.log("PENDIENTE ",equipoSelecionado?.cantidad_equipo_pendiente )
   return (
     <Dialog onOpenChange={setIsSuccess} open={isSuccess} modal>
       <DialogTrigger>{children}</DialogTrigger>
@@ -298,7 +298,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                         )} />
                     </div>
                     <div className=" py-0">
-                  <FormField
+                    <FormField
                     control={form.control}
                     name="unidades"
                     render={({ field }: any) => (
@@ -307,20 +307,31 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                           Unidades entregadas
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            className="bg-white border-gray-200"
-                            onChange={(e) => {
-                              const val = e.target.value === "" ? 0 : Number(e.target.value);
-                              const pendientes = Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
-                              const clamped = Math.min(Math.max(val, 0), pendientes);
-                              field.onChange(clamped);
-                            }}
-                            min={0}
-                            max={Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0)}
-                            value={Number(field.value) || 0}
-                          />
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          className="bg-white border-gray-200"
+                          min={0}
+                          max={equipoSelecionado?.cantidad_equipo_pendiente}
+                          defaultValue={0}
+                          onChange={(e) => {
+                            const pendientes = Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
+                            const val = Number(e.target.value);
+                            if (val > pendientes) {
+                              e.target.value = "0";
+                              field.onChange(0);
+                            } else {
+                              field.onChange(val);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            console.log("PENDIENTE ",equipoSelecionado?.cantidad_equipo_pendiente )
+                            const pendientes = Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
+                            const val = e.target.value === "" ? 0 : Number(e.target.value);
+                            const clamped = Math.min(Math.max(val, 0), pendientes);
+                            field.onChange(clamped);
+                          }}
+                        />
                         </FormControl>
                         <p className="text-xs text-gray-400 mt-1">
                           {Number(equipoSelecionado?.cantidad_equipo_devuelto ?? 0)} de {equipoSelecionado?.cantidad_equipo_concesion ?? 0} devueltos — Pendientes: {Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0)}

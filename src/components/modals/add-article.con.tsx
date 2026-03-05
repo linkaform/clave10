@@ -474,9 +474,8 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                       )}
                     />
                   )}
-                </div>
 
-                {tipoCon === "otro" && (
+                  <div className="mb-2">
                   <Controller
                     control={form.control}
                     name="evidencia"
@@ -497,7 +496,12 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                       </div>
                     )}
                   />
-                )}
+                  </div>
+                </div>
+
+                {/* {tipoCon === "otro" && ( */}
+                 
+                {/* )} */}
               </div>
 
               <div className=" p-5">
