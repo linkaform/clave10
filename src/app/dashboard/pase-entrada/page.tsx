@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
 import { Calendar, ClipboardList, MapPin, User, Users } from "lucide-react";
-import { formatDateToString, formatFecha, uniqueArray } from "@/lib/utils";
+import { formatFecha, uniqueArray } from "@/lib/utils";
 import { Comentarios } from "@/hooks/useCreateAccessPass";
 // import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
@@ -84,7 +84,7 @@ import DateTimePicker from "@/components/dateTimePicker";
   });
 
   const PaseEntradaPage = () =>  {
-	const tipoVisita = "fecha_fija";
+	const [tipoVisita, setTipoVisita] = useState("fecha_fija");
 	const { location } = useBoothStore();
 	
 	const { excludes , includes}= useMenuStore()
@@ -231,9 +231,9 @@ import DateTimePicker from "@/components/dateTimePicker";
 	// const [isActive, setIsActive] = useState(false);
 	// const [isActiveSMS, setIsActiveSMS] = useState(false);
 	const [date, setDate] = React.useState<Date| "">("");
+	console.log(date)
 	const [selected, setSelected] = useState<Contacto |null>(null);
 	const [isOpenModal, setOpenModal] = useState(false);
-	const today = new Date().toISOString().split("T")[0];
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
@@ -260,7 +260,7 @@ import DateTimePicker from "@/components/dateTimePicker";
 			enviar_correo_pre_registro:enviar_correo_pre_registro??[], 
 			tipo_visita_pase: "fecha_fija",
 			fechaFija: "",
-			fecha_desde_visita:today ,
+			fecha_desde_visita: "",
 			fecha_desde_hasta: "",
 			config_dia_de_acceso: "cualquier_día",
 			config_dias_acceso: [],
@@ -355,11 +355,12 @@ import DateTimePicker from "@/components/dateTimePicker";
 			},
 			enviar_correo_pre_registro: formatedEnvio,
 			tipo_visita_pase: tipoVisita,
-			fechaFija: date !== "" ? formatDateToString(date) : "",
+			fechaFija: tipoVisita === "fecha_fija" ? (data.fechaFija !== "" ? data.fechaFija : "") : "",
 			fecha_desde_visita: tipoVisita === "fecha_fija" ?
-				(date !== "" ? formatDateToString(date) : "") :
+				(data.fechaFija !== "" ? data.fechaFija : "") :
 				(data.fecha_desde_visita !== "" ? formatFecha(data.fecha_desde_visita) + ` 00:00:00` : ""),
-			fecha_desde_hasta: data.fecha_desde_hasta !== "" ? formatFecha(data.fecha_desde_hasta) + ` 23:59:00` : "",
+			fecha_desde_hasta: tipoVisita === "fecha_fija" ? "" :
+				(data.fecha_desde_hasta !== "" ? formatFecha(data.fecha_desde_hasta) + ` 23:59:00` : ""),
 			config_dia_de_acceso: "cualquier_día",
 			config_dias_acceso: [],
 			config_limitar_acceso: Number(data.config_limitar_acceso) || 1,
@@ -428,11 +429,11 @@ return (
 					<form className="p-6 md:p-8 space-y-8">
 						{/* Sección: Sobre la visita */}
 						<div className="space-y-6">
-							<div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+							<div className="flex items-center gap-2 pb-2 border-b border-slate-100 uppercase">
 								<div className="p-1 bg-blue-50 rounded-md text-blue-600">
 									<Calendar size={14} />
 								</div>
-								<h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Sobre la visita</h2>
+								<h2 className="text-xs font-bold tracking-widest text-slate-400">Sobre la visita</h2>
 							</div>
 
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
@@ -474,25 +475,127 @@ return (
 									)}
 								/>
 
-								{tipoVisita === "fecha_fija" && (
-									<FormField
-										control={form.control}
-										name="fechaFija"
-										render={() => (
-											<FormItem className="space-y-1.5">
-												<FormLabel className="text-[13px] font-semibold text-slate-700">
-													<span className="text-red-500">*</span> Fecha de reunión:
-												</FormLabel>
+								<FormItem className="space-y-1.5">
+									<div className="flex items-center justify-between">
+										<FormLabel className="text-[13px] font-semibold text-slate-700">
+											<span className="text-red-500">*</span> {tipoVisita === "fecha_fija" ? "Fecha de reunión:" : "Rango de fechas:"}
+										</FormLabel>
+										<div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+											<button
+												type="button"
+												onClick={() => {
+													setTipoVisita("fecha_fija");
+													form.setValue("tipo_visita_pase", "fecha_fija");
+												}}
+												className={`px-2 py-0.5 text-[9px] font-bold rounded-md transition-all ${
+													tipoVisita === "fecha_fija" 
+														? "bg-white text-blue-600 shadow-sm" 
+														: "text-slate-500 hover:text-slate-700"
+												}`}
+											>
+												ÚNICA
+											</button>
+											<button
+												type="button"
+												onClick={() => {
+													setTipoVisita("rango_de_fechas");
+													form.setValue("tipo_visita_pase", "rango_de_fechas");
+												}}
+												className={`px-2 py-0.5 text-[9px] font-bold rounded-md transition-all ${
+													tipoVisita === "rango_de_fechas" 
+														? "bg-white text-blue-600 shadow-sm" 
+														: "text-slate-500 hover:text-slate-700"
+												}`}
+											>
+												RANGO
+											</button>
+										</div>
+									</div>
+
+									{tipoVisita === "fecha_fija" ? (
+										<FormField
+											control={form.control}
+											name="fechaFija"
+											render={({ field }) => (
 												<FormControl>
 													<div className="flex items-center">
-														<DateTimePicker date={date ? new Date(date) : undefined} setDate={(d: Date | undefined) => setDate(d as Date)} showTime={false} />
+														<DateTimePicker 
+															date={field.value ? new Date(field.value + 'T12:00:00') : undefined} 
+															setDate={(d: Date | undefined) => {
+																if (d) {
+																	const year = d.getFullYear();
+																	const month = String(d.getMonth() + 1).padStart(2, '0');
+																	const day = String(d.getDate()).padStart(2, '0');
+																	field.onChange(`${year}-${month}-${day}`);
+																} else {
+																	field.onChange("");
+																}
+															}} 
+															showTime={false} 
+															placeholder="Elegir fecha"
+														/>
 													</div>
 												</FormControl>
-												<FormMessage className="text-[11px]" />
-											</FormItem>
-										)} 
-									/>
-								)}
+											)} 
+										/>
+									) : (
+										<div className="grid grid-cols-2 gap-4">
+											<div className="flex flex-col gap-1">
+												<div className="flex items-center">
+													<FormField
+														control={form.control}
+														name="fecha_desde_visita"
+														render={({ field }) => (
+															<DateTimePicker 
+																	date={field.value ? new Date(field.value + 'T12:00:00') : undefined} 
+																setDate={(d: Date | undefined) => {
+																	if (d) {
+																		const year = d.getFullYear();
+																		const month = String(d.getMonth() + 1).padStart(2, '0');
+																		const day = String(d.getDate()).padStart(2, '0');
+																		field.onChange(`${year}-${month}-${day}`);
+																	} else {
+																		field.onChange("");
+																	}
+																}} 
+																showTime={false} 
+																placeholder="Fecha Inicio"
+															/>
+														)}
+													/>
+												</div>
+												<p className="text-[9px] text-slate-400 font-medium px-1 uppercase">Desde</p>
+											</div>
+											<div className="flex flex-col gap-1">
+												<div className="flex items-center">
+													<FormField
+														control={form.control}
+														name="fecha_desde_hasta"
+														render={({ field }) => (
+															<DateTimePicker 
+																	date={field.value ? new Date(field.value + 'T12:00:00') : undefined} 
+																setDate={(d: Date | undefined) => {
+																	if (d) {
+																		const year = d.getFullYear();
+																		const month = String(d.getMonth() + 1).padStart(2, '0');
+																		const day = String(d.getDate()).padStart(2, '0');
+																		field.onChange(`${year}-${month}-${day}`);
+																	} else {
+																		field.onChange("");
+																	}
+																}} 
+																showTime={false} 
+																placeholder="Fecha Fin"
+															/>
+														)}
+													/>
+												</div>
+												<p className="text-[9px] text-slate-400 font-medium px-1 uppercase">Hasta</p>
+											</div>
+										</div>
+									)}
+									<FormMessage className="text-[11px]" />
+								</FormItem>
 
 								<FormField
 									control={form.control}
