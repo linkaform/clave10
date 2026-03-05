@@ -477,7 +477,7 @@ return (
 																	return; // Ya se seleccionó algo nativamente
 																}
 																const baseName = customVisitaA.trim().substring(0, 50);
-																const finalValue = `${baseName}(No Registrado)`;
+																const finalValue = `${baseName}*`;
 																if (!visitaASeleccionadas.find(item => item.name === finalValue)) {
 																	setVisitaASeleccionadas([...visitaASeleccionadas, { id: finalValue, name: finalValue }]);
 																}
