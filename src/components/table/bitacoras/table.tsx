@@ -167,7 +167,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 					</div>
 				</div>
 
-				<AddInternalVisitModal title="Nueva Visita Interna">
+				<AddInternalVisitModal title="Nueva Visita Interna" refreshData={refreshData}>
                 <Button
                   className="ml-3 bg-green-600 hover:bg-green-700 text-white shadow-sm flex items-center gap-1"
                   variant="default"

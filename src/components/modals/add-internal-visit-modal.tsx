@@ -33,6 +33,7 @@ import { imprimirYDescargarPDF } from "@/lib/utils";
 interface Props {
   title: string;
   children: React.ReactNode;
+	refreshData: () => Promise<void>;
 }
 
 const formSchema = z.object({
@@ -49,7 +50,7 @@ const formSchema = z.object({
   areas: z.array(z.string()).min(1, "Selecciona un área").max(1, "Solo puedes seleccionar un área"),
 });
 
-export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
+export const AddInternalVisitModal: React.FC<Props> = ({ title, children, refreshData }) => {
   const [openModal, setOpenModal] = useState(false);
   const [fotografia, setFotografia] = useState<Imagen[]>([]);
   const [fotoError, setFotoError] = useState(false);
@@ -141,7 +142,7 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
       { location: location ?? "", access_pass },
       {
         onSuccess: (data) => {
-          console.log("Respuesta exitosa al crear visita interna:", data);
+          refreshData();
           const downloadUrl = data?.response?.data?.json?.download_url || data?.response?.data?.url_de_etiqueta || data?.json?.download_url || data?.download_url || "";
           
           if (downloadUrl) {
@@ -244,6 +245,7 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
                                 multiselectRef.current.resetSelectedValues(updated);
                                 if (multiselectRef.current.searchBox?.current) {
                                   multiselectRef.current.searchBox.current.value = "";
+                                  multiselectRef.current.searchBox.current.blur();
                                 }
                               }
                             }, 50);
@@ -278,11 +280,11 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
                     selectedValues={areasSeleccionadas}
                     onSelect={(selected) => {
                       setAreasSeleccionadas(selected);
-                      form.setValue("areas", selected.map((a: any) => a.id));
+                      form.setValue("areas", selected.map((a: any) => a?.id));
                     }}
                     onRemove={(selected) => {
                       setAreasSeleccionadas(selected);
-                      form.setValue("areas", selected.map((a: any) => a.id));
+                      form.setValue("areas", selected.map((a: any) => a?.id));
                     }}
                     displayValue="name"
                     placeholder="Seleccione área"
