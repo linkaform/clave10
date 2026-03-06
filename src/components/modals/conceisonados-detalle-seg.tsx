@@ -10,7 +10,7 @@ import {
 import Image from "next/image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../ui/carousel";
 import { Card, CardContent } from "../ui/card";
-import { EquipoConcesionado } from "../concesionados-agregar-equipos";
+import { EquipoConcesionado } from "../concesionados-tab-datos";
 import { Dispatch, SetStateAction } from "react";
 
 interface ConcesionadosDetalleSeguimientoProps {

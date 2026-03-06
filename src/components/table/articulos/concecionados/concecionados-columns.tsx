@@ -2,9 +2,9 @@ import {
   ColumnDef, 
 } from "@tanstack/react-table";
 import {  ArrowLeftRight, Eye } from "lucide-react";
-import { ViewArticuloCon } from "@/components/modals/view-articulo-con";
+import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-de-la-concesion";
 import { Imagen } from "@/components/upload-Image";
-import { SeguimientosModalArticuloCon } from "@/components/modals/concesionados-seguimientos-modal";
+import { DetalleDelSeguimiento } from "@/components/modals/concesionados-detalle-del-seguimiento";
 
 export interface Articulo_con_record {
     _id:string,
@@ -30,17 +30,17 @@ const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
 
   return (
     <><div className="flex space-x-2">
-      <ViewArticuloCon
+      <DetalleDeLaConcesion
         data={articulo} isSuccess={false}>
         <div className="cursor-pointer" title="Ver Artículo">
           <Eye />
         </div>
-      </ViewArticuloCon>
+      </DetalleDeLaConcesion>
 
     
-      <SeguimientosModalArticuloCon data={articulo} isSuccess={false}>
+      <DetalleDelSeguimiento data={articulo} isSuccess={false}>
       <div><ArrowLeftRight /> </div>
-      </SeguimientosModalArticuloCon>
+      </DetalleDelSeguimiento>
 
     </div>
     </>

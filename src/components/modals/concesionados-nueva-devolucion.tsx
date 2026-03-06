@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import LoadImage from "../upload-Image";
-import { EquipoConcesionado } from "../concesionados-agregar-equipos";
+import { EquipoConcesionado } from "../concesionados-tab-datos";
 import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
 import { useDevolucionEquipo } from "@/hooks/Concesionados/useDevolverConcesionado";
 import { Loader2 } from "lucide-react";
@@ -40,7 +40,7 @@ interface NuevaDevolucionModalProps {
   children: React.ReactNode;
   isSuccess: boolean;
   setIsSuccess: Dispatch<SetStateAction<boolean>>;
-  equipoSelecionado: EquipoConcesionado;
+  equipoSelecionado: EquipoConcesionado|null;
   dataConcesion:any
 }
 
@@ -62,7 +62,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
   isSuccess,
   setIsSuccess,
   equipoSelecionado,
-  dataConcesion
+  dataConcesion,
 }) => {
   const { data: dataAreaEmpleadoApoyo, isLoading: loadingAreaEmpleadoApoyo } =
     useCatalogoAreaEmpleadoApoyo(isSuccess);
@@ -115,24 +115,24 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
   }
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    devolverEquipoMutation.mutate({
-      record_id: dataConcesion?._id ?? "",
-      status: 'parical',
-      entregado_por: values.entrega_tipo as "empleado" | "otro",
-      quien_entrega: values.entrega_tipo === "empleado"
-      ? values.entrega_concesion ?? ""
-      : values.entrega_concesion_otro ?? "",
-      quien_entrega_company: "Demo",
-      identificacion_entrega: values.identificacion_entrega ? values.identificacion_entrega[0]: [],
-      equipos: [{
-      id_movimiento: equipoSelecionado?.id_movimiento ?? "",
-      cantidad_devuelta: values.unidades ?? 0,
-      state: traducirEstatus(values.estatus)??'',
-      evidencia: values.evidencia ?? [],
-      }],
-    }, {
-      onSuccess: () => setIsSuccess(false),
-    });
+        devolverEquipoMutation.mutate({
+          record_id: dataConcesion?._id ?? "",
+          status: equipoSelecionado!==null? 'parical':"total",
+          entregado_por: values.entrega_tipo as "empleado" | "otro",
+          quien_entrega: values.entrega_tipo === "empleado"
+          ? values.entrega_concesion ?? ""
+          : values.entrega_concesion_otro ?? "",
+          quien_entrega_company: "Demo",
+          identificacion_entrega: values.identificacion_entrega ? values.identificacion_entrega[0]: [],
+          equipos: [{
+          id_movimiento: equipoSelecionado?.id_movimiento ?? "",
+          cantidad_devuelta: values.unidades ?? 0,
+          state: traducirEstatus(values.estatus)??'',
+          evidencia: values.evidencia ?? [],
+          }],
+        }, {
+          onSuccess: () => setIsSuccess(false),
+        });
   }
 
   const handleClose = () => setIsSuccess(false);
@@ -149,7 +149,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
       >
         <DialogHeader className="flex-shrink-0 bg-white px-6 py-5 border-b">
           <DialogTitle className="text-2xl text-center font-bold text-gray-800">
-            {title}
+            {equipoSelecionado ? title:"Devolución Total"}
           </DialogTitle>
           <p className="text-center text-sm text-gray-400">Registra la devolución del equipo</p>
         </DialogHeader>
@@ -297,50 +297,51 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                           </div>
                         )} />
                     </div>
+                    {equipoSelecionado!==null &&
                     <div className=" py-0">
-                    <FormField
-                    control={form.control}
-                    name="unidades"
-                    render={({ field }: any) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          Unidades entregadas
-                        </FormLabel>
-                        <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          className="bg-white border-gray-200"
-                          min={0}
-                          max={equipoSelecionado?.cantidad_equipo_pendiente}
-                          defaultValue={0}
-                          onChange={(e) => {
-                            const pendientes = Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
-                            const val = Number(e.target.value);
-                            if (val > pendientes) {
-                              e.target.value = "0";
-                              field.onChange(0);
-                            } else {
-                              field.onChange(val);
-                            }
-                          }}
-                          onBlur={(e) => {
-                            console.log("PENDIENTE ",equipoSelecionado?.cantidad_equipo_pendiente )
-                            const pendientes = Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
-                            const val = e.target.value === "" ? 0 : Number(e.target.value);
-                            const clamped = Math.min(Math.max(val, 0), pendientes);
-                            field.onChange(clamped);
-                          }}
-                        />
-                        </FormControl>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {Number(equipoSelecionado?.cantidad_equipo_devuelto ?? 0)} de {equipoSelecionado?.cantidad_equipo_concesion ?? 0} devueltos — Pendientes: {Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0)}
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                        <FormField
+                        control={form.control}
+                        name="unidades"
+                        render={({ field }: any) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                              Unidades entregadas
+                            </FormLabel>
+                            <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              className="bg-white border-gray-200"
+                              min={0}
+                              max={equipoSelecionado?.cantidad_equipo_pendiente}
+                              defaultValue={0}
+                              onChange={(e) => {
+                                const pendientes = Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
+                                const val = Number(e.target.value);
+                                if (val > pendientes) {
+                                  e.target.value = "0";
+                                  field.onChange(0);
+                                } else {
+                                  field.onChange(val);
+                                }
+                              }}
+                              onBlur={(e) => {
+                                console.log("PENDIENTE ",equipoSelecionado?.cantidad_equipo_pendiente )
+                                const pendientes = Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
+                                const val = e.target.value === "" ? 0 : Number(e.target.value);
+                                const clamped = Math.min(Math.max(val, 0), pendientes);
+                                field.onChange(clamped);
+                              }}
+                            />
+                            </FormControl>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {Number(equipoSelecionado?.cantidad_equipo_devuelto ?? 0)} de {equipoSelecionado?.cantidad_equipo_concesion ?? 0} devueltos — Pendientes: {Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0)}
+                            </p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>}
 
                <div className="py-2">
                <FormField

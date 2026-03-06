@@ -29,7 +29,7 @@ import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation
 import { useArticulosConcesionados } from "@/hooks/useArticulosConcesionados";
 import { Input } from "../ui/input";
 import LoadImage, { Imagen } from "../upload-Image";
-import ConcesionadosAgregarEquipos, { EquipoConcesionado } from "../concesionados-agregar-equipos";
+import ConcesionadosAgregarEquipos, { EquipoConcesionado } from "../concesionados-tab-datos";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { base64ToFile } from "@/lib/utils";

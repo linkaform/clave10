@@ -2,10 +2,9 @@
 import React, { Dispatch, SetStateAction, useState } from "react";
 import { History } from "lucide-react";
 import { ConcesionadosDetalleSeguimiento } from "./modals/conceisonados-detalle-seg";
-import { EquipoConcesionado } from "./concesionados-agregar-equipos";
+import { EquipoConcesionado } from "./concesionados-tab-datos";
 import { NuevaDevolucionEquipoModal } from "./modals/concesionados-nueva-devolucion";
 import HistorialDevoluciones from "./concesionados-historial-devoluciones";
-import { useDevolucionEquipo } from "@/hooks/Concesionados/useDevolverConcesionado";
 
 interface AgregarEquiposListProps {
   equipos: EquipoConcesionado[];
@@ -14,13 +13,12 @@ interface AgregarEquiposListProps {
   dataConcesion: any
 }
 
-const ConcesionadosSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos, mode ,dataConcesion}) => {
+const TabSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos, mode ,dataConcesion}) => {
   const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
   const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
   const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState<any>({});
   const [nuevaDevolucionModal, setNuevaDevolucionEquiposModal] = useState(false);
 
-  const { devolverEquipoMutation , isLoading } = useDevolucionEquipo();
   console.log("dsataaaaaa", dataConcesion)
 
   const equiposActualizados = [...equipos];
@@ -31,20 +29,21 @@ const ConcesionadosSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos,
   };
 
   const onDevolverTodo = () => {
-    console.log("data concesiona", dataConcesion)
-     //PONER AQUI DATA
-    devolverEquipoMutation.mutate({
-        record_id: dataConcesion._id, 
-        status:"total",
-        state: "complete",
-        quien_entrega: "Nombre de quien entrega",
-        company: "Nombre Empresa",
-        identificacion_entrega : {
-          file_name:"foto.jpg",
-          file_url:""
-        },
-        comentarios:"Poner aqui comentarios globales"
-    });
+    setAgregarEquipoSeleccion(null);
+    setNuevaDevolucionEquiposModal(true);
+    //  //PONER AQUI DATA
+    // devolverEquipoMutation.mutate({
+    //     record_id: dataConcesion._id, 
+    //     status:"total",
+    //     state: "complete",
+    //     quien_entrega: "Nombre de quien entrega",
+    //     company: "Nombre Empresa",
+    //     identificacion_entrega : {
+    //       file_name:"foto.jpg",
+    //       file_url:""
+    //     },
+    //     comentarios:"Poner aqui comentarios globales"
+    // });
   };
 
   return (
@@ -94,11 +93,11 @@ const ConcesionadosSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos,
         equipos={equiposActualizados}
         onDevolver={onDevolver}
         onDevolverTodo={onDevolverTodo}
-        isLoadingTodo={isLoading}
+        isLoadingTodo={false}
         dataConcesion={dataConcesion}
       />
     </div>
   );
 };
 
-export default ConcesionadosSeguimientos;
+export default TabSeguimientos;

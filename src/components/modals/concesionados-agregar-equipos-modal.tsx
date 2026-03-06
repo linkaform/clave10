@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Calculator } from "lucide-react";
 import LoadImage from "../upload-Image";
-import { EquipoConcesionado } from "../concesionados-agregar-equipos";
+import { EquipoConcesionado } from "../concesionados-tab-datos";
 import { formatCurrency } from "@/lib/utils";
 import { equipoSchema } from "./add-article.con";
 import { format } from "date-fns";

@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { Dispatch, SetStateAction, useRef, useState } from "react";
+import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { useUploadImage } from "@/hooks/useUploadImage";
@@ -46,7 +46,16 @@ console.log("limiy", limit)
   const webcamRef = useRef<Webcam | null>(null);
   const videoConstraints = { width: 320, height: 240, facingMode };
   const reachedLimit = (imgArray?.length ?? 0) >= limit;
-
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [carouselApi, setCarouselApi] = useState<any>(null);
+  
+  useEffect(() => {
+    if (carouselApi) {
+      carouselApi.on("select", () => {
+        setActiveIndex(carouselApi.selectedScrollSnap());
+      });
+    }
+  }, [carouselApi]);
   async function handleFileChange(event: any) {
     const files: File[] = Array.from(event.target.files || []);
     if (!files.length) return;
@@ -156,9 +165,6 @@ console.log("limiy", limit)
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <Label>{titulo}</Label>
-          {/* <span className={`text-xs font-medium ${reachedLimit ? "text-red-400" : "text-gray-400"}`}>
-            {imgArray?.length ?? 0}/{limit}
-          </span> */}
         </div>
 
         <div className="flex items-center gap-1.5 ml-2">
@@ -257,51 +263,92 @@ console.log("limiy", limit)
               </div>
             </div>
           )}
+        {hideWebcam && imgArray?.length > 0 && (
+          <div className="w-full flex flex-col items-center mt-1 gap-2">
+            <Carousel className="w-52" setApi={setCarouselApi}>
+              <CarouselContent>
+                {imgArray.map((a: Imagen, index: number) => {
+                  const isVideo = a.file_url?.match(/\.(mp4|webm|ogg|mov|avi)$/i);
+                  return (
+                    <CarouselItem key={index}>
+                      <div className="p-1 relative">
+                        {isVideo ? (
+                          <video controls className="w-full h-40 object-cover rounded-xl">
+                            <source src={a.file_url} type="video/mp4" />
+                          </video>
+                        ) : (
+                          <Image
+                            height={160}
+                            width={160}
+                            src={a.file_url || "/nouser.svg"}
+                            alt="Imagen"
+                            className="w-full h-40 object-cover rounded-xl"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs rounded-full w-5 h-5 flex items-center justify-center transition-colors"
+                          title="Eliminar"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </CarouselItem>
+                  );
+                })}
+              </CarouselContent>
+              {imgArray.length > 1 && (
+                <>
+                  <CarouselPrevious type="button" />
+                  <CarouselNext type="button" />
+                </>
+              )}
+            </Carousel>
 
-          {hideWebcam && imgArray?.length > 0 && (
-            <div className="w-full flex justify-center mt-1">
-              <Carousel className="w-52">
-                <CarouselContent>
+            {imgArray.length > 1 && (
+              <div className="w-52 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
+                <div className="flex gap-2 pb-1" style={{ minWidth: "max-content" }}>
                   {imgArray.map((a: Imagen, index: number) => {
                     const isVideo = a.file_url?.match(/\.(mp4|webm|ogg|mov|avi)$/i);
+                    const isActive = activeIndex === index;
                     return (
-                      <CarouselItem key={index}>
-                        <div className="p-1 relative">
-                          {isVideo ? (
-                            <video controls className="w-full h-40 object-cover rounded-xl">
-                              <source src={a.file_url} type="video/mp4" />
-                            </video>
-                          ) : (
-                            <Image
-                              height={160}
-                              width={160}
-                              src={a.file_url || "/nouser.svg"}
-                              alt="Imagen"
-                              className="w-full h-40 object-cover rounded-xl"
-                            />
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs rounded-full w-5 h-5 flex items-center justify-center transition-colors"
-                            title="Eliminar"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </CarouselItem>
+                      <div
+                        key={index}
+                        onClick={() => {
+                          setActiveIndex(index);
+                          carouselApi?.scrollTo(index);
+                        }}
+                        onMouseEnter={() => {
+                          setActiveIndex(index);
+                          carouselApi?.scrollTo(index);
+                        }}
+                        className={`relative flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden cursor-pointer transition-all border-2 ${
+                          isActive ? "border-blue-500 scale-105" : "border-gray-200 hover:border-blue-300"
+                        }`}
+                      >
+                        {isVideo ? (
+                          <video className="w-full h-full object-cover">
+                            <source src={a.file_url} type="video/mp4" />
+                          </video>
+                        ) : (
+                          <Image
+                            height={48}
+                            width={48}
+                            src={a.file_url || "/nouser.svg"}
+                            alt={`miniatura-${index}`}
+                            className="w-full h-full object-cover"
+                            unoptimized
+                          />
+                        )}
+                      </div>
                     );
                   })}
-                </CarouselContent>
-                {imgArray.length > 1 && (
-                  <>
-                    <CarouselPrevious type="button" />
-                    <CarouselNext type="button" />
-                  </>
-                )}
-              </Carousel>
-            </div>
-          )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         </>
       )}
     </div>

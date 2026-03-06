@@ -9,10 +9,11 @@ import {
 } from "../ui/dialog";
 import Image from "next/image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../ui/carousel";
-import { EquipoConcesionado } from "../concesionados-agregar-equipos";
-import { Dispatch, SetStateAction } from "react";
+import { EquipoConcesionado } from "../concesionados-tab-datos";
+import { Dispatch, SetStateAction, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { Box, Calculator, Calendar, ImageOff, Package, User } from "lucide-react";
+import { Box, Calculator, Calendar, Eye, ImageOff, Package, User } from "lucide-react";
+import { DevolucionItem, HistorialDevolucionesModal } from "./concesionados-historial-devolucion-ver";
 
 interface ConcesionadosVerEquipoProps {
   title: string;
@@ -39,6 +40,11 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
     ? data.total
     : (data?.cantidad_equipo_concesion ?? 0) * getCosto(data.costo_equipo_concesion);
   console.log("data", data)
+
+  const [verDevolucionModal, setVerDevolucionModal] = useState(false);
+  const [devolucionSeleccionada, setDevolucionSeleccionada] = useState<DevolucionItem | null>(null);
+
+  
     return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -165,6 +171,16 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
                       <User className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                       <span className="text-xs text-gray-500">Entrega:</span>
                       <span className="text-xs font-medium text-gray-700">{devItem.quien_entrega||"-"} </span>
+                      <button
+                        type="button"
+                          onClick={() => {
+                            setDevolucionSeleccionada(devItem);
+                            setVerDevolucionModal(true);
+                          }}
+                          className="text-blue-400 hover:text-blue-600 transition-colors ml-20"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
                     </div>
                     <div className="flex items-center gap-2">
                       <Box className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
@@ -179,7 +195,13 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
           ) : null;
         })()}
         </div>
-       
+        <HistorialDevolucionesModal
+          devolucion={devolucionSeleccionada}
+          isSuccess={verDevolucionModal}
+          setIsSuccess={setVerDevolucionModal}
+        >
+          <div />
+        </HistorialDevolucionesModal>
       
         <div className="flex-shrink-0 bg-white border-t px-6 py-4">
           <DialogClose asChild>

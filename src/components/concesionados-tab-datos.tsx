@@ -10,8 +10,8 @@ import { formatCurrency } from "@/lib/utils";
 export interface EquipoConcesionado {
   id_movimiento?: string;
   categoria_equipo_concesion?: string;
-  cantidad_equipo_devuelto?:string;
-  cantidad_equipo_pendiente?:string;
+  cantidad_equipo_devuelto?:number|undefined;
+  cantidad_equipo_pendiente?:number|undefined;
   nombre_equipo?: string;
   costo_equipo_concesion?: number;
   imagen_equipo_concesion?: Imagen[];
@@ -28,7 +28,7 @@ interface AgregarEquiposListProps {
   mode: "vista" | "editar";
 }
 
-const ConcesionadosAgregarEquipos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode }) => {
+const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode }) => {
   const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
   const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
   const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState({});
@@ -193,4 +193,4 @@ const ConcesionadosAgregarEquipos: React.FC<AgregarEquiposListProps> = ({ equipo
   );
 };
 
-export default ConcesionadosAgregarEquipos;
+export default TabDatos;

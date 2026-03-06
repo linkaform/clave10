@@ -8,12 +8,12 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import ConcesionadosAgregarEquipos, { EquipoConcesionado } from "../concesionados-agregar-equipos";
-import ConcesionadosSeguimientos from "../concesionados-seguimientos";
+import TabDatos, { EquipoConcesionado } from "../concesionados-tab-datos";
 import { useEffect, useState } from "react";
 import { Imagen } from "../upload-Image";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { Building2, Calendar, ClipboardList, User } from "lucide-react";
+import TabSeguimientos from "../concesionados-tab-seguimientos";
 
 export type Concesion = {
   _id: string;
@@ -52,7 +52,7 @@ const getStatusStyle = (status: string) => {
   }
 };
 
-export const ViewArticuloCon: React.FC<ViewArtModalProps> = ({ data, children }) => {
+export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, children }) => {
   const [equipos, setEquipos] = useState<EquipoConcesionado[]>([]);
 
   useEffect(() => {
@@ -132,7 +132,7 @@ export const ViewArticuloCon: React.FC<ViewArtModalProps> = ({ data, children })
               </div>
 
               <div className=" p-5 py-0">
-                <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} mode="vista" />
+                <TabDatos equipos={equipos} setEquipos={setEquipos} mode="vista" />
               </div>
             </TabsContent>
 
@@ -148,7 +148,7 @@ export const ViewArticuloCon: React.FC<ViewArtModalProps> = ({ data, children })
                     <span className="text-sm font-bold text-red-600">{totalCantidadPendientes}</span>
                   </div>
                 </div>
-                <ConcesionadosSeguimientos equipos={equipos} setEquipos={setEquipos} mode="vista" dataConcesion={data}/>
+                <TabSeguimientos equipos={equipos} setEquipos={setEquipos} mode="vista" dataConcesion={data}/>
               </div>
             </TabsContent>
           </Tabs>
