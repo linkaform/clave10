@@ -69,6 +69,7 @@ interface ViewPassModalProps {
     grupo_vehiculos: Vehiculo_custom[];
     grupo_equipos: Equipo[];
     pdf_to_img: Imagen[];
+    tipo_de_pase: string;
   };
   isSuccess: boolean;
   children: React.ReactNode;
@@ -80,10 +81,10 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({
   children,
 }) => {
   const [open, setOpen] = useState(false)
-  const { userIdSoter } = useAuthStore()
+  const { userIdSoter, userParentId } = useAuthStore()
   const account_id = userIdSoter;
   const [enablePdf, setEnablePdf] = useState(false)
-  const { data: responsePdf } = useGetPdf(account_id, data._id, enablePdf);
+  const { data: responsePdf } = useGetPdf(userParentId, data._id, enablePdf);
   const { createSendCorreoSms, createSendSms, isLoadingCorreo, isLoadingSms } = useSendCorreoSms();
   const downloadUrl = responsePdf?.response?.data?.data?.download_url
   const [loadingPassUrl, setLoadingPassUrl] = useState(false);
@@ -236,6 +237,7 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({
               <div className="flex justify-between flex-col sm:flex-row  sm:space-x-5 space-y-5 sm:space-y-0 ">
                 <div className="w-full flex gap-2 ">
                   <p className="font-bold flex-shrink-0">Tipo de pase: </p>
+                  <p className="w-full break-words">{data?.tipo_de_pase}</p>
                 </div>
 
                 <div className="w-full flex gap-2">

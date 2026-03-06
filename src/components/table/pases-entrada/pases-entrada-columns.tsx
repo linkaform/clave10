@@ -91,6 +91,7 @@ export const OptionsCell: React.FC<{ row: any,onEditarClick: (pase: any) => void
     grupo_equipos: rowData.grupo_equipos||[],
     grupo_vehiculos: rowData.grupo_vehiculos||[],
     pdf_to_img: rowData.pdf_to_img || [],
+    tipo_de_pase: rowData.tipo_de_pase || "",
   }
   return (
     <div className="flex space-x-2">
