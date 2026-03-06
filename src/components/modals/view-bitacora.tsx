@@ -50,16 +50,16 @@ export const ViewListBitacoraModal: React.FC<ViewListBitacoraModalProps> = ({
 				aria-describedby=""
 			>
 				{/* Modern Header */}
-				<DialogHeader className="p-6 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+				<DialogHeader className="p-6 bg-gradient-to-r from-red-700 to-red-600 text-white">
 					<div className="flex items-center gap-3 text-left">
-						<div className="p-2 bg-white/10 rounded-lg">
-							<ShieldCheck className="w-6 h-6 text-blue-400" />
+						<div className="p-2 border border-white/20 bg-white/10 rounded-lg">
+							<ShieldCheck className="w-6 h-6 text-white" />
 						</div>
 						<div>
 							<DialogTitle className="text-xl font-bold tracking-tight">
 								{title}
 							</DialogTitle>
-							<p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-0.5">
+							<p className="text-[10px] text-red-100 uppercase tracking-widest font-bold mt-0.5 opacity-90">
 								Folio: {data?.folio}
 							</p>
 						</div>
