@@ -324,7 +324,10 @@ import DateTimePicker from "@/components/dateTimerPicker";
 			descripcion: data.descripcion,
 			perfil_pase: data.perfil_pase,
 			status_pase: "Proceso",
-			visita_a: visitaASeleccionadas?.map(u => u.name) ?? [],
+			visita_a: visitaASeleccionadas?.map(u => {
+				const val = typeof u === "string" ? u : (u?.id || u?.name || "");
+				return String(val).split(" - ")[0].trim();
+			}) ?? [],
 			custom: true,
 			link:{
 				link: `${protocol}//${host}/dashboard/pase-update`,
