@@ -299,7 +299,7 @@ export const ViewListBitacoraModal: React.FC<ViewListBitacoraModalProps> = ({
 													<MapPin className="w-4 h-4" />
 												</div>
 												<div className="overflow-hidden">
-													<p className="text-sm font-bold text-slate-800 truncate">{area.note_booth}</p>
+													<p className="text-sm font-bold text-slate-800 truncate">{area.note_booth || area.incidente_area}</p>
 													{area.commentario_area && (
 														<p className="text-[10px] text-slate-400 font-medium truncate uppercase mt-0.5">{area.commentario_area}</p>
 													)}
