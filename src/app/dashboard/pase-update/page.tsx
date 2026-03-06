@@ -225,8 +225,8 @@ const PaseUpdate = () =>{
 		if (urlImgPass) {
 			onDescargarPNG(urlImgPass);
 			return;
-		} else if (passImg) {
-			onDescargarPNG(passImg[0].file_url);
+		} else if (passImg && passImg.length > 0) {
+			onDescargarPNG(passImg[0]?.file_url);
 			return;
 		}
 		if (!record_id) {
