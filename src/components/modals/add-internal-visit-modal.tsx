@@ -228,8 +228,8 @@ export const AddInternalVisitModal: React.FC<Props> = ({ title, children }) => {
                               
                               const val = customVisitaA.trim();
                               const newValue = {
-                                name: `${val} (No Registrado)`,
-                                id: `${val} (No Registrado)`,
+                                name: `${val}*`,
+                                id: `${val}*`,
                               };
                               
                               // Forzamos el uso de un solo elemento para respetar el selectionLimit=1
