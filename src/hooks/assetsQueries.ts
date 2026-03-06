@@ -67,26 +67,28 @@ const formatAssets = (ubicacionesSeleccionadas: any[]) => {
 
 export const useAssetsByLocations = (ubicacionesSeleccionadas: any[], cat?: string) => {
   const queries = useQueries({
-    queries: ubicacionesSeleccionadas.map((ubicacion) => {
-      const location = ubicacion.id;
-      const localData = getLocalAssets(location);
-      return {
-        queryKey: ["getAssetsAccess", location, cat],
-        enabled: !!location && !localData,
-        staleTime: Infinity,
-        gcTime: Infinity,
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-        refetchOnMount: false,
-        initialData: localData ?? undefined,
-        queryFn: async () => {
-          const data = await getAccessAssets(location, cat);
-          const result = data.response?.data || {};
-          localStorage.setItem(`assets_${location}`, JSON.stringify(result));
-          return result;
-        },
-      };
-    }),
+    queries: ubicacionesSeleccionadas
+      .filter((ubicacion) => !!ubicacion?.id) 
+      .map((ubicacion) => {
+        const location = ubicacion.id;
+        const localData = getLocalAssets(location);
+        return {
+          queryKey: ["getAssetsAccess", location, cat],
+          enabled: !!location && !localData,
+          staleTime: Infinity,
+          gcTime: Infinity,
+          refetchOnWindowFocus: false,
+          refetchOnReconnect: false,
+          refetchOnMount: false,
+          initialData: localData ?? undefined,
+          queryFn: async () => {
+            const data = await getAccessAssets(location, cat);
+            const result = data.response?.data || {};
+            localStorage.setItem(`assets_${location}`, JSON.stringify(result));
+            return result;
+          },
+        };
+      }),
   });
 
   const isLoading = queries.some(

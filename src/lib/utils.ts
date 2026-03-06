@@ -675,3 +675,10 @@ export function customToast(text: string, variant: ToastVariant) {
 export function uniqueArray(arr: string[]) {
   return [...new Set(arr)];
 }
+
+export function getRequerimientos(ubi: string): string[] {
+  const raw = localStorage.getItem(`assets_${ubi}`);
+  if (!raw) return [];
+  const data = JSON.parse(raw);
+  return data?.requerimientos ?? [];
+}

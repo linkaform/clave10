@@ -358,8 +358,8 @@ const AccesosPage = () => {
 							type="text"
 							placeholder="Escanear Pase"
 							className="pl-5 pr-10 w-full"
-							value={inputValue} // Enlazamos el input con su estado
-							onChange={(e) => setInputValue(e.target.value)} // Actualizamos el estado
+							value={inputValue} 
+							onChange={(e) => setInputValue(e.target.value)} 
 							/>
 							<Search className="absolute right-12 h-4 w-4 text-gray-500 pointer-events-none" />
 

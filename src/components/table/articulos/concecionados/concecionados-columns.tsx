@@ -2,9 +2,9 @@ import {
   ColumnDef, 
 } from "@tanstack/react-table";
 import {  ArrowLeftRight, Eye } from "lucide-react";
-import { ViewArticuloCon } from "@/components/modals/view-articulo-con";
+import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-de-la-concesion";
 import { Imagen } from "@/components/upload-Image";
-import { SeguimientosModalArticuloCon } from "@/components/modals/concesionados-seguimientos-modal";
+import { DetalleDelSeguimiento } from "@/components/modals/concesionados-detalle-del-seguimiento";
 
 export interface Articulo_con_record {
     _id:string,
@@ -30,17 +30,17 @@ const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
 
   return (
     <><div className="flex space-x-2">
-      <ViewArticuloCon
+      <DetalleDeLaConcesion
         data={articulo} isSuccess={false}>
         <div className="cursor-pointer" title="Ver Artículo">
           <Eye />
         </div>
-      </ViewArticuloCon>
+      </DetalleDeLaConcesion>
 
     
-      <SeguimientosModalArticuloCon data={articulo} isSuccess={false}>
+      <DetalleDelSeguimiento data={articulo} isSuccess={false}>
       <div><ArrowLeftRight /> </div>
-      </SeguimientosModalArticuloCon>
+      </DetalleDelSeguimiento>
 
     </div>
     </>
@@ -72,24 +72,20 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       header: "Estado",
       cell: ({ row }) => {
         const status = row.getValue("status_concesion") as string;
-        const isAbierto = status?.toLowerCase() === "abierto";
-    
+        const styles: Record<string, string> = {
+          abierto:  "bg-red-100 text-red-700 border-red-300",
+          parcial:  "bg-yellow-100 text-yellow-700 border-yellow-300",
+          devuelto: "bg-green-100 text-green-700 border-green-300",
+        };
+        const style = styles[status?.toLowerCase()] ?? "bg-gray-100 text-gray-600 border-gray-200";
         return (
-          <div
-            className={`inline-flex items-center justify-center px-2  text-sm font-semibold rounded-md border capitalize
-              ${
-                isAbierto
-                  ? "bg-red-100 text-red-700 border-red-700"
-                  : "bg-green-100 text-green-700 border-green-700"
-              }
-            `}
-          >
+          <div className={`inline-flex items-center justify-center px-2 text-sm font-semibold rounded-md border capitalize ${style}`}>
             {status}
           </div>
         );
       },
       enableSorting: true,
-    },    
+    },   
     {
       accessorKey: "persona_nombre_concesion",
       header: "Empleado",
