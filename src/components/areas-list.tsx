@@ -39,7 +39,7 @@ const formSchema =
 
 const AreasList:React.FC<AreasListProps> = ({ areas, setAreas, catAreas, loadingCatAreas, existingAreas})=> {
     const [collapsedIndex, setCollapsedIndex] = useState<number | null>(null);
-
+console.log("LISTADO DE AREAS", areas,catAreas)
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: { nombre_area: "", commentario_area: "",}});
@@ -104,7 +104,7 @@ const AreasList:React.FC<AreasListProps> = ({ areas, setAreas, catAreas, loading
       {areas.map((area, index) => 
       { console.log("AREASa",area)
         return(
-        <div key={index} className="border rounded mt-2">
+        <div key={index} className="rounded mt-2">
           <AreasItem
             areaRaw={area}
             isCollapsed={collapsedIndex !== index}
@@ -147,8 +147,8 @@ const AreasList:React.FC<AreasListProps> = ({ areas, setAreas, catAreas, loading
                   <SelectContent>
                     {catAreas?.length > 0 ? (
                       catAreas.map((area, index) => (
-                        <SelectItem key={index} value={area.value}>
-                          {area.label}
+                        <SelectItem key={index} value={area.name}>
+                          {area.name}
                         </SelectItem>
                       ))
                     ) : (

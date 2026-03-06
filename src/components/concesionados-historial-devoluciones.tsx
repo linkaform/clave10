@@ -1,263 +1,348 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, Package, Calendar, User, FileText, RotateCcw } from "lucide-react";
+import { ChevronDown, ChevronUp, Package, Calendar, User, FileText, RotateCcw, Loader2, PackageCheck, MessageSquare, Box, Eye } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { EquipoConcesionado } from "./concesionados-agregar-equipos";
-
-export interface Devolucion {
-  id: number;
-  unidadesDevueltas: number;
-  unidadesTotales: number;
-  estatus: "pendiente" | "abierto" | "En Proceso";
-  progreso: number; 
-  fecha: string;
-  equipo: string;
-  solicitante: string;
-  motivo: string;
-  comentarios?: string;
-  fechaDevolucion?: string;
-}
+import { EquipoConcesionado } from "./concesionados-tab-datos";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
+import Image from "next/image";
+import { Button } from "./ui/button";
+import { DevolucionItem, HistorialDevolucionesModal } from "./modals/concesionados-historial-devolucion-ver";
 
 interface HistorialDevolucionesProps {
   equipos: EquipoConcesionado[];
-  onDevolver?: (equipo: EquipoConcesionado) => void; 
+  onDevolver?: (equipo: EquipoConcesionado) => void;
+  onDevolverTodo?: () => void;
+  isLoadingTodo: boolean;
+  dataConcesion:any
 }
 
-type FiltroEstatus = "todos" | "abierto" | "en proceso" | "completo";
+type FiltroEstatus = "todos" | "abierto" | "en proceso" | "devuelto";
 
-const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({ 
+const getProgreso = (equipo: EquipoConcesionado) => {
+  const devuelto = Number(equipo.cantidad_equipo_devuelto ?? 0);
+  const total = Number(equipo.cantidad_equipo_concesion ?? 0);
+  const porcentaje = total > 0 ? Math.round((devuelto / total) * 100) : 0;
+  const color =
+    porcentaje === 100 ? "bg-green-500" :
+    porcentaje > 0     ? "bg-yellow-400" :
+                         "bg-red-400";
+  return { porcentaje, color };
+};
+const getEstatusStyle = (equipo: EquipoConcesionado) => {
+  const { porcentaje } = getProgreso(equipo);
+  if (porcentaje === 100) return "bg-green-100 text-green-700 border-green-200";
+  if (porcentaje > 0)     return "bg-yellow-100 text-yellow-700 border-yellow-200";
+  return "bg-red-100 text-red-700 border-red-200";
+};
+
+const getEstatusLabel = (equipo: EquipoConcesionado) => {
+  const { porcentaje } = getProgreso(equipo);
+  if (porcentaje === 100) return "Devuelto";
+  if (porcentaje > 0)     return "En Proceso";
+  return "Pendiente";
+};
+
+
+const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
   equipos,
-  onDevolver 
+  onDevolver,
+  onDevolverTodo,
+  isLoadingTodo,
+  dataConcesion
 }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [filtroActivo, setFiltroActivo] = useState<FiltroEstatus>("todos");
+  const [verDevolucionModal, setVerDevolucionModal] = useState(false);
+  const [devolucionSeleccionada, setDevolucionSeleccionada] = useState<DevolucionItem | null>(null);
 
-  const toggleAccordion = (index: number) => {
+
+  const toggleAccordion = (index: number) =>
     setExpandedIndex(expandedIndex === index ? null : index);
-  };
 
   const handleDevolver = (equipo: EquipoConcesionado, e: React.MouseEvent) => {
-    e.stopPropagation(); 
-    if (onDevolver) {
-      onDevolver(equipo); 
-    }
+    e.stopPropagation();
+    onDevolver?.(equipo);
+  };
+  const handleDevolverTodo = () => {
+    onDevolverTodo?.();
   };
 
-  const getEstatusColor = (estatus: string) => {
-    switch (estatus) {
-      case "completo":
-        return "bg-green-100 text-green-700 border-green-700";
-      case "pendiente":
-        return "bg-red-100 text-red-700 border-red-700";
-      case "abierto":
-        return "bg-red-100 text-red-700 border-red-700";
-      case "en proceso":
-        return "bg-yellow-100 text-yellow-700 border-yellow-700";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-700";
-    }
-  };
-
-  const getProgressColor = (estatus: string) => {
-    console.log(estatus);
-    switch (estatus) {
-      case "completo":
-        return "bg-green-500";
-      case "pendiente":
-        return "bg-red-500";
-      case "abierto":
-        return "bg-red-500";
-      case "en proceso":
-        return "bg-yellow-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
-  const equiposFiltrados = equipos.filter((equipo) => {
-    if (filtroActivo === "todos") return true;
-    return equipo.status_concesion_equipo === filtroActivo;
-  });
+  const equiposFiltrados = equipos.filter((equipo) =>
+    filtroActivo === "todos" ? true : equipo.status_concesion_equipo === filtroActivo
+  );
 
   const botonesFiltro: { label: string; value: FiltroEstatus }[] = [
     { label: "Todos", value: "todos" },
-    { label: "Pendiente", value: "abierto" },
+    { label: "Pendientes", value: "abierto" },
     { label: "En Proceso", value: "en proceso" },
-    { label: "Completado", value: "completo" },
+    { label: "Completado", value: "devuelto" },
   ];
-
+  const getCosto = (costo: number | number[] | undefined): number => {
+    if (Array.isArray(costo)) return costo[0] ?? 0;
+    return costo ?? 0;
+  };
   return (
-    <div className="max-h-[500px] overflow-y-auto space-y-3 pr-2">
-      
-      <div className="flex gap-2 mb-4 flex-wrap">
+    <div className="space-y-4">
+
+      <HistorialDevolucionesModal
+			devolucion={devolucionSeleccionada}
+			isSuccess={verDevolucionModal}
+			setIsSuccess={setVerDevolucionModal}
+			>
+			<div />
+		</HistorialDevolucionesModal>
+      <div className="flex gap-2 flex-wrap justify-between">
+
+        <div className=" flex gap-2">
         {botonesFiltro.map((boton) => (
           <button
             key={boton.value}
             onClick={() => setFiltroActivo(boton.value)}
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200  ${
               filtroActivo === boton.value
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                ? "bg-blue-500 text-white shadow-sm"
+                : "border border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
             }`}
           >
             {boton.label}
           </button>
         ))}
+        </div>
+        {dataConcesion.status_concesion !=="devuelto" &&
+        <div>
+        <Button
+            disabled={isLoadingTodo}
+            onClick={() => handleDevolverTodo()}
+            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
+          >
+            {isLoadingTodo
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>
+              : <><PackageCheck className="w-4 h-4" /> Devolver todo</>
+            }
+          </Button>
+        </div>
+        }
       </div>
 
-      <div className="max-h-[500px] overflow-y-hidden space-y-3 pr-2">
-        {equiposFiltrados && equiposFiltrados.length > 0 ? (
-          equiposFiltrados.map((dev, index) => (
-            <div
-              key={index}
-              className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm"
-            >
+      <div className="max-h-[460px] overflow-y-auto space-y-3 pr-1">
+        {equiposFiltrados.length > 0 ? (
+          equiposFiltrados.map((dev, index) => {
+            const { porcentaje, color } = getProgreso(dev);
+            const isOpen = expandedIndex === index;
+            console.log("devvvv", dev)
+            return (
               <div
-                className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => toggleAccordion(index)}
+                key={index}
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm"
               >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-5 h-5 text-gray-600" />
-                      <span className="font-semibold text-gray-700">
-                        0/{dev?.cantidad_equipo_concesion} {dev.nombre_equipo}
+                <div
+                  className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => toggleAccordion(index)}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <Package className="w-4 h-4 text-blue-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-700 text-sm truncate">
+                          {dev.nombre_equipo}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {dev.cantidad_equipo_devuelto ?? 0} / {dev.cantidad_equipo_concesion ?? 0} unidades devueltas
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${getEstatusStyle(dev ?? "")}`}>
+                        {getEstatusLabel(dev ?? "")}
                       </span>
-                    </div>
-
-                    <div
-                      className={`inline-flex items-center justify-center px-3 py-1 text-xs font-semibold rounded-full border ${getEstatusColor(
-                        dev.status_concesion_equipo ?? ""
-                      )}`}
-                    >
-                      {dev.status_concesion_equipo === "abierto"
-                        ? "Pendiente"
-                        : dev.status_concesion_equipo === "en proceso"
-                        ? "En Proceso"
-                        : "Completo"}
+                      {isOpen
+                        ? <ChevronUp className="w-4 h-4 text-gray-400" />
+                        : <ChevronDown className="w-4 h-4 text-gray-400" />
+                      }
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="text-gray-500">
-                      {expandedIndex === index ? (
-                        <ChevronUp className="w-5 h-5" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5" />
-                      )}
+                  <div className="mt-3">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-gray-400">Progreso de devolución</span>
+                      <span className="text-xs font-semibold text-gray-600">{porcentaje}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full transition-all duration-300 ${color}`}
+                        style={{ width: `${porcentaje}%` }}
+                      />
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-3">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs text-gray-600">Progreso</span>
-                    <span className="text-xs font-semibold text-gray-700">
-                      {0}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(
-                        dev.status_concesion_equipo ?? ""
-                      )}`}
-                      style={{ width: `${dev.status_concesion_equipo}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
+                {isOpen && (
+                  <div className="border-t border-gray-100 bg-gray-50 p-4 space-y-4">
 
-              {expandedIndex === index && (
-                <div className="border-t border-gray-200 bg-gray-50 p-4 animate-fadeIn">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {dev.status_concesion_equipo == "completo" && (
-                      <>
-                        <div className="flex items-start gap-2">
-                          <User className="w-4 h-4 text-blue-500 mt-1" />
-                          <div>
-                            <p className="text-sm text-blue-500 font-bold">
-                              Precio unitario ($)
+                    { (
+                      <div className="grid grid-cols-2 gap-3">
+                         
+                        <div className="bg-white rounded-xl border border-blue-100 px-4 py-3">
+                          <p className="text-xs text-gray-400 mb-0.5">Precio unitario</p>
+                          <p className="text-sm font-bold text-blue-700"> {formatCurrency(getCosto(dev?.costo_equipo_concesion))}</p>
+                        </div>
+                        <div className="bg-white rounded-xl border border-blue-100 px-4 py-3">
+                          <p className="text-xs text-gray-400 mb-0.5">Subtotal</p>
+                          <p className="text-sm font-bold text-blue-700">
+                            {formatCurrency((dev?.cantidad_equipo_concesion ?? 0) * getCosto(dev?.costo_equipo_concesion))}
+                          </p>
+                        </div>
+                        {dev?.comentario_entrega && (
+                            <div className="flex items-start gap-2">
+                              <MessageSquare className="w-3.5 h-3.5 text-purple-400 mt-0.5 flex-shrink-0" />
+                              <span className="text-xs text-gray-600">{dev?.comentario_entrega}</span>
+                            </div>
+                          )}
+                        <div className="col-span-2">
+                      {(() => {
+                        const devoluciones = dataConcesion?.grupo_equipos_devolucion?.filter(
+                          (d: any) => d.id_movimiento_devolucion === dev?.id_movimiento
+                        ) || [];
+
+                        return devoluciones.length > 0 ? (
+                          <div className="col-span-2 mt-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                              Sobre las devoluciones ({devoluciones.length})
                             </p>
-                            <p className="text-sm font-medium text-gray-700">
-                              {formatCurrency(200)}
-                            </p>
+                            <div className="flex flex-col justify-between gap-2">
+                              {devoluciones.map((devItem: any, index: number) => (
+                                <div
+                                  key={index}
+                                  className="rounded-lg border border-gray-100 bg-gray-50 p-3 flex flex-col gap-1"
+                                >
+                                  <div className="flex items-center justify-around">
+                                      <div className="flex flex-col gap-1 flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <Calendar className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                                          <span className="text-xs text-gray-500">Fecha:</span>
+                                          <span className="text-xs font-medium text-gray-700">{devItem.fecha_devolucion_concesion || "-"}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <User className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                                          <span className="text-xs text-gray-500">Entrega:</span>
+                                          <span className="text-xs font-medium text-gray-700">{devItem.quien_entrega || "-"}</span>
+                                          <button
+                                            type="button"
+                                              onClick={() => {
+                                                setDevolucionSeleccionada(devItem);
+                                                setVerDevolucionModal(true);
+                                              }}
+                                              className="text-blue-400 hover:text-blue-600 transition-colors ml-20"
+                                            >
+                                              <Eye className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <Box className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                                          <span className="text-xs text-gray-500">Unidades:</span>
+                                          <span className="text-xs font-medium text-gray-700">{devItem.cantidad_devolucion || "-"} / {dev?.cantidad_equipo_concesion}</span>
+                                          
+                                        </div>
+                                      </div>
+                                    
+                                  </div>
+                                 
+                                </div>
+                              ))}
+                            </div>
+
+                            <HistorialDevolucionesModal
+                              devolucion={devolucionSeleccionada}
+                              isSuccess={verDevolucionModal}
+                              setIsSuccess={setVerDevolucionModal}
+                            >
+                              <div />
+                            </HistorialDevolucionesModal>
                           </div>
+                        ) : null;
+                      })()}
+
+
                         </div>
-                        <div className="flex items-start gap-2">
-                          <User className="w-4 h-4 text-blue-500 mt-1" />
-                          <div>
-                            <p className="text-sm text-blue-500 font-bold">
-                              Subtotal ($)
-                            </p>
-                            <p className="text-sm font-medium text-gray-700">
-                              {formatCurrency(400)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="col-span-2 text-sm font-bold text-gray-800">
-                          Sobre la devolucion
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <Calendar className="w-4 h-4 text-green-500 mt-1" />
-                          <div>
-                            <p className="text-xs text-gray-500">
-                              Fecha y hora de la devolución
-                            </p>
-                            <p className="text-sm font-medium text-gray-700">
-                              {"12-02-14 3:3-pm"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <User className="w-4 h-4 text-blue-500 mt-1" />
-                          <div>
-                            <p className="text-xs text-gray-500">
-                              Empleado (entrega)
-                            </p>
-                            <p className="text-sm font-medium text-gray-700">
-                              {"Emiliano Zapata demo data"}
-                            </p>
-                          </div>
-                        </div>
-                      </>
+
+                      </div>
                     )}
-                    {(dev.status_concesion_equipo == "en proceso" ||
-                      dev.status_concesion_equipo == "abierto") &&
+
+                    {/* {(dev.status_concesion_equipo === "en proceso" || dev.status_concesion_equipo === "abierto" || dev.status_concesion_equipo === "devuelto"|| dev.status_concesion_equipo === "completo") &&
                       dev.comentario_entrega && (
-                        <div className="flex items-start gap-2 md:col-span-2">
-                          <FileText className="w-4 h-4 text-blue-500 mt-1" />
-                          <div className="flex-1">
-                            <p className="text-xs text-gray-500">Comentarios</p>
-                            <p className="text-sm text-gray-700">
-                              {dev.comentario_entrega}
-                            </p>
+                        <div className="flex items-start gap-2">
+                          <FileText className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-400 mb-0.5">Comentarios</p>
+                            <p className="text-sm text-gray-700">{dev.comentario_entrega}</p>
                           </div>
                         </div>
-                      )}
+                    )} */}
+
+                    
+                    {dev.imagen_equipo_concesion &&(
+                      <div className="flex items-start gap-2">
+                        <FileText className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                        <div className="w-full">
+                          <p className="text-xs text-gray-400 mb-2">Evidencia del equipo</p>
+                          <div className="flex justify-center">
+                            <Carousel className="w-52">
+                              <CarouselContent>
+                                {dev.imagen_equipo_concesion.map((a, i) => (
+                                  <CarouselItem key={i}>
+                                    <div className="p-1">
+                                      <div className="rounded-xl overflow-hidden border bg-gray-50 aspect-square flex items-center justify-center">
+                                        <Image
+                                          width={280}
+                                          height={280}
+                                          src={a.file_url || "/nouser.svg"}
+                                          alt={`Evidencia ${i + 1}`}
+                                          className="w-full h-full object-contain"
+                                          unoptimized
+                                        />
+                                      </div>
+                                    </div>
+                                  </CarouselItem>
+                                ))}
+                              </CarouselContent>
+                              {dev.imagen_equipo_concesion.length > 1 && (
+                                <>
+                                  <CarouselPrevious type="button" />
+                                  <CarouselNext type="button" />
+                                </>
+                              )}
+                            </Carousel>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {(dev.status_concesion_equipo === "pendiente" ||
+                      dev.status_concesion_equipo === "en proceso" ||
+                      dev.status_concesion_equipo === "abierto") && (
+                      <div className="pt-2 border-t border-gray-100 flex justify-center gap-3">
+                        <Button
+                          onClick={(e) => handleDevolver(dev, e)}
+                          className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          Devolver 
+                        </Button>
+                       
+                      </div>
+                    )}
                   </div>
-                  {(dev.status_concesion_equipo == "pendiente" ||
-                    dev.status_concesion_equipo == "en proceso" ||
-                    dev.status_concesion_equipo == "abierto") && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 flex justify-center">
-                      <button
-                        onClick={(e) => handleDevolver(dev, e)}
-                        className="w-1/2 size-10 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-md font-small transition-colors"
-                      >
-                        <RotateCcw className="w-5 h-5" />
-                        Devolver
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))
+                )}
+              </div>
+            );
+          })
         ) : (
-          <div className="text-center text-gray-500 py-8 border border-gray-300 rounded-lg bg-gray-50">
-            No hay equipos{" "}
-            {filtroActivo !== "todos"
-              ? `con estatus "${filtroActivo}"`
-              : "registrados"}
-            .
+          <div className="flex flex-col items-center justify-center py-10 bg-white border border-gray-200 rounded-xl text-gray-400 gap-2">
+            <Package className="w-8 h-8 text-gray-300" />
+            <p className="text-sm">
+              No hay equipos{filtroActivo !== "todos" ? ` con estatus "${filtroActivo}"` : " registrados"}.
+            </p>
           </div>
         )}
       </div>
