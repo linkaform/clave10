@@ -147,7 +147,7 @@ const PaseUpdate = () =>{
 	const [errorFotografia, setErrorFotografia] = useState("")
 	const [errorIdentificacion, setErrorIdentificacion] = useState("")
 
-	const [isActualizarOpen, setIsActualizarOpen] = useState<string|boolean>(false);
+	const isActualizarOpen = false
 	const [equipos, setEquipos] = useState<Equipo[]>( []);
 	const [vehicles, setVehiculos] = useState<Vehiculo[]>([]);
 
@@ -819,7 +819,7 @@ return (
 						</div>
 
 						<Card className="w-full max-w-md border-none shadow-2xl relative overflow-hidden bg-white rounded-3xl">
-							<div className="absolute top-0 left-0 right-0 h-4 bg-blue-600" />
+							<div className="absolute top-0 left-0 right-0 h-4 bg-red-600" />
 							<CardContent className="p-8 pt-10 flex flex-col items-center">
 								{/* Info del Pase */}
 								<div className="w-full grid grid-cols-2 gap-4 mb-8 text-center sm:text-left">
@@ -861,14 +861,12 @@ return (
 						</Card>
 
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md">
-							<Button 
-								variant="outline" 
-								className="h-14 border-gray-200 rounded-2xl font-bold flex gap-2 group hover:bg-gray-50"
+							<button 
+								className="h-14 flex items-center justify-center hover:scale-[1.02] transition-transform"
 								onClick={handleClickGoogleButton}
 							>
-								<Image src="/esES_add_to_google_wallet_add-wallet-badge.png" alt="Google Wallet" width={24} height={24} className="opacity-80 group-hover:opacity-100" />
-								Google Wallet
-							</Button>
+								<Image src="/esES_add_to_google_wallet_add-wallet-badge.png" alt="Añadir a Google Wallet" width={200} height={56} className="h-full w-auto object-contain" />
+							</button>
 
 							<Button
 								className="h-14 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded-2xl shadow-lg shadow-yellow-100 flex gap-2"
@@ -877,13 +875,6 @@ return (
 							>
 								{loadingImgPass ? <Loader2 className="animate-spin" /> : <Download size={20} />}
 								Descargar Imagen
-							</Button>
-
-							<Button
-								className="sm:col-span-2 h-14 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl flex gap-2 shadow-lg shadow-blue-100"
-								onClick={() => setIsActualizarOpen(!isActualizarOpen)}
-							>
-								{isActualizarOpen ? "Ocultar Mis Datos" : "Ver Datos Registrados"}
 							</Button>
 						</div>
 
