@@ -26,9 +26,10 @@ interface AgregarEquiposListProps {
   equipos: EquipoConcesionado[];
   setEquipos: Dispatch<SetStateAction<EquipoConcesionado[]>>;
   mode: "vista" | "editar";
+  dataConcesion:any
 }
 
-const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode }) => {
+const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode,dataConcesion }) => {
   const [openAgregarEquiposModal, setOpenAgregarEquiposModal] = useState(false);
   const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
   const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState({});
@@ -70,7 +71,6 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
 
   return (
     <div className="space-y-3">
-      {/* Header */}
       {mode === "editar" && (
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -94,7 +94,7 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
         setIsSuccess={setOpenVerEquiposModal}
         isSuccess={openVerEquiposModal}
         data={agregarEquipoSeleccion as any}
-        dataConcesion={{}}
+        dataConcesion={dataConcesion}
       >
         <div />
       </ConcesionadosVerEquipo>

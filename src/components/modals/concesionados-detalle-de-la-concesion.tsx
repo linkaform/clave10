@@ -136,7 +136,7 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
               </div>
 
               <div className=" p-5 py-0">
-                <TabDatos equipos={equipos} setEquipos={setEquipos} mode="vista" />
+                <TabDatos equipos={equipos} setEquipos={setEquipos} mode="vista" dataConcesion={data}/>
               </div>
             </TabsContent>
 

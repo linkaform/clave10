@@ -6,6 +6,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import Image from "next/image";
 import { Button } from "./ui/button";
 import { DevolucionItem, VerDetalleDevolucion } from "./modals/concesionados-ver-detalle-devolucion";
+import { HistorialDevolucionesList } from "./concesionados-historial-devoluciones-list";
 
 interface HistorialDevolucionesProps {
   equipos: EquipoConcesionado[];
@@ -128,7 +129,6 @@ const HistorialDevolucionesPrincipal: React.FC<HistorialDevolucionesProps> = ({
           equiposFiltrados.map((dev, index) => {
             const { porcentaje, color } = getProgreso(dev);
             const isOpen = expandedIndex === index;
-            console.log("devvvv", dev)
             return (
               <div
                 key={index}
@@ -200,88 +200,17 @@ const HistorialDevolucionesPrincipal: React.FC<HistorialDevolucionesProps> = ({
                               <span className="text-xs text-gray-600">{dev?.comentario_entrega}</span>
                             </div>
                           )}
-                        <div className="col-span-2">
-                      {(() => {
-                        const devoluciones = dataConcesion?.grupo_equipos_devolucion?.filter(
-                          (d: any) => d.id_movimiento_devolucion === dev?.id_movimiento
-                        ) || [];
-
-                        return devoluciones.length > 0 ? (
-                          <div className="col-span-2 mt-2">
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                              Sobre las devoluciones ({devoluciones.length})
-                            </p>
-                            <div className="flex flex-col justify-between gap-2">
-                              {devoluciones.map((devItem: any, index: number) => (
-                                <div
-                                  key={index}
-                                  className="rounded-lg border border-gray-100 bg-gray-50 p-3 flex flex-col gap-1"
-                                >
-                                  <div className="flex items-center justify-around">
-                                      <div className="flex flex-col gap-1 flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <Calendar className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                                          <span className="text-xs text-gray-500">Fecha:</span>
-                                          <span className="text-xs font-medium text-gray-700">{devItem.fecha_devolucion_concesion || "-"}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <User className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                                          <span className="text-xs text-gray-500">Entrega:</span>
-                                          <span className="text-xs font-medium text-gray-700">{devItem.quien_entrega || "-"}</span>
-                                          <button
-                                            type="button"
-                                              onClick={() => {
-                                                setDevolucionSeleccionada(devItem);
-                                                setVerDevolucionModal(true);
-                                              }}
-                                              className="text-blue-400 hover:text-blue-600 transition-colors ml-20"
-                                            >
-                                              <Eye className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <Box className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                                          <span className="text-xs text-gray-500">Unidades:</span>
-                                          <span className="text-xs font-medium text-gray-700">{devItem.cantidad_devolucion || "-"} / {dev?.cantidad_equipo_concesion}</span>
-                                          
-                                        </div>
-                                      </div>
-                                    
-                                  </div>
-                                 
-                                </div>
-                              ))}
-                            </div>
-
-                            <VerDetalleDevolucion
-                              devolucion={devolucionSeleccionada}
-                              isSuccess={verDevolucionModal}
-                              setIsSuccess={setVerDevolucionModal}
-                            >
-                              <div />
-                            </VerDetalleDevolucion>
-                          </div>
-                        ) : null;
-                      })()}
-
-
-                        </div>
+                       
 
                       </div>
                     )}
+                      <div className="w-1/2">
+                        <HistorialDevolucionesList
+                          devoluciones={dataConcesion?.grupo_equipos_devolucion??[]}>
+                          </HistorialDevolucionesList>
 
-                    {/* {(dev.status_concesion_equipo === "en proceso" || dev.status_concesion_equipo === "abierto" || dev.status_concesion_equipo === "devuelto"|| dev.status_concesion_equipo === "completo") &&
-                      dev.comentario_entrega && (
-                        <div className="flex items-start gap-2">
-                          <FileText className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs text-gray-400 mb-0.5">Comentarios</p>
-                            <p className="text-sm text-gray-700">{dev.comentario_entrega}</p>
-                          </div>
-                        </div>
-                    )} */}
-
-                    
+                        </div>  
+              
                     {dev.imagen_equipo_concesion &&(
                       <div className="flex items-start gap-2">
                         <FileText className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
