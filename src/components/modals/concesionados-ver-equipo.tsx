@@ -12,7 +12,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { EquipoConcesionado } from "../concesionados-tab-datos";
 import { Dispatch, SetStateAction, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { Box, Calculator, Calendar, Eye, ImageOff, Package, User } from "lucide-react";
+import { Calculator, ImageOff, Package } from "lucide-react";
 import { DevolucionItem, VerDetalleDevolucion } from "./concesionados-ver-detalle-devolucion";
 
 interface ConcesionadosVerEquipoProps {
@@ -30,7 +30,6 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
   children,
   setIsSuccess,
   isSuccess,
-  dataConcesion
 }) => {
   const getCosto = (costo: number | number[] | undefined): number => {
     if (Array.isArray(costo)) return costo[0] ?? 0;
@@ -41,7 +40,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
     : (data?.cantidad_equipo_concesion ?? 0) * getCosto(data?.costo_equipo_concesion);
 
   const [verDevolucionModal, setVerDevolucionModal] = useState(false);
-  const [devolucionSeleccionada, setDevolucionSeleccionada] = useState<DevolucionItem | null>(null);
+  const [devolucionSeleccionada] = useState<DevolucionItem | null>(null);
 
   
     return (
