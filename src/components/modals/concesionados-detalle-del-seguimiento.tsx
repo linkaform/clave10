@@ -36,6 +36,8 @@ import {
 import LoadImage from "../upload-Image";
 import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
 import { NuevaDevolucionMiniEquipoModal } from "./concesionados-nueva-devolucion-mini";
+import { useDevolucionEquipo } from "@/hooks/Concesionados/useDevolverConcesionado";
+import { toast } from "sonner";
 
 export type Concesion = {
   _id: string;
@@ -77,9 +79,14 @@ export const DetalleDelSeguimiento: React.FC<SegArtModalProps> = ({
   const [equipos, setEquipos] = useState<EquipoConcesionado[]>([]);
   const [nuevaDevolucionModal, setNuevaDevolucionModal] = useState(false);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState<EquipoConcesionado | null>(null);
+  const [detalleSeg, setDetalleSeg] = useState<boolean>(false);
+  const { devolverEquipoMutation, isLoading } = useDevolucionEquipo();
   // const { devolverEquipoMutation, isLoading } = useDevolucionEquipo();
-  const { data: dataAreaEmpleadoApoyo, isLoading: loadingAreaEmpleadoApoyo } =
-    useCatalogoAreaEmpleadoApoyo(nuevaDevolucionModal);
+  type EquipoForm = {
+    evidencia_entrega: any; unidades: number; estatus: string; agregado: boolean; 
+};
+  const [equipoForms, setEquipoForms] = useState<Record<number, EquipoForm>>({});
+  const { data: dataAreaEmpleadoApoyo, isLoading: loadingAreaEmpleadoApoyo } = useCatalogoAreaEmpleadoApoyo(detalleSeg);
     const [openDevolucionMiniEquiposModal, setOpenDevolucionMiniEquiposModal] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -91,8 +98,80 @@ export const DetalleDelSeguimiento: React.FC<SegArtModalProps> = ({
     },
   });
 
+  const totalCantidadPendientes = data?.grupo_equipos?.reduce((acc: any, item: any) => {
+    const pendiente = typeof item.cantidad_equipo_pendiente === "object"
+      ? (item.cantidad_equipo_pendiente as any)?.parsedValue ?? 0
+      : Number(item.cantidad_equipo_pendiente ?? 0);
+    return acc + pendiente;
+  }, 0);
+
+
   const tipoCon = form.watch("entrega_tipo");
   const formValues = form.watch();
+  function traducirEstatus(estatus: string): "complete" | "lost" | "damage" {
+    switch (estatus.toLowerCase()) {
+      case "completo": return "complete";
+      case "perdido": return "lost";
+      case "dañado":
+      case "danado": return "damage";
+      default: return "complete";
+    }
+  }
+
+  function onSubmit() {  
+    if (!dataDevolucion.entrega_tipo) {
+    toast.error("Selecciona el tipo de entrega.");
+    return;
+    }
+    if (!dataDevolucion.quien_entrega) {
+      toast.error("Indica la persona que entrega.");
+      return;
+    }
+    if (!dataDevolucion.identificacion_entrega?.length) {
+      toast.error("Agrega la fotografía de identificación.");
+      return;
+    }
+
+    const equiposAgregados = Object.entries(equipoForms)
+      .filter(([, form]) => form.agregado && form.estatus)
+      .map(([index, form]) => {
+        const equipo = equipos[Number(index)];
+        console.log("EQUIPOOOO",form)
+        return {
+          id_movimiento: equipo.id_movimiento ?? "",
+          cantidad_devuelta: form.unidades,
+          state: traducirEstatus(form.estatus),
+          evidencia: form.evidencia_entrega,
+        };
+      });
+    if (equiposAgregados.length === 0) {
+      toast.error("Agrega al menos un equipo para devolver.");
+      return;
+    }
+  
+    devolverEquipoMutation.mutate({
+      record_id: data._id ?? "",
+      status: "parical",
+      entregado_por: dataDevolucion.entrega_tipo as "empleado" | "otro",
+      quien_entrega: dataDevolucion.quien_entrega,
+      quien_entrega_company: dataDevolucion.entrega_tipo === "otro" ? dataDevolucion.quien_entrega : undefined,
+      identificacion_entrega: dataDevolucion.identificacion_entrega?.[0] ?? undefined,
+      equipos: equiposAgregados,
+    }, {
+      onSuccess: () => setDetalleSeg(false) 
+    });
+  }
+  useEffect(() => {
+    if (detalleSeg) {
+      form.reset({
+        entrega_tipo: "empleado",
+        entrega_concesion: "",
+        entrega_concesion_otro: "",
+        identificacion_entrega: [],
+      });
+      setEquipoForms({});
+    }
+  }, [detalleSeg, form]);
 
   const dataDevolucion = {
     entrega_tipo: formValues.entrega_tipo ?? "",
@@ -106,21 +185,17 @@ export const DetalleDelSeguimiento: React.FC<SegArtModalProps> = ({
     if (data.grupo_equipos) setEquipos(data.grupo_equipos);
   }, [data]);
 
-  const totalCantidadPendientes = equipos
-    .filter((item) => item.status_concesion_equipo === "pendiente")
-    .reduce((acc, item) => acc + (item.cantidad_equipo_concesion ?? 0), 0);
+  // const totalCantidadPendientes = equipos
+  //   .filter((item) => item.status_concesion_equipo === "pendiente")
+  //   .reduce((acc, item) => acc + (item.cantidad_equipo_concesion ?? 0), 0);
 
   const onDevolver = (equipo: EquipoConcesionado) => {
     setEquipoSeleccionado(equipo);
     setNuevaDevolucionModal(true);
   };
 
-  const onDevolverTodo = () => {
-    setOpenDevolucionMiniEquiposModal(true)
-  };
-
   return (
-    <Dialog>
+    <Dialog open={detalleSeg} onOpenChange={setDetalleSeg}>
       <DialogTrigger asChild>{children}</DialogTrigger>
 
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col bg-white p-0 overflow-hidden">
@@ -135,31 +210,28 @@ export const DetalleDelSeguimiento: React.FC<SegArtModalProps> = ({
         <div className="flex-grow overflow-y-auto px-6">
 
           <div className="p-5 border-b">
-            <div className="flex justify-between">
-              <p className="text-sm text-gray-500 mb-4 uppercase font-semibold">
-                Rellena los datos para realizar la devolución
-              </p>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-1.5">
-                    <span className="text-xs font-semibold text-red-500">Pendientes:</span>
-                    <span className="text-sm font-bold text-red-600">{totalCantidadPendientes}</span>
-                  </div>
-                  <Button
-                    type="button"
-                    disabled={data.status_concesion === "devuelto"}
-                    onClick={onDevolverTodo}
-                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm disabled:opacity-50"
-                  >
-                    {false
-                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>
-                      : <><PackageCheck className="w-4 h-4" /> Devolver todo</>
-                    }
-                  </Button>
-                </div>
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-sm text-gray-500 uppercase font-semibold">
+              Rellena los datos para realizar la devolución
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-1.5">
+                <span className="text-xs font-semibold text-red-500">Pendientes:</span>
+                <span className="text-sm font-bold text-red-600">{totalCantidadPendientes}</span>
               </div>
-
+              <Button
+                type="button"
+                disabled={data.status_concesion === "devuelto"}
+                onClick={() => {
+                  setEquipoSeleccionado(null);
+                  setNuevaDevolucionModal(true);
+                }}
+                className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm disabled:opacity-50"
+              >
+                <PackageCheck className="w-4 h-4" /> Devolver todo
+              </Button>
             </div>
+          </div>
             <Form {...form}>
               <form className="grid grid-cols-2 gap-4">
 
@@ -297,6 +369,8 @@ export const DetalleDelSeguimiento: React.FC<SegArtModalProps> = ({
               onDevolver={onDevolver}
               data={data}
               dataDevolucion={dataDevolucion}
+              setEquipoForms={setEquipoForms}
+              equipoForms={equipoForms}
             />
           </div>
 
@@ -322,13 +396,24 @@ export const DetalleDelSeguimiento: React.FC<SegArtModalProps> = ({
           <div />
         </NuevaDevolucionEquipoModal>
 
-        <div className="flex-shrink-0 bg-white border-t px-6 py-4">
-          <DialogClose asChild>
-            <Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium">
-              Cerrar
-            </Button>
-          </DialogClose>
-        </div>
+        <div className="flex gap-3 bg-white border-t px-6 py-4">
+        <DialogClose asChild>
+          <Button className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium">
+            Cerrar
+          </Button>
+        </DialogClose>
+        <Button
+          type="button"
+          disabled={data.status_concesion === "devuelto" || isLoading}
+          onClick={onSubmit}
+          className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm disabled:opacity-50"
+        >
+          {isLoading
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>
+            : <><PackageCheck className="w-4 h-4" /> Devolver</>
+          }
+        </Button>
+      </div>
 
       </DialogContent>
     </Dialog>

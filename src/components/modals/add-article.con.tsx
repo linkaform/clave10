@@ -166,13 +166,31 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
           solicita_concesion: initialData.solicita_concesion || "",
         });
         if (initialData.ubicacion_concesion) setUbicacionSeleccionada(initialData.ubicacion_concesion);
-        // if (initialData.caseta_concesion) setConSelected(initialData.caseta_concesion);
         if (initialData.fecha_concesion) setDate(new Date(initialData.fecha_concesion));
       } else {
-        reset();
+        reset({
+          ubicacion_concesion: "",
+          area_concesion: "",
+          caseta_concesion: "",
+          status_concesion: "",
+          persona_nombre_concesion: "",
+          persona_email_concesion: "",
+          persona_id_concesion: undefined,
+          persona_nombre_otro: "",
+          persona_email_otro: "",
+          persona_identificacion_otro: [],
+          fecha_concesion: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
+          equipos: [],
+          observacion_concesion: "",
+          evidencia: [],
+          firma: undefined,
+          solicita_concesion: "empleado",
+        });
         setDate(new Date());
+        setEquipos([]);
         setUbicacionSeleccionada(location ?? "");
-        // setConSelected("");
+        setTextoFirma("");
+        setVistaPrevia("");
       }
     }
   }, [isSuccess, mode, initialData, reset, location]);
@@ -499,9 +517,6 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                   </div>
                 </div>
 
-                {/* {tipoCon === "otro" && ( */}
-                 
-                {/* )} */}
               </div>
 
               <div className=" p-5">

@@ -13,7 +13,7 @@ import { EquipoConcesionado } from "../concesionados-tab-datos";
 import { Dispatch, SetStateAction, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { Box, Calculator, Calendar, Eye, ImageOff, Package, User } from "lucide-react";
-import { DevolucionItem, HistorialDevolucionesModal } from "./concesionados-historial-devolucion-ver";
+import { DevolucionItem, VerDetalleDevolucion } from "./concesionados-ver-detalle-devolucion";
 
 interface ConcesionadosVerEquipoProps {
   title: string;
@@ -37,9 +37,8 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
     return costo ?? 0;
   };
   const subtotal = data?.total
-    ? data.total
-    : (data?.cantidad_equipo_concesion ?? 0) * getCosto(data.costo_equipo_concesion);
-  console.log("data", data)
+    ? data?.total
+    : (data?.cantidad_equipo_concesion ?? 0) * getCosto(data?.costo_equipo_concesion);
 
   const [verDevolucionModal, setVerDevolucionModal] = useState(false);
   const [devolucionSeleccionada, setDevolucionSeleccionada] = useState<DevolucionItem | null>(null);
@@ -111,7 +110,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
           <div className=" p-5">
             <h3 className="font-semibold text-gray-700 mb-3">Evidencia</h3>
 
-            {data?.imagen_equipo_concesion && data.imagen_equipo_concesion.length > 0 ? (
+            {data?.imagen_equipo_concesion && data?.imagen_equipo_concesion.length > 0 ? (
               <div className="flex justify-center">
                 <Carousel className="w-52">
                   <CarouselContent>
@@ -132,7 +131,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
                       </CarouselItem>
                     ))}
                   </CarouselContent>
-                  {data.imagen_equipo_concesion.length > 1 && (
+                  {data?.imagen_equipo_concesion.length > 1 && (
                     <>
                       <CarouselPrevious type="button" />
                       <CarouselNext type="button" />
@@ -147,61 +146,15 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
               </div>
             )}
           </div>
-          {(() => {
-          const devoluciones = dataConcesion?.grupo_equipos_devolucion?.filter(
-            (d:any) => d.id_movimiento_devolucion === data.id_movimiento
-          ) || [];
-          return devoluciones.length > 0 ? (
-            <div className="col-span-2 mt-2 px-4">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Sobre las devoluciones ({devoluciones.length})
-              </p>
-              <div className="flex flex-col gap-2">
-                {devoluciones.map((devItem:any, index:number) => (
-                  <div
-                    key={index}
-                    className="rounded-lg border border-gray-100 bg-gray-50 p-3 flex flex-col gap-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                      <span className="text-xs text-gray-500">Fecha:</span>
-                      <span className="text-xs font-medium text-gray-700">{devItem.fecha_devolucion_concesion||"-"}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                      <span className="text-xs text-gray-500">Entrega:</span>
-                      <span className="text-xs font-medium text-gray-700">{devItem.quien_entrega||"-"} </span>
-                      <button
-                        type="button"
-                          onClick={() => {
-                            setDevolucionSeleccionada(devItem);
-                            setVerDevolucionModal(true);
-                          }}
-                          className="text-blue-400 hover:text-blue-600 transition-colors ml-20"
-                        >
-                          <Eye className="w-5 h-5" />
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Box className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                      <span className="text-xs text-gray-500">Unidades devueltas:</span>
-                      <span className="text-xs font-medium text-gray-700">{devItem.cantidad_devolucion||"-"}</span>
-                    </div>
-                  
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null;
-        })()}
+       
         </div>
-        <HistorialDevolucionesModal
+        <VerDetalleDevolucion
           devolucion={devolucionSeleccionada}
           isSuccess={verDevolucionModal}
           setIsSuccess={setVerDevolucionModal}
         >
           <div />
-        </HistorialDevolucionesModal>
+        </VerDetalleDevolucion>
       
         <div className="flex-shrink-0 bg-white border-t px-6 py-4">
           <DialogClose asChild>

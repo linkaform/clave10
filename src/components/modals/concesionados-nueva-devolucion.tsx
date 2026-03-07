@@ -69,6 +69,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
 	const { devolverEquipoMutation, isLoading } = useDevolucionEquipo();
 	console.log("equipoSelecionado",equipoSelecionado)
 
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {

@@ -4,7 +4,7 @@ import { History } from "lucide-react";
 import { ConcesionadosDetalleSeguimiento } from "./modals/conceisonados-detalle-seg";
 import { EquipoConcesionado } from "./concesionados-tab-datos";
 import { NuevaDevolucionEquipoModal } from "./modals/concesionados-nueva-devolucion";
-import HistorialDevoluciones from "./concesionados-historial-devoluciones";
+import HistorialDevoluciones from "./concesionados-historial-devoluciones-principal";
 
 interface AgregarEquiposListProps {
   equipos: EquipoConcesionado[];
@@ -19,10 +19,7 @@ const TabSeguimientos: React.FC<AgregarEquiposListProps> = ({ equipos, mode ,dat
   const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState<any>({});
   const [nuevaDevolucionModal, setNuevaDevolucionEquiposModal] = useState(false);
 
-  console.log("dsataaaaaa", dataConcesion)
-
   const equiposActualizados = [...equipos];
-
   const onDevolver = (equipo: any) => {
     setAgregarEquipoSeleccion(equipo);
     setNuevaDevolucionEquiposModal(true);
