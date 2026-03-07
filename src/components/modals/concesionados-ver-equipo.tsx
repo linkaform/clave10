@@ -14,6 +14,7 @@ import { Dispatch, SetStateAction, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { Calculator, ImageOff, Package } from "lucide-react";
 import { DevolucionItem, VerDetalleDevolucion } from "./concesionados-ver-detalle-devolucion";
+import { HistorialDevolucionesList } from "../concesionados-historial-devoluciones-list";
 
 interface ConcesionadosVerEquipoProps {
   title: string;
@@ -30,6 +31,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
   children,
   setIsSuccess,
   isSuccess,
+  dataConcesion
 }) => {
   const getCosto = (costo: number | number[] | undefined): number => {
     if (Array.isArray(costo)) return costo[0] ?? 0;
@@ -41,7 +43,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
 
   const [verDevolucionModal, setVerDevolucionModal] = useState(false);
   const [devolucionSeleccionada] = useState<DevolucionItem | null>(null);
-
+console.log("DATA",dataConcesion)
   
     return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess}>
@@ -145,7 +147,9 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
               </div>
             )}
           </div>
-       
+       <HistorialDevolucionesList
+       devoluciones={dataConcesion?.grupo_equipos_devolucion??[]}>
+       </HistorialDevolucionesList>
         </div>
         <VerDetalleDevolucion
           devolucion={devolucionSeleccionada}

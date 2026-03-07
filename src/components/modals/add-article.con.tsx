@@ -29,7 +29,7 @@ import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation
 import { useArticulosConcesionados } from "@/hooks/useArticulosConcesionados";
 import { Input } from "../ui/input";
 import LoadImage, { Imagen } from "../upload-Image";
-import ConcesionadosAgregarEquipos, { EquipoConcesionado } from "../concesionados-tab-datos";
+import TabDatos, { EquipoConcesionado } from "../concesionados-tab-datos";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { base64ToFile } from "@/lib/utils";
@@ -119,7 +119,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   const { createArticulosConMutation, editarArticulosConMutation, isLoading } =
     useArticulosConcesionados(ubicacionSeleccionada, area ?? "", "", false, "", "", "");
   const [date, setDate] = useState<Date | undefined>(undefined);
-
+console.log("initialData",initialData)
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -524,7 +524,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                   <Package className="text-blue-500 w-5 h-5" />
                   <h3 className="font-semibold text-gray-700">Equipos</h3>
                 </div>
-                <ConcesionadosAgregarEquipos equipos={equipos} setEquipos={setEquipos} mode={"editar"} />
+                <TabDatos equipos={equipos} setEquipos={setEquipos} mode={"editar"} dataConcesion={initialData} />
                 {form.formState.errors.equipos && (
                   <p className="text-sm text-red-500 mt-2">{form.formState.errors.equipos.message}</p>
                 )}
