@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, Package, Calendar, User, FileText, RotateCcw, Loader2, PackageCheck, MessageSquare, Box, Eye } from "lucide-react";
+import { ChevronDown, ChevronUp, Package, FileText, RotateCcw, Loader2, PackageCheck, MessageSquare, } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { EquipoConcesionado } from "./concesionados-tab-datos";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
@@ -53,7 +53,7 @@ const HistorialDevolucionesPrincipal: React.FC<HistorialDevolucionesProps> = ({
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [filtroActivo, setFiltroActivo] = useState<FiltroEstatus>("todos");
   const [verDevolucionModal, setVerDevolucionModal] = useState(false);
-  const [devolucionSeleccionada, setDevolucionSeleccionada] = useState<DevolucionItem | null>(null);
+  const [devolucionSeleccionada] = useState<DevolucionItem | null>(null);
 
 
   const toggleAccordion = (index: number) =>
