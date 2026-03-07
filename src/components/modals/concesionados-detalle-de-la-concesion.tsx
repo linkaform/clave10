@@ -58,9 +58,13 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
   useEffect(() => {
     if (data.grupo_equipos) setEquipos(data.grupo_equipos);
   }, [data]);
-  const totalCantidadPendientes = equipos
-    .filter((item) => item.status_concesion_equipo === "pendiente")
-    .reduce((acc, item) => acc + (item.cantidad_equipo_concesion ?? 0), 0);
+  const totalCantidadPendientes = data?.grupo_equipos?.reduce((acc: any, item: any) => {
+    const pendiente = typeof item.cantidad_equipo_pendiente === "object"
+      ? (item.cantidad_equipo_pendiente as any)?.parsedValue ?? 0
+      : Number(item.cantidad_equipo_pendiente ?? 0);
+    return acc + pendiente;
+  }, 0);
+
 
   return (
     <Dialog>

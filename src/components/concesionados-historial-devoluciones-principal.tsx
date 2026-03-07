@@ -5,7 +5,7 @@ import { EquipoConcesionado } from "./concesionados-tab-datos";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import Image from "next/image";
 import { Button } from "./ui/button";
-import { DevolucionItem, HistorialDevolucionesModal } from "./modals/concesionados-historial-devolucion-ver";
+import { DevolucionItem, VerDetalleDevolucion } from "./modals/concesionados-ver-detalle-devolucion";
 
 interface HistorialDevolucionesProps {
   equipos: EquipoConcesionado[];
@@ -42,7 +42,7 @@ const getEstatusLabel = (equipo: EquipoConcesionado) => {
 };
 
 
-const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
+const HistorialDevolucionesPrincipal: React.FC<HistorialDevolucionesProps> = ({
   equipos,
   onDevolver,
   onDevolverTodo,
@@ -83,13 +83,13 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
   return (
     <div className="space-y-4">
 
-      <HistorialDevolucionesModal
+      <VerDetalleDevolucion
 			devolucion={devolucionSeleccionada}
 			isSuccess={verDevolucionModal}
 			setIsSuccess={setVerDevolucionModal}
 			>
 			<div />
-		</HistorialDevolucionesModal>
+		</VerDetalleDevolucion>
       <div className="flex gap-2 flex-wrap justify-between">
 
         <div className=" flex gap-2">
@@ -253,13 +253,13 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
                               ))}
                             </div>
 
-                            <HistorialDevolucionesModal
+                            <VerDetalleDevolucion
                               devolucion={devolucionSeleccionada}
                               isSuccess={verDevolucionModal}
                               setIsSuccess={setVerDevolucionModal}
                             >
                               <div />
-                            </HistorialDevolucionesModal>
+                            </VerDetalleDevolucion>
                           </div>
                         ) : null;
                       })()}
@@ -350,4 +350,4 @@ const HistorialDevoluciones: React.FC<HistorialDevolucionesProps> = ({
   );
 };
 
-export default HistorialDevoluciones;
+export default HistorialDevolucionesPrincipal;

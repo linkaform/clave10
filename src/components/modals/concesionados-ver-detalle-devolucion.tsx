@@ -49,7 +49,7 @@ interface HistorialDevolucionesModalProps {
     isSuccess: boolean;
   }
   
-  export const HistorialDevolucionesModal: React.FC<HistorialDevolucionesModalProps> = ({
+  export const VerDetalleDevolucion: React.FC<HistorialDevolucionesModalProps> = ({
     devolucion,
     children,
     setIsSuccess,
@@ -163,7 +163,6 @@ interface HistorialDevolucionesModalProps {
                   {devolucion?.identificacion_entrega?.length > 0 ? (
                   <div className="px-4 pb-4">
                      <p className="text-xs text-gray-400 mb-0.5">Identificación de quien entrega</p>
-                    {/* <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Evidencia</p> */}
                     <div className="flex justify-center">
                       <Carousel className="w-44">
                         <CarouselContent>
