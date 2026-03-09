@@ -404,11 +404,11 @@ import DateTimePicker from "@/components/dateTimerPicker";
 		form.setValue('fecha_desde_hasta', '');
 	};
 
-	// function getNextDay(date: string | number | Date) {
-	// 	const currentDate = new Date(date);
-	// 	currentDate.setDate(currentDate.getDate() + 1); 
-	// 	return currentDate.toISOString().split('T')[0]; 
-	// }
+	const formatDateToLocalISO = (date: Date) => {
+		const offset = date.getTimezoneOffset();
+		const localDate = new Date(date.getTime() - offset * 60 * 1000);
+		return localDate.toISOString().split("T")[0];
+	};
 
 return (
 	<div className="min-h-screen bg-gray-100 py-5 px-4">
@@ -726,7 +726,7 @@ return (
 														<span className="text-red-400">*</span> Fecha y Hora de Visita
 													</FormLabel>
 													<FormControl>
-														<DateTimePicker date={date} setDate={setDate} allowPast={true}/>
+														<DateTimePicker date={date} setDate={setDate} allowPast={false}/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -747,13 +747,14 @@ return (
 														<FormControl>
 														<DateTimePicker
 															showTime={false}
-															allowPast={true}
+															allowPast={false}
 															
 															placeholder="Selecciona fecha desde"
-															date={field.value ? new Date(field.value) : undefined}
+															date={field.value ? new Date(field.value + "T00:00:00") : undefined}
 															setDate={(date) => {
-															field.onChange(date ? date.toISOString().split("T")[0] : "");
-															handleFechaDesdeChange({ target: { value: date ? date.toISOString().split("T")[0] : "" } } as any);
+																const formattedDate = date ? formatDateToLocalISO(date) : "";
+																field.onChange(formattedDate);
+																handleFechaDesdeChange({ target: { value: formattedDate } } as any);
 															}}
 														/>
 														</FormControl>
@@ -772,11 +773,11 @@ return (
 														<FormControl>
 														<DateTimePicker
 															showTime={false}
-															allowPast={true}
+															allowPast={false}
 															placeholder="Selecciona vigencia hasta"
-															date={field.value ? new Date(field.value) : undefined}
+															date={field.value ? new Date(field.value + "T00:00:00") : undefined}
 															setDate={(date) => {
-															field.onChange(date ? date.toISOString().split("T")[0] : "");
+																field.onChange(date ? formatDateToLocalISO(date) : "");
 															}}
 														/>
 														</FormControl>
