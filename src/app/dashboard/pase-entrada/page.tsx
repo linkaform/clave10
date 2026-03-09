@@ -219,7 +219,7 @@ import DateTimePicker from "@/components/dateTimerPicker";
 	const [isActivelimitarDiasSemana, setIsActiveLimitarDiasSemana] = useState(false);
 	const [isActiveAdvancedOptions, setIsActiveAdvancedOptions] = useState(false);
 	const [date, setDate] = React.useState<Date| undefined>();
-	// const [fechaDesde, setFechaDesde] = useState<string>('');
+	// const [fechaDesde, setFechaDesde] = useState<string>('');s
 	const [selected, setSelected] = useState<Contacto |null>(null);
 	const [isOpenModal, setOpenModal] = useState(false);
 	const [todasAreas,setTodasAreas] = useState(false)
