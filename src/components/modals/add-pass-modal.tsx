@@ -4,12 +4,11 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
 import CalendarDays from "../calendar-days";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { CalendarClock, Loader2 } from "lucide-react";
+import { CalendarClock, Layers, Loader2, MessageSquare, ShieldCheck, UserRound } from "lucide-react";
 import { GeneratedPassModal } from "./generated-pass-modal";
 import { Access_pass, Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
@@ -192,171 +191,184 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 
   return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal >
-		<DialogContent className="max-w-3xl overflow-y-auto max-h-[80vh] flex flex-col " aria-describedby="" onInteractOutside={(e) => e.preventDefault()}>
-			<DialogHeader className="flex-shrink-0">
-				<DialogTitle className="text-2xl text-center font-bold">
+		<DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh] flex flex-col p-0 border-none rounded-3xl" aria-describedby="" onInteractOutside={(e) => e.preventDefault()}>
+			<div className="bg-blue-600 p-6 text-white text-center flex-shrink-0">
+				<DialogTitle className="text-xl font-bold tracking-tight uppercase">
 					{title}
 				</DialogTitle>
-			</DialogHeader>
-			<div className="flex-grow overflow-y-auto p-4 ">
+				<p className="text-xs text-blue-100 mt-1 opacity-80 uppercase tracking-widest">Confirma los detalles del pase</p>
+			</div>
+
+			<div className="flex-grow overflow-y-auto px-8 py-6 space-y-6 bg-gray-50/50">
 				{/* Sobre la visita */}
-				<div className="w-full flex gap-2 mb-3">
-					<p className="font-bold flex-shrink-0">Nombre Completo : </p>
-					<p className="">{dataPass?.nombre} </p>
-				</div>
-
-				<div className="flex flex-col space-y-5 mb-3">
-				<div className="flex justify-between flex-col sm:flex-row  sm:space-x-5 space-y-5 sm:space-y-0 ">
-					<div className="w-full flex gap-2 ">
-					<p className="font-bold flex-shrink-0">Tipo de pase : </p>
-					<p >Visita General</p>
+				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+					<div className="flex items-center gap-2 mb-4">
+						<div className="bg-blue-50 p-1.5 rounded-lg">
+							<UserRound size={16} className="text-blue-600" />
+						</div>
+						<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Datos Personales</span>
 					</div>
+					
+					<div className="grid grid-cols-1 gap-4">
+						<div className="space-y-1">
+							<p className="text-[10px] font-bold text-gray-400 uppercase">Nombre Completo</p>
+							<p className="text-lg font-bold text-gray-800">{dataPass?.nombre}</p>
+						</div>
 
-					<div className="w-full flex gap-2">
-					<p className="font-bold flex-shrink-0">Estatus : </p>
-					<Badge
-					className={`text-white text-sm ${
-						 "Proceso".toLowerCase() == "proceso"
-						? "bg-blue-600 hover:bg-blue-600"
-						: "bg-gray-400"
-					}`}
-					>
-					{capitalizeFirstLetter(dataPass?.status_pase ??"")}
-					</Badge>
-					</div>
-				</div>
+						<div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-50">
+							<div className="space-y-1">
+								<p className="text-[10px] font-bold text-gray-400 uppercase">Email</p>
+								<p className="text-sm font-semibold text-gray-600 truncate">{dataPass?.email}</p>
+							</div>
+							<div className="space-y-1">
+								<p className="text-[10px] font-bold text-gray-400 uppercase">Teléfono</p>
+								<p className="text-sm font-semibold text-gray-600">{dataPass?.telefono}</p>
+							</div>
+						</div>
 
-				<div className="flex justify-between flex-col sm:flex-row  sm:space-x-5 space-y-5 sm:space-y-0">
-					<div className="w-full flex gap-2 ">
-					<p className="font-bold flex-shrink-0">Email : </p>
-					<p className="w-full break-words">{dataPass?.email}</p>
-					</div>
-
-					<div className="w-full flex gap-2">
-					<p className="font-bold flex-shrink-0">Teléfono : </p>
-					<p className="text-sm">{dataPass?.telefono}</p>
-					</div>
-				</div>
-
-				<div className="flex justify-between flex-col sm:flex-row sm:space-x-5 space-y-5 sm:space-y-0">
-					<div className="w-full  flex gap-2">
-					<p className="font-bold flex-shrink-0">Tema cita : </p>
-					<p className="w-full break-words">{dataPass?.tema_cita}</p>
-					</div>
-				</div>
-					<div className="w-full flex gap-2">
-						<p className="font-bold flex-shrink-0">Descripción : </p>
-						<p className="w-full break-words ">{dataPass?.descripcion} </p>
+						<div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-50">
+							<div className="space-y-1">
+								<p className="text-[10px] font-bold text-gray-400 uppercase">Empresa</p>
+								<p className="text-sm font-semibold text-gray-600 truncate">{dataPass?.empresa || "N/A"}</p>
+							</div>
+							<div className="space-y-1">
+								<p className="text-[10px] font-bold text-gray-400 uppercase">Estatus</p>
+								<Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none text-[10px] font-black px-2 py-0">
+									{capitalizeFirstLetter(dataPass?.status_pase ??"")}
+								</Badge>
+							</div>
+						</div>
 					</div>
 				</div>
 
-				{dataPass?.areas.length>0 && (
-				<div className="">
-					<p className="text-xl font-bold mb-2">Áreas</p>
-					<Accordion type="single" collapsible>
-					{dataPass?.areas.map((area, index) => (
-						<AccordionItem key={index} value={`area-${index}`}>
-						<AccordionTrigger><div className="w-80 truncate text-left">{`${area.nombre_area}`}</div></AccordionTrigger>
-						<AccordionContent>
-							<p className="font-medium mb-1">
-							Area: <span className="">{area.nombre_area || "N/A"}</span>
-							</p>
-							<p className="font-medium mb-1">
-							Comentario: <span className="">{area.commentario_area || "N/A"}</span>
-							</p>
-						</AccordionContent>
-						</AccordionItem>
-					))}
-					</Accordion>
+				{/* Cita */}
+				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+					<div className="flex items-center gap-2 mb-4">
+						<div className="bg-blue-50 p-1.5 rounded-lg">
+							<ShieldCheck size={16} className="text-blue-600" />
+						</div>
+						<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Detalles de Visita</span>
+					</div>
+					
+					<div className="space-y-4">
+						<div className="space-y-1">
+							<p className="text-[10px] font-bold text-gray-400 uppercase">Tema de la cita</p>
+							<p className="text-sm text-gray-700 font-medium">{dataPass?.tema_cita}</p>
+						</div>
+						<div className="space-y-1 pt-2 border-t border-gray-50">
+							<p className="text-[10px] font-bold text-gray-400 uppercase">Descripción</p>
+							<p className="text-sm text-gray-700 break-words">{dataPass?.descripcion}</p>
+						</div>
+					</div>
 				</div>
-				)}
 
-				{dataPass?.comentarios.length>0 && (
-				<div className="">
-				<p className="text-xl font-bold mb-2 mt-2">Comentarios / Instrucciones</p>
-				<Accordion type="single" collapsible>
-					{dataPass?.comentarios.map((com, index) => (
-					<AccordionItem key={index} value={`com-${index}`}>
-						<AccordionTrigger>
-						<div className="w-80 truncate text-left">{`${com.comentario_pase}`}</div>
-						</AccordionTrigger>
-						<AccordionContent>
-						<p className="font-medium mb-1">
-							Comentario:{" "}
-							<span className="">{com.comentario_pase || "N/A"}</span>
-						</p>
-						</AccordionContent>
-					</AccordionItem>
-					))}
-				</Accordion>
-				</div>
-				)}
+				{/* Vigencia */}
+				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+					<div className="flex items-center gap-2 mb-4">
+						<div className="bg-blue-50 p-1.5 rounded-lg">
+							<CalendarClock size={16} className="text-blue-600" />
+						</div>
+						<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Vigencia y Accesos</span>
+					</div>
 
-			  {/* Vigencia y Acceso */}
-			 	<div className="flex flex-col space-y-5 mt-2">
-					<p className="text-xl font-bold">Vigencia y Accesos</p>
-					<div className="flex gap-2">
+					<div className="grid grid-cols-2 gap-4 mb-4">
 						{items.map((item, index) => (
-							<div
-							key={index}
-							className="flex items-center space-x-4 rounded-md p-3 border ">
-								<div className=" rounded-lg">
-								{item.icon}
-								</div>
-
-								<div className="flex flex-col">
-									<p className="font-medium">{item?.title}</p>
-									<p className="text-sm">
-										{item?.date?.replace("T", " ").slice(0, 16)}
-									</p>
-								</div>
+							<div key={index} className="flex flex-col p-3 bg-gray-50 rounded-xl border border-gray-100">
+								<p className="text-[9px] font-bold text-gray-400 uppercase mb-1">{item?.title}</p>
+								<p className="text-xs font-bold text-gray-800 tabular-nums">
+									{item?.date?.replace("T", " ").slice(0, 16)} hrs
+								</p>
 							</div>
 						))}
 					</div>
-				</div>
 
-				{dataPass?.config_limitar_acceso > 0 ? (
-					<>
-					<div className="w-full flex flex-wrap gap-2 mt-2 mb-2">
-						<p className="font-bold">Limite de accesos : </p>
-						<p className="">{dataPass?.config_limitar_acceso}</p>
-					</div>
-					</>
-				):null}
+					{dataPass?.config_limitar_acceso > 0 && (
+						<div className="flex items-center justify-between p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
+							<p className="text-xs font-bold text-blue-800 uppercase tracking-tight">Límite de accesos</p>
+							<Badge className="bg-blue-600 text-white font-bold">{dataPass?.config_limitar_acceso}</Badge>
+						</div>
+					)}
+				</div>
 
 				{/* Días Seleccionados */}
-				{dataPass?.config_dias_acceso.length > 0 ? (
-				<div className="flex flex-col space-y-5">
-				<CalendarDays diasDisponibles = {dataPass?.config_dias_acceso}/>
-				</div>
-				):null}
+				{dataPass?.config_dias_acceso.length > 0 && (
+					<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+						<CalendarDays diasDisponibles={dataPass?.config_dias_acceso}/>
+					</div>
+				)}
 
+				{/* Áreas y Comentarios */}
+				{(dataPass?.areas.length > 0 || dataPass?.comentarios.length > 0) && (
+					<div className="space-y-3">
+						{dataPass?.areas.length > 0 && (
+							<Accordion type="single" collapsible className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+								<AccordionItem value="areas" className="border-none">
+									<AccordionTrigger className="px-5 py-4 hover:no-underline font-bold text-gray-700 text-xs">
+										<div className="flex items-center gap-3">
+											<Layers size={14} className="text-blue-600" />
+											Áreas Autorizadas ({dataPass.areas.length})
+										</div>
+									</AccordionTrigger>
+									<AccordionContent className="px-5 pb-4">
+										<div className="space-y-2">
+											{dataPass?.areas.map((area, index) => (
+												<div key={index} className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+													<p className="text-xs font-bold text-gray-800 mb-1">{area.nombre_area}</p>
+													<p className="text-[11px] text-gray-500 italic">{area.commentario_area || "Sin comentarios"}</p>
+												</div>
+											))}
+										</div>
+									</AccordionContent>
+								</AccordionItem>
+							</Accordion>
+						)}
+
+						{dataPass?.comentarios.length > 0 && (
+							<Accordion type="single" collapsible className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+								<AccordionItem value="comments" className="border-none">
+									<AccordionTrigger className="px-5 py-4 hover:no-underline font-bold text-gray-700 text-xs">
+										<div className="flex items-center gap-3">
+											<MessageSquare size={14} className="text-blue-600" />
+											Instrucciones de Pase ({dataPass.comentarios.length})
+										</div>
+									</AccordionTrigger>
+									<AccordionContent className="px-5 pb-4">
+										<div className="space-y-2">
+											{dataPass?.comentarios.map((com, index) => (
+												<div key={index} className="p-3 bg-amber-50/50 rounded-xl border border-amber-100/50">
+													<p className="text-[11px] text-gray-700 font-medium leading-relaxed italic">&quot;{com.comentario_pase}&quot;</p>
+												</div>
+											))}
+										</div>
+									</AccordionContent>
+								</AccordionItem>
+							</Accordion>
+						)}
+					</div>
+				)}
 			</div>
-			<div className="flex gap-5 my-5">
-			<DialogClose asChild
-				disabled={isLoading}>
-				<Button className="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose}>
-				Cancelar
-				</Button>
-			</DialogClose>
 
-			{responseCreatePase?.status_code == 201 ? (
-				<GeneratedPassModal
-				title="Pase de Entrada Generado "
-				description="El pase de entrada se ha generado correctamente. Por favor, copie el siguiente enlace y compártalo con el visitante para completar el proceso."
-				link={link}
-				openGeneratedPass={openGeneratedPass}
-				setOpenGeneratedPass={setOpenGeneratedPass} 
-				from={from}
-				/>
-				
-			):null}
-			
-			<Button className="w-1/2  bg-blue-500 hover:bg-blue-600 text-white" onClick={onSubmit} disabled={isLoading}>
-					{ !isLoading ? (<>
-					{("Crear pase")}
-					</>) :(<> <Loader2 className="animate-spin"/> {"Creando pase..."} </>)}
+			<div className="p-6 bg-white border-t border-gray-100 flex gap-4 flex-shrink-0">
+				<DialogClose asChild disabled={isLoading}>
+					<Button className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl py-6 font-bold uppercase text-[10px] tracking-widest border-none h-auto" onClick={handleClose}>
+						Cancelar
+					</Button>
+				</DialogClose>
+
+				<Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-6 font-bold uppercase text-[10px] tracking-widest h-auto shadow-lg shadow-blue-100" onClick={onSubmit} disabled={isLoading}>
+					{!isLoading ? ("Crear pase") : (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creando... </>)}
 				</Button>
+
+				{responseCreatePase?.status_code == 201 && (
+					<GeneratedPassModal
+						title="Pase de Entrada Generado"
+						description="El pase de entrada se ha generado correctamente."
+						link={link}
+						openGeneratedPass={openGeneratedPass}
+						setOpenGeneratedPass={setOpenGeneratedPass} 
+						from={from}
+					/>
+				)}
 			</div>
       	</DialogContent>
     </Dialog>

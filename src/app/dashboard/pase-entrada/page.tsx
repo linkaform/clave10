@@ -413,7 +413,7 @@ import DateTimePicker from "@/components/dateTimerPicker";
 return (
 	<div className="min-h-screen bg-gray-100 py-5 px-4">
 		<EntryPassModal
-			title={"Confirmación"}
+			title={"Pase de Entrada"}
 			dataPass={modalData}
 			isSuccess={isSuccess}
 			setIsSuccess={setIsSuccess}
