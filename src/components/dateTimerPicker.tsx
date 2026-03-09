@@ -25,6 +25,7 @@ interface DateTimePickerProps {
   date: Date | undefined;
   setDate: (date: Date | undefined) => void;
   allowPast?: boolean;
+  minDate?: Date;
   showTime?: boolean;
   placeholder?: string;
   minuteStep?: 1 | 5 | 15;
@@ -253,6 +254,7 @@ export default function DateTimePicker({
   date,
   setDate,
   allowPast = false,
+  minDate,
   showTime = true,
   placeholder,
   minuteStep = 5,
@@ -399,7 +401,11 @@ export default function DateTimePicker({
               onSelect={handleDaySelect}
               locale={es}
               // ── Fix: usar estado inicializado en cliente ──
-              disabled={allowPast ? undefined : (today ? { before: today } : undefined)}
+              disabled={
+                minDate 
+                  ? { before: minDate } 
+                  : (allowPast ? undefined : (today ? { before: today } : undefined))
+              }
               classNames={{
                 months: "flex flex-col",
                 month: "space-y-2",

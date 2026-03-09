@@ -765,25 +765,31 @@ return (
 											<FormField
 												control={form.control}
 												name="fecha_desde_hasta"
-												render={({ field }:any) => (
-													<FormItem>
-														<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-															<span className="text-red-400">*</span> Vigencia hasta
-														</FormLabel>
-														<FormControl>
-														<DateTimePicker
-															showTime={false}
-															allowPast={false}
-															placeholder="Selecciona vigencia hasta"
-															date={field.value ? new Date(field.value + "T00:00:00") : undefined}
-															setDate={(date) => {
-																field.onChange(date ? formatDateToLocalISO(date) : "");
-															}}
-														/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
+												render={({ field }:any) => {
+													const fechaDesde = form.watch("fecha_desde_visita");
+													const minDate = fechaDesde ? new Date(fechaDesde + "T00:00:00") : undefined;
+													
+													return (
+														<FormItem>
+															<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+																<span className="text-red-400">*</span> Vigencia hasta
+															</FormLabel>
+															<FormControl>
+															<DateTimePicker
+																showTime={false}
+																allowPast={false}
+																minDate={minDate}
+																placeholder="Selecciona vigencia hasta"
+																date={field.value ? new Date(field.value + "T00:00:00") : undefined}
+																setDate={(date) => {
+																	field.onChange(date ? formatDateToLocalISO(date) : "");
+																}}
+															/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													);
+												}}
 											/>
 										</div>
 									)}
