@@ -10,7 +10,7 @@ import {
 import { EquipoConcesionado } from "../concesionados-tab-datos";
 import { useEffect, useState } from "react";
 import { Imagen } from "../upload-Image";
-import DetalleSeguimientoTable from "../concesionados-seguimientos-table";
+import DetalleSeguimientoTable, { EquipoForm } from "../concesionados-seguimientos-table";
 import { NuevaDevolucionEquipoModal } from "./concesionados-nueva-devolucion";
 // import { useDevolucionEquipo } from "@/hooks/Concesionados/useDevolverConcesionado";
 import { Loader2, PackageCheck } from "lucide-react";
@@ -82,9 +82,7 @@ export const DetalleDelSeguimiento: React.FC<SegArtModalProps> = ({
   const [detalleSeg, setDetalleSeg] = useState<boolean>(false);
   const { devolverEquipoMutation, isLoading } = useDevolucionEquipo();
   // const { devolverEquipoMutation, isLoading } = useDevolucionEquipo();
-  type EquipoForm = {
-    evidencia_entrega: any; unidades: number; estatus: string; agregado: boolean; 
-};
+
   const [equipoForms, setEquipoForms] = useState<Record<number, EquipoForm>>({});
   const { data: dataAreaEmpleadoApoyo, isLoading: loadingAreaEmpleadoApoyo } = useCatalogoAreaEmpleadoApoyo(detalleSeg);
     const [openDevolucionMiniEquiposModal, setOpenDevolucionMiniEquiposModal] = useState(false);
@@ -133,17 +131,19 @@ export const DetalleDelSeguimiento: React.FC<SegArtModalProps> = ({
     }
 
     const equiposAgregados = Object.entries(equipoForms)
-      .filter(([, form]) => form.agregado && form.estatus)
-      .map(([index, form]) => {
-        const equipo = equipos[Number(index)];
-        console.log("EQUIPOOOO",form)
-        return {
-          id_movimiento: equipo.id_movimiento ?? "",
-          cantidad_devuelta: form.unidades,
-          state: traducirEstatus(form.estatus),
-          evidencia: form.evidencia_entrega,
-        };
-      });
+    .filter(([, form]) => form.agregado && form.estatus)
+    .map(([index, form]) => {
+      const equipo = equipos[Number(index)];
+      return {
+        id_movimiento: equipo.id_movimiento ?? "",
+        cantidad_devuelta: form.unidades,
+        state: traducirEstatus(form.estatus),
+        evidencia: (form.evidencia_entrega ?? [])
+          .filter((img) => img.file_url !== undefined)
+          .map((img) => ({ file_url: img.file_url!, file_name: img.file_name ?? "" })),
+      };
+    });
+    
     if (equiposAgregados.length === 0) {
       toast.error("Agrega al menos un equipo para devolver.");
       return;

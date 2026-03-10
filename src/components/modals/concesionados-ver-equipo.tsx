@@ -31,7 +31,6 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
   children,
   setIsSuccess,
   isSuccess,
-  dataConcesion
 }) => {
   const getCosto = (costo: number | number[] | undefined): number => {
     if (Array.isArray(costo)) return costo[0] ?? 0;
@@ -43,7 +42,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
 
   const [verDevolucionModal, setVerDevolucionModal] = useState(false);
   const [devolucionSeleccionada] = useState<DevolucionItem | null>(null);
-console.log("DATA",dataConcesion)
+  console.log("DATA", data)
   
     return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess}>
@@ -148,7 +147,7 @@ console.log("DATA",dataConcesion)
             )}
           </div>
        <HistorialDevolucionesList
-       devoluciones={dataConcesion?.grupo_equipos_devolucion??[]}>
+       devoluciones={data?.devoluciones??[]}>
        </HistorialDevolucionesList>
         </div>
         <VerDetalleDevolucion
