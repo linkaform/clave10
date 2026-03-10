@@ -4,39 +4,19 @@
 
 import * as React from "react";
 import {
-    CalendarDays,
     Search,
     User,
     Calendar,
     Briefcase,
     Maximize2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import DateTime from "@/components/dateTime";
-import { catalogoFechas } from "@/lib/utils";
-import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { Bitacora_record } from "@/components/table/bitacoras/bitacoras-columns";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface ListProps {
     data: Bitacora_record[] | undefined;
     isLoading: boolean;
-    setDate1: React.Dispatch<React.SetStateAction<Date | "">>;
-    setDate2: React.Dispatch<React.SetStateAction<Date | "">>;
-    date1: Date | ""
-    date2: Date | ""
-    dateFilter: string;
-    setDateFilter: React.Dispatch<React.SetStateAction<string>>;
-    Filter: () => void;
-    isPersonasDentro: boolean;
-    ubicacionSeleccionada: string;
-    printPase: (paseId: string) => void;
-    setPaseIdSeleccionado: React.Dispatch<React.SetStateAction<string>>;
-    personasDentro: number;
-    refreshData: () => Promise<void>;
     total: number | undefined;
     pagination: { pageIndex: number; pageSize: number };
     setPagination: React.Dispatch<React.SetStateAction<{ pageIndex: number; pageSize: number }>>;
@@ -45,25 +25,15 @@ interface ListProps {
 const BitacoraImages: React.FC<ListProps> = ({
     data,
     isLoading,
-    setDate1,
-    setDate2,
-    date1,
-    date2,
-    dateFilter,
-    setDateFilter,
-    Filter,
-    total,
-    pagination,
-    setPagination,
 }) => {
-    const [globalFilter, setGlobalFilter] = useState("");
+    const globalFilter = ""
     const [selectedRecord, setSelectedRecord] = useState<Bitacora_record | null>(null);
 
     const filteredData = React.useMemo(() => {
         if (!data) return [];
         if (!globalFilter) return data;
 
-        const search = globalFilter.toLowerCase();
+        const search = "";
         return data.filter(record => {
             const contratistaStr = Array.isArray(record.contratista)
                 ? record.contratista.join(', ')
@@ -77,74 +47,8 @@ const BitacoraImages: React.FC<ListProps> = ({
         });
     }, [data, globalFilter]);
 
-    // Pagination helper (providing a full mock for DataTablePagination)
-    const tablePlaceholder = {
-        setPagination,
-        getState: () => ({ pagination }),
-        getPageCount: () => Math.ceil((total || 0) / pagination.pageSize),
-        getCanPreviousPage: () => pagination.pageIndex > 0,
-        getCanNextPage: () => (pagination.pageIndex + 1) * pagination.pageSize < (total || 0),
-        previousPage: () => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex - 1 })),
-        nextPage: () => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex + 1 })),
-        setPageIndex: (index: number) => setPagination(prev => ({ ...prev, pageIndex: index })),
-        setPageSize: (size: number) => setPagination(prev => ({ ...prev, pageSize: size })),
-        getFilteredRowModel: () => ({ rows: filteredData }),
-        getFilteredSelectedRowModel: () => ({ rows: [] }),
-        getRowModel: () => ({ rows: filteredData }),
-    };
-
     return (
         <div className="w-full space-y-4">
-            {/* Header Controls */}
-            <div className="flex justify-between items-start my-1 gap-3">
-                <div className="flex w-1/2 justify-start gap-4 ">
-                    <TabsList className="bg-blue-500 text-white">
-                        <TabsTrigger value="Personal">Personal</TabsTrigger>
-                        <TabsTrigger value="Fotos">Fotos</TabsTrigger>
-                        <TabsTrigger value="Vehiculos">Vehículos</TabsTrigger>
-                        <TabsTrigger value="Equipos">Equipos</TabsTrigger>
-                        <TabsTrigger value="Locker">Locker</TabsTrigger>
-                    </TabsList>
-                    <div className="flex w-full max-w-sm items-center space-x-2">
-                        <input
-                            type="text"
-                            placeholder="Buscar registros..."
-                            value={globalFilter || ''}
-                            onChange={(e) => setGlobalFilter(e.target.value)}
-                            className=" border border-gray-300 rounded-md p-2 placeholder-gray-600 w-full"
-                        />
-                        <Search />
-                    </div>
-                </div>
-                <div className="flex w-full justify-end">
-                    {dateFilter == "range" ?
-                        <div className="flex items-center gap-2 mr-14">
-                            <DateTime date={date1} setDate={setDate1} disablePastDates={false} />
-                            <DateTime date={date2} setDate={setDate2} disablePastDates={false} />
-                            <Button type="button" className={"bg-blue-500 hover:bg-blue-600"} onClick={Filter}> Filtrar</Button>
-                        </div> : null}
-                    <div className="flex items-center w-48 gap-2">
-                        <Select value={dateFilter} onValueChange={(value) => {
-                            setDateFilter(value);
-                        }}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Selecciona un filtro de fecha" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {catalogoFechas().map((option: any) => {
-                                    return (
-                                        <SelectItem key={option.key} value={option.key}>
-                                            {option.label}
-                                        </SelectItem>
-                                    )
-                                })}
-                            </SelectContent>
-                        </Select>
-                        <CalendarDays />
-                    </div>
-                </div>
-            </div>
-
             {/* Gallery Grid */}
             <div className="min-h-[400px]">
                 {isLoading ? (
@@ -156,7 +60,7 @@ const BitacoraImages: React.FC<ListProps> = ({
                 ) : filteredData.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-10 gap-1 animate-in fade-in duration-500">
                         {filteredData.map((record, index) => {
-                            const photoUrl = record.fotografia?.[0]?.file_url;
+                            const photoUrl = record.fotografia?.[0]?.file_url?.replace('jpeg', 'thumbnail');
 
                             return (
                                 <div
@@ -198,9 +102,6 @@ const BitacoraImages: React.FC<ListProps> = ({
                     </div>
                 )}
             </div>
-
-            {/* Pagination */}
-            <DataTablePagination table={tablePlaceholder as any} total={total} />
 
             {/* Detail Modal Dialog */}
             <Dialog open={!!selectedRecord} onOpenChange={(open) => !open && setSelectedRecord(null)}>

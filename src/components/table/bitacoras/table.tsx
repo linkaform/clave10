@@ -38,6 +38,10 @@ import { toast } from "sonner";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 
+import BitacoraImages from "@/components/pages/bitacoras/BitacoraImages";
+import { Table as TableIcon, LayoutGrid } from "lucide-react";
+
+
 interface ListProps {
 	data: Bitacora_record[] | undefined;
 	isLoading: boolean;
@@ -57,11 +61,13 @@ interface ListProps {
 	total: number | undefined;
 	pagination: { pageIndex: number; pageSize: number };
 	setPagination: React.Dispatch<React.SetStateAction<{ pageIndex: number; pageSize: number }>>;
+	viewMode?: "table" | "photos";
+	setViewMode?: (mode: "table" | "photos") => void;
 }
 
 
 const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter,
-	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada, printPase, setPaseIdSeleccionado, personasDentro, refreshData, total, pagination, setPagination }) => {
+	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada, printPase, setPaseIdSeleccionado, personasDentro, refreshData, total, pagination, setPagination, viewMode = "table", setViewMode }) => {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[]
@@ -148,10 +154,9 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 				<div className="flex w-1/2 justify-start gap-4 ">
 					<TabsList className="bg-blue-500 text-white">
 						<TabsTrigger value="Personal">Personal</TabsTrigger>
-						<TabsTrigger value="Fotos">Fotos</TabsTrigger>
 						<TabsTrigger value="Vehiculos">Vehículos</TabsTrigger>
 						<TabsTrigger value="Equipos">Equipos</TabsTrigger>
-						<TabsTrigger value="Locker">Locker</TabsTrigger>
+						{/* <TabsTrigger value="Locker">Locker</TabsTrigger> */}
 					</TabsList>
 
 					<div className="flex w-full max-w-sm items-center space-x-2">
@@ -194,6 +199,26 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 							</SelectContent>
 						</Select>
 						<CalendarDays />
+					</div>
+					<div className="flex items-center ml-4 bg-slate-100 p-1 rounded-lg border border-slate-200">
+						<Button
+							variant="ghost"
+							size="icon"
+							className={`h-8 w-8 transition-all duration-300 ${viewMode === 'table' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+							onClick={() => setViewMode?.('table')}
+							title="Vista de Tabla"
+						>
+							<TableIcon size={18} />
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon"
+							className={`h-8 w-8 transition-all duration-300 ${viewMode === 'photos' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+							onClick={() => setViewMode?.('photos')}
+							title="Vista de Fotos"
+						>
+							<LayoutGrid size={18} />
+						</Button>
 					</div>
 				</div>
 
@@ -264,74 +289,87 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 
 			</div>
 
-			<div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">
-				<Table className="text-xs">
-					<TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
-						{table.getHeaderGroups().map((headerGroup: any) => (
-							<TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
-								{headerGroup.headers.map((header: any) => {
-									return (
-										<TableHead
-											key={header.id}
-											className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none ${header.id === 'options' ? 'w-1' : ''}`}
-										>
-											{header.isPlaceholder
-												? null
-												: flexRender(
-													header.column.columnDef.header,
-													header.getContext()
-												)}
-										</TableHead>
-									);
-								})}
-							</TableRow>
-						))}
-					</TableHeader>
+			{viewMode === "table" ? (
+				<>
+					<div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">
+						<Table className="text-xs">
+							<TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
+								{table.getHeaderGroups().map((headerGroup: any) => (
+									<TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
+										{headerGroup.headers.map((header: any) => {
+											return (
+												<TableHead
+													key={header.id}
+													className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none ${header.id === 'options' ? 'w-1' : ''}`}
+												>
+													{header.isPlaceholder
+														? null
+														: flexRender(
+															header.column.columnDef.header,
+															header.getContext()
+														)}
+												</TableHead>
+											);
+										})}
+									</TableRow>
+								))}
+							</TableHeader>
 
-					<TableBody >
-						{table.getRowModel().rows?.length ? (
-							table.getRowModel().rows.map((row: any) => (
-								<TableRow
-									key={row.id}
-									data-state={row.getIsSelected() && "selected"}
-									className="hover:bg-slate-100 transition-colors border-slate-50"
-								>
-									{row.getVisibleCells().map((cell: any) => (
-										<TableCell
-											key={cell.id}
-											className={`py-2 px-3 border-r border-slate-100 last:border-r-0 ${cell.column.id === 'options' ? 'w-1' : ''} font-normal`}
+							<TableBody >
+								{table.getRowModel().rows?.length ? (
+									table.getRowModel().rows.map((row: any) => (
+										<TableRow
+											key={row.id}
+											data-state={row.getIsSelected() && "selected"}
+											className="hover:bg-slate-100 transition-colors border-slate-50"
 										>
-											{flexRender(
-												cell.column.columnDef.cell,
-												cell.getContext(),
+											{row.getVisibleCells().map((cell: any) => (
+												<TableCell
+													key={cell.id}
+													className={`py-2 px-3 border-r border-slate-100 last:border-r-0 ${cell.column.id === 'options' ? 'w-1' : ''} font-normal`}
+												>
+													{flexRender(
+														cell.column.columnDef.cell,
+														cell.getContext(),
+													)}
+												</TableCell>
+											))}
+										</TableRow>
+
+									))
+								) : (
+									<TableRow>
+										<TableCell
+											colSpan={columns.length}
+											className="h-32 text-center"
+										>
+											{isLoading ? (
+												<div className="flex flex-col items-center gap-2 text-slate-300">
+													<div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
+													<span className="text-xs font-normal">Cargando registros...</span>
+												</div>
+											) : (
+												<span className="text-xs text-slate-300 font-normal">No se encontraron registros</span>
 											)}
 										</TableCell>
-									))}
-								</TableRow>
+									</TableRow>
+								)}
+							</TableBody>
 
-							))
-						) : (
-							<TableRow>
-								<TableCell
-									colSpan={columns.length}
-									className="h-32 text-center"
-								>
-									{isLoading ? (
-										<div className="flex flex-col items-center gap-2 text-slate-300">
-											<div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-											<span className="text-xs font-normal">Cargando registros...</span>
-										</div>
-									) : (
-										<span className="text-xs text-slate-300 font-normal">No se encontraron registros</span>
-									)}
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-
-				</Table>
-			</div>
-
+						</Table>
+					</div>
+				</>
+			) : (
+				<div className="mt-4">
+					<BitacoraImages
+						data={data}
+						isLoading={isLoading}
+						total={total}
+						pagination={pagination}
+						setPagination={setPagination}
+					/>
+				</div>
+			)}
 			<DataTablePagination table={table} total={total} />
 		</div>
 	);
