@@ -102,10 +102,9 @@ const EquiposTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2
 				<div className="flex w-full justify-start gap-4">
 					<TabsList className="bg-blue-500 text-white">
 						<TabsTrigger value="Personal">Personal</TabsTrigger>
-						<TabsTrigger value="Fotos">Fotos</TabsTrigger>
 						<TabsTrigger value="Vehiculos">Vehículos</TabsTrigger>
 						<TabsTrigger value="Equipos">Equipos</TabsTrigger>
-						<TabsTrigger value="Locker">Locker</TabsTrigger>
+						{/* <TabsTrigger value="Locker">Locker</TabsTrigger> */}
 					</TabsList>
 
 					<div className="flex w-full max-w-sm items-center space-x-2">
