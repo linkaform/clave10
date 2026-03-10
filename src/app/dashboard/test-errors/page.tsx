@@ -1,7 +1,7 @@
 "use client"
-import GlobalError from '../../global-error';
+import NotFound from '../../not-found';
 
 export default function TestErrors() {
 
-    return <GlobalError error={new Error('Test')} reset={() => {}} />
+    return <NotFound />
 }
