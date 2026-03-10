@@ -11,7 +11,9 @@ interface EquipoDevolucion {
   cantidad_devuelta: number;
   state: string;
   evidencia: EvidenciaDevolucion[];
+  comentario_entrega:string;
 }
+
 export interface InputDevolucionTotal {
   record_id: string;
   status: "total";
@@ -24,6 +26,7 @@ export interface InputDevolucionTotal {
   };
   comentarios?: string;
   evidencia?: { file_url: string; file_name?: string }[];
+  comentario_entrega?:string
 }
 export interface InputDevolucionEquipo {
   record_id: string;
@@ -34,6 +37,7 @@ export interface InputDevolucionEquipo {
   identificacion_entrega?: Imagen;
   entregado_por: "empleado" | "otro";
   equipos: EquipoDevolucion[];
+  comentario_entrega?:string
 }
 
 export const devolucionEquipoConcesionado = async (data: InputDevolucionEquipo | InputDevolucionTotal) => {
@@ -42,7 +46,7 @@ export const devolucionEquipoConcesionado = async (data: InputDevolucionEquipo |
     option: "update_article",
     ...data,
   };
-
+console.log("comenraeriosss", data)
   const userJwt = localStorage.getItem("access_token");
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
