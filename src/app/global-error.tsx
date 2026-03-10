@@ -1,6 +1,7 @@
 // app/global-error.tsx
 'use client'
 
+import '@/app/globals.css'
 import { Button } from '@/components/ui/button'
 import { RefreshCcw, Home } from 'lucide-react'
 import Link from 'next/link'
