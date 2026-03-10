@@ -7,6 +7,18 @@ import { Imagen } from "./upload-Image";
 import { ConcesionadosVerEquipo } from "./modals/concesionados-ver-equipo";
 import { formatCurrency } from "@/lib/utils";
 
+export type DevolucionItem = {
+  id_movimiento_devolucion: string;
+  estatus_equipo: string;
+  fecha_devolucion_concesion: string;
+  cantidad_devolucion: number;
+  comentario_entrega: string | null;
+  entregado_por: "empleado" | "otro";
+  evidencia_entrega: { file_url: string; file_name: string }[];
+  identificacion_entrega: { file_url: string; file_name: string }[];
+  quien_entrega: string;
+  quien_entrega_company: string | null;
+};
 export interface EquipoConcesionado {
   id_movimiento?: string;
   categoria_equipo_concesion?: string;
@@ -19,6 +31,7 @@ export interface EquipoConcesionado {
   evidencia_entrega?: Imagen[];
   comentario_entrega?: string;
   status_concesion_equipo?: string;
+  devoluciones?: DevolucionItem[];
   total?: number;
 }
 
@@ -178,16 +191,6 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
             )}
           </tbody>
         </table>
-      </div>
-
-      <div className="flex justify-end">
-        {/* <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5">
-          <Calculator size={16} className="text-blue-500" />
-          <span className="text-sm font-semibold text-blue-600">Total:</span>
-          <span className="text-sm font-bold text-blue-700">
-            {formatCurrency(totalGeneral || totalGeneral2)}
-          </span>
-        </div> */}
       </div>
     </div>
   );

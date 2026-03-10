@@ -16,7 +16,7 @@ import {
   CarouselPrevious,
 } from "../ui/carousel";
 import { Dispatch, SetStateAction } from "react";
-import { Box, Calendar, ImageOff, Package, User } from "lucide-react";
+import { Box, Calendar, ImageOff, MessageCircleCodeIcon, Package, User } from "lucide-react";
 
 export interface DevolucionItem {
   id_movimiento_devolucion: string;
@@ -55,7 +55,7 @@ interface HistorialDevolucionesModalProps {
     setIsSuccess,
     isSuccess,
   }) => {
-
+    
     return (
       <Dialog open={isSuccess} onOpenChange={setIsSuccess}>
         <DialogTrigger asChild>{children}</DialogTrigger>
@@ -113,13 +113,14 @@ interface HistorialDevolucionesModalProps {
                       <p className="text-sm font-medium text-gray-700">{devolucion?.quien_entrega}</p>
                     </div>
                   </div>
-  
-                  {devolucion.comentario_entrega && (
-                    <div className="col-span-2">
-                      <p className="text-xs text-gray-400 mb-0.5">Comentario</p>
-                      <p className="text-sm text-gray-600">{devolucion.comentario_entrega}</p>
-                    </div>
-                  )}
+                <div className="flex items-start gap-2 col-span-2">
+                <MessageCircleCodeIcon className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Comentario</p>
+                  <p className="text-sm text-gray-600">{devolucion.comentario_entrega || "—"}</p>
+                </div>
+                </div>
+                 
                 </div>
   
                 {devolucion?.evidencia_entrega?.length > 0 ? (

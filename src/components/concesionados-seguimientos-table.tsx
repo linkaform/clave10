@@ -44,7 +44,13 @@ interface AgregarEquiposListProps {
   setEquipoForms: Dispatch<SetStateAction<Record<number, EquipoForm>>>;
 }
 
-type EquipoForm = { unidades: number; estatus: string; agregado: boolean; evidencia_entrega: Imagen[] };
+export type EquipoForm = {
+  unidades: number;
+  estatus: string;
+  agregado: boolean;
+  evidencia_entrega: Imagen[];
+  comentario: string;
+};
 
 const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
   equipos,
@@ -66,7 +72,10 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
   const setForm = (index: number, key: keyof EquipoForm, value: any) => {
     setEquipoForms((prev) => ({
       ...prev,
-      [index]: { ...(prev[index] ?? { unidades: 0, estatus: "", agregado: false, evidencia_entrega: [] }), [key]: value },
+      [index]: {
+        ...(prev[index] ?? { unidades: 0, estatus: "", agregado: false, evidencia_entrega: [], comentario: "" }),
+        [key]: value,
+      },
     }));
   };
 
@@ -105,26 +114,39 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
       {equipos && equipos.length > 0 ? (
         <div className="flex flex-col gap-3 mb-5">
           {equipos.map((item, index) => {
-            const pendientes = Number(item.cantidad_equipo_pendiente ?? item?.cantidad_equipo_concesion);
-            const form = equipoForms[index] ?? { unidades: 0, estatus: "", agregado: false, evidencia_entrega: [] };
+            const pendientes = Number(
+              typeof item.cantidad_equipo_pendiente === "object"
+                ? (item.cantidad_equipo_pendiente as any)?.parsedValue ?? 0
+                : item.cantidad_equipo_pendiente ?? item.cantidad_equipo_concesion ?? 0
+            );
+            const form = equipoForms[index] ?? {
+              unidades: 0,
+              estatus: "",
+              agregado: false,
+              evidencia_entrega: [],
+              comentario: "",
+            };
             const yaDevuelto = item.status_concesion_equipo === "devuelto";
             const isColapsado = colapsados[index] ?? false;
 
             return (
               <div
                 key={index}
-                className={`rounded-xl border shadow-sm overflow-hidden transition-colors ${
-                  form.agregado
-                    ? "border-green-200 bg-green-50"
-                    : "border-gray-200 bg-white"
+                className={`rounded-xl border shadow-sm overflow-hidden transition-all duration-300 ${
+                  yaDevuelto
+                    ? "border-gray-200 bg-white"
+                    : form.agregado
+                    ? "border-green-300 bg-green-50 shadow-green-100"
+                    : "border-red-200 bg-red-50/30"
                 }`}
               >
-                {/* Header */}
                 <div
                   className={`flex items-center justify-between px-4 py-2.5 border-b cursor-pointer ${
-                    form.agregado
+                    yaDevuelto
+                      ? "bg-gray-50 border-gray-100"
+                      : form.agregado
                       ? "bg-green-100 border-green-200"
-                      : "bg-gray-50 border-gray-100"
+                      : "bg-red-50 border-red-100"
                   }`}
                   onClick={() => toggleColapsado(index)}
                 >
@@ -132,25 +154,35 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
                     <p className="text-sm font-semibold text-gray-700 truncate">
                       {item.nombre_equipo || "—"}
                     </p>
-                    <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                      form.agregado ? "bg-green-200 text-green-800" : estatusBadge(item.status_concesion_equipo ?? "")
-                    }`}>
-                      {form.agregado ? "✓ Agregado" : capitalizeFirstLetter(item.status_concesion_equipo ?? "")}
+                    <span
+                      className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        form.agregado && !yaDevuelto
+                          ? "bg-green-200 text-green-800"
+                          : estatusBadge(item.status_concesion_equipo ?? "")
+                      }`}
+                    >
+                      {form.agregado && !yaDevuelto
+                        ? "✓ Agregado"
+                        : capitalizeFirstLetter(item.status_concesion_equipo ?? "")}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                     <button
                       type="button"
                       title="Ver detalle"
-                      onClick={(e) => { e.stopPropagation(); handleViewEquipo(item); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewEquipo(item);
+                      }}
                       className="text-blue-400 hover:text-blue-600 transition-colors"
                     >
-                      <Eye className="w-6 h-6" />
+                      <Eye className="w-5 h-5" />
                     </button>
-                    {isColapsado
-                      ? <ChevronDown className="w-4 h-4 text-gray-400" />
-                      : <ChevronUp className="w-4 h-4 text-gray-400" />
-                    }
+                    {isColapsado ? (
+                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                    ) : (
+                      <ChevronUp className="w-4 h-4 text-gray-400" />
+                    )}
                   </div>
                 </div>
 
@@ -161,16 +193,22 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
                         <div className="grid grid-cols-3 gap-4">
                           <div>
                             <p className="text-xs text-gray-400 mb-0.5">Unidades totales</p>
-                            <p className="text-sm font-medium text-gray-700">{item.cantidad_equipo_concesion ?? "—"}</p>
+                            <p className="text-sm font-medium text-gray-700">
+                              {item.cantidad_equipo_concesion ?? "—"}
+                            </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-0.5">Devueltas</p>
-                            <p className="text-sm font-medium text-gray-700">{item.cantidad_equipo_devuelto ?? "—"}</p>
+                            <p className="text-sm font-medium text-gray-700">
+                              {item.cantidad_equipo_devuelto ?? "—"}
+                            </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-0.5">Precio</p>
                             <p className="text-sm font-medium text-gray-700">
-                              {formatCurrency((item.costo_equipo_concesion ?? 0) * (item.cantidad_equipo_concesion ?? 0))}
+                              {formatCurrency(
+                                (item.costo_equipo_concesion ?? 0) * (item.cantidad_equipo_concesion ?? 0)
+                              )}
                             </p>
                           </div>
                         </div>
@@ -181,12 +219,16 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
                             <div className="grid grid-cols-2 gap-3">
                               <div>
                                 <p className="text-xs text-gray-400 mb-0.5">Unidades totales</p>
-                                <p className="text-sm font-medium text-gray-700">{item.cantidad_equipo_concesion ?? "—"}</p>
+                                <p className="text-sm font-medium text-gray-700">
+                                  {item.cantidad_equipo_concesion ?? "—"}
+                                </p>
                               </div>
                               <div>
                                 <p className="text-xs text-gray-400 mb-0.5">Precio</p>
                                 <p className="text-sm font-medium text-gray-700">
-                                  {formatCurrency((item.costo_equipo_concesion ?? 0) * (item.cantidad_equipo_concesion ?? 0))}
+                                  {formatCurrency(
+                                    (item.costo_equipo_concesion ?? 0) * (item.cantidad_equipo_concesion ?? 0)
+                                  )}
                                 </p>
                               </div>
                             </div>
@@ -222,31 +264,43 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
                               <p className="text-xs text-gray-400 mt-1">Pendientes: {pendientes}</p>
                             </div>
 
-                            <div>
-                              <p className="text-xs text-gray-400 mb-1">Estado</p>
-                              <div className="flex gap-1 flex-wrap">
-                                {["completo", "perdido", "dañado"].map((val) => (
-                                  <button
-                                    key={val}
-                                    type="button"
-                                    disabled={form.agregado}
-                                    onClick={() => setForm(index, "estatus", val)}
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                      form.estatus === val
-                                        ? "bg-blue-600 text-white shadow-sm"
-                                        : "border border-blue-300 text-blue-600 bg-white hover:bg-blue-50"
-                                    }`}
-                                  >
-                                    {val.charAt(0).toUpperCase() + val.slice(1)}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">Estado</p>
+                          <div className="flex gap-1 flex-wrap">
+                            {["completo", "perdido", "dañado"].map((val) => (
+                              <button
+                                key={val}
+                                type="button"
+                                disabled={form.agregado}
+                                onClick={() => setForm(index, "estatus", val)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                  form.estatus === val
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "border border-blue-300 text-blue-600 bg-white hover:bg-blue-50"
+                                }`}
+                              >
+                                {val.charAt(0).toUpperCase() + val.slice(1)}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">Comentario</p>
+                          <textarea
+                            disabled={form.agregado}
+                            value={form.comentario ?? ""}
+                            onChange={(e) => setForm(index, "comentario", e.target.value)}
+                            placeholder="Escribe un comentario..."
+                            rows={3}
+                            className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-blue-300"
+                          />
+                        </div>
                           </div>
 
                           <div>
                             <LoadImage
-                              id={"fotografia"}
+                              id={`evidencia-equipo-${index}`}
                               titulo="Evidencia de entrega"
                               showWebcamOption={true}
                               imgArray={form.evidencia_entrega || []}
@@ -261,7 +315,11 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
                     </div>
 
                     {!yaDevuelto && (
-                      <div className="px-4 py-2.5 border-t border-gray-100 flex flex-col gap-2">
+                      <div
+                        className={`px-4 py-3 border-t flex flex-col gap-2 ${
+                          form.agregado ? "border-green-200" : "border-red-100"
+                        }`}
+                      >
                         {!form.agregado && (form.unidades <= 0 || !form.estatus) && (
                           <p className="text-xs text-red-400">
                             {form.unidades <= 0 && !form.estatus
@@ -271,14 +329,23 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
                               : "Selecciona el estado del equipo."}
                           </p>
                         )}
+
                         <div className="flex justify-end gap-2">
                           {form.agregado && (
                             <button
                               type="button"
-                              onClick={() => setEquipoForms((prev) => ({
-                                ...prev,
-                                [index]: { unidades: 0, estatus: "", agregado: false, evidencia_entrega: [] },
-                              }))}
+                              onClick={() =>
+                                setEquipoForms((prev) => ({
+                                  ...prev,
+                                  [index]: {
+                                    unidades: 0,
+                                    estatus: "",
+                                    agregado: false,
+                                    evidencia_entrega: [],
+                                    comentario: "",
+                                  },
+                                }))
+                              }
                               className="px-4 py-1.5 rounded-lg text-xs font-medium border border-gray-300 text-gray-500 bg-white hover:bg-gray-50 transition-colors"
                             >
                               Limpiar
@@ -288,13 +355,13 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
                             type="button"
                             disabled={form.agregado || !form.estatus || form.unidades <= 0}
                             onClick={() => setForm(index, "agregado", true)}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${
                               form.agregado
                                 ? "bg-green-100 text-green-700"
-                                : "bg-blue-500 hover:bg-blue-600 text-white"
+                                : "bg-orange-500 hover:bg-orange-600 active:scale-95 text-white"
                             }`}
                           >
-                            {form.agregado ? "✓ Agregado" : "Agregar"}
+                            {form.agregado ? "✓ Agregado" : "⊕ Agregar a devolución"}
                           </button>
                         </div>
                       </div>
@@ -312,7 +379,9 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
       )}
 
       <div className="flex gap-2 items-center text-blue-500">
-        <span className="flex font-bold text-lg"><Calculator /> Total:</span>
+        <span className="flex font-bold text-lg">
+          <Calculator /> Total:
+        </span>
         <span className="font-bold text-lg">{formatCurrency(totalGeneral || totalGeneral2)}</span>
       </div>
     </div>

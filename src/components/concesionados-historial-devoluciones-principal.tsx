@@ -215,7 +215,7 @@ const HistorialDevolucionesPrincipal: React.FC<HistorialDevolucionesProps> = ({
                       <div className="flex items-start gap-2">
                         <FileText className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                         <div className="w-full">
-                          <p className="text-xs text-gray-400 mb-2">Evidencia del equipo</p>
+                          <p className="text-xs text-gray-400 mb-2">Evidencia de Entrega del Equipo</p>
                           <div className="flex justify-center">
                             <Carousel className="w-52">
                               <CarouselContent>
