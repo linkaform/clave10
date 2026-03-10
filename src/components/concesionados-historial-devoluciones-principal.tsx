@@ -206,7 +206,7 @@ const HistorialDevolucionesPrincipal: React.FC<HistorialDevolucionesProps> = ({
                     )}
                       <div className="w-1/2">
                         <HistorialDevolucionesList
-                          devoluciones={dataConcesion?.grupo_equipos_devolucion??[]}>
+                          devoluciones={dev?.devoluciones??[]}>
                           </HistorialDevolucionesList>
 
                         </div>  
