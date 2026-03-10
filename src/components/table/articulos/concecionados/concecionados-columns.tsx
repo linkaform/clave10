@@ -5,6 +5,7 @@ import {  ArrowLeftRight, Eye } from "lucide-react";
 import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-de-la-concesion";
 import { Imagen } from "@/components/upload-Image";
 import { DetalleDelSeguimiento } from "@/components/modals/concesionados-detalle-del-seguimiento";
+import { EquipoConcesionado } from "@/components/concesionados-tab-datos";
 
 export interface Articulo_con_record {
     _id:string,
@@ -22,6 +23,7 @@ export interface Articulo_con_record {
     evidencia:Imagen[],
     persona_text:string,
     persona_nombre_otro:string
+    equipos:EquipoConcesionado[]
 }
 
 
@@ -109,12 +111,34 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       enableSorting: true,
     },
     {
-      accessorKey: "equipos",
+      accessorKey: "grupo_equipos",
       header: "Equipos",
-      cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("equipos")}</div>
-      ),
-      enableSorting: true,
+      cell: ({ row }) => {
+        console.log("row original:", row.original);
+        const equipos: EquipoConcesionado[] = row.getValue("grupo_equipos") || [];
+        if (!equipos.length) return <span className="text-gray-400 text-xs">—</span>;
+    
+        const getParsed = (val: any) =>
+          typeof val === "object" ? val?.parsedValue ?? val : Number(val ?? 0);
+    
+        return (
+          <div className="max-h-20 overflow-y-auto flex flex-col gap-1 pr-1">
+            {equipos.map((eq, i) => {
+              const cantidad = getParsed(eq.cantidad_equipo_concesion);
+              return (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded-md px-2 py-0.5 whitespace-nowrap"
+                >
+                  {eq.nombre_equipo || "—"}
+                  <span className="font-bold">x {cantidad}</span>
+                </span>
+              );
+            })}
+          </div>
+        );
+      },
+      enableSorting: false,
     },
     {
       accessorKey: "fecha_concesion",
@@ -125,21 +149,14 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       enableSorting: true,
     },
     {
-      accessorKey: "fecha_devolucion_concesion",
+      accessorKey: "fecha_cierre_concesion",
       header: "Fecha de devolucion",
       cell: ({ row }) => (
-        <div>{row.getValue("fecha_devolucion_concesion")}</div>
+        <div>{row.getValue("fecha_cierre_concesion")}</div>
       ),
       enableSorting: true,
     },
-    {
-      accessorKey: "entrego",
-      header: "Entrego",
-      cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("entrego")}</div>
-      ),
-      enableSorting: true,
-    },
+
  
   ];
   
