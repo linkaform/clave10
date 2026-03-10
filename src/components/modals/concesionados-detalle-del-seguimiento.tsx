@@ -141,6 +141,7 @@ export const DetalleDelSeguimiento: React.FC<SegArtModalProps> = ({
         evidencia: (form.evidencia_entrega ?? [])
           .filter((img) => img.file_url !== undefined)
           .map((img) => ({ file_url: img.file_url!, file_name: img.file_name ?? "" })),
+        comentario_entrega:form.comentario_entrega?? ""
       };
     });
     
@@ -157,6 +158,7 @@ export const DetalleDelSeguimiento: React.FC<SegArtModalProps> = ({
       quien_entrega_company: dataDevolucion.entrega_tipo === "otro" ? dataDevolucion.quien_entrega : undefined,
       identificacion_entrega: dataDevolucion.identificacion_entrega?.[0] ?? undefined,
       equipos: equiposAgregados,
+    
     }, {
       onSuccess: () => setDetalleSeg(false) 
     });

@@ -35,6 +35,8 @@ const ArticulosPage = () => {
 	const { listArticulosPerdidos, isLoadingListArticulosPerdidos} = useArticulosPerdidos(ubicacionSeleccionada,  areaSeleccionada == "todas" ? "": areaSeleccionada, "", true, dates[0], dates[1], dateFilter);
 	const { listArticulosCon, isLoadingListArticulosCon} = useArticulosConcesionados(
 		ubicacionSeleccionada, areaSeleccionada == "todas" ? "": areaSeleccionada, status, true, dates[0], dates[1], dateFilter);
+
+		console.log("LISTADO",listArticulosCon)
 	const { listPaqueteria, isLoadingListPaqueteria} = usePaqueteria(ubicacionSeleccionada,  areaSeleccionada == "todas" ? "": areaSeleccionada, "", true, dates[0], dates[1], dateFilter);
 	const { tab, setTab } = useShiftStore()
 	const [selectedTab, setSelectedTab] = useState<string>(tab ? tab:'Paqueteria'); 

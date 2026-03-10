@@ -49,7 +49,7 @@ export type EquipoForm = {
   estatus: string;
   agregado: boolean;
   evidencia_entrega: Imagen[];
-  comentario: string;
+  comentario_entrega: string;
 };
 
 const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
@@ -73,7 +73,7 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
     setEquipoForms((prev) => ({
       ...prev,
       [index]: {
-        ...(prev[index] ?? { unidades: 0, estatus: "", agregado: false, evidencia_entrega: [], comentario: "" }),
+        ...(prev[index] ?? { unidades: 0, estatus: "", agregado: false, evidencia_entrega: [], comentario_entrega: "" }),
         [key]: value,
       },
     }));
@@ -124,7 +124,7 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
               estatus: "",
               agregado: false,
               evidencia_entrega: [],
-              comentario: "",
+              comentario_entrega: "",
             };
             const yaDevuelto = item.status_concesion_equipo === "devuelto";
             const isColapsado = colapsados[index] ?? false;
@@ -286,11 +286,11 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
                         </div>
 
                         <div>
-                          <p className="text-xs text-gray-400 mb-1">Comentario</p>
+                          <p className="text-xs text-gray-400 mb-1">comentario_entrega</p>
                           <textarea
                             disabled={form.agregado}
-                            value={form.comentario ?? ""}
-                            onChange={(e) => setForm(index, "comentario", e.target.value)}
+                            value={form.comentario_entrega ?? ""}
+                            onChange={(e) => setForm(index, "comentario_entrega", e.target.value)}
                             placeholder="Escribe un comentario..."
                             rows={3}
                             className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-blue-300"
@@ -342,7 +342,7 @@ const DetalleSeguimientoTable: React.FC<AgregarEquiposListProps> = ({
                                     estatus: "",
                                     agregado: false,
                                     evidencia_entrega: [],
-                                    comentario: "",
+                                    comentario_entrega: "",
                                   },
                                 }))
                               }

@@ -108,34 +108,62 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
     case "perdido":
       return "lost";
 	  case "dañado":
+      return "damage";
 	  case "danado": 
 		return "damage";
 	  default:
 		return null; 
 	}
   }
-
   function onSubmit(values: z.infer<typeof formSchema>) {
-        devolverEquipoMutation.mutate({
-          record_id: dataConcesion?._id ?? "",
-          status: equipoSelecionado!==null? 'parical':"total",
-          entregado_por: values.entrega_tipo as "empleado" | "otro",
-          quien_entrega: values.entrega_tipo === "empleado"
+    console.log("COMENTARIO", values)
+    if (equipoSelecionado !== null) {
+      devolverEquipoMutation.mutate({
+        record_id: dataConcesion?._id ?? "",
+        status: "parical",
+        entregado_por: values.entrega_tipo as "empleado" | "otro",
+        quien_entrega: values.entrega_tipo === "empleado"
           ? values.entrega_concesion ?? ""
           : values.entrega_concesion_otro ?? "",
-          quien_entrega_company: "Demo",
-          identificacion_entrega: values.identificacion_entrega ? values.identificacion_entrega[0]: [],
-          equipos: [{
+        quien_entrega_company: "",
+        identificacion_entrega: values.identificacion_entrega ? values.identificacion_entrega[0] : [],
+        equipos: [{
           id_movimiento: equipoSelecionado?.id_movimiento ?? "",
           cantidad_devuelta: values.unidades ?? 0,
-          state: traducirEstatus(values.estatus)??'',
+          state: traducirEstatus(values.estatus) ?? "",
           evidencia: values.evidencia ?? [],
-          }],
-        }, {
-          onSuccess: () => setIsSuccess(false),
-        });
+          comentario_entrega: values.comentarios ?? "",
+        }],
+      }, {
+        onSuccess: () => setIsSuccess(false),
+      });
+    } else {
+      devolverEquipoMutation.mutate({
+        record_id: dataConcesion?._id ?? "",
+        status: "total",
+        state: traducirEstatus(values.estatus) ?? "complete",
+        quien_entrega: values.entrega_tipo === "empleado"
+          ? values.entrega_concesion ?? ""
+          : values.entrega_concesion_otro ?? "",
+        company: values.entrega_concesion_otro ?? "",
+        identificacion_entrega: values.identificacion_entrega?.[0] ?? undefined,
+        comentario_entrega: values.comentarios ?? "",
+        evidencia: values.evidencia ?? [],
+      } as any, {
+        onSuccess: () => setIsSuccess(false),
+      });
+    }
   }
+  const getParsedValue = (val: any) =>
+    typeof val === "object" ? val?.parsedValue ?? 0 : Number(val ?? 0);
+  
+  const devueltos = getParsedValue(equipoSelecionado?.cantidad_equipo_devuelto);
+  const total = getParsedValue(equipoSelecionado?.cantidad_equipo_concesion);
+  const pendientesRaw = getParsedValue(equipoSelecionado?.cantidad_equipo_pendiente);
+  const pendientes = pendientesRaw === 0 ? total - devueltos : pendientesRaw;
 
+
+  
   const handleClose = () => setIsSuccess(false);
   const tipoCon = form.watch("entrega_tipo");
   console.log("PENDIENTE ",equipoSelecionado?.cantidad_equipo_pendiente )
@@ -314,20 +342,20 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                               placeholder="0"
                               className="bg-white border-gray-200"
                               min={0}
-                              max={equipoSelecionado?.cantidad_equipo_pendiente}
+                              max={pendientes}
                               defaultValue={0}
                               onChange={(e) => {
-                                const pendientes = Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
+                                const pend = Number(pendientes);
                                 const val = Number(e.target.value);
-                                if (val > pendientes) {
+                                if (val > pend) {
                                   e.target.value = "0";
                                   field.onChange(0);
                                 } else {
                                   field.onChange(val);
                                 }
+                                console.log("value", val)
                               }}
                               onBlur={(e) => {
-                                console.log("PENDIENTE ",equipoSelecionado?.cantidad_equipo_pendiente )
                                 const pendientes = Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
                                 const val = e.target.value === "" ? 0 : Number(e.target.value);
                                 const clamped = Math.min(Math.max(val, 0), pendientes);
@@ -336,8 +364,24 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                             />
                             </FormControl>
                             <p className="text-xs text-gray-400 mt-1">
-                              {Number(equipoSelecionado?.cantidad_equipo_devuelto ?? 0)} de {equipoSelecionado?.cantidad_equipo_concesion ?? 0} devueltos — Pendientes: {Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0)}
-                            </p>
+                            {(() => {
+                              const devueltos = typeof equipoSelecionado?.cantidad_equipo_devuelto === "object"
+                                ? (equipoSelecionado?.cantidad_equipo_devuelto as any)?.parsedValue ?? 0
+                                : Number(equipoSelecionado?.cantidad_equipo_devuelto ?? 0);
+
+                              const total = typeof equipoSelecionado?.cantidad_equipo_concesion === "object"
+                                ? (equipoSelecionado?.cantidad_equipo_concesion as any)?.parsedValue ?? 0
+                                : Number(equipoSelecionado?.cantidad_equipo_concesion ?? 0);
+
+                              const pendientes = typeof equipoSelecionado?.cantidad_equipo_pendiente === "object"
+                                ? (equipoSelecionado?.cantidad_equipo_pendiente as any)?.parsedValue ?? 0
+                                : Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
+
+                              const pendientesReal = pendientes === 0 ? total - devueltos : pendientes;
+
+                              return `${devueltos} de ${total} devueltos — Pendientes: ${pendientesReal}`;
+                            })()}
+                          </p>
                             <FormMessage />
                           </FormItem>
                         )}

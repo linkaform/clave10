@@ -109,6 +109,7 @@ export const NuevaDevolucionMiniEquipoModal: React.FC<NuevaDevolucionModalProps>
           cantidad_devuelta: values.unidades ?? 0,
           state: traducirEstatus(values.estatus)??'',
           evidencia: values.evidencia ?? [],
+          comentario_entrega:values.comentarios??""
           }],
         }, {
           onSuccess: () => setIsSuccess(false),
