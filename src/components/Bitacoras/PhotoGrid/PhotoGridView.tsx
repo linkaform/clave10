@@ -1,22 +1,13 @@
 "use client"
 
-import { useState, useMemo } from "react"
 import { PhotoGridCard } from "./PhotoGridCard"
-import { PhotoRecord } from "@/types/bitacoras"
-import { FiltersPanel, type FilterState } from "./PhotoGridFiltersPanel"
-import { FilterConfig } from "@/types/bitacoras"
+import { FiltersPanel } from "./PhotoGridFiltersPanel"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Filter, ImageIcon } from "lucide-react"
-
-interface PhotoGridViewProps {
-  records: PhotoRecord[]
-  title?: string
-  onRecordClick?: (record: PhotoRecord) => void
-  children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
-  filtersConfig: FilterConfig[]
-}
+import { PhotoGridViewProps } from "@/types/bitacoras"
+import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView"
 
 export function PhotoGridView({
   records,
@@ -24,36 +15,8 @@ export function PhotoGridView({
   children,
   filtersConfig,
 }: PhotoGridViewProps) {
-  const [filters, setFilters] = useState<FilterState>({
-    dynamic: {}
-  })
-
-  const filteredRecords = useMemo(() => {
-    return records.filter((record) => {
-      const dynamicMatch = Object.entries(filters.dynamic || {}).every(([key, value]) => {
-        if (!value || (Array.isArray(value) && value.length === 0)) return true
-        
-        let recordValue = record.rawData?.[key] || record[key as keyof PhotoRecord]
-
-        // Handle specific case for visita_a which is an array of objects
-        if (key === "visita_a" && Array.isArray(recordValue)) {
-          recordValue = recordValue[0]?.nombre || ""
-        }
-
-        if (Array.isArray(value)) {
-          return value.includes(String(recordValue))
-        }
-        return String(recordValue) === String(value)
-      })
-
-      return dynamicMatch
-    })
-  }, [records, filters])
-
-  const activeFiltersCount = Object.values(filters.dynamic || {}).reduce((acc: number, curr) => {
-    if (Array.isArray(curr)) return acc + curr.length
-    return acc + (curr ? 1 : 0)
-  }, 0)
+  
+  const { filters, setFilters, filteredRecords, activeFiltersCount } = usePhotoGridView(records);
 
   return (
     <div className="flex h-full w-full bg-background">

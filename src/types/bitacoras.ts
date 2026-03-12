@@ -41,3 +41,21 @@ export interface PhotoCardProps {
   onClick?: (record: PhotoRecord) => void
   children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
 }
+
+export interface PhotoGridViewProps {
+  records: PhotoRecord[]
+  title?: string
+  onRecordClick?: (record: PhotoRecord) => void
+  children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
+  filtersConfig: FilterConfig[]
+}
+
+export interface FilterState {
+  dynamic: Record<string, string | string[]>
+}
+
+export interface FiltersPanelProps {
+  filters: FilterState
+  onFiltersChange: (filters: FilterState) => void
+  filtersConfig?: FilterConfig[]
+}

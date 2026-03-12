@@ -5,54 +5,19 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
-import { FilterConfig } from "@/types/bitacoras"
-
-export interface FilterState {
-  dynamic: Record<string, string | string[]>
-}
-
-interface FiltersPanelProps {
-  filters: FilterState
-  onFiltersChange: (filters: FilterState) => void
-  filtersConfig?: FilterConfig[]
-}
+import { FiltersPanelProps } from "@/types/bitacoras"
+import { useFiltersPanel } from "@/hooks/bitacora/useFiltersPanel"
 
 export function FiltersPanel({
   filters,
   onFiltersChange,
   filtersConfig = []
 }: FiltersPanelProps) {
-  const handleDynamicChange = (key: string, value: string, checked: boolean, type: "multiple" | "single") => {
-    const currentDynamic = filters.dynamic || {}
-    const currentValue = currentDynamic[key]
 
-    let newValue: string | string[]
-    if (type === "single") {
-      newValue = checked ? value : ""
-    } else {
-      const currentArray = Array.isArray(currentValue) ? currentValue : []
-      newValue = checked
-        ? [...currentArray, value]
-        : currentArray.filter((v) => v !== value)
-    }
-
-    onFiltersChange({
-      ...filters,
-      dynamic: { ...currentDynamic, [key]: newValue }
-    })
-  }
-
-  const clearFilters = () => {
-    onFiltersChange({ dynamic: {} })
-  }
-
-  const hasActiveFilters = Object.values(filters.dynamic || {}).some(v => 
-    Array.isArray(v) ? v.length > 0 : v !== ""
-  )
+  const { handleDynamicChange, clearFilters, hasActiveFilters } = useFiltersPanel(filters, onFiltersChange);
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Filtros</h2>
         {hasActiveFilters && (
