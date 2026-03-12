@@ -1,5 +1,5 @@
 import { FilterConfig } from "@/types/bitacoras";
-import { PhotoRecord } from "@/components/PhotoGrid/PhotoGridCard";
+import { PhotoRecord } from "@/types/bitacoras";
 
 export const BITACORAS_FILTERS: FilterConfig[] = [
   {

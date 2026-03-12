@@ -36,13 +36,13 @@ import ForceQuitConfirmationModal from "@/components/modals/force-quit-confirmat
 import { forceQuitAllPersons } from "@/lib/endpoints";
 import { toast } from "sonner";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
-import { PhotoGridView } from "@/components/PhotoGrid/PhotoGridView";
+import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import { LayoutGrid } from "lucide-react";
-import { PhotoRecord } from "@/components/PhotoGrid/PhotoGridCard";
+import { PhotoRecord } from "@/types/bitacoras";
 import { formatPhotoRecord } from "@/utils/formatRecords";
 import { generateFiltersConfig } from "@/config/filters/bitacora";
-import { Car, Eye, Forward, Hammer, IdCard, Printer } from "lucide-react"
 import { useGetBitacoraFilters } from "@/hooks/bitacora/useGetBitacoraFilters";
+import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
 
 interface ListProps {
 	data: Bitacora_record[] | undefined;
@@ -390,16 +390,21 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 						filtersConfig={bitacoraFiltersConfig}
 						records={photoRecords}
 						title="Galería de Registros"
-						onRecordClick={() => {}}
+						onRecordClick={() => { }}
 					>
-					<div className="flex gap-2">
-						<Eye className="w-5 h-5" />
-						<Car className="w-5 h-5" />
-						<Hammer className="w-5 h-5" />
-						<IdCard className="w-5 h-5" />
-						<Printer className="w-5 h-5" />
-						<Forward className="w-5 h-5 text-emerald-500" />
-					</div>
+						{(record: PhotoRecord) => {
+							const bitacora = memoizedData.find(b => b._id === record.id);
+							if (!bitacora) return null;
+							return (
+								<InAndOutButtons
+									bitacora={bitacora}
+									handleRegresarGafete={handleRegresarGafete}
+									handleAgregarBadge={handleAgregarBadge}
+									handleSalida={handleSalida}
+									printPaseFn={printPaseFn}
+								/>
+							);
+						}}
 					</PhotoGridView>
 				</div>
 			)}

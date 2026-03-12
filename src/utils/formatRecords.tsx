@@ -1,11 +1,9 @@
-import { PhotoRecord } from "@/components/PhotoGrid/PhotoGridCard";
+import { PhotoRecord } from "@/types/bitacoras";
 import { Briefcase, User, CalendarDays } from "lucide-react";
 
 export type RegistryType = 
     "bitacora" |
     "asistencia_personal";
-
-
 
 export function formatPhotoRecord(raw: any, type: RegistryType): PhotoRecord {
   const base = {

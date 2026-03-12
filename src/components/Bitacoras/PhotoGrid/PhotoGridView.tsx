@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { PhotoGridCard, type PhotoRecord } from "./PhotoGridCard"
+import { PhotoGridCard } from "./PhotoGridCard"
+import { PhotoRecord } from "@/types/bitacoras"
 import { FiltersPanel, type FilterState } from "./PhotoGridFiltersPanel"
 import { FilterConfig } from "@/types/bitacoras"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -13,7 +14,7 @@ interface PhotoGridViewProps {
   records: PhotoRecord[]
   title?: string
   onRecordClick?: (record: PhotoRecord) => void
-  children?: React.ReactNode
+  children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
   filtersConfig: FilterConfig[]
 }
 
@@ -21,7 +22,7 @@ export function PhotoGridView({
   records,
   onRecordClick,
   children,
-  filtersConfig
+  filtersConfig,
 }: PhotoGridViewProps) {
   const [filters, setFilters] = useState<FilterState>({
     dynamic: {}

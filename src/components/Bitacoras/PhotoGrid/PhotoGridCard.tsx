@@ -5,38 +5,7 @@ import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-
-export type PhotoStatus = "completado" | "en_proceso" | "cerrado" | "entrada" | "salida"
-
-export interface PhotoRecord {
-  id: string
-  folio?: string
-  title: string
-  description: string
-  images: string[]
-  status: PhotoStatus
-  detailsList?: DetailsListItem[]
-  rawData?: any
-}
-
-export interface CardConfiguration {
-  tagPosition?: "sup-izq" | "sup-der" | "inf-izq" | "inf-der"
-  folioTag?: boolean
-}
-
-export interface DetailsListItem {
-  icon: React.ReactNode
-  value: string
-}
-
-interface PhotoCardProps {
-  titleCard?: string
-  descriptionCard?: string
-  record: PhotoRecord
-  cardConfig: CardConfiguration
-  onClick?: (record: PhotoRecord) => void
-  children?: React.ReactNode
-}
+import { PhotoStatus, PhotoCardProps } from "@/types/bitacoras"
 
 const statusConfig: Record<PhotoStatus, { label: string; variant?: "default" | "secondary" | "outline"; customClass?: string }> = {
   completado: { label: "Completado", variant: "default" },
@@ -138,7 +107,7 @@ export function PhotoGridCard({ titleCard, descriptionCard, record, cardConfig, 
         <div className="flex gap-1">
           {children && (
             <>
-              {children}
+              {typeof children === "function" ? children(record) : children}
             </>
           )}
         </div>
