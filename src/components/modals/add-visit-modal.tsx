@@ -193,7 +193,6 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
 
     if (!valid) return;
 
-    console.log("ACCESS PASS DATA", access_pass);
     registerNewVisit.mutate({ location: location ?? "", access_pass });
   }
 

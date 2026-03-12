@@ -11,9 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import TabDatos, { EquipoConcesionado } from "../concesionados-tab-datos";
 import { useEffect, useState } from "react";
 import { Imagen } from "../upload-Image";
-import { capitalizeFirstLetter } from "@/lib/utils";
-import { Building2, Calendar, ClipboardList, User } from "lucide-react";
+import { Building2, Calendar, CircleDot, ClipboardList, IdCard, PenLine, User } from "lucide-react";
 import TabSeguimientos from "../concesionados-tab-seguimientos";
+import Image from "next/image";
 
 export type Concesion = {
   _id: string;
@@ -21,7 +21,7 @@ export type Concesion = {
   status_concesion: string;
   fecha_concesion: string;
   observacion_concesion?: string;
-  tipo_persona_solicita: "empleado" | "otro";
+  tipo_persona_solicita: string
   persona_nombre_concesion?: string;
   persona_id_concesion?: number[];
   persona_email_concesion?: string[];
@@ -30,8 +30,10 @@ export type Concesion = {
   persona_identificacion_otro?: Imagen[];
   ubicacion_concesion?: string;
   caseta_concesion?: string;
-  firma?: Imagen[];
+  firma?: Imagen;
   grupo_equipos?: EquipoConcesionado[];
+  grupo_equipos_devolucion?: any;
+  equipos?: EquipoConcesionado[];
 };
 
 interface ViewArtModalProps {
@@ -40,16 +42,10 @@ interface ViewArtModalProps {
   children: React.ReactNode;
 }
 
-const getStatusStyle = (status: string) => {
-  switch (status?.toLowerCase()) {
-    case "abierto":
-    case "pendiente": return "bg-red-100 text-red-700 border-red-200";
-    case "parcial": return "bg-yellow-100 text-yellow-700 border-yellow-200";
-    case "en proceso": return "bg-yellow-100 text-yellow-700 border-yellow-200";
-    case "completo":
-    case "cerrado": return "bg-green-100 text-green-700 border-green-200";
-    default: return "bg-gray-100 text-gray-600 border-gray-200";
-  }
+const estatusStyle: Record<string, string> = {
+  abierto: "bg-red-100 text-red-600 border-red-200",
+  parcial: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  devuelto: "bg-green-100 text-green-700 border-green-200",
 };
 
 export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, children }) => {
@@ -58,14 +54,21 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
   useEffect(() => {
     if (data.grupo_equipos) setEquipos(data.grupo_equipos);
   }, [data]);
-  const totalCantidadPendientes = data?.grupo_equipos?.reduce((acc: any, item: any) => {
-    const pendiente = typeof item.cantidad_equipo_pendiente === "object"
-      ? (item.cantidad_equipo_pendiente as any)?.parsedValue ?? 0
-      : Number(item.cantidad_equipo_pendiente ?? 0);
-    return acc + pendiente;
-  }, 0);
 
-
+  const empleado =
+    data?.persona_nombre_concesion ||
+    data?.persona_nombre_otro ||
+    "—";
+  const estatus = data?.status_concesion ?? "";
+  const firmaRaw = Array.isArray(data?.firma)
+    ? data.firma[0]
+    : data?.firma;
+  const firma = firmaRaw?.file_url ? firmaRaw : null;
+  const identificacionRaw =
+    data?.persona_identificacion_otro?.[0] ||
+    data?.grupo_equipos_devolucion?.[0]?.identificacion_entrega?.[0];
+  const identificacion = identificacionRaw?.file_url ? identificacionRaw : null;
+  console.log("DETALLE DE LA CONCESION", data)
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -99,6 +102,7 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                 </div>
 
                 <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                  {/* Ubicación */}
                   <div className="flex items-start gap-2">
                     <Building2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                     <div>
@@ -107,6 +111,7 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                     </div>
                   </div>
 
+                  {/* Fecha */}
                   <div className="flex items-start gap-2">
                     <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                     <div>
@@ -115,43 +120,86 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2">
-                    <User className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  {/* Empleado */}
+                  <div className="flex items-start gap-2.5">
+                    <User className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Empleado</p>
-                      <p className="text-sm text-gray-700">{data.persona_nombre_concesion || "—"}</p>
+                      <p className="text-sm font-medium text-gray-700">{empleado}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2">
-                    <div className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  {/* Estado */}
+                  <div className="flex items-start gap-2.5">
+                    <CircleDot className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Estado</p>
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${getStatusStyle(data.status_concesion)}`}>
-                        {capitalizeFirstLetter(data.status_concesion)}
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Estado de la Concesión</p>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border capitalize ${estatusStyle[estatus] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                        {estatus || "—"}
                       </span>
                     </div>
                   </div>
+
+                  {/* Firma */}
+                  <div className="flex items-start gap-2.5">
+                    <PenLine className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Firma</p>
+                      {firma?.file_url ? (
+                        <div className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 inline-flex">
+                          <Image
+                            src={firma.file_url}
+                            alt="Firma"
+                            width={160}
+                            height={40}
+                            className="h-9 w-auto"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="border border-dashed border-gray-300 rounded-lg px-4 py-3 bg-gray-50 flex flex-col items-center justify-center gap-1 w-44">
+                          <PenLine className="w-5 h-5 text-gray-300" />
+                          <p className="text-xs text-gray-400">No disponible</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Identificación */}
+                  <div className="flex items-start gap-2.5">
+                    <IdCard className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Identificación</p>
+                      {identificacion?.file_url ? (
+                        <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 w-48 h-28">
+                          <Image
+                            src={identificacion.file_url}
+                            alt="Identificación"
+                            width={192}
+                            height={112}
+                            className="w-full h-full object-cover"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 w-48 h-28 flex flex-col items-center justify-center gap-1">
+                          <IdCard className="w-6 h-6 text-gray-300" />
+                          <p className="text-xs text-gray-400">No disponible</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
-              <div className=" p-5 py-0">
+              <div className="p-5 py-0">
                 <TabDatos equipos={equipos} setEquipos={setEquipos} mode="vista" dataConcesion={data}/>
               </div>
             </TabsContent>
 
             <TabsContent value="seguimientos" className="space-y-4 mt-0">
-              <div className=" p-5 py-0">
-                <div className="flex items-center justify-between ">
-                  <div className="flex items-center gap-2">
-                    <ClipboardList className="text-blue-500 w-5 h-5" />
-                    <h3 className="font-semibold text-gray-700">Seguimientos</h3>
-                  </div>
-                  <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 ">
-                    <span className="text-xs font-semibold text-red-500">Pendientes:</span>
-                    <span className="text-sm font-bold text-red-600">{totalCantidadPendientes}</span>
-                  </div>
-                </div>
+              <div className="p-5 py-0">
                 <TabSeguimientos equipos={equipos} setEquipos={setEquipos} mode="vista" dataConcesion={data}/>
               </div>
             </TabsContent>

@@ -84,7 +84,7 @@ const ArticulosPage = () => {
 
 	const [modalData] = useState<any>(null);
 	const [selectedArticulos, setSelectedArticulos]= useState<string[]>([]);
-		console.log(selectedArticulos)
+	console.log(selectedArticulos)
 	useEffect(()=>{
 		if(tab){
 			setTab("")
@@ -342,7 +342,7 @@ const ArticulosPage = () => {
 		<TabsContent value="Concecionados">
 
 		<ArticulosConTable
-		data={listArticulosCon}
+		data={listArticulosCon??[]}
 		isLoadingListArticulosCon={isLoadingListArticulosCon}
 		openModal={openModalCon}
 		setSelectedArticulos={setSelectedArticulos}

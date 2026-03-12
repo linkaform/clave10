@@ -10,7 +10,6 @@ export const useUploadImage = () => {
     const[response, setResponse] = useState<Imagen>();
     const queryClient = useQueryClient();
 
-     //Subir Imagen
     const uploadImageMutation = useMutation({
       mutationFn: async ({ img } : { img: File | null}) => {
 
