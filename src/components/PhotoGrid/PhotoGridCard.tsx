@@ -67,11 +67,13 @@ export function PhotoGridCard({ titleCard, descriptionCard, record, cardConfig, 
   return (
     <Card
       className="group cursor-pointer overflow-hidden py-0 transition-all duration-300 hover:shadow-lg hover:border-primary/30"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       onClick={() => onClick?.(record)}
     >
-      <div className="relative h-80 overflow-hidden bg-muted">
+      <div 
+        className="relative h-80 overflow-hidden bg-muted"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
         <Image
           src={record.images[currentImageIndex] || "/placeholder.svg"}
           alt={record.title}
