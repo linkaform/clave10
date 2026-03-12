@@ -121,7 +121,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
       devolverEquipoMutation.mutate({
         record_id: dataConcesion?._id ?? "",
         status: "parical",
-        entregado_por: values.entrega_tipo as "empleado" | "otro",
+        entregado_por: values.entrega_tipo as string,
         quien_entrega: values.entrega_tipo === "empleado"
           ? values.entrega_concesion ?? ""
           : values.entrega_concesion_otro ?? "",

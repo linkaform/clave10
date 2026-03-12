@@ -23,6 +23,8 @@ interface CalendarDaysProps {
   facingMode: string;
   imgArray: any;
   limit?: number;
+  /** Callback que notifica al padre cuando este componente está subiendo imágenes */
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
 const LoadImage: React.FC<CalendarDaysProps> = ({
@@ -32,9 +34,10 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   showWebcamOption,
   facingMode,
   imgArray,
-  limit=50
+  limit = 50,
+  onLoadingChange,
 }) => {
-console.log("limiy", limit)
+  console.log("limiy", limit);
 
   const [loadingWebcam, setLoadingWebcam] = useState(false);
   const [hideWebcam, setHideWebcam] = useState(true);
@@ -48,7 +51,12 @@ console.log("limiy", limit)
   const reachedLimit = (imgArray?.length ?? 0) >= limit;
   const [activeIndex, setActiveIndex] = useState(0);
   const [carouselApi, setCarouselApi] = useState<any>(null);
-  
+
+  // Notificar al padre cuando cambia isLoading
+  useEffect(() => {
+    onLoadingChange?.(isLoading);
+  }, [isLoading]);
+
   useEffect(() => {
     if (carouselApi) {
       carouselApi.on("select", () => {
@@ -56,10 +64,11 @@ console.log("limiy", limit)
       });
     }
   }, [carouselApi]);
+
   async function handleFileChange(event: any) {
     const files: File[] = Array.from(event.target.files || []);
     if (!files.length) return;
-  
+
     const validFiles = files.filter((file) => {
       const validTypes = ["image/jpeg", "image/jpg", "image/png"];
       const maxSize = 50 * 1024 * 1024;
@@ -73,15 +82,15 @@ console.log("limiy", limit)
       }
       return true;
     });
-  
+
     if (!validFiles.length) {
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
-  
+
     const espaciosDisponibles = limit - (imgArray?.length ?? 0);
     const filesToUpload = validFiles.slice(0, espaciosDisponibles);
-  
+
     const results = await Promise.all(
       filesToUpload.map((file) => {
         const tipoMime = file.type;
@@ -91,18 +100,18 @@ console.log("limiy", limit)
         return uploadImageMutation.mutateAsync({ img: nuevoArchivo });
       })
     );
-  
+
     const nuevos = results.filter(
       (r) => r?.file_url && !imgArray?.some((i: Imagen) => i.file_url === r.file_url)
     );
     if (nuevos.length > 0) setImg([...(imgArray ?? []), ...nuevos]);
-  
+
     setHideWebcam(true);
     setHideButtonWebcam(false);
-  
+
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
-  
+
   function cleanPhoto() {
     setImg([]);
     setHideWebcam(true);
@@ -125,7 +134,7 @@ console.log("limiy", limit)
   function handleUserMedia() {
     setTimeout(() => {
       setLoadingWebcam(false);
-      setWebcamReady(true);
+      setTimeout(() => setWebcamReady(true), 400);
     }, 1000);
   }
 
@@ -194,9 +203,18 @@ console.log("limiy", limit)
                 <button
                   type="button"
                   onClick={takeAndSavePhoto}
-                  className="bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 h-8 rounded-lg transition-colors shadow-sm "
+                  disabled={isLoading}
+                  className="bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 h-8 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                 >
-                  Tomar foto
+                  {isLoading ? (
+                    <>
+                      <svg className="w-3 h-3 animate-spin text-white" viewBox="0 0 100 101" fill="none">
+                        <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor" opacity="0.3"/>
+                        <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"/>
+                      </svg>
+                      Subiendo...
+                    </>
+                  ) : "Tomar foto"}
                 </button>
               )}
             </>
@@ -263,92 +281,92 @@ console.log("limiy", limit)
               </div>
             </div>
           )}
-        {hideWebcam && imgArray?.length > 0 && (
-          <div className="w-full flex flex-col items-center mt-1 gap-2">
-            <Carousel className="w-52" setApi={setCarouselApi}>
-              <CarouselContent>
-                {imgArray.map((a: Imagen, index: number) => {
-                  const isVideo = a.file_url?.match(/\.(mp4|webm|ogg|mov|avi)$/i);
-                  return (
-                    <CarouselItem key={index}>
-                      <div className="p-1 relative">
-                        {isVideo ? (
-                          <video controls className="w-full h-40 object-cover rounded-xl">
-                            <source src={a.file_url} type="video/mp4" />
-                          </video>
-                        ) : (
-                          <Image
-                            height={160}
-                            width={160}
-                            src={a.file_url || "/nouser.svg"}
-                            alt="Imagen"
-                            className="w-full h-40 object-cover rounded-xl"
-                          />
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs rounded-full w-5 h-5 flex items-center justify-center transition-colors"
-                          title="Eliminar"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </CarouselItem>
-                  );
-                })}
-              </CarouselContent>
-              {imgArray.length > 1 && (
-                <>
-                  <CarouselPrevious type="button" />
-                  <CarouselNext type="button" />
-                </>
-              )}
-            </Carousel>
-
-            {imgArray.length > 1 && (
-              <div className="w-52 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
-                <div className="flex gap-2 pb-1" style={{ minWidth: "max-content" }}>
+          {hideWebcam && imgArray?.length > 0 && (
+            <div className="w-full flex flex-col items-center mt-1 gap-2">
+              <Carousel className="w-52" setApi={setCarouselApi}>
+                <CarouselContent>
                   {imgArray.map((a: Imagen, index: number) => {
                     const isVideo = a.file_url?.match(/\.(mp4|webm|ogg|mov|avi)$/i);
-                    const isActive = activeIndex === index;
                     return (
-                      <div
-                        key={index}
-                        onClick={() => {
-                          setActiveIndex(index);
-                          carouselApi?.scrollTo(index);
-                        }}
-                        onMouseEnter={() => {
-                          setActiveIndex(index);
-                          carouselApi?.scrollTo(index);
-                        }}
-                        className={`relative flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden cursor-pointer transition-all border-2 ${
-                          isActive ? "border-blue-500 scale-105" : "border-gray-200 hover:border-blue-300"
-                        }`}
-                      >
-                        {isVideo ? (
-                          <video className="w-full h-full object-cover">
-                            <source src={a.file_url} type="video/mp4" />
-                          </video>
-                        ) : (
-                          <Image
-                            height={48}
-                            width={48}
-                            src={a.file_url || "/nouser.svg"}
-                            alt={`miniatura-${index}`}
-                            className="w-full h-full object-cover"
-                            unoptimized
-                          />
-                        )}
-                      </div>
+                      <CarouselItem key={index}>
+                        <div className="p-1 relative">
+                          {isVideo ? (
+                            <video controls className="w-full h-40 object-cover rounded-xl">
+                              <source src={a.file_url} type="video/mp4" />
+                            </video>
+                          ) : (
+                            <Image
+                              height={160}
+                              width={160}
+                              src={a.file_url || "/nouser.svg"}
+                              alt="Imagen"
+                              className="w-full h-40 object-cover rounded-xl"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs rounded-full w-5 h-5 flex items-center justify-center transition-colors"
+                            title="Eliminar"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </CarouselItem>
                     );
                   })}
+                </CarouselContent>
+                {imgArray.length > 1 && (
+                  <>
+                    <CarouselPrevious type="button" />
+                    <CarouselNext type="button" />
+                  </>
+                )}
+              </Carousel>
+
+              {imgArray.length > 1 && (
+                <div className="w-52 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
+                  <div className="flex gap-2 pb-1" style={{ minWidth: "max-content" }}>
+                    {imgArray.map((a: Imagen, index: number) => {
+                      const isVideo = a.file_url?.match(/\.(mp4|webm|ogg|mov|avi)$/i);
+                      const isActive = activeIndex === index;
+                      return (
+                        <div
+                          key={index}
+                          onClick={() => {
+                            setActiveIndex(index);
+                            carouselApi?.scrollTo(index);
+                          }}
+                          onMouseEnter={() => {
+                            setActiveIndex(index);
+                            carouselApi?.scrollTo(index);
+                          }}
+                          className={`relative flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden cursor-pointer transition-all border-2 ${
+                            isActive ? "border-blue-500 scale-105" : "border-gray-200 hover:border-blue-300"
+                          }`}
+                        >
+                          {isVideo ? (
+                            <video className="w-full h-full object-cover">
+                              <source src={a.file_url} type="video/mp4" />
+                            </video>
+                          ) : (
+                            <Image
+                              height={48}
+                              width={48}
+                              src={a.file_url || "/nouser.svg"}
+                              alt={`miniatura-${index}`}
+                              className="w-full h-full object-cover"
+                              unoptimized
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
         </>
       )}
     </div>

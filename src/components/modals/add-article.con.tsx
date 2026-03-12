@@ -21,7 +21,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { Textarea } from "../ui/textarea";
 import { Dispatch, ReactNode, SetStateAction, useEffect, useRef, useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { format } from "date-fns";
 import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
 import { Loader2, Package, ClipboardList } from "lucide-react";
@@ -36,6 +35,7 @@ import { base64ToFile } from "@/lib/utils";
 import { toast } from "sonner";
 import Image from "next/image";
 import DateTimePicker from "../dateTimerPicker";
+import { SearchSelect } from "../custom-search-select";
 
 interface ArticuloData {
   ubicacion_concesion?: string;
@@ -108,18 +108,19 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   initialData,
   children,
 }) => {
-  // const [conSelected, setConSelected] = useState<string>("");
   const { location, area } = useBoothStore();
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location ?? "");
   const [equipos, setEquipos] = useState<any[]>([]);
   const { dataAreas: areas, dataLocations: ubicaciones, isLoadingAreas: loadingAreas, isLoadingLocations: loadingUbicaciones } =
     useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, ubicacionSeleccionada ? true : false);
-  const { data: dataAreaEmpleadoApoyo, isLoading: loadingAreaEmpleadoApoyo } =
+  const [loadingIdentificacion, setLoadingIdentificacion] = useState(false);
+  const { data: dataAreaEmpleadoApoyoArray, isLoading: loadingAreaEmpleadoApoyo } =
     useCatalogoAreaEmpleadoApoyo(isSuccess);
+    const dataAreaEmpleadoApoyo = dataAreaEmpleadoApoyoArray?.filter(Boolean);
   const { createArticulosConMutation, editarArticulosConMutation, isLoading } =
     useArticulosConcesionados(ubicacionSeleccionada, area ?? "", "", false, "", "", "");
   const [date, setDate] = useState<Date | undefined>(undefined);
-console.log("initialData",initialData)
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -210,7 +211,7 @@ console.log("initialData",initialData)
       const formatData = {
         ubicacion_concesion: values.ubicacion_concesion ?? "",
         area_concesion: values.area_concesion ?? "",
-        caseta_concesion: values.caseta_concesion ?? "",
+        caseta_concesion: values.area_concesion ?? "",
         status_concesion: mode === "create" ? "abierto" : values.status_concesion || "abierto",
         persona_nombre_concesion: values.persona_nombre_concesion ?? "",
         persona_email_concesion: values.persona_email_concesion ?? "",
@@ -237,7 +238,6 @@ console.log("initialData",initialData)
   const handleClose = () => setIsSuccess(false);
   const tipoCon = form.watch("solicita_concesion");
   const buttonText = mode === "edit" ? "Actualizar Consesión" : "Crear Consesión";
-  const loadingText = mode === "edit" ? "Actualizando Consesión..." : "Creando Consesión...";
 
   const convertirTextoAImagen = (texto: string): string => {
     const canvas = document.createElement("canvas");
@@ -294,7 +294,7 @@ console.log("initialData",initialData)
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
       <DialogTrigger>{children}</DialogTrigger>
       <DialogContent
-        className="max-w-3xl overflow-y-auto max-h-[90vh] flex flex-col p-0"
+        className="max-w-3xl overflow-y-auto max-h-[90vh] flex flex-col p-0 overflow-visible"
         onInteractOutside={(e) => e.preventDefault()}
         aria-describedby=""
       >
@@ -305,17 +305,18 @@ console.log("initialData",initialData)
           <p className="text-center text-sm text-gray-400">Completa la información para registrar la concesión</p>
         </DialogHeader>
 
-        <div className="flex-grow overflow-y-auto px-6">
+        <div className="flex-grow overflow-y-auto overflow-x-visible px-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
 
-              <div className=" p-5 py-0 space-y-4 ">
+              <div className="p-5 py-0 space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <ClipboardList className="text-blue-500 w-5 h-5" />
                   <h3 className="font-semibold text-gray-700">Información general</h3>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                   <FormField
                     control={form.control}
                     name="ubicacion_concesion"
@@ -325,20 +326,14 @@ console.log("initialData",initialData)
                           Ubicación
                         </FormLabel>
                         <FormControl>
-                          <Select
-                            {...field}
-                            onValueChange={(value: string) => { field.onChange(value); setUbicacionSeleccionada(value); }}
+                          <SearchSelect
+                            options={ubicaciones ?? []}
                             value={field.value}
-                          >
-                            <SelectTrigger className="bg-white border-gray-200">
-                              <SelectValue placeholder={loadingUbicaciones ? "Cargando ubicaciones..." : "Selecciona una ubicación"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {ubicaciones?.map((v: string, i: number) => (
-                                <SelectItem key={i} value={v}>{v}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            onChange={(val) => { field.onChange(val); setUbicacionSeleccionada(val); }}
+                            isLoading={loadingUbicaciones}
+                            placeholder="Selecciona una ubicación"
+                            noOptionsMessage="Sin ubicaciones disponibles"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -354,21 +349,14 @@ console.log("initialData",initialData)
                           Área
                         </FormLabel>
                         <FormControl>
-                          <Select
-                            {...field}
-                            onValueChange={(value: string) => { field.onChange(value); /*setConSelected(value);*/ }}
+                          <SearchSelect
+                            options={areas ?? []}
                             value={field.value}
-                          >
-                            <SelectTrigger className="bg-white border-gray-200">
-                              <SelectValue placeholder={loadingAreas ? "Cargando áreas..." : "Selecciona un área"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {areas?.length > 0
-                                ? areas.map((a: string, i: number) => <SelectItem key={i} value={a}>{a}</SelectItem>)
-                                : <SelectItem value="1" disabled>No hay opciones disponibles.</SelectItem>
-                              }
-                            </SelectContent>
-                          </Select>
+                            onChange={(val) => field.onChange(val)}
+                            isLoading={loadingAreas}
+                            placeholder="Selecciona un área"
+                            noOptionsMessage="Sin áreas disponibles"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -390,9 +378,7 @@ console.log("initialData",initialData)
                             placeholder="Selecciona fecha y hora"
                             date={field.value ? new Date(field.value) : undefined}
                             setDate={(date) => {
-                              field.onChange(
-                                date ? format(date, "yyyy-MM-dd HH:mm:ss") : ""
-                              );
+                              field.onChange(date ? format(date, "yyyy-MM-dd HH:mm:ss") : "");
                             }}
                           />
                         </FormControl>
@@ -469,23 +455,14 @@ console.log("initialData",initialData)
                             Persona
                           </FormLabel>
                           <FormControl>
-                            <Select {...field} onValueChange={field.onChange} value={field.value}>
-                              <SelectTrigger className="bg-white border-gray-200">
-                                <SelectValue placeholder={
-                                  loadingAreaEmpleadoApoyo ? "Cargando empleados..." :
-                                  dataAreaEmpleadoApoyo?.length > 0 ? "Selecciona una opción..." :
-                                  "Sin opciones disponibles"
-                                } />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {dataAreaEmpleadoApoyo?.length > 0
-                                  ? dataAreaEmpleadoApoyo.map((item: string, i: number) => (
-                                      <SelectItem key={i} value={item}>{item}</SelectItem>
-                                    ))
-                                  : <SelectItem disabled value="no opciones">No hay opciones disponibles</SelectItem>
-                                }
-                              </SelectContent>
-                            </Select>
+                            <SearchSelect
+                              options={dataAreaEmpleadoApoyo ?? []}
+                              value={field.value??null}
+                              onChange={(val) => field.onChange(val)}
+                              isLoading={loadingAreaEmpleadoApoyo}
+                              placeholder="Selecciona una opción..."
+                              noOptionsMessage="Sin opciones disponibles"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -494,43 +471,43 @@ console.log("initialData",initialData)
                   )}
 
                   <div className="mb-2">
-                  <Controller
-                    control={form.control}
-                    name="evidencia"
-                    render={({ field, fieldState }) => (
-                      <div className="flex flex-col">
-                        <LoadImage
-                          id="identificacion"
-                          titulo={"Identificación"}
-                          imgArray={field.value || []}
-                          setImg={(imgs) => field.onChange(imgs)}
-                          showWebcamOption={true}
-                          facingMode="environment"
-                          limit={20}
-                        />
-                        {fieldState.error && (
-                          <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>
-                        )}
-                      </div>
-                    )}
-                  />
+                    <Controller
+                      control={form.control}
+                      name="evidencia"
+                      render={({ field, fieldState }) => (
+                        <div className="flex flex-col">
+                          <LoadImage
+                            id="identificacion"
+                            titulo={"Identificación"}
+                            imgArray={field.value || []}
+                            setImg={(imgs) => field.onChange(imgs)}
+                            showWebcamOption={true}
+                            facingMode="environment"
+                            limit={20}
+                            onLoadingChange={setLoadingIdentificacion}
+                          />
+                          {fieldState.error && (
+                            <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>
+                          )}
+                        </div>
+                      )}
+                    />
                   </div>
                 </div>
-
               </div>
 
-              <div className=" p-5">
+              <div className="p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Package className="text-blue-500 w-5 h-5" />
                   <h3 className="font-semibold text-gray-700">Equipos</h3>
                 </div>
-                <TabDatos equipos={equipos} setEquipos={setEquipos} mode={"editar"} dataConcesion={initialData} />
+                <TabDatos equipos={equipos} setEquipos={setEquipos} mode={"editar"} from={"nueva_concesion"} dataConcesion={initialData} />
                 {form.formState.errors.equipos && (
                   <p className="text-sm text-red-500 mt-2">{form.formState.errors.equipos.message}</p>
                 )}
               </div>
 
-              <div className=" p-5 py-0 space-y-4">
+              <div className="p-5 py-0 space-y-4">
                 <h3 className="font-semibold text-gray-700">Observaciones y firma</h3>
 
                 <FormField
@@ -549,41 +526,43 @@ console.log("initialData",initialData)
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="firma"
-                  render={() => (
-                    <FormItem className="w-1/2">
-                      <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Firma
-                      </FormLabel>
-                      <FormControl>
-                        <div className="space-y-3">
-                          <Input
-                            className="border-gray-200 font-bold italic bg-white"
-                            style={{ fontFamily: "Georgia, serif" }}
-                            placeholder="Escribe tu firma..."
-                            value={textoFirma}
-                            disabled={isLoadingImage}
-                            onChange={(e) => handleTextoChange(e.target.value)}
-                          />
-                          {vistaPrevia && (
-                            <div className="border rounded-lg p-3 bg-gray-50">
-                              <p className="text-xs text-gray-500 mb-2">Vista previa:</p>
-                              <Image height={250} width={200} src={vistaPrevia} alt="Vista previa de firma" className="max-w-full h-auto" />
-                            </div>
-                          )}
-                          {isLoadingImage && (
-                            <p className="text-sm text-gray-400 flex items-center gap-2">
-                              <Loader2 className="animate-spin w-4 h-4" /> Subiendo firma...
-                            </p>
-                          )}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="flex justify-end">
+                  <FormField
+                    control={form.control}
+                    name="firma"
+                    render={() => (
+                      <FormItem className="w-1/2">
+                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          Firma
+                        </FormLabel>
+                        <FormControl>
+                          <div className="space-y-3">
+                            <Input
+                              className="border-gray-200 font-bold italic bg-white"
+                              style={{ fontFamily: "Georgia, serif" }}
+                              placeholder="Escribe tu firma..."
+                              value={textoFirma}
+                              disabled={isLoadingImage}
+                              onChange={(e) => handleTextoChange(e.target.value)}
+                            />
+                            {vistaPrevia && (
+                              <div className="border rounded-lg p-3 bg-gray-50">
+                                <p className="text-xs text-gray-500 mb-2">Vista previa:</p>
+                                <Image height={250} width={200} src={vistaPrevia} alt="Vista previa de firma" className="max-w-full h-auto" />
+                              </div>
+                            )}
+                            {isLoadingImage && (
+                              <p className="text-sm text-gray-400 flex items-center gap-2">
+                                <Loader2 className="animate-spin w-4 h-4" /> Subiendo firma...
+                              </p>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
             </form>
@@ -600,9 +579,17 @@ console.log("initialData",initialData)
             type="submit"
             onClick={form.handleSubmit(onSubmit)}
             className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
-            disabled={isLoading}
+            disabled={isLoading || loadingIdentificacion || isLoadingImage}
           >
-            {isLoading ? <><Loader2 className="animate-spin mr-2" />{loadingText}</> : buttonText}
+            {isLoading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>
+            ) : isLoadingImage ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Subiendo firma...</>
+            ) : loadingIdentificacion ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Subiendo evidencia...</>
+            ) : (
+              buttonText
+            )}
           </Button>
         </div>
       </DialogContent>

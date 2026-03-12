@@ -28,7 +28,7 @@ export interface DevolucionItem {
   cantidad_devolucion: { source: string; parsedValue: number };
   evidencia_entrega: { file_name: string; file_url: string }[];
   identificacion_entrega: { file_name: string; file_url: string }[];
-  comentario_entrega: string;
+  comentario_entrega:  string|null;
 }
 const estatusBadge = (estatus: string) => {
   const map: Record<string, string> = {
@@ -55,7 +55,7 @@ interface HistorialDevolucionesModalProps {
     setIsSuccess,
     isSuccess,
   }) => {
-    console.log("devoluciion",devolucion)
+    
     return (
       <Dialog open={isSuccess} onOpenChange={setIsSuccess}>
         <DialogTrigger asChild>{children}</DialogTrigger>

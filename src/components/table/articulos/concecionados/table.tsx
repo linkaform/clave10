@@ -9,7 +9,6 @@ import {
   VisibilityState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
@@ -31,21 +30,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Eraser, Plus, Search } from "lucide-react";
+import { CalendarDays, Eraser, Plus } from "lucide-react";
 import { Articulo_con_record, conColumns } from "./concecionados-columns";
 import { catalogoFechas } from "@/lib/utils";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useMemo } from "react";
 import DateTime from "@/components/dateTime";
+import { TagSearchInput } from "@/components/tag-search-input";
+import { EquipoConcesionado } from "@/components/concesionados-tab-datos";
+import { useTagFilter } from "@/hooks/useTagFilter";
 
 interface ListProps {
   data: Articulo_con_record[];
   isLoadingListArticulosCon:boolean;
   openModal: () => void;
   resetTableFilters:()=>void;
-//   setStateArticle: React.Dispatch<React.SetStateAction<string>>;
   setSelectedArticulos:React.Dispatch<React.SetStateAction<string[]>>;
-//   selectedArticulos:string[];
 
   setDate1 :React.Dispatch<React.SetStateAction<Date | "">>;
   setDate2 :React.Dispatch<React.SetStateAction<Date | "">>;
@@ -55,20 +55,6 @@ interface ListProps {
   setDateFilter :React.Dispatch<React.SetStateAction<string>>;
   Filter:() => void;
 }
-
-// const articulosColumnsCSV = [
-//     { label: 'Folio', key: 'folio' },
-//     { label: 'Nombre', key: 'articulo_perdido' },
-//     { label: 'Articulo', key: 'articulo_seleccion' },
-//     { label: 'Color', key: 'color_perdido' },
-//     { label: 'Categoria', key: 'tipo_articulo_perdido' },
-//     { label: 'Fecha del Hallazgo', key: 'date_hallazgo_perdido' },
-//     { label: 'Area de Resguardo', key: 'locker_perdido' },
-//     { label: 'Reporta Interno', key: 'quien_entrega_interno' },
-// 	  { label: 'Reporta Externo', key: 'quien_entrega_externo' },
-//     { label: 'Fecha de Devolucion', key: 'date_entrega_perdido' },
-// 	  { label: 'Comentarios', key: 'comentario_perdido' },
-//   ];
 
 const ArticulosConTable:React.FC<ListProps> = ({ data, isLoadingListArticulosCon, openModal,
 	setSelectedArticulos, setDate1, setDate2, date1, date2, dateFilter, setDateFilter,Filter ,resetTableFilters
@@ -84,32 +70,49 @@ const ArticulosConTable:React.FC<ListProps> = ({ data, isLoadingListArticulosCon
     pageIndex: 0,
     pageSize: 23,
   });
+const getSearchText = (row: Articulo_con_record) => [
+  row.folio,
+  row.ubicacion_concesion,
+  row.fecha_concesion,
+  row.caseta_concesion,
+  row.area_concesion,
+  row.solicita_concesion,
+  row.observacion_concesion,
+  row.nombre_concesion,
+  row.fecha_devolucion_concesion,
+  row.status_concesion,
+  row.persona_nombre_concesion,
+  row.persona_text,
+  row.persona_nombre_otro,
+  ...(row.grupo_equipos || []).flatMap((eq: EquipoConcesionado) => [
+    eq.nombre_equipo ?? "",
+    eq.categoria_equipo_concesion ?? "",
+  ]),
+  ...(row.grupo_equipos_devolucion || []).flatMap((eq: EquipoConcesionado) => [
+    eq.nombre_equipo ?? "",
+    eq.categoria_equipo_concesion ?? "",
+  ]),
+].filter(Boolean).join(" ");
 
-  const [globalFilter, setGlobalFilter] = React.useState("");
-  const columns = useMemo(() => (isLoadingListArticulosCon ? [] : conColumns), [isLoadingListArticulosCon]);
-  const memoizedData = useMemo(() => data || [], [data]);
-
+  const { tags, setTags, filteredData } = useTagFilter(data ?? [], getSearchText);
+  const columns = useMemo(() => conColumns, []);
   const table = useReactTable({
-    data:memoizedData,
+    data:filteredData,
     columns: columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
-
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
       pagination,
-      globalFilter,
     },
   });
 
@@ -133,17 +136,13 @@ const ArticulosConTable:React.FC<ListProps> = ({ data, isLoadingListArticulosCon
 					<TabsTrigger value="Perdidos">Artículos perdidos</TabsTrigger>
 				</TabsList>
 			</div>
-			
-			<div className="flex items-center">
-				<input
-				type="text"
-				placeholder="Buscar en todos los campos..."
-				value={globalFilter}
-				onChange={(e) => setGlobalFilter(e.target.value)}
-				className="w-full border border-gray-300 rounded-md p-2 mr-2"
-				/>
-          <Search/>
-			</div>
+      <div className="flex gap-1 items-center">
+					<TagSearchInput
+						tags={tags}
+						onTagsChange={setTags}
+						placeholder="Buscar área o categoría..."
+						/>
+					</div>
 
       		<div className="flex w-full justify-end gap-3">
 				{dateFilter == "range" ?
@@ -183,12 +182,6 @@ const ArticulosConTable:React.FC<ListProps> = ({ data, isLoadingListArticulosCon
 						</Button>
 					</div>
 
-					{/* <div>
-						<Button className="w-full md:w-auto bg-blue-500 hover:bg-blue-600" onClick={()=>{downloadCSV(selectedArticulos, articulosColumnsCSV, "incidencias.csv")}}>
-							<FileX2 />
-							Descargar
-						</Button>
-					</div> */}
 				</div>
 			</div>
 		</div>
