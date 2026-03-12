@@ -5,6 +5,8 @@ export type RegistryType =
     "bitacora" |
     "asistencia_personal";
 
+
+
 export function formatPhotoRecord(raw: any, type: RegistryType): PhotoRecord {
   const base = {
     id: raw?._id || raw?.id || "no-id",

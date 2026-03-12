@@ -40,6 +40,9 @@ import { PhotoGridView } from "@/components/PhotoGrid/PhotoGridView";
 import { LayoutGrid } from "lucide-react";
 import { PhotoRecord } from "@/components/PhotoGrid/PhotoGridCard";
 import { formatPhotoRecord } from "@/utils/formatRecords";
+import { generateFiltersConfig } from "@/config/filters/bitacora";
+import { Car, Eye, Forward, Hammer, IdCard, Printer } from "lucide-react"
+import { useGetBitacoraFilters } from "@/hooks/bitacora/useGetBitacoraFilters";
 
 interface ListProps {
 	data: Bitacora_record[] | undefined;
@@ -148,6 +151,18 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 	const photoRecords: PhotoRecord[] = useMemo(() => {
 		return memoizedData.map((item) => formatPhotoRecord(item, "bitacora"));
 	}, [memoizedData]);
+
+	const { filters: apiFilters } = useGetBitacoraFilters(true, memoizedData?.length || 0);
+	
+	const bitacoraFiltersConfig = useMemo(() => {
+		const shouldGenerateLocally = (memoizedData?.length || 0) < 200;
+		if (shouldGenerateLocally) {
+			const result = generateFiltersConfig(photoRecords);
+			return result;
+		}
+		return apiFilters;
+	}, [photoRecords, apiFilters, memoizedData?.length]);
+
 
 	return (
 		<div className="w-full">
@@ -372,10 +387,20 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 			) : (
 				<div className="mt-4">
 					<PhotoGridView
+						filtersConfig={bitacoraFiltersConfig}
 						records={photoRecords}
 						title="Galería de Registros"
 						onRecordClick={() => {}}
-					/>
+					>
+					<div className="flex gap-2">
+						<Eye className="w-5 h-5" />
+						<Car className="w-5 h-5" />
+						<Hammer className="w-5 h-5" />
+						<IdCard className="w-5 h-5" />
+						<Printer className="w-5 h-5" />
+						<Forward className="w-5 h-5 text-emerald-500" />
+					</div>
+					</PhotoGridView>
 				</div>
 			)}
 			<DataTablePagination table={table} total={total} />

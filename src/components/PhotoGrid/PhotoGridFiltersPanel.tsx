@@ -5,53 +5,50 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
-import type { PhotoStatus } from "./PhotoGridCard"
+import { FilterConfig } from "@/types/bitacoras"
 
 export interface FilterState {
-  status: PhotoStatus[]
-  locations: string[]
+  dynamic: Record<string, string | string[]>
 }
 
 interface FiltersPanelProps {
   filters: FilterState
   onFiltersChange: (filters: FilterState) => void
-  availableLocations: string[]
-  availableStatuses: PhotoStatus[]
+  filtersConfig?: FilterConfig[]
 }
-
-const statusOptions: { value: PhotoStatus; label: string }[] = [
-  { value: "completado", label: "Completado" },
-  { value: "en_proceso", label: "En Proceso" },
-  { value: "cerrado", label: "Cerrado" },
-  { value: "entrada", label: "Entrada" },
-  { value: "salida", label: "Salida" },
-]
 
 export function FiltersPanel({
   filters,
   onFiltersChange,
-  availableLocations,
-  availableStatuses,
+  filtersConfig = []
 }: FiltersPanelProps) {
-  const handleStatusChange = (status: PhotoStatus, checked: boolean) => {
-    const newStatus = checked
-      ? [...filters.status, status]
-      : filters.status.filter((s) => s !== status)
-    onFiltersChange({ ...filters, status: newStatus })
-  }
+  const handleDynamicChange = (key: string, value: string, checked: boolean, type: "multiple" | "single") => {
+    const currentDynamic = filters.dynamic || {}
+    const currentValue = currentDynamic[key]
 
-  const handleLocationChange = (location: string, checked: boolean) => {
-    const newLocations = checked
-      ? [...filters.locations, location]
-      : filters.locations.filter((l) => l !== location)
-    onFiltersChange({ ...filters, locations: newLocations })
+    let newValue: string | string[]
+    if (type === "single") {
+      newValue = checked ? value : ""
+    } else {
+      const currentArray = Array.isArray(currentValue) ? currentValue : []
+      newValue = checked
+        ? [...currentArray, value]
+        : currentArray.filter((v) => v !== value)
+    }
+
+    onFiltersChange({
+      ...filters,
+      dynamic: { ...currentDynamic, [key]: newValue }
+    })
   }
 
   const clearFilters = () => {
-    onFiltersChange({ status: [], locations: [] })
+    onFiltersChange({ dynamic: {} })
   }
 
-  const hasActiveFilters = filters.status.length > 0 || filters.locations.length > 0
+  const hasActiveFilters = Object.values(filters.dynamic || {}).some(v => 
+    Array.isArray(v) ? v.length > 0 : v !== ""
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -70,60 +67,39 @@ export function FiltersPanel({
           </Button>
         )}
       </div>
-      
-      <Separator />
 
-      {/* Status Filter */}
-      <div className="flex flex-col gap-3">
-        <h3 className="text-sm font-medium text-foreground">Estatus</h3>
-        <div className="flex flex-col gap-2.5">
-          {statusOptions
-            .filter((option) => availableStatuses.includes(option.value))
-            .map((option) => (
-              <div key={option.value} className="flex items-center gap-2.5">
-                <Checkbox
-                  id={`status-${option.value}`}
-                  checked={filters.status.includes(option.value)}
-                  onCheckedChange={(checked) =>
-                    handleStatusChange(option.value, checked as boolean)
-                  }
-                />
-                <Label
-                  htmlFor={`status-${option.value}`}
-                  className="text-sm font-normal text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                >
-                  {option.label}
-                </Label>
-              </div>
-            ))}
+      {filtersConfig.map((config, index) => (
+        <div key={config.key} className="flex flex-col gap-3">
+          {index > 0 && <Separator />}
+          <h3 className="text-sm font-medium text-foreground">{config.label}</h3>
+          <div className="flex flex-col gap-2.5">
+            {config.options.map((option) => {
+              const currentValue = (filters.dynamic || {})[config.key]
+              const isChecked = Array.isArray(currentValue)
+                ? currentValue.includes(option.value)
+                : currentValue === option.value
+
+              return (
+                <div key={option.value} className="flex items-center gap-2.5">
+                  <Checkbox
+                    id={`${config.key}-${option.value}`}
+                    checked={isChecked}
+                    onCheckedChange={(checked) =>
+                      handleDynamicChange(config.key, option.value, checked as boolean, config.type)
+                    }
+                  />
+                  <Label
+                    htmlFor={`${config.key}-${option.value}`}
+                    className="text-sm font-normal text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                  >
+                    {option.label}
+                  </Label>
+                </div>
+              )
+            })}
+          </div>
         </div>
-      </div>
-
-      <Separator />
-
-      {/* Location Filter */}
-      <div className="flex flex-col gap-3">
-        <h3 className="text-sm font-medium text-foreground">Ubicación</h3>
-        <div className="flex flex-col gap-2.5">
-          {availableLocations.map((location) => (
-            <div key={location} className="flex items-center gap-2.5">
-              <Checkbox
-                id={`location-${location}`}
-                checked={filters.locations.includes(location)}
-                onCheckedChange={(checked) =>
-                  handleLocationChange(location, checked as boolean)
-                }
-              />
-              <Label
-                htmlFor={`location-${location}`}
-                className="text-sm font-normal text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-              >
-                {location}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </div>
+      ))}
     </div>
   )
 }

@@ -3,67 +3,69 @@
 import { useState, useMemo } from "react"
 import { PhotoGridCard, type PhotoRecord } from "./PhotoGridCard"
 import { FiltersPanel, type FilterState } from "./PhotoGridFiltersPanel"
+import { FilterConfig } from "@/types/bitacoras"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { Car, Eye, Filter, Forward, Hammer, IdCard, ImageIcon, Printer } from "lucide-react"
+import { Filter, ImageIcon } from "lucide-react"
 
 interface PhotoGridViewProps {
   records: PhotoRecord[]
   title?: string
   onRecordClick?: (record: PhotoRecord) => void
+  children?: React.ReactNode
+  filtersConfig: FilterConfig[]
 }
 
 export function PhotoGridView({
   records,
   onRecordClick,
+  children,
+  filtersConfig
 }: PhotoGridViewProps) {
   const [filters, setFilters] = useState<FilterState>({
-    status: [],
-    locations: [],
+    dynamic: {}
   })
 
-  // Extract unique locations from records
-  const availableLocations = useMemo(() => {
-    const locations = new Set(records.map((r) => r?.rawData?.ubicacion))
-    return Array.from(locations).sort()
-  }, [records])
-
-  // Extract unique statuses from records
-  const availableStatuses = useMemo(() => {
-    const statuses = new Set(records.map((r) => r.status))
-    return Array.from(statuses)
-  }, [records])
-
-  // Filter records based on active filters
   const filteredRecords = useMemo(() => {
     return records.filter((record) => {
-      const statusMatch =
-        filters.status.length === 0 || filters.status.includes(record.status)
-      const locationMatch =
-        filters.locations.length === 0 ||
-        filters.locations.includes(record?.rawData?.ubicacion)
-      return statusMatch && locationMatch
+      const dynamicMatch = Object.entries(filters.dynamic || {}).every(([key, value]) => {
+        if (!value || (Array.isArray(value) && value.length === 0)) return true
+        
+        let recordValue = record.rawData?.[key] || record[key as keyof PhotoRecord]
+
+        // Handle specific case for visita_a which is an array of objects
+        if (key === "visita_a" && Array.isArray(recordValue)) {
+          recordValue = recordValue[0]?.nombre || ""
+        }
+
+        if (Array.isArray(value)) {
+          return value.includes(String(recordValue))
+        }
+        return String(recordValue) === String(value)
+      })
+
+      return dynamicMatch
     })
   }, [records, filters])
 
-  const activeFiltersCount = filters.status.length + filters.locations.length
+  const activeFiltersCount = Object.values(filters.dynamic || {}).reduce((acc: number, curr) => {
+    if (Array.isArray(curr)) return acc + curr.length
+    return acc + (curr ? 1 : 0)
+  }, 0)
 
   return (
     <div className="flex h-full w-full bg-background">
-      {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-border bg-card">
         <ScrollArea className="flex-1 p-5">
           <FiltersPanel
             filters={filters}
             onFiltersChange={setFilters}
-            availableLocations={availableLocations}
-            availableStatuses={availableStatuses}
+            filtersConfig={filtersConfig}
           />
         </ScrollArea>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         <Sheet>
           <SheetTrigger asChild>
@@ -81,8 +83,7 @@ export function PhotoGridView({
             <FiltersPanel
               filters={filters}
               onFiltersChange={setFilters}
-              availableLocations={availableLocations}
-              availableStatuses={availableStatuses}
+              filtersConfig={filtersConfig}
             />
           </SheetContent>
         </Sheet>
@@ -103,14 +104,7 @@ export function PhotoGridView({
                     }}
                     onClick={onRecordClick}
                   >
-                    <div className="flex gap-2">
-                      <Eye className="w-5 h-5" />
-                      <Car className="w-5 h-5" />
-                      <Hammer className="w-5 h-5" />
-                      <IdCard className="w-5 h-5" />
-                      <Printer className="w-5 h-5" />
-                      <Forward className="w-5 h-5 text-emerald-500" />
-                    </div>
+                    {children}
                   </PhotoGridCard>
                 ))}
               </div>
