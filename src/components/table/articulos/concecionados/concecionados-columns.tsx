@@ -1,11 +1,13 @@
 import {
   ColumnDef, 
 } from "@tanstack/react-table";
-import {  ArrowLeftRight, Eye } from "lucide-react";
+import { ArrowLeftRight, Eye } from "lucide-react";
 import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-de-la-concesion";
 import { Imagen } from "@/components/upload-Image";
-import { DetalleDelSeguimiento } from "@/components/modals/concesionados-detalle-del-seguimiento";
 import { EquipoConcesionado } from "@/components/concesionados-tab-datos";
+import { useState } from "react";
+import { ConcesionadosVerEquipo } from "@/components/modals/concesionados-ver-equipo";
+import { DetalleDelSeguimiento } from "@/components/modals/concesionados-detalle-del-seguimiento";
 
 export interface Articulo_con_record {
     _id:string,
@@ -24,40 +26,75 @@ export interface Articulo_con_record {
     persona_text:string,
     persona_nombre_otro:string
     equipos:EquipoConcesionado[]
+    grupo_equipos?:EquipoConcesionado[]
+    grupo_equipos_devolucion?:any[]
 }
 
-
-const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
+const OptionsCell: React.FC<{ row: any }> = ({ row }) => {
   const articulo = row.original;
-
   return (
-    <><div className="flex space-x-2">
-      <DetalleDeLaConcesion
-        data={articulo} isSuccess={false}>
+    <div className="flex space-x-2">
+      <DetalleDeLaConcesion data={articulo} isSuccess={false}>
         <div className="cursor-pointer" title="Ver Artículo">
           <Eye />
         </div>
       </DetalleDeLaConcesion>
-
-    
+      
       <DetalleDelSeguimiento data={articulo} isSuccess={false}>
-      <div><ArrowLeftRight /> </div>
+        <div><ArrowLeftRight /></div>
       </DetalleDelSeguimiento>
-
     </div>
-    </>
   );
 };
 
+const EquiposCell: React.FC<{ row: any }> = ({ row }) => {
+  const equipos: EquipoConcesionado[] = row.getValue("grupo_equipos") || [];
+  const [selectedEquipo, setSelectedEquipo] = useState<EquipoConcesionado | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!equipos.length) return <span className="text-gray-400 text-xs">—</span>;
+
+  const getParsed = (val: any) =>
+    typeof val === "object" ? val?.parsedValue ?? val : Number(val ?? 0);
+
+  return (
+    <>
+      <div className="max-h-20 overflow-y-auto flex flex-col gap-1 pr-1">
+        {equipos.map((eq, i) => {
+          const cantidad = getParsed(eq.cantidad_equipo_concesion);
+          return (
+            <span
+              key={i}
+              onClick={() => { setSelectedEquipo(eq); setIsOpen(true); }}
+              className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded-md px-2 py-0.5 whitespace-nowrap cursor-pointer hover:bg-blue-100 transition-colors"
+            >
+              {eq.nombre_equipo || "—"}
+              <span className="font-bold">x {cantidad}</span>
+            </span>
+          );
+        })}
+      </div>
+
+      {selectedEquipo && (
+        <ConcesionadosVerEquipo
+          title="Ver Equipo"
+          data={selectedEquipo}
+          isSuccess={isOpen}
+          setIsSuccess={setIsOpen}
+          dataConcesion={row.original}
+        >
+          <div />
+        </ConcesionadosVerEquipo>
+      )}
+    </>
+  );
+};
 
 export const conColumns: ColumnDef<Articulo_con_record>[] = [
     {
       id: "options",
       header: "Opciones",
-      cell: ({ row }) => {
-        
-        return <OptionsCell row={row} key={row.original._id} />;
-      },
+      cell: ({ row }) => <OptionsCell row={row} key={row.original._id} />,
       enableSorting: false,
       enableHiding: false,
     },
@@ -95,7 +132,6 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
         const nombreConcesion = row.getValue("persona_nombre_concesion");
         const nombreOtro = row.original.persona_nombre_otro;
         const nombre = nombreConcesion || nombreOtro || "";
-        
         return (
           <div className="capitalize">{String(nombre)}</div>
         );
@@ -104,7 +140,7 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
     },
     {
       accessorKey: "caseta_concesion",
-      header: "Departamento",
+      header: "Área",
       cell: ({ row }) => (
         <div className="capitalize">{row.getValue("caseta_concesion")}</div>
       ),
@@ -113,31 +149,7 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
     {
       accessorKey: "grupo_equipos",
       header: "Equipos",
-      cell: ({ row }) => {
-        console.log("row original:", row.original);
-        const equipos: EquipoConcesionado[] = row.getValue("grupo_equipos") || [];
-        if (!equipos.length) return <span className="text-gray-400 text-xs">—</span>;
-    
-        const getParsed = (val: any) =>
-          typeof val === "object" ? val?.parsedValue ?? val : Number(val ?? 0);
-    
-        return (
-          <div className="max-h-20 overflow-y-auto flex flex-col gap-1 pr-1">
-            {equipos.map((eq, i) => {
-              const cantidad = getParsed(eq.cantidad_equipo_concesion);
-              return (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded-md px-2 py-0.5 whitespace-nowrap"
-                >
-                  {eq.nombre_equipo || "—"}
-                  <span className="font-bold">x {cantidad}</span>
-                </span>
-              );
-            })}
-          </div>
-        );
-      },
+      cell: ({ row }) => <EquiposCell row={row} />,
       enableSorting: false,
     },
     {
@@ -156,7 +168,4 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       ),
       enableSorting: true,
     },
-
- 
-  ];
-  
+];

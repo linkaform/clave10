@@ -27,6 +27,7 @@ export interface InputDevolucionTotal {
   comentarios?: string;
   evidencia?: { file_url: string; file_name?: string }[];
   comentario_entrega?:string
+  firma?:Imagen[]
 }
 export interface InputDevolucionEquipo {
   record_id: string;
@@ -35,9 +36,10 @@ export interface InputDevolucionEquipo {
   quien_entrega: string;
   quien_entrega_company?: string;
   identificacion_entrega?: Imagen;
-  entregado_por: "empleado" | "otro";
+  entregado_por:string;
   equipos: EquipoDevolucion[];
   comentario_entrega?:string
+  firma?:Imagen[]
 }
 
 export const devolucionEquipoConcesionado = async (data: InputDevolucionEquipo | InputDevolucionTotal) => {

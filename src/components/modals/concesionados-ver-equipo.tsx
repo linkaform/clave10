@@ -42,7 +42,6 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
 
   const [verDevolucionModal, setVerDevolucionModal] = useState(false);
   const [devolucionSeleccionada] = useState<DevolucionItem | null>(null);
-  console.log("DATA", data)
   
     return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess}>
@@ -78,7 +77,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
               </div>
               <div className="col-span-2">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Unidades</p>
-                <p className="text-sm text-gray-700">{data?.cantidad_equipo_devuelto} / {data?.cantidad_equipo_concesion ?? "—"}</p>
+                <p className="text-sm text-gray-700">{data?.cantidad_equipo_devuelto??0} / {data?.cantidad_equipo_concesion ?? "—"}</p>
               </div>
 
               {data?.comentario_entrega && (

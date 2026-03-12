@@ -19,17 +19,10 @@ import {
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Calculator } from "lucide-react";
 import LoadImage from "../upload-Image";
 import { EquipoConcesionado } from "../concesionados-tab-datos";
@@ -40,6 +33,7 @@ import { useCatalogoConcesion } from "@/hooks/useCatalogoConcesion";
 import { useBoothStore } from "@/store/useBoothStore";
 import { getTipoConcesion } from "@/lib/articulos-concesionados";
 import Image from "next/image";
+import { SearchSelect } from "../custom-search-select";
 
 interface AgregarEquiposModalProps {
   title: string;
@@ -73,9 +67,11 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
   const { location } = useBoothStore();
   const { dataCon, isLoadingCon: loadingCategorias } = useCatalogoConcesion(location ?? "", categoriaSeleccionada, isSuccess);
-  const [categoriasCatalogo, setCategoriasCatalogo] = useState([]);
+  const [categoriasCatalogo, setCategoriasCatalogo] = useState<string[]>([]);
   const [equiposCatalogo, setEquiposCatalogo] = useState<Equipo[]>([]);
   const [loadingEquipos, setLoadingEquipos] = useState(false);
+  const [isLoadingImage,setLoadingImage]=useState(false)
+  const equiposCache = useRef<Record<string, Equipo[]>>({});
 
   const form = useForm<z.infer<typeof equipoSchema>>({
     resolver: zodResolver(equipoSchema),
@@ -93,18 +89,26 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
   const { reset } = form;
 
   const fetchEquipos = async () => {
-	if (!categoriaSeleccionada) return;
-	setLoadingEquipos(true);
+    if (!categoriaSeleccionada) return;
+    form.setValue("nombre_equipo", "");
+    if (equiposCache.current[categoriaSeleccionada]) {
+      setEquiposCatalogo(equiposCache.current[categoriaSeleccionada]);
+      return;
+    }
+    setEquiposCatalogo([]);
+    setLoadingEquipos(true);
     try {
       const equipos = await getTipoConcesion(location ?? "", categoriaSeleccionada);
-      setEquiposCatalogo(equipos.response.data ?? []);
+      const data = equipos.response.data ?? [];
+      equiposCache.current[categoriaSeleccionada] = data;
+      setEquiposCatalogo(data);
     } catch (error) {
       console.error("Error al cargar equipos:", error);
       setEquiposCatalogo([]);
       toast.error("No se pudieron cargar los equipos. Intenta de nuevo.");
-    }finally {
-		setLoadingEquipos(false);
-	}
+    } finally {
+      setLoadingEquipos(false);
+    }
   };
 
   const equipoSeleccionadoNombre = form.watch("nombre_equipo");
@@ -120,7 +124,6 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
   }, [dataCon, categoriaSeleccionada]);
 
   useEffect(() => { fetchEquipos(); }, [categoriaSeleccionada, location]);
-  useEffect(() => { setEquiposCatalogo([]); form.setValue("nombre_equipo", ""); }, [categoriaSeleccionada]);
 
   useEffect(() => {
     if (isSuccess) {
@@ -133,6 +136,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         imagen_equipo_concesion: [],
         costo_equipo_concesion: 0,
       });
+      setCategoriaSeleccionada("");
     }
     if (editarAgregarEquiposModal && agregarEquiposSeleccion) {
       reset({
@@ -144,6 +148,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         imagen_equipo_concesion: agregarEquiposSeleccion.imagen_equipo_concesion,
         costo_equipo_concesion: agregarEquiposSeleccion.costo_equipo_concesion,
       });
+      setCategoriaSeleccionada(agregarEquiposSeleccion.categoria_equipo_concesion ?? "");
     }
   }, [isSuccess, reset, editarAgregarEquiposModal, agregarEquiposSeleccion]);
 
@@ -176,17 +181,14 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
     setEditarAgregarEquiposModal(false);
   };
 
-  const categoriaSel = form.watch("categoria_equipo_concesion") as string | undefined;
-  const equipoSeleccionado = form.watch("nombre_equipo") as string | undefined;
-
-  useEffect(() => { form.setValue("nombre_equipo", ""); }, [categoriaSel]);
+  const equipoSeleccionado = form.watch("nombre_equipo");
 
   return (
     <Dialog onOpenChange={setIsSuccess} open={isSuccess} modal>
       <DialogTrigger>{children}</DialogTrigger>
 
       <DialogContent
-        className="max-w-xl max-h-[90vh] flex flex-col bg-white p-0"
+        className="max-w-xl max-h-[90vh] flex flex-col bg-white p-0 overflow-visible"
         onInteractOutside={(e) => e.preventDefault()}
         aria-describedby=""
       >
@@ -199,14 +201,13 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
           </p>
         </DialogHeader>
 
-        <div className="flex-grow overflow-y-auto px-6">
+        <div className="flex-grow overflow-y-auto overflow-x-visible px-6">
           <Form {...form}>
             <form className="space-y-4">
 
-              <div className=" p-5 py-0 space-y-4">
-               
-
+              <div className="p-5 py-0 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
+
                   <FormField
                     control={form.control}
                     name="categoria_equipo_concesion"
@@ -215,35 +216,20 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                         <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                           <span className="text-red-400">*</span> Categoría
                         </FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(value);
-                            setCategoriaSeleccionada(value);
-                            form.setValue("nombre_equipo", "");
-                          }}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="bg-white border-gray-200">
-                              <SelectValue placeholder="Selecciona una categoría" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {loadingCategorias ? (
-                              <SelectItem value="loading" disabled>Cargando categorías...</SelectItem>
-                            ) : categoriasCatalogo && categoriasCatalogo.length > 0 ? (
-                              categoriasCatalogo.map((cat: any) => (
-                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                              ))
-                            ) : (
-                              <>
-                                <SelectItem value="Herramienta">Herramienta</SelectItem>
-                                <SelectItem value="Computacion">Computación</SelectItem>
-                                <SelectItem value="Electricas">Eléctricas</SelectItem>
-                              </>
-                            )}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <SearchSelect
+                            options={categoriasCatalogo}
+                            value={field.value}
+                            onChange={(val) => {
+                              field.onChange(val);
+                              setCategoriaSeleccionada(val);
+                              form.setValue("nombre_equipo", "");
+                            }}
+                            isLoading={loadingCategorias}
+                            placeholder="Selecciona una categoría"
+                            noOptionsMessage="Sin categorías disponibles"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -257,34 +243,21 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                         <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                           <span className="text-red-400">*</span> Equipo
                         </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={!categoriaSeleccionada}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="bg-white border-gray-200">
-                              <SelectValue placeholder={
-                                !categoriaSeleccionada
-                                  ? "Primero selecciona una categoría"
-                                  : "Selecciona un equipo"
-                              } />
-                            </SelectTrigger>
-                          </FormControl>
-                         <SelectContent>
-							{loadingEquipos ? ( 
-								<SelectItem value="loading" disabled>Cargando equipos...</SelectItem>
-							) : equiposCatalogo && equiposCatalogo.length > 0 ? (
-								equiposCatalogo.map((equipo: any) => (
-								<SelectItem key={equipo.article_name} value={equipo.article_name}>
-									{equipo.article_name}
-								</SelectItem>
-								))
-							) : categoriaSeleccionada ? (
-								<SelectItem value="no-data" disabled>No hay equipos disponibles</SelectItem>
-							) : null}
-							</SelectContent>
-                        </Select>
+                        <FormControl>
+                          <SearchSelect
+                            options={equiposCatalogo.map((e) => e.article_name)}
+                            value={field.value}
+                            onChange={(val) => field.onChange(val)}
+                            isLoading={loadingEquipos}
+                            isDisabled={!categoriaSeleccionada}
+                            placeholder={
+                              !categoriaSeleccionada
+                                ? "Primero selecciona una categoría"
+                                : "Selecciona un equipo"
+                            }
+                            noOptionsMessage="Sin equipos disponibles"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -318,8 +291,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                 })()}
               </div>
 
-              <div className=" p-5 py-0 space-y-4">
-             
+              <div className="p-5 py-0 space-y-4">
                 <FormField
                   control={form.control}
                   name="cantidad_equipo_concesion"
@@ -372,8 +344,8 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                 </div>
               </div>
 
-              <div className=" p-5 py-0">
-                <h3 className="text-xs font-semibold uppercase text-gray-500 mb-3 tracking-wide ">Evidencia</h3>
+              <div className="p-5 py-0">
+                <h3 className="text-xs font-semibold uppercase text-gray-500 mb-3 tracking-wide">Evidencia</h3>
                 <Controller
                   control={form.control}
                   name="imagen_equipo_concesion"
@@ -387,6 +359,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                         setImg={(imgs) => field.onChange(imgs)}
                         facingMode="user"
                         limit={20}
+                        onLoadingChange={setLoadingImage}
                       />
                       {fieldState.error && (
                         <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>
@@ -408,9 +381,19 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
           </DialogClose>
           <Button
             onClick={form.handleSubmit(onSubmit)}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium flex items-center justify-center gap-2"
+            disabled={isLoadingImage}
           >
-            {editarAgregarEquiposModal ? "Guardar cambios" : "Agregar equipo"}
+            {isLoadingImage ? (
+              <>
+                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                Subiendo imagen...
+              </>
+            ) : editarAgregarEquiposModal ? (
+              "Guardar cambios"
+            ) : (
+              "Agregar equipo"
+            )}
           </Button>
         </div>
       </DialogContent>

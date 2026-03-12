@@ -12,13 +12,14 @@ import {
   CalendarOff,
   ChevronRight,
   ChevronLeft,
-  Search,
+  
 } from "lucide-react";
 
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGetListBitacoraRondines } from "@/hooks/Rondines/useGetListBitacora";
 import { CarruselDetalleArea } from "@/components/carrousel-detalle-area";
 import { CarruselDetalleRondin } from "@/components/carrousel-detalle-rondin";
+import { TagSearchInput } from "@/components/tag-search-input";
 
 const ESTADOS_CONFIG: Record<string, { icon: React.ElementType; className: string }> = {
 	finalizado: { icon: CircleCheck, className: "text-white bg-green-600 rounded-xl" },
@@ -110,21 +111,21 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 	const abrirCarruselRondin = () => setCarruselOpenRondin(true);
 
 	const [tags, setTags] = useState<string[]>([]);
-	const [inputValue, setInputValue] = useState("");
+	// const [inputValue, setInputValue] = useState("");
 	const [selectedArea, setSelectedArea] = useState<Area | null>(null);
 
-	const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-	if (e.key === "Enter" && inputValue.trim()) {
-		const newTag = inputValue.trim().toLowerCase();
-		if (!tags.includes(newTag)) setTags(prev => [...prev, newTag]);
-		setInputValue("");
-		e.preventDefault();
-	}
-	};
+	// const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+	// if (e.key === "Enter" && inputValue.trim()) {
+	// 	const newTag = inputValue.trim().toLowerCase();
+	// 	if (!tags.includes(newTag)) setTags(prev => [...prev, newTag]);
+	// 	setInputValue("");
+	// 	e.preventDefault();
+	// }
+	// };
 
-	const handleRemoveTag = (tag: string) => {
-		setTags(prev => prev.filter(t => t !== tag));
-	  };
+	// const handleRemoveTag = (tag: string) => {
+	// 	setTags(prev => prev.filter(t => t !== tag));
+	//   };
 
 	const filteredData = React.useMemo(() => {
 		if (!data || tags.length === 0) return data ?? [];
@@ -224,13 +225,12 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 
 
   
-	const renderArea = (area: Area, key: string, rondin: any, areaIndex: number) => (
+	const renderArea = (area: Area, key: string, rondin: any) => (
 		<tr key={key} className="bg-transparent">
 		<td className="border p-2 pl-8">{area.nombre}</td>
 		{[...Array(dias)].map((_, i) => {
 			const estadoDia = area.estados.find((e) => e.dia === i + 1);
 			const isSunday = sundaysIndexes.includes(i);
-			console.log("hola",areaIndex)
 			return (
 			<td
 				key={i}
@@ -269,11 +269,6 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 				: [...prev, ...allKeys.filter(k => !prev.includes(k))]
 		);
 	};
-
-
-	useEffect(() => {
-		if (selectedRondin) console.log("selectedRondin", selectedRondin.areas)
-	}, [selectedRondin])
 
 
 	const categoriasDeHora = React.useMemo(() => {
@@ -327,39 +322,11 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 						</div>
 					}
 					<div className="flex gap-1 items-center">
-					
-					<div className="border p-2 rounded w-full">
-					<div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap pr-1">
-						
-						{tags.map((tag, idx) => (
-						<span
-							key={idx}
-							className="bg-blue-500 text-white px-2 py-0.5 rounded-full inline-flex items-center gap-1"
-						>
-							{tag}
-							<button
-							type="button"
-							onClick={() => handleRemoveTag(tag)}
-							className="ml-1 text-white font-bold"
-							>
-							×
-							</button>
-						</span>
-						))}
-
-						<div className="flex items-center">
-						<input
-							type="text"
-							value={inputValue}
-							onChange={(e) => setInputValue(e.target.value)}
-							onKeyDown={handleTagInputKeyDown}
-							placeholder="Buscar"
-							className="outline-none"
+					<TagSearchInput
+						tags={tags}
+						onTagsChange={setTags}
+						placeholder="Buscar área o categoría..."
 						/>
-						</div>
-					</div>
-					</div>
-						<Search />
 					</div>
 				</div>
 				<div className="flex items-center gap-3 text-2xl font-bold capitalize select-none">
@@ -604,7 +571,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 
 										{isExpanded &&
 										categoria?.areas?.map?.((area, idx) =>
-											renderArea(area, `${catKey}-area-${idx}`, categoria, idx)
+											renderArea(area, `${catKey}-area-${idx}`, categoria)
 										)}
 									</React.Fragment>
 									);
