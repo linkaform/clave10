@@ -13,7 +13,7 @@ import {
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { CalendarDays, LogOut, Search } from "lucide-react";
+import { CalendarDays, LayoutList, LogOut, Search, Sheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Table,
@@ -36,11 +36,10 @@ import ForceQuitConfirmationModal from "@/components/modals/force-quit-confirmat
 import { forceQuitAllPersons } from "@/lib/endpoints";
 import { toast } from "sonner";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
-
-
-import BitacoraImages from "@/components/pages/bitacoras/BitacoraImages";
-import { Table as TableIcon, LayoutGrid } from "lucide-react";
-
+import { PhotoGridView } from "@/components/PhotoGrid/PhotoGridView";
+import { LayoutGrid } from "lucide-react";
+import { PhotoRecord } from "@/components/PhotoGrid/PhotoGridCard";
+import { formatPhotoRecord } from "@/utils/formatRecords";
 
 interface ListProps {
 	data: Bitacora_record[] | undefined;
@@ -61,8 +60,8 @@ interface ListProps {
 	total: number | undefined;
 	pagination: { pageIndex: number; pageSize: number };
 	setPagination: React.Dispatch<React.SetStateAction<{ pageIndex: number; pageSize: number }>>;
-	viewMode?: "table" | "photos";
-	setViewMode?: (mode: "table" | "photos") => void;
+	viewMode?: "table" | "photos" | "list";
+	setViewMode?: (mode: "table" | "photos" | "list") => void;
 }
 
 
@@ -146,7 +145,9 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 		}
 	});
 
-
+	const photoRecords: PhotoRecord[] = useMemo(() => {
+		return memoizedData.map((item) => formatPhotoRecord(item, "bitacora"));
+	}, [memoizedData]);
 
 	return (
 		<div className="w-full">
@@ -208,7 +209,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 							onClick={() => setViewMode?.('table')}
 							title="Vista de Tabla"
 						>
-							<TableIcon size={18} />
+							<Sheet size={18} />
 						</Button>
 						<Button
 							variant="ghost"
@@ -218,6 +219,15 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 							title="Vista de Fotos"
 						>
 							<LayoutGrid size={18} />
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon"
+							className={`h-8 w-8 transition-all duration-300 ${viewMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+							onClick={() => setViewMode?.('list')}
+							title="Vista de Lista"
+						>
+							<LayoutList size={18} />
 						</Button>
 					</div>
 				</div>
@@ -361,12 +371,10 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 				</>
 			) : (
 				<div className="mt-4">
-					<BitacoraImages
-						data={data}
-						isLoading={isLoading}
-						total={total}
-						pagination={pagination}
-						setPagination={setPagination}
+					<PhotoGridView
+						records={photoRecords}
+						title="Galería de Registros"
+						onRecordClick={() => {}}
 					/>
 				</div>
 			)}
