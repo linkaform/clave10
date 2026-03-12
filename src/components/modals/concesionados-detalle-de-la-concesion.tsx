@@ -68,7 +68,7 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
     data?.persona_identificacion_otro?.[0] ||
     data?.grupo_equipos_devolucion?.[0]?.identificacion_entrega?.[0];
   const identificacion = identificacionRaw?.file_url ? identificacionRaw : null;
-  console.log("DETALLE DE LA CONCESION", data)
+
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -95,103 +95,105 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
 
             <TabsContent value="datos" className="space-y-4 mt-0">
 
-              <div className="p-5 py-0">
-                <div className="flex items-center gap-2 mb-4">
-                  <ClipboardList className="text-blue-500 w-5 h-5" />
-                  <h3 className="font-semibold text-gray-700">Información general</h3>
-                </div>
+            <div className="p-5 py-0">
+  <div className="flex items-center gap-2 mb-4">
+    <ClipboardList className="text-blue-500 w-5 h-5" />
+    <h3 className="font-semibold text-gray-700">Información general</h3>
+  </div>
 
-                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                  {/* Ubicación */}
-                  <div className="flex items-start gap-2">
-                    <Building2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Ubicación</p>
-                      <p className="text-sm text-gray-700">{data.ubicacion_concesion || "—"}</p>
-                    </div>
-                  </div>
+  <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+    <div className="flex items-start gap-2">
+      <Building2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Ubicación</p>
+        <p className="text-sm text-gray-700">{data.ubicacion_concesion || "—"}</p>
+      </div>
+    </div>
 
-                  {/* Fecha */}
-                  <div className="flex items-start gap-2">
-                    <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Fecha y hora</p>
-                      <p className="text-sm text-gray-700">{data.fecha_concesion || "—"}</p>
-                    </div>
-                  </div>
+    <div className="flex items-start gap-2">
+      <Building2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Área</p>
+        <p className="text-sm text-gray-700">{ data.caseta_concesion || "—"}</p>
+      </div>
+    </div>
 
-                  {/* Empleado */}
-                  <div className="flex items-start gap-2.5">
-                    <User className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Empleado</p>
-                      <p className="text-sm font-medium text-gray-700">{empleado}</p>
-                    </div>
-                  </div>
+    <div className="flex items-start gap-2">
+      <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Fecha y hora</p>
+        <p className="text-sm text-gray-700">{data.fecha_concesion || "—"}</p>
+      </div>
+    </div>
 
-                  {/* Estado */}
-                  <div className="flex items-start gap-2.5">
-                    <CircleDot className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Estado de la Concesión</p>
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border capitalize ${estatusStyle[estatus] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
-                        {estatus || "—"}
-                      </span>
-                    </div>
-                  </div>
+    <div className="flex items-start gap-2.5">
+      <User className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Empleado</p>
+        <p className="text-sm font-medium text-gray-700">{empleado}</p>
+      </div>
+    </div>
 
-                  {/* Firma */}
-                  <div className="flex items-start gap-2.5">
-                    <PenLine className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Firma</p>
-                      {firma?.file_url ? (
-                        <div className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 inline-flex">
-                          <Image
-                            src={firma.file_url}
-                            alt="Firma"
-                            width={160}
-                            height={40}
-                            className="h-9 w-auto"
-                            unoptimized
-                          />
-                        </div>
-                      ) : (
-                        <div className="border border-dashed border-gray-300 rounded-lg px-4 py-3 bg-gray-50 flex flex-col items-center justify-center gap-1 w-44">
-                          <PenLine className="w-5 h-5 text-gray-300" />
-                          <p className="text-xs text-gray-400">No disponible</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+    <div className="flex items-start gap-2.5">
+      <CircleDot className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Estado de la Concesión</p>
+        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border capitalize ${estatusStyle[estatus] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
+          {estatus || "—"}
+        </span>
+      </div>
+    </div>
 
-                  {/* Identificación */}
-                  <div className="flex items-start gap-2.5">
-                    <IdCard className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Identificación</p>
-                      {identificacion?.file_url ? (
-                        <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 w-48 h-28">
-                          <Image
-                            src={identificacion.file_url}
-                            alt="Identificación"
-                            width={192}
-                            height={112}
-                            className="w-full h-full object-cover"
-                            unoptimized
-                          />
-                        </div>
-                      ) : (
-                        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 w-48 h-28 flex flex-col items-center justify-center gap-1">
-                          <IdCard className="w-6 h-6 text-gray-300" />
-                          <p className="text-xs text-gray-400">No disponible</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+    <div className="flex items-start gap-2.5">
+      <PenLine className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Firma</p>
+        {firma?.file_url ? (
+          <div className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 inline-flex">
+            <Image
+              src={firma.file_url}
+              alt="Firma"
+              width={160}
+              height={40}
+              className="h-9 w-auto"
+              unoptimized
+            />
+          </div>
+        ) : (
+          <div className="border border-dashed border-gray-300 rounded-lg px-4 py-3 bg-gray-50 flex flex-col items-center justify-center gap-1 w-44">
+            <PenLine className="w-5 h-5 text-gray-300" />
+            <p className="text-xs text-gray-400">No disponible</p>
+          </div>
+        )}
+      </div>
+    </div>
 
-                </div>
-              </div>
+    <div className="flex items-start gap-2.5">
+      <IdCard className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Identificación</p>
+        {identificacion?.file_url ? (
+          <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 w-48 h-28">
+            <Image
+              src={identificacion.file_url}
+              alt="Identificación"
+              width={192}
+              height={112}
+              className="w-full h-full object-cover"
+              unoptimized
+            />
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 w-48 h-28 flex flex-col items-center justify-center gap-1">
+            <IdCard className="w-6 h-6 text-gray-300" />
+            <p className="text-xs text-gray-400">No disponible</p>
+          </div>
+        )}
+      </div>
+    </div>
+
+  </div>
+            </div>
 
               <div className="p-5 py-0">
                 <TabDatos equipos={equipos} setEquipos={setEquipos} mode="vista" dataConcesion={data}/>

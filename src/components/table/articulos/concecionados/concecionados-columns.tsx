@@ -139,6 +139,14 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       enableSorting: true,
     },
     {
+      accessorKey: "ubicacion_concesion",
+      header: "Ubicación",
+      cell: ({ row }) => (
+        <div className="capitalize">{row.getValue("ubicacion_concesion")}</div>
+      ),
+      enableSorting: true,
+    },
+    {
       accessorKey: "caseta_concesion",
       header: "Área",
       cell: ({ row }) => (

@@ -122,11 +122,18 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
     if (firmaResponse) form.setValue("firma", firmaResponse);
   }, [firmaResponse, form]);
 
-  const totalCantidadPendientes = data?.grupo_equipos?.reduce((acc: any, item: any) => {
-    const pendiente = typeof item.cantidad_equipo_pendiente === "object"
-      ? (item.cantidad_equipo_pendiente as any)?.parsedValue ?? 0
-      : Number(item.cantidad_equipo_pendiente ?? 0);
-    return acc + pendiente;
+  const totalCantidadPendientes = data?.grupo_equipos?.reduce((acc: number, item: any) => {
+    const pendiente = Number(
+      typeof item.cantidad_equipo_pendiente === "object"
+        ? item.cantidad_equipo_pendiente?.parsedValue
+        : item.cantidad_equipo_pendiente
+    );
+  
+    const cantidad = pendiente > 0
+      ? pendiente
+      : Number(item.cantidad_equipo_concesion ?? 0);
+  
+    return acc + cantidad;
   }, 0);
 
   const tipoCon = form.watch("entrega_tipo");
