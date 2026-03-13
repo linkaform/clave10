@@ -85,7 +85,6 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
     if (Array.isArray(costo)) return costo[0] ?? 0;
     return costo ?? 0;
   };
-
   return (
     <div className="space-y-4">
 
@@ -167,10 +166,9 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
                     <td className="px-4 py-2.5">
                     {(() => {
                       const estado = getEstadoEquipo(item);
+
                       return (
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs ${estado.style}`}
-                        >
+                        <span className={`px-3 py-1 rounded-full text-xs whitespace-nowrap ${estado.style}`}>
                           {estado.label}
                         </span>
                       );

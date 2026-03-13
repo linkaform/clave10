@@ -9,7 +9,6 @@ import {
   MessageSquare,
   Package,
   PackageCheck,
-  RotateCcw,
   Search,
 } from "lucide-react";
 import { ConcesionadosVerEquipo } from "./modals/concesionados-ver-equipo";
@@ -31,16 +30,16 @@ export type EquipoForm = {
   comentario_entrega: string;
 };
 
-type FiltroEstatus = "todos" | "abierto" | "en proceso" | "devuelto"| "parcial";
+type FiltroEstatus = "todos" | "abierto" | "en proceso" | "devuelto"| "parcial"| "pendiente";
 const getProgreso = (equipo: EquipoConcesionado) => {
-  const total = Number(equipo.cantidad_equipo_concesion ?? 0);
+  const total = Number(equipo?.cantidad_equipo_concesion ?? 0);
 
   let pendiente = Number(
     typeof equipo.cantidad_equipo_pendiente === "object"
       ? equipo.cantidad_equipo_pendiente
       : equipo.cantidad_equipo_pendiente
   );
-  if (!pendiente) {
+  if (pendiente === null || pendiente === undefined || isNaN(pendiente)) {
     pendiente = total;
   }
   const devueltosReales = total - pendiente;
@@ -116,8 +115,8 @@ interface DetalleSeguimientoTableProps {
   onLoadingEvidenciaChange?: (isLoading: boolean) => void;
   data: any;
   dataDevolucion: any;
-  equipoForms: Record<number, EquipoForm>;
-  setEquipoForms: Dispatch<SetStateAction<Record<number, EquipoForm>>>;
+  equipoForms: Record<string, EquipoForm>;
+  setEquipoForms: Dispatch<SetStateAction<Record<string, EquipoForm>>>;
 }
 
 const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
@@ -126,7 +125,6 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
   dataDevolucion,
   equipoForms,
   setEquipoForms,
-  onDevolver,
   onDevolverTodo,
   isLoadingTodo = false,
   isLoadingFotoExterna = false,
@@ -135,15 +133,18 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
   const [openVerEquiposModal, setOpenVerEquiposModal] = useState(false);
   const [agregarEquipoSeleccion, setAgregarEquipoSeleccion] = useState<EquipoConcesionado | null>(null);
   const [openDevolucionMiniEquiposModal, setOpenDevolucionMiniEquiposModal] = useState(false);
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<string | null>(null);  
+
   const [filtroActivo, setFiltroActivo] = useState<FiltroEstatus>("todos");
   const [busqueda, setBusqueda] = useState("");
   const [verDevolucionModal, setVerDevolucionModal] = useState(false);
   const [devolucionSeleccionada] = useState<DevolucionItem | null>(null);
-  const [loadingEvidencia, setLoadingEvidencia] = useState<Record<number, boolean>>({});
 
-  const setEvidenciaLoading = (index: number, val: boolean) =>
-    setLoadingEvidencia((prev) => ({ ...prev, [index]: val }));
+  const [loadingEvidencia, setLoadingEvidencia] = useState<Record<string, boolean>>({});
+
+const setEvidenciaLoading = (key: string, val: boolean) =>
+  setLoadingEvidencia((prev) => ({ ...prev, [key]: val }));
+
 
   useEffect(() => {
     const hayAlgunaCargando = Object.values(loadingEvidencia).some(Boolean);
@@ -151,15 +152,15 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingEvidencia]);
 
-  const toggleAccordion = (index: number) =>
-    setExpandedIndex(expandedIndex === index ? null : index);
+  const toggleAccordion = (key: string) =>
+    setExpandedIndex(expandedIndex === key ? null : key);
 
-  const setForm = (index: number, key: keyof EquipoForm, value: any) => {
+  const setForm = (key: string, campo: keyof EquipoForm, value: any) => {
     setEquipoForms((prev) => ({
       ...prev,
-      [index]: {
-        ...(prev[index] ?? { unidades: 0, estatus: "", agregado: false, evidencia_entrega: [], comentario_entrega: "" }),
-        [key]: value,
+      [key]: {
+        ...(prev[key] ?? { unidades: 0, estatus: "", agregado: false, evidencia_entrega: [], comentario_entrega: "" }),
+        [campo]: value,
       },
     }));
   };
@@ -176,10 +177,10 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
     const devueltos = Number(equipo.cantidad_equipo_devuelto ?? 0);
     const total = Number(equipo.cantidad_equipo_concesion ?? 0);
   
-    let estadoCalculado = "pendiente";
+    let estadoCalculado = "abierto";
   
     if (devueltos === 0) {
-      estadoCalculado = "pendiente";
+      estadoCalculado = "abierto";
     } 
     else if (devueltos < total) {
       estadoCalculado = "en proceso";
@@ -203,7 +204,7 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
   
   const totalGeneral = equipos.reduce((acc, item) => acc + (item.total ?? 0), 0);
   const totalGeneral2 = equipos.reduce((acc, item) =>
-    acc + (item.cantidad_equipo_concesion ?? 0) * (item.costo_equipo_concesion ?? 0), 0
+    acc + (item?.cantidad_equipo_concesion ?? 0) * (item?.costo_equipo_concesion ?? 0), 0
   );
 
   return (
@@ -281,29 +282,33 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
 
       {equipos && equipos.length > 0 ? (
         <div className="max-h-[460px] overflow-y-auto space-y-3 pr-1 mb-5">
-          {equiposFiltrados.map((item, index) => {
-            const yaDevuelto = item.status_concesion_equipo === "devuelto";
-            const enProceso = item.status_concesion_equipo === "en proceso";
-            const form = equipoForms[index] ?? {
+         {equiposFiltrados.map((item) => {
+            const key = String(item.id_movimiento ?? equipos.indexOf(item));
+            
+            const form = equipoForms[key] ?? {
               unidades: 0, estatus: "", agregado: false,
               evidencia_entrega: [], comentario_entrega: "",
             };
+            const yaDevuelto = item.status_concesion_equipo === "devuelto";
+            const enProceso = item.status_concesion_equipo === "en proceso";
+        
             const pendientes = Number(
               typeof item.cantidad_equipo_pendiente === "object"
                 ? (item.cantidad_equipo_pendiente as any)?.parsedValue ?? 0
                 : item.cantidad_equipo_pendiente ?? item.cantidad_equipo_concesion ?? 0
             );
+            console.log("ESTATUS", item.status_concesion_equipo)
             const { porcentaje, color } = getProgreso(item);
-            const isOpen = expandedIndex === index;
+            const isOpen = expandedIndex === key;
 
             return (
               <div
-                key={index}
+                key={key}
                 className={`rounded-xl border shadow-sm overflow-hidden transition-all duration-300 ${getCardStyle(item, form)}`}
               >
                 <div
                   className={`flex items-center justify-between px-4 py-2.5 border-b cursor-pointer ${getHeaderStyle(item, form)}`}
-                  onClick={() => toggleAccordion(index)}
+                  onClick={() => toggleAccordion(key)}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
@@ -366,13 +371,13 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
                       <div className="bg-white rounded-xl border border-blue-100 px-4 py-3">
                         <p className="text-xs text-gray-400 mb-0.5">Precio unitario</p>
                         <p className="text-sm font-bold text-blue-700">
-                          {formatCurrency(getCosto(item.costo_equipo_concesion))}
+                          {formatCurrency(getCosto(item?.costo_equipo_concesion??0))}
                         </p>
                       </div>
                       <div className="bg-white rounded-xl border border-blue-100 px-4 py-3">
                         <p className="text-xs text-gray-400 mb-0.5">Subtotal</p>
                         <p className="text-sm font-bold text-blue-700">
-                          {formatCurrency((item.cantidad_equipo_concesion ?? 0) * getCosto(item.costo_equipo_concesion))}
+                          {formatCurrency((item.cantidad_equipo_concesion ?? 0) * getCosto(item?.costo_equipo_concesion??0))}
                         </p>
                       </div>
                     </div>
@@ -456,17 +461,17 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
                                   className="w-full h-9 rounded-md border border-gray-200 bg-white px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                   onChange={(e) => {
                                     const val = Number(e.target.value);
-                                    setForm(index, "unidades", val > pendientes ? 0 : val);
+                                    setForm(key, "unidades", val > pendientes ? 0 : val);
                                   }}
                                   onBlur={(e) => {
                                     const val = Math.min(Math.max(Number(e.target.value), 0), pendientes);
-                                    setForm(index, "unidades", val);
+                                    setForm(key, "unidades", val);
                                   }}
                                 />
                                 <button
                                   type="button"
                                   disabled={form.agregado}
-                                  onClick={() => setForm(index, "unidades", pendientes)}
+                                  onClick={() => setForm(key, "unidades", pendientes)}
                                   className="flex-shrink-0 px-2.5 h-9 rounded-md border border-blue-300 text-blue-600 bg-white hover:bg-blue-50 text-xs font-medium whitespace-nowrap transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   Agregar todo
@@ -483,7 +488,7 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
                                     key={val}
                                     type="button"
                                     disabled={form.agregado}
-                                    onClick={() => setForm(index, "estatus", val)}
+                                    onClick={() => setForm(key, "estatus", val)}
                                     className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                                       form.estatus === val
                                         ? "bg-blue-600 text-white shadow-sm"
@@ -501,7 +506,7 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
                               <textarea
                                 disabled={form.agregado}
                                 value={form.comentario_entrega ?? ""}
-                                onChange={(e) => setForm(index, "comentario_entrega", e.target.value)}
+                                onChange={(e) => setForm(key, "comentario_entrega", e.target.value)}
                                 placeholder="Escribe un comentario..."
                                 rows={3}
                                 className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-blue-300"
@@ -511,14 +516,14 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
 
                           <div>
                             <LoadImage
-                              id={`evidencia-equipo-${index}`}
+                              id={`evidencia-equipo-${key}`}
                               titulo="Evidencia de entrega"
                               showWebcamOption={true}
                               imgArray={form.evidencia_entrega || []}
-                              setImg={(imgs) => setForm(index, "evidencia_entrega", imgs)}
+                              setImg={(imgs) => setForm(key, "evidencia_entrega", imgs)}
                               facingMode="environment"
                               limit={5}
-                              onLoadingChange={(val) => setEvidenciaLoading(index, val)}
+                              onLoadingChange={(val) => setEvidenciaLoading(key, val)}
                             />
                           </div>
                         </div>
@@ -533,7 +538,7 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
                                 : "Selecciona el estado del equipo."}
                             </p>
                           )}
-                          {loadingEvidencia[index] && (
+                          {loadingEvidencia[key] && (
                             <p className="text-xs text-gray-400 flex items-center gap-1.5">
                               <Loader2 className="animate-spin w-3 h-3" /> Subiendo evidencia...
                             </p>
@@ -545,7 +550,7 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
                                 onClick={() =>
                                   setEquipoForms((prev) => ({
                                     ...prev,
-                                    [index]: { unidades: 0, estatus: "", agregado: false, evidencia_entrega: [], comentario_entrega: "" },
+                                    [key]: { unidades: 0, estatus: "", agregado: false, evidencia_entrega: [], comentario_entrega: "" },
                                   }))
                                 }
                                 className="px-4 py-1.5 rounded-lg text-xs font-medium border border-gray-300 text-gray-500 bg-white hover:bg-gray-50 transition-colors"
@@ -555,8 +560,8 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
                             )}
                             <button
                               type="button"
-                              disabled={form.agregado || !form.estatus || form.unidades <= 0 || !!loadingEvidencia[index] || isLoadingFotoExterna}
-                              onClick={() => setForm(index, "agregado", true)}
+                              disabled={form.agregado || !form.estatus || form.unidades <= 0 || !!loadingEvidencia[key] || isLoadingFotoExterna}
+                              onClick={() => setForm(key, "agregado", true)}
                               className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${
                                 form.agregado
                                   ? "bg-green-100 text-green-700"
@@ -565,14 +570,14 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
                             >
                               {form.agregado ? "✓ Agregado" : "⊕ Agregar a devolución"}
                             </button>
-                            <Button
-                              disabled={!!loadingEvidencia[index] || isLoadingFotoExterna}
+                            {/* <Button
+                              disabled={!!loadingEvidencia[key] || isLoadingFotoExterna}
                               onClick={(e) => { e.stopPropagation(); onDevolver(item); }}
                               className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
                             >
                               <RotateCcw className="w-4 h-4" />
                               Devolver
-                            </Button>
+                            </Button> */}
                           </div>
                         </div>
                       </>
