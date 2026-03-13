@@ -76,9 +76,9 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
   const getEstadoEquipo = (item: EquipoConcesionado) => {
     const devueltos = Number(item.cantidad_equipo_devuelto ?? 0);
     const total = Number(item.cantidad_equipo_concesion ?? 0);
-    if (devueltos === 0) return { label: "Pendiente", style: "bg-red-100 text-red-700" };
-    if (devueltos < total) return { label: "En proceso", style: "bg-yellow-100 text-yellow-700" };
-    return { label: "Completado", style: "bg-green-100 text-green-700" };
+    if (devueltos === 0) return { label: "Pendiente", style: "bg-red-100 text-red-700 font-bold border border-red-200 " };
+    if (devueltos < total) return { label: "En proceso", style: "bg-yellow-100 text-yellow-700 font-bold border border-yellow-200 " };
+    return { label: "Completado", style: "bg-green-100 text-green-700 font-bold border border-green-200 " };
   };
 
   const getCosto = (costo: number | number[] | undefined): number => {
@@ -165,14 +165,16 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
                       {(item?.cantidad_equipo_concesion ?? 0) - (item?.cantidad_equipo_devuelto ?? 0)}
                     </td>
                     <td className="px-4 py-2.5">
-                      {(() => {
-                        const estado = getEstadoEquipo(item);
-                        return (
-                          <span className={`px-2 py-1 rounded-md text-xs font-medium ${estado.style}`}>
-                            {estado.label}
-                          </span>
-                        );
-                      })()}
+                    {(() => {
+                      const estado = getEstadoEquipo(item);
+                      return (
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs ${estado.style}`}
+                        >
+                          {estado.label}
+                        </span>
+                      );
+                    })()}
                     </td>
                     </>}
                     <td className="px-4">

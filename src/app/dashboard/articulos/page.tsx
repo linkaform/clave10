@@ -24,7 +24,7 @@ import { AddArticuloConModal } from "@/components/modals/add-article.con";
 const ArticulosPage = () => {
 
 	const {location} = useBoothStore()
-
+	console.log("LOCATION",location)
 	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location  || "Planta Monterrey");
 	const [areaSeleccionada, setAreaSeleccionada] = useState("todas")
 
@@ -92,7 +92,7 @@ const ArticulosPage = () => {
 	},[])
 
 	useEffect(()=>{
-		setUbicacionSeleccionada(location || "Planta Monterrey")
+		setUbicacionSeleccionada(location || "")
 		setAreaSeleccionada("todas")
 	},[])
 

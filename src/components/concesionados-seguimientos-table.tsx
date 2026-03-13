@@ -32,24 +32,26 @@ export type EquipoForm = {
 };
 
 type FiltroEstatus = "todos" | "abierto" | "en proceso" | "devuelto"| "parcial";
-
 const getProgreso = (equipo: EquipoConcesionado) => {
-  const status = equipo.status_concesion_equipo?.toLowerCase();
-  if (status === "devuelto") return { porcentaje: 100, color: "bg-green-500" };
-  if (status === "parcial" || status === "en proceso") return { porcentaje: 50, color: "bg-yellow-400" };
-  if (status === "abierto" || status === "pendiente") {
-    return Number(equipo.cantidad_equipo_devuelto ?? 0) > 0
-      ? { porcentaje: 50, color: "bg-yellow-400" }
-      : { porcentaje: 0, color: "bg-red-400" };
-  }
-
-  const devuelto = Number(equipo.cantidad_equipo_devuelto ?? 0);
   const total = Number(equipo.cantidad_equipo_concesion ?? 0);
-  const porcentaje = total > 0 ? Math.round((devuelto / total) * 100) : 0;
+
+  let pendiente = Number(
+    typeof equipo.cantidad_equipo_pendiente === "object"
+      ? equipo.cantidad_equipo_pendiente
+      : equipo.cantidad_equipo_pendiente
+  );
+  if (!pendiente) {
+    pendiente = total;
+  }
+  const devueltosReales = total - pendiente;
+  const porcentaje =
+    total > 0 ? Math.round((devueltosReales / total) * 100) : 0;
   const color =
-    porcentaje === 100 ? "bg-green-500" :
-    porcentaje > 0     ? "bg-yellow-400" :
-                         "bg-red-400";
+    porcentaje === 100
+      ? "bg-green-500"
+      : porcentaje > 0
+      ? "bg-yellow-400"
+      : "bg-red-400";
   return { porcentaje, color };
 };
 
