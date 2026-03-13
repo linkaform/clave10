@@ -4,6 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { PhotoStatus, PhotoCardProps } from "@/types/bitacoras"
 
@@ -15,7 +16,17 @@ const statusConfig: Record<PhotoStatus, { label: string; variant?: "default" | "
   salida: { label: "Salida", customClass: "bg-red-600 text-white hover:bg-red-600" },
 }
 
-export function PhotoGridCard({ titleCard, descriptionCard, record, cardConfig, onClick, children }: PhotoCardProps) {
+export function PhotoGridCard({ 
+  titleCard, 
+  descriptionCard, 
+  record, 
+  cardConfig, 
+  onClick, 
+  children,
+  isSelected,
+  onSelect,
+  // isSelectionMode
+}: PhotoCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
 
@@ -35,7 +46,10 @@ export function PhotoGridCard({ titleCard, descriptionCard, record, cardConfig, 
 
   return (
     <Card
-      className="group cursor-pointer overflow-hidden py-0 transition-all duration-300 hover:shadow-lg hover:border-primary/30"
+      className={cn(
+        "group cursor-pointer overflow-hidden py-0 transition-all duration-300 hover:shadow-lg border-2",
+        isSelected ? "border-primary shadow-md bg-primary/5" : "hover:border-primary/30 border-transparent"
+      )}
       onClick={() => onClick?.(record)}
     >
       <div 
@@ -52,11 +66,27 @@ export function PhotoGridCard({ titleCard, descriptionCard, record, cardConfig, 
         />
         <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
 
+        <div 
+          className={cn(
+            "absolute top-3 left-3 z-20 transition-opacity duration-200",
+            isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
+          onClick={(e) => {
+            e.stopPropagation()
+            onSelect?.(record)
+          }}
+        >
+          <Checkbox 
+            checked={isSelected} 
+            className="h-5 w-5 border-2 border-primary bg-card data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+          />
+        </div>
+
         {(cardConfig.tagPosition === "sup-izq" || cardConfig.tagPosition === "sup-der" || cardConfig.tagPosition === "inf-izq" || cardConfig.tagPosition === "inf-der") && (
           <div 
             className={cn(
               "absolute z-10 transition-all duration-300",
-              cardConfig.tagPosition === "sup-izq" && "top-3 left-3",
+              cardConfig.tagPosition === "sup-izq" && "top-3 left-10",
               cardConfig.tagPosition === "sup-der" && "top-3 right-3",
               cardConfig.tagPosition === "inf-izq" && "bottom-3 left-3",
               cardConfig.tagPosition === "inf-der" && "bottom-3 right-3"

@@ -40,6 +40,9 @@ export interface PhotoCardProps {
   cardConfig: CardConfiguration
   onClick?: (record: PhotoRecord) => void
   children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
+  isSelected?: boolean
+  onSelect?: (record: PhotoRecord) => void
+  isSelectionMode?: boolean
 }
 
 export interface PhotoGridViewProps {
@@ -48,6 +51,7 @@ export interface PhotoGridViewProps {
   onRecordClick?: (record: PhotoRecord) => void
   children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
   filtersConfig: FilterConfig[]
+  onSelectionChange?: (selectedIds: string[]) => void
 }
 
 export interface FilterState {
@@ -58,4 +62,30 @@ export interface FiltersPanelProps {
   filters: FilterState
   onFiltersChange: (filters: FilterState) => void
   filtersConfig?: FilterConfig[]
+}
+
+export interface Visitor {
+  id: string
+  code: string
+  name: string
+  profile: string
+  status: 'entrada' | 'salida'
+  datetime: string
+  visitTo: string
+  visitToRole?: string
+  visitToDepartment?: string
+  company: string
+  photo: string
+  idPhoto?: string
+  location: string
+  caseta?: string
+  passId?: string
+  // Additional details for modal
+  document?: string
+  phone?: string
+  email?: string
+  vehicle?: string
+  plates?: string
+  authorizedBy?: string
+  badge?: string
 }
