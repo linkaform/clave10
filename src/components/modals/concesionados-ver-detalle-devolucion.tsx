@@ -55,7 +55,7 @@ interface HistorialDevolucionesModalProps {
     setIsSuccess,
     isSuccess,
   }) => {
-    
+ 
     return (
       <Dialog open={isSuccess} onOpenChange={setIsSuccess}>
         <DialogTrigger asChild>{children}</DialogTrigger>

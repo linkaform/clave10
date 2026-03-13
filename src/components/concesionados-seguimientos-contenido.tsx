@@ -180,7 +180,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
 
   function ejecutarDevolucion() {
     const equiposMutate = equiposAgregados.map(([index, f]) => {
-      const equipo = equipos[Number(index)];
+      const equipo = equipos.find((e) => String(e.id_movimiento) === index)??{}
       return {
         id_movimiento: equipo.id_movimiento ?? "",
         cantidad_devuelta: f.unidades,
@@ -326,7 +326,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
                               </FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
-                                  <SelectTrigger className={`bg-white transition-colors ${intentoEnvio && errores.persona ? "border-yellow-400 ring-1 ring-yellow-300" : "border-gray-200"}`}>
+                                  <SelectTrigger className={`bg-white transition-colors ${intentoEnvio && errores.persona ? "border-red-400 ring-1 ring-red-300" : "border-gray-200"}`}>
                                     <SelectValue placeholder={
                                       loadingAreaEmpleadoApoyo ? "Cargando empleados..." :
                                       dataAreaEmpleadoApoyo?.length > 0 ? "Selecciona una opción..." :
@@ -363,7 +363,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
                               <FormControl>
                                 <Input
                                   placeholder="Nombre de la persona"
-                                  className={`bg-white transition-colors ${intentoEnvio && errores.persona ? "border-yellow-400 ring-1 ring-yellow-300" : "border-gray-200"}`}
+                                  className={`bg-white transition-colors ${intentoEnvio && errores.persona ? "border-red-400 ring-1 ring-red-300" : "border-gray-200"}`}
                                   {...field}
                                 />
                               </FormControl>
@@ -386,7 +386,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
                             <FormControl>
                               <div className="space-y-2">
                                 <Input
-                                  className={`font-bold italic bg-white transition-colors ${intentoEnvio && errores.firma ? "border-yellow-400 ring-1 ring-yellow-300" : "border-gray-200"}`}
+                                  className={`font-bold italic bg-white transition-colors ${intentoEnvio && errores.firma ? "border-red-400 ring-1 ring-red-300" : "border-gray-200"}`}
                                   style={{ fontFamily: "Georgia, serif" }}
                                   placeholder="Escribe tu firma..."
                                   value={textoFirma}

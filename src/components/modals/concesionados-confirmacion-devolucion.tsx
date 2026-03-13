@@ -27,7 +27,7 @@ interface ConfirmacionDevolucionProps {
   onConfirm: () => void;
   isLoading: boolean;
   equipos: EquipoConcesionado[];
-  equipoForms: Record<number, EquipoForm>;
+  equipoForms: Record<string, EquipoForm>;
   quienEntrega: string;
   entregaTipo: string;
   firma: any;
@@ -77,15 +77,15 @@ export const ConfirmacionDevolucionModal: React.FC<ConfirmacionDevolucionProps> 
 }) => {
   const equiposAgregados = Object.entries(equipoForms ??[])
     .filter(([, form]) => form.agregado && form.estatus)
-    .map(([index, form]) => ({
-      equipo: equipos[Number(index)],
+    .map(([key, form]) => ({
+      equipo: equipos.find((e) => String(e.id_movimiento) === key),
       form,
     }));
 
   const totalDevolucion = equiposAgregados.reduce((acc, { equipo, form }) => {
-    return acc + form.unidades * getCosto(equipo.costo_equipo_concesion);
+    return acc + form.unidades * getCosto(equipo?.costo_equipo_concesion);
   }, 0);
-
+  console.log("DETALLE DEV", equipoForms)
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
@@ -173,10 +173,10 @@ export const ConfirmacionDevolucionModal: React.FC<ConfirmacionDevolucionProps> 
 
                   <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
                     <div className="flex items-center gap-3 min-w-0">
-                      {equipo.imagen_equipo_concesion?.[0]?.file_url ? (
+                      {equipo?.imagen_equipo_concesion?.[0]?.file_url ? (
                         <Image
-                          src={equipo.imagen_equipo_concesion[0].file_url}
-                          alt={equipo.nombre_equipo ?? ""}
+                          src={equipo?.imagen_equipo_concesion[0].file_url}
+                          alt={equipo?.nombre_equipo ?? ""}
                           width={36}
                           height={36}
                           className="w-9 h-9 rounded-lg object-cover shrink-0"
@@ -188,7 +188,7 @@ export const ConfirmacionDevolucionModal: React.FC<ConfirmacionDevolucionProps> 
                         </div>
                       )}
                       <p className="text-sm font-semibold text-gray-800 truncate">
-                        {equipo.nombre_equipo || "—"}
+                        {equipo?.nombre_equipo || "—"}
                       </p>
                     </div>
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border capitalize shrink-0 ml-2 ${estatusBadge[form.estatus] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
@@ -199,23 +199,23 @@ export const ConfirmacionDevolucionModal: React.FC<ConfirmacionDevolucionProps> 
                   <div className="px-4 py-3 grid grid-cols-3 gap-4 border-b border-gray-100">
                     <div>
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Unidades totales</p>
-                      <p className="text-sm font-semibold text-gray-700">{equipo.cantidad_equipo_concesion ?? "—"}</p>
+                      <p className="text-sm font-semibold text-gray-700">{equipo?.cantidad_equipo_concesion ?? "—"}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">A devolver</p>
-                      <p className="text-sm font-bold text-blue-600">{form.unidades}</p>
+                      <p className="text-sm font-bold text-blue-600">{form?.unidades}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Subtotal</p>
                       <p className="text-sm font-semibold text-gray-700">
-                        {formatCurrency(form.unidades * getCosto(equipo.costo_equipo_concesion))}
+                        {formatCurrency(form?.unidades * getCosto(equipo?.costo_equipo_concesion))}
                       </p>
                     </div>
                   </div>
 
-                  {(form.comentario_entrega?.trim() || form.evidencia_entrega?.length > 0) && (
+                  {(form?.comentario_entrega?.trim() || form?.evidencia_entrega?.length > 0) && (
                     <div className="px-4 py-3 space-y-2.5">
-                      {form.comentario_entrega?.trim() && (
+                      {form?.comentario_entrega?.trim() && (
                         <div>
                           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Comentario</p>
                           <div className="flex items-start gap-2">
@@ -225,17 +225,17 @@ export const ConfirmacionDevolucionModal: React.FC<ConfirmacionDevolucionProps> 
                         </div>
                       )}
 
-                      {form.evidencia_entrega?.length > 0 && (
+                      {form?.evidencia_entrega?.length > 0 && (
                         <div>
                           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                            Evidencia ({form.evidencia_entrega.length})
+                            Evidencia ({form?.evidencia_entrega.length})
                           </p>
                           <div className="flex gap-2 flex-wrap">
-                            {form.evidencia_entrega.map((img, idx) =>
-                              img.file_url ? (
+                            {form?.evidencia_entrega.map((img, idx) =>
+                              img?.file_url ? (
                                 <div key={idx} className="w-14 h-14 rounded-lg overflow-hidden border border-gray-200 shrink-0">
                                   <Image
-                                    src={img.file_url}
+                                    src={img?.file_url}
                                     alt={`Evidencia ${idx + 1}`}
                                     width={56}
                                     height={56}
