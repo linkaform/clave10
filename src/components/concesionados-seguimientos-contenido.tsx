@@ -204,6 +204,17 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
     }, {
       onSuccess: () => {
         setConfirmacionOpen(false);
+        setEquipoForms({});
+        setIntentoEnvio(false);
+        setTextoFirma("");
+        setVistaPrevia("");
+        form.reset({
+          entrega_tipo: "empleado",
+          entrega_concesion: "",
+          entrega_concesion_otro: "",
+          identificacion_entrega: [],
+          firma: undefined,
+        });
         onClose();
       },
     });
