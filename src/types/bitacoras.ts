@@ -47,11 +47,11 @@ export interface PhotoCardProps {
 
 export interface PhotoGridViewProps {
   records: PhotoRecord[]
-  title?: string
   onRecordClick?: (record: PhotoRecord) => void
   children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
   filtersConfig: FilterConfig[]
   onSelectionChange?: (selectedIds: string[]) => void
+  renderCustomActions?: (selectedIds: string[]) => React.ReactNode
 }
 
 export interface FilterState {
@@ -88,4 +88,11 @@ export interface Visitor {
   plates?: string
   authorizedBy?: string
   badge?: string
+}
+
+export interface Action {
+  label: string
+  icon?: React.ReactNode
+  onClick: (selectedIds: string[]) => void
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
 }

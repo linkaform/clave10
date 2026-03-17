@@ -6,7 +6,7 @@ import { FiltersPanel } from "./PhotoGridFiltersPanel"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { Filter, ImageIcon, CheckSquare, X } from "lucide-react"
+import { Filter, ImageIcon, X } from "lucide-react"
 import { PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras"
 import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView"
 import { PhotoGridCardModal } from "./PhotoGridCardModal"
@@ -17,6 +17,7 @@ export function PhotoGridView({
   children,
   filtersConfig,
   onSelectionChange,
+  renderCustomActions,
 }: PhotoGridViewProps) {
   
   const { filters, setFilters, filteredRecords, activeFiltersCount } = usePhotoGridView(records);
@@ -58,12 +59,24 @@ export function PhotoGridView({
             <span className="text-sm font-medium">
               {selectedIds.length} {selectedIds.length === 1 ? "seleccionado" : "seleccionados"}
             </span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-2 h-8"
+              onClick={() => {
+                if (selectedIds.length === filteredRecords.length) {
+                  clearSelection();
+                } else {
+                  const allIds = filteredRecords.map(r => r.id);
+                  setSelectedIds(allIds);
+                }
+              }}
+            >
+              {selectedIds.length === filteredRecords.length ? "Deseleccionar todos" : "Seleccionar todos"}
+            </Button>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => console.log("Realizar acciones sobre:", selectedIds)}>
-              <CheckSquare className="h-4 w-4 mr-2" />
-              Accion
-            </Button>
+            {renderCustomActions && renderCustomActions(selectedIds)}
           </div>
         </div>
       )}
