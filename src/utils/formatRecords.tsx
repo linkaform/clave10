@@ -16,7 +16,7 @@ export function formatPhotoRecord(raw: any, type: RegistryType): PhotoRecord {
       return {
         ...base,
         title: raw?.nombre_visitante || "Visitante desconocido",
-        description: raw?.perfil_visita || "Visita General",
+        description: raw?.contratista || "Visita General",
         images: [
           raw?.fotografia?.[0]?.file_url.replace(".jpg", ".thumbnail") || "",
           raw?.identificacion?.[0]?.file_url.replace(".jpg", ".thumbnail") || "",
@@ -25,7 +25,7 @@ export function formatPhotoRecord(raw: any, type: RegistryType): PhotoRecord {
         detailsList: [
             { icon: <CalendarDays className="h-3 w-3" />, value: raw?.fecha_entrada },
             { icon: <User className="h-3 w-3" />, value: `Visita a: ${raw?.visita_a?.[0]?.nombre}`},
-            { icon: <Briefcase className="h-3 w-3" />, value: raw?.contratista },
+            { icon: <Briefcase className="h-3 w-3" />, value: raw?.perfil_visita },
         ] ,
         rawData: raw
       };

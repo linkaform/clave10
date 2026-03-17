@@ -134,7 +134,7 @@ export function PhotoGridCard({
           </p>
         </div>
 
-        <div className="flex gap-1">
+        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
           {children && (
             <>
               {typeof children === "function" ? children(record) : children}
