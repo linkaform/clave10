@@ -43,7 +43,7 @@ const BitacorasPage = () => {
 		pageIndex: 0,
 		pageSize: 100,
 	});
-	const [viewMode, setViewMode] = useState<"table" | "photos" | "list">("table");
+	const [viewMode, setViewMode] = useState<"table" | "photos" | "list">("photos");
 
 	const refreshData = async () => {
 		await Promise.all([

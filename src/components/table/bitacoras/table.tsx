@@ -70,7 +70,7 @@ interface ListProps {
 
 
 const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter,
-	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada, printPase, setPaseIdSeleccionado, personasDentro, refreshData, total, pagination, setPagination, viewMode = "table", setViewMode }) => {
+	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada, printPase, setPaseIdSeleccionado, personasDentro, refreshData, total, pagination, setPagination, viewMode = "photos", setViewMode }) => {
 	
 	const photoActions: Action[] = [
 		{
@@ -231,20 +231,20 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 						<Button
 							variant="ghost"
 							size="icon"
-							className={`h-8 w-8 transition-all duration-300 ${viewMode === 'table' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
-							onClick={() => setViewMode?.('table')}
-							title="Vista de Tabla"
-						>
-							<Sheet size={18} />
-						</Button>
-						<Button
-							variant="ghost"
-							size="icon"
 							className={`h-8 w-8 transition-all duration-300 ${viewMode === 'photos' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
 							onClick={() => setViewMode?.('photos')}
 							title="Vista de Fotos"
 						>
 							<LayoutGrid size={18} />
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon"
+							className={`h-8 w-8 transition-all duration-300 ${viewMode === 'table' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+							onClick={() => setViewMode?.('table')}
+							title="Vista de Tabla"
+						>
+							<Sheet size={18} />
 						</Button>
 						<Button
 							variant="ghost"

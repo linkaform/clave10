@@ -20,6 +20,7 @@ export interface PhotoRecord {
   images: string[]
   status: PhotoStatus
   detailsList?: DetailsListItem[]
+  modalDetailsList?: DetailsListItem[]
   rawData?: any
 }
 
@@ -29,6 +30,7 @@ export interface CardConfiguration {
 }
 
 export interface DetailsListItem {
+  label?: string
   icon: React.ReactNode
   value: string
 }
