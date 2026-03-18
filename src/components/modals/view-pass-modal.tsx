@@ -296,7 +296,7 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
               <Field label="Nombre completo" value={data?.nombre} wide />
               <Field label="Email" value={data?.email} />
               <Field label="Teléfono" value={data?.telefono} />
-              <Field label="Tipo de pase" value={data?.tipo_visita_pase ? capitalizeFirstLetter(data.tipo_visita_pase) : undefined} />
+              <Field label="Tipo de pase" value={data?.perfil_pase ? capitalizeFirstLetter(data.perfil_pase) : undefined} />
               <div>
                 <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Estatus</p>
                 <StatusBadge status={data?.status_pase} />
