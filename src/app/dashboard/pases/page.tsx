@@ -22,7 +22,7 @@ const ListaPasesPage = () => {
 	const [areaSeleccionada, setAreaSeleccionada] = useState("todas");
   const { data, isLoading } = useGetMyPases({ skip, limit, searchName });
   const { records, actual_page, records_on_page, total_pages, total_records } = data || {};
-  const { data: stats } = useGetStats(true, ubicacionSeleccionada, areaSeleccionada, 'PasesHistorial')
+  const { data: stats } = useGetStats(!!ubicacionSeleccionada, ubicacionSeleccionada, areaSeleccionada, 'PasesHistorial')
 
 	const [selectedOption, setSelectedOption] = useState<string[]>([]);
 	const [dateFilter, setDateFilter] = useState<string>("")

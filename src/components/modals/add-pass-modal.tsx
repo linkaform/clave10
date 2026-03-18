@@ -200,7 +200,7 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 			</div>
 
 			<div className="flex-grow overflow-y-auto px-8 py-6 space-y-6 bg-gray-50/50">
-				{/* Sobre la visita */}
+
 				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
 					<div className="flex items-center gap-2 mb-4">
 						<div className="bg-blue-50 p-1.5 rounded-lg">
@@ -241,7 +241,6 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 					</div>
 				</div>
 
-				{/* Cita */}
 				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
 					<div className="flex items-center gap-2 mb-4">
 						<div className="bg-blue-50 p-1.5 rounded-lg">
@@ -290,14 +289,12 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 					)}
 				</div>
 
-				{/* Días Seleccionados */}
 				{dataPass?.config_dias_acceso.length > 0 && (
 					<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
 						<CalendarDays diasDisponibles={dataPass?.config_dias_acceso}/>
 					</div>
 				)}
 
-				{/* Áreas y Comentarios */}
 				{(dataPass?.areas.length > 0 || dataPass?.comentarios.length > 0) && (
 					<div className="space-y-3">
 						{dataPass?.areas.length > 0 && (
