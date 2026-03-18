@@ -58,7 +58,7 @@ export function generateFiltersConfig(records: PhotoRecord[]): FilterConfig[] {
     dynamicConfigs.push({
       label: "Visita a",
       key: "visita_a",
-      type: "multiple",
+      type: "multiselect",
       options: visitas.map(v => ({ label: String(v), value: String(v) }))
     });
   }

@@ -6,21 +6,23 @@ export const useFiltersPanel = (
 ) => {
   const handleDynamicChange = (
     key: string,
-    value: string,
+    value: string | string[],
     checked: boolean,
-    type: "multiple" | "single"
+    type: "multiple" | "single" | "multiselect" | "search"
   ) => {
     const currentDynamic = filters.dynamic || {};
     const currentValue = currentDynamic[key];
 
     let newValue: string | string[];
-    if (type === "single") {
-      newValue = checked ? value : "";
+    if (type === "multiselect") {
+      newValue = value as string[];
+    } else if (type === "single") {
+      newValue = checked ? (value as string) : "";
     } else {
       const currentArray = Array.isArray(currentValue) ? currentValue : [];
       newValue = checked
-        ? [...currentArray, value]
-        : currentArray.filter((v) => v !== value);
+        ? [...currentArray, (value as string)]
+        : currentArray.filter((v) => v !== (value as string));
     }
 
     onFiltersChange({

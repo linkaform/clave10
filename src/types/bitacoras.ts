@@ -5,7 +5,7 @@ export interface FilterOption {
 
 export interface FilterConfig {
   label: string
-  type: "multiple" | "single"
+  type: "multiple" | "single" | "search" | "multiselect"
   options: FilterOption[]
   key: string
 }
@@ -20,6 +20,7 @@ export interface PhotoRecord {
   images: string[]
   status: PhotoStatus
   detailsList?: DetailsListItem[]
+  modalDetailsList?: DetailsListItem[]
   rawData?: any
 }
 
@@ -29,6 +30,7 @@ export interface CardConfiguration {
 }
 
 export interface DetailsListItem {
+  label?: string
   icon: React.ReactNode
   value: string
 }
@@ -47,11 +49,11 @@ export interface PhotoCardProps {
 
 export interface PhotoGridViewProps {
   records: PhotoRecord[]
-  title?: string
   onRecordClick?: (record: PhotoRecord) => void
   children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
   filtersConfig: FilterConfig[]
-  onSelectionChange?: (selectedIds: string[]) => void
+  onSelectionChange?: (selectedIds: { record_id: string; record_status: string }[]) => void
+  renderCustomActions?: (selectedIds: { record_id: string; record_status: string }[]) => React.ReactNode
 }
 
 export interface FilterState {
@@ -88,4 +90,11 @@ export interface Visitor {
   plates?: string
   authorizedBy?: string
   badge?: string
+}
+
+export interface Action {
+  label: string
+  icon?: React.ReactNode
+  onClick: (selectedIds: { record_id: string; record_status?: string }[]) => void
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
 }
