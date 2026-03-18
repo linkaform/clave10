@@ -13,7 +13,7 @@ import {
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { CalendarDays, LayoutList, LogOut, Search, Sheet } from "lucide-react";
+import { CalendarDays, DoorOpen, LayoutList, LogOut, Search, Sheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Table,
@@ -38,11 +38,12 @@ import { toast } from "sonner";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import { LayoutGrid } from "lucide-react";
-import { PhotoRecord } from "@/types/bitacoras";
+import { Action, PhotoRecord } from "@/types/bitacoras";
 import { formatPhotoRecord } from "@/utils/formatRecords";
 import { generateFiltersConfig } from "@/config/filters/bitacora";
 import { useGetBitacoraFilters } from "@/hooks/bitacora/useGetBitacoraFilters";
 import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
+import PhotoSelectedActions from "@/components/Bitacoras/PhotoGrid/PhotoGridSelectedActions";
 
 interface ListProps {
 	data: Bitacora_record[] | undefined;
@@ -69,7 +70,17 @@ interface ListProps {
 
 
 const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter,
-	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada, printPase, setPaseIdSeleccionado, personasDentro, refreshData, total, pagination, setPagination, viewMode = "table", setViewMode }) => {
+	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada, printPase, setPaseIdSeleccionado, personasDentro, refreshData, total, pagination, setPagination, viewMode = "photos", setViewMode }) => {
+	
+	const photoActions: Action[] = [
+		{
+			label: "Dar salida",
+			icon: <DoorOpen className="h-4 w-4" />,
+			onClick: (ids) => console.log("Sacando a:", ids),
+			variant: "outline"
+		}
+	];
+
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[]
@@ -220,20 +231,20 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 						<Button
 							variant="ghost"
 							size="icon"
-							className={`h-8 w-8 transition-all duration-300 ${viewMode === 'table' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
-							onClick={() => setViewMode?.('table')}
-							title="Vista de Tabla"
-						>
-							<Sheet size={18} />
-						</Button>
-						<Button
-							variant="ghost"
-							size="icon"
 							className={`h-8 w-8 transition-all duration-300 ${viewMode === 'photos' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
 							onClick={() => setViewMode?.('photos')}
 							title="Vista de Fotos"
 						>
 							<LayoutGrid size={18} />
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon"
+							className={`h-8 w-8 transition-all duration-300 ${viewMode === 'table' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+							onClick={() => setViewMode?.('table')}
+							title="Vista de Tabla"
+						>
+							<Sheet size={18} />
 						</Button>
 						<Button
 							variant="ghost"
@@ -389,8 +400,10 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 					<PhotoGridView
 						filtersConfig={bitacoraFiltersConfig}
 						records={photoRecords}
-						title="Galería de Registros"
-						onRecordClick={() => { }}
+						onRecordClick={() => {}}
+						renderCustomActions={(ids) => (
+							<PhotoSelectedActions selectedIds={ids} actions={photoActions} />
+						)}
 					>
 						{(record: PhotoRecord) => {
 							const bitacora = memoizedData.find(b => b._id === record.id);
@@ -398,8 +411,6 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 							return (
 								<InAndOutButtons
 									bitacora={bitacora}
-									handleRegresarGafete={handleRegresarGafete}
-									handleAgregarBadge={handleAgregarBadge}
 									handleSalida={handleSalida}
 									printPaseFn={printPaseFn}
 								/>

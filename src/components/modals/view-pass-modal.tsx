@@ -81,8 +81,7 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({
   children,
 }) => {
   const [open, setOpen] = useState(false)
-  const { userIdSoter, userParentId } = useAuthStore()
-  const account_id = userIdSoter;
+  const { userParentId } = useAuthStore()
   const [enablePdf, setEnablePdf] = useState(false)
   const { data: responsePdf } = useGetPdf(userParentId, data._id, enablePdf);
   const [loadingImgPass, setLoadingImgPass] = useState(false);
@@ -113,7 +112,7 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({
           fecha: { desde: data.fecha_desde_visita, hasta: data.fecha_desde_hasta },
           descripcion: data.descripcion,
         }
-        createSendCorreoSms.mutate({ account_id, envio: [tipo_envio], data_for_msj, folio: data._id })
+        createSendCorreoSms.mutate({ account_id: userParentId, envio: [tipo_envio], data_for_msj, folio: data._id })
       } else {
         setOpenAddMail(true)
         // toast.error("Ingresa un correo valido.")
@@ -142,7 +141,7 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({
           fecha: { desde: data.fecha_desde_visita, hasta: data.fecha_desde_hasta },
           descripcion: data.descripcion,
         }
-        createSendSms.mutate({ account_id, envio: [tipo_envio], data_for_msj: data_for_msj, folio: data._id })
+        createSendSms.mutate({ account_id: userParentId, envio: [tipo_envio], data_for_msj: data_for_msj, folio: data._id })
       } else {
         setOpenAddPhone(true)
         // toast.error("Ingresa un teléfono valido.")

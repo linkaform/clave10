@@ -7,8 +7,6 @@ import { Car, Forward, Hammer, Printer } from "lucide-react"
 
 interface InAndOutButtonsProps {
   bitacora: Bitacora_record
-  handleRegresarGafete: (bitacora: Bitacora_record) => void
-  handleAgregarBadge: (bitacora: Bitacora_record) => void
   handleSalida: (bitacora: Bitacora_record) => void
   printPaseFn: (id: string) => void
 }

@@ -114,11 +114,13 @@ export function MultiSelectTrigger({
         role={props.role ?? "combobox"}
         aria-expanded={props["aria-expanded"] ?? open}
         className={cn(
-          "flex h-auto min-h-9 w-fit items-center justify-between gap-2 overflow-hidden rounded-md border border-input bg-transparent px-3 py-1.5 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+          "flex h-auto min-h-9 w-full items-center justify-between gap-2 overflow-hidden rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
           className,
         )}
       >
-        {children}
+        <div className="flex-1 min-w-0 flex items-center overflow-hidden text-left">
+          {children}
+        </div>
         <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
       </Button>
     </PopoverTrigger>
@@ -200,41 +202,44 @@ export function MultiSelectValue({
       {...props}
       ref={handleResize}
       className={cn(
-        "flex w-full gap-1.5 overflow-hidden",
+        "flex w-full min-w-0 items-center justify-start gap-1 p-0.5",
         shouldWrap && "h-full flex-wrap",
         className,
       )}
     >
-      {[...selectedValues]
-        .filter(value => items.has(value))
-        .map(value => (
-          <Badge
-            variant="outline"
-            data-selected-item
-            className="group flex items-center gap-1"
-            key={value}
-            onClick={
-              clickToRemove
-                ? e => {
-                  e.stopPropagation()
-                  toggleValue(value)
-                }
-                : undefined
-            }
-          >
-            {items.get(value)}
-            {clickToRemove && (
-              <XIcon className="size-2 text-muted-foreground group-hover:text-destructive" />
-            )}
-          </Badge>
-        ))}
+      <div className="flex flex-1 min-w-0 items-center gap-1 overflow-hidden">
+        {[...selectedValues]
+          .filter(value => items.has(value))
+          .map(value => (
+            <Badge
+              variant="outline"
+              data-selected-item
+              className="group/badge flex max-w-[70px] shrink-0 items-center gap-1 px-1.5 h-6"
+              key={value}
+              onClick={
+                clickToRemove
+                  ? e => {
+                    e.stopPropagation()
+                    toggleValue(value)
+                  }
+                  : undefined
+              }
+            >
+              <span className="truncate text-[11px]">{items.get(value)}</span>
+              {clickToRemove && (
+                <XIcon className="size-2.5 shrink-0 text-muted-foreground group-hover/badge:text-destructive" />
+              )}
+            </Badge>
+          ))}
+      </div>
       <div
         ref={overflowRef}
         style={{
-          display: overflowAmount > 0 && !shouldWrap ? "block" : "none",
+          display: overflowAmount > 0 && !shouldWrap ? "flex" : "none",
         }}
+        className="shrink-0 ml-auto"
       >
-        <Badge variant="outline">
+        <Badge variant="outline" className="px-1 h-5 text-[10px] shrink-0 font-medium">
           +{overflowAmount}
         </Badge>
       </div>
