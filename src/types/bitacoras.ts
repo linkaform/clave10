@@ -5,7 +5,7 @@ export interface FilterOption {
 
 export interface FilterConfig {
   label: string
-  type: "multiple" | "single"
+  type: "multiple" | "single" | "search" | "multiselect"
   options: FilterOption[]
   key: string
 }
