@@ -21,7 +21,7 @@ export function PhotoGridView({
 }: PhotoGridViewProps) {
   
   const { filters, setFilters, filteredRecords, activeFiltersCount } = usePhotoGridView(records);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<{ record_id: string; record_status: string }[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<PhotoRecord | null>(null);
 
@@ -34,9 +34,9 @@ export function PhotoGridView({
 
   const handleSelect = (record: PhotoRecord) => {
     setSelectedIds(prev => 
-      prev.includes(record.id) 
-        ? prev.filter(id => id !== record.id)
-        : [...prev, record.id]
+      prev.some(item => item?.record_id === record?.id)
+        ? prev.filter(item => item?.record_id !== record?.id)
+        : [...prev, { record_id: record?.id, record_status: record?.status }]
     );
   };
 
@@ -67,8 +67,11 @@ export function PhotoGridView({
                 if (selectedIds.length === filteredRecords.length) {
                   clearSelection();
                 } else {
-                  const allIds = filteredRecords.map(r => r.id);
-                  setSelectedIds(allIds);
+                  const allSelected = filteredRecords.map(r => ({
+                    record_id: r.id,
+                    record_status: r.status
+                  }));
+                  setSelectedIds(allSelected);
                 }
               }}
             >
@@ -130,7 +133,7 @@ export function PhotoGridView({
                         folioTag: true,
                       }}
                       onClick={handleCardClick}
-                      isSelected={selectedIds.includes(record.id)}
+                      isSelected={selectedIds.some(item => item.record_id === record.id)}
                       onSelect={handleSelect}
                     >
                       {children}

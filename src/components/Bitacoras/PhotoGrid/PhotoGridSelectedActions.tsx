@@ -3,7 +3,7 @@ import React from 'react'
 import { Action } from '@/types/bitacoras'
 
 interface PhotoSelectedActionsProps {
-  selectedIds: string[]
+  selectedIds: { record_id: string; record_status: string }[]
   actions: Action[]
 }
 

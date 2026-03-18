@@ -52,8 +52,8 @@ export interface PhotoGridViewProps {
   onRecordClick?: (record: PhotoRecord) => void
   children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
   filtersConfig: FilterConfig[]
-  onSelectionChange?: (selectedIds: string[]) => void
-  renderCustomActions?: (selectedIds: string[]) => React.ReactNode
+  onSelectionChange?: (selectedIds: { record_id: string; record_status: string }[]) => void
+  renderCustomActions?: (selectedIds: { record_id: string; record_status: string }[]) => React.ReactNode
 }
 
 export interface FilterState {
@@ -95,6 +95,6 @@ export interface Visitor {
 export interface Action {
   label: string
   icon?: React.ReactNode
-  onClick: (selectedIds: string[]) => void
+  onClick: (selectedIds: { record_id: string; record_status?: string }[]) => void
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
 }
