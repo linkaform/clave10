@@ -48,7 +48,7 @@ export function PhotoGridCard({
     <Card
       className={cn(
         "group cursor-pointer overflow-hidden py-0 transition-all duration-300 hover:shadow-lg border-2",
-        isSelected ? "border-primary shadow-md bg-primary/5" : "hover:border-primary/30 border-transparent"
+        isSelected ? "border-primary shadow-md bg-primary/5" : "border-gray-100 hover:border-primary/30"
       )}
       onClick={() => onClick?.(record)}
     >
