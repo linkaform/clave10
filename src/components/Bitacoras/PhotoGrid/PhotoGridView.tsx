@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { PhotoGridCard } from "./PhotoGridCard"
 import { FiltersPanel } from "./PhotoGridFiltersPanel"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -18,12 +18,32 @@ export function PhotoGridView({
   filtersConfig,
   onSelectionChange,
   renderCustomActions,
-}: PhotoGridViewProps) {
+  globalSearch = [],
+}: PhotoGridViewProps & { globalSearch?: string[] }) {
   
-  const { filters, setFilters, filteredRecords, activeFiltersCount } = usePhotoGridView(records);
+  const { filters, setFilters, filteredRecords: baseFilteredRecords, activeFiltersCount } = usePhotoGridView(records);
   const [selectedItems, setSelectedItems] = useState<{ record_id: string; record_status: string }[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<PhotoRecord | null>(null);
+
+  const filteredRecords = useMemo(() => {
+    if (!globalSearch || globalSearch.length === 0) return baseFilteredRecords;
+    
+    return baseFilteredRecords.filter(record => {
+      // Lógica OR: Si el registro coincide con AL MENOS UNO de los tags
+      return globalSearch.some(tag => {
+        const tagLower = tag.toLowerCase();
+        return (
+          record.title?.toLowerCase().includes(tagLower) ||
+          record.description?.toLowerCase().includes(tagLower) ||
+          record.folio?.toLowerCase().includes(tagLower) ||
+          record.status?.toLowerCase().includes(tagLower) ||
+          record.detailsList?.some(detail => detail.value.toLowerCase().includes(tagLower)) ||
+          record.modalDetailsList?.some(detail => detail.value.toLowerCase().includes(tagLower))
+        );
+      });
+    });
+  }, [baseFilteredRecords, globalSearch]);
 
   useEffect(() => {
     onSelectionChange?.(selectedItems);

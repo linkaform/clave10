@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
 
 interface TagSearchInputProps {
   tags: string[];
@@ -37,7 +37,7 @@ export const TagSearchInput = ({
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>
-      <div className="border rounded px-2 py-1 flex items-center gap-1 flex-wrap min-w-[200px] max-w-[500px] bg-white focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 transition">
+      <div className="border rounded px-2 py-1 flex items-center gap-1 flex-wrap min-w-[280px] max-w-[300px] bg-white focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 transition">
         {tags.map((tag, idx) => (
           <span
             key={idx}
@@ -63,7 +63,6 @@ export const TagSearchInput = ({
           className="outline-none text-sm flex-1 min-w-[80px] bg-transparent"
         />
       </div>
-      <Search size={18} className="text-gray-400 shrink-0" />
     </div>
   );
 };

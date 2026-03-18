@@ -45,6 +45,7 @@ import { useGetBitacoraFilters } from "@/hooks/bitacora/useGetBitacoraFilters";
 import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
 import PhotoSelectedActions from "@/components/Bitacoras/PhotoGrid/PhotoGridSelectedActions";
 import OutSelectedItemsButton from "@/components/Bitacoras/OutSelectedItemsButton";
+import { TagSearchInput } from "@/components/tag-search-input";
 
 interface ListProps {
 	data: Bitacora_record[] | undefined;
@@ -136,7 +137,7 @@ const BitacorasTable: React.FC<ListProps> = ({
 
 
 
-	const [globalFilter, setGlobalFilter] = React.useState("");
+	const [searchTags, setSearchTags] = React.useState<string[]>([]);
 	const columns = useMemo(() => {
 		if (isLoading) return [];
 		return getBitacorasColumns(handleRegresarGafete, handleAgregarBadge, handleSalida, printPaseFn);
@@ -148,7 +149,7 @@ const BitacorasTable: React.FC<ListProps> = ({
 		columns: columns,
 		onSortingChange: setSorting,
 		onColumnFiltersChange: setColumnFilters,
-		onGlobalFilterChange: setGlobalFilter,
+		onGlobalFilterChange: setSearchTags,
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
 		getSortedRowModel: getSortedRowModel(),
@@ -156,7 +157,18 @@ const BitacorasTable: React.FC<ListProps> = ({
 		onColumnVisibilityChange: setColumnVisibility,
 		onRowSelectionChange: setRowSelection,
 		onPaginationChange: setPagination,
-		globalFilterFn: 'includesString',
+		globalFilterFn: (row, columnId, filterValues: string[]) => {
+			if (!filterValues || filterValues.length === 0) return true;
+			const searchTags = filterValues.map(v => v.toLowerCase());
+			
+			// Obtenemos todos los valores de la fila de forma dinámica
+			const allValues = row.getAllCells()
+				.map(cell => String(cell.getValue() || '').toLowerCase())
+				.join(" ");
+
+			// Lógica OR: Si el registro coincide con AL MENOS UNO de los tags
+			return searchTags.some(tag => allValues.includes(tag));
+		},
 
 		manualPagination: true,
 		rowCount: total || 0,
@@ -166,7 +178,7 @@ const BitacorasTable: React.FC<ListProps> = ({
 			columnVisibility,
 			rowSelection,
 			pagination,
-			globalFilter,
+			globalFilter: searchTags,
 		}
 	});
 
@@ -196,14 +208,12 @@ const BitacorasTable: React.FC<ListProps> = ({
 						<TabsTrigger value="Equipos">Equipos</TabsTrigger>
 						{/* <TabsTrigger value="Locker">Locker</TabsTrigger> */}
 					</TabsList>
-
-					<div className="flex w-full max-w-sm items-center space-x-2">
-						<input
-							type="text"
-							placeholder="Buscar registros..."
-							value={globalFilter || ''}
-							onChange={(e) => setGlobalFilter(e.target.value)}
-							className=" border border-gray-300 rounded-md p-2 placeholder-gray-600 w-full"
+					<div className="flex bg-slate-100 p-1 rounded-lg items-center space-x-2">
+						<TagSearchInput 
+							tags={searchTags} 
+							onTagsChange={setSearchTags}
+							placeholder="Presiona Enter para buscar por tags..."
+							className="w-full"
 						/>
 						<Search />
 					</div>
@@ -411,6 +421,7 @@ const BitacorasTable: React.FC<ListProps> = ({
 					<PhotoGridView
 						filtersConfig={bitacoraFiltersConfig}
 						records={photoRecords}
+						globalSearch={searchTags}
 						onRecordClick={() => {}}
 						renderCustomActions={(ids) => (
 							<PhotoSelectedActions selectedItems={ids}>
