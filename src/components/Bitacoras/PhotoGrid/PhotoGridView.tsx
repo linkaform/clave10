@@ -21,19 +21,19 @@ export function PhotoGridView({
 }: PhotoGridViewProps) {
   
   const { filters, setFilters, filteredRecords, activeFiltersCount } = usePhotoGridView(records);
-  const [selectedIds, setSelectedIds] = useState<{ record_id: string; record_status: string }[]>([]);
+  const [selectedItems, setSelectedItems] = useState<{ record_id: string; record_status: string }[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<PhotoRecord | null>(null);
 
   useEffect(() => {
-    onSelectionChange?.(selectedIds);
-    if (selectedIds.length > 0) {
-      console.log("Registros seleccionados:", selectedIds);
+    onSelectionChange?.(selectedItems);
+    if (selectedItems.length > 0) {
+      console.log("Registros seleccionados:", selectedItems);
     }
-  }, [selectedIds, onSelectionChange]);
+  }, [selectedItems, onSelectionChange]);
 
   const handleSelect = (record: PhotoRecord) => {
-    setSelectedIds(prev => 
+    setSelectedItems(prev => 
       prev.some(item => item?.record_id === record?.id)
         ? prev.filter(item => item?.record_id !== record?.id)
         : [...prev, { record_id: record?.id, record_status: record?.status }]
@@ -46,40 +46,40 @@ export function PhotoGridView({
     onRecordClick?.(record);
   };
 
-  const clearSelection = () => setSelectedIds([]);
+  const clearSelection = () => setSelectedItems([]);
 
   return (
     <div className="flex h-full w-full bg-background flex-col">
-      {selectedIds.length > 0 && (
+      {selectedItems.length > 0 && (
         <div className="flex items-center justify-between p-4 bg-primary/10 border-b border-primary/20 sticky top-0 z-20">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={clearSelection}>
               <X className="h-4 w-4" />
             </Button>
             <span className="text-sm font-medium">
-              {selectedIds.length} {selectedIds.length === 1 ? "seleccionado" : "seleccionados"}
+              {selectedItems.length} {selectedItems.length === 1 ? "seleccionado" : "seleccionados"}
             </span>
             <Button 
               variant="outline" 
               size="sm" 
               className="ml-2 h-8"
               onClick={() => {
-                if (selectedIds.length === filteredRecords.length) {
+                if (selectedItems.length === filteredRecords.length) {
                   clearSelection();
                 } else {
                   const allSelected = filteredRecords.map(r => ({
                     record_id: r.id,
                     record_status: r.status
                   }));
-                  setSelectedIds(allSelected);
+                  setSelectedItems(allSelected);
                 }
               }}
             >
-              {selectedIds.length === filteredRecords.length ? "Deseleccionar todos" : "Seleccionar todos"}
+              {selectedItems.length === filteredRecords.length ? "Deseleccionar todos" : "Seleccionar todos"}
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            {renderCustomActions && renderCustomActions(selectedIds)}
+            {renderCustomActions && renderCustomActions(selectedItems)}
           </div>
         </div>
       )}
@@ -133,7 +133,7 @@ export function PhotoGridView({
                         folioTag: true,
                       }}
                       onClick={handleCardClick}
-                      isSelected={selectedIds.some(item => item.record_id === record.id)}
+                      isSelected={selectedItems.some(item => item.record_id === record.id)}
                       onSelect={handleSelect}
                     >
                       {children}

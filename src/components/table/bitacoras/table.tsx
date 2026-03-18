@@ -13,7 +13,7 @@ import {
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { CalendarDays, DoorOpen, LayoutList, LogOut, Search, Sheet } from "lucide-react";
+import { CalendarDays, LayoutList, LogOut, Search, Sheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Table,
@@ -38,12 +38,13 @@ import { toast } from "sonner";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import { LayoutGrid } from "lucide-react";
-import { Action, PhotoRecord } from "@/types/bitacoras";
+import { PhotoRecord } from "@/types/bitacoras";
 import { formatPhotoRecord } from "@/utils/formatRecords";
 import { generateFiltersConfig } from "@/config/filters/bitacora";
 import { useGetBitacoraFilters } from "@/hooks/bitacora/useGetBitacoraFilters";
 import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
 import PhotoSelectedActions from "@/components/Bitacoras/PhotoGrid/PhotoGridSelectedActions";
+import OutSelectedItemsButton from "@/components/Bitacoras/OutSelectedItemsButton";
 
 interface ListProps {
 	data: Bitacora_record[] | undefined;
@@ -69,17 +70,27 @@ interface ListProps {
 }
 
 
-const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter,
-	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada, printPase, setPaseIdSeleccionado, personasDentro, refreshData, total, pagination, setPagination, viewMode = "photos", setViewMode }) => {
-	
-	const photoActions: Action[] = [
-		{
-			label: "Dar salida",
-			icon: <DoorOpen className="h-4 w-4" />,
-			onClick: (ids) => console.log("Sacando a:", ids),
-			variant: "outline"
-		}
-	];
+const BitacorasTable: React.FC<ListProps> = ({ 
+	data, 
+	isLoading, 
+	setDate1, 
+	setDate2, 
+	date1, 
+	date2, 
+	dateFilter,
+	setDateFilter, 
+	Filter, 
+	isPersonasDentro, 
+	ubicacionSeleccionada, 
+	printPase, 
+	setPaseIdSeleccionado, 
+	personasDentro, 
+	refreshData, 
+	total, 
+	pagination, 
+	setPagination, 
+	viewMode = "photos", 
+	setViewMode }) => {
 
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -402,7 +413,9 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 						records={photoRecords}
 						onRecordClick={() => {}}
 						renderCustomActions={(ids) => (
-							<PhotoSelectedActions selectedIds={ids} actions={photoActions} />
+							<PhotoSelectedActions selectedItems={ids}>
+								<OutSelectedItemsButton selectedItems={ids} />
+							</PhotoSelectedActions>
 						)}
 					>
 						{(record: PhotoRecord) => {
