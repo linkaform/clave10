@@ -82,7 +82,7 @@ export function PhotoGridCard({
           />
         </div>
 
-        {(cardConfig.tagPosition === "sup-izq" || cardConfig.tagPosition === "sup-der" || cardConfig.tagPosition === "inf-izq" || cardConfig.tagPosition === "inf-der") && (
+        {(cardConfig?.tagPosition === "sup-izq" || cardConfig?.tagPosition === "sup-der" || cardConfig?.tagPosition === "inf-izq" || cardConfig?.tagPosition === "inf-der") && (
           <div 
             className={cn(
               "absolute z-10 transition-all duration-300",
@@ -117,7 +117,7 @@ export function PhotoGridCard({
       </div>
 
       <CardContent className="flex flex-col gap-3 p-4">
-        {(cardConfig.folioTag && record?.folio) && (
+        {(cardConfig?.folioTag && record?.folio) && (
           <div className="self-start">
             <Badge variant={"default"} className="bg-blue-400 text-[0.7rem] text-blue-700 hover:bg-blue-400 hover:bg-opacity-10 bg-opacity-10 rounded-sm">
               {record?.folio}

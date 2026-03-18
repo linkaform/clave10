@@ -37,9 +37,10 @@ import { forceQuitAllPersons } from "@/lib/endpoints";
 import { toast } from "sonner";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
+import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { LayoutGrid } from "lucide-react";
-import { PhotoRecord } from "@/types/bitacoras";
-import { formatPhotoRecord } from "@/utils/formatRecords";
+import { ListRecord, PhotoRecord } from "@/types/bitacoras";
+import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { generateFiltersConfig } from "@/config/filters/bitacora";
 import { useGetBitacoraFilters } from "@/hooks/bitacora/useGetBitacoraFilters";
 import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
@@ -181,6 +182,10 @@ const BitacorasTable: React.FC<ListProps> = ({
 			globalFilter: searchTags,
 		}
 	});
+
+	const photoListRecords: ListRecord[] = useMemo(() => {
+		return memoizedData.map((item) => formatListRecord(item, "bitacora"));
+	}, [memoizedData]);
 
 	const photoRecords: PhotoRecord[] = useMemo(() => {
 		return memoizedData.map((item) => formatPhotoRecord(item, "bitacora"));
@@ -416,7 +421,7 @@ const BitacorasTable: React.FC<ListProps> = ({
 						</Table>
 					</div>
 				</>
-			) : (
+			) : viewMode === "photos" ? (
 				<div className="mt-4">
 					<PhotoGridView
 						filtersConfig={bitacoraFiltersConfig}
@@ -441,6 +446,32 @@ const BitacorasTable: React.FC<ListProps> = ({
 							);
 						}}
 					</PhotoGridView>
+				</div>
+			) : (
+				<div className="mt-4">
+					<PhotoListView
+						filtersConfig={bitacoraFiltersConfig}
+						records={photoListRecords}
+						globalSearch={searchTags}
+						onRecordClick={() => {}}
+						renderCustomActions={(ids) => (
+							<PhotoSelectedActions selectedItems={ids}>
+								<OutSelectedItemsButton selectedItems={ids} />
+							</PhotoSelectedActions>
+						)}
+					>
+						{(record: PhotoRecord) => {
+							const bitacora = memoizedData.find(b => b._id === record.id);
+							if (!bitacora) return null;
+							return (
+								<InAndOutButtons
+									bitacora={bitacora}
+									handleSalida={handleSalida}
+									printPaseFn={printPaseFn}
+								/>
+							);
+						}}
+					</PhotoListView>
 				</div>
 			)}
 			<DataTablePagination table={table} total={total} />
