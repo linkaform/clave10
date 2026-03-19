@@ -82,7 +82,7 @@ export function PhotoGridCard({
           />
         </div>
 
-        {(cardConfig.tagPosition === "sup-izq" || cardConfig.tagPosition === "sup-der" || cardConfig.tagPosition === "inf-izq" || cardConfig.tagPosition === "inf-der") && (
+        {(cardConfig?.tagPosition === "sup-izq" || cardConfig?.tagPosition === "sup-der" || cardConfig?.tagPosition === "inf-izq" || cardConfig?.tagPosition === "inf-der") && (
           <div 
             className={cn(
               "absolute z-10 transition-all duration-300",
@@ -117,7 +117,7 @@ export function PhotoGridCard({
       </div>
 
       <CardContent className="flex flex-col gap-3 p-4">
-        {(cardConfig.folioTag && record?.folio) && (
+        {(cardConfig?.folioTag && record?.folio) && (
           <div className="self-start">
             <Badge variant={"default"} className="bg-blue-400 text-[0.7rem] text-blue-700 hover:bg-blue-400 hover:bg-opacity-10 bg-opacity-10 rounded-sm">
               {record?.folio}
@@ -134,16 +134,8 @@ export function PhotoGridCard({
           </p>
         </div>
 
-        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-          {children && (
-            <>
-              {typeof children === "function" ? children(record) : children}
-            </>
-          )}
-        </div>
-
         {record?.detailsList && record?.detailsList?.length > 0 && (
-          <div className="flex flex-col gap-1.5 pt-2 border-t border-border">
+          <div className="flex flex-col gap-1.5 pt-1">
             {record?.detailsList?.map((item, index) => (
               <div key={index} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 {item.icon}
@@ -152,6 +144,18 @@ export function PhotoGridCard({
             ))}
           </div>
         )}
+        
+        {children && (
+          <div className="border-t border-border"></div>
+        )}
+
+        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+          {children && (
+            <>
+              {typeof children === "function" ? children(record) : children}
+            </>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
