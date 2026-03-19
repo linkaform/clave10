@@ -6,9 +6,10 @@ import { FiltersPanel } from "./PhotoGridFiltersPanel";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Filter, ImageIcon, X } from "lucide-react";
+import { Filter, ImageIcon } from "lucide-react";
 import { PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
 import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView";
+import { SelectionBar } from "../SelectionBar";
 import { PhotoGridCardModal } from "./PhotoGridCardModal";
 
 export function PhotoGridView({
@@ -81,52 +82,26 @@ export function PhotoGridView({
 
   const clearSelection = () => setSelectedItems([]);
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center gap-2 text-slate-300 h-96 w-full justify-center">
-        <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-        <span className="text-xs font-normal">Cargando registros...</span>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-full w-full bg-background flex-col">
-      {selectedItems.length > 0 && (
-        <div className="flex items-center justify-between p-4 bg-primary/10 border-b border-primary/20 sticky top-0 z-20">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={clearSelection}>
-              <X className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium">
-              {selectedItems.length}{" "}
-              {selectedItems.length === 1 ? "seleccionado" : "seleccionados"}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-2 h-8"
-              onClick={() => {
-                if (selectedItems.length === filteredRecords.length) {
-                  clearSelection();
-                } else {
-                  const allSelected = filteredRecords.map((r) => ({
-                    record_id: r.id,
-                    record_status: r.status,
-                  }));
-                  setSelectedItems(allSelected);
-                }
-              }}>
-              {selectedItems.length === filteredRecords.length
-                ? "Deseleccionar todos"
-                : "Seleccionar todos"}
-            </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            {renderCustomActions && renderCustomActions(selectedItems)}
-          </div>
-        </div>
-      )}
+    <div className="flex h-full w-full bg-background flex-col relative overflow-hidden">
+      <SelectionBar
+        selectedCount={selectedItems.length}
+        totalVisible={filteredRecords.length}
+        onClear={clearSelection}
+        onSelectAll={() => {
+          if (selectedItems.length === filteredRecords.length) {
+            clearSelection();
+          } else {
+            const allSelected = filteredRecords.map((r) => ({
+              record_id: r.id,
+              record_status: r.status,
+            }));
+            setSelectedItems(allSelected);
+          }
+        }}
+        renderCustomActions={renderCustomActions}
+        selectedItems={selectedItems}
+      />
       <div className="flex flex-1 min-h-0">
         <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-border bg-card">
           <ScrollArea className="flex-1 p-5">
@@ -164,7 +139,14 @@ export function PhotoGridView({
 
           <div className="flex-1 overflow-y-auto">
             <div className="p-6">
-              {filteredRecords.length > 0 ? (
+              {isLoading ? (
+                <div className="flex flex-col items-center gap-2 text-slate-300 h-96 w-full justify-center">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
+                  <span className="text-sm font-normal text-muted-foreground">
+                    Cargando registros...
+                  </span>
+                </div>
+              ) : filteredRecords.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
                   {filteredRecords.map((record) => (
                     <PhotoGridCard
