@@ -1,134 +1,162 @@
 export interface FilterOption {
-  label: string
-  value: string
+  label: string;
+  value: string;
 }
 
 export interface FilterConfig {
-  label: string
-  type: "multiple" | "single" | "search" | "multiselect"
-  options: FilterOption[]
-  key: string
+  label: string;
+  type: "multiple" | "single" | "search" | "multiselect";
+  options: FilterOption[];
+  key: string;
 }
 
-export type PhotoStatus = "completado" | "en_proceso" | "cerrado" | "entrada" | "salida"
-export type ListStatus = "completado" | "en_proceso" | "cerrado" | "entrada" | "salida"
+export type PhotoStatus =
+  | "completado"
+  | "en_proceso"
+  | "cerrado"
+  | "entrada"
+  | "salida";
+export type ListStatus =
+  | "completado"
+  | "en_proceso"
+  | "cerrado"
+  | "entrada"
+  | "salida";
 
 export interface PhotoRecord {
-  id: string
-  folio?: string
-  title: string
-  description: string
-  images: string[]
-  status: PhotoStatus
-  detailsList?: DetailsListItem[]
-  modalDetailsList?: DetailsListItem[]
-  rawData?: any
+  id: string;
+  folio?: string;
+  title: string;
+  description: string;
+  images: string[];
+  status: PhotoStatus;
+  detailsList?: DetailsListItem[];
+  modalDetailsList?: DetailsListItem[];
+  rawData?: any;
 }
 
 export interface ListRecord {
-  id: string
-  folio?: string
-  title: string
-  description: string
-  images: string[]
-  status: PhotoStatus
-  detailsList?: DetailsListItem[]
-  modalDetailsList?: DetailsListItem[]
-  rawData?: any
+  id: string;
+  folio?: string;
+  title: string;
+  description: string;
+  images: string[];
+  status: PhotoStatus;
+  detailsList?: DetailsListItem[];
+  modalDetailsList?: DetailsListItem[];
+  rawData?: any;
 }
 
 export interface CardConfiguration {
-  tagPosition?: "sup-izq" | "sup-der" | "inf-izq" | "inf-der"
-  folioTag?: boolean
+  tagPosition?: "sup-izq" | "sup-der" | "inf-izq" | "inf-der";
+  folioTag?: boolean;
 }
 
 export interface DetailsListItem {
-  label?: string
-  icon: React.ReactNode
-  value: string
+  label?: string;
+  icon: React.ReactNode;
+  value: string;
 }
 
 export interface PhotoCardProps {
-  titleCard?: string
-  descriptionCard?: string
-  record: PhotoRecord | ListRecord
-  cardConfig?: CardConfiguration
-  onClick?: (record: any) => void
-  children?: React.ReactNode | ((record: any) => React.ReactNode)
-  isSelected?: boolean
-  onSelect?: (record: any) => void
-  isSelectionMode?: boolean
+  titleCard?: string;
+  descriptionCard?: string;
+  record: PhotoRecord | ListRecord;
+  cardConfig?: CardConfiguration;
+  onClick?: (record: any) => void;
+  children?: React.ReactNode | ((record: any) => React.ReactNode);
+  isSelected?: boolean;
+  onSelect?: (record: any) => void;
+  isSelectionMode?: boolean;
 }
 
 export interface ListCardProps {
-  titleCard?: string
-  descriptionCard?: string
-  record: PhotoRecord | ListRecord
-  cardConfig?: CardConfiguration
-  onClick?: (record: any) => void
-  children?: React.ReactNode | ((record: any) => React.ReactNode)
-  isSelected?: boolean
-  onSelect?: (record: any) => void
-  isSelectionMode?: boolean
+  titleCard?: string;
+  descriptionCard?: string;
+  record: PhotoRecord | ListRecord;
+  cardConfig?: CardConfiguration;
+  onClick?: (record: any) => void;
+  children?: React.ReactNode | ((record: any) => React.ReactNode);
+  isSelected?: boolean;
+  onSelect?: (record: any) => void;
+  isSelectionMode?: boolean;
 }
 
 export interface PhotoListViewProps {
-  records: PhotoRecord[]
-  onRecordClick?: (record: PhotoRecord) => void
-  children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
-  filtersConfig: FilterConfig[]
-  onSelectionChange?: (selectedItems: { record_id: string; record_status?: string }[]) => void
-  renderCustomActions?: (selectedItems: { record_id: string; record_status?: string }[]) => React.ReactNode
+  isLoading?: boolean;
+  records: PhotoRecord[];
+  onRecordClick?: (record: PhotoRecord) => void;
+  children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode);
+  filtersConfig: FilterConfig[];
+  onSelectionChange?: (
+    selectedItems: { record_id: string; record_status?: string }[],
+  ) => void;
+  renderCustomActions?: (
+    selectedItems: { record_id: string; record_status?: string }[],
+  ) => React.ReactNode;
 }
 
 export interface PhotoGridViewProps {
-  records: PhotoRecord[]
-  onRecordClick?: (record: PhotoRecord) => void
-  children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
-  filtersConfig: FilterConfig[]
-  onSelectionChange?: (selectedItems: { record_id: string; record_status?: string }[]) => void
-  renderCustomActions?: (selectedItems: { record_id: string; record_status?: string }[]) => React.ReactNode
+  isLoading?: boolean;
+  records: PhotoRecord[];
+  onRecordClick?: (record: PhotoRecord) => void;
+  children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode);
+  filtersConfig: FilterConfig[];
+  onSelectionChange?: (
+    selectedItems: { record_id: string; record_status?: string }[],
+  ) => void;
+  renderCustomActions?: (
+    selectedItems: { record_id: string; record_status?: string }[],
+  ) => React.ReactNode;
 }
 
 export interface FilterState {
-  dynamic: Record<string, string | string[]>
+  dynamic: Record<string, string | string[]>;
 }
 
 export interface FiltersPanelProps {
-  filters: FilterState
-  onFiltersChange: (filters: FilterState) => void
-  filtersConfig?: FilterConfig[]
+  filters: FilterState;
+  onFiltersChange: (filters: FilterState) => void;
+  filtersConfig?: FilterConfig[];
 }
 
 export interface Visitor {
-  id: string
-  code: string
-  name: string
-  profile: string
-  status: 'entrada' | 'salida'
-  datetime: string
-  visitTo: string
-  visitToRole?: string
-  visitToDepartment?: string
-  company: string
-  photo: string
-  idPhoto?: string
-  location: string
-  caseta?: string
-  passId?: string
+  id: string;
+  code: string;
+  name: string;
+  profile: string;
+  status: "entrada" | "salida";
+  datetime: string;
+  visitTo: string;
+  visitToRole?: string;
+  visitToDepartment?: string;
+  company: string;
+  photo: string;
+  idPhoto?: string;
+  location: string;
+  caseta?: string;
+  passId?: string;
   // Additional details for modal
-  document?: string
-  phone?: string
-  email?: string
-  vehicle?: string
-  plates?: string
-  authorizedBy?: string
-  badge?: string
+  document?: string;
+  phone?: string;
+  email?: string;
+  vehicle?: string;
+  plates?: string;
+  authorizedBy?: string;
+  badge?: string;
 }
 
 export interface Action {
-  label: string
-  icon?: React.ReactNode
-  onClick: (selectedItems: { record_id: string; record_status?: string }[]) => void
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+  label: string;
+  icon?: React.ReactNode;
+  onClick: (
+    selectedItems: { record_id: string; record_status?: string }[],
+  ) => void;
+  variant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
 }

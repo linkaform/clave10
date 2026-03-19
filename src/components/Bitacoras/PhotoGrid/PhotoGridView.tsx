@@ -1,17 +1,18 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo } from "react"
-import { PhotoGridCard } from "./PhotoGridCard"
-import { FiltersPanel } from "./PhotoGridFiltersPanel"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Button } from "@/components/ui/button"
-import { Filter, ImageIcon, X } from "lucide-react"
-import { PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras"
-import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView"
-import { PhotoGridCardModal } from "./PhotoGridCardModal"
+import { useState, useEffect, useMemo } from "react";
+import { PhotoGridCard } from "./PhotoGridCard";
+import { FiltersPanel } from "./PhotoGridFiltersPanel";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Filter, ImageIcon, X } from "lucide-react";
+import { PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
+import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView";
+import { PhotoGridCardModal } from "./PhotoGridCardModal";
 
 export function PhotoGridView({
+  isLoading,
   records,
   onRecordClick,
   children,
@@ -20,26 +21,38 @@ export function PhotoGridView({
   renderCustomActions,
   globalSearch = [],
 }: PhotoGridViewProps & { globalSearch?: string[] }) {
-  
-  const { filters, setFilters, filteredRecords: baseFilteredRecords, activeFiltersCount } = usePhotoGridView(records);
-  const [selectedItems, setSelectedItems] = useState<{ record_id: string; record_status: string }[]>([]);
+  const {
+    filters,
+    setFilters,
+    filteredRecords: baseFilteredRecords,
+    activeFiltersCount,
+  } = usePhotoGridView(records);
+  const [selectedItems, setSelectedItems] = useState<
+    { record_id: string; record_status: string }[]
+  >([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<PhotoRecord | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<PhotoRecord | null>(
+    null,
+  );
 
   const filteredRecords = useMemo(() => {
     if (!globalSearch || globalSearch.length === 0) return baseFilteredRecords;
-    
-    return baseFilteredRecords.filter(record => {
+
+    return baseFilteredRecords.filter((record) => {
       // Lógica OR: Si el registro coincide con AL MENOS UNO de los tags
-      return globalSearch.some(tag => {
+      return globalSearch.some((tag) => {
         const tagLower = tag.toLowerCase();
         return (
           record.title?.toLowerCase().includes(tagLower) ||
           record.description?.toLowerCase().includes(tagLower) ||
           record.folio?.toLowerCase().includes(tagLower) ||
           record.status?.toLowerCase().includes(tagLower) ||
-          record.detailsList?.some(detail => detail.value.toLowerCase().includes(tagLower)) ||
-          record.modalDetailsList?.some(detail => detail.value.toLowerCase().includes(tagLower))
+          record.detailsList?.some((detail) =>
+            detail.value.toLowerCase().includes(tagLower),
+          ) ||
+          record.modalDetailsList?.some((detail) =>
+            detail.value.toLowerCase().includes(tagLower),
+          )
         );
       });
     });
@@ -53,10 +66,10 @@ export function PhotoGridView({
   }, [selectedItems, onSelectionChange]);
 
   const handleSelect = (record: PhotoRecord) => {
-    setSelectedItems(prev => 
-      prev.some(item => item?.record_id === record?.id)
-        ? prev.filter(item => item?.record_id !== record?.id)
-        : [...prev, { record_id: record?.id, record_status: record?.status }]
+    setSelectedItems((prev) =>
+      prev.some((item) => item?.record_id === record?.id)
+        ? prev.filter((item) => item?.record_id !== record?.id)
+        : [...prev, { record_id: record?.id, record_status: record?.status }],
     );
   };
 
@@ -68,6 +81,15 @@ export function PhotoGridView({
 
   const clearSelection = () => setSelectedItems([]);
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center gap-2 text-slate-300 h-96 w-full justify-center">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
+        <span className="text-xs font-normal">Cargando registros...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full w-full bg-background flex-col">
       {selectedItems.length > 0 && (
@@ -77,25 +99,27 @@ export function PhotoGridView({
               <X className="h-4 w-4" />
             </Button>
             <span className="text-sm font-medium">
-              {selectedItems.length} {selectedItems.length === 1 ? "seleccionado" : "seleccionados"}
+              {selectedItems.length}{" "}
+              {selectedItems.length === 1 ? "seleccionado" : "seleccionados"}
             </span>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="ml-2 h-8"
               onClick={() => {
                 if (selectedItems.length === filteredRecords.length) {
                   clearSelection();
                 } else {
-                  const allSelected = filteredRecords.map(r => ({
+                  const allSelected = filteredRecords.map((r) => ({
                     record_id: r.id,
-                    record_status: r.status
+                    record_status: r.status,
                   }));
                   setSelectedItems(allSelected);
                 }
-              }}
-            >
-              {selectedItems.length === filteredRecords.length ? "Deseleccionar todos" : "Seleccionar todos"}
+              }}>
+              {selectedItems.length === filteredRecords.length
+                ? "Deseleccionar todos"
+                : "Seleccionar todos"}
             </Button>
           </div>
           <div className="flex items-center gap-2">
@@ -153,9 +177,10 @@ export function PhotoGridView({
                         folioTag: true,
                       }}
                       onClick={handleCardClick}
-                      isSelected={selectedItems.some(item => item.record_id === record.id)}
-                      onSelect={handleSelect}
-                    >
+                      isSelected={selectedItems.some(
+                        (item) => item.record_id === record.id,
+                      )}
+                      onSelect={handleSelect}>
                       {children}
                     </PhotoGridCard>
                   ))}
@@ -163,7 +188,9 @@ export function PhotoGridView({
               ) : (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
                   <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium text-foreground">No hay registros</h3>
+                  <h3 className="text-lg font-medium text-foreground">
+                    No hay registros
+                  </h3>
                   <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                     {activeFiltersCount > 0
                       ? "No se encontraron registros con los filtros seleccionados"
@@ -175,11 +202,11 @@ export function PhotoGridView({
           </div>
         </main>
       </div>
-      <PhotoGridCardModal 
+      <PhotoGridCardModal
         record={selectedRecord}
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
       />
     </div>
-  )
+  );
 }
