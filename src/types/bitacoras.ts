@@ -26,6 +26,7 @@ export type ListStatus =
 export interface PhotoRecord {
   id: string;
   folio?: string;
+  visit_type?: string;
   title: string;
   description: string;
   images: string[];
@@ -38,6 +39,7 @@ export interface PhotoRecord {
 export interface ListRecord {
   id: string;
   folio?: string;
+  visit_type?: string;
   title: string;
   description: string;
   images: string[];
@@ -56,9 +58,11 @@ export interface DetailsListItem {
   label?: string;
   icon: React.ReactNode;
   value: string;
+  customClass?: string;
 }
 
 export interface PhotoCardProps {
+  headerBadge?: string;
   titleCard?: string;
   descriptionCard?: string;
   record: PhotoRecord | ListRecord;
