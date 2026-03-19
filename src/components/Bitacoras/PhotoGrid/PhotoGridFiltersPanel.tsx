@@ -1,104 +1,131 @@
-"use client"
+"use client";
 
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Button } from "@/components/ui/button"
-import { X } from "lucide-react"
-import { FiltersPanelProps } from "@/types/bitacoras"
-import { useFiltersPanel } from "@/hooks/bitacora/useFiltersPanel"
-import Multiselect from 'multiselect-react-dropdown'
+import { Button } from "@/components/ui/button";
+import { FiltersPanelProps } from "@/types/bitacoras";
+import { useFiltersPanel } from "@/hooks/bitacora/useFiltersPanel";
+import { cn } from "@/lib/utils";
+import { CustomMultiSelect } from "../CustomMultiSelect";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export function FiltersPanel({
   filters,
   onFiltersChange,
-  filtersConfig = []
+  filtersConfig = [],
 }: FiltersPanelProps) {
-
-  const { handleDynamicChange, clearFilters, hasActiveFilters } = useFiltersPanel(filters, onFiltersChange);
+  const { handleDynamicChange, clearFilters, hasActiveFilters } =
+    useFiltersPanel(filters, onFiltersChange);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Filtros</h2>
+    <div className="flex flex-col gap-4 w-full relative">
+      <div className="flex items-center justify-between pb-2 border-b border-border/50">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-bold text-foreground">Filtros</h2>
+          {hasActiveFilters && (
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2A7EFF] text-[10px] font-bold text-white">
+              {
+                Object.values(filters.dynamic || {})
+                  .flat()
+                  .filter(Boolean).length
+              }
+            </span>
+          )}
+        </div>
         {hasActiveFilters && (
           <Button
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-3 w-3 mr-1" />
+            className="h-8 px-2 text-sm text-[#2A7EFF] hover:text-[#2A7EFF]/80 hover:bg-transparent font-medium">
             Limpiar
           </Button>
         )}
       </div>
 
-      {filtersConfig.map((config, index) => {
-        if (config.type === "multiselect") {
-          const currentValues = (filters.dynamic[config.key] as string[]) || []
-          // Convert current simple strings to the format expected by multiselect-react-dropdown
-          const selectedItems = currentValues.map(v => ({ name: v, value: v }))
+      <Accordion
+        type="multiple"
+        className="w-full space-y-2">
+        {filtersConfig.map((config) => {
+          const currentValue = (filters.dynamic || {})[config.key];
+          const activeCount = Array.isArray(currentValue)
+            ? currentValue.length
+            : currentValue
+              ? 1
+              : 0;
 
           return (
-            <div key={config.key} className="flex flex-col gap-3">
-              {index > 0 && <Separator />}
-              <h3 className="text-sm font-medium text-foreground">{config.label}</h3>
-              <Multiselect
-                options={config.options.map(opt => ({ name: opt.label, value: opt.value }))}
-                selectedValues={selectedItems}
-                onSelect={(selectedList: any[]) => 
-                  handleDynamicChange(config.key, selectedList.map(item => item.value), true, "multiselect")
-                }
-                onRemove={(selectedList: any[]) => 
-                  handleDynamicChange(config.key, selectedList.map(item => item.value), true, "multiselect")
-                }
-                displayValue="name"
-                placeholder={`Seleccionar ${config.label.toLowerCase()}`}
-                style={{
-                  chips: { background: "#2563eb", borderRadius: "8px", fontSize: "11px" },
-                  searchBox: { borderRadius: "8px", border: "1px solid #e5e7eb", background: "transparent", padding: "4px 8px" },
-                  optionContainer: { borderRadius: "8px", marginTop: "4px" },
-                  inputField: { fontSize: "12px" }
-                }}
-              />
-            </div>
-          )
-        }
-
-        return (
-          <div key={config.key} className="flex flex-col gap-3">
-            {index > 0 && <Separator />}
-            <h3 className="text-sm font-medium text-foreground">{config.label}</h3>
-            <div className="flex flex-col gap-2.5">
-              {config.options.map((option) => {
-                const currentValue = (filters.dynamic || {})[config.key]
-                const isChecked = Array.isArray(currentValue)
-                  ? currentValue.includes(option.value)
-                  : currentValue === option.value
-
-                return (
-                  <div key={option.value} className="flex items-center gap-2.5">
-                    <Checkbox
-                      id={`${config.key}-${option.value}`}
-                      checked={isChecked}
-                      onCheckedChange={(checked) =>
-                        handleDynamicChange(config.key, option.value, checked as boolean, config.type)
-                      }
+            <AccordionItem
+              key={config.key}
+              value={config.key}
+              className="border-none">
+              <AccordionTrigger className="hover:no-underline py-3 px-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-700">
+                    {config.label}
+                  </span>
+                  {activeCount > 0 && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2A7EFF] text-[10px] font-bold text-white">
+                      {activeCount}
+                    </span>
+                  )}
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-4">
+                {config.type === "multiselect" ? (
+                  <div className="px-1">
+                    <CustomMultiSelect
+                      options={config.options}
+                      value={(currentValue as string[]) || []}
+                      onChange={(newValues) => {
+                        handleDynamicChange(
+                          config.key,
+                          newValues,
+                          true,
+                          config.type,
+                        );
+                      }}
+                      placeholder={`Buscar ${config.label.toLowerCase()}...`}
                     />
-                    <Label
-                      htmlFor={`${config.key}-${option.value}`}
-                      className="text-sm font-normal text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                    >
-                      {option.label}
-                    </Label>
                   </div>
-                )
-              })}
-            </div>
-          </div>
-        )
-      })}
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {config.options.map((option) => {
+                      const isChecked = Array.isArray(currentValue)
+                        ? currentValue.includes(option.value)
+                        : currentValue === option.value;
+
+                      return (
+                        <button
+                          key={option.value}
+                          onClick={() =>
+                            handleDynamicChange(
+                              config.key,
+                              option.value,
+                              !isChecked,
+                              config.type,
+                            )
+                          }
+                          className={cn(
+                            "group flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border",
+                            isChecked
+                              ? "bg-[#2A7EFF] border-[#2A7EFF] text-white shadow-sm"
+                              : "bg-slate-50 border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                          )}>
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
     </div>
-  )
+  );
 }

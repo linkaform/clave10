@@ -113,13 +113,15 @@ export function PhotoGridView({
         selectedItems={selectedItems}
       />
       <div className="flex flex-1 min-h-0">
-        <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-border bg-card">
-          <ScrollArea className="flex-1 p-5">
-            <FiltersPanel
-              filters={filters}
-              onFiltersChange={setFilters}
-              filtersConfig={filtersConfig}
-            />
+        <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-border bg-card">
+          <ScrollArea className="flex-1">
+            <div className="p-5">
+              <FiltersPanel
+                filters={filters}
+                onFiltersChange={setFilters}
+                filtersConfig={filtersConfig}
+              />
+            </div>
           </ScrollArea>
         </aside>
 
