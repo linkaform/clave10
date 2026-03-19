@@ -13,7 +13,7 @@ import {
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { CalendarDays, DoorOpen, LayoutList, LogOut, Search, Sheet } from "lucide-react";
+import { CalendarDays, LayoutList, LogOut, Search, Sheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Table,
@@ -37,13 +37,16 @@ import { forceQuitAllPersons } from "@/lib/endpoints";
 import { toast } from "sonner";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
+import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { LayoutGrid } from "lucide-react";
-import { Action, PhotoRecord } from "@/types/bitacoras";
-import { formatPhotoRecord } from "@/utils/formatRecords";
+import { ListRecord, PhotoRecord } from "@/types/bitacoras";
+import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { generateFiltersConfig } from "@/config/filters/bitacora";
 import { useGetBitacoraFilters } from "@/hooks/bitacora/useGetBitacoraFilters";
 import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
 import PhotoSelectedActions from "@/components/Bitacoras/PhotoGrid/PhotoGridSelectedActions";
+import OutSelectedItemsButton from "@/components/Bitacoras/OutSelectedItemsButton";
+import { TagSearchInput } from "@/components/tag-search-input";
 
 interface ListProps {
 	data: Bitacora_record[] | undefined;
@@ -69,17 +72,27 @@ interface ListProps {
 }
 
 
-const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter,
-	setDateFilter, Filter, isPersonasDentro, ubicacionSeleccionada, printPase, setPaseIdSeleccionado, personasDentro, refreshData, total, pagination, setPagination, viewMode = "photos", setViewMode }) => {
-	
-	const photoActions: Action[] = [
-		{
-			label: "Dar salida",
-			icon: <DoorOpen className="h-4 w-4" />,
-			onClick: (ids) => console.log("Sacando a:", ids),
-			variant: "outline"
-		}
-	];
+const BitacorasTable: React.FC<ListProps> = ({ 
+	data, 
+	isLoading, 
+	setDate1, 
+	setDate2, 
+	date1, 
+	date2, 
+	dateFilter,
+	setDateFilter, 
+	Filter, 
+	isPersonasDentro, 
+	ubicacionSeleccionada, 
+	printPase, 
+	setPaseIdSeleccionado, 
+	personasDentro, 
+	refreshData, 
+	total, 
+	pagination, 
+	setPagination, 
+	viewMode = "photos", 
+	setViewMode }) => {
 
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -125,7 +138,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 
 
 
-	const [globalFilter, setGlobalFilter] = React.useState("");
+	const [searchTags, setSearchTags] = React.useState<string[]>([]);
 	const columns = useMemo(() => {
 		if (isLoading) return [];
 		return getBitacorasColumns(handleRegresarGafete, handleAgregarBadge, handleSalida, printPaseFn);
@@ -137,7 +150,7 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 		columns: columns,
 		onSortingChange: setSorting,
 		onColumnFiltersChange: setColumnFilters,
-		onGlobalFilterChange: setGlobalFilter,
+		onGlobalFilterChange: setSearchTags,
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
 		getSortedRowModel: getSortedRowModel(),
@@ -145,7 +158,18 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 		onColumnVisibilityChange: setColumnVisibility,
 		onRowSelectionChange: setRowSelection,
 		onPaginationChange: setPagination,
-		globalFilterFn: 'includesString',
+		globalFilterFn: (row, columnId, filterValues: string[]) => {
+			if (!filterValues || filterValues.length === 0) return true;
+			const searchTags = filterValues.map(v => v.toLowerCase());
+			
+			// Obtenemos todos los valores de la fila de forma dinámica
+			const allValues = row.getAllCells()
+				.map(cell => String(cell.getValue() || '').toLowerCase())
+				.join(" ");
+
+			// Lógica OR: Si el registro coincide con AL MENOS UNO de los tags
+			return searchTags.some(tag => allValues.includes(tag));
+		},
 
 		manualPagination: true,
 		rowCount: total || 0,
@@ -155,9 +179,13 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 			columnVisibility,
 			rowSelection,
 			pagination,
-			globalFilter,
+			globalFilter: searchTags,
 		}
 	});
+
+	const photoListRecords: ListRecord[] = useMemo(() => {
+		return memoizedData.map((item) => formatListRecord(item, "bitacora"));
+	}, [memoizedData]);
 
 	const photoRecords: PhotoRecord[] = useMemo(() => {
 		return memoizedData.map((item) => formatPhotoRecord(item, "bitacora"));
@@ -185,14 +213,12 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 						<TabsTrigger value="Equipos">Equipos</TabsTrigger>
 						{/* <TabsTrigger value="Locker">Locker</TabsTrigger> */}
 					</TabsList>
-
-					<div className="flex w-full max-w-sm items-center space-x-2">
-						<input
-							type="text"
-							placeholder="Buscar registros..."
-							value={globalFilter || ''}
-							onChange={(e) => setGlobalFilter(e.target.value)}
-							className=" border border-gray-300 rounded-md p-2 placeholder-gray-600 w-full"
+					<div className="flex bg-slate-100 p-1 rounded-lg items-center space-x-2">
+						<TagSearchInput 
+							tags={searchTags} 
+							onTagsChange={setSearchTags}
+							placeholder="Presiona Enter para buscar por tags..."
+							className="w-full"
 						/>
 						<Search />
 					</div>
@@ -395,14 +421,17 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 						</Table>
 					</div>
 				</>
-			) : (
+			) : viewMode === "photos" ? (
 				<div className="mt-4">
 					<PhotoGridView
 						filtersConfig={bitacoraFiltersConfig}
 						records={photoRecords}
+						globalSearch={searchTags}
 						onRecordClick={() => {}}
 						renderCustomActions={(ids) => (
-							<PhotoSelectedActions selectedIds={ids} actions={photoActions} />
+							<PhotoSelectedActions selectedItems={ids}>
+								<OutSelectedItemsButton selectedItems={ids} />
+							</PhotoSelectedActions>
 						)}
 					>
 						{(record: PhotoRecord) => {
@@ -417,6 +446,32 @@ const BitacorasTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDat
 							);
 						}}
 					</PhotoGridView>
+				</div>
+			) : (
+				<div className="mt-4">
+					<PhotoListView
+						filtersConfig={bitacoraFiltersConfig}
+						records={photoListRecords}
+						globalSearch={searchTags}
+						onRecordClick={() => {}}
+						renderCustomActions={(ids) => (
+							<PhotoSelectedActions selectedItems={ids}>
+								<OutSelectedItemsButton selectedItems={ids} />
+							</PhotoSelectedActions>
+						)}
+					>
+						{(record: PhotoRecord) => {
+							const bitacora = memoizedData.find(b => b._id === record.id);
+							if (!bitacora) return null;
+							return (
+								<InAndOutButtons
+									bitacora={bitacora}
+									handleSalida={handleSalida}
+									printPaseFn={printPaseFn}
+								/>
+							);
+						}}
+					</PhotoListView>
 				</div>
 			)}
 			<DataTablePagination table={table} total={total} />

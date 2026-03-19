@@ -301,7 +301,6 @@ const PasesEntradaTable:React.FC<ListProps> = ({ isLoading, pases, onSearch})=>{
             <SearchPases onSearch={onSearch} />
           </div>
 
-          {/* Botones a la derecha */}
           <div className="flex items-center justify-end space-x-4">
 
           <Link href="/dashboard/pase-entrada">

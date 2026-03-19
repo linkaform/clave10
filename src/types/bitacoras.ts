@@ -11,8 +11,21 @@ export interface FilterConfig {
 }
 
 export type PhotoStatus = "completado" | "en_proceso" | "cerrado" | "entrada" | "salida"
+export type ListStatus = "completado" | "en_proceso" | "cerrado" | "entrada" | "salida"
 
 export interface PhotoRecord {
+  id: string
+  folio?: string
+  title: string
+  description: string
+  images: string[]
+  status: PhotoStatus
+  detailsList?: DetailsListItem[]
+  modalDetailsList?: DetailsListItem[]
+  rawData?: any
+}
+
+export interface ListRecord {
   id: string
   folio?: string
   title: string
@@ -38,13 +51,34 @@ export interface DetailsListItem {
 export interface PhotoCardProps {
   titleCard?: string
   descriptionCard?: string
-  record: PhotoRecord
-  cardConfig: CardConfiguration
-  onClick?: (record: PhotoRecord) => void
-  children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
+  record: PhotoRecord | ListRecord
+  cardConfig?: CardConfiguration
+  onClick?: (record: any) => void
+  children?: React.ReactNode | ((record: any) => React.ReactNode)
   isSelected?: boolean
-  onSelect?: (record: PhotoRecord) => void
+  onSelect?: (record: any) => void
   isSelectionMode?: boolean
+}
+
+export interface ListCardProps {
+  titleCard?: string
+  descriptionCard?: string
+  record: PhotoRecord | ListRecord
+  cardConfig?: CardConfiguration
+  onClick?: (record: any) => void
+  children?: React.ReactNode | ((record: any) => React.ReactNode)
+  isSelected?: boolean
+  onSelect?: (record: any) => void
+  isSelectionMode?: boolean
+}
+
+export interface PhotoListViewProps {
+  records: PhotoRecord[]
+  onRecordClick?: (record: PhotoRecord) => void
+  children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
+  filtersConfig: FilterConfig[]
+  onSelectionChange?: (selectedItems: { record_id: string; record_status?: string }[]) => void
+  renderCustomActions?: (selectedItems: { record_id: string; record_status?: string }[]) => React.ReactNode
 }
 
 export interface PhotoGridViewProps {
@@ -52,8 +86,8 @@ export interface PhotoGridViewProps {
   onRecordClick?: (record: PhotoRecord) => void
   children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode)
   filtersConfig: FilterConfig[]
-  onSelectionChange?: (selectedIds: { record_id: string; record_status: string }[]) => void
-  renderCustomActions?: (selectedIds: { record_id: string; record_status: string }[]) => React.ReactNode
+  onSelectionChange?: (selectedItems: { record_id: string; record_status?: string }[]) => void
+  renderCustomActions?: (selectedItems: { record_id: string; record_status?: string }[]) => React.ReactNode
 }
 
 export interface FilterState {
@@ -95,6 +129,6 @@ export interface Visitor {
 export interface Action {
   label: string
   icon?: React.ReactNode
-  onClick: (selectedIds: { record_id: string; record_status?: string }[]) => void
+  onClick: (selectedItems: { record_id: string; record_status?: string }[]) => void
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
 }

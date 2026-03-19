@@ -1,27 +1,15 @@
-import { Button } from '@/components/ui/button'
 import React from 'react'
-import { Action } from '@/types/bitacoras'
 
 interface PhotoSelectedActionsProps {
-  selectedIds: { record_id: string; record_status: string }[]
-  actions: Action[]
+  selectedItems: { record_id: string; record_status?: string }[]
+  children?: React.ReactNode | ((selectedItems: { record_id: string; record_status?: string }[]) => React.ReactNode)
 }
 
-const PhotoSelectedActions = ({ selectedIds, actions }: PhotoSelectedActionsProps) => {
+const PhotoSelectedActions = ({ selectedItems, children }: PhotoSelectedActionsProps) => {
   return (
-    <>
-      {actions.map((action, index) => (
-        <Button 
-          key={index}
-          variant={action.variant || "outline"} 
-          size="sm" 
-          onClick={() => action.onClick(selectedIds)}
-        >
-          {action.icon && <span className="mr-2">{action.icon}</span>}
-          {action.label}
-        </Button>
-      ))}
-    </>
+    <div className="flex items-center gap-2">
+      {typeof children === "function" ? children(selectedItems) : children}
+    </div>
   );
 }
 
