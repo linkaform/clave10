@@ -44,6 +44,7 @@ export interface ListRecord {
   description: string;
   images: string[];
   status: PhotoStatus;
+  badgesList?: BadgesListItem[];
   detailsList?: DetailsListItem[];
   modalDetailsList?: DetailsListItem[];
   rawData?: any;
@@ -54,10 +55,15 @@ export interface CardConfiguration {
   folioTag?: boolean;
 }
 
+export interface BadgesListItem {
+  label: string;
+  customClass?: string;
+}
+
 export interface DetailsListItem {
   label?: string;
   icon: React.ReactNode;
-  value: string;
+  value: string | string[];
   customClass?: string;
 }
 
@@ -65,7 +71,7 @@ export interface PhotoCardProps {
   headerBadge?: string;
   titleCard?: string;
   descriptionCard?: string;
-  record: PhotoRecord | ListRecord;
+  record: PhotoRecord;
   cardConfig?: CardConfiguration;
   onClick?: (record: any) => void;
   children?: React.ReactNode | ((record: any) => React.ReactNode);
@@ -77,7 +83,7 @@ export interface PhotoCardProps {
 export interface ListCardProps {
   titleCard?: string;
   descriptionCard?: string;
-  record: PhotoRecord | ListRecord;
+  record: ListRecord;
   cardConfig?: CardConfiguration;
   onClick?: (record: any) => void;
   children?: React.ReactNode | ((record: any) => React.ReactNode);

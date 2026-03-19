@@ -48,12 +48,22 @@ export function PhotoGridView({
           record.description?.toLowerCase().includes(tagLower) ||
           record.folio?.toLowerCase().includes(tagLower) ||
           record.status?.toLowerCase().includes(tagLower) ||
-          record.detailsList?.some((detail) =>
-            detail.value.toLowerCase().includes(tagLower),
-          ) ||
-          record.modalDetailsList?.some((detail) =>
-            detail.value.toLowerCase().includes(tagLower),
-          )
+          record.detailsList?.some((detail) => {
+            if (Array.isArray(detail.value)) {
+              return detail.value.some((val) =>
+                val?.toString().toLowerCase().includes(tagLower),
+              );
+            }
+            return detail.value?.toString().toLowerCase().includes(tagLower);
+          }) ||
+          record.modalDetailsList?.some((detail) => {
+            if (Array.isArray(detail.value)) {
+              return detail.value.some((val) =>
+                val?.toString().toLowerCase().includes(tagLower),
+              );
+            }
+            return detail.value?.toString().toLowerCase().includes(tagLower);
+          })
         );
       });
     });
