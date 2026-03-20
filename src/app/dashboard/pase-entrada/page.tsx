@@ -17,7 +17,6 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
 import { List, UserRound, CalendarDays, Layers, MessageSquare } from "lucide-react";
@@ -36,7 +35,7 @@ import ComentariosList from "@/components/comentarios-list";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useAssetsByLocations } from "@/hooks/assetsQueries";
 import DateTimePicker from "@/components/dateTimerPicker";
-
+import { Input } from "@/components/ui/input";
 
  const formSchema = z
 	.object({
@@ -61,7 +60,7 @@ import DateTimePicker from "@/components/dateTimerPicker";
 	descripcion: z.string().optional(),
 	perfil_pase: z.string().min(1),
 	status_pase:z.string().min(1),
-	visita_a: z.string().nullable().optional(),
+	visita_a: z.string().optional(),
 	custom: z.boolean().optional(),
 	link: z.object({
 		link: z.string().optional(), 
@@ -152,12 +151,12 @@ import DateTimePicker from "@/components/dateTimerPicker";
 	console.log("ubicacionesDefaultFormatted", ubicacionSeleccionada)
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>();
 	const pickerRef = useRef<any>(null);
-	const { visitas, perfiles, areas, isLoading:assetsLoading } = useAssetsByLocations(
+	const { perfiles, areas, isLoading:assetsLoading } = useAssetsByLocations(
 		ubicacionesSeleccionadas?.length 
 		  ? ubicacionesSeleccionadas 
 		  : ubicacionesDefaultFormatted ?? []
 	  );
-	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
+	const [visitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
 
 	useEffect(()=>{
 		if(location)
@@ -478,31 +477,26 @@ return (
 										)}
 									/>
 								)}
-
 								<FormField
-									control={form.control}
-									name="visita_a"
-									render={() => (
-										<FormItem>
-											<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-												<span className="text-red-400">*</span> Visita a
-											</FormLabel>
-											<Multiselect
-												options={visitas ?? []}
-												selectedValues={visitaASeleccionadas}
-												onSelect={setVisitaASeleccionadas}
-												onRemove={setVisitaASeleccionadas}
-												displayValue="name"
-												style={{
-													chips: { background: "#2563eb", borderRadius: "20px" },
-													searchBox: { borderRadius: "12px", border: "1px solid #e5e7eb", background: "#f9fafb" },
-												}}
-											/>
-											<FormMessage />
-										</FormItem>
-									)}
+								control={form.control}
+								name="visita_a"
+								render={({ field }) => (
+									<FormItem>
+									<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+										<span className="text-red-400">*</span> Visita a
+									</FormLabel>
+									<FormControl>
+										<Input
+										{...field}
+										value={field.value ?? ""}
+										placeholder="Nombre de la persona a visitar"
+										className="rounded-xl border-gray-200 bg-gray-50 text-sm"
+										/>
+									</FormControl>
+									<FormMessage />
+									</FormItem>
+								)}
 								/>
-
 								{selected && (
 									<Image
 										className="dark:invert h-14 w-14 object-cover rounded-full bg-gray-200 border-2 border-blue-100"

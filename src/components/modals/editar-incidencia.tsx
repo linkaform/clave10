@@ -23,7 +23,7 @@ import { Textarea } from "../ui/textarea";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 // import { Select ,SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import LoadImage, { Imagen } from "../upload-Image";
-import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
+// import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { format } from 'date-fns';
 import DateTime from "../dateTime";
 import LoadFile from "../upload-file";
@@ -151,7 +151,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 	const [personasInvolucradas, setPersonasInvolucradas] = useState<PersonasInvolucradas[]>(data.personas_involucradas_incidencia)
 	const [accionesTomadas, setAccionesTomadas] = useState<AccionesTomadas[]>(data.acciones_tomadas_incidencia)
 	const [depositos, setDepositos] = useState<Depositos[]>([])
-	const { data:dataAreaEmpleado} = useCatalogoAreaEmpleado(modalEditarAbierto, location, "Incidencias" );
+	// const { data:dataAreaEmpleado} = useCatalogoAreaEmpleado(modalEditarAbierto, location, "Incidencias" );
 	const { editarIncidenciaMutation} = useInciencias("", "",[], "", "", "");
 	const [openModal, setOpenModal] = useState(false)
 
@@ -560,109 +560,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 								<Form {...form} >
 									<form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-									{/* <FormField
-										control={form.control}
-										name="categoria"
-										render={({ field }:any) => (
-											<FormItem className="w-full">
-												<FormLabel>Categoría: * </FormLabel>
-												 <FormControl>
-												 <Select
-												 	placeholder={"Categoría"}
-													inputId="select-categorias"
-  													name="categoria"
-													aria-labelledby="aria-label"
-													value ={categoria ? formatForMultiselect([categoria]):[]}
-													options={catCategorias && catCategorias.length>0 ? formatToValueLabel( catCategorias):[]} 
-													onChange={(selectedOption) => {
-														field.onChange(selectedOption?.value ??"");
-														setSearch("cat")
-														setCategoria(selectedOption?.value ??"")
-														setSubCategoria("")
-													}}
-													isClearable
-													styles={{
-													  menuPortal: (base) => ({...base, zIndex: 9999, pointerEvents: "auto" }),
-													  menu: (base) => ({...base, overflowY: "auto"}),
-													}}
-												/>
-												</FormControl>
-											
-												<FormMessage />
-											</FormItem>
-										)}
-									/>	 */}
-										<>
-											{/* <FormField
-												control={form.control}
-												name="sub_categoria"
-												render={({ field }:any) => (
-													<FormItem className="w-full">
-														<FormLabel>Sub categoria: *</FormLabel>
-														<FormControl>
-
-														<Select
-															placeholder={"Categoría"}
-															inputId="select-categorias"
-															name="sub_categoria"
-															aria-labelledby="aria-label"
-															value={formatForMultiselect([subCategoria])}
-															options={catSubCategorias && catSubCategorias.length>0 ? formatToValueLabel( catSubCategorias):[]} 
-															onChange={(selectedOption:any) => {
-																field.onChange(selectedOption ? selectedOption.value :""); 
-																setSubCategoria(selectedOption ? selectedOption.value :"");
-															}}
-															isClearable
-															styles={{
-																menuPortal: (base) => ({ ...base, zIndex: 9999 ,pointerEvents: "auto",}),
-																menu: (base) => ({...base, overflowY: "auto", }),
-															}}
-															isDisabled={catSubCategorias.length==0}
-														/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>	 */}
-										</>
-									{/* {catSubIncidences.length > 0 ? (
-										<>
-											<FormField
-											control={form.control}
-											name="incidente"
-											render={({field}:any) => (
-												<FormItem className="w-full">
-													<FormLabel>Incidente: *</FormLabel>
-													<FormControl>
-
-
-													<Select
-															placeholder={"incidente"}
-															inputId="select-incidente"
-															name="incidente"
-															aria-labelledby="aria-label"
-															value={formatForMultiselect([selectedIncidencia])}
-															options={catSubIncidences && catSubIncidences.length>0 ? formatToValueLabel( catSubIncidences):[]} 
-															onChange={(selectedOption:any) => {
-																field.onChange(selectedOption ? selectedOption.value :""); 
-																setSearch("subCat")
-																setSelectedIncidencia(selectedOption ? selectedOption.value :"")
-															}}
-															isClearable
-															styles={{
-																menuPortal: (base) => ({ ...base, zIndex: 9999 ,pointerEvents: "auto",}),
-																menu: (base) => ({...base, overflowY: "auto", }),
-															}}
-															isDisabled={catSubIncidences.length==0}
-														/>
-													</FormControl>
-													<FormMessage />
-												</FormItem>
-											)}
-											/>	
-										</>
-									):null} */}
-
+								
 										<FormField
 										control={form.control}
 										name="fecha_hora_incidencia"
@@ -679,26 +577,14 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 										)}
 										/>
 
-										<FormField
+										{/* <FormField
 											control={form.control}
 											name="reporta_incidencia"
 											render={({ field }:any) => (
 												<FormItem className="w-full">
 													<FormLabel>Reporta:</FormLabel>
 													<FormControl>
-														{/* <Select
-															aria-labelledby="aria-label"
-															inputId="select-categorias"
-  															name="reporta_incidencia"
-															options={formatValueLabel(dataAreaEmpleado)}
-															onChange={(value:any) =>{
-																field.onChange(value.value);
-																setSearch("subCat")
-																setSelectedIncidencia(value.value)
-															}}
-															value={formatValueLabel(catSubIncidences).find(opt => opt.value === selectedIncidencia) || null} 
-														/> */}
-
+														
 															<Select
 																placeholder={"Reporta"}
 																inputId="select-categorias"
@@ -716,32 +602,12 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 																}}
 																// isDisabled={dataAreaEmpleado.length==0}
 															/>
-														{/* <Select {...field} className="input"
-															onValueChange={(value:string) => {
-															field.onChange(value); 
-														}}
-														value={field.value} 
-													>
-														<SelectTrigger className="w-full">
-														{loadingAreaEmpleado?(<>
-																<SelectValue placeholder="Cargando opciones..." />
-															</>):(<>
-																<SelectValue placeholder="Selecciona una opcion" />
-															</>)}
-														</SelectTrigger>
-														<SelectContent>
-														{dataAreaEmpleado?.map((vehiculo:string, index:number) => (
-															<SelectItem key={index} value={vehiculo}>
-																{vehiculo}
-															</SelectItem>
-														))}
-														</SelectContent>
-													</Select> */}
+													
 													</FormControl>
 													<FormMessage />
 												</FormItem>
 											)}
-										/>	
+										/>	 */}
 										<FormField
 											control={form.control}
 											name="ubicacion_incidencia"

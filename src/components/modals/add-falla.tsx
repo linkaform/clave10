@@ -25,10 +25,10 @@ import { Textarea } from "../ui/textarea";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import LoadImage, { Imagen } from "../upload-Image";
-import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
+// import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { format } from 'date-fns';
 
-import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
+// import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
 import { useCatalogoFallas } from "@/hooks/Fallas/useCatalogoFallas";
 import DateTime from "../dateTime";
 import LoadFile from "../upload-file";
@@ -73,7 +73,7 @@ const formSchema = z.object({
 	).optional(),
 	falla_fecha_hora: z.string().optional(), 
 	falla_objeto_afectado: z.string().optional(),
-	falla_reporta_nombre: z.string().min(1, { message: "El nombre del reportante es obligatorio" }), 
+	falla_reporta_nombre: z.string().optional(), 
 	falla_responsable_solucionar_nombre: z.string().optional(),
 	falla_ubicacion: z.string().min(1, { message: "La ubicación es obligatoria" }),
 	falla_grupo_seguimiento: z.array(z.any()).optional(),
@@ -90,8 +90,8 @@ export const AddFallaModal: React.FC<AddFallaModalProps> = ({
 	const { location } = useBoothStore();
 	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"");
 	const { dataAreas:areas, dataLocations:ubicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, isSuccess,  ubicacionSeleccionada?true:false);
-	const { data:dataAreaEmpleado, refetch: refetchAreaEmpleado,  } = useCatalogoAreaEmpleado(isSuccess, location??"", "Incidencias");
-	const { data:dataAreaEmpleadoApoyo,  refetch: refetchAreaEmpleadoApoyo, } = useCatalogoAreaEmpleadoApoyo(isSuccess);
+	// const { data:dataAreaEmpleado, refetch: refetchAreaEmpleado,  } = useCatalogoAreaEmpleado(isSuccess, location??"", "Incidencias");
+	// const { data:dataAreaEmpleadoApoyo,  refetch: refetchAreaEmpleadoApoyo, } = useCatalogoAreaEmpleadoApoyo(isSuccess);
 	const { data:dataFallas, refetch: refetchFallas} = useCatalogoFallas(subconcepto, isSuccess);
 	const { createFallaMutation, isLoading} = useFallas("","", "abierto", false, "", "", "")
 
@@ -134,8 +134,8 @@ export const AddFallaModal: React.FC<AddFallaModalProps> = ({
 			setEvidencia([])
 			setDocumento([])
 			setSelectedFalla("")
-			refetchAreaEmpleado()
-			refetchAreaEmpleadoApoyo()
+			// refetchAreaEmpleado()
+			// refetchAreaEmpleadoApoyo()
 			refetchFallas()
 			setUbicacionSeleccionada(location??"")
 			setSeguimientos([])
@@ -439,7 +439,7 @@ export const AddFallaModal: React.FC<AddFallaModalProps> = ({
 								)}
 								/>
 							</div>
-							<FormField
+							{/* <FormField
 								control={form.control}
 								name="falla_reporta_nombre"
 								render={({ field }:any) => (
@@ -459,38 +459,12 @@ export const AddFallaModal: React.FC<AddFallaModalProps> = ({
 											}}
 											/>
 									</FormItem>
-									// <FormItem>
-									// 	<FormLabel>Reporta:</FormLabel>
-									// 	<FormControl>
-									// 	<Select {...field} className="input"
-									// 		onValueChange={(value:string) => {
-									// 		field.onChange(value); 
-									// 	}}
-									// 	value={field.value} 
-									// >
-									// 	<SelectTrigger className="w-full">
-									// 	{loadingAreaEmpleado?(<>
-									// 			<SelectValue placeholder="Cargando opciones..." />
-									// 		</>):(<>
-									// 			<SelectValue placeholder="Selecciona una opcion" />
-									// 		</>)}
-									// 	</SelectTrigger>
-									// 	<SelectContent>
-									// 	{dataAreaEmpleado?.map((vehiculo:string, index:number) => (
-									// 		<SelectItem key={index} value={vehiculo}>
-									// 			{vehiculo}
-									// 		</SelectItem>
-									// 	))}
-									// 	</SelectContent>
-									// </Select>
-									// 	</FormControl>
-									// 	<FormMessage />
-									// </FormItem>
+									
 								)}
-							/>	
+							/>	 */}
 
 
-							<FormField
+							{/* <FormField
 								control={form.control}
 								name="falla_responsable_solucionar_nombre"
 								render={({ field }:any) => (
@@ -512,35 +486,8 @@ export const AddFallaModal: React.FC<AddFallaModalProps> = ({
 											}}
 											/>
 									</FormItem>
-									// <FormItem>
-									// 	<FormLabel>Responsable asignado de solucionar:</FormLabel>
-									// 	<FormControl>
-									// 	<Select {...field} className="input"
-									// 		onValueChange={(value:string) => {
-									// 		field.onChange(value); 
-									// 	}}
-									// 	value={field.value} 
-									// >
-									// 	<SelectTrigger className="w-full">
-									// 		{loadingAreaEmpleadoApoyo?(<>
-									// 			<SelectValue placeholder="Cargando opciones..." />
-									// 		</>):(<>
-									// 			<SelectValue placeholder="Selecciona una opcion" />
-									// 		</>)}
-									// 	</SelectTrigger>
-									// 	<SelectContent>
-									// 	{dataAreaEmpleadoApoyo?.map((vehiculo:string, index:number) => (
-									// 		<SelectItem key={index} value={vehiculo}>
-									// 			{vehiculo}
-									// 		</SelectItem>
-									// 	))}
-									// 	</SelectContent>
-									// </Select>
-									// 	</FormControl>
-									// 	<FormMessage />
-									// </FormItem>
 								)}
-							/>	
+							/>	 */}
 
 							<div className="flex justify-between">
 								<LoadImage

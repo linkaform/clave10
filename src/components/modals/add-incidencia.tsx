@@ -54,7 +54,7 @@ import { useForm } from "react-hook-form";
 import { Textarea } from "../ui/textarea";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import LoadImage, { Imagen } from "../upload-Image";
-import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
+// import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { format } from 'date-fns';
 import DateTime from "../dateTime";
 import LoadFile from "../upload-file";
@@ -303,7 +303,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 	const [openModal, setOpenModal] = useState(false);
 
 
-	const { data:dataAreaEmpleado } = useCatalogoAreaEmpleado(isSuccess, location??"", "Incidencias");
+	// const { data:dataAreaEmpleado } = useCatalogoAreaEmpleado(isSuccess, location??"", "Incidencias");
 	const { createIncidenciaMutation , loading:isLoading} = useInciencias("","",[], "", "", "");
 	
 	const [search, setSearch]= useState("")
@@ -753,7 +753,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 										)}
 										/>
 
-										<FormField
+										{/* <FormField
 											control={form.control}
 											name="reporta_incidencia"
 											render={({ field }:any) => (
@@ -810,7 +810,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 												// 	<FormMessage />
 												// </FormItem>
 											)}
-										/>	
+										/>	 */}
 										<FormField
 											control={form.control}
 											name="ubicacion_incidencia"

@@ -48,12 +48,12 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
       empresa: z.string().min(2, { message: "Campo requerido" }),
       foto: z
         .array(z.object({ file_url: z.string(), file_name: z.string() }))
-        .default([]),
+        .default([]).optional(),
       identificacion: z
         .array(z.object({ file_url: z.string(), file_name: z.string() }))
-        .default([]),
+        .default([]).optional(),
       area: z.string().optional(),
-      visita_a: z.string().min(1, { message: "Campo requerido" }),
+      visita_a: z.string().optional(),
       perfil_pase: z.string().min(1, { message: "Campo requerido" }),
       status_pase: z.string().optional(),
       tipo_visita_pase: z.enum(["fecha_fija", "rango_de_fechas"]).optional(),
@@ -65,22 +65,6 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
         .optional(),
       config_dias_acceso: z.array(z.string()).optional(),
       config_limitar_acceso: z.number().optional(),
-    })
-    .superRefine((data, ctx) => {
-      if (requireFoto && data.foto.length === 0) {
-        ctx.addIssue({
-          path: ["foto"],
-          message: "La fotografía es obligatoria",
-          code: z.ZodIssueCode.custom,
-        });
-      }
-      if (requireIden && data.identificacion.length === 0) {
-        ctx.addIssue({
-          path: ["identificacion"],
-          message: "La identificación es obligatoria",
-          code: z.ZodIssueCode.custom,
-        });
-      }
     });
 
 type formatData = z.infer<ReturnType<typeof createSchema>>;
@@ -244,28 +228,31 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
     return currentDate.toISOString().split("T")[0];
   }
 
+  console.log(form.formState.errors);
+
   return (
     <Dialog open={openModal} onOpenChange={setOpenModal}>
       <DialogTrigger asChild>{children}</DialogTrigger>
 
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-scroll">
-        <DialogHeader>
-          <DialogTitle className="text-2xl text-center font-bold my-5">
-            {title}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl p-0">
+        <div className="px-6 pt-6 pb-2 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-slate-800">{title}</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Completa los campos para registrar la visita</p>
+        </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="px-6 py-4 space-y-5">
 
             <FormField
               control={form.control}
               name="nombre"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>* Nombre Completo</FormLabel>
+                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <span className="text-red-400">*</span> Nombre Completo
+                  </FormLabel>
                   <FormControl>
-                    <Input placeholder="Texto" {...field} />
+                    <Input placeholder="Nombre completo" className="rounded-xl border-gray-200 bg-gray-50 text-sm" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -273,7 +260,10 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
             />
 
             {requireFoto && (
-              <>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <span className="text-red-400">*</span> Fotografía
+                </p>
                 <LoadImage
                   id="fotografia"
                   titulo={"Fotografía"}
@@ -283,14 +273,15 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                   imgArray={fotografia}
                   limit={10}
                 />
-                {fotoError && (
-                  <div className="text-red-500 text-sm">La fotografía es obligatoria</div>
-                )}
-              </>
+                {fotoError && <p className="text-red-500 text-xs">La fotografía es obligatoria</p>}
+              </div>
             )}
 
             {requireIden && (
-              <>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <span className="text-red-400">*</span> Identificación
+                </p>
                 <LoadImage
                   id="identificacion"
                   titulo={"Identificación"}
@@ -300,10 +291,8 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                   imgArray={identificacion}
                   limit={10}
                 />
-                {idError && (
-                  <div className="text-red-500 text-sm">La identificación es obligatoria</div>
-                )}
-              </>
+                {idError && <p className="text-red-500 text-xs">La identificación es obligatoria</p>}
+              </div>
             )}
 
             <FormField
@@ -311,9 +300,11 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               name="empresa"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>* Empresa</FormLabel>
+                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <span className="text-red-400">*</span> Empresa
+                  </FormLabel>
                   <FormControl>
-                    <Input placeholder="Texto" {...field} />
+                    <Input placeholder="Nombre de la empresa" className="rounded-xl border-gray-200 bg-gray-50 text-sm" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -325,21 +316,17 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               name="visita_a"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>* Visita a</FormLabel>
-                  <Select onValueChange={(value) => field.onChange(value)}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona una opción" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {assetsUnique?.map((item: string) => (
-                        <SelectItem key={item} value={item}>
-                          {item}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <span className="text-red-400">*</span> Visita a
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      placeholder="Nombre de la persona a visitar"
+                      className="rounded-xl border-gray-200 bg-gray-50 text-sm"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -350,18 +337,18 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               name="perfil_pase"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>* Tipo de Visita</FormLabel>
+                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <span className="text-red-400">*</span> Tipo de Visita
+                  </FormLabel>
                   <Select onValueChange={(value) => field.onChange(value)}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50 text-sm">
                         <SelectValue placeholder="Selecciona una opción" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {assets?.Perfiles?.map((item: string) => (
-                        <SelectItem key={item} value={item}>
-                          {item}
-                        </SelectItem>
+                        <SelectItem key={item} value={item}>{item}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -370,57 +357,54 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               )}
             />
 
-            <Button
+            <button
               type="button"
               onClick={() => setIsActiveAdvanced((prev) => !prev)}
-              className={`w-1/2 px-4 py-2 rounded-md transition-all duration-300 ${
+              className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border ${
                 isActiveAdvanced
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "border-2 border-blue-400 bg-transparent text-blue-600 hover:bg-blue-200"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "border-blue-300 text-blue-600 bg-blue-50 hover:bg-blue-100"
               }`}
             >
-              {isActiveAdvanced ? "Opciones avanzadas" : "Ver opciones avanzadas"}
-            </Button>
+              {isActiveAdvanced ? "Ocultar opciones avanzadas" : "Ver opciones avanzadas"}
+            </button>
 
             {isActiveAdvanced && (
-              <div className="space-y-6 p-4 border border-blue-100 rounded-md bg-blue-50">
-                <div className="flex items-center flex-wrap gap-3">
-                  <FormLabel>Vigencia:</FormLabel>
-                  <Button
-                    type="button"
-                    onClick={() => handleToggleTipoVisitaPase("rango_de_fechas")}
-                    className={`px-4 py-2 rounded-md transition-all duration-300 ${
-                      isActiveRangoFecha
-                        ? "bg-blue-600 text-white"
-                        : "border-2 border-blue-400 bg-transparent text-blue-600"
-                    } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-                  >
-                    Vigencia
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => handleToggleTipoVisitaPase("fecha_fija")}
-                    className={`px-4 py-2 rounded-md transition-all duration-300 ${
-                      isActiveFechaFija
-                        ? "bg-blue-600 text-white"
-                        : "border-2 border-blue-400 bg-transparent text-blue-600"
-                    } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-                  >
-                    Fecha Fija
-                  </Button>
-                  {tipoVisita === "rango_de_fechas" && (
-                    <Button
+              <div className="space-y-5 p-4 border border-blue-100 rounded-2xl bg-blue-50/50">
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Vigencia</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
                       type="button"
-                      onClick={() => setIsActiveLimitarDias((prev) => !prev)}
-                      className={`px-4 py-2 rounded-md transition-all duration-300 ${
-                        isActivelimitarDias
-                          ? "bg-blue-600 text-white"
-                          : "border-2 border-blue-400 bg-transparent text-blue-600"
-                      } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
+                      onClick={() => handleToggleTipoVisitaPase("rango_de_fechas")}
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                        isActiveRangoFecha ? "bg-blue-600 text-white border-blue-600" : "border-blue-300 text-blue-600 bg-white hover:bg-blue-50"
+                      }`}
                     >
-                      Limitar Accesos
-                    </Button>
-                  )}
+                      Vigencia
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleTipoVisitaPase("fecha_fija")}
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                        isActiveFechaFija ? "bg-blue-600 text-white border-blue-600" : "border-blue-300 text-blue-600 bg-white hover:bg-blue-50"
+                      }`}
+                    >
+                      Fecha Fija
+                    </button>
+                    {tipoVisita === "rango_de_fechas" && (
+                      <button
+                        type="button"
+                        onClick={() => setIsActiveLimitarDias((prev) => !prev)}
+                        className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                          isActivelimitarDias ? "bg-blue-600 text-white border-blue-600" : "border-blue-300 text-blue-600 bg-white hover:bg-blue-50"
+                        }`}
+                      >
+                        Limitar Accesos
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {tipoVisita === "fecha_fija" && (
@@ -429,15 +413,11 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                     name="fechaFija"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>
-                          <span className="text-red-500">*</span> Fecha y Hora de Visita:
+                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          <span className="text-red-500">*</span> Fecha y Hora de Visita
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            type="datetime-local"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
+                          <Input type="datetime-local" className="rounded-xl border-gray-200 bg-white text-sm" {...field} onChange={(e) => field.onChange(e.target.value)} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -452,19 +432,11 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                       name="fecha_desde_visita"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            <span className="text-red-500">*</span> Fecha desde:
+                          <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            <span className="text-red-500">*</span> Fecha desde
                           </FormLabel>
                           <FormControl>
-                            <Input
-                              type="date"
-                              {...field}
-                              min={today}
-                              onChange={(e) => {
-                                field.onChange(e);
-                                handleFechaDesdeChange(e);
-                              }}
-                            />
+                            <Input type="date" className="rounded-xl border-gray-200 bg-white text-sm" {...field} min={today} onChange={(e) => { field.onChange(e); handleFechaDesdeChange(e); }} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -475,16 +447,11 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                       name="fecha_desde_hasta"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            <span className="text-red-500">*</span> Vigencia hasta:
+                          <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            <span className="text-red-500">*</span> Vigencia hasta
                           </FormLabel>
                           <FormControl>
-                            <Input
-                              type="date"
-                              {...field}
-                              min={fechaDesde ? getNextDay(fechaDesde) : today}
-                              onChange={(e) => field.onChange(e)}
-                            />
+                            <Input type="date" className="rounded-xl border-gray-200 bg-white text-sm" {...field} min={fechaDesde ? getNextDay(fechaDesde) : today} onChange={(e) => field.onChange(e)} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -495,54 +462,46 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
 
                 {tipoVisita === "rango_de_fechas" && (
                   <div className="space-y-4">
-                    <div>
-                      <FormLabel>Días de acceso:</FormLabel>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Button
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Días de acceso</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
                           type="button"
                           onClick={() => handleToggleDiasAcceso("cualquier_día")}
-                          className={`px-4 py-2 rounded-md transition-all duration-300 ${
-                            isActiveCualquierDia
-                              ? "bg-blue-600 text-white"
-                              : "border-2 border-blue-400 bg-transparent text-blue-600"
-                          } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
+                          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                            isActiveCualquierDia ? "bg-blue-600 text-white border-blue-600" : "border-blue-300 text-blue-600 bg-white hover:bg-blue-50"
+                          }`}
                         >
                           Cualquier Día
-                        </Button>
-                        <Button
+                        </button>
+                        <button
                           type="button"
                           onClick={() => handleToggleDiasAcceso("limitar_días_de_acceso")}
-                          className={`px-4 py-2 rounded-md transition-all duration-300 ${
-                            isActivelimitarDiasSemana
-                              ? "bg-blue-600 text-white"
-                              : "border-2 border-blue-400 bg-transparent text-blue-600"
-                          } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
+                          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                            isActivelimitarDiasSemana ? "bg-blue-600 text-white border-blue-600" : "border-blue-300 text-blue-600 bg-white hover:bg-blue-50"
+                          }`}
                         >
                           Limitar Días
-                        </Button>
+                        </button>
                       </div>
                     </div>
 
                     {config_dia_de_acceso === "limitar_días_de_acceso" && (
-                      <div>
-                        <FormLabel>Seleccione los días:</FormLabel>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].map(
-                            (dia) => (
-                              <Button
-                                key={dia}
-                                type="button"
-                                onClick={() => toggleDia(dia.toLowerCase())}
-                                className={`px-3 py-2 rounded-md transition-all duration-300 ${
-                                  config_dias_acceso.includes(dia.toLowerCase())
-                                    ? "bg-blue-600 text-white"
-                                    : "border-2 border-blue-400 bg-white text-blue-600"
-                                } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-                              >
-                                {dia}
-                              </Button>
-                            )
-                          )}
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Seleccione los días</p>
+                        <div className="flex flex-wrap gap-2">
+                          {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].map((dia) => (
+                            <button
+                              key={dia}
+                              type="button"
+                              onClick={() => toggleDia(dia.toLowerCase())}
+                              className={`px-3 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                                config_dias_acceso.includes(dia.toLowerCase()) ? "bg-blue-600 text-white border-blue-600" : "border-blue-300 text-blue-600 bg-white hover:bg-blue-50"
+                              }`}
+                            >
+                              {dia}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -554,19 +513,18 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                           name="config_limitar_acceso"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Limitar número de accesos:</FormLabel>
+                              <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Limitar número de accesos
+                              </FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
                                   placeholder="Ejemplo: 5"
                                   min={0}
                                   step={1}
+                                  className="rounded-xl border-gray-200 bg-white text-sm"
                                   value={field.value ? Number(field.value) : 0}
-                                  onChange={(e) =>
-                                    field.onChange(
-                                      e.target.value ? Number(e.target.value) : 0
-                                    )
-                                  }
+                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -580,27 +538,28 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               </div>
             )}
 
-            <p className="text-gray-400">**Campos requeridos</p>
+            <p className="text-xs text-gray-400">* Campos requeridos</p>
 
-            <div className="flex gap-5">
+            <div className="flex gap-3 pt-2 pb-2">
               <DialogClose asChild>
                 <Button
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  type="button"
+                  className="w-full rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold"
                   onClick={() => form.reset()}
                 >
                   Cancelar
                 </Button>
               </DialogClose>
-
               <Button
                 type="submit"
                 disabled={loading}
                 onClick={() => setFormSubmitted(true)}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                className="w-full rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold"
               >
-                {loading ? <><Loader2 className="animate-spin" /> Cargando...</> : "Crear Visita"}
+                {loading ? <><Loader2 className="animate-spin w-4 h-4 mr-1" /> Cargando...</> : "Crear Visita"}
               </Button>
             </div>
+
           </form>
         </Form>
       </DialogContent>
