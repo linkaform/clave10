@@ -22,7 +22,7 @@ export function FiltersPanel({
 
   return (
     <div className="flex flex-col gap-4 w-full relative">
-      <div className="flex items-center justify-between pb-2 border-b border-border/50">
+      <div className="flex lg:flex items-center justify-between pb-2 border-b border-border/50">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-bold text-foreground">Filtros</h2>
           {hasActiveFilters && (

@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Filter, ImageIcon } from "lucide-react";
 import { PhotoListCard } from "./PhotoListCard";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { PhotoListViewProps, ListRecord } from "@/types/bitacoras";
@@ -11,6 +10,7 @@ import { usePhotoListView } from "@/hooks/bitacora/usePhotoListView";
 import { SelectionBar } from "../SelectionBar";
 import { FiltersPanel } from "../PhotoGrid/PhotoGridFiltersPanel";
 import { PhotoListCardModal } from "./PhotoListCardModal";
+import { FloatingFiltersDrawer } from "../PhotoGrid/FloatingFiltersDrawer";
 
 export default function PhotoListView({
   isLoading,
@@ -32,6 +32,7 @@ export default function PhotoListView({
     { record_id: string; record_status: string }[]
   >([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ListRecord | null>(null);
 
   const filteredRecords = useMemo(() => {
@@ -100,18 +101,15 @@ export default function PhotoListView({
         selectedItems={selectedItems}
       />
 
-      <div className="flex flex-1 min-h-0">
-        <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-border bg-card">
-          <ScrollArea className="flex-1">
-            <div className="p-5">
-              <FiltersPanel
-                filters={filters}
-                onFiltersChange={setFilters}
-                filtersConfig={filtersConfig}
-              />
-            </div>
-          </ScrollArea>
-        </aside>
+      <div className="flex flex-1 min-h-0 relative z-50">
+        <FloatingFiltersDrawer
+          isOpen={isSidebarOpen}
+          onOpenChange={setIsSidebarOpen}
+          activeFiltersCount={activeFiltersCount}
+          filters={filters}
+          onFiltersChange={setFilters}
+          filtersConfig={filtersConfig}
+        />
 
         <section className="flex-1 flex flex-col min-w-0">
           <div className="lg:hidden p-4 border-b">

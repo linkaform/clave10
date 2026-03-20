@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { PhotoGridCard } from "./PhotoGridCard";
 import { FiltersPanel } from "./PhotoGridFiltersPanel";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Filter, ImageIcon } from "lucide-react";
@@ -11,6 +10,7 @@ import { PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
 import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoGridCardModal } from "./PhotoGridCardModal";
+import { FloatingFiltersDrawer } from "./FloatingFiltersDrawer";
 
 export function PhotoGridView({
   isLoading,
@@ -32,6 +32,7 @@ export function PhotoGridView({
     { record_id: string; record_status: string }[]
   >([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<PhotoRecord | null>(
     null,
   );
@@ -112,20 +113,18 @@ export function PhotoGridView({
         renderCustomActions={renderCustomActions}
         selectedItems={selectedItems}
       />
-      <div className="flex flex-1 min-h-0">
-        <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-border bg-card">
-          <ScrollArea className="flex-1">
-            <div className="p-5">
-              <FiltersPanel
-                filters={filters}
-                onFiltersChange={setFilters}
-                filtersConfig={filtersConfig}
-              />
-            </div>
-          </ScrollArea>
-        </aside>
+      <div className="flex flex-1 min-h-0 relative z-50">
+        {/* Componente de Filtros Flotantes */}
+        <FloatingFiltersDrawer
+          isOpen={isSidebarOpen}
+          onOpenChange={setIsSidebarOpen}
+          activeFiltersCount={activeFiltersCount}
+          filters={filters}
+          onFiltersChange={setFilters}
+          filtersConfig={filtersConfig}
+        />
 
-        <main className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 flex flex-col min-w-0 transition-all duration-300">
           <div className="lg:hidden p-4 border-b">
             <Sheet>
               <SheetTrigger asChild>
