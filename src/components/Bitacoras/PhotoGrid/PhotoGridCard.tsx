@@ -143,6 +143,14 @@ export function PhotoGridCard({
       </div>
 
       <CardContent className="flex flex-col gap-3 p-4">
+        <div className="space-y-1">
+          <h3 className="font-semibold text-sm leading-tight line-clamp-1 text-foreground">
+            {titleCard}
+          </h3>
+          <p className="text-xs text-muted-foreground line-clamp-2">
+            {descriptionCard}
+          </p>
+        </div>
         {headerBadge && (
           <div className="self-start">
             <Badge
@@ -152,15 +160,6 @@ export function PhotoGridCard({
             </Badge>
           </div>
         )}
-
-        <div className="space-y-1">
-          <h3 className="font-semibold text-sm leading-tight line-clamp-1 text-foreground">
-            {titleCard}
-          </h3>
-          <p className="text-xs text-muted-foreground line-clamp-2">
-            {descriptionCard}
-          </p>
-        </div>
 
         {record?.detailsList && record?.detailsList?.length > 0 && (
           <>
