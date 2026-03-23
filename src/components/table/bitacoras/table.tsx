@@ -48,6 +48,7 @@ import { LayoutGrid } from "lucide-react";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { generateFiltersConfig } from "@/config/filters/bitacora";
+import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { useGetBitacoraFilters } from "@/hooks/bitacora/useGetBitacoraFilters";
 import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
 import PhotoSelectedActions from "@/components/Bitacoras/PhotoGrid/PhotoGridSelectedActions";
@@ -203,6 +204,8 @@ const BitacorasTable: React.FC<ListProps> = ({
     return memoizedData.map((item) => formatPhotoRecord(item, "bitacora"));
   }, [memoizedData]);
 
+  const { locations: storeLocations } = useAreasLocationStore();
+
   const { filters: apiFilters } = useGetBitacoraFilters(
     true,
     memoizedData?.length || 0,
@@ -211,11 +214,11 @@ const BitacorasTable: React.FC<ListProps> = ({
   const bitacoraFiltersConfig = useMemo(() => {
     const shouldGenerateLocally = (memoizedData?.length || 0) < 200;
     if (shouldGenerateLocally) {
-      const result = generateFiltersConfig(photoRecords);
+      const result = generateFiltersConfig(photoRecords, storeLocations);
       return result;
     }
     return apiFilters;
-  }, [photoRecords, apiFilters, memoizedData?.length]);
+  }, [photoRecords, apiFilters, memoizedData?.length, storeLocations]);
 
   return (
     <div className="w-full">

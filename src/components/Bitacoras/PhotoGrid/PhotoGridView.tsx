@@ -113,7 +113,7 @@ export function PhotoGridView({
         renderCustomActions={renderCustomActions}
         selectedItems={selectedItems}
       />
-      <div className="flex flex-1 min-h-0 relative z-50">
+      <div className="flex flex-1 min-h-0 relative z-0">
         {/* Componente de Filtros Flotantes */}
         <FloatingFiltersDrawer
           isOpen={isSidebarOpen}

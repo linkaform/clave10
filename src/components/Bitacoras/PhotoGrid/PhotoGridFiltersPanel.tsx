@@ -46,7 +46,13 @@ export function FiltersPanel({
         )}
       </div>
 
-      <Accordion type="multiple" className="w-full space-y-2">
+      <Accordion
+        type="multiple"
+        className="w-full space-y-2"
+        defaultValue={filtersConfig
+          .filter((config) => config.defaultDisplayOpen)
+          .map((config) => config.key)}
+        key={filtersConfig.length}>
         {filtersConfig.map((config) => {
           const currentValue = (filters.dynamic || {})[config.key];
           const activeCount = Array.isArray(currentValue)

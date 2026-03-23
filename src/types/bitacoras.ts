@@ -4,9 +4,11 @@ export interface FilterOption {
 }
 
 export interface FilterConfig {
+  defaultDisplayOpen?: boolean;
   label: string;
   type: "multiple" | "single" | "search" | "multiselect";
   options: FilterOption[];
+  storeLocations?: string[];
   key: string;
 }
 
