@@ -105,7 +105,7 @@ const BitacorasPage = () => {
             </h1>
             <span className="text-sm font-light text-slate-500 whitespace-nowrap">
               {listBitacoras?.total_records || 0} registros{" "}
-              {dateFilter === "today" ? "de hoy" : ""}
+              {dateFilter === "today" ? "de hoy" : dateFilter === "" ? "en total" : ""}
             </span>
           </div>
 

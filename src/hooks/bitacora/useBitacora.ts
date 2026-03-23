@@ -26,7 +26,7 @@ export const useBitacora = () => {
   const [date2, setDate2] = useState<Date | "">("");
   const [selectedOption, setSelectedOption] = useState<string[]>(option);
   const [dates, setDates] = useState<string[]>([]);
-  const [dateFilter, setDateFilter] = useState<string>("today");
+  const [dateFilter, setDateFilter] = useState<string>(filter);
   const [areaSeleccionada, setAreaSeleccionada] = useState<string>("todas");
   const [selectedTab, setSelectedTab] = useState<string>(
     tab ? tab : "Personal",

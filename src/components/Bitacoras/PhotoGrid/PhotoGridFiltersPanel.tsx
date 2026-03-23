@@ -82,9 +82,16 @@ export function FiltersPanel({
           <AccordionContent className="pt-1 pb-4 space-y-3 overflow-visible">
             <div className="flex items-center gap-2 border border-slate-200 rounded-lg bg-white p-1 relative z-[105]">
               <Select
-                value={filters.dateFilter || "today"}
+                value={
+                  filters.dateFilter === ""
+                    ? "all_records"
+                    : filters.dateFilter || "today"
+                }
                 onValueChange={(value) =>
-                  onFiltersChange({ ...filters, dateFilter: value })
+                  onFiltersChange({
+                    ...filters,
+                    dateFilter: value === "all_records" ? "" : value,
+                  })
                 }>
                 <SelectTrigger className="w-full h-8 border-none shadow-none focus:ring-0 z-[110]">
                   <SelectValue placeholder="Fecha" />
