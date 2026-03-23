@@ -113,13 +113,16 @@ const BitacorasPage = () => {
           <div className="flex items-center gap-4 min-w-0 justify-end flex-shrink-0">
             {/* 2. Search */}
             <div className="flex p-1 rounded-lg items-center border border-slate-200 w-[240px] overflow-hidden focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 bg-white transition-all">
+              <Search
+                className="ml-2 mr-1 flex-shrink-0 text-slate-400"
+                size={14}
+              />
               <TagSearchInput
                 tags={searchTags}
                 onTagsChange={setSearchTags}
                 placeholder="Buscar..."
                 className="w-full bg-transparent border-none shadow-none focus-visible:ring-0 h-8 text-sm min-w-0 px-1"
               />
-              <Search className="flex-shrink-0 mr-2 text-slate-400" size={14} />
             </div>
 
             {/* 3. Tabs */}
@@ -127,45 +130,45 @@ const BitacorasPage = () => {
               value={selectedTab}
               onValueChange={setSelectedTab}
               className="w-auto">
-              <TabsList className="bg-blue-600 h-10 p-1 border border-blue-600">
+              <TabsList className="bg-slate-100/50 h-10 p-0 border border-slate-300 divide-x divide-slate-300 rounded-lg overflow-hidden shadow-sm">
                 <TabsTrigger
                   value="personal"
-                  className="data-[state=active]:bg-white data-[state=active]:text-blue-600 px-4 font-medium transition-all">
+                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none border-x border-slate-300/50 shadow-none text-slate-600 hover:bg-slate-200/50">
                   Personal
                 </TabsTrigger>
                 <TabsTrigger
                   value="vehiculos"
-                  className="data-[state=active]:bg-white data-[state=active]:text-blue-600 px-4 font-medium transition-all text-white/80">
+                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none border-x border-slate-300/50 shadow-none text-slate-600 hover:bg-slate-200/50">
                   Vehículos
                 </TabsTrigger>
                 <TabsTrigger
                   value="equipos"
-                  className="data-[state=active]:bg-white data-[state=active]:text-blue-600 px-4 font-medium transition-all text-white/80">
+                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none border-x border-slate-300/50 shadow-none text-slate-600 hover:bg-slate-200/50">
                   Equipos
                 </TabsTrigger>
               </TabsList>
             </Tabs>
 
             {/* 4. ViewModes (Final) */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 h-10">
+            <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
               <Button
                 variant="ghost"
                 size="icon"
-                className={`h-8 w-8 transition-all ${viewMode === "photos" ? "bg-white shadow-sm text-blue-600" : "text-slate-400"}`}
+                className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "photos" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
                 onClick={() => setViewMode?.("photos")}>
                 <LayoutGrid size={18} />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className={`h-8 w-8 transition-all ${viewMode === "table" ? "bg-white shadow-sm text-blue-600" : "text-slate-400"}`}
+                className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
                 onClick={() => setViewMode?.("table")}>
                 <Sheet size={18} />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className={`h-8 w-8 transition-all ${viewMode === "list" ? "bg-white shadow-sm text-blue-600" : "text-slate-400"}`}
+                className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
                 onClick={() => setViewMode?.("list")}>
                 <LayoutList size={18} />
               </Button>
