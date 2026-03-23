@@ -25,8 +25,8 @@ export function SelectionBar({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 w-full animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-white text-slate-900 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] p-4 px-8 flex items-center justify-between gap-4">
+    <div className="fixed bottom-0 left-0 right-0 z-[100] w-full animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="bg-white text-slate-900 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.15)] p-4 px-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-blue-600 fill-blue-50" />

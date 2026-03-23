@@ -92,14 +92,20 @@ const formSchema = z.object({
   persona_id_concesion: z.union([z.number(), z.array(z.number())]).optional(),
   persona_nombre_otro: z.string().optional(),
   persona_email_otro: z.string().optional(),
-  persona_identificacion_otro: z.array(imagenSchema).optional(),
+  persona_identificacion_otro: z.array(imagenSchema).min(1, { message: "La identificación es obligatoria, por favor sube una imagen" }),
   fecha_concesion: z.string().optional(),
   equipos: z.array(equipoSchema).optional().default([]),
   observacion_concesion: z.string().optional(),
   evidencia: z.array(imagenSchema).optional().default([]),
-  firma: imagenSchema.optional(),
+  firma: z.object({
+    file_url: z.string().min(1, { message: "La firma es obligatoria, por favor escribe tu nombre en el campo de firma" }),
+    file_name: z.string(),
+  }).optional().refine(val => val !== undefined && val.file_url !== "", {
+    message: "La firma es obligatoria, por favor escribe tu nombre en el campo de firma",
+  }),
   solicita_concesion: z.string().min(2, { message: "Este campo es requerido." }),
-});
+  
+})
 
 export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   isSuccess,
@@ -280,7 +286,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
       }, 800);
     } else {
       setVistaPrevia("");
-      form.setValue("firma", undefined);
+      form.setValue("firma", {file_name:'', file_url:''});
     }
   };
 
@@ -473,7 +479,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                   <div className="mb-2">
                     <Controller
                       control={form.control}
-                      name="evidencia"
+                      name="persona_identificacion_otro"
                       render={({ field, fieldState }) => (
                         <div className="flex flex-col">
                           <LoadImage

@@ -2,13 +2,13 @@ import type { FilterState } from "@/types/bitacoras";
 
 export const useFiltersPanel = (
   filters: FilterState,
-  onFiltersChange: (filters: FilterState) => void
+  onFiltersChange: (filters: FilterState) => void,
 ) => {
   const handleDynamicChange = (
     key: string,
     value: string | string[],
     checked: boolean,
-    type: "multiple" | "single" | "multiselect" | "search"
+    type: "multiple" | "single" | "multiselect" | "search",
   ) => {
     const currentDynamic = filters.dynamic || {};
     const currentValue = currentDynamic[key];
@@ -21,7 +21,7 @@ export const useFiltersPanel = (
     } else {
       const currentArray = Array.isArray(currentValue) ? currentValue : [];
       newValue = checked
-        ? [...currentArray, (value as string)]
+        ? [...currentArray, value as string]
         : currentArray.filter((v) => v !== (value as string));
     }
 
@@ -31,11 +31,21 @@ export const useFiltersPanel = (
     });
   };
 
-  const clearFilters = () => onFiltersChange({ dynamic: {} });
+  const clearFilters = () =>
+    onFiltersChange({
+      dynamic: {},
+      dateFilter: "today",
+      date1: "",
+      date2: "",
+    });
 
-  const hasActiveFilters = Object.values(filters.dynamic || {}).some((v) =>
-    Array.isArray(v) ? v.length > 0 : v !== ""
-  );
+  const hasActiveFilters =
+    Object.values(filters.dynamic || {}).some((v) =>
+      Array.isArray(v) ? v.length > 0 : v !== "",
+    ) ||
+    (filters.dateFilter && filters.dateFilter !== "today") ||
+    !!filters.date1 ||
+    !!filters.date2;
 
   const isChecked = (key: string, value: string) => {
     const currentValue = (filters.dynamic || {})[key];

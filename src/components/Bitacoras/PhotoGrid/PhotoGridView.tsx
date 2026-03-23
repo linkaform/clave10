@@ -2,11 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { PhotoGridCard } from "./PhotoGridCard";
-import { FiltersPanel } from "./PhotoGridFiltersPanel";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Filter, ImageIcon } from "lucide-react";
+import { ImageIcon } from "lucide-react";
 import { PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
 import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView";
 import { SelectionBar } from "../SelectionBar";
@@ -17,17 +13,16 @@ export function PhotoGridView({
   records,
   onRecordClick,
   children,
-  filtersConfig,
   onSelectionChange,
   renderCustomActions,
+  externalFilters,
+  onExternalFiltersChange,
   globalSearch = [],
-}: PhotoGridViewProps & { globalSearch?: string[] }) {
-  const {
-    filters,
-    setFilters,
-    filteredRecords: baseFilteredRecords,
-    activeFiltersCount,
-  } = usePhotoGridView(records);
+}: Omit<PhotoGridViewProps, "filtersConfig" | "hideSidebar"> & {
+  globalSearch?: string[];
+}) {
+  const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
+    usePhotoGridView(records, externalFilters, onExternalFiltersChange);
   const [selectedItems, setSelectedItems] = useState<
     { record_id: string; record_status: string }[]
   >([]);
@@ -112,45 +107,10 @@ export function PhotoGridView({
         renderCustomActions={renderCustomActions}
         selectedItems={selectedItems}
       />
-      <div className="flex flex-1 min-h-0">
-        <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-border bg-card">
-          <ScrollArea className="flex-1">
-            <div className="p-5">
-              <FiltersPanel
-                filters={filters}
-                onFiltersChange={setFilters}
-                filtersConfig={filtersConfig}
-              />
-            </div>
-          </ScrollArea>
-        </aside>
-
-        <main className="flex-1 flex flex-col min-w-0">
-          <div className="lg:hidden p-4 border-b">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filtros
-                  {activeFiltersCount > 0 && (
-                    <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                      {activeFiltersCount}
-                    </span>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-5">
-                <FiltersPanel
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                  filtersConfig={filtersConfig}
-                />
-              </SheetContent>
-            </Sheet>
-          </div>
-
+      <div className="flex flex-1 min-h-0 relative z-0">
+        <main className="flex-1 flex flex-col min-w-0 transition-all duration-300">
           <div className="flex-1 overflow-y-auto">
-            <div className="p-6">
+            <div>
               {isLoading ? (
                 <div className="flex flex-col items-center gap-2 text-slate-300 h-96 w-full justify-center">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />

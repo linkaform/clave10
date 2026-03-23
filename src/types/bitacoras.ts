@@ -4,9 +4,11 @@ export interface FilterOption {
 }
 
 export interface FilterConfig {
+  defaultDisplayOpen?: boolean;
   label: string;
   type: "multiple" | "single" | "search" | "multiselect";
   options: FilterOption[];
+  storeLocations?: string[];
   key: string;
 }
 
@@ -98,6 +100,9 @@ export interface PhotoListViewProps {
   onRecordClick?: (record: PhotoRecord) => void;
   children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode);
   filtersConfig: FilterConfig[];
+  externalFilters?: FilterState;
+  onExternalFiltersChange?: (filters: FilterState) => void;
+  hideSidebar?: boolean; // Nueva prop
   onSelectionChange?: (
     selectedItems: { record_id: string; record_status?: string }[],
   ) => void;
@@ -112,6 +117,9 @@ export interface PhotoGridViewProps {
   onRecordClick?: (record: PhotoRecord) => void;
   children?: React.ReactNode | ((record: PhotoRecord) => React.ReactNode);
   filtersConfig: FilterConfig[];
+  externalFilters?: FilterState;
+  onExternalFiltersChange?: (filters: FilterState) => void;
+  hideSidebar?: boolean; // Nueva prop
   onSelectionChange?: (
     selectedItems: { record_id: string; record_status?: string }[],
   ) => void;
@@ -122,6 +130,9 @@ export interface PhotoGridViewProps {
 
 export interface FilterState {
   dynamic: Record<string, string | string[]>;
+  dateFilter?: string;
+  date1?: Date | "";
+  date2?: Date | "";
 }
 
 export interface FiltersPanelProps {
