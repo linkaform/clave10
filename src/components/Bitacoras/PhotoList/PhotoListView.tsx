@@ -1,38 +1,32 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Filter, ImageIcon } from "lucide-react";
+import { ImageIcon } from "lucide-react";
 import { PhotoListCard } from "./PhotoListCard";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { PhotoListViewProps, ListRecord } from "@/types/bitacoras";
 import { usePhotoListView } from "@/hooks/bitacora/usePhotoListView";
 import { SelectionBar } from "../SelectionBar";
-import { FiltersPanel } from "../PhotoGrid/PhotoGridFiltersPanel";
 import { PhotoListCardModal } from "./PhotoListCardModal";
-import { FloatingFiltersDrawer } from "../PhotoGrid/FloatingFiltersDrawer";
 
 export default function PhotoListView({
   isLoading,
   records,
   onRecordClick,
   children,
-  filtersConfig,
   onSelectionChange,
   renderCustomActions,
+  externalFilters,
+  onExternalFiltersChange,
   globalSearch = [],
-}: PhotoListViewProps & { globalSearch?: string[] }) {
-  const {
-    filters,
-    setFilters,
-    filteredRecords: baseFilteredRecords,
-    activeFiltersCount,
-  } = usePhotoListView(records as any);
+}: Omit<PhotoListViewProps, "filtersConfig" | "hideSidebar"> & {
+  globalSearch?: string[];
+}) {
+  const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
+    usePhotoListView(records as any, externalFilters, onExternalFiltersChange);
   const [selectedItems, setSelectedItems] = useState<
     { record_id: string; record_status: string }[]
   >([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ListRecord | null>(null);
 
   const filteredRecords = useMemo(() => {
@@ -101,42 +95,10 @@ export default function PhotoListView({
         selectedItems={selectedItems}
       />
 
-      <div className="flex flex-1 min-h-0 relative z-50">
-        <FloatingFiltersDrawer
-          isOpen={isSidebarOpen}
-          onOpenChange={setIsSidebarOpen}
-          activeFiltersCount={activeFiltersCount}
-          filters={filters}
-          onFiltersChange={setFilters}
-          filtersConfig={filtersConfig}
-        />
-
+      <div className="flex flex-1 min-h-0 relative z-0">
         <section className="flex-1 flex flex-col min-w-0">
-          <div className="lg:hidden p-4 border-b">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filtros
-                  {activeFiltersCount > 0 && (
-                    <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                      {activeFiltersCount}
-                    </span>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-5">
-                <FiltersPanel
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                  filtersConfig={filtersConfig}
-                />
-              </SheetContent>
-            </Sheet>
-          </div>
-
           <div className="flex-1 overflow-y-auto">
-            <div className="p-6">
+            <div>
               <div className={"space-y-4w-full"}>
                 {isLoading ? (
                   <div className="flex flex-col items-center gap-2 text-slate-300 h-96 w-full justify-center">

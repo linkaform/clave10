@@ -36,20 +36,18 @@ export const TagSearchInput = ({
   };
 
   return (
-    <div className={`flex items-center gap-1 ${className}`}>
-      <div className="border rounded px-2 py-1 flex items-center gap-1 flex-wrap min-w-[280px] max-w-[300px] bg-white focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 transition">
+    <div className={`flex items-center gap-1 flex-1 min-w-0 ${className}`}>
+      <div className="flex items-center gap-1 flex-wrap w-full bg-transparent transition">
         {tags.map((tag, idx) => (
           <span
             key={idx}
-            className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full inline-flex items-center gap-1 whitespace-nowrap"
-          >
+            className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full inline-flex items-center gap-1 whitespace-nowrap">
             {tag}
             <button
               type="button"
               onClick={() => removeTag(tag)}
               className="ml-0.5 hover:text-blue-200 transition"
-              aria-label={`Eliminar filtro ${tag}`}
-            >
+              aria-label={`Eliminar filtro ${tag}`}>
               <X size={11} />
             </button>
           </span>
