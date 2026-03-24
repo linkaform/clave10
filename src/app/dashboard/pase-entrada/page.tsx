@@ -157,7 +157,7 @@ import { Input } from "@/components/ui/input";
 		  : ubicacionesDefaultFormatted ?? []
 	  );
 	const [visitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
-
+	//Ubicacion seleccionada  
 	useEffect(()=>{
 		if(location)
 			setUbicacionSeleccionada(location)
@@ -201,7 +201,7 @@ import { Input } from "@/components/ui/input";
 			setProtocol(window?.location.protocol);
 		}
 	}, []); 
-
+	
 
 	const ubicacionesSeleccionadasLista = ubicacionesSeleccionadas?.map((u: any) => (u.name));
 	const { dataConfigLocation, isLoadingConfigLocation } = usePaseEntrada(ubicacionesSeleccionadasLista ?? [])
