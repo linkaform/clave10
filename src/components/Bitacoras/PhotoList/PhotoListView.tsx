@@ -7,6 +7,7 @@ import { PhotoListViewProps, ListRecord } from "@/types/bitacoras";
 import { usePhotoListView } from "@/hooks/bitacora/usePhotoListView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoListCardModal } from "./PhotoListCardModal";
+import EquiposYVehiculosList from "../EquiposYVehiculosList";
 
 export default function PhotoListView({
   isLoading,
@@ -156,8 +157,9 @@ export default function PhotoListView({
       <PhotoListCardModal
         record={selectedRecord as any}
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-      />
+        onOpenChange={setIsModalOpen}>
+        <EquiposYVehiculosList record={selectedRecord as any} />
+      </PhotoListCardModal>
     </div>
   );
 }

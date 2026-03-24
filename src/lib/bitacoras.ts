@@ -7,6 +7,7 @@ export const getListBitacora = async (
   date1: string,
   date2: string,
   dateFilter: string,
+  dynamicFilters?: { key: string; value: string }[],
   limit: number = 23,
   offset: number = 0,
 ) => {
@@ -17,6 +18,7 @@ export const getListBitacora = async (
     area: area,
     location: location,
     prioridades: prioridades,
+    dynamicFilters,
     limit: limit,
     offset: offset,
     option: "list_bitacora2",

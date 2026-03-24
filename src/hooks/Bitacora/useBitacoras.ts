@@ -19,6 +19,7 @@ export const useBitacoras = (
   date1: string,
   date2: string,
   dateFilter: string,
+  dynamicFilters?: { key: string; value: string }[],
   limit: number = 20,
   offset: number = 0,
 ) => {
@@ -36,6 +37,7 @@ export const useBitacoras = (
       date1,
       date2,
       dateFilter,
+      dynamicFilters,
       limit,
       offset,
     ],
@@ -50,6 +52,7 @@ export const useBitacoras = (
         date1,
         date2,
         dateFilter,
+        dynamicFilters,
         limit,
         offset,
       );

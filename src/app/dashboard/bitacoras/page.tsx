@@ -17,6 +17,21 @@ import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/Floating
 import { FilterConfig } from "@/types/bitacoras";
 
 const BitacorasPage = () => {
+  const [dynamicFilters, setDynamicFilters] = React.useState<
+    Record<string, any>
+  >({});
+  const dynamicFiltersArray = React.useMemo(() => {
+    return Object.entries(dynamicFilters)
+      .filter(
+        ([, value]) =>
+          value !== undefined &&
+          value !== null &&
+          value !== "" &&
+          (!Array.isArray(value) || value.length > 0),
+      )
+      .map(([key, value]) => ({ key, value }));
+  }, [dynamicFilters]);
+
   const {
     bitacoraSeleccionada,
     date1,
@@ -51,14 +66,11 @@ const BitacorasPage = () => {
     setUbicacionSeleccionada,
     ubicacionSeleccionada,
     viewMode,
-  } = useBitacora();
+  } = useBitacora(dynamicFiltersArray);
 
   const [selectedTab, setSelectedTab] = React.useState("personal");
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [filtersConfig, setFiltersConfig] = React.useState<FilterConfig[]>([]);
-  const [dynamicFilters, setDynamicFilters] = React.useState<
-    Record<string, any>
-  >({});
 
   const externalFilters = React.useMemo(
     () => ({

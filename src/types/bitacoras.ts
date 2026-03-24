@@ -73,6 +73,8 @@ export interface ListRecord {
   badgesList?: BadgesListItem[];
   detailsList?: DetailsListItem[];
   modalDetailsList?: DetailsListItem[];
+  vehiculos?: Vehiculo[];
+  equipos?: Equipo[];
   rawData?: any;
 }
 

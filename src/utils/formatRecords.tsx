@@ -80,11 +80,10 @@ export function formatListRecord(raw: any, type: RegistryType): ListRecord {
           {
             icon: <Contact className="h-3 w-3" />,
             label: "Áreas permitidas",
-            value: [
-              "Recepción - Hardcode",
-              "Oficinas Administrativas - Hardcode",
-              "Sala de Juntas A - Hardcode",
-            ],
+            value: raw.grupo_areas_acceso.map(
+              (area: { incidente_area: string; commentario_area: string }) =>
+                area.incidente_area,
+            ),
           },
         ],
         modalDetailsList: [
@@ -113,7 +112,18 @@ export function formatListRecord(raw: any, type: RegistryType): ListRecord {
             label: "Ubicación",
             value: raw?.ubicacion,
           },
+          {
+            icon: <Contact className="h-3 w-3" />,
+            label: "Áreas Permitidas",
+            value: Array.isArray(raw?.grupo_areas_acceso)
+              ? raw.grupo_areas_acceso.map(
+                  (area: { incidente_area: string }) => area.incidente_area,
+                )
+              : [],
+          },
         ],
+        vehiculos: raw.vehiculos || [],
+        equipos: raw.equipos || [],
         rawData: raw,
       };
 

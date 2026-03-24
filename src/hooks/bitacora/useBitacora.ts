@@ -14,7 +14,9 @@ import Swal from "sweetalert2";
 import { useGetStats } from "../useGetStats";
 import { useBitacoras } from "../Bitacora/useBitacoras";
 
-export const useBitacora = () => {
+export const useBitacora = (
+  dynamicFilters?: { key: string; value: string }[],
+) => {
   const { tab, filter, option, from, setFrom } = useShiftStore();
   const { location } = useBoothStore();
   const { userParentId } = useAuthStore();
@@ -61,6 +63,7 @@ export const useBitacora = () => {
       dates[0],
       dates[1],
       dateFilter,
+      dynamicFilters,
       pagination.pageSize,
       pagination.pageIndex * pagination.pageSize,
     );
