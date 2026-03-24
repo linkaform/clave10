@@ -18,7 +18,9 @@ export const useBitacora = () => {
   const { tab, filter, option, from, setFrom } = useShiftStore();
   const { location } = useBoothStore();
   const { userParentId } = useAuthStore();
-  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState("");
+  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<
+    string | string[]
+  >("");
   const [equiposData, setEquiposData] = useState<Bitacora_record[]>([]);
   const [vehiculosData, setVehiculosData] = useState<Bitacora_record[]>([]);
   const [isPersonasDentro, setIsPersonasDentro] = useState(false);
@@ -221,6 +223,7 @@ export const useBitacora = () => {
     setPagination,
     setSearchTags,
     setSelectedOption,
+    setUbicacionSeleccionada,
     setViewMode,
   };
 };

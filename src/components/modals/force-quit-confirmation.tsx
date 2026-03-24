@@ -13,7 +13,7 @@ interface ForceQuitConfirmationModalProps {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  locationName?: string;
+  locationName?: string | string[];
   isLoading?: boolean;
   personasDentro: number;
 }
@@ -24,7 +24,7 @@ const ForceQuitConfirmationModal: React.FC<ForceQuitConfirmationModalProps> = ({
   onConfirm,
   locationName,
   isLoading = false,
-  personasDentro
+  personasDentro,
 }) => {
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
@@ -42,7 +42,11 @@ const ForceQuitConfirmationModal: React.FC<ForceQuitConfirmationModalProps> = ({
               Salida Masiva
             </DialogTitle>
             <DialogDescription className="text-red-100 text-center font-medium opacity-90">
-              Se marcará salida a las <span className="font-bold text-white underline decoration-2 underline-offset-4">{personasDentro} personas</span> que se encuentran dentro de la ubicación seleccionada.
+              Se marcará salida a las{" "}
+              <span className="font-bold text-white underline decoration-2 underline-offset-4">
+                {personasDentro} personas
+              </span>{" "}
+              que se encuentran dentro de la ubicación seleccionada.
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -57,10 +61,14 @@ const ForceQuitConfirmationModal: React.FC<ForceQuitConfirmationModalProps> = ({
                 ACCIÓN IRREVERSIBLE
               </h4>
               <p className="text-sm text-amber-800 leading-relaxed">
-                ¿Estás seguro de que deseas registrar la salida de todas las personas dentro en{" "}
+                ¿Estás seguro de que deseas registrar la salida de todas las
+                personas dentro en{" "}
                 <span className="font-bold text-amber-950 inline-block px-1 bg-amber-200/50 rounded">
-                  {locationName}
-                </span>?
+                  {Array.isArray(locationName)
+                    ? locationName.join(", ")
+                    : locationName}
+                </span>
+                ?
               </p>
             </div>
           </div>
@@ -70,25 +78,21 @@ const ForceQuitConfirmationModal: React.FC<ForceQuitConfirmationModalProps> = ({
               variant="destructive"
               className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-red-200 transition-all hover:scale-[1.02] active:scale-[0.98] bg-red-600 hover:bg-red-700 border-b-4 border-red-800 active:border-b-0 active:mt-1 group"
               onClick={onConfirm}
-              disabled={isLoading}
-            >
+              disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Procesando...
                 </>
               ) : (
-                <span className="flex items-center gap-2">
-                  Confirmar
-                </span>
+                <span className="flex items-center gap-2">Confirmar</span>
               )}
             </Button>
             <Button
               variant="ghost"
               className="w-full h-12 text-gray-500 font-semibold rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-all"
               onClick={onClose}
-              disabled={isLoading}
-            >
+              disabled={isLoading}>
               Cancelar
             </Button>
           </div>

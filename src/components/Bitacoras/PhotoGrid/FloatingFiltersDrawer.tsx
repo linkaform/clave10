@@ -35,7 +35,7 @@ export function FloatingFiltersDrawer({
     <>
       {/* Botón flotante lateral izquierdo */}
       {!isOpen && (
-        <div className="fixed left-0 top-1/2 -translate-y-1/2 z-[45]">
+        <div className="fixed -left-2 top-1/2 -translate-y-1/2 z-[45]">
           <Button
             onClick={() => onOpenChange(true)}
             className="h-14 w-14 rounded-full rounded-l-none shadow-2xl bg-[#3B83F7] hover:bg-[#3B83F7] text-white p-0 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-none"

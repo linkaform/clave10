@@ -48,6 +48,7 @@ const BitacorasPage = () => {
     setPagination,
     setSearchTags,
     setViewMode,
+    setUbicacionSeleccionada,
     ubicacionSeleccionada,
     viewMode,
   } = useBitacora();
@@ -70,11 +71,35 @@ const BitacorasPage = () => {
   );
 
   const onExternalFiltersChange = (newFilters: any) => {
+    // Si los filtros se están limpiando completamente (ubicacion es [] y dateFilter es "")
+    if (
+      newFilters.dynamic &&
+      Array.isArray(newFilters.dynamic.ubicacion) &&
+      newFilters.dynamic.ubicacion.length === 0 &&
+      newFilters.dateFilter === ""
+    ) {
+      if (setUbicacionSeleccionada) setUbicacionSeleccionada([]);
+      setDynamicFilters({ ubicacion: [] });
+      setDateFilter("");
+      setDate1("");
+      setDate2("");
+      return;
+    }
+
     if (newFilters.dateFilter !== undefined)
       setDateFilter(newFilters.dateFilter);
     if (newFilters.date1 !== undefined) setDate1(newFilters.date1);
     if (newFilters.date2 !== undefined) setDate2(newFilters.date2);
-    if (newFilters.dynamic !== undefined) setDynamicFilters(newFilters.dynamic);
+    if (newFilters.dynamic !== undefined) {
+      if (
+        setUbicacionSeleccionada &&
+        JSON.stringify(newFilters.dynamic.ubicacion) !==
+          JSON.stringify(dynamicFilters.ubicacion)
+      ) {
+        setUbicacionSeleccionada(newFilters.dynamic.ubicacion || []);
+      }
+      setDynamicFilters(newFilters.dynamic);
+    }
   };
 
   const activeFiltersCount =
@@ -105,7 +130,11 @@ const BitacorasPage = () => {
             </h1>
             <span className="text-sm font-light text-slate-500 whitespace-nowrap">
               {listBitacoras?.total_records || 0} registros{" "}
-              {dateFilter === "today" ? "de hoy" : dateFilter === "" ? "en total" : ""}
+              {dateFilter === "today"
+                ? "de hoy"
+                : dateFilter === ""
+                  ? "en total"
+                  : ""}
             </span>
           </div>
 

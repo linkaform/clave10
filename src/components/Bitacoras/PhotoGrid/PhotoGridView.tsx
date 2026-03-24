@@ -39,10 +39,10 @@ export function PhotoGridView({
       return globalSearch.some((tag) => {
         const tagLower = tag.toLowerCase();
         return (
-          record.title?.toLowerCase().includes(tagLower) ||
-          record.description?.toLowerCase().includes(tagLower) ||
-          record.folio?.toLowerCase().includes(tagLower) ||
-          record.status?.toLowerCase().includes(tagLower) ||
+          record.title?.toString().toLowerCase().includes(tagLower) ||
+          record.description?.toString().toLowerCase().includes(tagLower) ||
+          record.folio?.toString().toLowerCase().includes(tagLower) ||
+          record.status?.toString().toLowerCase().includes(tagLower) ||
           record.detailsList?.some((detail) => {
             if (Array.isArray(detail.value)) {
               return detail.value.some((val) =>

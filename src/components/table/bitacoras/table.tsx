@@ -28,8 +28,10 @@ import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { ListRecord, PhotoRecord, FilterConfig } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
-import { generateFiltersConfig } from "@/config/filters/bitacora";
-import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
+import {
+  generateFiltersConfig,
+  BITACORA_MAPPINGS,
+} from "@/config/filters/bitacora";
 import { useGetBitacoraFilters } from "@/hooks/bitacora/useGetBitacoraFilters";
 import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
 import PhotoSelectedActions from "@/components/Bitacoras/PhotoGrid/PhotoGridSelectedActions";
@@ -58,8 +60,9 @@ interface ListProps {
   // Configuración de filtros para el panel global
   onFiltersConfigReady?: (config: FilterConfig[]) => void;
   externalDynamicFilters?: Record<string, any>;
-  onExternalDynamicFiltersChange?: (filters: Record<string, any>) => void;
+  onExternalDynamicFiltersChange: (filters: Record<string, any>) => void;
   searchTags?: string[];
+  setUbicacionSeleccionada?: (val: string) => void;
 }
 
 const BitacorasTable: React.FC<ListProps> = ({
@@ -96,9 +99,7 @@ const BitacorasTable: React.FC<ListProps> = ({
 
   const [localSearchTags, setLocalSearchTags] = useState<string[]>([]);
   const searchTags = externalSearchTags || localSearchTags;
-  const setSearchTags = onExternalDynamicFiltersChange
-    ? () => {}
-    : setLocalSearchTags;
+  const setSearchTags = setLocalSearchTags;
 
   const columns = useMemo(() => {
     if (isLoading) return [];
@@ -158,29 +159,22 @@ const BitacorasTable: React.FC<ListProps> = ({
     return memoizedData.map((item) => formatPhotoRecord(item, "bitacora"));
   }, [memoizedData]);
 
-  const { locations: storeLocations, fetchLocations } = useAreasLocationStore();
-
-  useEffect(() => {
-    if (storeLocations.length == 0) {
-      fetchLocations();
-    }
-  }, []);
-
   const { filters: apiFilters } = useGetBitacoraFilters(
     true,
     memoizedData?.length || 0,
   );
 
   const bitacoraFiltersConfig = useMemo(() => {
-    // Si data es pequeño, generamos filtros basados en lo que hay en pantalla
-    const shouldGenerateLocally = (memoizedData?.length || 0) < 200;
-    if (shouldGenerateLocally) {
-      const result = generateFiltersConfig(photoRecords, storeLocations);
-      return result;
+    // Filtros dinámicos (Estatus, Perfil, etc.)
+    const isSmallDataset =
+      (memoizedData?.length || 0) > 0 && (memoizedData?.length || 0) < 200;
+
+    if (isSmallDataset) {
+      return generateFiltersConfig(photoRecords, BITACORA_MAPPINGS);
+    } else {
+      return apiFilters;
     }
-    // Si es grande, usamos la respuesta de la API (aunque por ahora solo usaremos filtrado local de los 100 registros)
-    return apiFilters;
-  }, [photoRecords, apiFilters, memoizedData?.length, storeLocations]);
+  }, [photoRecords, apiFilters, memoizedData?.length]);
 
   // Notificar al padre sobre la configuración de filtros
   useEffect(() => {
@@ -212,7 +206,9 @@ const BitacorasTable: React.FC<ListProps> = ({
       setDateFilter?.(newFilters.dateFilter);
     if (newFilters.date1 !== undefined) setDate1?.(newFilters.date1);
     if (newFilters.date2 !== undefined) setDate2?.(newFilters.date2);
-    if (newFilters.dynamic !== undefined) setDynamicFilters(newFilters.dynamic);
+    if (newFilters.dynamic !== undefined) {
+      setDynamicFilters(newFilters.dynamic);
+    }
   };
 
   return (

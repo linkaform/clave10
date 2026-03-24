@@ -1,87 +1,84 @@
 import { FilterConfig } from "@/types/bitacoras";
 import { PhotoRecord } from "@/types/bitacoras";
 
-export const BITACORAS_FILTERS: FilterConfig[] = [
+/**
+ * Define qué campos del registro queremos mapear a filtros dinámicos
+ */
+export interface FilterMapping {
+  key: string;
+  label: string;
+  type: "multiple" | "single" | "multiselect" | "search";
+  defaultDisplayOpen?: boolean;
+  // Lógica custom para extraer el valor del registro (opcional)
+  getValue?: (record: PhotoRecord) => string | string[] | undefined;
+}
+
+/**
+ * Configuración dinámica para la sección de Bitácoras
+ */
+export const BITACORA_MAPPINGS: FilterMapping[] = [
   {
+    key: "status",
     label: "Estatus",
     type: "multiple",
-    key: "status",
-    options: [
-      { label: "Entrada", value: "entrada" },
-      { label: "Salida", value: "salida" },
-    ],
+    defaultDisplayOpen: true,
+  },
+  {
+    key: "perfil_visita",
+    label: "Perfil",
+    type: "multiple",
+  },
+  {
+    key: "visita_a",
+    label: "Visita a",
+    type: "multiselect",
+    getValue: (r) => {
+      const v = r.rawData?.visita_a;
+      return Array.isArray(v) ? v[0]?.nombre : "";
+    },
   },
 ];
 
+export const BITACORAS_FILTERS: FilterConfig[] = [
+  // Este se mantiene como base estática si es necesario
+];
+
+/**
+ * Genera una configuración de filtros dinámica basada en mappings
+ */
 export function generateFiltersConfig(
   records: PhotoRecord[],
-  storeLocations?: string[],
+  mappings: FilterMapping[] = BITACORA_MAPPINGS,
 ): FilterConfig[] {
   const dynamicConfigs: FilterConfig[] = [];
 
-  const statuses = Array.from(new Set(records.map((r) => r.status))).filter(
-    Boolean,
-  );
-  if (statuses.length > 0) {
-    dynamicConfigs.push({
-      defaultDisplayOpen: true,
-      label: "Estatus",
-      key: "status",
-      type: "multiple",
-      options: statuses.map((s) => ({
-        label: s.charAt(0).toUpperCase() + s.slice(1),
-        value: s,
-      })),
-    });
-  }
+  // Generar filtros basados en los mappings proporcionados
+  mappings.forEach((mapping) => {
+    // Extraer valores únicos basándose en la key o la función getValue
+    const uniqueValues = Array.from(
+      new Set(
+        records.map((r) => {
+          if (mapping.getValue) return mapping.getValue(r);
+          return r.rawData?.[mapping.key] || (r as any)[mapping.key];
+        }),
+      ),
+    )
+      .flat() // Por si hay arrays
+      .filter(Boolean) as string[];
 
-  const locations =
-    storeLocations && storeLocations.length > 0
-      ? storeLocations.map((l) =>
-          typeof l === "string" ? { label: l, value: l } : l,
-        )
-      : Array.from(new Set(records.map((r) => r.rawData?.ubicacion)))
-          .filter(Boolean)
-          .map((l) => ({ label: String(l), value: String(l) }));
-
-  if (locations.length > 0) {
-    dynamicConfigs.push({
-      label: "Ubicación",
-      key: "ubicacion",
-      type: "multiple",
-      options: locations,
-    });
-  }
-
-  const perfiles = Array.from(
-    new Set(records.map((r) => r.rawData?.perfil_visita)),
-  ).filter(Boolean);
-  if (perfiles.length > 0) {
-    dynamicConfigs.push({
-      label: "Perfil",
-      key: "perfil_visita",
-      type: "multiple",
-      options: perfiles.map((p) => ({ label: String(p), value: String(p) })),
-    });
-  }
-
-  const visitas = Array.from(
-    new Set(
-      records.map((r) => {
-        const visita = r.rawData?.visita_a;
-        return Array.isArray(visita) ? visita[0]?.nombre : "";
-      }),
-    ),
-  ).filter(Boolean);
-
-  if (visitas.length > 0) {
-    dynamicConfigs.push({
-      label: "Visita a",
-      key: "visita_a",
-      type: "multiselect",
-      options: visitas.map((v) => ({ label: String(v), value: String(v) })),
-    });
-  }
+    if (uniqueValues.length > 0) {
+      dynamicConfigs.push({
+        key: mapping.key,
+        label: mapping.label,
+        type: mapping.type,
+        defaultDisplayOpen: mapping.defaultDisplayOpen,
+        options: uniqueValues.map((val) => ({
+          label: val.charAt(0).toUpperCase() + val.slice(1),
+          value: val,
+        })),
+      });
+    }
+  });
 
   return dynamicConfigs;
 }

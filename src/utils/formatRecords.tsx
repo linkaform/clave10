@@ -19,10 +19,10 @@ export function formatListRecord(raw: any, type: RegistryType): ListRecord {
         title: raw?.nombre_visitante || "Visitante desconocido",
         description: raw?.contratista || "Sin Empresa Registrada",
         images: [
-          raw?.fotografia?.[0]?.file_url.replace(".jpg", ".thumbnail") || "",
-          raw?.identificacion?.[0]?.file_url.replace(".jpg", ".thumbnail") ||
-            "",
-        ],
+          raw?.fotografia?.[0]?.file_url?.replace(".jpg", ".thumbnail") || null,
+          raw?.identificacion?.[0]?.file_url?.replace(".jpg", ".thumbnail") ||
+            null,
+        ].filter((url): url is string => url !== null),
         status: raw?.status_visita === "Entrada" ? "entrada" : "salida",
         badgesList: [
           {
@@ -144,10 +144,10 @@ export function formatPhotoRecord(raw: any, type: RegistryType): PhotoRecord {
         title: raw?.nombre_visitante || "Visitante desconocido",
         description: raw?.contratista || "Sin Empresa Registrada",
         images: [
-          raw?.fotografia?.[0]?.file_url.replace(".jpg", ".thumbnail") || "",
-          raw?.identificacion?.[0]?.file_url.replace(".jpg", ".thumbnail") ||
-            "",
-        ],
+          raw?.fotografia?.[0]?.file_url?.replace(".jpg", ".thumbnail") || null,
+          raw?.identificacion?.[0]?.file_url?.replace(".jpg", ".thumbnail") ||
+            null,
+        ].filter((url): url is string => url !== null),
         status: raw?.status_visita === "Entrada" ? "entrada" : "salida",
         detailsList: [
           {
