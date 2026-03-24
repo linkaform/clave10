@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Bitacora_record, getBitacorasColumns } from "./bitacoras-columns";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
@@ -158,7 +158,13 @@ const BitacorasTable: React.FC<ListProps> = ({
     return memoizedData.map((item) => formatPhotoRecord(item, "bitacora"));
   }, [memoizedData]);
 
-  const { locations: storeLocations } = useAreasLocationStore();
+  const { locations: storeLocations, fetchLocations } = useAreasLocationStore();
+
+  useEffect(() => {
+    if (storeLocations.length == 0) {
+      fetchLocations();
+    }
+  }, []);
 
   const { filters: apiFilters } = useGetBitacoraFilters(
     true,
@@ -177,7 +183,7 @@ const BitacorasTable: React.FC<ListProps> = ({
   }, [photoRecords, apiFilters, memoizedData?.length, storeLocations]);
 
   // Notificar al padre sobre la configuración de filtros
-  React.useEffect(() => {
+  useEffect(() => {
     if (bitacoraFiltersConfig && onFiltersConfigReady) {
       onFiltersConfigReady(bitacoraFiltersConfig);
     }
