@@ -7,6 +7,7 @@ import { PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
 import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoGridCardModal } from "./PhotoGridCardModal";
+import EquiposYVehiculosList from "../EquiposYVehiculosList";
 
 export function PhotoGridView({
   isLoading,
@@ -158,10 +159,31 @@ export function PhotoGridView({
         </main>
       </div>
       <PhotoGridCardModal
+        badges={[
+          {
+            label: "",
+            value: selectedRecord?.status || "",
+            customClass:
+              selectedRecord?.status === "entrada"
+                ? "bg-green-600 border-green-600 text-white text-xs"
+                : "bg-red-600 border-red-600 text-white text-xs",
+          },
+          {
+            label: "",
+            value: selectedRecord?.visit_type || "",
+            customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs",
+          },
+          {
+            label: "",
+            value: `#${selectedRecord?.folio || ""}`,
+            customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs",
+          },
+        ]}
         record={selectedRecord}
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-      />
+        onOpenChange={setIsModalOpen}>
+        <EquiposYVehiculosList record={selectedRecord} />
+      </PhotoGridCardModal>
     </div>
   );
 }

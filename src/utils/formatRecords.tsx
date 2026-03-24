@@ -196,7 +196,17 @@ export function formatPhotoRecord(raw: any, type: RegistryType): PhotoRecord {
             label: "Ubicación",
             value: raw?.ubicacion,
           },
+          {
+            icon: <Contact className="h-3 w-3" />,
+            label: "Áreas permitidas",
+            value: raw.grupo_areas_acceso.map(
+              (area: { incidente_area: string; commentario_area: string }) =>
+                area.incidente_area,
+            ),
+          },
         ],
+        vehiculos: raw.vehiculos || [],
+        equipos: raw.equipos || [],
         rawData: raw,
       };
 
