@@ -20,9 +20,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
-import { List, UserRound, CalendarDays, Layers, MessageSquare } from "lucide-react";
+import { List, UserRound, CalendarDays, Layers } from "lucide-react";
 import { formatDateToString, formatFecha, isExcluded } from "@/lib/utils";
-import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
+import { Areas } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
 import { Contacto } from "@/lib/get-user-contacts";
@@ -32,7 +32,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import AreasList from "@/components/areas-list";
 import { useMenuStore } from "@/store/useGetMenuStore";
-import ComentariosList from "@/components/comentarios-list";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useAssetsByLocations } from "@/hooks/assetsQueries";
 import DateTimePicker from "@/components/dateTimerPicker";
@@ -210,7 +209,7 @@ import DateTimePicker from "@/components/dateTimerPicker";
 	const [enviar_correo_pre_registro] = useState<string[]>([]);
 	const [formatedDocs, setFormatedDocs] = useState<string[]>([])
 	const [formatedEnvio, setFormatedEnvio] = useState<string[]>([])
-	const [comentariosList, setComentariosList] = useState<Comentarios[]>([]);
+	// const [comentariosList, setComentariosList] = useState<Comentarios[]>([]);
 	const [areasList, setAreasList] = useState<Areas[]>([]);
 	const [isActiveFechaFija, setIsActiveFechaFija] = useState(false);
 	const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(true);
@@ -346,7 +345,7 @@ import DateTimePicker from "@/components/dateTimerPicker";
 			config_dias_acceso: config_dias_acceso,
 			config_limitar_acceso: Number(data.config_limitar_acceso) || 0,
 			areas: areasList,
-			comentarios: comentariosList,
+			comentarios: [{tipo_comentario:"pase", comentario_pase:data.descripcion}],
 			enviar_pre_sms:{
 				from: "enviar_pre_sms",
 				mensaje: "SOY UN MENSAJE",
@@ -946,7 +945,7 @@ return (
 					</div>
 				}
 
-				{isExcluded("comentarios", excludes ?? undefined) &&
+				{/* {isExcluded("comentarios", excludes ?? undefined) &&
 					<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
 						<div className="flex items-center gap-2 mb-5">
 							<div className="p-2 bg-blue-50 rounded-xl">
@@ -960,7 +959,7 @@ return (
 							tipo={"Pase"}
 						/>
 					</div>
-				}
+				} */}
 
 				<div className="text-center pb-8">
 					<Button

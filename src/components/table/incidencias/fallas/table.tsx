@@ -14,7 +14,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { CalendarDays,  Eraser,  Eye,  FileX2,  Plus,  Search, Trash2 } from "lucide-react";
+import { CalendarDays,  Eraser,  FileX2,  Plus,  Search, Trash2 } from "lucide-react";
 
 
 
@@ -256,7 +256,6 @@ return (
 					data={fallaSeleccionada} isSuccess={modalVerSeguimientoAbierto}
 					setIsSuccess={setModalVerSeguimientoAbierto} setModalEditarAbierto={setModalEditarAbierto }>
 					<div className="cursor-pointer" title="Ver Falla">
-						<Eye /> 
 					</div>
 				</ViewFalla>
 			)}

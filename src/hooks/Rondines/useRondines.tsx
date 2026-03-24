@@ -14,7 +14,7 @@ export const useRondines = () => {
 				const hasError = (!response?.success) || (response?.response?.data?.status_code === 400 )
 				if (hasError) {
 					const textMsj = errorMsj(response)
-					throw new Error(`Error al crear seguimiento, Error: ${textMsj?.text}`);
+					throw new Error(`Error al crear rondin, Error: ${textMsj?.text}`);
 				} else {
 					return response.response?.data
 				}
