@@ -14,7 +14,6 @@ import { Search, LogOut, LayoutGrid, Sheet, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBitacora } from "@/hooks/bitacora/useBitacora";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
-import { FilterConfig } from "@/types/bitacoras";
 
 const BitacorasPage = () => {
   const [dynamicFilters, setDynamicFilters] = React.useState<
@@ -34,7 +33,7 @@ const BitacorasPage = () => {
 
   const {
     bitacoraFilters,
-    loadingFilters,
+    // loadingFilters,
     bitacoraSeleccionada,
     date1,
     date2,

@@ -22,11 +22,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Bitacora_record, getBitacorasColumns } from "./bitacoras-columns";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
-import { ListRecord, PhotoRecord, FilterConfig } from "@/types/bitacoras";
+import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
 import PhotoSelectedActions from "@/components/Bitacoras/PhotoGrid/PhotoGridSelectedActions";
