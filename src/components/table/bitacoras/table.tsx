@@ -26,7 +26,8 @@ import { useMemo, useState } from "react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
-import { ListRecord, PhotoRecord } from "@/types/bitacoras";
+import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
+import { ListRecord, PhotoRecord, FilterConfig } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
 import PhotoSelectedActions from "@/components/Bitacoras/PhotoGrid/PhotoGridSelectedActions";
@@ -57,6 +58,7 @@ interface ListProps {
   onExternalDynamicFiltersChange: (filters: Record<string, any>) => void;
   searchTags?: string[];
   setUbicacionSeleccionada?: (val: string) => void;
+  filtersConfig?: FilterConfig[];
 }
 
 const BitacorasTable: React.FC<ListProps> = ({
@@ -79,6 +81,7 @@ const BitacorasTable: React.FC<ListProps> = ({
   externalDynamicFilters,
   onExternalDynamicFiltersChange,
   searchTags: externalSearchTags,
+  filtersConfig = [],
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -182,132 +185,150 @@ const BitacorasTable: React.FC<ListProps> = ({
 
   return (
     <div className="w-full">
-      {viewMode === "table" ? (
-        <>
-          <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">
-            <Table className="text-xs">
-              <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
-                {table.getHeaderGroups().map((headerGroup: any) => (
-                  <TableRow
-                    key={headerGroup.id}
-                    className="hover:bg-transparent border-none">
-                    {headerGroup.headers.map((header: any) => {
-                      return (
-                        <TableHead
-                          key={header.id}
-                          className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none ${header.id === "options" ? "w-1" : ""}`}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
+      <div className="flex gap-4">
+        {viewMode !== "table" && (
+          <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 h-fit sticky top-[140px] shadow-sm">
+            <FiltersPanel
+              filters={externalFilters}
+              onFiltersChange={onExternalFiltersChange}
+              filtersConfig={filtersConfig}
+            />
+          </aside>
+        )}
 
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row: any) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                      className="hover:bg-slate-100 transition-colors border-slate-50">
-                      {row.getVisibleCells().map((cell: any) => (
+        <div className="flex-1 min-w-0">
+          {viewMode === "table" ? (
+            <>
+              <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">
+                <Table className="text-xs">
+                  <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
+                    {table.getHeaderGroups().map((headerGroup: any) => (
+                      <TableRow
+                        key={headerGroup.id}
+                        className="hover:bg-transparent border-none">
+                        {headerGroup.headers.map((header: any) => {
+                          return (
+                            <TableHead
+                              key={header.id}
+                              className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none ${header.id === "options" ? "w-1" : ""}`}>
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext(),
+                                  )}
+                            </TableHead>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+
+                  <TableBody>
+                    {table.getRowModel().rows?.length ? (
+                      table.getRowModel().rows.map((row: any) => (
+                        <TableRow
+                          key={row.id}
+                          data-state={row.getIsSelected() && "selected"}
+                          className="hover:bg-slate-100 transition-colors border-slate-50">
+                          {row.getVisibleCells().map((cell: any) => (
+                            <TableCell
+                              key={cell.id}
+                              className={`py-2 px-3 border-r border-slate-100 last:border-r-0 ${cell.column.id === "options" ? "w-1" : ""} font-normal`}>
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
                         <TableCell
-                          key={cell.id}
-                          className={`py-2 px-3 border-r border-slate-100 last:border-r-0 ${cell.column.id === "options" ? "w-1" : ""} font-normal`}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
+                          colSpan={columns.length}
+                          className="h-32 text-center">
+                          {isLoading ? (
+                            <div className="flex flex-col items-center gap-2 text-slate-300">
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
+                              <span className="text-xs font-normal">
+                                Cargando registros...
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-300 font-normal">
+                              No se encontraron registros
+                            </span>
                           )}
                         </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-32 text-center">
-                      {isLoading ? (
-                        <div className="flex flex-col items-center gap-2 text-slate-300">
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-                          <span className="text-xs font-normal">
-                            Cargando registros...
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-300 font-normal">
-                          No se encontraron registros
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </>
-      ) : viewMode === "photos" ? (
-        <div className="mt-4">
-          <PhotoGridView
-            isLoading={isLoading}
-            records={photoRecords}
-            globalSearch={searchTags}
-            externalFilters={externalFilters}
-            onExternalFiltersChange={onExternalFiltersChange}
-            onRecordClick={() => {}}
-            renderCustomActions={(ids) => (
-              <PhotoSelectedActions selectedItems={ids}>
-                <OutSelectedItemsButton selectedItems={ids} />
-              </PhotoSelectedActions>
-            )}>
-            {(record: PhotoRecord) => {
-              const bitacora = memoizedData.find((b) => b._id === record.id);
-              if (!bitacora) return null;
-              return (
-                <InAndOutButtons
-                  bitacora={bitacora}
-                  handleSalida={handleSalida}
-                  printPaseFn={printPaseFn}
-                />
-              );
-            }}
-          </PhotoGridView>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          ) : viewMode === "photos" ? (
+            <div className="mt-4">
+              <PhotoGridView
+                isLoading={isLoading}
+                records={photoRecords}
+                globalSearch={searchTags}
+                externalFilters={externalFilters}
+                onExternalFiltersChange={onExternalFiltersChange}
+                onRecordClick={() => {}}
+                renderCustomActions={(ids) => (
+                  <PhotoSelectedActions selectedItems={ids}>
+                    <OutSelectedItemsButton selectedItems={ids} />
+                  </PhotoSelectedActions>
+                )}>
+                {(record: PhotoRecord) => {
+                  const bitacora = memoizedData.find(
+                    (b) => b._id === record.id,
+                  );
+                  if (!bitacora) return null;
+                  return (
+                    <InAndOutButtons
+                      bitacora={bitacora}
+                      handleSalida={handleSalida}
+                      printPaseFn={printPaseFn}
+                    />
+                  );
+                }}
+              </PhotoGridView>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <PhotoListView
+                isLoading={isLoading}
+                records={photoListRecords}
+                globalSearch={searchTags}
+                externalFilters={externalFilters}
+                onExternalFiltersChange={onExternalFiltersChange}
+                onRecordClick={() => {}}
+                renderCustomActions={(ids) => (
+                  <PhotoSelectedActions selectedItems={ids}>
+                    <OutSelectedItemsButton selectedItems={ids} />
+                  </PhotoSelectedActions>
+                )}>
+                {(record: ListRecord) => {
+                  const bitacora = memoizedData.find(
+                    (b) => b._id === record.id,
+                  );
+                  if (!bitacora) return null;
+                  return (
+                    <InAndOutButtons
+                      bitacora={bitacora}
+                      handleSalida={handleSalida}
+                      printPaseFn={printPaseFn}
+                    />
+                  );
+                }}
+              </PhotoListView>
+            </div>
+          )}
+          <DataTablePagination table={table} total={total} />
         </div>
-      ) : (
-        <div className="mt-4">
-          <PhotoListView
-            isLoading={isLoading}
-            records={photoListRecords}
-            globalSearch={searchTags}
-            externalFilters={externalFilters}
-            onExternalFiltersChange={onExternalFiltersChange}
-            onRecordClick={() => {}}
-            renderCustomActions={(ids) => (
-              <PhotoSelectedActions selectedItems={ids}>
-                <OutSelectedItemsButton selectedItems={ids} />
-              </PhotoSelectedActions>
-            )}>
-            {(record: ListRecord) => {
-              const bitacora = memoizedData.find((b) => b._id === record.id);
-              if (!bitacora) return null;
-              return (
-                <InAndOutButtons
-                  bitacora={bitacora}
-                  handleSalida={handleSalida}
-                  printPaseFn={printPaseFn}
-                />
-              );
-            }}
-          </PhotoListView>
-        </div>
-      )}
-      <DataTablePagination table={table} total={total} />
+      </div>
     </div>
   );
 };

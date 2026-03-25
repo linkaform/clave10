@@ -123,17 +123,19 @@ const BitacorasPage = () => {
 
   return (
     <div className="w-full relative">
-      <FloatingFiltersDrawer
-        isOpen={isSidebarOpen}
-        onOpenChange={setIsSidebarOpen}
-        activeFiltersCount={activeFiltersCount}
-        filters={externalFilters}
-        onFiltersChange={onExternalFiltersChange}
-        filtersConfig={bitacoraFilters}
-      />
+      {viewMode === "table" && (
+        <FloatingFiltersDrawer
+          isOpen={isSidebarOpen}
+          onOpenChange={setIsSidebarOpen}
+          activeFiltersCount={activeFiltersCount}
+          filters={externalFilters}
+          onFiltersChange={onExternalFiltersChange}
+          filtersConfig={bitacoraFilters}
+        />
+      )}
       <div className="p-6 space-y-4 pt-3 w-full">
         {/* FILA ÚNICA: Título -> Search -> Tabs -> ViewModes */}
-        <div className="flex items-center justify-between w-full gap-4">
+        <div className="flex items-center justify-between w-full gap-4 sticky top-[68px] z-40 bg-white backdrop-blur-sm py-2">
           {/* 1. Título (Izquierda) */}
           <div className="flex items-baseline gap-2 min-w-fit">
             <h1 className="text-xl font-bold text-slate-900 whitespace-nowrap">
@@ -255,6 +257,7 @@ const BitacorasPage = () => {
                 externalDynamicFilters={dynamicFilters}
                 onExternalDynamicFiltersChange={setDynamicFilters}
                 searchTags={searchTags}
+                filtersConfig={bitacoraFilters}
               />
             </TabsContent>
             <TabsContent
