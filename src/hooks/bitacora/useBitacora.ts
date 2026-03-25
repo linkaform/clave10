@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import Swal from "sweetalert2";
 import { useGetStats } from "../useGetStats";
 import { useBitacoras } from "../Bitacora/useBitacoras";
+import { getBitacoraFilters } from "@/services/endpoints";
+import { useFilters } from "./useFilters";
 
 export const useBitacora = (
   dynamicFilters?: { key: string; value: string }[],
@@ -32,6 +34,10 @@ export const useBitacora = (
   const [dates, setDates] = useState<string[]>([]);
   const [dateFilter, setDateFilter] = useState<string>(filter);
   const [areaSeleccionada, setAreaSeleccionada] = useState<string>("todas");
+  const { filters: bitacoraFilters, loadingFilters } = useFilters({
+    key: "bitacora-filters",
+    endpoint: getBitacoraFilters,
+  });
   const [selectedTab, setSelectedTab] = useState<string>(
     tab ? tab : "Personal",
   );
@@ -184,6 +190,7 @@ export const useBitacora = (
 
   return {
     // Values
+    bitacoraFilters,
     bitacoraSeleccionada,
     date1,
     date2,
@@ -212,6 +219,7 @@ export const useBitacora = (
     handlePrintPase,
     handleRegresarGafete,
     handleSalida,
+    loadingFilters,
     refreshData,
     setAreaSeleccionada,
     setDate1,

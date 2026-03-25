@@ -4,6 +4,6 @@ import { ApiResponse } from "@/types/api";
 
 export const getBitacoraFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "script_turnos.py",
-    option: "get_bitacora_filters",
+    script_name: "filters.py",
+    option: "in_and_out",
   });
