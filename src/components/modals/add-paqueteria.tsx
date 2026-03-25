@@ -25,7 +25,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { format } from 'date-fns';
 
-import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
+// import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
 import DateTime from "../dateTime";
 import { Loader2 } from "lucide-react";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
@@ -34,6 +34,7 @@ import LoadImage, { Imagen } from "../upload-Image";
 import { useCatalogoProveedores } from "@/hooks/useCatalogoProveedores";
 import { useGetLockers } from "@/hooks/useGetLockers";
 import { useBoothStore } from "@/store/useBoothStore";
+import { Input } from "../ui/input";
 
 interface AddFallaModalProps {
   	title: string;
@@ -72,7 +73,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
 	const [conSelected, setConSelected] = useState<string>(area??"");
 	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"");
 	const { dataAreas:areas, dataLocations:ubicaciones, isLoadingAreas:loadingAreas, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true,  ubicacionSeleccionada?true:false);
-	const { data:dataAreaEmpleadoApoyo, isLoading:loadingAreaEmpleadoApoyo,} = useCatalogoAreaEmpleadoApoyo(isSuccess);
+	// const { data:dataAreaEmpleadoApoyo, isLoading:loadingAreaEmpleadoApoyo,} = useCatalogoAreaEmpleadoApoyo(isSuccess);
 	const { dataProveedores, isLoadingProveedores} = useCatalogoProveedores(isSuccess)
 	const { createPaqueteriaMutation, isLoading} = usePaqueteria(ubicacionSeleccionada, area??"", "", false, "", "", "")
 	const { data:responseGetLockers, isLoading:loadingGetLockers } = useGetLockers(ubicacionSeleccionada ?? false,"", "Disponible", isSuccess);
@@ -240,7 +241,25 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
 						</FormItem>
 					)}
 					/>
+
 					<FormField
+					control={form.control}
+					name="quien_recibe_paqueteria"
+					render={({ field }: any) => (
+						<FormItem>
+						<FormLabel>Destinatario:</FormLabel>
+						<FormControl>
+							<Input
+							{...field}
+							placeholder="Escribe el nombre del destinatario..."
+							className="w-full"
+							/>
+						</FormControl>
+						<FormMessage />
+						</FormItem>
+					)}
+					/>
+					{/* <FormField
 					control={form.control}
 					name="quien_recibe_paqueteria"
 					render={({ field }:any) => (
@@ -281,7 +300,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
 							<FormMessage />
 						</FormItem>
 					)}
-				/>	
+				/>	 */}
 
 				<FormField
                     control={form.control}

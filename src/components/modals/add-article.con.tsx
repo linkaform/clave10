@@ -185,7 +185,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
           observacion_concesion: "",
           evidencia: [],
           firma: undefined,
-          solicita_concesion: "empleado",
+          solicita_concesion: "otro",
         });
         setDate(new Date());
         setEquipos([]);
@@ -399,23 +399,25 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                         <FormControl>
                           <div className="flex gap-2">
                             <button
+                            disabled
                               type="button"
                               onClick={() => field.onChange("empleado")}
                               className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                                 field.value === "empleado"
-                                  ? "bg-blue-600 text-white shadow-sm"
-                                  : "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50"
+                                  ? "bg-blue-600 text-white shadow-sm "
+                                  : "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50 opacity-50 "
                               }`}
                             >
                               Empleado
                             </button>
                             <button
+                            disabled
                               type="button"
                               onClick={() => { field.onChange("otro"); form.setValue("persona_nombre_concesion", ""); }}
                               className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                                 field.value === "otro"
-                                  ? "bg-blue-600 text-white shadow-sm"
-                                  : "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50"
+                                  ? "bg-blue-600 text-white shadow-sm opacity-50"
+                                  : "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50 "
                               }`}
                             >
                               Otro

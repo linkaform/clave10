@@ -35,7 +35,7 @@ import LoadImage, { Imagen } from "../upload-Image";
 import { useBoothStore } from "@/store/useBoothStore";
 import { getRequerimientos, uniqueArray } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
-
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 interface Props {
   title: string;
   children: React.ReactNode;
@@ -149,6 +149,7 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
       empresa: data.empresa,
       created_from: "nueva_visita",
       visita_a: data.visita_a,
+      worker_name:data.visita_a,
       perfil_pase: data.perfil_pase,
       foto: fotografia,
       identificacion: identificacion,
@@ -176,7 +177,6 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
     }
 
     if (!valid) return;
-
     registerNewVisit.mutate({ location: location ?? "", access_pass });
   }
 
@@ -235,8 +235,12 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
       <DialogTrigger asChild>{children}</DialogTrigger>
 
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl p-0">
+
+       <VisuallyHidden>
+          <DialogTitle >{title}</DialogTitle>
+          </VisuallyHidden>
         <div className="px-6 pt-6 pb-2 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-slate-800">{title}</h2>
+          <h2 className="text-xl font-bold text-slate-800">{title}</h2>
           <p className="text-xs text-slate-400 mt-0.5">Completa los campos para registrar la visita</p>
         </div>
 

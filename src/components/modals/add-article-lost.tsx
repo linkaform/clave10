@@ -83,7 +83,7 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
 	const { data:dataArticulos, isLoading:isLoadingArticulos } = useCatalogoArticulos(tipoArt, isSuccess);
 	const { createArticulosPerdidosMutation, isLoading} = useArticulosPerdidos("","", "abierto", false,  "", "", "")
 	const { data:responseGetLockers, isLoading:loadingGetLockers } = useGetLockers(ubicacionSeleccionada ?? false,"", "Disponible", isSuccess);
-    const [isActiveInterno, setIsActiveInterno] = useState<string|null>("interno");
+    const [isActiveInterno, setIsActiveInterno] = useState<string|null>("externo");
 
 	const [evidencia , setEvidencia] = useState<Imagen[]>([]);
 	const [date, setDate] = useState<Date|"">("");
@@ -448,6 +448,7 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
 						<div className="flex gap-2">
 							<div className="flex gap-2 flex-wrap">
 								<Button
+								disabled
 								type="button"
 								onClick={()=>handleToggleInterno("interno")}
 								className={`px-4 py-2 rounded-md transition-all duration-300 ${
@@ -469,6 +470,7 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
 							</div>
 							<div className="flex gap-2 flex-wrap">
 								<Button
+								disabled
 								type="button"
 								onClick={()=>handleToggleInterno("externo")}
 								className={`px-4 py-2 rounded-md transition-all duration-300 ${

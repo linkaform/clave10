@@ -239,6 +239,7 @@ export const addNewVisit = async (
       config_dia_de_acceso: access_pass.config_dia_de_acceso || "cualquier_día",
       config_dias_acceso: access_pass.config_dias_acceso || [],
       config_limitar_acceso: access_pass.config_limitar_acceso || 0,
+      worker_name:access_pass.worker_name
       },
     option: "create_access_pass",
     script_name: "pase_de_acceso.py",

@@ -156,7 +156,7 @@ import { Input } from "@/components/ui/input";
 		  ? ubicacionesSeleccionadas 
 		  : ubicacionesDefaultFormatted ?? []
 	  );
-	const [visitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
+	// const [visitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
 	//Ubicacion seleccionada  
 	useEffect(()=>{
 		if(location)
@@ -323,10 +323,7 @@ import { Input } from "@/components/ui/input";
 			descripcion: data.descripcion,
 			perfil_pase: data.perfil_pase,
 			status_pase: "Proceso",
-			visita_a: visitaASeleccionadas?.map(u => {
-				const val = typeof u === "string" ? u : (u?.id || u?.name || "");
-				return String(val).split(" - ")[0].trim();
-			}) ?? [],
+			visita_a: data.visita_a,
 			custom: true,
 			link:{
 				link: `${protocol}//${host}/dashboard/pase-update`,
@@ -351,7 +348,8 @@ import { Input } from "@/components/ui/input";
 				mensaje: "SOY UN MENSAJE",
 				numero: data.telefono,
 			},
-			todas_las_areas: todasAreas
+			todas_las_areas: todasAreas,
+			worker_name:data.visita_a,
 		};
 	
 		if(tipoVisita == "fecha_fija" && !date){
@@ -359,6 +357,7 @@ import { Input } from "@/components/ui/input";
 		} else if(tipoVisita == "rango_de_fechas" && (formattedData.fecha_desde_visita == "" || formattedData.fecha_desde_hasta == "")){
 			form.setError("fecha_desde_hasta", { type: "manual", message: "Ambas fechas son requeridas" });
 		} else {
+			console.log("formateed", formattedData)
 			setModalData(formattedData);
 			setIsSuccess(true);
 		}

@@ -138,7 +138,8 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
         mensaje: dataPass.enviar_pre_sms.mensaje,
         numero: dataPass.enviar_pre_sms.numero,
       },
-	  todas_las_areas:dataPass.todas_las_areas
+	  todas_las_areas:dataPass.todas_las_areas,
+	  worker_name:dataPass.visita_a,
     };
     const enviarPreSms : enviar_pre_sms= {
       from: dataPass.enviar_pre_sms.from,
