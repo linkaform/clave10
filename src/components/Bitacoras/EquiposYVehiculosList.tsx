@@ -4,7 +4,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_IMAGE =
-  "https://f001.backblazeb2.com/file/app-linkaform/public-client-126/71202/60b81349bde5588acca320e1/64efbf5f241e60d950ff5b9e.jpg";
+  "https://f001.backblazeb2.com/file/app-linkaform/public-client-126/71202/60b81349bde5588acca320e1/64efbf5f241e60d950ff5b9e.thumbnail";
 
 interface EquiposYVehiculosListProps {
   record: PhotoRecord | null;
