@@ -8,9 +8,11 @@ interface SelectionBarProps {
   totalVisible: number;
   onClear: () => void;
   onSelectAll: () => void;
-  renderCustomActions?: (
-    selectedItems: { record_id: string; record_status: string }[],
-  ) => React.ReactNode;
+  selectionActions?:
+    | React.ReactNode
+    | ((
+        selectedItems: { record_id: string; record_status: string }[],
+      ) => React.ReactNode);
   selectedItems: { record_id: string; record_status: string }[];
 }
 
@@ -19,7 +21,7 @@ export function SelectionBar({
   totalVisible,
   onClear,
   onSelectAll,
-  renderCustomActions,
+  selectionActions,
   selectedItems,
 }: SelectionBarProps) {
   if (selectedCount === 0) return null;
@@ -59,9 +61,11 @@ export function SelectionBar({
             <X className="h-5 w-5" />
           </Button>
 
-          {renderCustomActions && (
+          {selectionActions && (
             <div className="flex items-center gap-2">
-              {renderCustomActions(selectedItems)}
+              {typeof selectionActions === "function"
+                ? selectionActions(selectedItems)
+                : selectionActions}
             </div>
           )}
         </div>

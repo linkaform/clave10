@@ -239,25 +239,25 @@ const BitacorasPage = () => {
               className="m-0 border-none p-0 focus-visible:ring-0">
               <BitacorasTable
                 data={listBitacoras?.records}
-                isLoading={isLoadingListBitacoras}
-                printPase={handlePrintPase}
-                total={listBitacoras?.total_records}
-                pagination={pagination}
-                setPagination={setPagination}
-                viewMode={viewMode}
-                handleSalida={handleSalida}
-                handleRegresarGafete={handleRegresarGafete}
-                handleAgregarBadge={handleAgregarBadge}
-                dateFilter={dateFilter}
-                setDateFilter={setDateFilter}
                 date1={date1}
-                setDate1={setDate1}
                 date2={date2}
-                setDate2={setDate2}
+                dateFilter={dateFilter}
                 externalDynamicFilters={dynamicFilters}
-                onExternalDynamicFiltersChange={setDynamicFilters}
-                searchTags={searchTags}
                 filtersConfig={bitacoraFilters}
+                handleAgregarBadge={handleAgregarBadge}
+                handleRegresarGafete={handleRegresarGafete}
+                handleSalida={handleSalida}
+                isLoading={isLoadingListBitacoras}
+                onExternalDynamicFiltersChange={setDynamicFilters}
+                pagination={pagination}
+                printPase={handlePrintPase}
+                searchTags={searchTags}
+                setDate1={setDate1}
+                setDate2={setDate2}
+                setDateFilter={setDateFilter}
+                setPagination={setPagination}
+                total={listBitacoras?.total_records}
+                viewMode={viewMode}
               />
             </TabsContent>
             <TabsContent

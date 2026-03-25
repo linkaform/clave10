@@ -30,7 +30,6 @@ import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersP
 import { ListRecord, PhotoRecord, FilterConfig } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
-import PhotoSelectedActions from "@/components/Bitacoras/PhotoGrid/PhotoGridSelectedActions";
 import OutSelectedItemsButton from "@/components/Bitacoras/OutSelectedItemsButton";
 
 interface ListProps {
@@ -183,6 +182,18 @@ const BitacorasTable: React.FC<ListProps> = ({
     }
   };
 
+  const renderActions = (record: PhotoRecord | ListRecord) => {
+    const bitacora = memoizedData.find((b) => b._id === record.id);
+    if (!bitacora) return null;
+    return (
+      <InAndOutButtons
+        bitacora={bitacora}
+        handleSalida={handleSalida}
+        printPaseFn={printPaseFn}
+      />
+    );
+  };
+
   return (
     <div className="w-full">
       <div className="flex gap-4">
@@ -273,27 +284,10 @@ const BitacorasTable: React.FC<ListProps> = ({
                 isLoading={isLoading}
                 records={photoRecords}
                 globalSearch={searchTags}
-                externalFilters={externalFilters}
-                onExternalFiltersChange={onExternalFiltersChange}
-                onRecordClick={() => {}}
-                renderCustomActions={(ids) => (
-                  <PhotoSelectedActions selectedItems={ids}>
-                    <OutSelectedItemsButton selectedItems={ids} />
-                  </PhotoSelectedActions>
+                selectionActions={(ids) => (
+                  <OutSelectedItemsButton selectedItems={ids} />
                 )}>
-                {(record: PhotoRecord) => {
-                  const bitacora = memoizedData.find(
-                    (b) => b._id === record.id,
-                  );
-                  if (!bitacora) return null;
-                  return (
-                    <InAndOutButtons
-                      bitacora={bitacora}
-                      handleSalida={handleSalida}
-                      printPaseFn={printPaseFn}
-                    />
-                  );
-                }}
+                {renderActions}
               </PhotoGridView>
             </div>
           ) : (
@@ -302,27 +296,10 @@ const BitacorasTable: React.FC<ListProps> = ({
                 isLoading={isLoading}
                 records={photoListRecords}
                 globalSearch={searchTags}
-                externalFilters={externalFilters}
-                onExternalFiltersChange={onExternalFiltersChange}
-                onRecordClick={() => {}}
-                renderCustomActions={(ids) => (
-                  <PhotoSelectedActions selectedItems={ids}>
-                    <OutSelectedItemsButton selectedItems={ids} />
-                  </PhotoSelectedActions>
+                selectionActions={(ids) => (
+                  <OutSelectedItemsButton selectedItems={ids} />
                 )}>
-                {(record: ListRecord) => {
-                  const bitacora = memoizedData.find(
-                    (b) => b._id === record.id,
-                  );
-                  if (!bitacora) return null;
-                  return (
-                    <InAndOutButtons
-                      bitacora={bitacora}
-                      handleSalida={handleSalida}
-                      printPaseFn={printPaseFn}
-                    />
-                  );
-                }}
+                {renderActions}
               </PhotoListView>
             </div>
           )}

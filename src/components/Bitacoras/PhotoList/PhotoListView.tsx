@@ -15,12 +15,20 @@ export default function PhotoListView({
   onRecordClick,
   children,
   onSelectionChange,
-  renderCustomActions,
+  selectionActions,
   externalFilters,
   onExternalFiltersChange,
   globalSearch = [],
-}: Omit<PhotoListViewProps, "filtersConfig" | "hideSidebar"> & {
+}: Omit<
+  PhotoListViewProps,
+  "filtersConfig" | "hideSidebar" | "renderCustomActions"
+> & {
   globalSearch?: string[];
+  selectionActions?:
+    | React.ReactNode
+    | ((
+        selectedItems: { record_id: string; record_status: string }[],
+      ) => React.ReactNode);
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoListView(records as any, externalFilters, onExternalFiltersChange);
@@ -92,7 +100,7 @@ export default function PhotoListView({
             setSelectedItems(allSelected);
           }
         }}
-        renderCustomActions={renderCustomActions}
+        selectionActions={selectionActions}
         selectedItems={selectedItems}
       />
 

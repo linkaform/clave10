@@ -12,15 +12,22 @@ import EquiposYVehiculosList from "../EquiposYVehiculosList";
 export function PhotoGridView({
   isLoading,
   records,
-  onRecordClick,
   children,
   onSelectionChange,
-  renderCustomActions,
+  selectionActions,
   externalFilters,
   onExternalFiltersChange,
   globalSearch = [],
-}: Omit<PhotoGridViewProps, "filtersConfig" | "hideSidebar"> & {
+}: Omit<
+  PhotoGridViewProps,
+  "filtersConfig" | "hideSidebar" | "renderCustomActions"
+> & {
   globalSearch?: string[];
+  selectionActions?:
+    | React.ReactNode
+    | ((
+        selectedItems: { record_id: string; record_status: string }[],
+      ) => React.ReactNode);
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoGridView(records, externalFilters, onExternalFiltersChange);
@@ -83,7 +90,6 @@ export function PhotoGridView({
   const handleCardClick = (record: PhotoRecord) => {
     setSelectedRecord(record);
     setIsModalOpen(true);
-    onRecordClick?.(record);
   };
 
   const clearSelection = () => setSelectedItems([]);
@@ -105,7 +111,7 @@ export function PhotoGridView({
             setSelectedItems(allSelected);
           }
         }}
-        renderCustomActions={renderCustomActions}
+        selectionActions={selectionActions}
         selectedItems={selectedItems}
       />
       <div className="flex flex-1 min-h-0 relative z-0">
