@@ -33,6 +33,8 @@ const BitacorasPage = () => {
   }, [dynamicFilters]);
 
   const {
+    bitacoraFilters,
+    loadingFilters,
     bitacoraSeleccionada,
     date1,
     date2,
@@ -70,7 +72,6 @@ const BitacorasPage = () => {
 
   const [selectedTab, setSelectedTab] = React.useState("personal");
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
-  const [filtersConfig, setFiltersConfig] = React.useState<FilterConfig[]>([]);
 
   const externalFilters = React.useMemo(
     () => ({
@@ -83,15 +84,14 @@ const BitacorasPage = () => {
   );
 
   const onExternalFiltersChange = (newFilters: any) => {
-    // Si los filtros se están limpiando completamente (ubicacion es [] y dateFilter es "")
+    // Si los filtros se están limpiando completamente
     if (
-      newFilters.dynamic &&
-      Array.isArray(newFilters.dynamic.ubicacion) &&
-      newFilters.dynamic.ubicacion.length === 0 &&
-      newFilters.dateFilter === ""
+      !newFilters.dynamic ||
+      (Object.keys(newFilters.dynamic).length === 0 &&
+        newFilters.dateFilter === "")
     ) {
       if (setUbicacionSeleccionada) setUbicacionSeleccionada([]);
-      setDynamicFilters({ ubicacion: [] });
+      setDynamicFilters({});
       setDateFilter("");
       setDate1("");
       setDate2("");
@@ -130,7 +130,7 @@ const BitacorasPage = () => {
         activeFiltersCount={activeFiltersCount}
         filters={externalFilters}
         onFiltersChange={onExternalFiltersChange}
-        filtersConfig={filtersConfig}
+        filtersConfig={bitacoraFilters}
       />
       <div className="p-6 space-y-4 pt-3 w-full">
         {/* FILA ÚNICA: Título -> Search -> Tabs -> ViewModes */}
@@ -253,7 +253,6 @@ const BitacorasPage = () => {
                 setDate1={setDate1}
                 date2={date2}
                 setDate2={setDate2}
-                onFiltersConfigReady={setFiltersConfig}
                 externalDynamicFilters={dynamicFilters}
                 onExternalDynamicFiltersChange={setDynamicFilters}
                 searchTags={searchTags}

@@ -64,7 +64,7 @@ export function formatListRecord(raw: any, type: RegistryType): ListRecord {
           {
             icon: <Briefcase className="h-3 w-3" />,
             label: "Tema de la cita",
-            value: "Falta Campo en Forma",
+            value: "---",
           },
           {
             icon: <CalendarDays className="h-3 w-3" />,

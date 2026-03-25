@@ -33,7 +33,7 @@ export const useFiltersPanel = (
 
   const clearFilters = () =>
     onFiltersChange({
-      dynamic: { ubicacion: [] },
+      dynamic: {},
       dateFilter: "",
       date1: "",
       date2: "",

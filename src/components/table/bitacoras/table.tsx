@@ -28,11 +28,6 @@ import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { ListRecord, PhotoRecord, FilterConfig } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
-import {
-  generateFiltersConfig,
-  BITACORA_MAPPINGS,
-} from "@/config/filters/bitacora";
-import { useGetBitacoraFilters } from "@/hooks/bitacora/useGetBitacoraFilters";
 import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
 import PhotoSelectedActions from "@/components/Bitacoras/PhotoGrid/PhotoGridSelectedActions";
 import OutSelectedItemsButton from "@/components/Bitacoras/OutSelectedItemsButton";
@@ -58,7 +53,6 @@ interface ListProps {
   date2?: Date | "";
   setDate2?: (val: Date | "") => void;
   // Configuración de filtros para el panel global
-  onFiltersConfigReady?: (config: FilterConfig[]) => void;
   externalDynamicFilters?: Record<string, any>;
   onExternalDynamicFiltersChange: (filters: Record<string, any>) => void;
   searchTags?: string[];
@@ -82,7 +76,6 @@ const BitacorasTable: React.FC<ListProps> = ({
   setDate1,
   date2,
   setDate2,
-  onFiltersConfigReady,
   externalDynamicFilters,
   onExternalDynamicFiltersChange,
   searchTags: externalSearchTags,
@@ -158,30 +151,6 @@ const BitacorasTable: React.FC<ListProps> = ({
   const photoRecords: PhotoRecord[] = useMemo(() => {
     return memoizedData.map((item) => formatPhotoRecord(item, "bitacora"));
   }, [memoizedData]);
-
-  const { filters: apiFilters } = useGetBitacoraFilters(
-    true,
-    memoizedData?.length || 0,
-  );
-
-  const bitacoraFiltersConfig = useMemo(() => {
-    // Filtros dinámicos (Estatus, Perfil, etc.)
-    const isSmallDataset =
-      (memoizedData?.length || 0) > 0 && (memoizedData?.length || 0) < 200;
-
-    if (isSmallDataset) {
-      return generateFiltersConfig(photoRecords, BITACORA_MAPPINGS);
-    } else {
-      return apiFilters;
-    }
-  }, [photoRecords, apiFilters, memoizedData?.length]);
-
-  // Notificar al padre sobre la configuración de filtros
-  useEffect(() => {
-    if (bitacoraFiltersConfig && onFiltersConfigReady) {
-      onFiltersConfigReady(bitacoraFiltersConfig);
-    }
-  }, [bitacoraFiltersConfig, onFiltersConfigReady]);
 
   const [localDynamicFilters, setLocalDynamicFilters] = useState<
     Record<string, any>

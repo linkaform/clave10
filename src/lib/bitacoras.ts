@@ -18,7 +18,7 @@ export const getListBitacora = async (
     area: area,
     location: location,
     prioridades: prioridades,
-    dynamicFilters,
+    dynamic_filters: dynamicFilters,
     limit: limit,
     offset: offset,
     option: "list_bitacora2",
