@@ -196,9 +196,9 @@ const BitacorasTable: React.FC<ListProps> = ({
 
   return (
     <div className="w-full">
-      <div className="flex gap-4">
+      <div className="flex gap-4 items-start">
         {viewMode !== "table" && (
-          <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 h-fit sticky top-[140px] shadow-sm">
+          <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto custom-scrollbar">
             <FiltersPanel
               filters={externalFilters}
               onFiltersChange={onExternalFiltersChange}
