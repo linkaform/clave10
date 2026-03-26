@@ -62,6 +62,7 @@ const formSchema = z.object({
 	fecha_recibido_paqueteria:z.string().optional(),
 	estatus_paqueteria: z.array(z.string()).optional(),
 	proveedor: z.string().optional(),
+	quien_recibe_otro:z.string().optional()
 });
 
 export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
@@ -87,6 +88,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
 			area_paqueteria: area,
 			fotografia_paqueteria: [],
 			descripcion_paqueteria:"",
+			quien_recibe_otro:"",
 			quien_recibe_paqueteria:"",
 			guardado_en_paqueteria: "",
 			fecha_recibido_paqueteria: "",
@@ -123,6 +125,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
 					ubicacion_paqueteria: ubicacionSeleccionada,
 					area_paqueteria:values.area_paqueteria??"",
 					fotografia_paqueteria: evidencia ?? [],
+					quien_recibe_otro:values.quien_recibe_otro??"",
                     descripcion_paqueteria: values.descripcion_paqueteria ?? "",
 					quien_recibe_paqueteria: values.quien_recibe_paqueteria??"",
 					guardado_en_paqueteria: values.guardado_en_paqueteria??"",
@@ -244,7 +247,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
 
 					<FormField
 					control={form.control}
-					name="quien_recibe_paqueteria"
+					name="quien_recibe_otro"
 					render={({ field }: any) => (
 						<FormItem>
 						<FormLabel>Destinatario:</FormLabel>

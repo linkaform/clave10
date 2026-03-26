@@ -24,7 +24,8 @@ export interface Paquete_record {
   fecha_entregado_paqueteria: string,
   estatus_paqueteria: string, 
   entregado_a_paqueteria: string,
-  proveedor: string
+  proveedor: string,
+  quien_recibe_otro:string
 }
 
 
@@ -79,7 +80,9 @@ export const paqueteriaColumns: ColumnDef<Paquete_record>[] = [
     accessorKey: "quien_recibe_paqueteria",
     header: "Destinatario",
     cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("quien_recibe_paqueteria")}</div>
+      <div className="capitalize">
+        {row.getValue("quien_recibe_paqueteria") || row.original.quien_recibe_otro || "—"}
+      </div>
     ),
     enableSorting: true,
   },

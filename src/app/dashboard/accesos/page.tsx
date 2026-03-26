@@ -15,10 +15,12 @@ import {
   Menu,
   PackageOpen,
   Plus,
+  RotateCcw,
   Scan,
   Search,
   Sun,
   UsersRound,
+  Webcam,
   Wrench,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -51,6 +53,7 @@ import { useGetPdf } from "@/hooks/usetGetPdf";
 import { Equipo , Vehiculo} from "@/lib/update-pass";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useMenuStore } from "@/store/useGetMenuStore";
+import { useScanPreference } from "@/hooks/scan";
 
 const AccesosPage = () => {
   const { isAuth, userParentId } = useAuthStore();
@@ -71,6 +74,9 @@ const AccesosPage = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [id, setId] = useState("");
   const [loading, setLoading]= useState(false);
+const { preference, setPreference, reset } = useScanPreference();
+
+
   const {
 	refetch,
   } = useGetPdf(userParentId, id??"", false);
@@ -345,6 +351,7 @@ const AccesosPage = () => {
 		)
   }
 
+
   return (
     <div >
 		<div className="flex flex-col w-full ">
@@ -411,15 +418,33 @@ const AccesosPage = () => {
 						Registrar Salida
 						</Button>
 					)}
-					<ScanPassOptionsModal
-						title="Escanea Pase"
-						inputRef={inputRef}
-					>
-						<Button className="bg-yellow-400 hover:bg-yellow-500 text-black">
-					<Scan />
-									Escanear Pase
-								</Button>
-					</ScanPassOptionsModal>
+
+						<ScanPassOptionsModal
+							title="Escanea Pase"
+							inputRef={inputRef}
+							preference={preference}
+							setPreference={setPreference}
+						>
+							<Button className="bg-yellow-400 hover:bg-yellow-500 text-black">
+								{preference === 'camera' ? <Webcam className="w-4 h-4" /> : <Scan />}
+								{preference === 'camera' ? 'Escanear con Cámara'
+								: preference === 'scanner' ? 'Escanear con Scanner'
+								: 'Escanear Pase'}
+							</Button>
+						</ScanPassOptionsModal>
+
+						{preference && (
+							<Button
+								type="button"
+								size="icon"
+								variant="ghost"
+								onClick={reset}
+								className="h-8 w-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
+								title="Resetear preferencia"
+							>
+								<RotateCcw className="w-4 h-4" />
+							</Button>
+						)}
 					{!passCode && isExcluded("nueva_visita", excludes?? undefined) && (
 						<AddVisitModal title="Nueva Visita">
 						<Button className="bg-green-600 hover:bg-green-700 text-white">
