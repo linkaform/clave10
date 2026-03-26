@@ -80,7 +80,6 @@ export function FiltersPanel({
           .join("_")}
         defaultValue={[
           "fecha",
-          "ubicacion",
           ...(filtersConfig
             ?.filter((c) => c.defaultDisplayOpen === true)
             ?.map((c) => c.key) || []),
