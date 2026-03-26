@@ -37,7 +37,6 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   limit = 50,
   onLoadingChange,
 }) => {
-  console.log("limiy", limit);
 
   const [loadingWebcam, setLoadingWebcam] = useState(false);
   const [hideWebcam, setHideWebcam] = useState(true);
