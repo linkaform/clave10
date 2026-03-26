@@ -284,6 +284,7 @@ export default function DateTimePicker({
     setDate(d);
   }, [setDate, showTime]);
 
+
   const handleOpenChange = (nextOpen: boolean): void => {
     if (!nextOpen && selected) {
       commitAndClose(selected, hour, minute);
@@ -291,7 +292,7 @@ export default function DateTimePicker({
     if (!nextOpen) setView("calendar");
     setOpen(nextOpen);
   };
-
+  
   const handleDaySelect = (day: Date | undefined): void => {
     if (!day) return;
     setSelected(day);
@@ -442,7 +443,16 @@ export default function DateTimePicker({
               ← Volver
             </button>
             <div className="flex-1" />
-            <p className="text-xs text-slate-400">Se guardará al cerrar</p>
+            <button
+              type="button"
+              onClick={() => {
+                commitAndClose(selected, hour, minute);
+                setOpen(false);
+              }}
+              className="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Guardar
+            </button>
           </div>
         )}
       </PopoverContent>
