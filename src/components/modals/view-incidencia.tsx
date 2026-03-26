@@ -55,7 +55,10 @@ export const ViewIncidencia: React.FC<ViewFallaModalProps> = ({
 	const seguimientosOrdenados = [...data.seguimientos_incidencia].sort((a, b) => {
 		return new Date(a.fecha_inicio_seg).getTime() - new Date(b.fecha_inicio_seg).getTime();
 	  });
-	
+
+	  
+
+
 	useEffect(()=>{
 		if(isSuccess){
 			setTab("datos")

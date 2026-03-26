@@ -100,7 +100,7 @@ export default function LoginPage() {
                 <Image
                   className="mb-10 flex mx-auto"
                   src="https://f001.backblazeb2.com/file/app-linkaform/public-client-126/71202/60b81349bde5588acca320e1/694ace05f1bef74262302cc9.png"
-                  alt="soter logo"
+                  alt="Clave 10"
                   width={174}
                   height={58}
                   priority

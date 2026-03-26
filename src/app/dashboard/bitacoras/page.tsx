@@ -14,90 +14,67 @@ import { Search, LogOut, LayoutGrid, Sheet, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBitacora } from "@/hooks/bitacora/useBitacora";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
-import { FilterConfig } from "@/types/bitacoras";
 
 const BitacorasPage = () => {
   const {
-    bitacoraSeleccionada,
-    date1,
-    date2,
-    dateFilter,
+    filtersConfig,
+    selectedRecord,
+    dynamicFilters,
+    setDynamicFilters,
+    startDate,
+    endDate,
+    activeDateFilter,
     handleAgregarBadge,
     handlePrintPase,
     handleRegresarGafete,
     handleSalida,
     isForcingQuit,
     isLoadingListBitacoras,
-    isPersonasDentro,
+    hasPeopleInside,
     listBitacoras,
-    modalAgregarBadgeAbierto,
-    modalForceQuitAbierto,
-    modalRegresarGafeteAbierto,
-    modalSalidaAbierto,
+    isAddBadgeOpen,
+    isForceQuitOpen,
+    isReturnGafeteOpen,
+    isDoOutOpen,
     pagination,
     refreshData,
     searchTags,
-    setDate1,
-    setDate2,
-    setDateFilter,
+    setStartDate,
+    setEndDate,
+    setActiveDateFilter,
     setIsForcingQuit,
-    setModalAgregarBadgeAbierto,
-    setModalForceQuitAbierto,
-    setModalRegresarGafeteAbierto,
-    setModalSalidaAbierto,
+    setIsAddBadgeOpen,
+    setIsForceQuitOpen,
+    setIsReturnGafeteOpen,
+    setIsDoOutOpen,
     setPagination,
     setSearchTags,
     setViewMode,
-    ubicacionSeleccionada,
+    selectedLocation,
     viewMode,
+    externalFilters,
+    onExternalFiltersChange,
+    activeFiltersCount,
   } = useBitacora();
 
   const [selectedTab, setSelectedTab] = React.useState("personal");
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
-  const [filtersConfig, setFiltersConfig] = React.useState<FilterConfig[]>([]);
-  const [dynamicFilters, setDynamicFilters] = React.useState<
-    Record<string, any>
-  >({});
-
-  const externalFilters = React.useMemo(
-    () => ({
-      dynamic: dynamicFilters,
-      dateFilter,
-      date1,
-      date2,
-    }),
-    [dynamicFilters, dateFilter, date1, date2],
-  );
-
-  const onExternalFiltersChange = (newFilters: any) => {
-    if (newFilters.dateFilter !== undefined)
-      setDateFilter(newFilters.dateFilter);
-    if (newFilters.date1 !== undefined) setDate1(newFilters.date1);
-    if (newFilters.date2 !== undefined) setDate2(newFilters.date2);
-    if (newFilters.dynamic !== undefined) setDynamicFilters(newFilters.dynamic);
-  };
-
-  const activeFiltersCount =
-    (dateFilter && dateFilter !== "today" ? 1 : 0) +
-    (date1 ? 1 : 0) +
-    (date2 ? 1 : 0) +
-    Object.values(dynamicFilters).filter((v) =>
-      Array.isArray(v) ? v.length > 0 : !!v,
-    ).length;
 
   return (
     <div className="w-full relative">
-      <FloatingFiltersDrawer
-        isOpen={isSidebarOpen}
-        onOpenChange={setIsSidebarOpen}
-        activeFiltersCount={activeFiltersCount}
-        filters={externalFilters}
-        onFiltersChange={onExternalFiltersChange}
-        filtersConfig={filtersConfig}
-      />
+      {viewMode === "table" && (
+        <FloatingFiltersDrawer
+          isOpen={isSidebarOpen}
+          onOpenChange={setIsSidebarOpen}
+          activeFiltersCount={activeFiltersCount}
+          filters={externalFilters}
+          onFiltersChange={onExternalFiltersChange}
+          filtersConfig={filtersConfig}
+        />
+      )}
       <div className="p-6 space-y-4 pt-3 w-full">
         {/* FILA ÚNICA: Título -> Search -> Tabs -> ViewModes */}
-        <div className="flex items-center justify-between w-full gap-4">
+        <div className="flex items-center justify-between w-full gap-4 sticky top-[68px] z-40 bg-white backdrop-blur-sm py-2">
           {/* 1. Título (Izquierda) */}
           <div className="flex items-baseline gap-2 min-w-fit">
             <h1 className="text-xl font-bold text-slate-900 whitespace-nowrap">
@@ -105,7 +82,11 @@ const BitacorasPage = () => {
             </h1>
             <span className="text-sm font-light text-slate-500 whitespace-nowrap">
               {listBitacoras?.total_records || 0} registros{" "}
-              {dateFilter === "today" ? "de hoy" : dateFilter === "" ? "en total" : ""}
+              {activeDateFilter === "today"
+                ? "de hoy"
+                : activeDateFilter === ""
+                  ? "en total"
+                  : ""}
             </span>
           </div>
 
@@ -175,12 +156,12 @@ const BitacorasPage = () => {
             </div>
 
             {/* Sacar (Si aplica) al final */}
-            {isPersonasDentro && (
+            {hasPeopleInside && (
               <Button
                 type="button"
                 variant="destructive"
                 size="sm"
-                onClick={() => setModalForceQuitAbierto(true)}
+                onClick={() => setIsForceQuitOpen(true)}
                 className="h-10 px-3 flex gap-2">
                 <LogOut size={16} />
                 Sacar
@@ -197,25 +178,25 @@ const BitacorasPage = () => {
               className="m-0 border-none p-0 focus-visible:ring-0">
               <BitacorasTable
                 data={listBitacoras?.records}
-                isLoading={isLoadingListBitacoras}
-                printPase={handlePrintPase}
-                total={listBitacoras?.total_records}
-                pagination={pagination}
-                setPagination={setPagination}
-                viewMode={viewMode}
-                handleSalida={handleSalida}
-                handleRegresarGafete={handleRegresarGafete}
-                handleAgregarBadge={handleAgregarBadge}
-                dateFilter={dateFilter}
-                setDateFilter={setDateFilter}
-                date1={date1}
-                setDate1={setDate1}
-                date2={date2}
-                setDate2={setDate2}
-                onFiltersConfigReady={setFiltersConfig}
+                date1={startDate}
+                date2={endDate}
+                dateFilter={activeDateFilter}
                 externalDynamicFilters={dynamicFilters}
+                filtersConfig={filtersConfig}
+                handleAgregarBadge={handleAgregarBadge}
+                handleRegresarGafete={handleRegresarGafete}
+                handleSalida={handleSalida}
+                isLoading={isLoadingListBitacoras}
                 onExternalDynamicFiltersChange={setDynamicFilters}
+                pagination={pagination}
+                printPase={handlePrintPase}
                 searchTags={searchTags}
+                setDate1={setStartDate}
+                setDate2={setEndDate}
+                setDateFilter={setActiveDateFilter}
+                setPagination={setPagination}
+                total={listBitacoras?.total_records}
+                viewMode={viewMode}
               />
             </TabsContent>
             <TabsContent
@@ -238,71 +219,71 @@ const BitacorasPage = () => {
         </div>
 
         {/* Modales */}
-        {modalRegresarGafeteAbierto && bitacoraSeleccionada ? (
+        {isReturnGafeteOpen && selectedRecord ? (
           <ReturnGafeteModal
             title={"Recibir Gafete"}
-            id_bitacora={bitacoraSeleccionada._id}
-            ubicacion={bitacoraSeleccionada.ubicacion}
+            id_bitacora={selectedRecord._id}
+            ubicacion={selectedRecord.ubicacion}
             area={
-              bitacoraSeleccionada?.status_visita?.toLowerCase() == "entrada"
-                ? bitacoraSeleccionada.caseta_entrada
-                : bitacoraSeleccionada.caseta_salida || ""
+              selectedRecord?.status_visita?.toLowerCase() == "entrada"
+                ? selectedRecord.caseta_entrada
+                : selectedRecord.caseta_salida || ""
             }
-            fecha_salida={bitacoraSeleccionada.fecha_salida}
-            gafete={bitacoraSeleccionada.id_gafet}
-            locker={bitacoraSeleccionada.id_locker || ""}
-            tipo_movimiento={bitacoraSeleccionada?.status_visita?.toLowerCase()}
-            modalRegresarGafeteAbierto={modalRegresarGafeteAbierto}
-            setModalRegresarGafeteAbierto={setModalRegresarGafeteAbierto}
+            fecha_salida={selectedRecord.fecha_salida}
+            gafete={selectedRecord.id_gafet}
+            locker={selectedRecord.id_locker || ""}
+            tipo_movimiento={selectedRecord?.status_visita?.toLowerCase()}
+            modalRegresarGafeteAbierto={isReturnGafeteOpen}
+            setModalRegresarGafeteAbierto={setIsReturnGafeteOpen}
           />
         ) : null}
 
-        {modalAgregarBadgeAbierto && bitacoraSeleccionada ? (
+        {isAddBadgeOpen && selectedRecord ? (
           <AddBadgeModal
             title={"Gafete"}
             status={"Disponible"}
-            id_bitacora={bitacoraSeleccionada._id}
-            pase_id={bitacoraSeleccionada.pase_id}
-            tipo_movimiento={bitacoraSeleccionada.status_visita}
-            ubicacion={bitacoraSeleccionada.ubicacion}
+            id_bitacora={selectedRecord._id}
+            pase_id={selectedRecord.pase_id}
+            tipo_movimiento={selectedRecord.status_visita}
+            ubicacion={selectedRecord.ubicacion}
             area={
-              bitacoraSeleccionada?.status_visita?.toLowerCase() == "entrada"
-                ? bitacoraSeleccionada.caseta_entrada
-                : bitacoraSeleccionada.caseta_salida || ""
+              selectedRecord?.status_visita?.toLowerCase() == "entrada"
+                ? selectedRecord.caseta_entrada
+                : selectedRecord.caseta_salida || ""
             }
-            modalAgregarBadgeAbierto={modalAgregarBadgeAbierto}
-            setModalAgregarBadgeAbierto={setModalAgregarBadgeAbierto}
+            modalAgregarBadgeAbierto={isAddBadgeOpen}
+            setModalAgregarBadgeAbierto={setIsAddBadgeOpen}
           />
         ) : null}
 
-        {modalSalidaAbierto && bitacoraSeleccionada ? (
+        {isDoOutOpen && selectedRecord ? (
           <DoOutModal
             title={"Registar Salida"}
-            id_bitacora={bitacoraSeleccionada.codigo_qr}
-            ubicacion={bitacoraSeleccionada.ubicacion}
+            id_bitacora={selectedRecord.codigo_qr}
+            ubicacion={selectedRecord.ubicacion}
             area={
-              bitacoraSeleccionada?.status_visita?.toLowerCase() == "entrada"
-                ? bitacoraSeleccionada.caseta_entrada
-                : bitacoraSeleccionada.caseta_salida || ""
+              selectedRecord?.status_visita?.toLowerCase() == "entrada"
+                ? selectedRecord.caseta_entrada
+                : selectedRecord.caseta_salida || ""
             }
-            fecha_salida={bitacoraSeleccionada.fecha_salida}
-            modalSalidaAbierto={modalSalidaAbierto}
-            setModalSalidaAbierto={setModalSalidaAbierto}
+            fecha_salida={selectedRecord.fecha_salida}
+            modalSalidaAbierto={isDoOutOpen}
+            setModalSalidaAbierto={setIsDoOutOpen}
           />
         ) : null}
 
         <ForceQuitConfirmationModal
-          open={modalForceQuitAbierto}
-          locationName={ubicacionSeleccionada}
+          open={isForceQuitOpen}
+          locationName={selectedLocation}
           isLoading={isForcingQuit}
           personasDentro={0}
-          onClose={() => setModalForceQuitAbierto(false)}
+          onClose={() => setIsForceQuitOpen(false)}
           onConfirm={async () => {
             setIsForcingQuit(true);
             try {
-              const data = await forceQuitAllPersons(ubicacionSeleccionada);
+              const data = await forceQuitAllPersons(selectedLocation);
               const msg = data?.response?.data?.json?.msg;
-              setModalForceQuitAbierto(false);
+              setIsForceQuitOpen(false);
               toast.success(msg);
               await refreshData();
             } catch (error) {

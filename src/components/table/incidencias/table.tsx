@@ -16,7 +16,7 @@ import {
   useReactTable,
   Table as TanstackTable
 } from "@tanstack/react-table";
-import { CalendarDays, Eraser, Eye, FileX2, Plus, Search, Trash2 } from "lucide-react";
+import { CalendarDays, Eraser, FileX2, Plus, Search, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -398,7 +398,6 @@ const IncidenciasTable:React.FC<ListProps> = ({ data, isLoading, openModal,setSe
 						setTab={setTabSelected}
 						setIsSuccess={setModalVerAbierto} setModalEditarAbierto={setModalEditarAbierto }>
 						<div className="cursor-pointer" title="Ver Incidencia">
-						<Eye /> 
 						</div>
 					</ViewIncidencia>
 				)}

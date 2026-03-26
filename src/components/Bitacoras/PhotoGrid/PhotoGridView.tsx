@@ -7,19 +7,27 @@ import { PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
 import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoGridCardModal } from "./PhotoGridCardModal";
+import EquiposYVehiculosList from "../EquiposYVehiculosList";
 
 export function PhotoGridView({
   isLoading,
   records,
-  onRecordClick,
   children,
   onSelectionChange,
-  renderCustomActions,
+  selectionActions,
   externalFilters,
   onExternalFiltersChange,
   globalSearch = [],
-}: Omit<PhotoGridViewProps, "filtersConfig" | "hideSidebar"> & {
+}: Omit<
+  PhotoGridViewProps,
+  "filtersConfig" | "hideSidebar" | "renderCustomActions"
+> & {
   globalSearch?: string[];
+  selectionActions?:
+    | React.ReactNode
+    | ((
+        selectedItems: { record_id: string; record_status: string }[],
+      ) => React.ReactNode);
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoGridView(records, externalFilters, onExternalFiltersChange);
@@ -39,10 +47,10 @@ export function PhotoGridView({
       return globalSearch.some((tag) => {
         const tagLower = tag.toLowerCase();
         return (
-          record.title?.toLowerCase().includes(tagLower) ||
-          record.description?.toLowerCase().includes(tagLower) ||
-          record.folio?.toLowerCase().includes(tagLower) ||
-          record.status?.toLowerCase().includes(tagLower) ||
+          record.title?.toString().toLowerCase().includes(tagLower) ||
+          record.description?.toString().toLowerCase().includes(tagLower) ||
+          record.folio?.toString().toLowerCase().includes(tagLower) ||
+          record.status?.toString().toLowerCase().includes(tagLower) ||
           record.detailsList?.some((detail) => {
             if (Array.isArray(detail.value)) {
               return detail.value.some((val) =>
@@ -82,7 +90,6 @@ export function PhotoGridView({
   const handleCardClick = (record: PhotoRecord) => {
     setSelectedRecord(record);
     setIsModalOpen(true);
-    onRecordClick?.(record);
   };
 
   const clearSelection = () => setSelectedItems([]);
@@ -104,7 +111,7 @@ export function PhotoGridView({
             setSelectedItems(allSelected);
           }
         }}
-        renderCustomActions={renderCustomActions}
+        selectionActions={selectionActions}
         selectedItems={selectedItems}
       />
       <div className="flex flex-1 min-h-0 relative z-0">
@@ -158,10 +165,31 @@ export function PhotoGridView({
         </main>
       </div>
       <PhotoGridCardModal
+        badges={[
+          {
+            label: "",
+            value: selectedRecord?.status || "",
+            customClass:
+              selectedRecord?.status === "entrada"
+                ? "bg-green-600 border-green-600 text-white text-xs"
+                : "bg-red-600 border-red-600 text-white text-xs",
+          },
+          {
+            label: "",
+            value: selectedRecord?.visit_type || "",
+            customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs",
+          },
+          {
+            label: "",
+            value: `#${selectedRecord?.folio || ""}`,
+            customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs",
+          },
+        ]}
         record={selectedRecord}
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-      />
+        onOpenChange={setIsModalOpen}>
+        <EquiposYVehiculosList record={selectedRecord} />
+      </PhotoGridCardModal>
     </div>
   );
 }

@@ -36,6 +36,30 @@ export interface PhotoRecord {
   detailsList?: DetailsListItem[];
   modalDetailsList?: DetailsListItem[];
   rawData?: any;
+  vehiculos?: Vehiculo[];
+  equipos?: Equipo[];
+}
+
+export interface Vehiculo {
+  tipo: string;
+  marca_vehiculo: string;
+  modelo_vehiculo: string;
+  placas: string;
+  color: string;
+  nombre_estado: string;
+  color_code?: string;
+  imagen?: string;
+}
+
+export interface Equipo {
+  tipo_equipo: string;
+  marca_articulo: string;
+  modelo_articulo: string;
+  nombre_articulo: string;
+  numero_serie: string;
+  color_articulo: string;
+  color_code?: string;
+  imagen?: string;
 }
 
 export interface ListRecord {
@@ -49,6 +73,8 @@ export interface ListRecord {
   badgesList?: BadgesListItem[];
   detailsList?: DetailsListItem[];
   modalDetailsList?: DetailsListItem[];
+  vehiculos?: Vehiculo[];
+  equipos?: Equipo[];
   rawData?: any;
 }
 

@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/select";
 import { CalendarDays } from "lucide-react";
 import DateTime from "@/components/dateTime";
+import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
+import { useEffect } from "react";
 
 export function FiltersPanel({
   filters,
@@ -30,6 +32,14 @@ export function FiltersPanel({
   const { handleDynamicChange, clearFilters, hasActiveFilters } =
     useFiltersPanel(filters, onFiltersChange);
 
+  const { locations: storeLocations, fetchLocations } = useAreasLocationStore();
+
+  useEffect(() => {
+    if (storeLocations.length === 0) {
+      fetchLocations();
+    }
+  }, [fetchLocations, storeLocations.length]);
+
   return (
     <div className="flex flex-col gap-4 w-full relative">
       <div className="flex lg:flex items-center justify-between pb-2 border-b border-border/50">
@@ -37,10 +47,17 @@ export function FiltersPanel({
           <h2 className="text-xl font-bold text-foreground">Filtros</h2>
           {hasActiveFilters && (
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2A7EFF] text-[10px] font-bold text-white">
-              {Object.values(filters.dynamic || {})
+              {Object.entries(filters.dynamic || {})
+                .filter(([key]) => key !== "ubicacion")
+                .map(([, v]) => v)
                 .flat()
                 .filter(Boolean).length +
-                (filters.dateFilter && filters.dateFilter !== "today" ? 1 : 0)}
+                (Array.isArray(filters.dynamic?.ubicacion)
+                  ? filters.dynamic.ubicacion.length
+                  : filters.dynamic?.ubicacion
+                    ? 1
+                    : 0) +
+                (filters.dateFilter && filters.dateFilter !== "" ? 1 : 0)}
             </span>
           )}
         </div>
@@ -63,6 +80,7 @@ export function FiltersPanel({
           .join("_")}
         defaultValue={[
           "fecha",
+          "ubicacion",
           ...(filtersConfig
             ?.filter((c) => c.defaultDisplayOpen === true)
             ?.map((c) => c.key) || []),
@@ -72,7 +90,7 @@ export function FiltersPanel({
           <AccordionTrigger className="hover:no-underline py-3 px-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-slate-700">Fecha</span>
-              {filters.dateFilter && filters.dateFilter !== "today" && (
+              {filters.dateFilter && filters.dateFilter !== "" && (
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2A7EFF] text-[10px] font-bold text-white">
                   1
                 </span>
@@ -147,83 +165,138 @@ export function FiltersPanel({
           </AccordionContent>
         </AccordionItem>
 
-        {filtersConfig.length > 0 &&
-          filtersConfig.map((config) => {
-            const currentValue = (filters.dynamic || {})[config.key];
-            const activeCount = Array.isArray(currentValue)
-              ? currentValue.length
-              : currentValue
-                ? 1
-                : 0;
-
-            return (
-              <AccordionItem
-                key={config.key}
-                value={config.key}
-                className="border-none">
-                <AccordionTrigger className="hover:no-underline py-3 px-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-700">
-                      {config.label}
+        {/* Filtro de Ubicación (Base) */}
+        {storeLocations.length > 0 && (
+          <AccordionItem value="ubicacion" className="border-none">
+            <AccordionTrigger className="hover:no-underline py-3 px-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-700">
+                  Ubicación
+                </span>
+                {Array.isArray(filters.dynamic?.ubicacion) &&
+                  filters.dynamic.ubicacion.length > 0 && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2A7EFF] text-[10px] font-bold text-white">
+                      {filters.dynamic.ubicacion.length}
                     </span>
-                    {activeCount > 0 && (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2A7EFF] text-[10px] font-bold text-white">
-                        {activeCount}
-                      </span>
-                    )}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-1 pb-4 overflow-visible">
-                  {config.type === "multiselect" ? (
-                    <div className="px-1">
-                      <CustomMultiSelect
-                        options={config.options}
-                        value={(currentValue as string[]) || []}
-                        onChange={(newValues) => {
-                          handleDynamicChange(
-                            config.key,
-                            newValues,
-                            true,
-                            config.type,
-                          );
-                        }}
-                        placeholder={`Buscar ${config.label.toLowerCase()}...`}
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {config.options.map((option) => {
-                        const isChecked = Array.isArray(currentValue)
-                          ? currentValue.includes(option.value)
-                          : currentValue === option.value;
-
-                        return (
-                          <button
-                            key={option.value}
-                            onClick={() =>
-                              handleDynamicChange(
-                                config.key,
-                                option.value,
-                                !isChecked,
-                                config.type,
-                              )
-                            }
-                            className={cn(
-                              "group flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border",
-                              isChecked
-                                ? "bg-[#2A7EFF] border-[#2A7EFF] text-white shadow-sm"
-                                : "bg-slate-50 border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                            )}>
-                            {option.label}
-                          </button>
-                        );
-                      })}
-                    </div>
                   )}
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pt-1 pb-4 overflow-visible px-1">
+              <div className="flex flex-wrap gap-2">
+                {storeLocations.map((location) => {
+                  const isChecked = Array.isArray(filters.dynamic?.ubicacion)
+                    ? filters.dynamic.ubicacion.includes(String(location))
+                    : filters.dynamic?.ubicacion === String(location);
+
+                  return (
+                    <button
+                      key={String(location)}
+                      onClick={() =>
+                        handleDynamicChange(
+                          "ubicacion",
+                          String(location),
+                          !isChecked,
+                          "multiple",
+                        )
+                      }
+                      className={cn(
+                        "group flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border",
+                        isChecked
+                          ? "bg-[#2A7EFF] border-[#2A7EFF] text-white shadow-sm"
+                          : "bg-slate-50 border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                      )}>
+                      {String(location)}
+                    </button>
+                  );
+                })}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
+        {filtersConfig.length > 0 &&
+          filtersConfig
+            .filter((c) => c.key !== "ubicacion")
+            .map((config) => {
+              const currentValue = (filters.dynamic || {})[config.key];
+              const activeCount = Array.isArray(currentValue)
+                ? currentValue.length
+                : currentValue
+                  ? 1
+                  : 0;
+
+              return (
+                <AccordionItem
+                  key={config.key}
+                  value={config.key}
+                  className="border-none">
+                  <AccordionTrigger className="hover:no-underline py-3 px-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-700">
+                        {config.label}
+                      </span>
+                      {activeCount > 0 && (
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2A7EFF] text-[10px] font-bold text-white">
+                          {activeCount}
+                        </span>
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-4 overflow-visible">
+                    {config.type === "multiselect" ? (
+                      <div className="px-1">
+                        <CustomMultiSelect
+                          options={config.options}
+                          value={
+                            Array.isArray(currentValue)
+                              ? (currentValue as string[])
+                              : []
+                          }
+                          onChange={(newValues) => {
+                            handleDynamicChange(
+                              config.key,
+                              newValues,
+                              true,
+                              "multiselect",
+                            );
+                          }}
+                          placeholder={`Buscar ${config.label.toLowerCase()}...`}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 px-1">
+                        {config.options.map((option) => {
+                          const isChecked = Array.isArray(currentValue)
+                            ? currentValue.includes(option.value)
+                            : currentValue === option.value;
+
+                          return (
+                            <button
+                              key={option.value}
+                              onClick={() =>
+                                handleDynamicChange(
+                                  config.key,
+                                  option.value,
+                                  !isChecked,
+                                  config.type,
+                                )
+                              }
+                              className={cn(
+                                "group flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border",
+                                isChecked
+                                  ? "bg-[#2A7EFF] border-[#2A7EFF] text-white shadow-sm"
+                                  : "bg-slate-50 border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                              )}>
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
       </Accordion>
     </div>
   );

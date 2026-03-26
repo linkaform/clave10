@@ -19,10 +19,10 @@ export function formatListRecord(raw: any, type: RegistryType): ListRecord {
         title: raw?.nombre_visitante || "Visitante desconocido",
         description: raw?.contratista || "Sin Empresa Registrada",
         images: [
-          raw?.fotografia?.[0]?.file_url.replace(".jpg", ".thumbnail") || "",
-          raw?.identificacion?.[0]?.file_url.replace(".jpg", ".thumbnail") ||
-            "",
-        ],
+          raw?.fotografia?.[0]?.file_url?.replace(".jpg", ".thumbnail") || null,
+          raw?.identificacion?.[0]?.file_url?.replace(".jpg", ".thumbnail") ||
+            null,
+        ].filter((url): url is string => url !== null),
         status: raw?.status_visita === "Entrada" ? "entrada" : "salida",
         badgesList: [
           {
@@ -64,7 +64,7 @@ export function formatListRecord(raw: any, type: RegistryType): ListRecord {
           {
             icon: <Briefcase className="h-3 w-3" />,
             label: "Tema de la cita",
-            value: "Falta Campo en Forma",
+            value: "---",
           },
           {
             icon: <CalendarDays className="h-3 w-3" />,
@@ -80,11 +80,10 @@ export function formatListRecord(raw: any, type: RegistryType): ListRecord {
           {
             icon: <Contact className="h-3 w-3" />,
             label: "Áreas permitidas",
-            value: [
-              "Recepción - Hardcode",
-              "Oficinas Administrativas - Hardcode",
-              "Sala de Juntas A - Hardcode",
-            ],
+            value: raw.grupo_areas_acceso.map(
+              (area: { incidente_area: string; commentario_area: string }) =>
+                area.incidente_area,
+            ),
           },
         ],
         modalDetailsList: [
@@ -113,7 +112,18 @@ export function formatListRecord(raw: any, type: RegistryType): ListRecord {
             label: "Ubicación",
             value: raw?.ubicacion,
           },
+          {
+            icon: <Contact className="h-3 w-3" />,
+            label: "Áreas Permitidas",
+            value: Array.isArray(raw?.grupo_areas_acceso)
+              ? raw.grupo_areas_acceso.map(
+                  (area: { incidente_area: string }) => area.incidente_area,
+                )
+              : [],
+          },
         ],
+        vehiculos: raw.vehiculos || [],
+        equipos: raw.equipos || [],
         rawData: raw,
       };
 
@@ -144,10 +154,10 @@ export function formatPhotoRecord(raw: any, type: RegistryType): PhotoRecord {
         title: raw?.nombre_visitante || "Visitante desconocido",
         description: raw?.contratista || "Sin Empresa Registrada",
         images: [
-          raw?.fotografia?.[0]?.file_url.replace(".jpg", ".thumbnail") || "",
-          raw?.identificacion?.[0]?.file_url.replace(".jpg", ".thumbnail") ||
-            "",
-        ],
+          raw?.fotografia?.[0]?.file_url?.replace(".jpg", ".thumbnail") || null,
+          raw?.identificacion?.[0]?.file_url?.replace(".jpg", ".thumbnail") ||
+            null,
+        ].filter((url): url is string => url !== null),
         status: raw?.status_visita === "Entrada" ? "entrada" : "salida",
         detailsList: [
           {
@@ -196,7 +206,17 @@ export function formatPhotoRecord(raw: any, type: RegistryType): PhotoRecord {
             label: "Ubicación",
             value: raw?.ubicacion,
           },
+          {
+            icon: <Contact className="h-3 w-3" />,
+            label: "Áreas permitidas",
+            value: raw.grupo_areas_acceso.map(
+              (area: { incidente_area: string; commentario_area: string }) =>
+                area.incidente_area,
+            ),
+          },
         ],
+        vehiculos: raw.vehiculos || [],
+        equipos: raw.equipos || [],
         rawData: raw,
       };
 

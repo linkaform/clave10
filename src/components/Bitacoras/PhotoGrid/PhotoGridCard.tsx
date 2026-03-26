@@ -71,14 +71,20 @@ export function PhotoGridCard({
         className="relative h-80 overflow-hidden bg-muted"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}>
-        <Image
-          src={record.images[currentImageIndex] || "/placeholder.svg"}
-          alt={record.title}
-          fill={true}
-          className={`object-cover transition-all duration-500 ${
-            isHovered ? "scale-105" : "scale-100"
-          }`}
-        />
+        {record.images.length > 0 ? (
+          <Image
+            src={record.images[currentImageIndex]}
+            alt={record.title}
+            fill={true}
+            className={`object-cover transition-all duration-500 ${
+              isHovered ? "scale-105" : "scale-100"
+            }`}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-slate-100 italic text-slate-400 text-xs">
+            Sin imagen
+          </div>
+        )}
         <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
 
         <div

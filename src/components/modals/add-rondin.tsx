@@ -606,8 +606,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 												<SelectValue placeholder="Selecciona tipo" />
 											</SelectTrigger>
 											<SelectContent>
-												<SelectItem value="nfc">NFC</SelectItem>
-												<SelectItem value="qr">QR</SelectItem>
+												<SelectItem value="NFC">NFC</SelectItem>
+												<SelectItem value="QR">QR</SelectItem>
 											</SelectContent>
 										</Select>
 									</FormControl>
@@ -728,7 +728,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 							</div>
 						</div>
 						<div className="flex flex-wrap mt-2 mb-5">
-						{["Primer semana del mes","Segunda semana del mes","Tercera semana del mes","Cuarta semana del mes","Quinta semana del mes"].map((semana) => {
+						{["Primer semana del mes","Segunda semana del mes","Tercer semana del mes","Cuarta semana del mes","Quinta semana del mes"].map((semana) => {
 							const value = semana.toLowerCase().replace(/\s+/g, "_");
 							return (
 							<FormItem key={value} className="flex items-center space-x-3">

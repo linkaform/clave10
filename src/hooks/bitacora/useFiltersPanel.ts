@@ -34,16 +34,19 @@ export const useFiltersPanel = (
   const clearFilters = () =>
     onFiltersChange({
       dynamic: {},
-      dateFilter: "today",
+      dateFilter: "",
       date1: "",
       date2: "",
     });
 
   const hasActiveFilters =
-    Object.values(filters.dynamic || {}).some((v) =>
-      Array.isArray(v) ? v.length > 0 : v !== "",
-    ) ||
-    (filters.dateFilter && filters.dateFilter !== "today") ||
+    Object.entries(filters.dynamic || {}).some(([key, v]) => {
+      if (key === "ubicacion") {
+        return Array.isArray(v) ? v.length > 0 : !!v;
+      }
+      return Array.isArray(v) ? v.length > 0 : v !== "";
+    }) ||
+    filters.dateFilter !== "" ||
     !!filters.date1 ||
     !!filters.date2;
 

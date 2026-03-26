@@ -14,45 +14,17 @@ export const usePhotoListView = (
   const filters = externalFilters || internalFilters;
   const setFilters = onExternalFiltersChange || setInternalFilters;
 
-  const filteredRecords = useMemo(() => {
-    return records.filter((record) => {
-      // 1. Filtros dinámicos (Categorías, Ubicaciones, etc)
-      const dynamicEntries = Object.entries(filters.dynamic || {});
+  const filteredRecords = records;
 
-      return dynamicEntries.every(([key, value]) => {
-        if (!value || (Array.isArray(value) && value.length === 0)) return true;
-
-        // Intentar obtener el valor del registro de múltiples fuentes
-        let recordValue =
-          record.rawData?.[key] || record[key as keyof PhotoRecord];
-
-        // Manejo especial para objetos
-        if (key === "visita_a" && Array.isArray(recordValue)) {
-          recordValue = recordValue[0]?.nombre || "";
-        }
-
-        // Si el valor del filtro es un array (MultiSelect), verificar inclusión insensitiva a mayúsculas
-        if (Array.isArray(value)) {
-          return value.some(
-            (v) =>
-              String(v).toLowerCase() === String(recordValue).toLowerCase(),
-          );
-        }
-
-        return (
-          String(recordValue).toLowerCase() === String(value).toLowerCase()
-        );
-      });
-    });
-  }, [records, filters]);
-
-  const activeFiltersCount = Object.values(filters.dynamic || {}).reduce(
-    (acc: number, curr) => {
-      if (Array.isArray(curr)) return acc + curr.length;
-      return acc + (curr ? 1 : 0);
-    },
-    0,
-  );
+  const activeFiltersCount = useMemo(() => {
+    return Object.entries(filters.dynamic || {}).reduce(
+      (acc: number, [, value]) => {
+        if (Array.isArray(value)) return acc + (value.length > 0 ? 1 : 0);
+        return acc + (value ? 1 : 0);
+      },
+      0,
+    );
+  }, [filters]);
 
   return { filters, setFilters, filteredRecords, activeFiltersCount };
 };

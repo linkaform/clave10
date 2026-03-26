@@ -7,6 +7,7 @@ import { PhotoListViewProps, ListRecord } from "@/types/bitacoras";
 import { usePhotoListView } from "@/hooks/bitacora/usePhotoListView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoListCardModal } from "./PhotoListCardModal";
+import EquiposYVehiculosList from "../EquiposYVehiculosList";
 
 export default function PhotoListView({
   isLoading,
@@ -14,12 +15,20 @@ export default function PhotoListView({
   onRecordClick,
   children,
   onSelectionChange,
-  renderCustomActions,
+  selectionActions,
   externalFilters,
   onExternalFiltersChange,
   globalSearch = [],
-}: Omit<PhotoListViewProps, "filtersConfig" | "hideSidebar"> & {
+}: Omit<
+  PhotoListViewProps,
+  "filtersConfig" | "hideSidebar" | "renderCustomActions"
+> & {
   globalSearch?: string[];
+  selectionActions?:
+    | React.ReactNode
+    | ((
+        selectedItems: { record_id: string; record_status: string }[],
+      ) => React.ReactNode);
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoListView(records as any, externalFilters, onExternalFiltersChange);
@@ -37,10 +46,10 @@ export default function PhotoListView({
       return globalSearch.some((tag) => {
         const tagLower = tag.toLowerCase();
         return (
-          record.title?.toLowerCase().includes(tagLower) ||
-          record.description?.toLowerCase().includes(tagLower) ||
-          record.folio?.toLowerCase().includes(tagLower) ||
-          record.status?.toLowerCase().includes(tagLower) ||
+          record.title?.toString().toLowerCase().includes(tagLower) ||
+          record.description?.toString().toLowerCase().includes(tagLower) ||
+          record.folio?.toString().toLowerCase().includes(tagLower) ||
+          record.status?.toString().toLowerCase().includes(tagLower) ||
           record.detailsList?.some((detail) => {
             if (Array.isArray(detail.value)) {
               return detail.value.some((val) =>
@@ -91,7 +100,7 @@ export default function PhotoListView({
             setSelectedItems(allSelected);
           }
         }}
-        renderCustomActions={renderCustomActions}
+        selectionActions={selectionActions}
         selectedItems={selectedItems}
       />
 
@@ -156,8 +165,9 @@ export default function PhotoListView({
       <PhotoListCardModal
         record={selectedRecord as any}
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-      />
+        onOpenChange={setIsModalOpen}>
+        <EquiposYVehiculosList record={selectedRecord as any} />
+      </PhotoListCardModal>
     </div>
   );
 }
