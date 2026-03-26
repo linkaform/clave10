@@ -47,10 +47,20 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
       nombre: z.string().min(2, { message: "Campo requerido" }),
       empresa: z.string().min(2, { message: "Campo requerido" }),
       foto: z
-        .array(z.object({ file_url: z.string(), file_name: z.string() }))
+        .array(
+          z.object({
+            file_url: z.string().optional(),
+            file_name: z.string().optional(),
+          }),
+        )
         .default([]),
       identificacion: z
-        .array(z.object({ file_url: z.string(), file_name: z.string() }))
+        .array(
+          z.object({
+            file_url: z.string().optional(),
+            file_name: z.string().optional(),
+          }),
+        )
         .default([]),
       area: z.string().optional(),
       visita_a: z.string().min(1, { message: "Campo requerido" }),
@@ -67,14 +77,17 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
       config_limitar_acceso: z.number().optional(),
     })
     .superRefine((data, ctx) => {
-      if (requireFoto && data.foto.length === 0) {
+      if (requireFoto && (!data.foto || data.foto.length === 0)) {
         ctx.addIssue({
           path: ["foto"],
           message: "La fotografía es obligatoria",
           code: z.ZodIssueCode.custom,
         });
       }
-      if (requireIden && data.identificacion.length === 0) {
+      if (
+        requireIden &&
+        (!data.identificacion || data.identificacion.length === 0)
+      ) {
         ctx.addIssue({
           path: ["identificacion"],
           message: "La identificación es obligatoria",
@@ -102,17 +115,21 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
 
   const formSchema = useMemo(
     () => createSchema(requireFoto, requireIden),
-    [requireFoto, requireIden]
+    [requireFoto, requireIden],
   );
 
   const [isActiveAdvanced, setIsActiveAdvanced] = useState(false);
-  const [tipoVisita, setTipoVisita] = useState<"fecha_fija" | "rango_de_fechas">("rango_de_fechas");
+  const [tipoVisita, setTipoVisita] = useState<
+    "fecha_fija" | "rango_de_fechas"
+  >("rango_de_fechas");
   const [isActiveFechaFija, setIsActiveFechaFija] = useState(false);
   const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(true);
   const [isActivelimitarDias, setIsActiveLimitarDias] = useState(true);
   const [isActiveCualquierDia, setIsActiveCualquierDia] = useState(true);
-  const [isActivelimitarDiasSemana, setIsActiveLimitarDiasSemana] = useState(false);
-  const [config_dia_de_acceso, set_config_dia_de_acceso] = useState("cualquier_día");
+  const [isActivelimitarDiasSemana, setIsActiveLimitarDiasSemana] =
+    useState(false);
+  const [config_dia_de_acceso, set_config_dia_de_acceso] =
+    useState("cualquier_día");
   const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>([]);
   const [fechaDesde, setFechaDesde] = useState<string>("");
   const today = new Date().toISOString().split("T")[0];
@@ -147,17 +164,26 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
   }, [openModal]);
 
   useEffect(() => {
+    form.setValue("foto", fotografia);
     if (!requireFoto || fotografia.length > 0) {
       setFotoError(false);
     } else {
       setFotoError(true);
     }
+    form.setValue("identificacion", identificacion);
     if (!requireIden || identificacion.length > 0) {
       setIdError(false);
     } else {
       setIdError(true);
     }
-  }, [formSubmitted, fotografia, identificacion, requireFoto, requireIden]);
+  }, [
+    formSubmitted,
+    fotografia,
+    identificacion,
+    requireFoto,
+    requireIden,
+    form,
+  ]);
 
   function onSubmit(data: formatData) {
     const access_pass = {
@@ -172,12 +198,17 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
       ubicaciones: [location ?? ""],
       tipo_visita_pase: tipoVisita,
       fechaFija: tipoVisita === "fecha_fija" ? (data.fechaFija ?? "") : "",
-      fecha_desde_visita: tipoVisita === "rango_de_fechas" ? (data.fecha_desde_visita ?? "") : "",
-      fecha_desde_hasta: tipoVisita === "rango_de_fechas" ? (data.fecha_desde_hasta ?? "") : "",
+      fecha_desde_visita:
+        tipoVisita === "rango_de_fechas" ? (data.fecha_desde_visita ?? "") : "",
+      fecha_desde_hasta:
+        tipoVisita === "rango_de_fechas" ? (data.fecha_desde_hasta ?? "") : "",
       config_dia_de_acceso: config_dia_de_acceso,
       config_dias_acceso: config_dias_acceso,
-      config_limitar_acceso: isActivelimitarDias ? (Number(data.config_limitar_acceso) || 0) : 0,
+      config_limitar_acceso: isActivelimitarDias
+        ? Number(data.config_limitar_acceso) || 0
+        : 0,
     };
+    console.log("Datos del formulario:", data);
 
     let valid = true;
 
@@ -196,7 +227,9 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
     registerNewVisit.mutate({ location: location ?? "", access_pass });
   }
 
-  const handleToggleTipoVisitaPase = (tipo: "fecha_fija" | "rango_de_fechas") => {
+  const handleToggleTipoVisitaPase = (
+    tipo: "fecha_fija" | "rango_de_fechas",
+  ) => {
     if (tipo === "fecha_fija") {
       form.setValue("fecha_desde_hasta", "");
       form.setValue("fecha_desde_visita", "");
@@ -257,7 +290,6 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-
             <FormField
               control={form.control}
               name="nombre"
@@ -284,7 +316,9 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                   limit={10}
                 />
                 {fotoError && (
-                  <div className="text-red-500 text-sm">La fotografía es obligatoria</div>
+                  <div className="text-red-500 text-sm">
+                    La fotografía es obligatoria
+                  </div>
                 )}
               </>
             )}
@@ -301,7 +335,9 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                   limit={10}
                 />
                 {idError && (
-                  <div className="text-red-500 text-sm">La identificación es obligatoria</div>
+                  <div className="text-red-500 text-sm">
+                    La identificación es obligatoria
+                  </div>
                 )}
               </>
             )}
@@ -377,9 +413,10 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                 isActiveAdvanced
                   ? "bg-blue-600 text-white hover:bg-blue-700"
                   : "border-2 border-blue-400 bg-transparent text-blue-600 hover:bg-blue-200"
-              }`}
-            >
-              {isActiveAdvanced ? "Opciones avanzadas" : "Ver opciones avanzadas"}
+              }`}>
+              {isActiveAdvanced
+                ? "Opciones avanzadas"
+                : "Ver opciones avanzadas"}
             </Button>
 
             {isActiveAdvanced && (
@@ -388,13 +425,14 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                   <FormLabel>Vigencia:</FormLabel>
                   <Button
                     type="button"
-                    onClick={() => handleToggleTipoVisitaPase("rango_de_fechas")}
+                    onClick={() =>
+                      handleToggleTipoVisitaPase("rango_de_fechas")
+                    }
                     className={`px-4 py-2 rounded-md transition-all duration-300 ${
                       isActiveRangoFecha
                         ? "bg-blue-600 text-white"
                         : "border-2 border-blue-400 bg-transparent text-blue-600"
-                    } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-                  >
+                    } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
                     Vigencia
                   </Button>
                   <Button
@@ -404,8 +442,7 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                       isActiveFechaFija
                         ? "bg-blue-600 text-white"
                         : "border-2 border-blue-400 bg-transparent text-blue-600"
-                    } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-                  >
+                    } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
                     Fecha Fija
                   </Button>
                   {tipoVisita === "rango_de_fechas" && (
@@ -416,8 +453,7 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                         isActivelimitarDias
                           ? "bg-blue-600 text-white"
                           : "border-2 border-blue-400 bg-transparent text-blue-600"
-                      } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-                    >
+                      } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
                       Limitar Accesos
                     </Button>
                   )}
@@ -430,7 +466,8 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          <span className="text-red-500">*</span> Fecha y Hora de Visita:
+                          <span className="text-red-500">*</span> Fecha y Hora
+                          de Visita:
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -476,7 +513,8 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>
-                            <span className="text-red-500">*</span> Vigencia hasta:
+                            <span className="text-red-500">*</span> Vigencia
+                            hasta:
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -500,24 +538,26 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                       <div className="flex flex-wrap gap-2 mt-2">
                         <Button
                           type="button"
-                          onClick={() => handleToggleDiasAcceso("cualquier_día")}
+                          onClick={() =>
+                            handleToggleDiasAcceso("cualquier_día")
+                          }
                           className={`px-4 py-2 rounded-md transition-all duration-300 ${
                             isActiveCualquierDia
                               ? "bg-blue-600 text-white"
                               : "border-2 border-blue-400 bg-transparent text-blue-600"
-                          } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-                        >
+                          } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
                           Cualquier Día
                         </Button>
                         <Button
                           type="button"
-                          onClick={() => handleToggleDiasAcceso("limitar_días_de_acceso")}
+                          onClick={() =>
+                            handleToggleDiasAcceso("limitar_días_de_acceso")
+                          }
                           className={`px-4 py-2 rounded-md transition-all duration-300 ${
                             isActivelimitarDiasSemana
                               ? "bg-blue-600 text-white"
                               : "border-2 border-blue-400 bg-transparent text-blue-600"
-                          } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-                        >
+                          } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
                           Limitar Días
                         </Button>
                       </div>
@@ -527,22 +567,27 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                       <div>
                         <FormLabel>Seleccione los días:</FormLabel>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].map(
-                            (dia) => (
-                              <Button
-                                key={dia}
-                                type="button"
-                                onClick={() => toggleDia(dia.toLowerCase())}
-                                className={`px-3 py-2 rounded-md transition-all duration-300 ${
-                                  config_dias_acceso.includes(dia.toLowerCase())
-                                    ? "bg-blue-600 text-white"
-                                    : "border-2 border-blue-400 bg-white text-blue-600"
-                                } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-                              >
-                                {dia}
-                              </Button>
-                            )
-                          )}
+                          {[
+                            "Lunes",
+                            "Martes",
+                            "Miércoles",
+                            "Jueves",
+                            "Viernes",
+                            "Sábado",
+                            "Domingo",
+                          ].map((dia) => (
+                            <Button
+                              key={dia}
+                              type="button"
+                              onClick={() => toggleDia(dia.toLowerCase())}
+                              className={`px-3 py-2 rounded-md transition-all duration-300 ${
+                                config_dias_acceso.includes(dia.toLowerCase())
+                                  ? "bg-blue-600 text-white"
+                                  : "border-2 border-blue-400 bg-white text-blue-600"
+                              } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
+                              {dia}
+                            </Button>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -564,7 +609,9 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                                   value={field.value ? Number(field.value) : 0}
                                   onChange={(e) =>
                                     field.onChange(
-                                      e.target.value ? Number(e.target.value) : 0
+                                      e.target.value
+                                        ? Number(e.target.value)
+                                        : 0,
                                     )
                                   }
                                 />
@@ -586,8 +633,7 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
               <DialogClose asChild>
                 <Button
                   className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  onClick={() => form.reset()}
-                >
+                  onClick={() => form.reset()}>
                   Cancelar
                 </Button>
               </DialogClose>
@@ -596,9 +642,14 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                 type="submit"
                 disabled={loading}
                 onClick={() => setFormSubmitted(true)}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                {loading ? <><Loader2 className="animate-spin" /> Cargando...</> : "Crear Visita"}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white">
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin" /> Cargando...
+                  </>
+                ) : (
+                  "Crear Visita"
+                )}
               </Button>
             </div>
           </form>
