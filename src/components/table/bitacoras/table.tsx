@@ -279,7 +279,7 @@ const BitacorasTable: React.FC<ListProps> = ({
               </div>
             </>
           ) : viewMode === "photos" ? (
-            <div className="mt-4">
+            <div>
               <PhotoGridView
                 isLoading={isLoading}
                 records={photoRecords}
@@ -291,7 +291,7 @@ const BitacorasTable: React.FC<ListProps> = ({
               </PhotoGridView>
             </div>
           ) : (
-            <div className="mt-4">
+            <div>
               <PhotoListView
                 isLoading={isLoading}
                 records={photoListRecords}

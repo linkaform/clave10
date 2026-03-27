@@ -27,12 +27,12 @@ export function SelectionBar({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[100] w-full animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-white text-slate-900 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.15)] p-4 px-8 flex items-center justify-between gap-4">
+    <div className="fixed bottom-0 left-0 right-0 z-[100] w-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-in-out">
+      <div className="bg-blue-600 text-white shadow-[0_-8px_30px_rgba(37,99,235,0.25)] p-4 px-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-blue-600 fill-blue-50" />
-            <span className="text-sm font-medium text-slate-700 whitespace-nowrap">
+            <CheckCircle2 className="h-5 w-5 text-white fill-white/20" />
+            <span className="text-sm font-bold text-white whitespace-nowrap tracking-wide">
               {selectedCount}{" "}
               {selectedCount === 1
                 ? "visitante seleccionado"
@@ -40,11 +40,11 @@ export function SelectionBar({
             </span>
           </div>
 
-          <div className="h-6 w-px bg-slate-200" />
+          <div className="h-6 w-px bg-white/30" />
 
           <button
             type="button"
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+            className="text-sm font-bold text-blue-100 hover:text-white transition-colors hover:underline underline-offset-4 decoration-2"
             onClick={onSelectAll}>
             {selectedCount === totalVisible
               ? "Deseleccionar todos"
@@ -53,21 +53,27 @@ export function SelectionBar({
         </div>
 
         <div className="flex items-center gap-4">
+          {selectionActions && (
+            <div className="flex items-center gap-2">
+              {typeof selectionActions === "function" ? (
+                selectionActions(selectedItems)
+              ) : (
+                <div className="[&_button]:bg-white [&_button]:text-blue-600 [&_button:hover]:bg-blue-50 [&_button]:border-none [&_button]:shadow-lg [&_button]:font-bold [&_button]:px-6">
+                  {selectionActions}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="h-6 w-px bg-white/30" />
+
           <Button
             variant="ghost"
             size="icon"
             onClick={onClear}
-            className="h-8 w-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600">
+            className="h-8 w-8 rounded-full hover:bg-white/20 text-white hover:text-white transition-colors">
             <X className="h-5 w-5" />
           </Button>
-
-          {selectionActions && (
-            <div className="flex items-center gap-2">
-              {typeof selectionActions === "function"
-                ? selectionActions(selectedItems)
-                : selectionActions}
-            </div>
-          )}
         </div>
       </div>
     </div>
