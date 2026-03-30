@@ -85,6 +85,7 @@ const CardItem = ({
 
 const EquiposYVehiculosList = ({ record }: EquiposYVehiculosListProps) => {
   if (!record) return null;
+  console.log("🚀 ~ file: EquiposYVehiculosList.tsx:8 ~ record:", record);
 
   const hasVehiculos = record.vehiculos && record.vehiculos.length > 0;
   const hasEquipos = record.equipos && record.equipos.length > 0;
@@ -99,7 +100,7 @@ const EquiposYVehiculosList = ({ record }: EquiposYVehiculosListProps) => {
             record.vehiculos?.map((v, i) => (
               <CardItem
                 key={i}
-                image={v.imagen || DEFAULT_IMAGE}
+                image={v.foto_vehiculo?.[0]?.file_url || DEFAULT_IMAGE}
                 title={`${v.marca_vehiculo} ${v.modelo_vehiculo}`}
                 subtitle={
                   <span className="text-[12px] text-[#64748b] font-medium">
@@ -143,7 +144,7 @@ const EquiposYVehiculosList = ({ record }: EquiposYVehiculosListProps) => {
             record.equipos?.map((e, i) => (
               <CardItem
                 key={i}
-                image={e.imagen || DEFAULT_IMAGE}
+                image={e.foto_equipo?.[0]?.file_url || DEFAULT_IMAGE}
                 title={
                   e.nombre_articulo ||
                   `${e.marca_articulo} ${e.modelo_articulo}`
