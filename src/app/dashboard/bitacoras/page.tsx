@@ -14,47 +14,50 @@ import { Search, LogOut, LayoutGrid, Sheet, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBitacora } from "@/hooks/bitacora/useBitacora";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
+import VehiculosTable from "@/components/table/bitacoras/vehiculos/table";
 
 const BitacorasPage = () => {
   const {
-    filtersConfig,
-    selectedRecord,
-    dynamicFilters,
-    setDynamicFilters,
-    startDate,
-    endDate,
     activeDateFilter,
+    activeFiltersCount,
+    dynamicFilters,
+    endDate,
+    externalFilters,
+    filtersConfig,
     handleAgregarBadge,
     handlePrintPase,
     handleRegresarGafete,
     handleSalida,
+    hasPeopleInside,
+    isAddBadgeOpen,
+    isDoOutOpen,
+    isForceQuitOpen,
     isForcingQuit,
     isLoadingListBitacoras,
-    hasPeopleInside,
-    listBitacoras,
-    isAddBadgeOpen,
-    isForceQuitOpen,
     isReturnGafeteOpen,
-    isDoOutOpen,
+    listBitacoras,
+    onExternalFiltersChange,
     pagination,
+    // recordsEquipos,
+    recordsVehiculos,
     refreshData,
     searchTags,
-    setStartDate,
-    setEndDate,
+    selectedLocation,
+    selectedRecord,
     setActiveDateFilter,
-    setIsForcingQuit,
+    setDynamicFilters,
+    setEndDate,
     setIsAddBadgeOpen,
-    setIsForceQuitOpen,
-    setIsReturnGafeteOpen,
     setIsDoOutOpen,
+    setIsForceQuitOpen,
+    setIsForcingQuit,
+    setIsReturnGafeteOpen,
     setPagination,
     setSearchTags,
+    setStartDate,
     setViewMode,
-    selectedLocation,
+    startDate,
     viewMode,
-    externalFilters,
-    onExternalFiltersChange,
-    activeFiltersCount,
   } = useBitacora();
 
   const [selectedTab, setSelectedTab] = React.useState("personal");
@@ -202,10 +205,26 @@ const BitacorasPage = () => {
             <TabsContent
               value="vehiculos"
               className="m-0 border-none p-0 focus-visible:ring-0 min-h-[400px]">
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400 bg-white rounded-xl border border-dashed">
-                <h3 className="text-lg font-semibold">Módulo de Vehículos</h3>
-                <p>Contenido en desarrollo...</p>
-              </div>
+              <VehiculosTable
+                data={recordsVehiculos}
+                date1={startDate}
+                date2={endDate}
+                dateFilter={activeDateFilter}
+                externalDynamicFilters={dynamicFilters}
+                filtersConfig={filtersConfig}
+                handleSalida={handleSalida}
+                isLoading={isLoadingListBitacoras}
+                onExternalDynamicFiltersChange={setDynamicFilters}
+                pagination={pagination}
+                printPase={handlePrintPase}
+                searchTags={searchTags}
+                setDate1={setStartDate}
+                setDate2={setEndDate}
+                setDateFilter={setActiveDateFilter}
+                setPagination={setPagination}
+                total={listBitacoras?.total_records}
+                viewMode={viewMode}
+              />
             </TabsContent>
             <TabsContent
               value="equipos"

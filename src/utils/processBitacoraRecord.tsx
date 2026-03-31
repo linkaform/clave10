@@ -22,8 +22,9 @@ export const processBitacorasE = (bitacoras: Bitacora_record[]) => {
       return [];
     }
 
-    return bitacora.equipos.map((eq: any) => ({
+    return bitacora.equipos.map((eq: any, idx: number) => ({
       ...bitacora,
+      _id: `${bitacora._id}-e-${idx}`,
       equipos: [eq],
       formated_visita:
         bitacora.visita_a?.map((item: VisitaA) => item.nombre).join(", ") || "",
@@ -52,9 +53,10 @@ export const processBitacorasV = (bitacoras: Bitacora_record[]) => {
       return [];
     }
 
-    return bitacora.vehiculos.map((eq: any) => {
+    return bitacora.vehiculos.map((eq: any, idx: number) => {
       return {
         ...bitacora,
+        _id: `${bitacora._id}-v-${idx}`,
         vehiculos: [eq],
         formated_visita: bitacora.visita_a
           .map((item: VisitaA) => item.nombre)
