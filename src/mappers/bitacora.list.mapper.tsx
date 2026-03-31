@@ -1,7 +1,7 @@
 import { cn, capitalizeFirstLetter } from "@/lib/utils";
 import { Briefcase, CalendarDays, Contact, MapPin, User } from "lucide-react";
 
-export function mapBitacora(raw: any, base: any) {
+export function mapBitacoraList(raw: any, base: any) {
   return {
     ...base,
     visit_type: raw?.status_visita || "",
@@ -116,7 +116,7 @@ export function mapBitacora(raw: any, base: any) {
   };
 }
 
-export function mapBitacoraEquipos(raw: any, base: any) {
+export function mapBitacoraListEquipos(raw: any, base: any) {
   return {
     ...base,
     visit_type: raw?.perfil_visita || "",
@@ -191,7 +191,7 @@ export function mapBitacoraEquipos(raw: any, base: any) {
   };
 }
 
-export function mapBitacoraVehiculos(raw: any, base: any) {
+export function mapBitacoraListVehiculos(raw: any, base: any) {
   return {
     ...base,
     visit_type: raw?.perfil_visita || "",

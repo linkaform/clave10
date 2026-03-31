@@ -146,16 +146,16 @@ const BitacorasPage = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-                onClick={() => setViewMode?.("table")}>
-                <Sheet size={18} />
+                className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
+                onClick={() => setViewMode?.("list")}>
+                <LayoutList size={18} />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-                onClick={() => setViewMode?.("list")}>
-                <LayoutList size={18} />
+                className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
+                onClick={() => setViewMode?.("table")}>
+                <Sheet size={18} />
               </Button>
             </div>
 

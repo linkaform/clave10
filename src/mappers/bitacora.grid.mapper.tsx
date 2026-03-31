@@ -1,6 +1,6 @@
 import { Briefcase, CalendarDays, Contact, MapPin, User } from "lucide-react";
 
-export function mapBitacora(raw: any, base: any) {
+export function mapBitacoraGrid(raw: any, base: any) {
   return {
     ...base,
     visit_type: raw?.perfil_visita || "",
@@ -73,7 +73,7 @@ export function mapBitacora(raw: any, base: any) {
   };
 }
 
-export function mapBitacoraEquipos(raw: any, base: any) {
+export function mapBitacoraGridEquipos(raw: any, base: any) {
   return {
     ...base,
     visit_type: raw?.perfil_visita || "",
@@ -148,7 +148,7 @@ export function mapBitacoraEquipos(raw: any, base: any) {
   };
 }
 
-export function mapBitacoraVehiculos(raw: any, base: any) {
+export function mapBitacoraGridVehiculos(raw: any, base: any) {
   return {
     ...base,
     visit_type: raw?.perfil_visita || "",

@@ -267,7 +267,7 @@ const VehiculosTable: React.FC<ListProps> = ({
               </div>
             </>
           ) : viewMode === "photos" ? (
-            <div>
+            <>
               <PhotoGridView
                 isLoading={isLoading}
                 records={photoRecords}
@@ -277,9 +277,9 @@ const VehiculosTable: React.FC<ListProps> = ({
                 )}>
                 {renderActions}
               </PhotoGridView>
-            </div>
+            </>
           ) : (
-            <div>
+            <>
               <PhotoListView
                 isLoading={isLoading}
                 records={photoListRecords}
@@ -289,7 +289,7 @@ const VehiculosTable: React.FC<ListProps> = ({
                 )}>
                 {renderActions}
               </PhotoListView>
-            </div>
+            </>
           )}
           <DataTablePagination table={table} total={total} />
         </div>
