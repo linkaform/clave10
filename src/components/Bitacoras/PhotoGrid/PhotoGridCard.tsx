@@ -113,6 +113,13 @@ export function PhotoGridCard({
             cardConfig?.tagPosition === "inf-der" &&
               "bottom-3 right-3 items-end",
           )}>
+          {cardConfig?.folioTag && record?.folio && (
+            <Badge
+              variant={"default"}
+              className="bg-[#DBEAFE] hover:bg-[#DBEAFE] text-[0.65rem] py-0 px-2 h-5 text-blue-700 rounded-sm">
+              {record.folio}
+            </Badge>
+          )}
           {statusInfo && (
             <Badge
               variant={statusInfo.variant}
@@ -121,13 +128,6 @@ export function PhotoGridCard({
                 !statusInfo.variant && statusInfo.customClass,
               )}>
               {statusInfo.label}
-            </Badge>
-          )}
-          {cardConfig?.folioTag && record?.folio && (
-            <Badge
-              variant={"default"}
-              className="bg-[#DBEAFE] hover:bg-[#DBEAFE] text-[0.65rem] py-0 px-2 h-5 text-blue-700 rounded-sm">
-              {record.folio}
             </Badge>
           )}
         </div>

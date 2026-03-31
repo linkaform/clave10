@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useBitacora } from "@/hooks/bitacora/useBitacora";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import VehiculosTable from "@/components/table/bitacoras/vehiculos/table";
+import EquiposTable from "@/components/table/bitacoras/equipos/table";
 
 const BitacorasPage = () => {
   const {
@@ -38,7 +39,7 @@ const BitacorasPage = () => {
     listBitacoras,
     onExternalFiltersChange,
     pagination,
-    // recordsEquipos,
+    recordsEquipos,
     recordsVehiculos,
     refreshData,
     searchTags,
@@ -229,10 +230,26 @@ const BitacorasPage = () => {
             <TabsContent
               value="equipos"
               className="m-0 border-none p-0 focus-visible:ring-0 min-h-[400px]">
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400 bg-white rounded-xl border border-dashed">
-                <h3 className="text-lg font-semibold">Módulo de Equipos</h3>
-                <p>Contenido en desarrollo...</p>
-              </div>
+              <EquiposTable
+                data={recordsEquipos}
+                date1={startDate}
+                date2={endDate}
+                dateFilter={activeDateFilter}
+                externalDynamicFilters={dynamicFilters}
+                filtersConfig={filtersConfig}
+                handleSalida={handleSalida}
+                isLoading={isLoadingListBitacoras}
+                onExternalDynamicFiltersChange={setDynamicFilters}
+                pagination={pagination}
+                printPase={handlePrintPase}
+                searchTags={searchTags}
+                setDate1={setStartDate}
+                setDate2={setEndDate}
+                setDateFilter={setActiveDateFilter}
+                setPagination={setPagination}
+                total={listBitacoras?.total_records}
+                viewMode={viewMode}
+              />
             </TabsContent>
           </Tabs>
         </div>
