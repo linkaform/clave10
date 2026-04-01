@@ -279,7 +279,7 @@ const BitacorasTable: React.FC<ListProps> = ({
               </div>
             </>
           ) : viewMode === "photos" ? (
-            <div>
+            <>
               <PhotoGridView
                 isLoading={isLoading}
                 records={photoRecords}
@@ -289,9 +289,9 @@ const BitacorasTable: React.FC<ListProps> = ({
                 )}>
                 {renderActions}
               </PhotoGridView>
-            </div>
+            </>
           ) : (
-            <div>
+            <>
               <PhotoListView
                 isLoading={isLoading}
                 records={photoListRecords}
@@ -301,7 +301,7 @@ const BitacorasTable: React.FC<ListProps> = ({
                 )}>
                 {renderActions}
               </PhotoListView>
-            </div>
+            </>
           )}
           <DataTablePagination table={table} total={total} />
         </div>

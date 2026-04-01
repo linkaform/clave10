@@ -1,3 +1,5 @@
+import { Imagen } from "@/components/upload-Image";
+
 export interface FilterOption {
   label: string;
   value: string;
@@ -49,6 +51,7 @@ export interface Vehiculo {
   nombre_estado: string;
   color_code?: string;
   imagen?: string;
+  foto_vehiculo?: Imagen[];
 }
 
 export interface Equipo {
@@ -60,6 +63,7 @@ export interface Equipo {
   color_articulo: string;
   color_code?: string;
   imagen?: string;
+  foto_equipo?: Imagen[];
 }
 
 export interface ListRecord {

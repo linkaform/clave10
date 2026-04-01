@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { useBitacoraFilters, useBitacoraFiltersExtra } from "./useBitacoraFilters";
+import {
+  useBitacoraFilters,
+  useBitacoraFiltersExtra,
+} from "./useBitacoraFilters";
 import { useBitacoraModals } from "./useBitacoraModals";
 import { useBitacoraData } from "./useBitacoraData";
 import { useBitacoraActions } from "./useBitacoraActions";
@@ -15,7 +18,7 @@ export const useBitacora = () => {
     ...filters,
   });
   const actions = useBitacoraActions();
-  
+
   // Lógica extra para el Drawer de filtros externos
   const extraFilters = useBitacoraFiltersExtra(filters);
 

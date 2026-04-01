@@ -42,14 +42,14 @@ export function SelectionBar({
 
           <div className="h-6 w-px bg-white/30" />
 
-          <button
+          <Button
             type="button"
-            className="text-sm font-bold text-blue-100 hover:text-white transition-colors hover:underline underline-offset-4 decoration-2"
+            className="bg-white text-blue-600 hover:bg-blue-50 active:scale-95 border-none font-bold rounded-lg shadow-md px-5 transition-all duration-200"
             onClick={onSelectAll}>
             {selectedCount === totalVisible
               ? "Deseleccionar todos"
               : `Seleccionar todos (${totalVisible})`}
-          </button>
+          </Button>
         </div>
 
         <div className="flex items-center gap-4">

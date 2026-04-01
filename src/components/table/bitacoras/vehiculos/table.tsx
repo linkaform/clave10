@@ -3,274 +3,298 @@
 
 import * as React from "react";
 import {
-	ColumnFiltersState,
-	SortingState,
-	VisibilityState,
-	flexRender,
-	getCoreRowModel,
-	getFilteredRowModel,
-	getPaginationRowModel,
-	getSortedRowModel,
-	useReactTable,
+  ColumnFiltersState,
+  SortingState,
+  VisibilityState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
 } from "@tanstack/react-table";
-import { CalendarDays, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import {
-	DropdownMenu,
-	DropdownMenuCheckboxItem,
-	DropdownMenuContent,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Bitacora_record, vehiculosColumns } from "./vehiculos-columns";
-import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DateTime from "@/components/dateTime";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { catalogoFechas } from "@/lib/utils";
-// import { SelectTrigger } from "@radix-ui/react-select";
-// import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-
+import { useMemo, useState } from "react";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
+import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
+import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
+import { ListRecord, PhotoRecord, FilterConfig } from "@/types/bitacoras";
+import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
+import { InAndOutButtons } from "@/components/Bitacoras/InAndOut/InAndOutButtons";
+import OutSelectedItemsButton from "@/components/Bitacoras/OutSelectedItemsButton";
 
 interface ListProps {
-	data: Bitacora_record[];
-	isLoading: boolean;
-
-	setDate1: React.Dispatch<React.SetStateAction<Date | "">>;
-	setDate2: React.Dispatch<React.SetStateAction<Date | "">>;
-	date1: Date | ""
-	date2: Date | ""
-	dateFilter: string;
-	setDateFilter: React.Dispatch<React.SetStateAction<string>>;
-	Filter: () => void;
-
-	//   setUbicacionSeleccionada: React.Dispatch<React.SetStateAction<string>>;
-	//   setAreaSeleccionada:React.Dispatch<React.SetStateAction<string>>;
-	//   areaSeleccionada:string;
-	//   ubicacionSeleccionada:string;
-	//   setAll:React.Dispatch<React.SetStateAction<boolean>>;
-	//   all:boolean;
+  data: Bitacora_record[] | undefined;
+  isLoading: boolean;
+  total: number | undefined;
+  pagination: { pageIndex: number; pageSize: number };
+  setPagination: React.Dispatch<
+    React.SetStateAction<{ pageIndex: number; pageSize: number }>
+  >;
+  viewMode?: "table" | "photos" | "list";
+  printPase: (paseId: string) => void;
+  handleSalida: (bitacora: Bitacora_record) => void;
+  // Filtros externos de la API
+  dateFilter?: string;
+  setDateFilter?: (val: string) => void;
+  date1?: Date | "";
+  setDate1?: (val: Date | "") => void;
+  date2?: Date | "";
+  setDate2?: (val: Date | "") => void;
+  // Configuración de filtros para el panel global
+  externalDynamicFilters?: Record<string, any>;
+  onExternalDynamicFiltersChange: (filters: Record<string, any>) => void;
+  searchTags?: string[];
+  setUbicacionSeleccionada?: (val: string) => void;
+  filtersConfig?: FilterConfig[];
 }
 
-// const fallasColumnsCSV = [
-//   { label: 'Folio', key: 'folio' },
-//   { label: 'Visitante', key: 'nombre_visitante' },
-//   { label: 'Fecha de entrada', key: 'fecha_entrada' },
-//   { label: 'Fecha de salida', key: 'fecha_salida' },
-//   { label: 'Tipo', key: 'perfil_visita' },
-//   { label: 'Contratista', key: 'contratista' },
-//   { label: 'Visita a', key: 'formated_visita' },
-//   { label: 'Caseta de entrada', key: 'caseta_entrada' },
-//   { label: 'Caseta de salida', key: 'caseta_salida' },
-//   { label: 'Gafete', key: 'id_gafet' },
-//   { label: 'Locker', key: 'id_locker' },
-//   { label: 'Comentarios', key: 'formated_comentarios' },
-// ];
+const VehiculosTable: React.FC<ListProps> = ({
+  data,
+  isLoading,
+  printPase,
+  total,
+  pagination,
+  setPagination,
+  viewMode = "photos",
+  handleSalida,
+  dateFilter,
+  setDateFilter,
+  date1,
+  setDate1,
+  date2,
+  setDate2,
+  externalDynamicFilters,
+  onExternalDynamicFiltersChange,
+  searchTags: externalSearchTags,
+  filtersConfig = [],
+}) => {
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
-const VehiculosTable: React.FC<ListProps> = ({ data, isLoading, setDate1, setDate2, date1, date2, dateFilter, setDateFilter, Filter }) => {
-	const [sorting, setSorting] = React.useState<SortingState>([]);
-	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-		[]
-	);
-	const [columnVisibility, setColumnVisibility] =
-		React.useState<VisibilityState>({});
-	const [rowSelection, setRowSelection] = React.useState({});
-	const [pagination, setPagination] = React.useState({
-		pageIndex: 0,
-		pageSize: 23,
-	});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState({});
 
-	const [globalFilter, setGlobalFilter] = React.useState("");
+  const printPaseFn = (id: string) => {
+    printPase(id);
+  };
 
+  const [localSearchTags, setLocalSearchTags] = useState<string[]>([]);
+  const searchTags = externalSearchTags || localSearchTags;
+  const setSearchTags = setLocalSearchTags;
 
-	const table = useReactTable({
-		data: data || [],
-		columns: isLoading ? [] : vehiculosColumns,
-		onSortingChange: setSorting,
-		onColumnFiltersChange: setColumnFilters,
-		onGlobalFilterChange: setGlobalFilter,
-		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		onColumnVisibilityChange: setColumnVisibility,
-		onRowSelectionChange: setRowSelection,
-		onPaginationChange: setPagination,
+  const columns = useMemo(() => {
+    if (isLoading) return [];
+    return vehiculosColumns;
+  }, [isLoading]);
+  const memoizedData = useMemo(() => data || [], [data]);
 
-		state: {
-			sorting,
-			columnFilters,
-			columnVisibility,
-			rowSelection,
-			pagination,
-			globalFilter,
-		}
-	});
+  const table = useReactTable({
+    data: memoizedData,
+    columns: columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setSearchTags,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    onPaginationChange: setPagination,
+    globalFilterFn: (row, columnId, filterValues: string[]) => {
+      if (!filterValues || filterValues.length === 0) return true;
+      const searchTags = filterValues.map((v) => v.toLowerCase());
 
-	// const handleSelectChange = (value:string) => {
-	// 	setSelectedOption([value]); // Actualiza el estado con el valor seleccionado
-	//   };
+      // Obtenemos todos los valores de la fila de forma dinámica
+      const allValues = row
+        .getAllCells()
+        .map((cell) => String(cell.getValue() || "").toLowerCase())
+        .join(" ");
 
-	return (
-		<div className="w-full">
-			<div className="flex justify-between items-start my-1 gap-3">
-				<div className="flex w-full justify-start gap-4">
-					<TabsList className="bg-blue-500 text-white">
-						<TabsTrigger value="Personal">Personal</TabsTrigger>
-						<TabsTrigger value="Vehiculos">Vehículos</TabsTrigger>
-						<TabsTrigger value="Equipos">Equipos</TabsTrigger>
-						{/* <TabsTrigger value="Locker">Locker</TabsTrigger> */}
-					</TabsList>
+      // Lógica OR: Si el registro coincide con AL MENOS UNO de los tags
+      return searchTags.some((tag) => allValues.includes(tag));
+    },
 
-					<div className="flex w-full max-w-sm items-center space-x-2">
-						<input
-							type="text"
-							placeholder="Buscar"
-							value={globalFilter}
-							onChange={(e) => setGlobalFilter(e.target.value)}
-							className=" border border-gray-300 rounded-md p-2 placeholder-gray-600 w-full"
-						/>
-						<Search />
-					</div>
-				</div>
+    manualPagination: true,
+    rowCount: total || 0,
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
+      pagination,
+      globalFilter: searchTags,
+    },
+  });
 
-				<div className="flex w-full justify-end">
-					{dateFilter == "range" ?
-						<div className="flex items-center gap-2 mr-14">
-							<DateTime date={date1} setDate={setDate1} />
-							<DateTime date={date2} setDate={setDate2} />
-							<Button type="button" className={"bg-blue-500 hover:bg-blue-600"} onClick={Filter}> Filtrar</Button>
-						</div> : null}
-					<div className="flex items-center w-48 gap-2">
-						<Select value={dateFilter} onValueChange={(value) => {
-							setDateFilter(value);
-						}}>
-							<SelectTrigger className="w-full">
-								<SelectValue placeholder="Selecciona un filtro de fecha" />
-							</SelectTrigger>
-							<SelectContent>
-								{catalogoFechas().map((option: any) => {
-									return (
-										<SelectItem key={option.key} value={option.key}>
-											{option.label}
-										</SelectItem>
-									)
-								})}
-							</SelectContent>
-						</Select>
-						<CalendarDays />
-					</div>
-				</div>
+  const photoListRecords: ListRecord[] = useMemo(() => {
+    return memoizedData.map((item) =>
+      formatListRecord(item, "bitacora_vehiculos"),
+    );
+  }, [memoizedData]);
 
-				<div className="flex flex-wrap gap-2">
-					<div>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end">
-								{table
-									.getAllColumns()
-									.filter((column: any) => column.getCanHide())
-									.map((column: any) => {
-										return (
-											<DropdownMenuCheckboxItem
-												key={column.id}
-												className="capitalize"
-												checked={column.getIsVisible()}
-												onCheckedChange={(value: boolean) =>
-													column.toggleVisibility(!!value)
-												}
-											>
-												{column.id}
-											</DropdownMenuCheckboxItem>
-										);
-									})}
-							</DropdownMenuContent>
-						</DropdownMenu>
-					</div>
-				</div>
-			</div>
+  const photoRecords: PhotoRecord[] = useMemo(() => {
+    return memoizedData.map((item) =>
+      formatPhotoRecord(item, "bitacora_vehiculos"),
+    );
+  }, [memoizedData]);
 
-			<div className="">
-				<Table>
-					<TableHeader className="bg-blue-100 hover:bg-blue-100">
-						{table.getHeaderGroups().map((headerGroup: any) => (
-							<TableRow key={headerGroup.id}>
-								{headerGroup.headers.map((header: any) => {
-									return (
-										<TableHead key={header.id} className="px-1">
-											{header.isPlaceholder
-												? null
-												: flexRender(
-													header.column.columnDef.header,
-													header.getContext()
-												)}
-										</TableHead>
-									);
-								})}
-							</TableRow>
-						))}
-					</TableHeader>
-					<TableBody >
-						{table.getRowModel().rows?.length ? (
-							table.getRowModel().rows.map((row: any) => (
-								<TableRow
-									key={row.id}
-									data-state={row.getIsSelected() && "selected"}
+  const [localDynamicFilters, setLocalDynamicFilters] = useState<
+    Record<string, any>
+  >({});
+  const dynamicFilters = externalDynamicFilters || localDynamicFilters;
+  const setDynamicFilters =
+    onExternalDynamicFiltersChange || setLocalDynamicFilters;
 
-								>
-									{row.getVisibleCells().map((cell: any) => (
-										<TableCell key={cell.id} className="p-1 pl-1">
-											{flexRender(
-												cell.column.columnDef.cell,
-												cell.getContext(),
-											)}
-										</TableCell>
-									))}
-								</TableRow>
-							))
-						) : (
-							<TableRow>
-								<TableCell
-									colSpan={vehiculosColumns.length}
-									className="h-24 text-center"
-								>
-									{isLoading ? (<div className='text-xl font-semibold'>Cargando registros... </div>) :
-										(<div className='text-xl font-semibold'>No hay registros disponibles...</div>)}
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-				</Table>
-			</div>
+  // Sincronización de filtros con el servidor y locales
+  const externalFilters = useMemo(
+    () => ({
+      dynamic: dynamicFilters,
+      dateFilter,
+      date1,
+      date2,
+    }),
+    [dynamicFilters, dateFilter, date1, date2],
+  );
 
-			<div className="flex items-center justify-end space-x-2 py-4">
-				<div className="space-x-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => table.previousPage()}
-						disabled={!table.getCanPreviousPage()}
-					>
-						Anterior
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => table.nextPage()}
-						disabled={!table.getCanNextPage()}
-					>
-						Siguiente
-					</Button>
-				</div>
-			</div>
-		</div>
-	);
-}
+  const onExternalFiltersChange = (newFilters: any) => {
+    if (newFilters.dateFilter !== undefined)
+      setDateFilter?.(newFilters.dateFilter);
+    if (newFilters.date1 !== undefined) setDate1?.(newFilters.date1);
+    if (newFilters.date2 !== undefined) setDate2?.(newFilters.date2);
+    if (newFilters.dynamic !== undefined) {
+      setDynamicFilters(newFilters.dynamic);
+    }
+  };
+
+  const renderActions = (record: PhotoRecord | ListRecord) => {
+    const bitacora = memoizedData.find((b) => b._id === record.id);
+    if (!bitacora) return null;
+    return (
+      <InAndOutButtons
+        bitacora={bitacora}
+        handleSalida={handleSalida}
+        printPaseFn={printPaseFn}
+      />
+    );
+  };
+
+  return (
+    <div className="w-full">
+      <div className="flex gap-4 items-start">
+        {viewMode !== "table" && (
+          <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto custom-scrollbar">
+            <FiltersPanel
+              filters={externalFilters}
+              onFiltersChange={onExternalFiltersChange}
+              filtersConfig={filtersConfig}
+            />
+          </aside>
+        )}
+
+        <div className="flex-1 min-w-0">
+          {viewMode === "table" ? (
+            <>
+              <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">
+                <Table className="text-xs">
+                  <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
+                    {table.getHeaderGroups().map((headerGroup: any) => (
+                      <TableRow
+                        key={headerGroup.id}
+                        className="hover:bg-transparent border-none">
+                        {headerGroup.headers.map((header: any) => {
+                          return (
+                            <TableHead key={header.id} className="px-1">
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext(),
+                                  )}
+                            </TableHead>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+
+                  <TableBody>
+                    {table.getRowModel().rows?.length ? (
+                      table.getRowModel().rows.map((row: any) => (
+                        <TableRow
+                          key={row.id}
+                          data-state={row.getIsSelected() && "selected"}
+                          className="hover:bg-slate-100 transition-colors border-slate-50">
+                          {row.getVisibleCells().map((cell: any) => (
+                            <TableCell key={cell.id} className="p-1 pl-1">
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={columns.length}
+                          className="h-24 text-center">
+                          {isLoading ? (
+                            <div className="text-xl font-semibold">
+                              Cargando registros...{" "}
+                            </div>
+                          ) : (
+                            <div className="text-xl font-semibold">
+                              No hay registros disponibles...
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          ) : viewMode === "photos" ? (
+            <>
+              <PhotoGridView
+                isLoading={isLoading}
+                records={photoRecords}
+                globalSearch={searchTags}
+                selectionActions={(ids) => (
+                  <OutSelectedItemsButton selectedItems={ids} />
+                )}>
+                {renderActions}
+              </PhotoGridView>
+            </>
+          ) : (
+            <>
+              <PhotoListView
+                isLoading={isLoading}
+                records={photoListRecords}
+                globalSearch={searchTags}
+                selectionActions={(ids) => (
+                  <OutSelectedItemsButton selectedItems={ids} />
+                )}>
+                {renderActions}
+              </PhotoListView>
+            </>
+          )}
+          <DataTablePagination table={table} total={total} />
+        </div>
+      </div>
+    </div>
+  );
+};
 export default VehiculosTable;
