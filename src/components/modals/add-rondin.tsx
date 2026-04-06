@@ -43,6 +43,8 @@ interface AddRondinModalProps {
 	rondinData?: any;
   	rondinId?: string;
 	folio?:string;
+	externalOpen?: boolean;
+	onExternalOpenChange?: (open: boolean) => void;
 }
   
   export type RondinPayload = {
@@ -144,8 +146,13 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 	rondinData,
 	rondinId,
 	folio="",
+	externalOpen,
+	onExternalOpenChange,
 }) => {
-    const [isSuccess, setIsSuccess] = useState(false);
+    const [isSuccessLocal, setIsSuccessLocal] = useState(false);
+	const isSuccess = externalOpen !== undefined ? externalOpen : isSuccessLocal;
+	const setIsSuccess = onExternalOpenChange || setIsSuccessLocal;
+
 	const { location } = useBoothStore()
 	const [areasSeleccionadas, setAreasSeleccionadas] = useState<any[]>([]);
 	const { createRondinMutation, isLoading} = useRondines()

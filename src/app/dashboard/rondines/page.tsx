@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 
 import RondinesTable from "@/components/table/rondines/table";
@@ -18,8 +19,12 @@ import ChecksImagesSection from "@/components/ChecksImagesSection";
 import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
 import { RondinesBitacoraTable } from "@/components/table/rondines/bitacoras-table";
 import { useBoothStore } from "@/store/useBoothStore";
+import { AddRondinModal } from "@/components/modals/add-rondin";
 
 const RondinesPage = () => {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
   const [selectedOption, setSelectedOption] = useState<string[]>([]);
   const {location } = useBoothStore();
   const [ubicacionSeleccionada, setUbicacionSeleccionada]= useState<string>("")
@@ -27,6 +32,43 @@ const RondinesPage = () => {
   const { tab, filter} = useShiftStore()
   const [dateFilter, setDateFilter] = useState<string>(filter)
   const [selectedTab, setSelectedTab] = useState<string>(tab ? tab: "Rondines"); 
+
+  const [isSuccessProgramarRondin, setIsSuccessProgramarRondin] = useState(false);
+
+  useEffect(() => {
+    const action = searchParams.get("action");
+    const tabParam = searchParams.get("tab");
+
+    if (action === "programar_rondin") {
+      setIsSuccessProgramarRondin(true);
+    }
+
+    if (tabParam) {
+      if (tabParam.toLowerCase() === "rondines") {
+        setActiveTab("Rondines");
+      } else if (tabParam.toLowerCase() === "bitacora") {
+        setActiveTab("Bitacora");
+      } else if (tabParam.toLowerCase() === "incidencias") {
+        setActiveTab("Incidencias");
+      } else if (tabParam.toLowerCase() === "fotos") {
+        setActiveTab("Fotos");
+      } else if (tabParam.toLowerCase() === "calendario") {
+        setActiveTab("Calendario");
+      }
+    }
+  }, [searchParams]);
+
+  const handleOpenProgramarRondinChange = (open: boolean) => {
+    if (!open) {
+      setIsSuccessProgramarRondin(false);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`?${params.toString()}`);
+    } else {
+      setIsSuccessProgramarRondin(true);
+    }
+  };
+
   const { data: stats } = useGetStats(ubicacionSeleccionada&& areaSeleccionada?true:false,ubicacionSeleccionada, areaSeleccionada=="todas"?"":areaSeleccionada, 'Rondines')
 
   const [date1, setDate1] = useState<Date|"">("")
@@ -364,7 +406,7 @@ const RondinesPage = () => {
 		{/* <ViewDetalleArea title={"Detalle del Área"} data={[]} isSuccess={isSuccess} setIsSuccess={setIsSuccess}>  </ViewDetalleArea> */}
 
 			<div className="" >
-				<Tabs defaultValue="Bitacora" className="w-full" onValueChange={setActiveTab}>
+				<Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
 					<TabsContent value="Bitacora">
 						{/* <div >
 						<RondinesTable data={listRondines} isLoading={false} setSelectedRondin={setSelectedRondin} selectedRondin={selectedRondin}
@@ -409,6 +451,15 @@ const RondinesPage = () => {
 						</div>
 					</TabsContent>
 				</Tabs>
+
+				<AddRondinModal
+					title="Crear Rondín"
+					mode="create"
+					externalOpen={isSuccessProgramarRondin}
+					onExternalOpenChange={handleOpenProgramarRondinChange}
+				>
+					<div />
+				</AddRondinModal>
 			</div>
         </div>
       </div>
@@ -416,4 +467,10 @@ const RondinesPage = () => {
   );
 };
 
-export default RondinesPage;
+const RondinesPageWrapper = () => (
+  <Suspense fallback={<div>Cargando...</div>}>
+    <RondinesPage />
+  </Suspense>
+);
+
+export default RondinesPageWrapper;

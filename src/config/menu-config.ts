@@ -505,14 +505,14 @@ export const menuStructure: MenuConfig = {
               key: "programar-rondin",
               label: "+ Programar Rondín",
               type: "link",
-              href: "/rondines?action=programar_rondin",
+              href: "/rondines?tab=rondines&action=programar_rondin",
               order: 1,
             },
             {
               key: "rondines_programados",
               label: "Programados",
               type: "link",
-              href: "/rondines?tab=programados",
+              href: "/rondines?tab=rondines",
               order: 2,
             },
             {
