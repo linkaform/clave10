@@ -50,8 +50,10 @@ interface AddFallaModalProps {
   	title: string;
 	data: any;
 	isSuccess: boolean;
-	setIsSuccess: Dispatch<SetStateAction<boolean>>;
+	setIsSuccess: (value: boolean) => void;
 	onClose: ()=> void;
+	externalOpen?: boolean;
+	onExternalOpenChange?: (open: boolean) => void;
 }
 
 const formSchema = z.object({
@@ -83,7 +85,12 @@ export const AddFallaModal: React.FC<AddFallaModalProps> = ({
   	title,
 	isSuccess,
 	setIsSuccess,
+	externalOpen,
+	onExternalOpenChange,
 }) => {
+	const isOpen = externalOpen !== undefined ? externalOpen : isSuccess;
+	const setOpen = onExternalOpenChange || setIsSuccess;
+
 	const [subconcepto, setSubConcepto] = useState<string>("");
 	const [catalagoSub, setCatalogoSub] = useState<string[]>([]);
 	const [catalagoFallas, setFallas] = useState<string[]>([]);
@@ -214,7 +221,7 @@ export const AddFallaModal: React.FC<AddFallaModalProps> = ({
     }, [form.formState.errors])
 
   return (
-    <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
+    <Dialog open={isOpen} onOpenChange={setOpen} modal>
       {/* <DialogTrigger></DialogTrigger> */}
 
       <DialogContent className="max-w-5xl  overflow-y-auto max-h-[80vh] flex flex-col overflow-hidden" onInteractOutside={(e) => e.preventDefault()} aria-describedby="">
