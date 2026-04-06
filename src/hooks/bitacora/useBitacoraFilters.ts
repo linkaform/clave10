@@ -4,6 +4,7 @@ import { useShiftStore } from "@/store/useShiftStore";
 import { getBitacoraFilters } from "@/services/endpoints";
 import { useFilters } from "./useFilters";
 import { dateToString } from "@/lib/utils";
+import { useQueryParams } from "@/hooks/useQueryParams";
 
 export const useBitacoraFilters = () => {
   const { filter, option } = useShiftStore();
@@ -17,6 +18,34 @@ export const useBitacoraFilters = () => {
 
   // Filtros dinámicos (Custom Selects)
   const [dynamicFilters, setDynamicFilters] = useState<Record<string, any>>({});
+
+  // Sincronización inicial con URL Query Params usando el nuevo hook unificado
+  const queryParams = useQueryParams((p) => {
+    // Si la URL tiene parámetros, actualizamos filters. Si no los tiene, se mantienen los actuales
+    // o se limpian según la lógica necesaria.
+
+    // 1. Manejo de status (Dynamic Filters)
+    setDynamicFilters((prev) => {
+      // Si existe status en la URL, lo ponemos. Si NO existe, lo limpiamos de dynamicFilters
+      // para evitar que se arrastren filtros de navegación anterior.
+      const newFilters = { ...prev };
+      if (p.status) {
+        newFilters.status = p.status;
+      } else {
+        delete newFilters.status;
+      }
+      return newFilters;
+    });
+
+    // 2. Manejo de date (Active Date Filter)
+    if (p.date) {
+      const dateValue = Array.isArray(p.date) ? p.date[0] : p.date;
+      setDateFilter(dateValue);
+    } else {
+      // Si no viene fecha en la URL, regresamos al valor por defecto (shiftStore) o vacío
+      setDateFilter(filter || "");
+    }
+  });
 
   const dynamicFiltersArray = useMemo(() => {
     return Object.entries(dynamicFilters)
@@ -66,32 +95,33 @@ export const useBitacoraFilters = () => {
 
   return {
     // State
-    selectedLocation: ubicacionSeleccionada,
-    selectedArea: areaSeleccionada,
-    startDate: date1,
-    endDate: date2,
     activeDateFilter: dateFilter,
-    formattedDates: dates,
-    selectedOptions: selectedOption,
-    searchTags,
-    hasPeopleInside: isPersonasDentro,
-    pagination,
-    filtersConfig: bitacoraFilters,
-    isLoadingFilters: loadingFilters,
-    dynamicFilters,
     appliedFilters: dynamicFiltersArray,
+    dynamicFilters,
+    endDate: date2,
+    filtersConfig: bitacoraFilters,
+    formattedDates: dates,
+    hasPeopleInside: isPersonasDentro,
+    isLoadingFilters: loadingFilters,
+    pagination,
+    queryParams,
+    searchTags,
+    selectedArea: areaSeleccionada,
+    selectedLocation: ubicacionSeleccionada,
+    selectedOptions: selectedOption,
+    startDate: date1,
 
     // Setters
-    setSelectedLocation: setUbicacionSeleccionada,
-    setSelectedArea: setAreaSeleccionada,
-    setDynamicFilters,
-    setStartDate: setDate1,
-    setEndDate: setDate2,
     setActiveDateFilter: setDateFilter,
-    setSelectedOptions: setSelectedOption,
-    setSearchTags,
+    setDynamicFilters,
+    setEndDate: setDate2,
     setHasPeopleInside: setIsPersonasDentro,
     setPagination,
+    setSearchTags,
+    setSelectedArea: setAreaSeleccionada,
+    setSelectedLocation: setUbicacionSeleccionada,
+    setSelectedOptions: setSelectedOption,
+    setStartDate: setDate1,
   };
 };
 
