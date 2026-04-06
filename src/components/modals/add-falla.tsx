@@ -22,7 +22,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Textarea } from "../ui/textarea";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import LoadImage, { Imagen } from "../upload-Image";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
