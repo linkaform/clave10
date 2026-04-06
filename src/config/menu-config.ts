@@ -14,6 +14,7 @@ export const menuStructure: MenuConfig = {
           id: "entradas-salidas",
           key: "entradas_salidas",
           label: "Entradas & Salidas",
+          href: "/bitacoras",
           order: 1,
           column: 1,
           items: [
@@ -58,6 +59,7 @@ export const menuStructure: MenuConfig = {
           id: "vehiculos",
           key: "vehiculos",
           label: "Vehículos",
+          href: "/bitacoras?tab=vehiculos",
           order: 2,
           column: 2,
           items: [
@@ -96,6 +98,7 @@ export const menuStructure: MenuConfig = {
           id: "equipos",
           key: "equipos",
           label: "Equipos",
+          href: "/bitacoras?tab=equipos",
           order: 4,
           column: 3,
           items: [
@@ -193,6 +196,7 @@ export const menuStructure: MenuConfig = {
           id: "pases-de-entrada",
           key: "pases_de_entrada",
           label: "Pases de Entrada",
+          href: "/pases",
           order: 1,
           column: 1,
           items: [
@@ -277,6 +281,7 @@ export const menuStructure: MenuConfig = {
           id: "turnos",
           key: "turnos",
           label: "Turnos",
+          href: "/turnos",
           order: 1,
           column: 1,
           items: [
@@ -323,6 +328,7 @@ export const menuStructure: MenuConfig = {
           id: "turno-notas",
           key: "turno_notas",
           label: "Notas",
+          href: "/notas",
           order: 1,
           column: 2,
           items: [
@@ -370,6 +376,7 @@ export const menuStructure: MenuConfig = {
           id: "incidencias",
           key: "incidencias",
           label: "Incidencias",
+          href: "/incidencias?tab=incidencia",
           order: 1,
           column: 1,
           items: [
@@ -434,6 +441,7 @@ export const menuStructure: MenuConfig = {
           id: "fallas",
           key: "fallas",
           label: "Fallas",
+          href: "/incidencias?tab=falla",
           order: 1,
           column: 2,
           items: [
@@ -498,6 +506,7 @@ export const menuStructure: MenuConfig = {
           id: "rondines",
           key: "rondines",
           label: "Rondines",
+          href: "/rondines?tab=rondines",
           order: 1,
           column: 3,
           items: [
@@ -581,6 +590,7 @@ export const menuStructure: MenuConfig = {
           id: "paqueteria",
           key: "paqueteria",
           label: "Paquetería",
+          href: "/articulos?tab=paquetes",
           order: 1,
           column: 1,
           items: [
@@ -633,6 +643,7 @@ export const menuStructure: MenuConfig = {
           id: "articulos-perdidos",
           key: "articulos_perdidos",
           label: "Artículos Perdidos",
+          href: "/articulos?tab=articulos_perdidos",
           order: 1,
           column: 2,
           items: [
@@ -691,6 +702,7 @@ export const menuStructure: MenuConfig = {
           id: "articulos-concesionados",
           key: "articulos_concesionados",
           label: "Artículos Concesionados",
+          href: "/articulos?tab=articulos_concesionados",
           order: 1,
           column: 3,
           items: [

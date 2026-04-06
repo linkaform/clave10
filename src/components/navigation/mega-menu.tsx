@@ -149,11 +149,33 @@ function MenuSectionComponent({
 }: MenuSectionComponentProps) {
   const sortedItems = [...section.items].sort((a, b) => a.order - b.order);
 
+  const SectionLabel = () => (
+    <h4
+      className={cn(
+        "text-sm font-semibold mb-2 text-foreground transition-colors",
+        section.href && "hover:text-primary relative group/section w-max",
+      )}>
+      {section.label}
+      {section.href && (
+        <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover/section:w-1/2" />
+      )}
+    </h4>
+  );
+
   return (
     <div className="flex flex-col">
-      <h4 className="text-sm font-semibold mb-2 text-foreground">
-        {section.label}
-      </h4>
+      {section.href ? (
+        <Link
+          href={
+            section.href.startsWith("/") && !section.href.startsWith(basePath)
+              ? `${basePath}${section.href}`
+              : section.href
+          }>
+          <SectionLabel />
+        </Link>
+      ) : (
+        <SectionLabel />
+      )}
       <ul className="flex flex-col gap-1">
         {sortedItems.map((item) => (
           <MenuItemComponent
@@ -198,12 +220,13 @@ function MenuItemComponent({
       <Link
         href={href}
         className={cn(
-          "block text-sm py-1 transition-colors text-foreground hover:text-primary",
+          "block text-sm py-1 transition-colors text-foreground hover:text-primary relative group/item",
           item.type === "link" &&
             item.variant === "primary" &&
             "text-primary font-medium",
         )}>
         {item.label}
+        <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover/item:w-1/2" />
       </Link>
     </li>
   );
@@ -232,21 +255,23 @@ function MenuSidebar({ items, basePath }: MenuSidebarProps) {
               <Link
                 href={href}
                 className={cn(
-                  "block text-sm py-1 transition-colors",
+                  "block text-sm py-1 transition-colors relative group/sidebar-item",
                   item.variant === "primary"
                     ? "text-primary hover:text-primary/80 font-medium"
                     : "text-foreground hover:text-primary",
                 )}>
                 {item.label}
+                <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover/sidebar-item:w-1/2" />
               </Link>
             ) : (
               <button
-                className="block text-sm py-1 text-foreground hover:text-primary transition-colors w-full text-left"
+                className="block text-sm py-1 text-foreground hover:text-primary transition-colors w-full text-left relative group/sidebar-btn"
                 onClick={() => {
                   // Aquí puedes manejar acciones personalizadas
                   console.log(`Action triggered: ${item.key}`);
                 }}>
                 {item.label}
+                <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover/sidebar-btn:w-1/2" />
               </button>
             )}
           </li>

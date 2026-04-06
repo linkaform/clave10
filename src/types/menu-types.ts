@@ -19,6 +19,7 @@ export interface MenuSection {
   label: string;
   order: number;
   column: number; // Columna donde se mostrará (1, 2, 3, etc.)
+  href?: string; // URL opcional para la cabecera de la sección
   items: MenuItem[];
 }
 
