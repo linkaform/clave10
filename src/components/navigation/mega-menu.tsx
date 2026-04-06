@@ -78,7 +78,7 @@ function MegaMenuItem({ module, basePath, isActive }: MegaMenuItemProps) {
         )}>
         {module.label}
       </NavigationMenuTrigger>
-      <NavigationMenuContent>
+      <NavigationMenuContent className="md:left-1/2 md:-translate-x-1/2">
         <div className="flex">
           {/* Contenido principal del menú */}
           <div
