@@ -251,7 +251,7 @@ const ArticulosPage = () => {
                   <div className="flex gap-6">
                     <Archive className="text-primary w-10 h-10" />
                     <span className="flex items-center font-bold text-4xl">
-                      {stats?.articulos_concesionados_pendientes}
+                      {stats?.articulos_concesionados_abierto}
                     </span>
                   </div>
 
