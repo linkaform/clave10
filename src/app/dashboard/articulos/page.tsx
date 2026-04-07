@@ -137,6 +137,12 @@ const ArticulosContent = () => {
     if (actionParam === "nuevo_paquete") {
       setIsSuccessPaq(true);
     }
+    if (actionParam === "nuevo_articulo_perdido") {
+      setIsSuccess(true);
+    }
+    if (actionParam === "nuevo_articulo_concesionado") {
+      setIsSuccessCon(true);
+    }
   }, [actionParam]);
 
   // Sincronizar status con el parámetro 'status' de la URL de forma independiente
@@ -166,16 +172,35 @@ const ArticulosContent = () => {
   }, []);
 
   const openModal = () => setIsSuccess(true);
-  const closeModal = () => setIsSuccess(false);
 
   const openModalCon = () => setIsSuccessCon(true);
 
   const openModalPaq = () => setIsSuccessPaq(true);
 
+  const handleOpenChange = (value: React.SetStateAction<boolean>) => {
+    const open = typeof value === "function" ? value(isSuccess) : value;
+    setIsSuccess(open);
+    if (!open && actionParam === "nuevo_articulo_perdido") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`${pathname}?${params.toString()}`);
+    }
+  };
+
   const handleOpenChangePaq = (value: React.SetStateAction<boolean>) => {
     const open = typeof value === "function" ? value(isSuccessPaq) : value;
     setIsSuccessPaq(open);
     if (!open && actionParam === "nuevo_paquete") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`${pathname}?${params.toString()}`);
+    }
+  };
+
+  const handleOpenChangeCon = (value: React.SetStateAction<boolean>) => {
+    const open = typeof value === "function" ? value(isSuccessCon) : value;
+    setIsSuccessCon(open);
+    if (!open && actionParam === "nuevo_articulo_concesionado") {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("action");
       router.replace(`${pathname}?${params.toString()}`);
@@ -436,13 +461,13 @@ const ArticulosContent = () => {
           title={"Crear Artículo Perdido"}
           data={modalData}
           isSuccess={isSuccess}
-          setIsSuccess={setIsSuccess}
-          onClose={closeModal}
+          setIsSuccess={handleOpenChange}
+          onClose={() => handleOpenChange(false)}
         />
 
         <AddArticuloConModal
           isSuccess={isSuccessCon}
-          setIsSuccess={setIsSuccessCon}
+          setIsSuccess={handleOpenChangeCon}
           initialData={{}}>
           <div></div>
         </AddArticuloConModal>
