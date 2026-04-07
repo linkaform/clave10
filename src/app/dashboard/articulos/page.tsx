@@ -275,7 +275,7 @@ const ArticulosContent = () => {
                   <div className="flex gap-6">
                     <Archive className="text-primary w-10 h-10" />
                     <span className="flex items-center font-bold text-4xl">
-                      {stats?.articulos_abiertos || 0}
+                      {stats?.articulos_concesionados_abierto || 0}
                     </span>
                   </div>
                   <div className="flex items-center">
@@ -297,7 +297,7 @@ const ArticulosContent = () => {
                   <div className="flex gap-6">
                     <Archive className="text-primary w-10 h-10" />
                     <span className="flex items-center font-bold text-4xl">
-                      {stats?.articulos_parciales || 0}
+                      {stats?.articulos_concesionados_parcial || 0}
                     </span>
                   </div>
 
@@ -320,7 +320,7 @@ const ArticulosContent = () => {
                   <div className="flex gap-6">
                     <Archive className="text-primary w-10 h-10" />
                     <span className="flex items-center font-bold text-4xl">
-                      {stats?.articulos_devueltos || 0}
+                      {stats?.articulos_concesionados_devuelto || 0}
                     </span>
                   </div>
 
@@ -366,7 +366,7 @@ const ArticulosContent = () => {
                   <div className="flex gap-6">
                     <Archive className="text-primary w-10 h-10" />
                     <span className="flex items-center font-bold text-4xl">
-                      {stats?.articulos_concesionados_pendientes}
+                      {stats?.articulos_concesionados_abierto}
                     </span>
                   </div>
 
