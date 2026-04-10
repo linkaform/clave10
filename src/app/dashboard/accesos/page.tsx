@@ -471,7 +471,7 @@ const AccesosPage = () => {
 						
 					</Button></>):null}
 				
-					{ searchPass?.estatus=="proceso" ? (<>
+					{ searchPass?.estatus=="proceso" && isExcluded("completar_pase", excludes ?? undefined) ? (<>
 					<UpdatePassModal title={"Completar Pase"} id={searchPass?._id} dataCatalogos={searchPass}>
 						<Button
 							className="bg-blue-500 hover:bg-blue-600 text-white"
