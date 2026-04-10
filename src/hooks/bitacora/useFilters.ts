@@ -16,7 +16,8 @@ export const useFilters = ({ key, endpoint }: UseFiltersProps) => {
         const res = await endpoint();
         const error = errorMsj(res);
         if (error) throw new Error(error.text);
-        return res?.response?.data ?? [];
+        const raw = res?.response?.data ?? [];
+        return Array.isArray(raw) ? raw : [];
       }),
     [fetchFilter, key, endpoint],
   );

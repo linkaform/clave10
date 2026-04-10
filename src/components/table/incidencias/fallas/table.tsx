@@ -96,7 +96,6 @@ const FallasTable: React.FC<ListProps> = ({
     setFallaSeleccionada(falla);
     setModalEliminarAbierto(true);
   };
-
   const handleCerrar = (falla: Fallas_record) => {
     setFallaSeleccionada(falla);
     setModalCerrarAbierto(true);

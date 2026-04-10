@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useFilters } from "./useFilters";
-import { getBitacoraFilters } from "@/services/endpoints";
+import { getFallasFilters } from "@/services/endpoints";
 
 export type FallasExternalFilters = {
   dynamic: Record<string, any>;
@@ -117,7 +117,7 @@ export function useFallasFilters() {
 
   const { filters: filtersConfig, loadingFilters } = useFilters({
     key: "fallas-filters",
-    endpoint: getBitacoraFilters,
+    endpoint: getFallasFilters,
   });
 
   const onExternalFiltersChange = useCallback(
