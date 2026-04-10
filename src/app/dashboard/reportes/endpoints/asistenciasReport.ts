@@ -89,3 +89,37 @@ export const getAttendanceDetail = async (userIds: number[], selectedDay: number
         throw error;
     }
 };
+ 
+export const getAttendanceData = async ({
+    locations = [],
+    limit = 100,
+    offset = 0,
+  }: {
+    locations?: string[];
+    limit?: number;
+    offset?: number;
+  }) => {
+    try {
+      const payload = {
+        option: "get_attendance_data",
+        script_name: "asistencia_report.py",
+        locations,
+        limit,
+        offset,
+      };
+      const userJwt = localStorage.getItem("access_token");
+      const response = await fetch(API_ENDPOINTS.runScript, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${userJwt}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      return data?.response?.data?.records ?? [];
+    } catch (error) {
+      console.error("Error al obtener attendance data:", error);
+      throw error;
+    }
+  };

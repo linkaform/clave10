@@ -7,3 +7,9 @@ export const getBitacoraFilters = () =>
     script_name: "filters.py",
     option: "in_and_out",
   });
+
+export const getRondinesFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "rondines",
+  });
