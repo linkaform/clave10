@@ -117,10 +117,10 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
 
      //Crear Incidencia
      const createPaseEntradaMutation = useMutation({
-        mutationFn: async ({ access_pass, location, enviar_pre_sms} : {access_pass: Access_pass, location:string, enviar_pre_sms:enviar_pre_sms }) => {
+        mutationFn: async ({ access_pass, enviar_pre_sms} : {access_pass: Access_pass, enviar_pre_sms:enviar_pre_sms }) => {
             const data = await createPase({
                 access_pass,
-                location,
+                // location,
                 enviar_pre_sms,
               });
               console.log("data",data)
