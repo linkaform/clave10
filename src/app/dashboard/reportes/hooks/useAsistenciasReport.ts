@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAttendanceDetail, getReportAsistencias, getReportLocations } from "../endpoints/asistenciasReport";
+import { getAttendanceData, getAttendanceDetail, getReportAsistencias, getReportLocations } from "../endpoints/asistenciasReport";
 import { asistenciasReport } from "../types/report";
 
 export const useReportAsistencias = ({ enabled = false, dateRange, locations, groupBy, month, year }: asistenciasReport) => {
@@ -84,3 +84,39 @@ export const useAttendanceDetail = ({ enabled = false, userIds, selectedDay, loc
         refetchAttendanceDetail,
     };
 };
+
+export const useAttendanceData = ({
+    enabled = true,
+    locations = [],
+    limit = 100,
+    offset = 0,
+  }: {
+    enabled?: boolean;
+    locations?: string[];
+    limit?: number;
+    offset?: number;
+  }) => {
+    const {
+      data,
+      isLoading: isLoadingAttendance,
+      error: errorAttendance,
+      refetch: refetchAttendance,
+    } = useQuery<any>({
+      queryKey: ["getAttendanceData", { locations, limit, offset }],
+      enabled,
+      queryFn: async () => {
+        const records = await getAttendanceData({ locations, limit, offset });
+        return records ?? [];
+      },
+      refetchOnWindowFocus: false,
+      retry: 1,
+    });
+   
+    return {
+      attendanceData: data ?? [],
+      isLoadingAttendance,
+      errorAttendance,
+      refetchAttendance,
+    };
+  };
+   

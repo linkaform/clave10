@@ -9,6 +9,20 @@ import { SelectionBar } from "../SelectionBar";
 import { PhotoGridCardModal } from "./PhotoGridCardModal";
 import EquiposYVehiculosList from "../EquiposYVehiculosList";
 
+const STATUS_BADGE_CLASSES: Record<string, string> = {
+  corriendo: "bg-green-600 border-green-600 text-white text-xs",
+  pausado:   "bg-yellow-500 border-yellow-500 text-white text-xs",
+  cancelado: "bg-red-600 border-red-600 text-white text-xs",
+  cerrado:   "bg-gray-400 border-gray-400 text-white text-xs",
+  entrada:   "bg-green-600 border-green-600 text-white text-xs",
+  salida:    "bg-red-600 border-red-600 text-white text-xs",
+  resuelto:  "bg-blue-600 border-blue-600 text-white text-xs",
+  abierto:   "bg-green-600 border-green-600 text-white text-xs",
+};
+
+const getStatusBadgeClass = (status: string) =>
+  STATUS_BADGE_CLASSES[status?.toLowerCase()] ?? "bg-gray-400 border-gray-400 text-white text-xs";
+
 export function PhotoGridView({
   isLoading,
   records,
@@ -35,15 +49,11 @@ export function PhotoGridView({
     { record_id: string; record_status: string }[]
   >([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<PhotoRecord | null>(
-    null,
-  );
+  const [selectedRecord, setSelectedRecord] = useState<PhotoRecord | null>(null);
 
   const filteredRecords = useMemo(() => {
     if (!globalSearch || globalSearch.length === 0) return baseFilteredRecords;
-
     return baseFilteredRecords.filter((record) => {
-      // Lógica OR: Si el registro coincide con AL MENOS UNO de los tags
       return globalSearch.some((tag) => {
         const tagLower = tag.toLowerCase();
         return (
@@ -168,11 +178,8 @@ export function PhotoGridView({
         badges={[
           {
             label: "",
-            value: selectedRecord?.status || "",
-            customClass:
-              selectedRecord?.status === "entrada"
-                ? "bg-green-600 border-green-600 text-white text-xs"
-                : "bg-red-600 border-red-600 text-white text-xs",
+            value: (selectedRecord?.statusLabel || selectedRecord?.status || "").toUpperCase(),
+            customClass: getStatusBadgeClass(selectedRecord?.status || ""),
           },
           {
             label: "",
@@ -188,7 +195,9 @@ export function PhotoGridView({
         record={selectedRecord}
         open={isModalOpen}
         onOpenChange={setIsModalOpen}>
-        <EquiposYVehiculosList record={selectedRecord} />
+        {(selectedRecord?.vehiculos?.length ?? 0) > 0 || (selectedRecord?.equipos?.length ?? 0) > 0 ? (
+          <EquiposYVehiculosList record={selectedRecord} />
+        ) : null}
       </PhotoGridCardModal>
     </div>
   );

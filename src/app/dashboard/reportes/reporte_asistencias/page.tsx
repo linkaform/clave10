@@ -1,444 +1,431 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import React, { useState, useEffect } from "react";
-// import Image from "next/image";
-import { Button } from "@/components/ui/button";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
-	Eraser,
-	Play,
-	Download,
-	CheckSquare,
-	Square,
-	ChevronLeft,
-	ChevronRight,
-	CheckCircle,
-	XCircle,
-	Clock
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Eraser,
+  LayoutGrid,
+  LayoutList,
+  Play,
+  Search,
+  Sheet,
+  CheckSquare,
+  Square,
 } from "lucide-react";
-import PageTitle from "@/components/page-title";
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select"
-import {
-	MultiSelect,
-	MultiSelectContent,
-	MultiSelectGroup,
-	MultiSelectItem,
-	MultiSelectTrigger,
-	MultiSelectValue,
-} from "@/components/ui/multi-select";
-import { AttendanceRow, GroupingMode } from "../types/attendance";
-import { useReportAsistencias, useReportLocations } from "../hooks/useAsistenciasReport";
-import { asistenciasReport } from "../types/report";
-import LocationShiftAttendanceTable from "../components/LocationShiftAttendanceTable";
+import { Button } from "@/components/ui/button";
+import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { SimpleAttendanceTable } from "../components/SimpleAttendanceTable";
 import AttendanceTableSymbology from "../components/AttendanceTableSymbology";
-import { useGetStats } from "@/hooks/useGetStats";
+import { useAsistenciasView } from "@/hooks/asistencias/useAsistenciasView";
+import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
+import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
+import { ListRecord, PhotoRecord } from "@/types/bitacoras";
+import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
+import LocationShiftAttendanceTable from "../components/LocationShiftAttendanceTable";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  MultiSelect,
+  MultiSelectContent,
+  MultiSelectGroup,
+  MultiSelectItem,
+  MultiSelectTrigger,
+  MultiSelectValue,
+} from "@/components/ui/multi-select";
+import { useAttendanceData, useReportLocations } from "../hooks/useAsistenciasReport";
+import { mapAttendanceGrid } from "@/mappers/attendance.grid.mappers";
+import { mapAttendanceList } from "@/mappers/attendance.list.mappers";
+import { TagSearchInput } from "@/components/tag-search-input";
+import { applyAttendanceFilters, useAttendanceFilters } from "@/hooks/bitacora/useAttendanceFilters";
 
-const areFiltersEqual = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
 
 const getMonthName = (month: number) => {
-	const date = new Date();
-	date.setMonth(month - 1);
-	return date.toLocaleString('es-ES', { month: 'long' });
+  const date = new Date();
+  date.setMonth(month - 1);
+  return date.toLocaleString("es-ES", { month: "long" });
 };
 
-const ReportsPage = () => {
-	const [month, setMonth] = useState<number>(0);
-	const [year, setYear] = useState<number>(0);
-	const daysInMonth = new Date(year, month, 0).getDate();
-	const [groupingMode, setGroupingMode] = useState<GroupingMode>("employees");
-	const [timeframe, setTimeframe] = useState<"mes" | "semana">("mes");
-	const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+const ReportPage = () => {
+  const {
+    viewMode,
+    setViewMode,
+    isSidebarOpen,
+    setIsSidebarOpen,
+    month,
+    year,
+    daysInMonth,
+    handlePrevMonth,
+    handleNextMonth,
+    groupByLocation,
+    handleGroupByLocationToggle,
+    selectedStatus,
+    setSelectedStatus,
+    timeframe,
+    setTimeframe,
+    groupingMode,
+    setGroupingMode,
+    selectedLocations,
+    setSelectedLocations,
+    handleExecute,
+    handleClear,
+    isExecuted,
+    reportAsistencias,
+    isLoading,
+    errorReportAsistencias,
+    refetchReportAsistencias,
+    hasData,
+  } = useAsistenciasView();
 
-	const [data, setData] = useState<AttendanceRow[]>([]);
-	const isInitializing = month === 0 || year === 0;
-	const hasData = data.length > 0;
+  const { reportLocations } = useReportLocations({ enabled: true });
 
-	const [filters, setFilters] = useState<asistenciasReport>({
-		enabled: false,
-		dateRange: 'mes',
-		locations: [],
-		groupBy: 'employees',
-		month,
-		year
-	});
+  const {
+    externalFilters,
+    onExternalFiltersChange,
+    activeFiltersCount,
+    filtersConfig,
+    searchTags,
+    setSearchTags,
+    isSidebarOpen: isFilterSidebarOpen,
+    setIsSidebarOpen: setIsFilterSidebarOpen,
+  } = useAttendanceFilters();
 
-	const { reportAsistencias, isLoadingReportAsistencias, isFetchingReportAsistencias, errorReportAsistencias, refetchReportAsistencias } = useReportAsistencias(filters);
-	const { reportLocations } = useReportLocations({ enabled: true });
-	const { data: stats } = useGetStats(true, selectedLocations, "", 'Asistencias', month, year)
+  // Auto-fetch al entrar en vista tabla (solo una vez por visita)
+  const hasAutoFetched = useRef(false);
+  useEffect(() => {
+    if (viewMode === "table" && !hasAutoFetched.current) {
+      hasAutoFetched.current = true;
+      handleExecute();
+    }
+  }, [handleExecute, viewMode]);
 
-	const [showReport, setShowReport] = useState(false);
-	const [groupByLocation, setGroupByLocation] = useState(false);
-	const [isExecuted, setIsExecuted] = useState(false);
-	const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+  useEffect(() => {
+    if (viewMode !== "table") {
+      hasAutoFetched.current = false;
+    }
+  }, [viewMode]);
 
-	useEffect(() => {
-		const currentDate = new Date();
-		setMonth(currentDate.getMonth() + 1);
-		setYear(currentDate.getFullYear());
-	}, []);
+  // Datos para vistas fotos y lista
+  const { attendanceData, isLoadingAttendance } = useAttendanceData({
+    locations: selectedLocations,
+    limit: 100,
+    offset: 0,
+    enabled: viewMode === "photos" || viewMode === "list",
+  });
 
-	useEffect(() => {
-		if (!isLoadingReportAsistencias) {
-			if (reportAsistencias) {
-				setData(reportAsistencias);
-			}
-		}
-	}, [reportAsistencias, isLoadingReportAsistencias]);
+  // Aplicar filtros de estatus antes de formatear
+  const filteredAttendanceData = useMemo(
+    () => applyAttendanceFilters(attendanceData ?? [], externalFilters),
+    [attendanceData, externalFilters]
+  );
 
-	const handleTimeframeChange = (value: string) => {
-		setTimeframe(value as "mes" | "semana");
-	};
+  const attendancePhotoRecords: PhotoRecord[] = useMemo(() => {
+    if (!filteredAttendanceData?.length) return [];
+    return filteredAttendanceData.map((item: any) => {
+      const base = { id: item._id || "no-id", folio: item.folio || "S/F" };
+      return mapAttendanceGrid(item, base);
+    });
+  }, [filteredAttendanceData]);
 
-	const handleGroupingChange = (value: string) => {
-		setGroupingMode(value as GroupingMode);
-		setShowReport(false); // Oculta el reporte al cambiar agrupación
-	};
+  const attendanceListRecords: ListRecord[] = useMemo(() => {
+    if (!filteredAttendanceData?.length) return [];
+    return filteredAttendanceData.map((item: any) => {
+      const base = { id: item._id || "no-id", folio: item.folio || "S/F" };
+      return mapAttendanceList(item, base);
+    });
+  }, [filteredAttendanceData]);
 
-	const handleLocationChange = (values: string[]) => {
-		setSelectedLocations(values);
-	};
+  return (
+    <div className="w-full relative">
+      <div className="p-6 space-y-4 pt-3 w-full">
 
-	const handleExecute = () => {
-		const newFilters = {
-			enabled: true,
-			dateRange: timeframe,
-			locations: [...selectedLocations],
-			groupBy: groupingMode,
-			month,
-			year
-		};
-		if (isExecuted && areFiltersEqual(filters, newFilters)) {
-			refetchReportAsistencias();
-			return;
-		}
-		setFilters(newFilters);
-		setShowReport(true);
-		setIsExecuted(true);
-	};
+        {/* Header sticky */}
+        <div className="sticky top-[68px] z-40 bg-white py-2 space-y-2">
 
-	const handleClear = () => {
-		const currentDate = new Date();
-		setMonth(currentDate.getMonth() + 1);
-		setYear(currentDate.getFullYear());
-		setTimeframe("mes");
-		setGroupingMode("employees");
-		setSelectedLocations([]);
-		setData([]);
+          {/* Fila 1: título + filtros de tabla + acciones */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-baseline gap-2 mr-2">
+              <h1 className="text-xl font-bold text-slate-900 whitespace-nowrap">
+                Reporte de Asistencias
+              </h1>
+              <span className="text-sm font-light text-slate-500 whitespace-nowrap">
+                {viewMode === "table"
+                  ? `${Array.isArray(reportAsistencias) ? reportAsistencias.length : 0} empleados`
+                  : `${filteredAttendanceData?.length ?? 0} registros`}
+              </span>
+            </div>
 
-		setFilters({
-			enabled: false,
-			dateRange: 'mes',
-			locations: [],
-			groupBy: 'employees'
-		});
-		setShowReport(false);
-	};
+            {/* TagSearch — en todas las vistas */}
+            <div className="flex p-1 rounded-lg items-center border border-slate-200 w-[240px] overflow-hidden focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 bg-white transition-all">
+              <Search className="ml-2 mr-1 flex-shrink-0 text-slate-400" size={14} />
+              <TagSearchInput
+                tags={searchTags}
+                onTagsChange={setSearchTags}
+                placeholder="Buscar..."
+                className="w-full bg-transparent border-none shadow-none focus-visible:ring-0 h-8 text-sm min-w-0 px-1"
+              />
+            </div>
 
-	const handleExport = () => {
-		alert("Función de exportación no implementada aún");
-	};
+            {/* Ubicaciones — solo en tabla */}
+            {viewMode === "table" && (
+              <MultiSelect values={selectedLocations} onValuesChange={setSelectedLocations}>
+                <MultiSelectTrigger className="w-[220px] h-9">
+                  <MultiSelectValue placeholder="Ubicaciones" />
+                </MultiSelectTrigger>
+                <MultiSelectContent>
+                  <MultiSelectGroup>
+                    {reportLocations?.map((location: string, i: number) => (
+                      <MultiSelectItem key={`${i}-${location}`} value={location}>
+                        {location}
+                      </MultiSelectItem>
+                    ))}
+                  </MultiSelectGroup>
+                </MultiSelectContent>
+              </MultiSelect>
+            )}
 
-	const handleGroupByLocationToggle = () => {
-		setGroupByLocation(prev => !prev);
-	};
+            {viewMode === "table" && (
+              <Select value={groupingMode} onValueChange={(v) => setGroupingMode(v as any)}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue placeholder="Agrupación" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="employees">Empleados</SelectItem>
+                    <SelectItem value="locations">Ubicaciones</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            )}
 
-	const handlePrevMonth = () => {
-		let newMonth = month;
-		let newYear = year;
+            {viewMode === "table" && groupingMode === "employees" && (
+              <Button
+                variant="outline"
+                onClick={handleGroupByLocationToggle}
+                className={`flex items-center gap-2 h-9 ${
+                  groupByLocation ? "bg-blue-100 border-blue-500 hover:bg-blue-200" : ""
+                }`}
+              >
+                Agrupar por Ubicación{" "}
+                {groupByLocation ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+              </Button>
+            )}
 
-		if (month === 1) {
-			newMonth = 12;
-			newYear = year - 1;
-		} else {
-			newMonth = month - 1;
-		}
+            <div className="flex-1" />
 
-		setMonth(newMonth);
-		setYear(newYear);
+            {/* Acciones + toggle vistas al mismo lado derecho */}
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <Button variant="outline" onClick={handleClear} className="h-9">
+                <Eraser className="mr-1 h-4 w-4" /> Limpiar
+              </Button>
+              <Button variant="outline" disabled className="h-9">
+                <Download className="mr-1 h-4 w-4" /> Exportar
+              </Button>
+              {viewMode === "table" && (
+                <Button
+                  className="bg-blue-600 h-9"
+                  onClick={handleExecute}
+                  disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                      Cargando...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-1 h-4 w-4" /> Ejecutar
+                    </>
+                  )}
+                </Button>
+              )}
+              {/* Toggle de vistas — al lado de los botones de acción */}
+              <div className="flex items-center bg-slate-100/50 h-9 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
+                <Button
+                  variant="ghost" size="icon"
+                  className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "photos" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
+                  onClick={() => setViewMode("photos")}>
+                  <LayoutGrid size={16} />
+                </Button>
+                <Button
+                  variant="ghost" size="icon"
+                  className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
+                  onClick={() => setViewMode("table")}>
+                  <Sheet size={16} />
+                </Button>
+                <Button
+                  variant="ghost" size="icon"
+                  className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
+                  onClick={() => setViewMode("list")}>
+                  <LayoutList size={16} />
+                </Button>
+              </div>
+            </div>
+          </div>
 
-		// Si ya se ejecutó el reporte, ejecutar automáticamente con el nuevo mes
-		if (isExecuted) {
-			// Usar setTimeout para asegurar que el estado se actualice primero
-			setTimeout(() => {
-				const newFilters = {
-					enabled: true,
-					dateRange: timeframe,
-					locations: [...selectedLocations],
-					groupBy: groupingMode,
-					month: newMonth,
-					year: newYear
-				};
-				setFilters(newFilters);
-			}, 0);
-		}
-	};
+          {/* Fila 2: periodo + navegación mes + simbología (solo tabla) */}
+          {viewMode === "table" && (
+            <div className="flex items-center gap-3 flex-wrap">
+              <Select value={timeframe} onValueChange={(v) => setTimeframe(v as "mes" | "semana")}>
+                <SelectTrigger className="w-[130px] h-9">
+                  <SelectValue placeholder="Periodo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="semana">Semana</SelectItem>
+                    <SelectItem value="mes">Mes</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
 
-	const handleNextMonth = () => {
-		// Obtener el mes y año actuales
-		const currentDate = new Date();
-		const currentMonth = currentDate.getMonth() + 1;
-		const currentYear = currentDate.getFullYear();
+              <div className="flex items-center bg-slate-100/50 h-9 border border-slate-300 rounded-lg overflow-hidden shadow-sm">
+                <Button
+                  variant="ghost" size="icon"
+                  className="h-full w-9 rounded-none hover:bg-slate-200/50"
+                  onClick={handlePrevMonth}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="px-3 font-semibold text-sm min-w-[130px] text-center capitalize">
+                  {getMonthName(month)} {year}
+                </span>
+                <Button
+                  variant="ghost" size="icon"
+                  className="h-full w-9 rounded-none hover:bg-slate-200/50"
+                  onClick={handleNextMonth}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
 
-		// Calcular el siguiente mes
-		let newMonth = month;
-		let newYear = year;
+              <AttendanceTableSymbology
+                selectedStatus={selectedStatus}
+                onChange={setSelectedStatus}
+              />
+            </div>
+          )}
+        </div>
 
-		if (month === 12) {
-			newMonth = 1;
-			newYear = year + 1;
-		} else {
-			newMonth = month + 1;
-		}
+        {/* Contenido */}
+        <div className="w-full">
 
-		// Prevenir navegación a meses futuros
-		if (newYear > currentYear || (newYear === currentYear && newMonth > currentMonth)) {
-			return; // No permitir avanzar más allá del mes actual
-		}
+          {/* Vista tabla */}
+          {viewMode === "table" && (
+            isLoading ? (
+              <div className="flex justify-center items-center p-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent" />
+              </div>
+            ) : errorReportAsistencias ? (
+              <div className="text-center p-8">
+                <p className="text-red-500 mb-2">Error al cargar los datos</p>
+                <Button onClick={() => refetchReportAsistencias()}>Reintentar</Button>
+              </div>
+            ) : !isExecuted || !hasData ? (
+              <div className="text-center p-8">
+                <p className="text-gray-500 mb-2">
+                  {!isExecuted ? "Cargando datos..." : "No hay registros para los filtros seleccionados"}
+                </p>
+              </div>
+            ) : groupingMode === "locations" ? (
+              <LocationShiftAttendanceTable
+                data={reportAsistencias}
+                month={month}
+                year={year}
+                timeframe={timeframe}
+                selectedStatus={selectedStatus}
+                onStatusChange={setSelectedStatus}
+              />
+            ) : (
+              <>
+                <FloatingFiltersDrawer
+                  isOpen={isSidebarOpen}
+                  onOpenChange={setIsSidebarOpen}
+                  activeFiltersCount={0}
+                  filters={{ dynamic: {} }}
+                  onFiltersChange={() => {}}
+                  filtersConfig={[]}
+                />
+                <SimpleAttendanceTable
+                  data={reportAsistencias}
+                  daysInMonth={daysInMonth}
+                  groupByLocation={groupByLocation}
+                  timeframe={timeframe}
+                  month={month}
+                  year={year}
+                  selectedStatus={selectedStatus}
+                />
+              </>
+            )
+          )}
 
-		setMonth(newMonth);
-		setYear(newYear);
+          {/* Vista fotos */}
+          {viewMode === "photos" && (
+            <div className="flex gap-4">
+              {/* FloatingFiltersDrawer para mobile */}
+              <FloatingFiltersDrawer
+                isOpen={isFilterSidebarOpen}
+                onOpenChange={setIsFilterSidebarOpen}
+                activeFiltersCount={activeFiltersCount}
+                filters={externalFilters}
+                onFiltersChange={onExternalFiltersChange}
+                filtersConfig={filtersConfig}
+              />
+              <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">
+                <FiltersPanel
+                  filters={externalFilters}
+                  onFiltersChange={onExternalFiltersChange}
+                  filtersConfig={filtersConfig}
+                />
+              </aside>
+              <div className="flex-1 min-w-0">
+                <PhotoGridView
+                  isLoading={isLoadingAttendance}
+                  records={attendancePhotoRecords}
+                  globalSearch={searchTags}
+                  externalFilters={externalFilters}
+                  onExternalFiltersChange={onExternalFiltersChange}
+                />
+              </div>
+            </div>
+          )}
 
-		// Si ya se ejecutó el reporte, ejecutar automáticamente con el nuevo mes
-		if (isExecuted) {
-			// Usar setTimeout para asegurar que el estado se actualice primero
-			setTimeout(() => {
-				const newFilters = {
-					enabled: true,
-					dateRange: timeframe,
-					locations: [...selectedLocations],
-					groupBy: groupingMode,
-					month: newMonth,
-					year: newYear
-				};
-				setFilters(newFilters);
-			}, 0);
-		}
-	};
-
-	const totalFaltas = data.reduce((acc, row) => acc + ((row as any).resumen?.faltas || 0), 0);
-
-	return (
-		<div>
-			<div className="flex flex-col w-11/12 m-auto mt-2 gap-4">
-				{/* Header: Title */}
-
-				<div className="flex justify-between items-end">
-					<div className="flex gap-4 flex-col">
-						<div>
-							<div className="mt-8 px-4">
-								<PageTitle title="Reporte de Asistencias" />
-							</div>
-						</div>
-						<div className="flex gap-4">
-							<Select value={timeframe} onValueChange={handleTimeframeChange}>
-								<SelectTrigger className="w-[150px]">
-									<SelectValue placeholder="Periodo" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										<SelectItem value="semana">Semana</SelectItem>
-										<SelectItem value="mes">Mes</SelectItem>
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-							<MultiSelect
-								values={selectedLocations}
-								onValuesChange={handleLocationChange}
-							>
-								<MultiSelectTrigger className="w-[250px] md:w-[300px]">
-									<MultiSelectValue placeholder="Ubicaciones" />
-								</MultiSelectTrigger>
-								<MultiSelectContent>
-									<MultiSelectGroup>
-										{reportLocations?.map((location: string) => (
-											<MultiSelectItem key={location} value={location}>
-												{location}
-											</MultiSelectItem>
-										))}
-									</MultiSelectGroup>
-								</MultiSelectContent>
-							</MultiSelect>
-							<Select value={groupingMode} onValueChange={handleGroupingChange}>
-								<SelectTrigger className="w-[150px]">
-									<SelectValue placeholder="Agrupación" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										<SelectItem value="employees">Empleados</SelectItem>
-										<SelectItem value="locations">Ubicaciones</SelectItem>
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-							{groupingMode === "employees" && (
-								<Button
-									variant="outline"
-									onClick={handleGroupByLocationToggle}
-									className={`flex items-center gap-2 ${groupByLocation ? 'bg-blue-100 border-blue-500 hover:bg-blue-200' : ''}`}
-								>
-									Agrupar por Ubicación {groupByLocation ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-								</Button>
-							)}
-
-						</div>
-
-					</div>
-					<div className="flex flex-col gap-4 items-end">
-						<div className="flex gap-4">
-							<div className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition duration-100`}>
-								<div className="flex gap-6">
-									<CheckCircle className="text-primary w-10 h-10" />
-									<span className="flex items-center font-bold text-4xl">
-										{reportAsistencias?.length ? stats?.total_asistencias : 0}
-									</span>
-								</div>
-								<div className="flex items-center space-x-0">
-									<div className="h-1 w-1/2 bg-cyan-100"></div>
-									<div className="h-1 w-1/2 bg-blue-500"></div>
-								</div>
-								<span className="text-md">Total Asistencias</span>
-							</div>
-							<div className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition duration-100`}>
-								<div className="flex gap-6">
-									<XCircle className="text-primary w-10 h-10" />
-									<span className="flex items-center font-bold text-4xl">
-										{totalFaltas}
-									</span>
-								</div>
-								<div className="flex items-center space-x-0">
-									<div className="h-1 w-1/2 bg-cyan-100"></div>
-									<div className="h-1 w-1/2 bg-blue-500"></div>
-								</div>
-								<span className="text-md">Total Faltas</span>
-							</div>
-							<div className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition duration-100`}>
-								<div className="flex gap-6">
-									<Clock className="text-primary w-10 h-10" />
-									<span className="flex items-center font-bold text-4xl">
-										{reportAsistencias?.length ? stats?.total_retardos : 0}
-									</span>
-								</div>
-								<div className="flex items-center space-x-0">
-									<div className="h-1 w-1/2 bg-cyan-100"></div>
-									<div className="h-1 w-1/2 bg-blue-500"></div>
-								</div>
-								<span className="text-md">Total Retardos</span>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				{/* Controls Row: Symbology | Month Nav | Buttons */}
-				<div className="flex flex-col lg:flex-row items-center  justify-between px-4 mt-4 gap-4">
-					<div className="flex-2 w-full lg:w-auto items-center">
-						<AttendanceTableSymbology
-							selectedStatus={selectedStatus}
-							onChange={setSelectedStatus}
-						/>
-					</div>
-
-					<div className="flex-1 flex justify-center">
-						<div className="flex items-center bg-white p-1">
-							<Button variant="ghost" size="icon" onClick={handlePrevMonth}>
-								<ChevronLeft className="h-4 w-4" />
-							</Button>
-							<div className="px-4 font-semibold min-w-[140px] text-center capitalize">
-								{getMonthName(month)} {year}
-							</div>
-							<Button variant="ghost" size="icon" onClick={handleNextMonth}>
-								<ChevronRight className="h-4 w-4" />
-							</Button>
-						</div>
-					</div>
-
-					<div className="flex-1 flex justify-end gap-2 w-full lg:w-auto">
-						<Button variant="outline" onClick={handleClear}><Eraser className="mr-1 h-4 w-4" />Limpiar</Button>
-						<Button disabled variant="outline" onClick={handleExport}><Download className="mr-1 h-4 w-4" />Exportar</Button>
-						<Button
-							className="bg-blue-600"
-							onClick={handleExecute}
-							disabled={isLoadingReportAsistencias || isFetchingReportAsistencias || isInitializing}
-						>
-							{isLoadingReportAsistencias || isFetchingReportAsistencias ? (
-								<>
-									<div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-									Cargando...
-								</>
-							) : (
-								<>
-									<Play className="mr-1 h-4 w-4" />Ejecutar
-								</>
-							)}
-						</Button>
-					</div>
-				</div>
-			</div>
-
-			<div className="w-11/12 mx-auto mt-4">
-				{isInitializing ? (
-					<div className="flex justify-center items-center p-12">
-						<div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-					</div>
-				) : isLoadingReportAsistencias || isFetchingReportAsistencias ? (
-					<div className="flex justify-center items-center p-12">
-						<div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-					</div>
-				) : errorReportAsistencias ? (
-					<div className="text-center p-8">
-						<p className="text-red-500 mb-2">Error al cargar los datos</p>
-						<Button onClick={() => refetchReportAsistencias()}>
-							Reintentar
-						</Button>
-					</div>
-				) : !showReport ? (
-					<div className="text-center p-8">
-						<p className="text-gray-500 mb-2">Sin datos disponibles</p>
-						<p className="text-sm text-gray-400">Haz clic en &quot;Ejecutar&quot; para obtener datos</p>
-					</div>
-				) : !hasData ? (
-					<div className="text-center p-8">
-						<p className="text-gray-500 mb-2">Sin datos disponibles</p>
-						<p className="text-sm text-gray-400">Haz clic en &quot;Ejecutar&quot; para obtener datos</p>
-					</div>
-				) : (
-					<>
-						{groupingMode === "employees" && (
-							<div>
-								<SimpleAttendanceTable
-									data={reportAsistencias}
-									daysInMonth={daysInMonth}
-									groupByLocation={groupByLocation}
-									timeframe={timeframe}
-									month={month}
-									year={year}
-									selectedStatus={selectedStatus}
-								/>
-							</div>
-						)}
-						{groupingMode === "locations" && (
-							<div>
-								<LocationShiftAttendanceTable
-									data={reportAsistencias}
-									month={month}
-									year={year}
-									timeframe={timeframe}
-									selectedStatus={selectedStatus}
-									onStatusChange={setSelectedStatus}
-								/>
-							</div>
-						)}
-					</>
-				)}
-			</div>
-		</div>
-	);
+          {/* Vista lista */}
+          {viewMode === "list" && (
+            <div className="flex gap-4">
+              <FloatingFiltersDrawer
+                isOpen={isFilterSidebarOpen}
+                onOpenChange={setIsFilterSidebarOpen}
+                activeFiltersCount={activeFiltersCount}
+                filters={externalFilters}
+                onFiltersChange={onExternalFiltersChange}
+                filtersConfig={filtersConfig}
+              />
+              <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">
+                <FiltersPanel
+                  filters={externalFilters}
+                  onFiltersChange={onExternalFiltersChange}
+                  filtersConfig={filtersConfig}
+                />
+              </aside>
+              <div className="flex-1 min-w-0">
+                <PhotoListView
+                  isLoading={isLoadingAttendance}
+                  records={attendanceListRecords}
+                  globalSearch={searchTags}
+                  externalFilters={externalFilters}
+                  onExternalFiltersChange={onExternalFiltersChange}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
-export default ReportsPage;
+export default ReportPage;

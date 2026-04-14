@@ -60,7 +60,6 @@ export const useCreateAccessPase = (location: string, access_pass: Access_pass|n
     queryFn: async () => {
       const data = await createPase({
         access_pass,
-        location,
         enviar_pre_sms,
       });
       return data ;

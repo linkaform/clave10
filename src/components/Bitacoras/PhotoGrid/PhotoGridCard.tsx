@@ -6,10 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { PhotoStatus, PhotoCardProps } from "@/types/bitacoras";
+import { PhotoCardProps } from "@/types/bitacoras";
 
 const statusConfig: Record<
-  PhotoStatus,
+  string,
   {
     label: string;
     variant?: "default" | "secondary" | "outline";
@@ -27,6 +27,26 @@ const statusConfig: Record<
     label: "Salida",
     customClass: "bg-red-600 text-white hover:bg-red-600",
   },
+  corriendo: {
+    label: "Corriendo",
+    customClass: "bg-green-600 text-white hover:bg-green-600",
+  },
+  pausado: {
+    label: "Pausado",
+    customClass: "bg-yellow-500 text-white hover:bg-yellow-500",
+  },
+  cancelado: {
+    label: "Cancelado",
+    customClass: "bg-red-600 text-white hover:bg-red-600",
+  },
+  abierto: {
+    label: "Abierto",
+    customClass: "bg-green-600 text-white hover:bg-green-600",
+  },
+  resuelto: {
+    label: "Resuelto",
+    customClass: "bg-blue-600 text-white hover:bg-blue-600",
+  },
 };
 
 export function PhotoGridCard({
@@ -39,7 +59,6 @@ export function PhotoGridCard({
   children,
   isSelected,
   onSelect,
-  // isSelectionMode
 }: PhotoCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -56,7 +75,7 @@ export function PhotoGridCard({
     setCurrentImageIndex(0);
   };
 
-  const statusInfo = statusConfig[record.status];
+  const statusInfo = statusConfig[record.status] || statusConfig["cerrado"];
 
   return (
     <Card
@@ -98,20 +117,17 @@ export function PhotoGridCard({
           }}>
           <Checkbox
             checked={isSelected}
-            className="h-5 w-5 border-2 border-white bg-transparent data-[state=checked]:bg-[#2A7EFF] data-[state=checked]:border-[#2A7EFF]  data-[state=checked]:text-primary-foreground"
+            className="h-5 w-5 border-2 border-white bg-transparent data-[state=checked]:bg-[#2A7EFF] data-[state=checked]:border-[#2A7EFF] data-[state=checked]:text-primary-foreground"
           />
         </div>
 
         <div
           className={cn(
             "absolute z-10 flex flex-col gap-1 transition-all duration-300",
-            cardConfig?.tagPosition === "sup-izq" &&
-              "top-3 left-10 items-start",
+            cardConfig?.tagPosition === "sup-izq" && "top-3 left-10 items-start",
             cardConfig?.tagPosition === "sup-der" && "top-3 right-3 items-end",
-            cardConfig?.tagPosition === "inf-izq" &&
-              "bottom-3 left-3 items-start",
-            cardConfig?.tagPosition === "inf-der" &&
-              "bottom-3 right-3 items-end",
+            cardConfig?.tagPosition === "inf-izq" && "bottom-3 left-3 items-start",
+            cardConfig?.tagPosition === "inf-der" && "bottom-3 right-3 items-end",
           )}>
           {cardConfig?.folioTag && record?.folio && (
             <Badge
@@ -127,7 +143,7 @@ export function PhotoGridCard({
                 "text-[0.65rem] py-0 px-2 h-5",
                 !statusInfo.variant && statusInfo.customClass,
               )}>
-              {statusInfo.label}
+              {(record as any).statusLabel || statusInfo.label}
             </Badge>
           )}
         </div>
@@ -138,9 +154,7 @@ export function PhotoGridCard({
               <div
                 key={index}
                 className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
-                  index === currentImageIndex
-                    ? "bg-primary w-3"
-                    : "bg-primary/40"
+                  index === currentImageIndex ? "bg-primary w-3" : "bg-primary/40"
                 }`}
               />
             ))}
@@ -172,9 +186,7 @@ export function PhotoGridCard({
             <div className="border-t border-border"></div>
             <div className="flex flex-col gap-1.5 pt-1">
               {record?.detailsList?.map((item, index) => {
-                if (!item.value) {
-                  return <div key={index} className="h-4" />;
-                }
+                if (!item.value) return <div key={index} className="h-4" />;
                 return (
                   <div
                     key={index}

@@ -26,19 +26,23 @@ export const useFiltersStore = create(
           return { cache: next };
         }),
 
-      fetchFilter: async (key, fetcher) => {
-        if (get().cache[key]?.length) return;
-
-        set((state) => ({ loading: { ...state.loading, [key]: true } }));
-        try {
-          const data = await fetcher();
-          set((state) => ({ cache: { ...state.cache, [key]: data } }));
-        } catch (err) {
-          toast.error(`Error al cargar filtro [${key}]: ${err}`);
-        } finally {
-          set((state) => ({ loading: { ...state.loading, [key]: false } }));
-        }
-      },
+        fetchFilter: async (key, fetcher) => {
+          const cached = get().cache[key];
+          // Si ya existe y es un array válido con datos, no volver a fetchear
+          if (Array.isArray(cached) && cached.length) return;
+        
+          set((state) => ({ loading: { ...state.loading, [key]: true } }));
+          try {
+            const data = await fetcher();
+            // Garantizar que siempre guardamos un array
+            const safeData = Array.isArray(data) ? data : [];
+            set((state) => ({ cache: { ...state.cache, [key]: safeData } }));
+          } catch (err) {
+            toast.error(`Error al cargar filtro [${key}]: ${err}`);
+          } finally {
+            set((state) => ({ loading: { ...state.loading, [key]: false } }));
+          }
+        },
     }),
     {
       name: "filters-store",
