@@ -102,8 +102,7 @@ export const EntryPassModal: React.FC<EntryPassModalProps> = ({
 
     try {
       setIsLoading(true);
-      const location=data.ubicacion
-      const apiResponse = await createPase({access_pass:accessPassData , location, enviar_pre_sms:enviarPreSms});
+      const apiResponse = await createPase({access_pass:accessPassData , enviar_pre_sms:enviarPreSms});
       setResponse(apiResponse); // Guardar la respuesta en el estado
       setIsSuccess(true); // Marcar el éxito
     } catch (err) {
