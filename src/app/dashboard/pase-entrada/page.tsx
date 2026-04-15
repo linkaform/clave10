@@ -26,15 +26,14 @@ import { Areas } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
 import { Contacto } from "@/lib/get-user-contacts";
-import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { usePaseEntrada } from "@/hooks/usePaseEntrada";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import AreasList from "@/components/areas-list";
 import { useMenuStore } from "@/store/useGetMenuStore";
-import { useBoothStore } from "@/store/useBoothStore";
 import { useAssetsByLocations } from "@/hooks/assetsQueries";
 import DateTimePicker from "@/components/dateTimerPicker";
+import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 
 
  const formSchema = z
@@ -139,56 +138,56 @@ import DateTimePicker from "@/components/dateTimerPicker";
 
   const PaseEntradaPage = () =>  {
 	const [tipoVisita, setTipoVisita] = useState("rango_de_fechas");
-	const { location } = useBoothStore();
 	
 	const { excludes }= useMenuStore()
 	const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>([]);
 	const [config_dia_de_acceso, set_config_dia_de_acceso] = useState("cualquier_día");
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
-	const [ubicacionSeleccionada,setUbicacionSeleccionada] = useState("")
-	const { dataLocations:ubicaciones, ubicacionesDefaultFormatted, isLoadingLocations:loadingUbicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, false);
-	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>();
+	const { locations: ubicacionesStore, defaultLocations, fetchLocations, loading: loadingUbicaciones } = useAreasLocationStore()
 	const pickerRef = useRef<any>(null);
+
+	// Formatear ubicaciones del store como { id, name }
+	const ubicacionesFormatteadoStore = ubicacionesStore
+		.filter((u: string) => u !== null && u !== undefined)
+		.map((u: string) => ({ id: u, name: u }))
+
+	const ubicacionesDefaultFormatted = defaultLocations
+		.filter((u: string) => u !== null && u !== undefined)
+		.map((u: string) => ({ id: u, name: u }))
+
+	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>([]);
 	const { visitas, perfiles, areas, isLoading:assetsLoading } = useAssetsByLocations(
-		ubicacionesSeleccionadas?.length 
-		  ? ubicacionesSeleccionadas 
-		  : ubicacionesDefaultFormatted ?? []
-	  );
+		ubicacionesSeleccionadas?.length ? ubicacionesSeleccionadas : []
+	);
 	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
 
-	// Si hay location en el store la usamos; si no, tomamos la primera ubicación del usuario
-	useEffect(()=>{
-		if(location) {
-			setUbicacionSeleccionada(location)
-		}
-	},[location])
-
-	// Cuando lleguen las ubicaciones del usuario:
-	// - Si hay ubicacionesDefaultFormatted las usamos
-	// - Si no hay default pero sí hay ubicaciones del usuario (dataLocations),
-	//   seleccionamos la primera para disparar las peticiones
+	// Cargar ubicaciones al montar — el store evita la petición si locations ya existe
 	useEffect(() => {
-		if (ubicacionesDefaultFormatted?.length) {
-			if (!ubicacionSeleccionada) {
-				setUbicacionSeleccionada(ubicacionesDefaultFormatted[0]?.id ?? ubicacionesDefaultFormatted[0]?.name ?? "")
-			}
-			setUbicacionesSeleccionadas(ubicacionesDefaultFormatted)
-		}
-	}, [ubicacionSeleccionada, ubicacionesDefaultFormatted]);
+		fetchLocations()
+	}, [fetchLocations]);
 
-	// Fallback: si no hay ubicaciones default pero sí hay ubicaciones del usuario (dataLocations),
-	// tomamos la primera y la ponemos como seleccionada en el multiselect
+	// Preseleccionar ubicación cuando cargue el store:
+	// 1. Si hay ubicaciones default, usarlas todas
+	// 2. Si no hay default, usar la primera de ubicaciones user
 	useEffect(() => {
-		if (!ubicacionesDefaultFormatted?.length && ubicaciones?.length && !ubicacionesSeleccionadas?.length) {
-			const primeraNombre = ubicaciones.find((u: any) => u !== null && u !== undefined)
-			if (primeraNombre) {
-				const primera = { id: primeraNombre, name: primeraNombre }
-				setUbicacionSeleccionada(primeraNombre)
-				setUbicacionesSeleccionadas([primera])
+		if (!ubicacionesFormatteadoStore.length) return
+		if (ubicacionesSeleccionadas.length) return // ya hay selección, no sobreescribir
+
+		if (ubicacionesDefaultFormatted.length) {
+			// Hay defaults — preseleccionar todas las default que estén en el listado user
+			const defaultsValidas = ubicacionesDefaultFormatted.filter((d: any) =>
+				ubicacionesFormatteadoStore.some((u: any) => u.id === d.id)
+			)
+			if (defaultsValidas.length) {
+				setUbicacionesSeleccionadas(defaultsValidas)
+				return
 			}
 		}
-	}, [ubicaciones, ubicacionesDefaultFormatted, ubicacionesSeleccionadas?.length]); 
+
+		// No hay defaults — usar la primera de ubicaciones user
+		setUbicacionesSeleccionadas([ubicacionesFormatteadoStore[0]])
+	}, [ubicacionesFormatteadoStore.length, ubicacionesDefaultFormatted.length, ubicacionesSeleccionadas.length, ubicacionesFormatteadoStore, ubicacionesDefaultFormatted]);
 
 	useEffect(() => {
 	  const picker = pickerRef.current;
@@ -201,10 +200,6 @@ import DateTimePicker from "@/components/dateTimerPicker";
 	  }
 	}, []);
 
-	const ubicacionesFormatted = (ubicaciones || [])
-	.filter((u: any) => u !== null && u !== undefined)
-	.map((u: any) => ({ id: u, name: u }));
-	
 	const [userIdSoter] = useState<number|null>(()=>{
 		return Number(typeof window !== "undefined"? window?.localStorage.getItem("userId_soter"):0) 
 	});
@@ -224,7 +219,6 @@ import DateTimePicker from "@/components/dateTimerPicker";
 		}
 	}, []); 
 
-
 	const ubicacionesSeleccionadasLista = ubicacionesSeleccionadas?.map((u: any) => (u.name));
 	const { dataConfigLocation, isLoadingConfigLocation } = usePaseEntrada(ubicacionesSeleccionadasLista ?? [])
 
@@ -242,7 +236,7 @@ import DateTimePicker from "@/components/dateTimerPicker";
 	// const [fechaDesde, setFechaDesde] = useState<string>('');
 	const [selected, setSelected] = useState<Contacto |null>(null);
 	const [isOpenModal, setOpenModal] = useState(false);
-	const [todasAreas,setTodasAreas] = useState(false)
+	const [todasAreas,setTodasAreas] = useState(true)
 	const today = new Date().toISOString().split("T")[0];
 
 	const form = useForm<z.infer<typeof formSchema>>({
@@ -307,6 +301,7 @@ import DateTimePicker from "@/components/dateTimerPicker";
 			form.setValue("nombre", selected?.nombre || "");
 			form.setValue("email", selected?.email || "");
 			form.setValue("telefono", selected?.telefono || "");
+			form.setValue("empresa", selected?.empresa || "");
 			setOpenModal(false)
 		}
 	}, [selected, form])
@@ -461,7 +456,6 @@ return (
 					<p className="text-xs text-gray-400 mb-4 mt-1">Indica el propósito de la visita, las ubicaciones y el responsable que recibirá al visitante.</p>
 
 					<div className="space-y-5">
-						{/* Ubicaciones */}
 						<FormField
 							control={form.control}
 							name="ubicaciones"
@@ -471,7 +465,7 @@ return (
 										<span className="text-red-400">*</span> Ubicaciones de la visita
 									</FormLabel>
 									<Multiselect
-										options={ubicacionesFormatted ?? []}
+										options={ubicacionesFormatteadoStore ?? []}
 										selectedValues={ubicacionesSeleccionadas}
 										onSelect={setUbicacionesSeleccionadas}
 										onRemove={setUbicacionesSeleccionadas}
@@ -481,14 +475,14 @@ return (
 											searchBox: { borderRadius: "12px", border: "1px solid #e5e7eb", background: "#f9fafb" },
 										}}
 									/>
-									<p className="text-xs text-gray-400 mt-1">Selecciona las instalaciones o sucursales a las que tendrá acceso el visitante.</p>
+									<p className="text-xs text-gray-400 mt-1">Selecciona las ubicaciones a las que tendrá acceso el visitante.</p>
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
 
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-						<FormField
+							<FormField
 								control={form.control}
 								name="visita_a"
 								render={() => (
@@ -524,10 +518,7 @@ return (
 									</FormItem>
 								)}
 							/>
-
-						
 						</div>
-
 					</div>
 				</div>
 
@@ -543,8 +534,6 @@ return (
 					<MisContactosModal title="Mis Contactos" setSelected={setSelected} isOpenModal={isOpenModal} setOpenModal={setOpenModal} />
 
 					<div className="space-y-4">
-
-						{/* Fila 1: Nombre | Botón Mis Contactos */}
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
 							<FormField
 								control={form.control}
@@ -573,7 +562,6 @@ return (
 							</div>
 						</div>
 
-						{/* Foto contacto seleccionado */}
 						{selected && (
 							<Image
 								className="dark:invert h-14 w-14 object-cover rounded-full bg-gray-200 border-2 border-blue-100"
@@ -590,7 +578,6 @@ return (
 							/>
 						)}
 
-						{/* Fila 2: Empresa | Email */}
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 							<FormField
 								control={form.control}
@@ -627,7 +614,6 @@ return (
 							/>
 						</div>
 
-						{/* Fila 3: Teléfono | Tipo de visita */}
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 							<FormField
 								control={form.control}
@@ -685,7 +671,6 @@ return (
 						</div>
 					</div>
 				</div>
-
 
 				{/* ── SECCIÓN 3: Vigencia ── */}
 				<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
@@ -829,26 +814,12 @@ return (
 										name="config_dia_de_acceso"
 										render={() => (
 											<FormItem>
-												<Button
-													type="button"
-													onClick={() => handleToggleDiasAcceso("cualquier_día")}
-													className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
-														isActiveCualquierDia
-															? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
-															: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
-													} mr-2`}
-												>
+												<Button type="button" onClick={() => handleToggleDiasAcceso("cualquier_día")}
+													className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${isActiveCualquierDia ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200" : "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"} mr-2`}>
 													Cualquier día
 												</Button>
-												<Button
-													type="button"
-													onClick={() => handleToggleDiasAcceso("limitar_días_de_acceso")}
-													className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
-														isActivelimitarDiasSemana
-															? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
-															: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
-													} mr-2`}
-												>
+												<Button type="button" onClick={() => handleToggleDiasAcceso("limitar_días_de_acceso")}
+													className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${isActivelimitarDiasSemana ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200" : "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"} mr-2`}>
 													Limitar días
 												</Button>
 												<FormMessage />
@@ -867,15 +838,8 @@ return (
 									{["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"].map((dia) => (
 										<FormItem key={dia?.toLowerCase()} className="flex items-center space-x-3">
 											<FormControl>
-												<Button
-													type="button"
-													onClick={() => toggleDia(dia?.toLocaleLowerCase())}
-													className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
-														config_dias_acceso.includes(dia?.toLowerCase())
-															? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
-															: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
-													}`}
-												>
+												<Button type="button" onClick={() => toggleDia(dia?.toLocaleLowerCase())}
+													className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${config_dias_acceso.includes(dia?.toLowerCase()) ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200" : "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"}`}>
 													{dia}
 												</Button>
 											</FormControl>
@@ -900,15 +864,8 @@ return (
 					{tipoVisita === "rango_de_fechas" && (
 						<div className="mb-6">
 							<div className="flex items-center flex-wrap gap-3 mb-2">
-								<Button
-									type="button"
-									onClick={() => handleToggleLimitarDias()}
-									className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
-										isActivelimitarDias
-											? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
-											: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
-									}`}
-								>
+								<Button type="button" onClick={() => handleToggleLimitarDias()}
+									className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${isActivelimitarDias ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200" : "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"}`}>
 									Limitar accesos
 								</Button>
 							</div>
@@ -921,18 +878,11 @@ return (
 											<FormItem>
 												<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Número máximo de accesos</FormLabel>
 												<FormControl>
-													<Input
-														placeholder="Ejemplo: 5"
-														type="number"
-														min={0}
-														step={1}
+													<Input placeholder="Ejemplo: 5" type="number" min={0} step={1}
 														className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
 														{...field}
 														value={field.value ? Number(field.value) : 0}
-														onChange={(e) => {
-															const newValue = e.target.value ? Number(e.target.value) : 0;
-															field.onChange(newValue);
-														}}
+														onChange={(e) => { field.onChange(e.target.value ? Number(e.target.value) : 0); }}
 													/>
 												</FormControl>
 												<FormMessage />
@@ -947,37 +897,18 @@ return (
 					{isExcluded("areas", excludes ?? undefined) && (
 						<div>
 							<div className="flex items-center justify-between flex-wrap gap-4 mb-3">
-								<Button
-									disabled={todasAreas}
-									type="button"
-									onClick={handleToggleAdvancedOptions}
-									className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
-										isActiveAdvancedOptions
-											? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
-											: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
-									}`}
-								>
+								<Button disabled={todasAreas} type="button" onClick={handleToggleAdvancedOptions}
+									className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${isActiveAdvancedOptions ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200" : "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"}`}>
 									Áreas de acceso
 								</Button>
 								<div className="flex items-center gap-3">
 									<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Todas las áreas:</FormLabel>
-									<Switch
-										className="data-[state=checked]:bg-blue-600"
-										checked={todasAreas}
-										onCheckedChange={(checked) => setTodasAreas(checked)}
-										aria-readonly
-									/>
+									<Switch className="data-[state=checked]:bg-blue-600" checked={todasAreas} onCheckedChange={(checked) => setTodasAreas(checked)} aria-readonly />
 								</div>
 							</div>
 							{isActiveAdvancedOptions && (
 								<div className="mt-4">
-									<AreasList
-										areas={areasList}
-										setAreas={setAreasList}
-										catAreas={areas}
-										loadingCatAreas={assetsLoading}
-										existingAreas={false}
-									/>
+									<AreasList areas={areasList} setAreas={setAreasList} catAreas={areas} loadingCatAreas={assetsLoading} existingAreas={false} />
 								</div>
 							)}
 						</div>
@@ -993,12 +924,7 @@ return (
 							<FormItem>
 								<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Comentarios</FormLabel>
 								<FormControl>
-									<Textarea
-										placeholder="Escribe un comentario"
-										className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300 resize-none"
-										{...field}
-										rows={3}
-									/>
+									<Textarea placeholder="Escribe un comentario" className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300 resize-none" {...field} rows={3} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -1006,26 +932,20 @@ return (
 					/>
 				</div>
 
-				{/* ── Botón submit original ── */}
-				<div className="text-center pb-8">
+				{/* ── Botones ── */}
+				<div className="flex gap-3 justify-center pb-8 mt-2">
+					<Button className="bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 w-full sm:w-1/3 md:w-1/4 rounded-full py-3 font-semibold transition-all"
+						variant="outline" type="button" onClick={() => window.history.back()}>
+						← Cancelar
+					</Button>
 					<Button
-						className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-2/3 md:w-1/2 rounded-full mt-2 py-3 font-semibold shadow-sm shadow-blue-200 transition-all"
-						variant="secondary"
-						type="submit"
-						onClick={(e) => {
-							e.preventDefault()
-							form.handleSubmit(onSubmit)()
-						}}
-						disabled={assetsLoading || isLoadingConfigLocation || loadingUbicaciones}
-					>
+						className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-1/3 md:w-1/4 rounded-full py-3 font-semibold shadow-sm shadow-blue-200 transition-all"
+						variant="secondary" type="submit"
+						onClick={(e) => { e.preventDefault(); form.handleSubmit(onSubmit)() }}
+						disabled={assetsLoading || isLoadingConfigLocation || loadingUbicaciones}>
 						{assetsLoading == false && isLoadingConfigLocation == false && loadingUbicaciones == false
 							? "Siguiente →"
-							: (
-								<span className="flex items-center justify-center gap-2">
-									<span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-									Cargando...
-								</span>
-							)
+							: (<span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Cargando...</span>)
 						}
 					</Button>
 				</div>
