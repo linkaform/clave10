@@ -34,6 +34,7 @@ import { useMenuStore } from "@/store/useGetMenuStore";
 import { useAssetsByLocations } from "@/hooks/assetsQueries";
 import DateTimePicker from "@/components/dateTimerPicker";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
  const formSchema = z
@@ -144,7 +145,7 @@ import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 	const [config_dia_de_acceso, set_config_dia_de_acceso] = useState("cualquier_día");
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
-	const { locations: ubicacionesStore, defaultLocations, fetchLocations, loading: loadingUbicaciones } = useAreasLocationStore()
+	const { locations: ubicacionesStore, defaultLocations, areas: areasStore, fetchLocations, fetchAreas, loading: loadingUbicaciones } = useAreasLocationStore()
 	const pickerRef = useRef<any>(null);
 
 	// Formatear ubicaciones del store como { id, name }
@@ -157,7 +158,7 @@ import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 		.map((u: string) => ({ id: u, name: u }))
 
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>([]);
-	const { visitas, perfiles, areas, isLoading:assetsLoading } = useAssetsByLocations(
+	const { visitas, perfiles, isLoading:assetsLoading } = useAssetsByLocations(
 		ubicacionesSeleccionadas?.length ? ubicacionesSeleccionadas : []
 	);
 	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([{name:"Usuario Actual",label:"Usuario Actual"}]);
@@ -166,6 +167,15 @@ import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 	useEffect(() => {
 		fetchLocations()
 	}, [fetchLocations]);
+
+	// Cargar areas cuando cambien las ubicaciones seleccionadas
+	// fetchAreas solo hace petición si no existen areas para esa ubicación
+	useEffect(() => {
+		if (ubicacionesSeleccionadas?.length) {
+			const ubicacion = ubicacionesSeleccionadas[0]?.id ?? ubicacionesSeleccionadas[0]?.name ?? ""
+			if (ubicacion) fetchAreas(ubicacion)
+		}
+	}, [fetchAreas, ubicacionesSeleccionadas]);
 
 	// Preseleccionar ubicación cuando cargue el store:
 	// 1. Si hay ubicaciones default, usarlas todas
@@ -426,6 +436,32 @@ import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 
 return (
 	<div className="min-h-screen bg-gray-100 py-5 px-4">
+
+		<div className="max-w-3xl mx-auto pt-4 pb-2">
+			<Tabs defaultValue="pase-entrada">
+				<TabsList className="w-full grid grid-cols-3 bg-white rounded-2xl shadow-sm border border-blue-50 p-1">
+					<TabsTrigger
+						value="pase-entrada"
+						className="rounded-xl text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-500"
+					>
+						Pase de entrada
+					</TabsTrigger>
+					<TabsTrigger
+						value="pase-grupal"
+						className="rounded-xl text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-500"
+					>
+						Pase grupal
+					</TabsTrigger>
+					<TabsTrigger
+						value="pase-contratista"
+						className="rounded-xl text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-500"
+					>
+						Pase contratista
+					</TabsTrigger>
+				</TabsList>
+
+				<TabsContent value="pase-entrada">
+
 		<EntryPassModal
 			title={"Pase de Entrada"}
 			dataPass={modalData}
@@ -439,7 +475,6 @@ return (
 		<form onSubmit={(e) => e.preventDefault()}>
 			<div className="flex flex-col space-y-5 max-w-3xl mx-auto">
 
-				{/* ── SECCIÓN 1: Detalle de la visita ── */}
 				<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
 					<div className="text-center mb-6">
 						<h1 className="font-bold text-2xl text-gray-800">Crear pase de entrada</h1>
@@ -521,7 +556,6 @@ return (
 					</div>
 				</div>
 
-				{/* ── SECCIÓN 2: Datos del visitante ── */}
 				<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
 					<div className="flex items-center gap-2 mb-1">
 						<div className="p-2 bg-blue-50 rounded-xl">
@@ -671,7 +705,6 @@ return (
 					</div>
 				</div>
 
-				{/* ── SECCIÓN 3: Vigencia ── */}
 				<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
 					<div className="flex items-center gap-2 mb-1">
 						<div className="p-2 bg-blue-50 rounded-xl">
@@ -792,7 +825,6 @@ return (
 					)}
 				</div>
 
-				{/* ── SECCIÓN 4: Días de acceso ── */}
 				{tipoVisita === "rango_de_fechas" && (
 					<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
 						<div className="flex items-center gap-2 mb-1">
@@ -850,7 +882,6 @@ return (
 					</div>
 				)}
 
-				{/* ── SECCIÓN 5: Restricciones ── */}
 				<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
 					<div className="flex items-center gap-2 mb-1">
 						<div className="p-2 bg-blue-50 rounded-xl">
@@ -907,14 +938,13 @@ return (
 							</div>
 							{isActiveAdvancedOptions && (
 								<div className="mt-4">
-									<AreasList areas={areasList} setAreas={setAreasList} catAreas={areas} loadingCatAreas={assetsLoading} existingAreas={false} />
+									<AreasList areas={areasList} setAreas={setAreasList} catAreas={areasStore} loadingCatAreas={loadingUbicaciones} existingAreas={false} />
 								</div>
 							)}
 						</div>
 					)}
 				</div>
 
-				{/* ── Comentarios ── */}
 				<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
 					<FormField
 						control={form.control}
@@ -931,7 +961,6 @@ return (
 					/>
 				</div>
 
-				{/* ── Botones ── */}
 				<div className="flex gap-3 justify-center pb-8 mt-2">
 					<Button className="bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 w-full sm:w-1/3 md:w-1/4 rounded-full py-3 font-semibold transition-all"
 						variant="outline" type="button" onClick={() => window.history.back()}>
@@ -953,6 +982,23 @@ return (
 		</form>
 		</Form>
 		
+				</TabsContent>
+
+				<TabsContent value="pase-grupal">
+					<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-12 mt-5 text-center">
+						<p className="text-gray-400 text-sm">Próximamente — sección en construcción</p>
+					</div>
+				</TabsContent>
+
+				<TabsContent value="pase-contratista">
+					<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-12 mt-5 text-center">
+						<p className="text-gray-400 text-sm">Próximamente — sección en construcción</p>
+					</div>
+				</TabsContent>
+
+			</Tabs>
+		</div>
+
 	</div>
 );
 };
