@@ -35,6 +35,7 @@ import { useAssetsByLocations } from "@/hooks/assetsQueries";
 import DateTimePicker from "@/components/dateTimerPicker";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
 
 
  const formSchema = z
@@ -169,7 +170,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 	}, [fetchLocations]);
 
 	// Cargar areas cuando cambien las ubicaciones seleccionadas
-	// fetchAreas solo hace petición si no existen areas para esa ubicación
 	useEffect(() => {
 		if (ubicacionesSeleccionadas?.length) {
 			const ubicacion = ubicacionesSeleccionadas[0]?.id ?? ubicacionesSeleccionadas[0]?.name ?? ""
@@ -177,15 +177,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 		}
 	}, [fetchAreas, ubicacionesSeleccionadas]);
 
-	// Preseleccionar ubicación cuando cargue el store:
-	// 1. Si hay ubicaciones default, usarlas todas
-	// 2. Si no hay default, usar la primera de ubicaciones user
+	// Preseleccionar ubicación cuando cargue el store
 	useEffect(() => {
 		if (!ubicacionesFormatteadoStore.length) return
-		if (ubicacionesSeleccionadas.length) return // ya hay selección, no sobreescribir
+		if (ubicacionesSeleccionadas.length) return
 
 		if (ubicacionesDefaultFormatted.length) {
-			// Hay defaults — preseleccionar todas las default que estén en el listado user
 			const defaultsValidas = ubicacionesDefaultFormatted.filter((d: any) =>
 				ubicacionesFormatteadoStore.some((u: any) => u.id === d.id)
 			)
@@ -195,7 +192,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 			}
 		}
 
-		// No hay defaults — usar la primera de ubicaciones user
 		setUbicacionesSeleccionadas([ubicacionesFormatteadoStore[0]])
 	}, [ubicacionesFormatteadoStore.length, ubicacionesDefaultFormatted.length, ubicacionesSeleccionadas.length, ubicacionesFormatteadoStore, ubicacionesDefaultFormatted]);
 
@@ -228,6 +224,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 			setProtocol(window?.location.protocol);
 		}
 	}, []); 
+
+	const [miembros, setMiembros] = useState<Miembro[]>([]);
+	const [miembrosRowErrors, setMiembrosRowErrors] = useState<Record<string, { email: boolean; telefono: boolean }>>({});
 
 	const ubicacionesSeleccionadasLista = ubicacionesSeleccionadas?.map((u: any) => (u.name));
 	const { dataConfigLocation, isLoadingConfigLocation } = usePaseEntrada(ubicacionesSeleccionadasLista ?? [])
@@ -437,31 +436,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 return (
 	<div className="min-h-screen bg-gray-100 py-5 px-4">
 
-		<div className="max-w-3xl mx-auto pt-4 pb-2">
-			<Tabs defaultValue="pase-entrada">
-				<TabsList className="w-full grid grid-cols-3 bg-white rounded-2xl shadow-sm border border-blue-50 p-1">
-					<TabsTrigger
-						value="pase-entrada"
-						className="rounded-xl text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-500"
-					>
-						Pase de entrada
-					</TabsTrigger>
-					<TabsTrigger
-						value="pase-grupal"
-						className="rounded-xl text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-500"
-					>
-						Pase grupal
-					</TabsTrigger>
-					<TabsTrigger
-						value="pase-contratista"
-						className="rounded-xl text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-500"
-					>
-						Pase contratista
-					</TabsTrigger>
-				</TabsList>
-
-				<TabsContent value="pase-entrada">
-
 		<EntryPassModal
 			title={"Pase de Entrada"}
 			dataPass={modalData}
@@ -473,7 +447,7 @@ return (
 
 		<Form {...form}>
 		<form onSubmit={(e) => e.preventDefault()}>
-			<div className="flex flex-col space-y-5 max-w-3xl mx-auto">
+			<div className="flex flex-col space-y-5 max-w-3xl mx-auto pt-4">
 
 				<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
 					<div className="text-center mb-6">
@@ -556,153 +530,175 @@ return (
 					</div>
 				</div>
 
+				{/* ── SECCIÓN 2: Datos del visitante con tabs internos ── */}
 				<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
-					<div className="flex items-center gap-2 mb-1">
-						<div className="p-2 bg-blue-50 rounded-xl">
-							<UserRound className="w-4 h-4 text-blue-600" />
-						</div>
-						<p className="font-semibold text-gray-700">Datos del visitante</p>
-					</div>
-					<p className="text-xs text-gray-400 mb-4 mt-1">Ingresa los datos de contacto de la persona que realizará la visita. Puedes importarlos desde tus contactos guardados.</p>
-					<MisContactosModal title="Mis Contactos" setSelected={setSelected} isOpenModal={isOpenModal} setOpenModal={setOpenModal} />
 
-					<div className="space-y-4">
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
-							<FormField
-								control={form.control}
-								name="nombre"
-								render={({ field }:any) => (
-									<FormItem>
-										<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-											<span className="text-red-400">*</span> Nombre Completo
-										</FormLabel>
-										<FormControl>
-											<Input placeholder="Nombre Completo" className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300" {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<div className="flex items-end">
-								<Button
-									className="bg-blue-500 text-white hover:bg-blue-600 rounded-full px-4 py-2 text-sm flex items-center gap-2 w-full justify-center"
-									variant="outline"
-									onClick={() => setOpenModal(true)}
-								>
-									<List size={16} />
-									Mis contactos
-								</Button>
-							</div>
-						</div>
+					<Tabs defaultValue="datos-visita">
+						<TabsList className="w-auto justify-start bg-transparent border-b border-gray-200 rounded-none p-0 mb-5 gap-0">
+							<TabsTrigger
+								value="datos-visita"
+								className="bg-transparent rounded-none px-4 pb-2 pt-1 text-sm font-medium text-gray-500 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=inactive]:hover:text-gray-700 shadow-none"
+							>
+								Datos del visitante
+							</TabsTrigger>
+							<TabsTrigger
+								value="miembros-grupo"
+								className="bg-transparent rounded-none px-4 pb-2 pt-1 text-sm font-medium text-gray-500 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=inactive]:hover:text-gray-700 shadow-none"
+							>
+								Miembros del grupo
+							</TabsTrigger>
+						</TabsList>
 
-						{selected && (
-							<Image
-								className="dark:invert h-14 w-14 object-cover rounded-full bg-gray-200 border-2 border-blue-100"
-								src={
-									selected?.fotografia &&
-									Array.isArray(selected.fotografia) &&
-									selected.fotografia[0]?.file_url?.trim()
-										? selected.fotografia[0].file_url
-										: "/nouser.svg"
-								}
-								alt="foto"
-								width={56}
-								height={56}
-							/>
-						)}
-
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-							<FormField
-								control={form.control}
-								name="empresa"
-								render={({ field }:any) => (
-									<FormItem>
-										<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Empresa</FormLabel>
-										<FormControl>
-											<Input placeholder="Empresa" className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300" {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="email"
-								render={({ field }: any) => (
-									<FormItem>
-										<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-											<span className="text-red-400">*</span> Email
-										</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="example@example.com"
-												className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
-												{...field}
-												onChange={(e) => { field.onChange(e); }}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-							<FormField
-								control={form.control}
-								name="telefono"
-								render={({ field }: any) => (
-									<FormItem>
-										<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teléfono</FormLabel>
-										<FormControl>
-											<PhoneInput
-												{...field}
-												onChange={(value:string) => { form.setValue("telefono", value || ""); }}
-												placeholder="Teléfono"
-												defaultCountry="MX"
-												international={false}
-												withCountryCallingCode={false}
-												containerComponentProps={{
-													className: "flex h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-3 py-0 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-												}}
-												numberInputProps={{ className: "pl-3 bg-transparent" }}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							{assetsLoading ? (
-								<div className="flex items-center gap-2 py-3">
-									<div className="w-5 h-5 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-									<span className="text-sm text-gray-400">Cargando perfiles...</span>
+						<TabsContent value="datos-visita">
+							<div className="flex items-center gap-2 mb-1">
+								<div className="p-2 bg-blue-50 rounded-xl">
+									<UserRound className="w-4 h-4 text-blue-600" />
 								</div>
-							) : (
-								<FormField
-									control={form.control}
-									name="perfil_pase"
-									render={({ field }) => (
-										<FormItem className="w-full">
-											<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo de visita</FormLabel>
-											<FormControl>
-												<Select value={field.value} onValueChange={field.onChange}>
-													<SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300">
-														<SelectValue placeholder="Selecciona una opción" />
-													</SelectTrigger>
-													<SelectContent>
-														{perfiles?.map((item: any) => (
-															<SelectItem key={item.id + item.name} value={item.id}>{item.name}</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
+								<p className="font-semibold text-gray-700">Datos del visitante</p>
+							</div>
+							<p className="text-xs text-gray-400 mb-4 mt-1">Ingresa los datos de contacto de la persona que realizará la visita.</p>
+							<MisContactosModal title="Mis Contactos" setSelected={setSelected} isOpenModal={isOpenModal} setOpenModal={setOpenModal} />
+							<div className="space-y-4">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
+									<FormField
+										control={form.control}
+										name="nombre"
+										render={({ field }:any) => (
+											<FormItem>
+												<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+													<span className="text-red-400">*</span> Nombre Completo
+												</FormLabel>
+												<FormControl>
+													<Input placeholder="Nombre Completo" className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<div className="flex items-end">
+										<Button
+											className="bg-blue-500 text-white hover:bg-blue-600 rounded-full px-4 py-2 text-sm flex items-center gap-2 w-full justify-center"
+											variant="outline"
+											onClick={() => setOpenModal(true)}
+										>
+											<List size={16} />
+											Mis contactos
+										</Button>
+									</div>
+								</div>
+
+								{selected && (
+									<Image
+										className="dark:invert h-14 w-14 object-cover rounded-full bg-gray-200 border-2 border-blue-100"
+										src={
+											selected?.fotografia &&
+											Array.isArray(selected.fotografia) &&
+											selected.fotografia[0]?.file_url?.trim()
+												? selected.fotografia[0].file_url
+												: "/nouser.svg"
+										}
+										alt="foto"
+										width={56}
+										height={56}
+									/>
+								)}
+
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+									<FormField
+										control={form.control}
+										name="empresa"
+										render={({ field }:any) => (
+											<FormItem>
+												<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Empresa</FormLabel>
+												<FormControl>
+													<Input placeholder="Empresa" className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="email"
+										render={({ field }: any) => (
+											<FormItem>
+												<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+													<span className="text-red-400">*</span> Email
+												</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="example@example.com"
+														className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
+														{...field}
+														onChange={(e) => { field.onChange(e); }}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+									<FormField
+										control={form.control}
+										name="telefono"
+										render={({ field }: any) => (
+											<FormItem>
+												<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teléfono</FormLabel>
+												<FormControl>
+													<PhoneInput
+														{...field}
+														onChange={(value:string) => { form.setValue("telefono", value || ""); }}
+														placeholder="Teléfono"
+														defaultCountry="MX"
+														containerComponentProps={{
+															className: "flex h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-3 py-0 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+														}}
+														numberInputProps={{ className: "pl-3 bg-transparent" }}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									{assetsLoading ? (
+										<div className="flex items-center gap-2 py-3">
+											<div className="w-5 h-5 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+											<span className="text-sm text-gray-400">Cargando perfiles...</span>
+										</div>
+									) : (
+										<FormField
+											control={form.control}
+											name="perfil_pase"
+											render={({ field }) => (
+												<FormItem className="w-full">
+													<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo de visita</FormLabel>
+													<FormControl>
+														<Select value={field.value} onValueChange={field.onChange}>
+															<SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300">
+																<SelectValue placeholder="Selecciona una opción" />
+															</SelectTrigger>
+															<SelectContent>
+																{perfiles?.map((item: any) => (
+																	<SelectItem key={item.id + item.name} value={item.id}>{item.name}</SelectItem>
+																))}
+															</SelectContent>
+														</Select>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
 									)}
-								/>
-							)}
-						</div>
-					</div>
+								</div>
+							</div>
+						</TabsContent>
+
+						<TabsContent value="miembros-grupo">
+							<MiembrosPase miembros={miembros} setMiembros={setMiembros} rowErrors={miembrosRowErrors} setRowErrors={setMiembrosRowErrors} />
+						</TabsContent>
+					</Tabs>
 				</div>
 
 				<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
@@ -723,22 +719,14 @@ return (
 									<Button
 										type="button"
 										onClick={() => handleToggleTipoVisitaPase("rango_de_fechas")}
-										className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
-											isActiveRangoFecha
-												? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
-												: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
-										} mr-2`}
+										className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${isActiveRangoFecha ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200" : "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"} mr-2`}
 									>
 										Rango de fechas
 									</Button>
 									<Button
 										type="button"
 										onClick={() => handleToggleTipoVisitaPase("fecha_fija")}
-										className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
-											isActiveFechaFija
-												? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
-												: "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
-										} mr-2`}
+										className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${isActiveFechaFija ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200" : "bg-white text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50"} mr-2`}
 									>
 										Un solo día
 									</Button>
@@ -982,23 +970,6 @@ return (
 		</form>
 		</Form>
 		
-				</TabsContent>
-
-				<TabsContent value="pase-grupal">
-					<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-12 mt-5 text-center">
-						<p className="text-gray-400 text-sm">Próximamente — sección en construcción</p>
-					</div>
-				</TabsContent>
-
-				<TabsContent value="pase-contratista">
-					<div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-12 mt-5 text-center">
-						<p className="text-gray-400 text-sm">Próximamente — sección en construcción</p>
-					</div>
-				</TabsContent>
-
-			</Tabs>
-		</div>
-
 	</div>
 );
 };
