@@ -15,6 +15,7 @@ import {
 import {
   CalendarDays, Eraser, LayoutGrid, LayoutList,
   Loader2, MoveLeft, Pause, Play, Plus, Search, Sheet, Trash,
+  MapPin, Clock, RefreshCw, User, AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,12 +26,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { catalogoFechas } from "@/lib/utils";
 import DateTime from "@/components/dateTime";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import Image from "next/image";
 import { AddRondinModal } from "@/components/modals/add-rondin";
 import { useMemo, useState } from "react";
 import { EliminarRondinModal } from "@/components/modals/delete-rondin-modal";
 import { useGetRondinById } from "@/hooks/Rondines/useGetRondinById";
-import { AreasModal } from "@/components/modals/add-area-rondin";
+// import { AreasModal } from "@/components/modals/add-area-rondin";
 import dynamic from "next/dynamic";
 import { usePlayOrPauseRondin } from "@/hooks/Rondines/usePlayOrPauseROndin";
 import { AreasList } from "@/components/areas-list-draggable";
@@ -52,6 +52,13 @@ import { useRondinesFilters, applyRondinesFilters } from "@/hooks/bitacora/useRo
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
 type ViewMode = "table" | "photos" | "list";
+
+const DEMO_MAP_DATA = [
+  { id: "689534634617f0951ac18af5", nombre_area: "Recursos eléctricos", geolocation_area: { latitude: 19.426763615482315, longitude: -99.13720130687581 } },
+  { id: "698653701b7735a0a164b4e0", nombre_area: "Antenas", geolocation_area: { latitude: 23.73873250194037, longitude: -99.15336012840272 } },
+  { id: "68a4f36488d1a1f78c011fcb", nombre_area: "Recursos de agua potable", geolocation_area: { latitude: 0, longitude: 0 } },
+  { id: "53:67:37:47:42:00:02", nombre_area: "Ventiladores", geolocation_area: { latitude: 0, longitude: 0 } },
+];
 
 export interface GeoLocation { latitude: number; longitude: number; }
 export interface GeoLocationSearch extends GeoLocation { search_txt: string; }
@@ -108,12 +115,24 @@ const RondinesTable: React.FC<ListProps> = ({
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
   const [rondinSeleccionado, setRondinSeleccionado] = useState<Recorrido | null>(null);
   const [verRondin, setVerRondin] = useState(false);
-  const [nuevasAreasSeleccionadas, setNuevasAreasSeleccionadas] = useState<any[]>([]);
+  // const [ setNuevasAreasSeleccionadas] = useState<any[]>([]);
   const { location } = useBoothStore();
   const [selectedIncidencias, setSelectedIncidencias] = useState<string[]>([]);
   const { listIncidenciasRondin } = useIncidenciaRondin("", "");
   const [openModal, setOpenModal] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [areaSearch, setAreaSearch] = useState("");
+  const [tipoAsignado, setTipoAsignado] = useState<"guardia" | "persona">("persona");
+  const [ubicacionesLS, setUbicacionesLS] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("ubicaciones_soter");
+      setUbicacionesLS(stored ? JSON.parse(stored) : []);
+    } catch {
+      setUbicacionesLS([]);
+    }
+  }, []);
 
   const {
     externalFilters,
@@ -139,7 +158,6 @@ const RondinesTable: React.FC<ListProps> = ({
   const handleVerRondin = (rondin: Recorrido) => {
     setRondinSeleccionado(rondin);
     setVerRondin(true);
-    setActiveTab("Vista");
   };
 
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -183,7 +201,6 @@ const RondinesTable: React.FC<ListProps> = ({
   const [areas, setAreas] = useState(rondin?.areas || []);
 
   const handleGuardar = () => {
-    console.log("areas", nuevasAreasSeleccionadas);
     editAreasRodindMutation.mutate({
       areas,
       record_id: rondinSeleccionado ? rondinSeleccionado._id : "",
@@ -191,7 +208,6 @@ const RondinesTable: React.FC<ListProps> = ({
     });
   };
 
-  // Aplica filtros del panel antes de formatear
   const filteredData = useMemo(
     () => applyRondinesFilters(memoizedData, externalFilters),
     [memoizedData, externalFilters]
@@ -207,6 +223,18 @@ const RondinesTable: React.FC<ListProps> = ({
     return filteredData.map((item: any) => formatListRecord(item, "rondin"));
   }, [filteredData]);
 
+  const filteredAreas = (areas || []).filter((a: any) =>
+    (a.rondin_area || "").toLowerCase().includes(areaSearch.toLowerCase())
+  );
+
+  const estatusColor = (estatus: string) => {
+    if (estatus === "Corriendo") return "text-green-600";
+    if (estatus === "Cancelado") return "text-red-500";
+    if (estatus === "Cerrado") return "text-gray-400";
+    if (estatus === "Programado") return "text-purple-500";
+    return "text-gray-500";
+  };
+
   return (
     <div className="w-full">
 
@@ -220,6 +248,7 @@ const RondinesTable: React.FC<ListProps> = ({
           filtersConfig={filtersConfig}
         />
       )}
+
       <div className="flex justify-between items-center my-2">
         <div className="flex w-full justify-start gap-4">
           <div className="flex justify-center items-center">
@@ -291,20 +320,17 @@ const RondinesTable: React.FC<ListProps> = ({
           <div className="flex flex-wrap gap-2 items-center">
             {activeTab === "Rondines" && !verRondin && (
               <div className="flex items-center bg-slate-100/50 h-9 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
-                <Button
-                  variant="ghost" size="icon"
+                <Button variant="ghost" size="icon"
                   className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "photos" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
                   onClick={() => setViewMode("photos")}>
                   <LayoutGrid size={16} />
                 </Button>
-                <Button
-                  variant="ghost" size="icon"
+                <Button variant="ghost" size="icon"
                   className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
                   onClick={() => setViewMode("table")}>
                   <Sheet size={16} />
                 </Button>
-                <Button
-                  variant="ghost" size="icon"
+                <Button variant="ghost" size="icon"
                   className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
                   onClick={() => setViewMode("list")}>
                   <LayoutList size={16} />
@@ -320,8 +346,7 @@ const RondinesTable: React.FC<ListProps> = ({
                   </Button>
                 </AddRondinModal>
                 {rondinSeleccionado && (
-                  <AddRondinModal
-                    title="Editar Rondín" mode="edit"
+                  <AddRondinModal title="Editar Rondín" mode="edit"
                     rondinData={rondinSeleccionado}
                     rondinId={rondinSeleccionado._id}
                     folio={rondinSeleccionado?.folio}>
@@ -345,174 +370,244 @@ const RondinesTable: React.FC<ListProps> = ({
 
       <>
         {rondin && verRondin ? (
-          <div className="flex flex-col h-full">
-            <div className="flex flex-col md:flex-row">
-              <div className="w-1/2 border rounded-md bg-white shadow-md pl-4 min-h-[550px]">
-                <div className="mt-4 flex justify-between mr-5">
-                  <div className="flex">
-                    <Button
-                      onClick={() => { setRondinSeleccionado(null); setVerRondin(false); setActiveTab("Rondines"); }}
-                      className="bg-transparent hover:bg-transparent cursor-pointer">
-                      <MoveLeft className="text-black w-64" />
-                    </Button>
-                    <h2 className="text-xl font-bold mb-4">{rondin.nombre_del_rondin}</h2>
-                  </div>
-                  <div className="flex gap-5">
-                    <div className="flex">
-                      <span className="text-xl"><span className="font-bold">Folio:</span> {rondin?.folio || "No disponible"}</span>
-                    </div>
-                    <div className="cursor-pointer" title="Eliminar Rondin" onClick={() => handleEliminar(rondin)}>
-                      <Trash />
-                    </div>
-                  </div>
-                </div>
+          <div className="flex flex-col h-full bg-gray-50 min-h-screen -mx-4 px-4 pt-2">
 
-                <div className="grid grid-cols-[auto,1fr] gap-4 mb-6">
-                  <div className="flex"></div>
-                  <div><span>{rondin?.descripcion}</span></div>
+            {(() => {
+              const isPaused = rondin?.estatus_rondin !== "Corriendo";
+              const DEMO_PERSONAS = [
+                { id: "1", nombre: "Carlos Méndez" },
+                { id: "2", nombre: "Laura García" },
+                { id: "3", nombre: "Roberto Solis" },
+                { id: "4", nombre: "Ana Torres" },
+              ];
+              const inputClass = (enabled: boolean) =>
+                `w-full px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+                  enabled
+                    ? "border-blue-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    : "border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
+                }`;
+              const selectClass = (enabled: boolean, full = true) =>
+                `${full ? "w-full" : ""} px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors appearance-none ${
+                  enabled
+                    ? "border-blue-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    : "border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
+                }`;
 
-                  <div className="flex"><span className="font-semibold">Recurrencia:</span></div>
-                  <div className="flex justify-start gap-10">
-                    <span>{rondin?.recurrencia}</span>
-                    <AddRondinModal
-                      title="Editar Rondín" mode="edit"
-                      rondinData={rondinSeleccionado}
-                      rondinId={rondinSeleccionado ? rondinSeleccionado._id : ""}
-                      folio={rondinSeleccionado ? rondinSeleccionado.folio : ""}>
-                      <Button className="bg-blue-500 hover:bg-blue-600 cursor-pointer p-2">Editar</Button>
-                    </AddRondinModal>
-                  </div>
+              return (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-5 mb-4">
 
-                  <div className="flex"><span className="font-semibold min-w-[130px]">Ubicacion:</span></div>
-                  <div className="flex justify-start gap-10">
-                    <span>{rondin?.ubicacion || "No disponible"}</span>
-                  </div>
-
-                  <div className="flex"><span className="font-semibold min-w-[130px]">Estatus:</span></div>
-                  <div className={`flex font-semibold ${
-                    rondin?.estatus_rondin === "Corriendo" ? "text-green-500"
-                    : rondin?.estatus_rondin === "Cancelado" ? "text-red-500"
-                    : rondin?.estatus_rondin === "Cerrado" ? "text-gray-300"
-                    : rondin?.estatus_rondin === "Programado" ? "text-purple-500"
-                    : "text-gray-500"
-                  }`}>
-                    <div>{rondin?.estatus_rondin}</div>
-                    <div className="flex items-center gap-2 ml-4">
-                      <Button
-                        onClick={handlePause}
-                        className="rounded-sm bg-blue-500 hover:bg-blue-600 transition p-2 w-auto h-auto inline-flex"
-                        title="Pausar Rondín"
-                        disabled={rondin?.estatus_rondin !== "Corriendo" || isLoadingPlayOrPause}>
-                        {isLoadingPlayOrPause && rondin?.estatus_rondin === "Corriendo"
-                          ? <Loader2 size={18} className="animate-spin text-white" />
-                          : <Pause size={18} className="text-white" />}
-                      </Button>
-                      <Button
-                        onClick={handlePlay}
-                        className="rounded-sm bg-blue-500 hover:bg-blue-600 transition p-2 w-auto h-auto inline-flex"
-                        title="Iniciar Rondín"
-                        disabled={rondin?.estatus_rondin === "Corriendo" || isLoadingPlayOrPause}>
-                        {isLoadingPlayOrPause && rondin?.estatus_rondin !== "Corriendo"
-                          ? <Loader2 size={18} className="animate-spin text-white" />
-                          : <Play size={18} className="text-white" />}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="flex"><span className="font-semibold min-w-[130px]">Inicio:</span></div>
-                  <span>{rondin.fecha_inicio_rondin}</span>
-
-                  <div className="flex"><span className="font-semibold min-w-[130px]">Duracion promedio:</span></div>
-                  <span>{rondin.duracion_promedio}</span>
-
-                  <div className="flex"><span className="font-semibold min-w-[130px]">Duracion esperada:</span></div>
-                  <span>{rondin.duracion_esperada_rondin}</span>
-
-                  <div className="flex"><span className="font-semibold min-w-[130px]">Asignado a:</span></div>
-                  <span>{rondin.asignado_a || "No disponible"}</span>
-                </div>
-              </div>
-
-              <div className="w-2/3 ml-4 p-4 border rounded-md bg-white shadow-md">
-                <div className="mb-2 font-bold">Fotografías de áreas a inspeccionar:</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {rondin.images_data.map((val: any, idx: any) => {
-                    const imageUrl = val?.foto_area;
-                    return imageUrl ? (
-                      <div key={idx} className="rounded overflow-hidden shadow-md">
-                        <Image
-                          height={100} width={100}
-                          src={imageUrl}
-                          alt={`Foto área ${idx + 1}`}
-                          className="w-full h-48 object-cover"
-                        />
+                  <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => { setRondinSeleccionado(null); setVerRondin(false); setActiveTab("Rondines"); }}
+                        className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
+                        <MoveLeft className="w-5 h-5" />
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-gray-900">{rondin.nombre_del_rondin}</h2>
+                        <AddRondinModal title="Editar Rondín" mode="edit"
+                          rondinData={rondinSeleccionado}
+                          rondinId={rondinSeleccionado ? rondinSeleccionado._id : ""}
+                          folio={rondinSeleccionado ? rondinSeleccionado.folio : ""}>
+                          <button className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                        </AddRondinModal>
                       </div>
-                    ) : null;
-                  })}
-                </div>
-              </div>
-            </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {rondin?.folio && (
+                        <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold tracking-wide border border-blue-100">
+                          {rondin.folio}
+                        </span>
+                      )}
+                      <span className={`text-sm font-bold ${estatusColor(rondin?.estatus_rondin)}`}>
+                        {rondin?.estatus_rondin}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button onClick={handlePause} size="icon"
+                          className="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-none border-0"
+                          title="Pausar Rondín"
+                          disabled={rondin?.estatus_rondin !== "Corriendo" || isLoadingPlayOrPause}>
+                          {isLoadingPlayOrPause && rondin?.estatus_rondin === "Corriendo"
+                            ? <Loader2 size={16} className="animate-spin" /> : <Pause size={16} />}
+                        </Button>
+                        <Button onClick={handlePlay} size="icon"
+                          className="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-none border-0"
+                          title="Iniciar Rondín"
+                          disabled={rondin?.estatus_rondin === "Corriendo" || isLoadingPlayOrPause}>
+                          {isLoadingPlayOrPause && rondin?.estatus_rondin !== "Corriendo"
+                            ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+                        </Button>
+                      </div>
+                      <button title="Eliminar Rondín" onClick={() => handleEliminar(rondin)}
+                        className="p-2 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
 
-            <div className="flex flex-col md:flex-row mt-4">
-              <div className="w-full max-w-2xl mx-auto space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Puntos de rondin: {rondin.cantidad_de_puntos} puntos</h2>
-                  <div className="flex justify-around gap-2">
-                    <AreasModal
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5" /> Ubicación
+                      </label>
+                      {ubicacionesLS.length > 0 ? (
+                        <select disabled={!isPaused} defaultValue={rondin?.ubicacion || ""} className={selectClass(isPaused)}>
+                          {ubicacionesLS.map((u) => (
+                            <option key={u} value={u}>{u}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input disabled={!isPaused} defaultValue={rondin?.ubicacion || ""} className={inputClass(isPaused)} />
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                        <CalendarDays className="w-3.5 h-3.5" /> Fecha inicial
+                      </label>
+                      <input type="text" disabled={!isPaused} defaultValue={rondin?.fecha_inicio_rondin || ""} className={inputClass(isPaused)} />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" /> Duración estimada
+                      </label>
+                      <input type="text" disabled={!isPaused} defaultValue={rondin?.duracion_esperada_rondin || ""} className={inputClass(isPaused)} />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                        <RefreshCw className="w-3.5 h-3.5" /> Recurrencia
+                      </label>
+                      <input type="text" disabled={!isPaused} defaultValue={rondin?.recurrencia || ""} className={inputClass(isPaused)} />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 lg:col-span-2">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5" /> Asignado a
+                      </label>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button type="button" disabled={!isPaused}
+                          onClick={() => setTipoAsignado("guardia")}
+                          className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap ${
+                            tipoAsignado === "guardia" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                          } ${!isPaused ? "opacity-50 cursor-not-allowed" : ""}`}>
+                          Guardia en turno
+                        </button>
+                        <button type="button" disabled={!isPaused}
+                          onClick={() => setTipoAsignado("persona")}
+                          className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap ${
+                            tipoAsignado === "persona" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                          } ${!isPaused ? "opacity-50 cursor-not-allowed" : ""}`}>
+                          Persona específica
+                        </button>
+                        {tipoAsignado === "persona" && (
+                          <select disabled={!isPaused} defaultValue={rondin?.asignado_a || ""} className={`${selectClass(isPaused, false)} flex-1 min-w-[180px]`}>
+                            <option value="">Selecciona una persona</option>
+                            {DEMO_PERSONAS.map((p) => (
+                              <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    </div>
+
+                    {rondin?.descripcion && (
+                      <div className="flex flex-col gap-1.5 lg:col-span-3">
+                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Descripción</label>
+                        <input type="text" disabled={!isPaused} defaultValue={rondin.descripcion} className={inputClass(isPaused)} />
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── Áreas + Mapa ── */}
+            <div className="flex flex-col md:flex-row gap-4 mb-4">
+
+              {/* Áreas del Rondín */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 w-full md:w-[380px] shrink-0 flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-800 text-sm">Puntos del rondín</h3>
+                    <p className="text-xs text-gray-400">{rondin.cantidad_de_puntos} puntos</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {/* <AreasModal
                       title="Agregar Área" points={areas}
                       setAreas={setAreas} areas={areas}
                       setNuevasAreasSeleccionadas={setNuevasAreasSeleccionadas}
                       rondin={rondinSeleccionado}>
-                      <div className="flex w-full gap-2 md:w-auto bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-sm p-2.5 px-3 round-sm">
-                        <Plus className="size-5" /> Agregar Área
-                      </div>
-                    </AreasModal>
+                      <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium transition-colors">
+                        <Plus className="w-3.5 h-3.5" /> Agregar Área
+                      </button>
+                    </AreasModal> */}
                     <Button
-                      className="size-sm bg-yellow-500 hover:bg-yellow-600"
-                      title="Guardar cambios"
+                      size="sm"
+                      className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs"
                       onClick={handleGuardar}
                       disabled={isLoadingEditAreas}>
-                      {isLoadingEditAreas
-                        ? <><Loader2 className="animate-spin" /> Cargando...</>
-                        : "Guardar cambios"}
+                      {isLoadingEditAreas ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : "Guardar"}
                     </Button>
                   </div>
                 </div>
 
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 text-gray-500" size={20} />
+                {/* Buscador de áreas */}
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-3">
+                  <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                   <input
                     type="text"
-                    placeholder="Search"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-400"
+                    placeholder="Buscar punto..."
+                    value={areaSearch}
+                    onChange={(e) => setAreaSearch(e.target.value)}
+                    className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-full"
                   />
                 </div>
 
-                <h2 className="text-xl font-semibold mb-4">Áreas del Rondín</h2>
-                <AreasList rondin={rondin} setAreas={setAreas} areas={areas} />
+                {/* Lista de áreas — funcionalidad intacta */}
+                <div className="flex-1 overflow-y-auto">
+                  <AreasList rondin={rondin} setAreas={setAreas} areas={filteredAreas} />
+                </div>
+
+                {/* Áreas sin geolocalización */}
+                {areas?.filter((a: any) => !a.geolocalizacion_area_ubicacion?.length).length > 0 && (
+                  <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-100">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                    <p className="text-xs text-red-500">
+                      {areas.filter((a: any) => !a.geolocalizacion_area_ubicacion?.length).length} áreas sin geolocalización
+                    </p>
+                  </div>
+                )}
               </div>
 
-              <div className="w-2/3 ml-4 p-4 border rounded-md bg-white shadow-md" style={{ zIndex: 0 }}>
+              {/* Mapa — sin cambios */}
+              <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ minHeight: "420px", zIndex: 0 }}>
                 <MapView map_data={rondin.map_data} />
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row w-full h-full mt-5">
+            {/* ── Tabs: Rondines / Incidentes / Fotos ── */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <Tabs defaultValue="rondiness" className="w-full">
-                <TabsList className="flex border-b border-gray-300 mb-4">
-                  <TabsTrigger value="rondiness" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
-                    Rondines
-                  </TabsTrigger>
-                  <TabsTrigger value="incidentes" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
-                    Incidentes
-                  </TabsTrigger>
-                  <TabsTrigger value="fotos" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
-                    Fotos
-                  </TabsTrigger>
+                <TabsList className="w-auto justify-start bg-transparent border-b border-gray-200 rounded-none p-0 mb-4 gap-0">
+                  {["rondiness", "incidentes", "fotos"].map((tab) => (
+                    <TabsTrigger
+                      key={tab}
+                      value={tab}
+                      className="bg-transparent rounded-none px-4 pb-2 pt-1 text-sm font-medium text-gray-500 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 shadow-none capitalize">
+                      {tab === "rondiness" ? "Rondines" : tab === "incidentes" ? "Incidentes" : "Fotos"}
+                    </TabsTrigger>
+                  ))}
                 </TabsList>
 
                 <TabsContent value="rondiness">
-                  <div className="p-2"></div>
                   <RondinesBitacoraTable showTabs={false} ubicacion={rondin?.ubicacion} nombre_rondin={rondin?.nombre_del_rondin} />
                 </TabsContent>
 
@@ -533,6 +628,7 @@ const RondinesTable: React.FC<ListProps> = ({
                 </TabsContent>
               </Tabs>
             </div>
+
           </div>
 
         ) : (
@@ -550,9 +646,7 @@ const RondinesTable: React.FC<ListProps> = ({
                         <TableRow key={headerGroup.id}>
                           {headerGroup.headers.map((header) => (
                             <TableHead key={header.id} className="px-1">
-                              {header.isPlaceholder ? null : flexRender(
-                                header.column.columnDef.header, header.getContext()
-                              )}
+                              {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                             </TableHead>
                           ))}
                         </TableRow>
@@ -585,11 +679,7 @@ const RondinesTable: React.FC<ListProps> = ({
                 {viewMode === "photos" && (
                   <div className="flex gap-4">
                     <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">
-                      <FiltersPanel
-                        filters={externalFilters}
-                        onFiltersChange={onExternalFiltersChange}
-                        filtersConfig={filtersConfig}
-                      />
+                      <FiltersPanel filters={externalFilters} onFiltersChange={onExternalFiltersChange} filtersConfig={filtersConfig} />
                     </aside>
                     <div className="flex-1 min-w-0">
                       <PhotoGridView
@@ -606,19 +696,22 @@ const RondinesTable: React.FC<ListProps> = ({
                 {viewMode === "list" && (
                   <div className="flex gap-4">
                     <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">
-                      <FiltersPanel
-                        filters={externalFilters}
-                        onFiltersChange={onExternalFiltersChange}
-                        filtersConfig={filtersConfig}
-                      />
+                      <FiltersPanel filters={externalFilters} onFiltersChange={onExternalFiltersChange} filtersConfig={filtersConfig} />
                     </aside>
                     <div className="flex-1 min-w-0">
                       <PhotoListView
                         isLoading={isLoading}
                         records={rondinListRecords}
                         globalSearch={searchTags}
+                        modalType="rondines"
                         externalFilters={externalFilters}
                         onExternalFiltersChange={onExternalFiltersChange}
+                        getMapData={(record) => {
+                          const original = filteredData.find(
+                            (item: any) => item._id === record.id || item.folio === record.folio
+                          );
+                          return original?.map_data?.length ? original.map_data : DEMO_MAP_DATA;
+                        }}
                       />
                     </div>
                   </div>

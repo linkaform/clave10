@@ -79,7 +79,6 @@ export function PhotoListCardModal({
         <DialogTitle className="sr-only">Detalle — {record.title}</DialogTitle>
 
         <div className="flex flex-col lg:row flex-1 min-h-0 overflow-hidden sm:flex-row">
-          {/* ── LEFT: Modern Image Preview ── */}
           <div className="relative sm:w-[50%] lg:w-[55%] shrink-0 bg-background flex flex-col min-h-[450px] sm:min-h-0 p-4">
             <div className="relative flex-1 group overflow-hidden rounded-2xl shadow-xl bg-zinc-950 border border-border/40">
               <Image
@@ -91,7 +90,6 @@ export function PhotoListCardModal({
                 priority
               />
 
-              {/* Navigation Overlay */}
               {slides.length > 1 && (
                 <div className="absolute inset-x-4 inset-y-0 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none px-2">
                   <button
@@ -113,7 +111,6 @@ export function PhotoListCardModal({
                 </div>
               )}
 
-              {/* Floating Counter Badge (Top Right) */}
               {slides.length > 1 && (
                 <div className="absolute top-5 right-5 z-30">
                   <span className="bg-black/40 text-white text-[10px] font-bold px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10 tracking-widest uppercase">
@@ -122,7 +119,6 @@ export function PhotoListCardModal({
                 </div>
               )}
 
-              {/* ID Floating Badge (Bottom Left) */}
               {record.id && (
                 <div className="absolute bottom-6 left-5 z-30">
                   <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2">
@@ -138,11 +134,8 @@ export function PhotoListCardModal({
             </div>
           </div>
 
-          {/* ── RIGHT: Info panel ── */}
           <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-background">
-            {/* Main Header Container */}
             <div className="px-8 pt-8 pb-6 shrink-0 space-y-4">
-              {/* Badges Header (Unificado con Grid) */}
               <div className="flex flex-wrap gap-1.5 justify-end">
                 {record.status && (
                   <div
@@ -185,9 +178,7 @@ export function PhotoListCardModal({
               </div>
             </div>
 
-            {/* Scrollable Body */}
             <div className="overflow-y-auto flex-1 px-8 py-2 space-y-4 no-scrollbar">
-              {/* Dynamic Details List */}
               {record.modalDetailsList &&
                 record.modalDetailsList.length > 0 && (
                   <div className="space-y-4">

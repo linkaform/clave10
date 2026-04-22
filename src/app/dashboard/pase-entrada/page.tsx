@@ -206,15 +206,15 @@ import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
 	  }
 	}, []);
 
-	const [userIdSoter] = useState<number|null>(()=>{
-		return Number(typeof window !== "undefined"? window?.localStorage.getItem("userId_soter"):0) 
-	});
-	const[userNameSoter] = useState<string|null>(()=>{
-		return typeof window !== "undefined"? window?.localStorage.getItem("userName_soter"):""
-	})
-	const [userEmailSoter] = useState<string|null>(()=>{
-		return typeof window !== "undefined"? window?.localStorage.getItem("userEmail_soter"):""
-	})
+	const [userIdSoter, setUserIdSoter] = useState<number|null>(null);
+	const [userNameSoter, setUserNameSoter] = useState<string|null>("");
+	const [userEmailSoter, setUserEmailSoter] = useState<string|null>("");
+
+	useEffect(() => {
+		setUserIdSoter(Number(localStorage.getItem("userId_soter")) || 0);
+		setUserNameSoter(localStorage.getItem("userName_soter") || "");
+		setUserEmailSoter(localStorage.getItem("userEmail_soter") || "");
+	}, []);
 	const [host, setHost] = useState<string>();
 	const [protocol,setProtocol] = useState<string>();
 
@@ -383,7 +383,23 @@ import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
 		} else if(tipoVisita == "rango_de_fechas" && (formattedData.fecha_desde_visita == "" || formattedData.fecha_desde_hasta == "")){
 			form.setError("fecha_desde_hasta", { type: "manual", message: "Ambas fechas son requeridas" });
 		} else {
-			setModalData(formattedData);
+			const miembrosFinales = [...miembros];
+			if (data.nombre?.trim()) {
+				// const visitantePrincipal: import("@/components/miembros-del-pase").Miembro = {
+				// 	id: crypto.randomUUID(),
+				// 	nombre: data.nombre.trim(),
+				// 	email: data.email?.trim() || "",
+				// 	telefono: data.telefono?.trim() || "",
+				// };
+				// const yaExiste = miembrosFinales.some(
+				// 	(m) => m.nombre === visitantePrincipal.nombre && m.email === visitantePrincipal.email
+				// );
+				// if (!yaExiste) {
+				// 	miembrosFinales = [visitantePrincipal, ...miembrosFinales];
+				// 	setMiembros(miembrosFinales);
+				// }
+			}
+			setModalData({ ...formattedData, miembros: miembrosFinales });
 			setIsSuccess(true);
 		}
 	};
@@ -545,7 +561,7 @@ return (
 								value="miembros-grupo"
 								className="bg-transparent rounded-none px-4 pb-2 pt-1 text-sm font-medium text-gray-500 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=inactive]:hover:text-gray-700 shadow-none"
 							>
-								Miembros del grupo
+								Miembros del pase
 							</TabsTrigger>
 						</TabsList>
 

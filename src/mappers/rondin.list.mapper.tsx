@@ -20,7 +20,9 @@ export function mapRondinList(raw: any, base: any) {
     description: raw?.ubicacion || "Sin ubicación",
     images: raw?.images_data?.[0]?.foto_area
       ? [raw.images_data[0].foto_area]
-      : ["/blur2.jpg"],
+      : ["/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg",
+        "/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg",
+      ],
     status,
     estatus_rondin: raw?.estatus_rondin,
     tipo_rondin: raw?.tipo_rondin,

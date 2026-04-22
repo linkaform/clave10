@@ -364,7 +364,7 @@ const RondinesPage = () => {
 		{/* <ViewDetalleArea title={"Detalle del Área"} data={[]} isSuccess={isSuccess} setIsSuccess={setIsSuccess}>  </ViewDetalleArea> */}
 
 			<div className="" >
-				<Tabs defaultValue="Bitacora" className="w-full" onValueChange={setActiveTab}>
+			<Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
 					<TabsContent value="Bitacora">
 						{/* <div >
 						<RondinesTable data={listRondines} isLoading={false} setSelectedRondin={setSelectedRondin} selectedRondin={selectedRondin}

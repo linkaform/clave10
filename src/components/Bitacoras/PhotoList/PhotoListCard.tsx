@@ -7,6 +7,14 @@ import { cn } from "@/lib/utils";
 import { ListCardProps } from "@/types/bitacoras";
 import { Checkbox } from "@/components/ui/checkbox";
 
+// import MapWrapper from "@/components/map-v2";
+
+interface MapItem {
+  nombre_area: string;
+  geolocation_area?: { latitude: number; longitude: number };
+  id: string;
+}
+
 export function PhotoListCard({
   titleCard,
   descriptionCard,
@@ -15,11 +23,14 @@ export function PhotoListCard({
   children,
   isSelected,
   onSelect,
-}: ListCardProps) {
+  mapData,
+}: ListCardProps & { mapData?: MapItem[] }) {
   const allImages = record.images || [];
   const [activeImage, setActiveImage] = useState(
     allImages[0] || "/placeholder.svg",
   );
+
+  const showMap = mapData && mapData.length > 0;
 
   return (
     <div
@@ -41,14 +52,12 @@ export function PhotoListCard({
         }}>
         <Checkbox
           checked={isSelected}
-          className="h-5 w-5 border-2 border-slate-300 bg-transparent data-[state=checked]:bg-[#2A7EFF] data-[state=checked]:border-[#2A7EFF]  data-[state=checked]:text-primary-foreground"
+          className="h-5 w-5 border-2 border-slate-300 bg-transparent data-[state=checked]:bg-[#2A7EFF] data-[state=checked]:border-[#2A7EFF] data-[state=checked]:text-primary-foreground"
         />
       </div>
 
       <div className="flex gap-8 p-6 items-start w-full">
-        {/* ── Bloque de imágenes: 30% del ancho del contenedor ── */}
         <div className="flex-shrink-0 w-[30%] flex flex-col gap-3">
-          {/* Contenedor de la foto principal ── */}
           <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative w-full aspect-[4/3]">
             <Image
               key={activeImage}
@@ -61,7 +70,6 @@ export function PhotoListCard({
             />
           </div>
 
-          {/* Miniaturas de navegación */}
           {allImages.length > 1 && (
             <div className="flex gap-2 flex-wrap justify-start p-1">
               {allImages.map((img, idx) => (
@@ -90,11 +98,24 @@ export function PhotoListCard({
               ))}
             </div>
           )}
+
+          {showMap && (
+          <div
+            className="rounded-xl overflow-hidden border border-slate-200 w-full"
+            style={{ height: "180px" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ height: "180px", width: "100%" }}>
+            {/* <MapWrapper
+              key={Math.random()} 
+              map_data={mapData}
+            /> */}
+            </div>
+          </div>
+        )}
         </div>
 
-        {/* ── Información del registro ── */}
         <div className="flex-1 flex flex-col justify-start min-w-0">
-          {/* Encabezado: código, nombre y badge */}
           <div className="flex justify-between items-start">
             <div className="min-w-0 flex-1">
               <h3 className="text-lg font-bold text-slate-900 leading-tight text-balance">
@@ -112,7 +133,6 @@ export function PhotoListCard({
             )}
           </div>
 
-          {/* Empresa y descripción principal */}
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm text-slate-500 line-clamp-2">
               {descriptionCard}
@@ -161,7 +181,6 @@ export function PhotoListCard({
             })}
           </div>
 
-          {/* Botones de acción (children) */}
           {children && (
             <div
               className="flex gap-2 flex-wrap pt-3 border-t border-slate-100"
