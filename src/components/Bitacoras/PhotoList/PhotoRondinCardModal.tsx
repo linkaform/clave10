@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useId } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -103,7 +103,6 @@ export function PhotoRondinCardModal({
   const [slideIndex, setSlideIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"incidencias" | "comentarios">("incidencias");
   const [areaSearch, setAreaSearch] = useState("");
-  const modalId = useId();
 
   if (!record) return null;
 
@@ -223,7 +222,7 @@ export function PhotoRondinCardModal({
 
           <div className="flex-1">
             <div className="h-full w-full">
-              {/* <MapView map_data={effectiveMapData} /> */}
+              <MapView map_data={effectiveMapData} />
             </div>
           </div>
 
