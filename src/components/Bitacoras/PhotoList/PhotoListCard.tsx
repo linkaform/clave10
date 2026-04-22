@@ -6,7 +6,9 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { ListCardProps } from "@/types/bitacoras";
 import { Checkbox } from "@/components/ui/checkbox";
-import MapView from "@/components/map-v2";
+import dynamic from "next/dynamic";
+
+const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
 interface MapItem {
   nombre_area: string;
