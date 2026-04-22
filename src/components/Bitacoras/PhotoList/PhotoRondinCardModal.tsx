@@ -181,51 +181,52 @@ export function PhotoRondinCardModal({
               ))}
             </div>
           </div>
+          <div className="flex flex-col w-[380px] shrink-0 border-r border-slate-100 overflow-hidden bg-background h-full">
+          <div className="relative flex-1 group overflow-hidden bg-zinc-950">
+            <Image
+              key={slides[slideIndex].src}
+              src={slides[slideIndex].src}
+              alt={slides[slideIndex].label}
+              fill
+              className="object-contain transition-all duration-500 ease-in-out"
+              priority
+            />
 
-          <div className="flex flex-col w-[380px] shrink-0 border-r border-slate-100 overflow-hidden bg-background">
-            <div className="relative flex-1 group overflow-hidden bg-zinc-950 min-h-[280px]">
-              <Image
-                key={slides[slideIndex].src}
-                src={slides[slideIndex].src}
-                alt={slides[slideIndex].label}
-                fill
-                className="object-contain transition-all duration-500 ease-in-out"
-                priority
-              />
-
-              {record.images && record.images.length > 0 && (
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3 z-10">
-                  <p className="text-white text-xs font-semibold">Almacén Central - Entrada Principal</p>
-                  <p className="text-white/60 text-[10px]">2026-03-24 22:15:32</p>
-                </div>
-              )}
-
-              {slides.length > 1 && (
-                <>
-                  <div className="absolute inset-x-3 inset-y-0 flex items-center justify-between z-20 pointer-events-none">
-                    <button onClick={(e) => { e.stopPropagation(); prevSlide(); }}
-                      className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105">
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); nextSlide(); }}
-                      className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105">
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="absolute top-3 right-3 z-30">
-                    <span className="bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
-                      {slideIndex + 1} / {slides.length}
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="shrink-0" style={{ height: "220px" }}>
-              <div key={modalId} style={{ height: "220px", width: "100%" }}>
-                <MapView map_data={effectiveMapData} />
+            {record.images && record.images.length > 0 && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3 z-10">
+                <p className="text-white text-xs font-semibold">Almacén Central - Entrada Principal</p>
+                <p className="text-white/60 text-[10px]">2026-03-24 22:15:32</p>
               </div>
+            )}
+
+            {slides.length > 1 && (
+              <>
+                <div className="absolute inset-x-3 inset-y-0 flex items-center justify-between z-20 pointer-events-none">
+                  <button onClick={(e) => { e.stopPropagation(); prevSlide(); }}
+                    className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105">
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); nextSlide(); }}
+                    className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105">
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="absolute top-3 right-3 z-30">
+                  <span className="bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+                    {slideIndex + 1} / {slides.length}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex-1">
+            <div className="h-full w-full">
+              {/* <MapView map_data={effectiveMapData} /> */}
             </div>
+          </div>
+
           </div>
 
           <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background">

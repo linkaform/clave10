@@ -180,7 +180,7 @@ export function PhotoListCard({
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ height: "180px", width: "100%" }}>
-                <MapView map_data={mapData} />
+                {/* <MapView map_data={mapData} /> */}
               </div>
             </div>
           )}
