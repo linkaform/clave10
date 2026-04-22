@@ -33,6 +33,14 @@ export function PhotoListCard({
 
   const showMap = mapData && mapData.length > 0;
 
+  // Separar áreas del resto de detalles
+  const areasItem = record.detailsList?.find(
+    (item) => item.label?.toLowerCase() === "areas" || item.label?.toLowerCase() === "áreas"
+  );
+  const otherDetails = record.detailsList?.filter(
+    (item) => item.label?.toLowerCase() !== "areas" && item.label?.toLowerCase() !== "áreas"
+  );
+
   return (
     <div
       className={cn(
@@ -59,68 +67,51 @@ export function PhotoListCard({
 
       <div className="flex gap-8 p-6 items-start w-full">
 
-        {/* Columna izquierda: imágenes + mapa lado a lado */}
-        <div className="flex-shrink-0 w-[30%] flex gap-3">
-
-          {/* Imágenes */}
-          <div className={cn("flex flex-col gap-3", showMap ? "w-1/2" : "w-full")}>
-            <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative w-full aspect-[4/3]">
-              <Image
-                key={activeImage}
-                src={activeImage}
-                alt={`Fotografía de ${titleCard}`}
-                fill
-                loading="eager"
-                className="object-contain transition-opacity duration-200"
-                sizes="(max-width: 768px) 100vw, 15vw"
-              />
-            </div>
-
-            {allImages.length > 1 && (
-              <div className="flex gap-2 flex-wrap justify-start p-1">
-                {allImages.map((img, idx) => (
-                  <button
-                    key={idx}
-                    aria-label={`Ver fotografía ${idx + 1} de ${titleCard}`}
-                    onMouseEnter={() => setActiveImage(img)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveImage(img);
-                    }}
-                    className={cn(
-                      "relative w-10 h-10 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all duration-150",
-                      activeImage === img
-                        ? "border-blue-500 ring-1 ring-blue-300 scale-105"
-                        : "border-slate-200 hover:border-blue-400 hover:scale-105 opacity-60 hover:opacity-100",
-                    )}>
-                    <Image
-                      src={img}
-                      alt=""
-                      fill
-                      className="object-cover object-top"
-                      sizes="40px"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
+        {/* Columna izquierda: imagen principal + thumbnails */}
+        <div className="flex-shrink-0 w-[22%] flex flex-col gap-3">
+          <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative w-full aspect-[4/3]">
+            <Image
+              key={activeImage}
+              src={activeImage}
+              alt={`Fotografía de ${titleCard}`}
+              fill
+              loading="eager"
+              className="object-contain transition-opacity duration-200"
+              sizes="(max-width: 768px) 100vw, 22vw"
+            />
           </div>
 
-          {/* Mapa al lado de las imágenes */}
-          {showMap && (
-            <div
-              className="w-1/2 flex-shrink-0 rounded-xl overflow-hidden border border-slate-200"
-              style={{ height: "180px" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ height: "180px", width: "100%" }}>
-                <MapView map_data={mapData} />
-              </div>
+          {allImages.length > 1 && (
+            <div className="flex gap-2 flex-wrap justify-start p-1">
+              {allImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  aria-label={`Ver fotografía ${idx + 1} de ${titleCard}`}
+                  onMouseEnter={() => setActiveImage(img)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImage(img);
+                  }}
+                  className={cn(
+                    "relative w-10 h-10 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all duration-150",
+                    activeImage === img
+                      ? "border-blue-500 ring-1 ring-blue-300 scale-105"
+                      : "border-slate-200 hover:border-blue-400 hover:scale-105 opacity-60 hover:opacity-100",
+                  )}>
+                  <Image
+                    src={img}
+                    alt=""
+                    fill
+                    className="object-cover object-top"
+                    sizes="40px"
+                  />
+                </button>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Columna derecha: info */}
+        {/* Columna derecha: info + mapa + áreas */}
         <div className="flex-1 flex flex-col justify-start min-w-0">
           <div className="flex justify-between items-start">
             <div className="min-w-0 flex-1">
@@ -145,47 +136,71 @@ export function PhotoListCard({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-6">
-            {record.detailsList?.map((item, index) => {
-              const hasValue = Array.isArray(item.value)
-                ? item.value.length > 0
-                : item.value !== null &&
-                  item.value !== undefined &&
-                  item.value !== "";
-
-              if (!hasValue) return null;
-
-              const isFullWidth = Array.isArray(item.value);
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex flex-col gap-1",
-                    isFullWidth ? "col-span-2" : "col-span-1",
-                  )}>
-                  <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
-                    {item.label}
-                  </span>
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {Array.isArray(item.value) ? (
-                      item.value.map((val, i) => (
-                        <Badge
-                          key={i}
-                          variant="secondary"
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 rounded-md px-2 py-0.5 text-xs font-normal shadow-none">
-                          {val}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className={`text-xs ${item.customClass}`}>
-                        {item.value || "\u00A0"}
-                      </span>
-                    )}
+          {/* Detalles sin áreas */}
+          {otherDetails && otherDetails.length > 0 && (
+            <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-4">
+              {otherDetails.map((item, index) => {
+                const hasValue = Array.isArray(item.value)
+                  ? item.value.length > 0
+                  : item.value !== null && item.value !== undefined && item.value !== "";
+                if (!hasValue) return null;
+                const isFullWidth = Array.isArray(item.value);
+                return (
+                  <div
+                    key={index}
+                    className={cn("flex flex-col gap-1", isFullWidth ? "col-span-2" : "col-span-1")}>
+                    <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
+                      {item.label}
+                    </span>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {Array.isArray(item.value) ? (
+                        item.value.map((val, i) => (
+                          <Badge key={i} variant="secondary"
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 rounded-md px-2 py-0.5 text-xs font-normal shadow-none">
+                            {val}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className={`text-xs ${item.customClass}`}>
+                          {item.value || "\u00A0"}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Mapa — entre los detalles y las áreas */}
+          {showMap && (
+            <div
+              className="rounded-xl overflow-hidden border border-slate-200 mb-4 w-full"
+              style={{ height: "180px" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ height: "180px", width: "100%" }}>
+                <MapView map_data={mapData} />
+              </div>
+            </div>
+          )}
+
+          {/* Áreas al final */}
+          {areasItem && Array.isArray(areasItem.value) && areasItem.value.length > 0 && (
+            <div className="flex flex-col gap-1 mb-4">
+              <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
+                {areasItem.label}
+              </span>
+              <div className="flex flex-wrap gap-2 items-center">
+                {areasItem.value.map((val, i) => (
+                  <Badge key={i} variant="secondary"
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 rounded-md px-2 py-0.5 text-xs font-normal shadow-none">
+                    {val}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
 
           {children && (
             <div
