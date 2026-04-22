@@ -6,9 +6,9 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-// import dynamic from "next/dynamic";
+import dynamic from "next/dynamic";
 
-// const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
+const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
 interface MapItem {
   nombre_area: string;
@@ -29,13 +29,13 @@ interface ListItemProps {
   value: string | string[];
 }
 
-// const DEMO_MAP_DATA: MapItem[] = [
-//   { id: "1", nombre_area: "Almacén Central", geolocation_area: { latitude: 25.6866, longitude: -100.3161 } },
-//   { id: "2", nombre_area: "Zona de Carga",   geolocation_area: { latitude: 25.6872, longitude: -100.3148 } },
-//   { id: "3", nombre_area: "Estacionamiento", geolocation_area: { latitude: 25.6858, longitude: -100.3155 } },
-//   { id: "4", nombre_area: "Perímetro Norte", geolocation_area: { latitude: 25.6880, longitude: -100.3140 } },
-//   { id: "5", nombre_area: "Oficinas Planta Baja", geolocation_area: { latitude: 25.6863, longitude: -100.3168 } },
-// ];
+const DEMO_MAP_DATA: MapItem[] = [
+  { id: "1", nombre_area: "Almacén Central", geolocation_area: { latitude: 25.6866, longitude: -100.3161 } },
+  { id: "2", nombre_area: "Zona de Carga",   geolocation_area: { latitude: 25.6872, longitude: -100.3148 } },
+  { id: "3", nombre_area: "Estacionamiento", geolocation_area: { latitude: 25.6858, longitude: -100.3155 } },
+  { id: "4", nombre_area: "Perímetro Norte", geolocation_area: { latitude: 25.6880, longitude: -100.3140 } },
+  { id: "5", nombre_area: "Oficinas Planta Baja", geolocation_area: { latitude: 25.6863, longitude: -100.3168 } },
+];
 
 const DEMO_INCIDENCIAS = [
   { id: "1", title: "Seguridad - Puerta sin cerrar", time: "22:30:15", img: "/mountain.svg" },
@@ -106,7 +106,7 @@ export function PhotoRondinCardModal({
   const modalId = useId();
 
   if (!record) return null;
-  console.log(mapData)
+
   const slides =
     record.images && record.images.length > 0
       ? record.images.map((img: any, i: number) => ({ src: img, label: `Imagen ${i + 1}` }))
@@ -115,7 +115,7 @@ export function PhotoRondinCardModal({
   const prevSlide = () => setSlideIndex((i) => (i - 1 + slides.length) % slides.length);
   const nextSlide = () => setSlideIndex((i) => (i + 1) % slides.length);
 
-  // const effectiveMapData = mapData && mapData.length > 0 ? mapData : DEMO_MAP_DATA;
+  const effectiveMapData = mapData && mapData.length > 0 ? mapData : DEMO_MAP_DATA;
 
   const filteredAreas = DEMO_AREAS.filter(a =>
     a.nombre.toLowerCase().includes(areaSearch.toLowerCase())
@@ -223,7 +223,7 @@ export function PhotoRondinCardModal({
 
             <div className="shrink-0" style={{ height: "220px" }}>
               <div key={modalId} style={{ height: "220px", width: "100%" }}>
-                {/* <MapView map_data={effectiveMapData} /> */}
+                <MapView map_data={effectiveMapData} />
               </div>
             </div>
           </div>
