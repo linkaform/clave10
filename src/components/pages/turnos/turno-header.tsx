@@ -114,170 +114,154 @@ export function TurnoHeader({
   return (
     <>
       <Card
-        className={`overflow-hidden border-2 transition-all duration-300 ${
+        className={`overflow-hidden border-l-4 ${
           isTurnoAbierto
-            ? "border-emerald-200 bg-gradient-to-r from-emerald-50 to-white"
-            : "border-slate-200 bg-gradient-to-r from-slate-50 to-white"
+            ? "border-l-emerald-500 bg-emerald-50/30"
+            : "border-l-slate-400 bg-white"
         }`}
       >
-        <CardContent className="p-0">
-          <div className="flex flex-col lg:flex-row items-stretch">
-            {/* Status indicator bar */}
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            {/* Photo thumbnail */}
             <div
-              className={`w-full lg:w-2 h-2 lg:h-auto flex-shrink-0 ${
-                isTurnoAbierto ? "bg-emerald-500" : "bg-slate-400"
+              className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0 cursor-pointer transition-transform hover:scale-105 ${
+                isTurnoAbierto ? "border-emerald-300" : "border-slate-200"
               }`}
-            />
-
-            {/* Main content */}
-            <div className="flex-1 p-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                {/* Left side - Status and info */}
-                <div className="flex items-start gap-4">
-                  {/* Photo thumbnail */}
-                  <div
-                    className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 flex-shrink-0 cursor-pointer transition-all hover:scale-105 ${
-                      isTurnoAbierto
-                        ? "border-emerald-300 shadow-emerald-100 shadow-lg"
-                        : "border-slate-300"
-                    }`}
-                    onClick={() => {
-                      if (photoUrl || shift?.guard?.start_turn_image?.[0]?.file_url) {
-                        setOpenStartView(true)
-                      } else if (!isTurnoAbierto) {
-                        setOpenStartPhotoModal(true)
-                      }
+              onClick={() => {
+                if (photoUrl || shift?.guard?.start_turn_image?.[0]?.file_url) {
+                  setOpenStartView(true)
+                } else if (!isTurnoAbierto) {
+                  setOpenStartPhotoModal(true)
+                }
+              }}
+            >
+              {photoUrl ? (
+                <Image
+                  src={photoUrl}
+                  alt="Foto de turno"
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100">
+                  <Camera className="w-5 h-5 text-slate-400" />
+                </div>
+              )}
+              {Array.isArray(evidencia) &&
+                evidencia.length > 0 &&
+                !isTurnoAbierto &&
+                isUserActiveTurn && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setOpenDeletePhoto(true)
                     }}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow hover:bg-red-600"
+                    title="Eliminar imagen"
                   >
-                    {photoUrl ? (
-                      <Image
-                        src={photoUrl}
-                        alt="Foto de turno"
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100">
-                        <Camera className="w-6 h-6 text-slate-400" />
-                        <span className="text-[10px] text-slate-400 mt-1">Foto</span>
-                      </div>
-                    )}
-                    {Array.isArray(evidencia) &&
-                      evidencia.length > 0 &&
-                      !isTurnoAbierto &&
-                      isUserActiveTurn && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setOpenDeletePhoto(true)
-                          }}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow hover:bg-red-600"
-                          title="Eliminar imagen"
-                        >
-                          x
-                        </button>
-                      )}
-                  </div>
-
-                  {/* Status text */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        className={`text-sm px-3 py-1 ${
-                          isTurnoAbierto
-                            ? "bg-emerald-500 hover:bg-emerald-500 text-white"
-                            : "bg-slate-500 hover:bg-slate-500 text-white"
-                        }`}
-                      >
-                        {turno || "Sin turno"}
-                      </Badge>
-                      {isTurnoAbierto && (
-                        <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          En curso
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="w-4 h-4" />
-                      <span className="font-medium">{area || "---"}</span>
-                      <span className="text-slate-300">|</span>
-                      <span>{location || "---"}</span>
-                    </div>
-
-                    {isTurnoAbierto && shift?.booth_status?.stated_at && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="w-3 h-3" />
-                        <span>Inicio: {shift.booth_status.stated_at}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right side - Timer and action */}
-                <div className="flex flex-col items-end gap-4">
-                  {/* Timer */}
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground mb-1">Tiempo transcurrido</p>
-                    <TimerDisplay
-                      startTime={shift?.booth_status?.stated_at_iso || null}
-                      isActive={isTurnoAbierto}
-                    />
-                  </div>
-
-                  {/* Action button */}
-                  {!isTurnoAbierto ? (
-                    <Button
-                      size="lg"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 min-w-[180px] shadow-lg shadow-emerald-200"
-                      disabled={area === ""}
-                      onClick={handleStartTurno}
-                    >
-                      <Play className="w-5 h-5" />
-                      Iniciar Turno
-                    </Button>
-                  ) : (
-                    <Button
-                      size="lg"
-                      variant="destructive"
-                      className="gap-2 min-w-[180px] shadow-lg shadow-red-200"
-                      disabled={area === ""}
-                      onClick={handleCloseTurno}
-                    >
-                      <Square className="w-4 h-4" />
-                      Cerrar Turno
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Warning messages */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                {shift?.booth_status?.status === "No Disponible" &&
-                  shift?.guard?.status_turn === "Turno Cerrado" && (
-                    <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
-                      * Fuerce el cierre de la caseta para iniciar turno
-                    </span>
-                  )}
-                {area === "" && (
-                  <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                    Selecciona una caseta para iniciar turno
-                  </span>
+                    x
+                  </button>
                 )}
-                {!isTurnoAbierto && (evidencia?.length ?? 0) === 0 && area !== "" && (
-                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                    Toma una fotografia para iniciar turno
-                  </span>
-                )}
-                {isTurnoAbierto && (identificacion?.length ?? 0) === 0 && (
-                  <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                    Toma una fotografia para cerrar turno
-                  </span>
-                )}
-              </div>
             </div>
+
+            {/* Status info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge
+                  className={`text-xs px-2 py-0.5 ${
+                    isTurnoAbierto
+                      ? "bg-emerald-500 hover:bg-emerald-500 text-white"
+                      : "bg-slate-500 hover:bg-slate-500 text-white"
+                  }`}
+                >
+                  {turno || "Sin turno"}
+                </Badge>
+                {isTurnoAbierto && (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    En curso
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <MapPin className="w-3 h-3" />
+                <span className="font-medium truncate">{area || "---"}</span>
+                <span className="text-slate-300">|</span>
+                <span className="truncate">{location || "---"}</span>
+              </div>
+
+              {isTurnoAbierto && shift?.booth_status?.stated_at && (
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
+                  <Clock className="w-3 h-3" />
+                  <span>Inicio: {shift.booth_status.stated_at}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Timer */}
+            <div className="hidden sm:block text-right px-3 border-l border-slate-200">
+              <p className="text-[10px] text-muted-foreground">Duracion</p>
+              <TimerDisplay
+                startTime={shift?.booth_status?.stated_at_iso || null}
+                isActive={isTurnoAbierto}
+              />
+            </div>
+
+            {/* Action button */}
+            {!isTurnoAbierto ? (
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-sm"
+                disabled={area === ""}
+                onClick={handleStartTurno}
+              >
+                <Play className="w-4 h-4" />
+                <span className="hidden sm:inline">Iniciar</span> Turno
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="destructive"
+                className="gap-1.5 shadow-sm"
+                disabled={area === ""}
+                onClick={handleCloseTurno}
+              >
+                <Square className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Cerrar</span> Turno
+              </Button>
+            )}
           </div>
+
+          {/* Warning messages - compact */}
+          {(shift?.booth_status?.status === "No Disponible" && shift?.guard?.status_turn === "Turno Cerrado") ||
+           area === "" ||
+           (!isTurnoAbierto && (evidencia?.length ?? 0) === 0 && area !== "") ||
+           (isTurnoAbierto && (identificacion?.length ?? 0) === 0) ? (
+            <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-1.5">
+              {shift?.booth_status?.status === "No Disponible" &&
+                shift?.guard?.status_turn === "Turno Cerrado" && (
+                  <span className="text-[10px] text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                    Fuerce el cierre para iniciar
+                  </span>
+                )}
+              {area === "" && (
+                <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+                  Selecciona una caseta
+                </span>
+              )}
+              {!isTurnoAbierto && (evidencia?.length ?? 0) === 0 && area !== "" && (
+                <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                  Toma foto para iniciar
+                </span>
+              )}
+              {isTurnoAbierto && (identificacion?.length ?? 0) === 0 && (
+                <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+                  Toma foto para cerrar
+                </span>
+              )}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

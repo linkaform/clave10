@@ -4,19 +4,17 @@ import { Dispatch, SetStateAction, useRef, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
 import { ChangeBoothModal } from "@/components/modals/change-booth-modal"
 import { NombreSuplenteModal } from "@/components/modals/nombre-suplente"
 import { SuplenteItem } from "@/components/suplente-item"
-import { QuickStats } from "./quick-stats"
 import { changeUserPhoto, changeUserPhotoPatch } from "@/lib/change-user-photo"
 import { capitalizeOnlyFirstLetter } from "@/lib/utils"
 import useAuthStore from "@/store/useAuthStore"
 import { useBoothStore } from "@/store/useBoothStore"
 import { toast } from "sonner"
-import { Camera, MapPin, Building2, User, RefreshCw } from "lucide-react"
+import { Camera, MapPin, Building2, User, RefreshCw, UserPlus } from "lucide-react"
 
 interface ContextSidebarProps {
   shift: any
@@ -69,27 +67,28 @@ export function ContextSidebar({
   const isTurnoCerrado = shift?.guard?.status_turn === "Turno Cerrado"
 
   return (
-    <div className="space-y-4">
-      {/* Profile Card */}
+    <div className="space-y-3">
+      {/* Profile + Location Combined Card */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center text-center">
-            <div className="relative group">
-              <Avatar className="w-20 h-20 border-2 border-slate-200 shadow-md">
+        <CardContent className="p-4">
+          {/* Profile Row */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="relative">
+              <Avatar className="w-12 h-12 border border-slate-200">
                 <AvatarImage
                   className="object-cover"
                   src={userPhoto ?? "/nouser.svg"}
                   alt="Avatar"
                 />
-                <AvatarFallback className="text-lg font-semibold bg-slate-100">
+                <AvatarFallback className="text-sm font-semibold bg-slate-100">
                   {getInitials(userNameSoter)}
                 </AvatarFallback>
               </Avatar>
               <button
                 onClick={handleButtonClick}
-                className="absolute bottom-0 right-0 p-1.5 rounded-full bg-white border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
+                className="absolute -bottom-1 -right-1 p-1 rounded-full bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
               >
-                <Camera className="w-3.5 h-3.5 text-slate-600" />
+                <Camera className="w-3 h-3 text-slate-600" />
               </button>
             </div>
 
@@ -101,117 +100,72 @@ export function ContextSidebar({
               onChange={handleFileChange}
             />
 
-            <h3 className="mt-3 font-semibold text-lg">{userNameSoter}</h3>
-            <p className="text-sm text-muted-foreground">{shift?.guard?.position}</p>
-            <p className="text-xs text-muted-foreground mt-1">{userEmailSoter}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Location Card */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-slate-500" />
-            Ubicacion
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-muted-foreground text-xs">Location</p>
-              <p className="font-medium truncate">{location || "---"}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Ciudad</p>
-              <p className="font-medium truncate">{shift?.location?.city || "---"}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Estado</p>
-              <p className="font-medium truncate">{shift?.location?.state || "---"}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Direccion</p>
-              <p className="font-medium truncate">{shift?.location?.address || "---"}</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm truncate">{userNameSoter}</h3>
+              <p className="text-xs text-muted-foreground truncate">{shift?.guard?.position}</p>
             </div>
           </div>
 
-          <Separator />
+          {/* Location Info */}
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <MapPin className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{location || "---"} - {shift?.location?.city || "---"}</span>
+            </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-slate-500" />
-              <div>
-                <p className="text-xs text-muted-foreground">Caseta</p>
-                <p className="font-semibold">{area || "Sin seleccionar"}</p>
+            {/* Caseta Row */}
+            <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                <span className="font-medium">{area || "Sin caseta"}</span>
               </div>
+              <Badge
+                className={`text-[10px] px-1.5 py-0 ${
+                  shift?.booth_status?.status === "Abierta"
+                    ? "bg-emerald-500 hover:bg-emerald-500"
+                    : "bg-red-500 hover:bg-red-500"
+                } text-white`}
+              >
+                {capitalizeOnlyFirstLetter(shift?.booth_status?.status) || "---"}
+              </Badge>
             </div>
-            <Badge
-              className={`text-xs ${
-                shift?.booth_status?.status === "Abierta"
-                  ? "bg-emerald-500 hover:bg-emerald-500"
-                  : "bg-red-500 hover:bg-red-500"
-              } text-white`}
-            >
-              {capitalizeOnlyFirstLetter(shift?.booth_status?.status) || "---"}
-            </Badge>
+
+            {/* Guard on duty */}
+            {shift?.booth_status?.status === "Abierta" && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <User className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">
+                  <span className="text-slate-500">En turno:</span> {shift?.booth_status?.guard_on_dutty || "---"}
+                </span>
+              </div>
+            )}
           </div>
 
-          <ChangeBoothModal title="Cambiar caseta">
+          {/* Actions */}
+          <div className="flex gap-2 mt-3">
+            <ChangeBoothModal title="Cambiar caseta">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 h-8 text-xs gap-1.5"
+                disabled={isTurnoAbierto}
+              >
+                <RefreshCw className="w-3 h-3" />
+                Cambiar
+              </Button>
+            </ChangeBoothModal>
+
             <Button
               variant="outline"
               size="sm"
-              className="w-full gap-2"
-              disabled={isTurnoAbierto}
+              className="flex-1 h-8 text-xs gap-1.5 border-violet-200 text-violet-700 hover:bg-violet-50"
+              disabled={!isTurnoCerrado}
+              onClick={() => setOpenNombreSuplenteModal(true)}
             >
-              <RefreshCw className="w-4 h-4" />
-              Cambiar Caseta
+              <UserPlus className="w-3 h-3" />
+              Suplente
             </Button>
-          </ChangeBoothModal>
-        </CardContent>
-      </Card>
-
-      {/* Guard on duty */}
-      {shift?.booth_status?.status === "Abierta" && (
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-emerald-50">
-                <User className="w-4 h-4 text-emerald-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Guardia en turno</p>
-                <p className="font-medium truncate">
-                  {shift?.booth_status?.guard_on_dutty || "---"}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Quick Stats */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Resumen Rapido</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <QuickStats stats={shift?.booth_stats} />
-        </CardContent>
-      </Card>
-
-      {/* Suplente Section */}
-      <Card>
-        <CardContent className="pt-4 space-y-3">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="w-full bg-violet-100 text-violet-700 hover:bg-violet-200"
-            disabled={!isTurnoCerrado}
-            onClick={() => setOpenNombreSuplenteModal(true)}
-          >
-            Ingresar como suplente
-          </Button>
+          </div>
 
           <NombreSuplenteModal
             title="Suplente"
@@ -224,11 +178,13 @@ export function ContextSidebar({
           />
 
           {nombreSuplente && (
-            <SuplenteItem
-              turno={shift?.guard?.status_turn}
-              nombreSuplente={nombreSuplente}
-              setNombreSuplente={setNombreSuplente}
-            />
+            <div className="mt-3">
+              <SuplenteItem
+                turno={shift?.guard?.status_turn}
+                nombreSuplente={nombreSuplente}
+                setNombreSuplente={setNombreSuplente}
+              />
+            </div>
           )}
         </CardContent>
       </Card>

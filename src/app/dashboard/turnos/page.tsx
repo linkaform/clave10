@@ -1,9 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { AlertCircle, ShieldAlert } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AlertCircle, ShieldAlert, Users, StickyNote, Activity } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 import { useGetShift } from "@/hooks/useGetShift"
 import { Imagen } from "@/components/upload-Image"
@@ -43,8 +42,8 @@ export default function TurnosPage() {
   if (isLoading || !mounted) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
           <p className="text-sm text-muted-foreground">Cargando turno...</p>
         </div>
       </div>
@@ -56,37 +55,31 @@ export default function TurnosPage() {
       <link rel="icon" href="/turnos.svg" type="image/svg+xml" />
       
       <div className="min-h-screen bg-slate-50/50">
-        <div className="container mx-auto p-4 lg:p-6 max-w-7xl">
+        <div className="container mx-auto p-3 lg:p-4 max-w-7xl">
           {/* Error Alert */}
           {allData?.success === false && (
-            <Card className="mb-6 border-2 border-red-500 bg-red-50/50 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <Card className="mb-4 border-2 border-red-500 bg-red-50/50 shadow-sm">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-3">
                   <div className="bg-red-100 p-2 rounded-full shrink-0">
-                    <ShieldAlert className="w-8 h-8 text-red-600" />
+                    <ShieldAlert className="w-6 h-6 text-red-600" />
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <h3 className="text-lg font-bold text-red-900 border-b border-red-200 pb-1 mb-1">
-                      Configuracion Incompleta
-                    </h3>
-                    <p className="text-red-800 font-medium">
-                      Hubo un problema por falta de configuracion en este usuario.
+                  <div className="flex-1">
+                    <h3 className="text-sm font-bold text-red-900">Configuracion Incompleta</h3>
+                    <p className="text-xs text-red-700">
+                      Hubo un problema por falta de configuracion. Solicita apoyo a soporte.
                     </p>
-                    <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-red-600 italic">
-                      <AlertCircle className="w-4 h-4" />
-                      <span>Por favor, solicita apoyo a soporte para resolverlo.</span>
-                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Main Layout */}
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Left Sidebar - Context */}
-            <aside className="w-full lg:w-80 flex-shrink-0 order-2 lg:order-1">
-              <div className="lg:sticky lg:top-6">
+          {/* Main Layout - 2 columns */}
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Left Sidebar - Context (narrower) */}
+            <aside className="w-full lg:w-72 flex-shrink-0 order-2 lg:order-1">
+              <div className="lg:sticky lg:top-4 space-y-3">
                 <ContextSidebar
                   key={shift?.location?.name}
                   shift={shift}
@@ -98,7 +91,7 @@ export default function TurnosPage() {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 space-y-6 order-1 lg:order-2">
+            <main className="flex-1 space-y-3 order-1 lg:order-2">
               {/* Hero Header - Turno Status */}
               <TurnoHeader
                 shift={shift}
@@ -113,55 +106,43 @@ export default function TurnosPage() {
                 location={location}
               />
 
-              {/* Tabs Container */}
-              <Tabs defaultValue="guardias" className="w-full">
-                <TabsList className="w-full justify-start bg-white border rounded-lg p-1 h-auto flex-wrap">
-                  <TabsTrigger
-                    value="guardias"
-                    className="flex-1 sm:flex-none data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md px-4 py-2"
-                  >
-                    Guardias de Apoyo
-                    <span className="ml-2 text-xs bg-slate-100 data-[state=active]:bg-blue-100 px-2 py-0.5 rounded-full">
-                      {shift?.support_guards?.length || 0}
-                    </span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="notas"
-                    className="flex-1 sm:flex-none data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md px-4 py-2"
-                  >
-                    Notas
-                    <span className="ml-2 text-xs bg-slate-100 data-[state=active]:bg-blue-100 px-2 py-0.5 rounded-full">
-                      {shift?.notes?.records?.length || 0}
-                    </span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="actividad"
-                    className="flex-1 sm:flex-none data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md px-4 py-2"
-                  >
-                    Actividad
-                  </TabsTrigger>
-                </TabsList>
+              {/* Activity Grid - Compact */}
+              <ActivityGrid stats={shift?.booth_stats} />
 
-                <TabsContent value="guardias" className="mt-4">
-                  <Card>
-                    <CardContent className="p-6">
-                      <GuardiasApoyoTable shift={shift} />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+              {/* Two column grid for Guardias and Notas */}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                {/* Guardias de Apoyo */}
+                <Card>
+                  <CardHeader className="py-3 px-4">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <Users className="w-4 h-4 text-blue-600" />
+                      Guardias de Apoyo
+                      <span className="ml-auto text-xs font-normal bg-slate-100 px-2 py-0.5 rounded-full">
+                        {shift?.support_guards?.length || 0}
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4 pt-0">
+                    <GuardiasApoyoTable shift={shift} />
+                  </CardContent>
+                </Card>
 
-                <TabsContent value="notas" className="mt-4">
-                  <Card>
-                    <CardContent className="p-6">
-                      <NotasTable data={shift?.notes?.records} />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="actividad" className="mt-4">
-                  <ActivityGrid stats={shift?.booth_stats} />
-                </TabsContent>
-              </Tabs>
+                {/* Notas */}
+                <Card>
+                  <CardHeader className="py-3 px-4">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <StickyNote className="w-4 h-4 text-amber-600" />
+                      Notas del Turno
+                      <span className="ml-auto text-xs font-normal bg-slate-100 px-2 py-0.5 rounded-full">
+                        {shift?.notes?.records?.length || 0}
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4 pt-0">
+                    <NotasTable data={shift?.notes?.records} />
+                  </CardContent>
+                </Card>
+              </div>
             </main>
           </div>
         </div>
