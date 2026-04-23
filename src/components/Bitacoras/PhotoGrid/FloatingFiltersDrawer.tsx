@@ -54,7 +54,7 @@ export function FloatingFiltersDrawer({
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 top-[68px] bg-black/40 backdrop-blur-md z-[100] lg:flex hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] lg:flex hidden"
           onClick={() => onOpenChange(false)}
         />
       )}
@@ -63,7 +63,7 @@ export function FloatingFiltersDrawer({
       <aside
         className={`${
           isOpen ? "translate-x-0 w-80" : "-translate-x-full w-0 invisible"
-        } fixed left-0 top-[68px] bottom-0 z-[101] hidden lg:flex shrink-0 flex-col border-r border-border bg-card shadow-2xl transition-all duration-300 ease-in-out`}>
+        } fixed left-0 top-0 h-full z-[101] hidden lg:flex shrink-0 flex-col border-r border-border bg-card shadow-2xl transition-all duration-300 ease-in-out`}>
         <div className="flex-1 overflow-y-auto">
           <div className="p-6">
             <FiltersPanel
