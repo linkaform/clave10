@@ -17,7 +17,7 @@ import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/Floating
 import VehiculosTable from "@/components/table/bitacoras/vehiculos/table";
 import EquiposTable from "@/components/table/bitacoras/equipos/table";
 
-const BitacorasPage = () => {
+const BitacorasContent = () => {
   const {
     activeDateFilter,
     activeFiltersCount,
@@ -59,9 +59,10 @@ const BitacorasPage = () => {
     setViewMode,
     startDate,
     viewMode,
+    selectedTab,
+    setSelectedTab,
   } = useBitacora();
 
-  const [selectedTab, setSelectedTab] = React.useState("personal");
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
   return (
@@ -334,6 +335,14 @@ const BitacorasPage = () => {
         />
       </div>
     </div>
+  );
+};
+
+const BitacorasPage = () => {
+  return (
+    <React.Suspense fallback={<div>Cargando bitácora...</div>}>
+      <BitacorasContent />
+    </React.Suspense>
   );
 };
 

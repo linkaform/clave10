@@ -7,28 +7,36 @@ interface UseGetMyPasesProps {
   limit?: number;
   skip?: number;
   searchName?: string;
+  tab?: string;
 }
 
-export const useGetMyPases = ({ limit, skip, searchName }: UseGetMyPasesProps) => {
-
-  const tab = "Todos";
-
-  const { data: data, isLoading, error, isFetching } = useQuery<any>({
+export const useGetMyPases = ({
+  limit,
+  skip,
+  searchName,
+  tab = "Todos",
+}: UseGetMyPasesProps) => {
+  const {
+    data: data,
+    isLoading,
+    error,
+    isFetching,
+  } = useQuery<any>({
     queryKey: ["getMyPases", tab, limit, skip, searchName],
     queryFn: async () => {
       const data = await getMyPases({ tab, limit, skip, searchName });
       if (data?.error) {
-        toast.error("Error al obtener pases")
+        toast.error("Error al obtener pases");
       }
       return data.response?.data || [];
     },
-    refetchOnWindowFocus: false, // Prevenir cierre de modales en cambio de pestaña
+    refetchOnWindowFocus: false,
   });
 
   return {
     data,
     isLoading,
     error,
-    isFetching
+    isFetching,
   };
 };
