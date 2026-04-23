@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Filter, X } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FiltersPanelProps } from "@/types/bitacoras";
 import { FiltersPanel } from "./PhotoGridFiltersPanel";
@@ -41,7 +41,7 @@ export function FloatingFiltersDrawer({
             onClick={() => onOpenChange(true)}
             className="h-14 w-14 rounded-full rounded-l-none shadow-2xl bg-[#3B83F7] hover:bg-[#3B83F7] text-white p-0 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-none"
             style={{ boxShadow: "4px 0 15px rgba(230, 81, 65, 0.4)" }}>
-            <Filter className="h-6 w-6 fill-current" />
+            <SlidersHorizontal className="h-6 w-6 fill-current" />
             {activeFiltersCount > 0 && (
               <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[12px] font-bold text-[#e65141] shadow-lg border-2 border-[#e65141]">
                 {activeFiltersCount}
