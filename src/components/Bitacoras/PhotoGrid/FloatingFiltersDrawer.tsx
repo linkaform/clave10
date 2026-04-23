@@ -19,6 +19,7 @@ export function FloatingFiltersDrawer({
   filters,
   onFiltersChange,
   filtersConfig,
+  stats,
 }: FloatingFiltersDrawerProps) {
   useEffect(() => {
     if (isOpen) {
@@ -69,6 +70,7 @@ export function FloatingFiltersDrawer({
               filters={filters}
               onFiltersChange={onFiltersChange}
               filtersConfig={filtersConfig}
+              stats={stats}
             />
           </div>
         </div>

@@ -27,21 +27,21 @@ export type ListStatus =
   | "entrada"
   | "salida";
 
-  export interface PhotoRecord {
-    id: string;
-    folio?: string;
-    visit_type?: string;
-    title: string;
-    description: string;
-    images: string[];
-    status: PhotoStatus;
-    statusLabel?: string;
-    detailsList?: DetailsListItem[];
-    modalDetailsList?: DetailsListItem[];
-    rawData?: any;
-    vehiculos?: Vehiculo[];
-    equipos?: Equipo[];
-  }
+export interface PhotoRecord {
+  id: string;
+  folio?: string;
+  visit_type?: string;
+  title: string;
+  description: string;
+  images: string[];
+  status: PhotoStatus;
+  statusLabel?: string;
+  detailsList?: DetailsListItem[];
+  modalDetailsList?: DetailsListItem[];
+  rawData?: any;
+  vehiculos?: Vehiculo[];
+  equipos?: Equipo[];
+}
 
 export interface Vehiculo {
   tipo: string;
@@ -170,6 +170,10 @@ export interface FiltersPanelProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
   filtersConfig?: FilterConfig[];
+  stats?: {
+    personas_dentro: number;
+    salidas_registradas: number;
+  };
 }
 
 export interface Visitor {

@@ -58,6 +58,10 @@ interface ListProps {
   searchTags?: string[];
   setUbicacionSeleccionada?: (val: string) => void;
   filtersConfig?: FilterConfig[];
+  stats?: {
+    personas_dentro: number;
+    salidas_registradas: number;
+  };
 }
 
 const BitacorasTable: React.FC<ListProps> = ({
@@ -81,6 +85,7 @@ const BitacorasTable: React.FC<ListProps> = ({
   onExternalDynamicFiltersChange,
   searchTags: externalSearchTags,
   filtersConfig = [],
+  stats,
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -203,6 +208,7 @@ const BitacorasTable: React.FC<ListProps> = ({
               filters={externalFilters}
               onFiltersChange={onExternalFiltersChange}
               filtersConfig={filtersConfig}
+              stats={stats}
             />
           </aside>
         )}

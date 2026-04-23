@@ -58,11 +58,13 @@ const BitacorasContent = () => {
     setStartDate,
     setViewMode,
     startDate,
+    stats,
     viewMode,
     selectedTab,
     setSelectedTab,
   } = useBitacora();
 
+  console.log("Stats:", stats);
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
   return (
@@ -75,6 +77,7 @@ const BitacorasContent = () => {
           filters={externalFilters}
           onFiltersChange={onExternalFiltersChange}
           filtersConfig={filtersConfig}
+          stats={stats}
         />
       )}
       <div className="p-6 space-y-4 pt-3 w-full">
@@ -202,6 +205,7 @@ const BitacorasContent = () => {
                 setPagination={setPagination}
                 total={listBitacoras?.total_records}
                 viewMode={viewMode}
+                stats={stats}
               />
             </TabsContent>
             <TabsContent
