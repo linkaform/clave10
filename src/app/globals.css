@@ -36,8 +36,13 @@ body {
     --color-brand: #1e2d5a;
 
 
-    --button-primary: #2F80ED
+    --button-primary: #2F80ED;
 
+    /* Turno status colors */
+    --turno-activo: 142 76% 36%;
+    --turno-cerrado: 0 84% 60%;
+    --turno-activo-bg: 142 76% 97%;
+    --turno-cerrado-bg: 0 84% 97%;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -133,4 +138,25 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1;
+}
+
+/* Turno animations */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Turno header transitions */
+.turno-header-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Timer font */
+.font-mono-timer {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
