@@ -51,6 +51,8 @@ export default function PhotoListView({
   const [selectedItems, setSelectedItems] = useState<
     { record_id: string; record_status: string }[]
   >([]);
+  console.log("FR", records)
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ListRecord | null>(null);
 
@@ -86,6 +88,7 @@ export default function PhotoListView({
       });
     });
   }, [baseFilteredRecords, globalSearch]);
+
   useEffect(() => {
     onSelectionChange?.(selectedItems);
   }, [selectedItems, onSelectionChange]);

@@ -254,7 +254,7 @@ const RondinesTable: React.FC<ListProps> = ({
     if (!filteredData?.length) return [];
     return filteredData.map((item: any) => formatListRecord(item, "rondin"));
   }, [filteredData]);
-
+  console.log("LIST RECORD", rondinListRecords)
   const filteredAreas = (areas || []).filter((a: any) =>
     (a.rondin_area || "").toLowerCase().includes(areaSearch.toLowerCase())
   );

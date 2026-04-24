@@ -90,5 +90,7 @@ export function mapRondinList(raw: any, base: any) {
     rawData: raw,
     vehiculos: [],
     equipos: [],
+    map_data:raw.map_data,
+    areas: raw.areas
   };
 }
