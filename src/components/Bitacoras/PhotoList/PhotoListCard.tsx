@@ -131,7 +131,6 @@ export function PhotoListCard({
             </span>
           </div>
 
-          {/* Detalles sin áreas */}
           {otherDetails && otherDetails.length > 0 && (
             <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-4">
               {otherDetails.map((item, index) => {
@@ -167,7 +166,6 @@ export function PhotoListCard({
             </div>
           )}
 
-          {/* Mapa — entre los detalles y las áreas */}
           {showMap && (
             <div
               className="rounded-xl overflow-hidden border border-slate-200 mb-4 w-full"
@@ -180,7 +178,6 @@ export function PhotoListCard({
             </div>
           )}
 
-          {/* Áreas al final */}
           {areasItem && Array.isArray(areasItem.value) && areasItem.value.length > 0 && (
             <div className="flex flex-col gap-1 mb-4">
               <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
