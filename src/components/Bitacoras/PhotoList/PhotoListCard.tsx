@@ -25,9 +25,9 @@ export function PhotoListCard({
   const [activeImage, setActiveImage] = useState(
     allImages[0] || "/placeholder.svg",
   );
-
+  console.log(record)
   const showMap = mapData && mapData.length > 0;
-
+  console.log("MAP DATA", mapData)
   // Separar áreas del resto de detalles
   const areasItem = record.detailsList?.find(
     (item) => item.label?.toLowerCase() === "areas" || item.label?.toLowerCase() === "áreas"

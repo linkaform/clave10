@@ -152,11 +152,25 @@ const MapView = ({ map_data }: MapaRutasProps) => {
       return L.divIcon({
         className: "",
         html: `<div style="
-          width:44px;height:44px;border-radius:10px;overflow:hidden;
-          border:2.5px solid #3b82f6;box-shadow:0 2px 8px rgba(0,0,0,0.25);
-          background:#e2e8f0;
+        width:48px;
+        height:48px;
+        border-radius:12px;
+        overflow:hidden;
+        border:3px solid white;
+        box-shadow:0 4px 10px rgba(0,0,0,0.3);
+        background:#e2e8f0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
         ">
-          <img src="${foto}" style="width:100%;height:100%;object-fit:cover;" />
+          <img 
+            src="${foto}" 
+            style="
+              width:100%;
+              height:100%;
+              object-fit:cover;
+            " 
+          />
         </div>`,
         iconSize: [44, 44],
         iconAnchor: [22, 44],

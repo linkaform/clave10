@@ -86,7 +86,6 @@ export default function PhotoListView({
       });
     });
   }, [baseFilteredRecords, globalSearch]);
-
   useEffect(() => {
     onSelectionChange?.(selectedItems);
   }, [selectedItems, onSelectionChange]);

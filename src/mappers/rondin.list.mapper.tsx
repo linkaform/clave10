@@ -18,11 +18,11 @@ export function mapRondinList(raw: any, base: any) {
     visit_type,
     title: raw?.nombre_del_rondin || "Rondín sin nombre",
     description: raw?.ubicacion || "Sin ubicación",
-    images: raw?.images_data?.[0]?.foto_area
-      ? [raw.images_data[0].foto_area]
-      : ["/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg",
-        "/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg","/blur2.jpg",
-      ],
+    images: Array.isArray(raw?.images_data) && raw.images_data.length > 0
+    ? raw.images_data
+        .map((img: any) => img?.foto_area)
+        .filter(Boolean)
+    : ["/mountain.svg","/mountain.svg","/mountain.svg","/mountain.svg","/mountain.svg","/mountain.svg"],
     status,
     estatus_rondin: raw?.estatus_rondin,
     tipo_rondin: raw?.tipo_rondin,
@@ -56,8 +56,9 @@ export function mapRondinList(raw: any, base: any) {
       { icon: null, label: "UBICACIÓN", value: raw?.ubicacion || "Sin ubicación" },
       { icon: null, label: "RECURRENCIA", value: raw?.recurrencia || "---" },
       { icon: null, label: "DURACIÓN ESPERADA", value: raw?.duracion_esperada_rondin || "---" },
+      { icon: null, label: "FECHA INICIO", value: raw?.fecha_inicio_rondin || "---" },
+      { icon: null, label: "FECHA FIN", value: raw?.fecha_final_rondin || "---" },
       { icon: null, label: "CHECKPOINTS", value: `${raw?.cantidad_de_puntos ?? 0} puntos` },
-      { icon: null, label: "INICIO", value: raw?.fecha_inicio_rondin || "---" },
       { icon: null, label: "ASIGNADO A", value: raw?.asignado_a || "Sin asignar" },
       {
         icon: null,
@@ -74,8 +75,9 @@ export function mapRondinList(raw: any, base: any) {
       { icon: null, label: "Tipo", value: raw?.tipo_rondin?.toUpperCase() || "QR" },
       { icon: null, label: "Recurrencia", value: raw?.recurrencia },
       { icon: null, label: "Duración esperada", value: raw?.duracion_esperada_rondin },
+      { icon: null, label: "Fecha de Inicio", value: raw?.fecha_inicio_rondin },
+      { icon: null, label: "Fecha Fin", value: raw?.fecha_final_rondin },
       { icon: null, label: "Checkpoints", value: `${raw?.cantidad_de_puntos ?? 0}` },
-      { icon: null, label: "Inicio", value: raw?.fecha_inicio_rondin },
       { icon: null, label: "Asignado a", value: raw?.asignado_a || "Sin asignar" },
       {
         icon: null,
