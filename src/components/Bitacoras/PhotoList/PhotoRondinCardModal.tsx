@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Search, ArrowLeft, MapPin, Tag, Camera, AlertTriangle, Calendar, FileText, Wrench } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, ArrowLeft, MapPin, Tag, Camera, Calendar, FileText, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { MapItem } from "@/components/table/rondines/table";
@@ -661,7 +661,7 @@ export function PhotoRondinCardModal({
             </div>
             <div className="flex-1 mb-5 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
               <div className="h-full w-full">
-                {/* <MapView map_data={effectiveMapData} areas={record?.areas || []}/> */}
+                <MapView map_data={effectiveMapData} areas={record?.areas || []}/>
               </div>
             </div>
           </div>
