@@ -33,7 +33,7 @@ interface RecordData {
 
 
 type Punto = { lat: number; lng: number; nombre?: string; foto?: string };
-type MapaRutasProps = { map_data: MapItem[] };
+type MapaRutasProps = { map_data: MapItem[] ,areas?: any[];};
 
 const overlap = (rect1: DOMRect, rect2: DOMRect): boolean =>
   !(rect1.right < rect2.left || rect1.left > rect2.right ||
@@ -89,7 +89,7 @@ const MyComponent: React.FC<{ prefix: string }> = ({ prefix }) => {
   return null;
 };
 
-const MapView = ({ map_data }: MapaRutasProps) => {
+const MapView = ({ map_data, areas }: MapaRutasProps) => {
   const user = useAuthStore();
   const instanceId = useId().replace(/:/g, "_"); // ID único, safe para usar en class/id
   const mapKey = useMemo(
@@ -97,6 +97,22 @@ const MapView = ({ map_data }: MapaRutasProps) => {
     [instanceId, map_data]
   );
 
+
+  const areasPhotoMap = useMemo(() => {
+    const map: Record<string, string> = {};
+  
+    (areas || []).forEach((area: any) => {
+      const id = area?.area_tag_id?.[0];
+      const foto = area?.foto_area?.[0]?.file_url;
+  
+      if (id && foto) {
+        map[id] = foto;
+      }
+    });
+  
+    return map;
+  }, [areas]);
+  
   const puntos = useMemo<Punto[]>(() =>
     (map_data ?? [])
       .filter(item =>
@@ -109,8 +125,12 @@ const MapView = ({ map_data }: MapaRutasProps) => {
         nombre: item.nombre_area,
         lat: item.geolocation_area!.latitude,
         lng: item.geolocation_area!.longitude,
-        foto: item.foto_area?.[0]?.file_url || "",
+        foto:
+          item.foto_area?.[0]?.file_url ||
+          areasPhotoMap[item.id] ||
+          "",
       })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [map_data]
   );
 
@@ -146,6 +166,7 @@ const MapView = ({ map_data }: MapaRutasProps) => {
     records.forEach(r => { if (r.geolocation) bounds.extend(r.geolocation); });
     if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
   };
+  console.log("DENTRO DEL MAPA", records)
 
   const getIcon = (foto?: string) => {
     if (foto) {

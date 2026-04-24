@@ -41,17 +41,17 @@ const DEMO_COMENTARIOS = [
   { id: "2", title: "Revisión completada sin novedades", time: "23:50:00", img: "/mountain.svg" },
 ];
 
-const DEMO_AREAS = [
-  { nombre: "Almacén Central",    hora: "22:15:10", img: "/mountain.svg" },
-  { nombre: "Zona de Carga",      hora: "22:18:12", img: "/mountain.svg" },
-  { nombre: "Estacionamiento",    hora: "22:21:14", img: "/mountain.svg" },
-  { nombre: "Perímetro Norte",    hora: "22:24:16", img: "/mountain.svg" },
-  { nombre: "Oficinas Planta Baja", hora: "22:27:18", img: "/mountain.svg" },
-  { nombre: "Sala de Máquinas",   hora: "22:30:20", img: "/mountain.svg" },
-  { nombre: "Caseta de Vigilancia", hora: "22:33:22", img: "/mountain.svg" },
-  { nombre: "Zona de Descanso",   hora: "22:36:24", img: "/mountain.svg" },
-  { nombre: "Baños Planta Baja",  hora: "22:39:26", img: "/mountain.svg" },
-];
+// const DEMO_AREAS = [
+//   { nombre: "Almacén Central",    hora: "22:15:10", img: "/mountain.svg" },
+//   { nombre: "Zona de Carga",      hora: "22:18:12", img: "/mountain.svg" },
+//   { nombre: "Estacionamiento",    hora: "22:21:14", img: "/mountain.svg" },
+//   { nombre: "Perímetro Norte",    hora: "22:24:16", img: "/mountain.svg" },
+//   { nombre: "Oficinas Planta Baja", hora: "22:27:18", img: "/mountain.svg" },
+//   { nombre: "Sala de Máquinas",   hora: "22:30:20", img: "/mountain.svg" },
+//   { nombre: "Caseta de Vigilancia", hora: "22:33:22", img: "/mountain.svg" },
+//   { nombre: "Zona de Descanso",   hora: "22:36:24", img: "/mountain.svg" },
+//   { nombre: "Baños Planta Baja",  hora: "22:39:26", img: "/mountain.svg" },
+// ];
 
 function ListItem({ label, value }: ListItemProps) {
   return (
@@ -110,12 +110,19 @@ export function PhotoRondinCardModal({
 
   const effectiveMapData = mapData && mapData.length > 0 ? mapData : DEMO_MAP_DATA;
 
-  const filteredAreas = DEMO_AREAS.filter(a =>
-    a.nombre.toLowerCase().includes(areaSearch.toLowerCase())
-  );
+  const realAreas = record?.rawData?.areas || [];
 
-  const totalAreas = DEMO_AREAS.length;
-  const inspectedAreas = DEMO_AREAS.length; 
+  const filteredAreas = realAreas
+    .map((area: any) => ({
+      nombre: area?.rondin_area,
+      hora: "", 
+      img: area?.foto_area?.[0]?.file_url || "/placeholder.svg",
+    }))
+    .filter((a: any) =>
+      a.nombre?.toLowerCase().includes(areaSearch.toLowerCase())
+    );
+    const totalAreas = realAreas.length;
+    const inspectedAreas = realAreas.length;
   const progress = Math.round((inspectedAreas / totalAreas) * 100);
 
   const detailsList = record.modalDetailsList || [];
@@ -161,7 +168,7 @@ export function PhotoRondinCardModal({
             </div>
 
             <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1 no-scrollbar">
-              {filteredAreas.map((area, idx) => (
+              {filteredAreas.map((area:any, idx:number) => (
                 <div key={idx} className="flex items-center gap-2.5 rounded-xl p-2 hover:bg-white transition-colors">
                   <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-slate-200 relative">
                     <Image src={area.img} alt={area.nombre} fill className="object-cover" />
@@ -175,53 +182,58 @@ export function PhotoRondinCardModal({
             </div>
           </div>
           <div className="flex flex-col w-[380px] shrink-0 border-r border-slate-100 overflow-hidden bg-background h-full">
-          <div className="relative flex-1 group overflow-hidden bg-zinc-950">
-            <Image
-              key={slides[slideIndex].src}
-              src={slides[slideIndex].src}
-              alt={slides[slideIndex].label}
-              fill
-              className="object-contain transition-all duration-500 ease-in-out"
-              priority
-            />
+  
+        <div className="relative flex-1 group overflow-hidden bg-zinc-950 border-b border-slate-200 mb-1">
+          <Image
+            key={slides[slideIndex].src}
+            src={slides[slideIndex].src}
+            alt={slides[slideIndex].label}
+            fill
+            className="object-contain transition-all duration-500 ease-in-out"
+            priority
+          />
 
-            {record.images && record.images.length > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3 z-10">
-                <p className="text-white text-xs font-semibold">Almacén Central - Entrada Principal</p>
-                <p className="text-white/60 text-[10px]">2026-03-24 22:15:32</p>
-              </div>
-            )}
-
-            {slides.length > 1 && (
-              <>
-                <div className="absolute inset-x-3 inset-y-0 flex items-center justify-between z-20 pointer-events-none">
-                  <button onClick={(e) => { e.stopPropagation(); prevSlide(); }}
-                    className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105">
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); nextSlide(); }}
-                    className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105">
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <div className="absolute top-3 right-3 z-30">
-                  <span className="bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
-                    {slideIndex + 1} / {slides.length}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="flex-1">
-            <div className="h-full w-full">
-              <MapView map_data={effectiveMapData} />
+          {record.images && record.images.length > 0 && (
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3 z-10">
+              <p className="text-white text-xs font-semibold">Almacén Central - Entrada Principal</p>
+              <p className="text-white/60 text-[10px]">2026-03-24 22:15:32</p>
             </div>
-          </div>
+          )}
 
-          </div>
+          {slides.length > 1 && (
+            <>
+              <div className="absolute inset-x-3 inset-y-0 flex items-center justify-between z-20 pointer-events-none">
+                <button
+                  onClick={(e) => { e.stopPropagation(); prevSlide(); }}
+                  className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
 
+                <button
+                  onClick={(e) => { e.stopPropagation(); nextSlide(); }}
+                  className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="absolute top-3 right-3 z-30">
+                <span className="bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+                  {slideIndex + 1} / {slides.length}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex-1 pt-1">
+          <div className="h-full w-full">
+            <MapView map_data={effectiveMapData} areas={record?.areas || []}/>
+          </div>
+        </div>
+
+      </div>
           <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background">
             <div className="px-6 pt-6 pb-4 shrink-0">
               <div className="flex flex-wrap gap-1.5 justify-end mb-3">
