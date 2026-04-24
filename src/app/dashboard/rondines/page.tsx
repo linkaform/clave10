@@ -131,7 +131,7 @@ const RondinesContent = () => {
               {(() => {
                 const photosDisabled = ["rondines", "check-ubicaciones", "recorridos"].includes(subTab);
                 const listDisabled = subTab === "recorridos";
-
+                console.log(listDisabled)
                 const btnClass = (mode: string, disabled: boolean) =>
                   `h-full w-10 transition-all rounded-none border-x border-slate-300/50 ${
                     disabled
