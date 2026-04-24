@@ -315,8 +315,8 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 								<TabsTrigger value="Bitacora">Ejecuciones</TabsTrigger>
 								<TabsTrigger value="Rondines">Rondines</TabsTrigger>
 								<TabsTrigger value="Incidencias">Incidencias</TabsTrigger>
-								<TabsTrigger value="Fotos">Fotos</TabsTrigger>
-								<TabsTrigger value="Calendario">Calendario</TabsTrigger>
+								{/* <TabsTrigger value="Fotos">Fotos</TabsTrigger>
+								<TabsTrigger value="Calendario">Calendario</TabsTrigger> */}
 							</TabsList>
 						</div>
 					}

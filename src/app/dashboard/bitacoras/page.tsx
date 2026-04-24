@@ -81,9 +81,7 @@ const BitacorasContent = () => {
         />
       )}
       <div className="p-6 space-y-4 pt-3 w-full">
-        {/* FILA ÚNICA: Título -> Search -> Tabs -> ViewModes */}
-        <div className="flex items-center justify-between w-full gap-4 sticky top-[55px] z-40 bg-white backdrop-blur-sm py-2">
-          {/* 1. Título (Izquierda) */}
+        <div className="flex items-center justify-between w-full gap-4 sticky top-[68px] z-40 bg-white backdrop-blur-sm py-2">
           <div className="flex items-baseline gap-2 min-w-fit">
             <h1 className="text-xl font-bold text-slate-900 whitespace-nowrap">
               Bitácora de Entradas & Salidas
@@ -98,9 +96,7 @@ const BitacorasContent = () => {
             </span>
           </div>
 
-          {/* Contenedor Derecha: Search -> Tabs -> ViewModes */}
           <div className="flex items-center gap-4 min-w-0 justify-end flex-shrink-0">
-            {/* 2. Search */}
             <div className="flex p-1 rounded-lg items-center border border-slate-200 w-[240px] overflow-hidden focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 bg-white transition-all">
               <Search
                 className="ml-2 mr-1 flex-shrink-0 text-slate-400"
@@ -114,7 +110,6 @@ const BitacorasContent = () => {
               />
             </div>
 
-            {/* 3. Tabs */}
             <Tabs
               value={selectedTab}
               onValueChange={setSelectedTab}
@@ -138,7 +133,6 @@ const BitacorasContent = () => {
               </TabsList>
             </Tabs>
 
-            {/* 4. ViewModes (Final) */}
             <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
               <Button
                 variant="ghost"
@@ -163,7 +157,6 @@ const BitacorasContent = () => {
               </Button>
             </div>
 
-            {/* Sacar (Si aplica) al final */}
             {hasPeopleInside && (
               <Button
                 type="button"
@@ -178,7 +171,6 @@ const BitacorasContent = () => {
           </div>
         </div>
 
-        {/* Contenido Principal */}
         <div className="w-full">
           <Tabs value={selectedTab} className="w-full">
             <TabsContent
@@ -259,7 +251,6 @@ const BitacorasContent = () => {
           </Tabs>
         </div>
 
-        {/* Modales */}
         {isReturnGafeteOpen && selectedRecord ? (
           <ReturnGafeteModal
             title={"Recibir Gafete"}

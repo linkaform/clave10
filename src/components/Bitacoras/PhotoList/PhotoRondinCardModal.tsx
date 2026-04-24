@@ -7,14 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
+import { MapItem } from "@/components/table/rondines/table";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
-interface MapItem {
-  nombre_area: string;
-  geolocation_area?: { latitude: number; longitude: number };
-  id: string;
-}
 
 interface PhotoDetailModalProps {
   record: any | null;
@@ -28,15 +24,13 @@ interface ListItemProps {
   label: string;
   value: string | string[];
 }
-
 const DEMO_MAP_DATA: MapItem[] = [
-  { id: "1", nombre_area: "Almacén Central", geolocation_area: { latitude: 25.6866, longitude: -100.3161 } },
-  { id: "2", nombre_area: "Zona de Carga",   geolocation_area: { latitude: 25.6872, longitude: -100.3148 } },
-  { id: "3", nombre_area: "Estacionamiento", geolocation_area: { latitude: 25.6858, longitude: -100.3155 } },
-  { id: "4", nombre_area: "Perímetro Norte", geolocation_area: { latitude: 25.6880, longitude: -100.3140 } },
-  { id: "5", nombre_area: "Oficinas Planta Baja", geolocation_area: { latitude: 25.6863, longitude: -100.3168 } },
+  { id: "1", nombre_area: "Almacén Central",     geolocation_area: { latitude: 25.6866, longitude: -100.3161 }, foto_area: [{file_name:"mountain", file_url:"/mountain.svg"}] },
+  { id: "2", nombre_area: "Zona de Carga",        geolocation_area: { latitude: 25.6872, longitude: -100.3148 }, foto_area: [{file_name:"mountain", file_url:"/mountain.svg"}] },
+  { id: "3", nombre_area: "Estacionamiento",      geolocation_area: { latitude: 25.6858, longitude: -100.3155 }, foto_area: [{file_name:"mountain", file_url:"/mountain.svg"}] },
+  { id: "4", nombre_area: "Perímetro Norte",      geolocation_area: { latitude: 25.6880, longitude: -100.3140 }, foto_area: [{file_name:"mountain", file_url:"/mountain.svg"}] },
+  { id: "5", nombre_area: "Oficinas Planta Baja", geolocation_area: { latitude: 25.6863, longitude: -100.3168 }, foto_area: [{file_name:"mountain", file_url:"/mountain.svg"}] },
 ];
-
 const DEMO_INCIDENCIAS = [
   { id: "1", title: "Seguridad - Puerta sin cerrar", time: "22:30:15", img: "/mountain.svg" },
   { id: "2", title: "Mantenimiento - Iluminación",   time: "23:15:42", img: "/mountain.svg" },

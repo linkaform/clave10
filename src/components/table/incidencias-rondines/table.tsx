@@ -267,11 +267,9 @@ const IncidenciasRondinesTable:React.FC<ListProps> = ({ showTabs, data, isLoadin
                 <div className="flex justify-center items-center">
 					<TabsList className="bg-blue-500 text-white p-1 rounded-md ">
 						<TabsTrigger value="Bitacora">Ejecuciones</TabsTrigger>
-						<TabsTrigger value="Comentarios">Comentarios</TabsTrigger>
 						<TabsTrigger value="Rondines">Rondines</TabsTrigger>
 						<TabsTrigger value="Incidencias">Incidencias</TabsTrigger>
-						<TabsTrigger value="Fotos">Fotos</TabsTrigger>
-						<TabsTrigger value="Calendario">Calendario</TabsTrigger>
+				
 					</TabsList>
 				</div> 
 			}

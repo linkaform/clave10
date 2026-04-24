@@ -30,7 +30,6 @@ import { AddRondinModal } from "@/components/modals/add-rondin";
 import { useMemo, useState } from "react";
 import { EliminarRondinModal } from "@/components/modals/delete-rondin-modal";
 import { useGetRondinById } from "@/hooks/Rondines/useGetRondinById";
-// import { AreasModal } from "@/components/modals/add-area-rondin";
 import dynamic from "next/dynamic";
 import { usePlayOrPauseRondin } from "@/hooks/Rondines/usePlayOrPauseROndin";
 import { AreasList } from "@/components/areas-list-draggable";
@@ -63,7 +62,12 @@ const DEMO_MAP_DATA = [
 export interface GeoLocation { latitude: number; longitude: number; }
 export interface GeoLocationSearch extends GeoLocation { search_txt: string; }
 export interface ImageData { nombre_area: string; id: string; foto_area: string; }
-export interface MapItem { nombre_area: string; id: string; geolocation_area?: GeoLocation; }
+export interface MapItem {
+  nombre_area: string;
+  geolocation_area?: { latitude: number; longitude: number };
+  id: string;
+  foto_area?: { file_name: string; file_url: string }[];
+}
 export interface FotoArea { file_name: string; file_url: string; name: string; }
 export interface Area {
   rondin_area: string;
@@ -115,7 +119,6 @@ const RondinesTable: React.FC<ListProps> = ({
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
   const [rondinSeleccionado, setRondinSeleccionado] = useState<Recorrido | null>(null);
   const [verRondin, setVerRondin] = useState(false);
-  // const [ setNuevasAreasSeleccionadas] = useState<any[]>([]);
   const { location } = useBoothStore();
   const [selectedIncidencias, setSelectedIncidencias] = useState<string[]>([]);
   const { listIncidenciasRondin } = useIncidenciaRondin("", "");
@@ -257,8 +260,6 @@ const RondinesTable: React.FC<ListProps> = ({
                 <TabsTrigger value="Bitacora">Ejecuciones</TabsTrigger>
                 <TabsTrigger value="Rondines">Rondines</TabsTrigger>
                 <TabsTrigger value="Incidencias">Incidencias</TabsTrigger>
-                <TabsTrigger value="Fotos">Fotos</TabsTrigger>
-                <TabsTrigger value="Calendario">Calendario</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -395,7 +396,6 @@ const RondinesTable: React.FC<ListProps> = ({
 
               return (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-5 mb-4">
-
                   <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
                     <div className="flex items-center gap-3">
                       <button
@@ -450,7 +450,6 @@ const RondinesTable: React.FC<ListProps> = ({
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5" /> Ubicación
@@ -523,16 +522,12 @@ const RondinesTable: React.FC<ListProps> = ({
                         <input type="text" disabled={!isPaused} defaultValue={rondin.descripcion} className={inputClass(isPaused)} />
                       </div>
                     )}
-
                   </div>
                 </div>
               );
             })()}
 
-            {/* ── Áreas + Mapa ── */}
             <div className="flex flex-col md:flex-row gap-4 mb-4">
-
-              {/* Áreas del Rondín */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 w-full md:w-[380px] shrink-0 flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -540,43 +535,24 @@ const RondinesTable: React.FC<ListProps> = ({
                     <p className="text-xs text-gray-400">{rondin.cantidad_de_puntos} puntos</p>
                   </div>
                   <div className="flex gap-2">
-                    {/* <AreasModal
-                      title="Agregar Área" points={areas}
-                      setAreas={setAreas} areas={areas}
-                      setNuevasAreasSeleccionadas={setNuevasAreasSeleccionadas}
-                      rondin={rondinSeleccionado}>
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium transition-colors">
-                        <Plus className="w-3.5 h-3.5" /> Agregar Área
-                      </button>
-                    </AreasModal> */}
-                    <Button
-                      size="sm"
-                      className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs"
-                      onClick={handleGuardar}
-                      disabled={isLoadingEditAreas}>
+                    <Button size="sm" className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs"
+                      onClick={handleGuardar} disabled={isLoadingEditAreas}>
                       {isLoadingEditAreas ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : "Guardar"}
                     </Button>
                   </div>
                 </div>
 
-                {/* Buscador de áreas */}
                 <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-3">
                   <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Buscar punto..."
-                    value={areaSearch}
+                  <input type="text" placeholder="Buscar punto..." value={areaSearch}
                     onChange={(e) => setAreaSearch(e.target.value)}
-                    className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-full"
-                  />
+                    className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-full" />
                 </div>
 
-                {/* Lista de áreas — funcionalidad intacta */}
                 <div className="flex-1 overflow-y-auto">
                   <AreasList rondin={rondin} setAreas={setAreas} areas={filteredAreas} />
                 </div>
 
-                {/* Áreas sin geolocalización */}
                 {areas?.filter((a: any) => !a.geolocalizacion_area_ubicacion?.length).length > 0 && (
                   <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-100">
                     <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
@@ -587,42 +563,33 @@ const RondinesTable: React.FC<ListProps> = ({
                 )}
               </div>
 
-              {/* Mapa — sin cambios */}
               <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ minHeight: "420px", zIndex: 0 }}>
                 <MapView map_data={rondin.map_data} />
               </div>
             </div>
 
-            {/* ── Tabs: Rondines / Incidentes / Fotos ── */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <Tabs defaultValue="rondiness" className="w-full">
                 <TabsList className="w-auto justify-start bg-transparent border-b border-gray-200 rounded-none p-0 mb-4 gap-0">
                   {["rondiness", "incidentes", "fotos"].map((tab) => (
-                    <TabsTrigger
-                      key={tab}
-                      value={tab}
+                    <TabsTrigger key={tab} value={tab}
                       className="bg-transparent rounded-none px-4 pb-2 pt-1 text-sm font-medium text-gray-500 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 shadow-none capitalize">
                       {tab === "rondiness" ? "Rondines" : tab === "incidentes" ? "Incidentes" : "Fotos"}
                     </TabsTrigger>
                   ))}
                 </TabsList>
-
                 <TabsContent value="rondiness">
                   <RondinesBitacoraTable showTabs={false} ubicacion={rondin?.ubicacion} nombre_rondin={rondin?.nombre_del_rondin} />
                 </TabsContent>
-
                 <TabsContent value="incidentes">
-                  <IncidenciasRondinesTable
-                    showTabs={false} data={listIncidenciasRondin}
+                  <IncidenciasRondinesTable showTabs={false} data={listIncidenciasRondin}
                     isLoading={false} setSelectedIncidencias={setSelectedIncidencias}
                     selectedIncidencias={selectedIncidencias}
                     date1={date1} date2={date2} setDate1={setDate1} setDate2={setDate2}
                     dateFilter={dateFilter} setDateFilter={setDateFilter}
                     Filter={Filter} resetTableFilters={resetTableFilters}
-                    openModal={openModal} setOpenModal={setOpenModal}
-                  />
+                    openModal={openModal} setOpenModal={setOpenModal} />
                 </TabsContent>
-
                 <TabsContent value="fotos">
                   <ChecksImagesSection location={location ?? ""} showTabs={false} />
                 </TabsContent>
@@ -640,40 +607,50 @@ const RondinesTable: React.FC<ListProps> = ({
             ) : (
               <>
                 {viewMode === "table" && (
-                  <Table>
-                    <TableHeader className="bg-blue-100 hover:bg-blue-100">
-                      {table.getHeaderGroups().map((headerGroup) => (
-                        <TableRow key={headerGroup.id}>
-                          {headerGroup.headers.map((header) => (
-                            <TableHead key={header.id} className="px-1">
-                              {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                            </TableHead>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableHeader>
-                    <TableBody>
-                      {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row) => (
-                          <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                            {row.getVisibleCells().map((cell) => (
-                              <TableCell key={cell.id} className="p-1 pl-1">
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                              </TableCell>
+                  <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">
+                    <Table className="text-xs">
+                      <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
+                        {table.getHeaderGroups().map((headerGroup) => (
+                          <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
+                            {headerGroup.headers.map((header) => (
+                              <TableHead key={header.id}
+                                className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none ${header.id === "options" ? "w-1" : ""}`}>
+                                {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                              </TableHead>
                             ))}
                           </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={table.getVisibleFlatColumns().length} className="h-24 text-center">
-                            {isLoading
-                              ? <div className="text-xl font-semibold">Cargando registros...</div>
-                              : <div className="text-xl font-semibold">No hay registros disponibles...</div>}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                        ))}
+                      </TableHeader>
+                      <TableBody>
+                        {table.getRowModel().rows?.length ? (
+                          table.getRowModel().rows.map((row) => (
+                            <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}
+                              className="hover:bg-slate-100 transition-colors border-slate-50">
+                              {row.getVisibleCells().map((cell) => (
+                                <TableCell key={cell.id}
+                                  className={`py-2 px-3 border-r border-slate-100 last:border-r-0 ${cell.column.id === "options" ? "w-1" : ""} font-normal`}>
+                                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={table.getVisibleFlatColumns().length} className="h-32 text-center">
+                              {isLoading ? (
+                                <div className="flex flex-col items-center gap-2 text-slate-300">
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
+                                  <span className="text-xs font-normal">Cargando registros...</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-300 font-normal">No se encontraron registros</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
 
                 {viewMode === "photos" && (
@@ -682,13 +659,9 @@ const RondinesTable: React.FC<ListProps> = ({
                       <FiltersPanel filters={externalFilters} onFiltersChange={onExternalFiltersChange} filtersConfig={filtersConfig} />
                     </aside>
                     <div className="flex-1 min-w-0">
-                      <PhotoGridView
-                        isLoading={isLoading}
-                        records={rondinPhotoRecords}
-                        globalSearch={searchTags}
-                        externalFilters={externalFilters}
-                        onExternalFiltersChange={onExternalFiltersChange}
-                      />
+                      <PhotoGridView isLoading={isLoading} records={rondinPhotoRecords}
+                        globalSearch={searchTags} externalFilters={externalFilters}
+                        onExternalFiltersChange={onExternalFiltersChange} />
                     </div>
                   </div>
                 )}
@@ -699,20 +672,15 @@ const RondinesTable: React.FC<ListProps> = ({
                       <FiltersPanel filters={externalFilters} onFiltersChange={onExternalFiltersChange} filtersConfig={filtersConfig} />
                     </aside>
                     <div className="flex-1 min-w-0">
-                      <PhotoListView
-                        isLoading={isLoading}
-                        records={rondinListRecords}
-                        globalSearch={searchTags}
-                        modalType="rondines"
-                        externalFilters={externalFilters}
-                        onExternalFiltersChange={onExternalFiltersChange}
+                      <PhotoListView isLoading={isLoading} records={rondinListRecords}
+                        globalSearch={searchTags} modalType="rondines"
+                        externalFilters={externalFilters} onExternalFiltersChange={onExternalFiltersChange}
                         getMapData={(record) => {
                           const original = filteredData.find(
                             (item: any) => item._id === record.id || item.folio === record.folio
                           );
                           return original?.map_data?.length ? original.map_data : DEMO_MAP_DATA;
-                        }}
-                      />
+                        }} />
                     </div>
                   </div>
                 )}

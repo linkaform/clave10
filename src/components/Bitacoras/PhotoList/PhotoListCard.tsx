@@ -7,14 +7,9 @@ import { cn } from "@/lib/utils";
 import { ListCardProps } from "@/types/bitacoras";
 import { Checkbox } from "@/components/ui/checkbox";
 import dynamic from "next/dynamic";
+import { MapItem } from "@/components/table/rondines/table";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
-
-interface MapItem {
-  nombre_area: string;
-  geolocation_area?: { latitude: number; longitude: number };
-  id: string;
-}
 
 export function PhotoListCard({
   titleCard,

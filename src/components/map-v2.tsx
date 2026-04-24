@@ -17,6 +17,7 @@ import "../app/map.css";
 import osm from "@/app/map-config";
 import useAuthStore from "@/store/useAuthStore";
 import { Map } from "leaflet";
+import { MapItem } from "./table/rondines/table";
 
 interface RecordData {
   id: number;
@@ -29,13 +30,9 @@ interface RecordData {
   [key: string]: any;
 }
 
-interface MapItem {
-  nombre_area: string;
-  geolocation_area?: { latitude: number; longitude: number };
-  id: string;
-}
 
-type Punto = { lat: number; lng: number; nombre?: string };
+
+type Punto = { lat: number; lng: number; nombre?: string; foto?: string };
 type MapaRutasProps = { map_data: MapItem[] };
 
 const overlap = (rect1: DOMRect, rect2: DOMRect): boolean =>
@@ -112,6 +109,7 @@ const MapView = ({ map_data }: MapaRutasProps) => {
         nombre: item.nombre_area,
         lat: item.geolocation_area!.latitude,
         lng: item.geolocation_area!.longitude,
+        foto: item.foto_area?.[0]?.file_url || "",
       })),
     [map_data]
   );
@@ -140,6 +138,7 @@ const MapView = ({ map_data }: MapaRutasProps) => {
     user_name: "",
     duration: "",
     geolocation: [p.lat, p.lng],
+    foto: p.foto || "",
   }));
 
   const setZoom = (map: any) => {
@@ -148,11 +147,28 @@ const MapView = ({ map_data }: MapaRutasProps) => {
     if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
   };
 
-  const myIcon = L.icon({
-    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
-    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
-  });
+  const getIcon = (foto?: string) => {
+    if (foto) {
+      return L.divIcon({
+        className: "",
+        html: `<div style="
+          width:44px;height:44px;border-radius:10px;overflow:hidden;
+          border:2.5px solid #3b82f6;box-shadow:0 2px 8px rgba(0,0,0,0.25);
+          background:#e2e8f0;
+        ">
+          <img src="${foto}" style="width:100%;height:100%;object-fit:cover;" />
+        </div>`,
+        iconSize: [44, 44],
+        iconAnchor: [22, 44],
+        popupAnchor: [0, -44],
+      });
+    }
+    return L.icon({
+      iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+      shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+      iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
+    });
+  };
 
   const linePositions: [number, number][] = puntos.map(p => [p.lat, p.lng]);
 
@@ -178,7 +194,7 @@ const MapView = ({ map_data }: MapaRutasProps) => {
         <Polyline positions={linePositions} color="green" />
         <MyComponent prefix={instanceId} />
         {records.map((obj) => (
-          <Marker key={`${instanceId}_${obj.id}`} position={obj.geolocation!} icon={myIcon}>
+          <Marker key={`${instanceId}_${obj.id}`} position={obj.geolocation!} icon={getIcon(obj.foto)}>
             <Popup>
               <div>{obj.form_name} — {obj.folio}</div>
             </Popup>
