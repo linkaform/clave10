@@ -13,9 +13,9 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import {
-  CalendarDays, Eraser, LayoutGrid, LayoutList,
-  Loader2, MoveLeft, Pause, Play, Plus, Search, Sheet, Trash,
+  Loader2, MoveLeft, Pause, Play, Search, Trash,
   MapPin, Clock, RefreshCw, User, AlertCircle,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,9 +23,6 @@ import {
 } from "@/components/ui/table";
 import { getRondinesColumns, Recorrido } from "./rondines-columns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { catalogoFechas } from "@/lib/utils";
-import DateTime from "@/components/dateTime";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AddRondinModal } from "@/components/modals/add-rondin";
 import { useMemo, useState } from "react";
 import { EliminarRondinModal } from "@/components/modals/delete-rondin-modal";
@@ -43,7 +40,6 @@ import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
-import { TagSearchInput } from "@/components/tag-search-input";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { useRondinesFilters, applyRondinesFilters } from "@/hooks/bitacora/useRondinesFilters";
@@ -104,13 +100,23 @@ interface ListProps {
   Filter: () => void;
   setActiveTab: React.Dispatch<React.SetStateAction<string>>;
   activeTab: string;
+  viewMode?: "table" | "photos" | "list";
+  searchTags?: string[];
+  externalFilters?: any;
+  onExternalFiltersChange?: (filters: any) => void;
+  filtersConfig?: any[];
 }
 
 const RondinesTable: React.FC<ListProps> = ({
   data, isLoading,
   setDate1, setDate2, date1, date2,
   dateFilter, setDateFilter, Filter, resetTableFilters,
-  setActiveTab, activeTab,
+  setActiveTab,
+  viewMode: viewModeProp,
+  searchTags: searchTagsProp,
+  externalFilters: externalFiltersProp,
+  onExternalFiltersChange: onExternalFiltersChangeProp,
+  filtersConfig: filtersConfigProp,
 }) => {
   const { playOrPauseRondinMutation, isLoading: isLoadingPlayOrPause } = usePlayOrPauseRondin();
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -123,7 +129,9 @@ const RondinesTable: React.FC<ListProps> = ({
   const [selectedIncidencias, setSelectedIncidencias] = useState<string[]>([]);
   const { listIncidenciasRondin } = useIncidenciaRondin("", "");
   const [openModal, setOpenModal] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [viewModeLocal] = useState<ViewMode>("table");
+  const viewMode = viewModeProp ?? viewModeLocal;
+  // const setViewMode = (v: ViewMode) => setViewModeLocal(v);
   const [areaSearch, setAreaSearch] = useState("");
   const [tipoAsignado, setTipoAsignado] = useState<"guardia" | "persona">("persona");
   const [ubicacionesLS, setUbicacionesLS] = useState<string[]>([]);
@@ -138,15 +146,19 @@ const RondinesTable: React.FC<ListProps> = ({
   }, []);
 
   const {
-    externalFilters,
-    onExternalFiltersChange,
+    externalFilters: externalFiltersLocal,
+    onExternalFiltersChange: onExternalFiltersChangeLocal,
     activeFiltersCount,
-    filtersConfig,
-    searchTags,
-    setSearchTags,
+    filtersConfig: filtersConfigLocal,
+    searchTags: searchTagsLocal,
     isSidebarOpen,
     setIsSidebarOpen,
   } = useRondinesFilters();
+
+  const externalFilters = externalFiltersProp ?? externalFiltersLocal;
+  const onExternalFiltersChange = onExternalFiltersChangeProp ?? onExternalFiltersChangeLocal;
+  const filtersConfig = filtersConfigProp ?? filtersConfigLocal;
+  const searchTags = searchTagsProp ?? searchTagsLocal;
 
   const { data: rondin, isLoadingRondin } = useGetRondinById(
     rondinSeleccionado ? rondinSeleccionado._id : ""
@@ -168,6 +180,14 @@ const RondinesTable: React.FC<ListProps> = ({
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
   const [globalFilter, setGlobalFilter] = React.useState("");
 
+  React.useEffect(() => {
+    if (searchTags && searchTags.length > 0) {
+      setGlobalFilter(searchTags.join(" "));
+    } else {
+      setGlobalFilter("");
+    }
+  }, [searchTags]);
+
   const columns = useMemo(() => getRondinesColumns(handleEliminar, handleVerRondin), [handleVerRondin]);
   const memoizedData = useMemo(() => data || [], [data]);
 
@@ -184,6 +204,15 @@ const RondinesTable: React.FC<ListProps> = ({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
+    globalFilterFn: (row, _columnId, filterValue: string) => {
+      if (!filterValue) return true;
+      const tags = filterValue.toLowerCase().split(" ").filter(Boolean);
+      const allValues = row
+        .getAllCells()
+        .map((cell) => String(cell.getValue() || "").toLowerCase())
+        .join(" ");
+      return tags.some((tag) => allValues.includes(tag));
+    },
     state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
   });
 
@@ -241,7 +270,7 @@ const RondinesTable: React.FC<ListProps> = ({
   return (
     <div className="w-full">
 
-      {viewMode === "table" && !verRondin && activeTab === "Rondines" && (
+      {viewMode === "table" && !verRondin && (
         <FloatingFiltersDrawer
           isOpen={isSidebarOpen}
           onOpenChange={setIsSidebarOpen}
@@ -252,124 +281,16 @@ const RondinesTable: React.FC<ListProps> = ({
         />
       )}
 
-      <div className="flex justify-between items-center my-2">
-        <div className="flex w-full justify-start gap-4">
-          <div className="flex justify-center items-center">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="bg-blue-500 text-white p-1 rounded-md">
-                <TabsTrigger value="Bitacora">Ejecuciones</TabsTrigger>
-                <TabsTrigger value="Rondines">Rondines</TabsTrigger>
-                <TabsTrigger value="Incidencias">Incidencias</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+      {modalEliminarAbierto && rondinSeleccionado && (
+        <EliminarRondinModal
+          title="Eliminar Rondin"
+          folio={rondinSeleccionado.folio}
+          modalEliminarAbierto={modalEliminarAbierto}
+          setModalEliminarAbierto={setModalEliminarAbierto}
+        />
+      )}
 
-          {activeTab !== "Bitacora" && (
-            viewMode === "table" ? (
-              <div className="flex w-full max-w-sm items-center space-x-2">
-                <input
-                  type="text"
-                  placeholder="Buscar"
-                  value={globalFilter || ""}
-                  onChange={(e) => setGlobalFilter(e.target.value)}
-                  className="border border-gray-300 rounded-md p-2 placeholder-gray-600 w-full"
-                />
-                <Search />
-              </div>
-            ) : (
-              <div className="flex p-1 rounded-lg items-center border border-slate-200 w-[240px] overflow-hidden focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 bg-white transition-all">
-                <Search className="ml-2 mr-1 flex-shrink-0 text-slate-400" size={14} />
-                <TagSearchInput
-                  tags={searchTags}
-                  onTagsChange={setSearchTags}
-                  placeholder="Buscar..."
-                  className="w-full bg-transparent border-none shadow-none focus-visible:ring-0 h-8 text-sm min-w-0 px-1"
-                />
-              </div>
-            )
-          )}
-        </div>
-
-        {activeTab === "Bitacora" && (
-          <div className="text-2xl font-bold">Octubre</div>
-        )}
-
-        <div className="flex w-full justify-end gap-3 items-center">
-          {dateFilter === "range" && (
-            <div className="flex items-center gap-2 mr-14">
-              <DateTime date={date1} setDate={setDate1} disablePastDates={false} />
-              <DateTime date={date2} setDate={setDate2} disablePastDates={false} />
-              <Button type="button" className="bg-blue-500 hover:bg-blue-600" onClick={Filter}>Filtrar</Button>
-              <Button type="button" className="bg-blue-500 hover:bg-blue-600" onClick={resetTableFilters}><Eraser /></Button>
-            </div>
-          )}
-
-          <div className="flex items-center w-48 gap-2">
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecciona un filtro de fecha" />
-                <CalendarDays />
-              </SelectTrigger>
-              <SelectContent>
-                {catalogoFechas().map((option: any) => (
-                  <SelectItem key={option.key} value={option.key}>{option.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-wrap gap-2 items-center">
-            {activeTab === "Rondines" && !verRondin && (
-              <div className="flex items-center bg-slate-100/50 h-9 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
-                <Button variant="ghost" size="icon"
-                  className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "photos" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-                  onClick={() => setViewMode("photos")}>
-                  <LayoutGrid size={16} />
-                </Button>
-                <Button variant="ghost" size="icon"
-                  className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-                  onClick={() => setViewMode("table")}>
-                  <Sheet size={16} />
-                </Button>
-                <Button variant="ghost" size="icon"
-                  className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-                  onClick={() => setViewMode("list")}>
-                  <LayoutList size={16} />
-                </Button>
-              </div>
-            )}
-
-            {activeTab !== "Bitacora" && (
-              <>
-                <AddRondinModal title="Crear Rondín" mode="create" folio={rondinSeleccionado?.folio}>
-                  <Button className="w-full md:w-auto bg-blue-500 hover:bg-blue-600">
-                    <Plus /> Crear Rondín
-                  </Button>
-                </AddRondinModal>
-                {rondinSeleccionado && (
-                  <AddRondinModal title="Editar Rondín" mode="edit"
-                    rondinData={rondinSeleccionado}
-                    rondinId={rondinSeleccionado._id}
-                    folio={rondinSeleccionado?.folio}>
-                    <div />
-                  </AddRondinModal>
-                )}
-              </>
-            )}
-
-            {modalEliminarAbierto && rondinSeleccionado && (
-              <EliminarRondinModal
-                title="Eliminar Rondin"
-                folio={rondinSeleccionado.folio}
-                modalEliminarAbierto={modalEliminarAbierto}
-                setModalEliminarAbierto={setModalEliminarAbierto}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-
-      <>
+            <>
         {rondin && verRondin ? (
           <div className="flex flex-col h-full bg-gray-50 min-h-screen -mx-4 px-4 pt-2">
 

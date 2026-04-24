@@ -16,7 +16,7 @@ import {
   useReactTable,
   Table as TanstackTable
 } from "@tanstack/react-table";
-import { CalendarDays, Eraser, Eye, FileX2, Search } from "lucide-react";
+import { CalendarDays, Eraser, Eye, FileX2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -34,7 +34,6 @@ import { useMemo, useState } from "react";
 import { EliminarIncidenciaModal } from "@/components/modals/delete-incidencia-modal";
 import { catalogoFechas, convertirDateToISO, downloadCSV } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DateTime from "@/components/dateTime";
 import { EditarIncidenciaModal } from "@/components/modals/editar-incidencia";
 import ViewImage from "@/components/modals/view-image";
@@ -72,7 +71,7 @@ const incidenciasColumnsCSV = [
   { label: 'Reporta', key: 'reporta_incidencia' },
 ];
 
-const IncidenciasRondinesTable:React.FC<ListProps> = ({ showTabs, data, isLoading, openModal, setOpenModal,setSelectedIncidencias,selectedIncidencias,
+const IncidenciasRondinesTable:React.FC<ListProps> = ({ data, isLoading, openModal, setOpenModal,setSelectedIncidencias,selectedIncidencias,
 	setDate1, setDate2, date1, date2, dateFilter, setDateFilter,Filter, resetTableFilters
  })=> {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -262,7 +261,7 @@ const IncidenciasRondinesTable:React.FC<ListProps> = ({ showTabs, data, isLoadin
   return (
     <div className="w-full">
 		<div className="flex justify-between items-center my-2 ">
-			<div className="flex w-1/2 justify-start gap-4 ">
+			{/* <div className="flex w-1/2 justify-start gap-4 ">
 			{showTabs&&
                 <div className="flex justify-center items-center">
 					<TabsList className="bg-blue-500 text-white p-1 rounded-md ">
@@ -284,7 +283,7 @@ const IncidenciasRondinesTable:React.FC<ListProps> = ({ showTabs, data, isLoadin
 					<Search />
 				</div>
 			</div>
-			
+			 */}
 			<div className="flex w-full justify-end gap-3">
 				{dateFilter == "range" ?
 				<div className="flex items-center gap-2 mr-14">

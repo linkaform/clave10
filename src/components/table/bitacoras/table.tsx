@@ -45,14 +45,12 @@ interface ListProps {
   handleSalida: (bitacora: Bitacora_record) => void;
   handleRegresarGafete: (bitacora: Bitacora_record) => void;
   handleAgregarBadge: (bitacora: Bitacora_record) => void;
-  // Filtros externos de la API
   dateFilter?: string;
   setDateFilter?: (val: string) => void;
   date1?: Date | "";
   setDate1?: (val: Date | "") => void;
   date2?: Date | "";
   setDate2?: (val: Date | "") => void;
-  // Configuración de filtros para el panel global
   externalDynamicFilters?: Record<string, any>;
   onExternalDynamicFiltersChange: (filters: Record<string, any>) => void;
   searchTags?: string[];

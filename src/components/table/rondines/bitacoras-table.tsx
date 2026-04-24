@@ -15,11 +15,9 @@ import {
   
 } from "lucide-react";
 
-import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGetListBitacoraRondines } from "@/hooks/Rondines/useGetListBitacora";
 import { CarruselDetalleArea } from "@/components/carrousel-detalle-area";
 import { CarruselDetalleRondin } from "@/components/carrousel-detalle-rondin";
-import { TagSearchInput } from "@/components/tag-search-input";
 
 const ESTADOS_CONFIG: Record<string, { icon: React.ElementType; className: string }> = {
 	finalizado: { icon: CircleCheck, className: "text-white bg-green-600 rounded-xl" },
@@ -79,7 +77,7 @@ type Rondin = {
 	categorias: Categoria[];
 };
 
-export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { showTabs: boolean, ubicacion:any, nombre_rondin?: string }) => {
+export const RondinesBitacoraTable = ({  ubicacion, nombre_rondin}: { showTabs: boolean, ubicacion:any, nombre_rondin?: string }) => {
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const [total, setTotal] = useState(0)
 	const [totalAreas, setTotalAreas] = useState(0)
@@ -110,7 +108,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 	const abrirCarrusel = () => setCarruselOpen(true);
 	const abrirCarruselRondin = () => setCarruselOpenRondin(true);
 
-	const [tags, setTags] = useState<string[]>([]);
+	const [tags] = useState<string[]>([]);
 	// const [inputValue, setInputValue] = useState("");
 	const [selectedArea, setSelectedArea] = useState<Area | null>(null);
 
@@ -308,15 +306,13 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 	return (
 		<div >
 			<div className="flex justify-between items-center my-2 ">
-				<div className="flex w-full justify-start gap-4 ">
+				{/* <div className="flex w-full justify-start gap-4 ">
 					{showTabs &&
 						<div className="flex justify-center items-center">
 							<TabsList className="bg-blue-500 text-white p-1 rounded-md ">
 								<TabsTrigger value="Bitacora">Ejecuciones</TabsTrigger>
 								<TabsTrigger value="Rondines">Rondines</TabsTrigger>
 								<TabsTrigger value="Incidencias">Incidencias</TabsTrigger>
-								{/* <TabsTrigger value="Fotos">Fotos</TabsTrigger>
-								<TabsTrigger value="Calendario">Calendario</TabsTrigger> */}
 							</TabsList>
 						</div>
 					}
@@ -327,7 +323,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 						placeholder="Buscar área o categoría..."
 						/>
 					</div>
-				</div>
+				</div> */}
 				<div className="flex items-center gap-3 text-2xl font-bold capitalize select-none">
 					<button
 						onClick={handlePrevMonth}
