@@ -28,7 +28,7 @@ const RondinesContent = () => {
   const [date2, setDate2] = useState<Date | "">("");
   const [dates, setDates] = useState<string[]>([]);
   const { listRondines } = useGetListRondines(true, dates[0], dates[1], 100, 0);
-  const [subTab, setSubTab] = useState("rondines");
+  const [subTab, setSubTab] = useState("recorridos");
   const [searchQuery, setSearchQuery] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"table" | "photos" | "list">("table");
 
@@ -109,20 +109,21 @@ const RondinesContent = () => {
 
               <TabsOuter value={subTab} onValueChange={setSubTab} className="w-auto">
                 <TabsList className="bg-slate-100/50 h-10 p-0 border border-slate-300 divide-x divide-slate-300 rounded-lg overflow-hidden shadow-sm">
-                  <TabsTrigger
-                    value="rondines"
+                <TabsTrigger
+                    value="recorridos"
                     className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none shadow-none text-slate-600 hover:bg-slate-200/50">
-                    Rondines
+                    Recorridos
                   </TabsTrigger>
                   <TabsTrigger
                     value="check-ubicaciones"
                     className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none shadow-none text-slate-600 hover:bg-slate-200/50">
                     Check Ubicaciones
                   </TabsTrigger>
+            
                   <TabsTrigger
-                    value="recorridos"
+                    value="rondines"
                     className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none shadow-none text-slate-600 hover:bg-slate-200/50">
-                    Recorridos
+                    Rondines
                   </TabsTrigger>
                 </TabsList>
               </TabsOuter>
@@ -168,7 +169,7 @@ const RondinesContent = () => {
           <div>
             <Tabs value={subTab} onValueChange={setSubTab} className="w-full">
 
-              <TabsContent value="rondines">
+              <TabsContent value="recorridos">
                 <RondinesTable
                   data={listRondines}
                   isLoading={false}
@@ -200,7 +201,7 @@ const RondinesContent = () => {
                 />
               </TabsContent>
 
-              <TabsContent value="recorridos">
+              <TabsContent value="rondines">
                 <div className="p-2">
                   <RondinesBitacoraTable showTabs={true} ubicacion={ubicacionSeleccionada} />
                 </div>
