@@ -145,18 +145,18 @@ const RondinesContent = () => {
                   <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
                     <Button variant="ghost" size="icon"
                       className={btnClass("photos", photosDisabled)}
-                      disabled={photosDisabled}
+                      // disabled={photosDisabled}
                       onClick={() => setViewMode("photos")}>
                       <LayoutGrid size={18} />
                     </Button>
                     <Button variant="ghost" size="icon"
-                      className={btnClass("list", listDisabled)}
-                      disabled={listDisabled}
+                      // className={btnClass("list", listDisabled)}
+                      // disabled={listDisabled}
                       onClick={() => setViewMode("list")}>
                       <LayoutList size={18} />
                     </Button>
                     <Button variant="ghost" size="icon"
-                      className={btnClass("table", false)}
+                      // className={btnClass("table", false)}
                       onClick={() => setViewMode("table")}>
                       <Sheet size={18} />
                     </Button>
