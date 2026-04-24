@@ -69,11 +69,11 @@ export function mapRondinList(raw: any, base: any) {
       },
     ],
     modalDetailsList: [
-      { icon: null, label: "Folio", value: raw?.folio },
+      // { icon: null, label: "Folio", value: raw?.folio },
       { icon: null, label: "Ubicación", value: raw?.ubicacion },
       { icon: null, label: "Estatus", value: raw?.estatus_rondin },
       { icon: null, label: "Tipo", value: raw?.tipo_rondin?.toUpperCase() || "QR" },
-      { icon: null, label: "Recurrencia", value: raw?.recurrencia },
+      // { icon: null, label: "Recurrencia", value: raw?.recurrencia },
       { icon: null, label: "Duración esperada", value: raw?.duracion_esperada_rondin },
       { icon: null, label: "Fecha de Inicio", value: raw?.fecha_inicio_rondin },
       { icon: null, label: "Fecha Fin", value: raw?.fecha_final_rondin },

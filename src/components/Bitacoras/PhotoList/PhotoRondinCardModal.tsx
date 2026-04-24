@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Search, ArrowLeft, MapPin, Tag, Camera } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, ArrowLeft, MapPin, Tag, Camera, AlertTriangle, Calendar, FileText, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { MapItem } from "@/components/table/rondines/table";
@@ -31,13 +31,88 @@ const DEMO_MAP_DATA: MapItem[] = [
   { id: "4", nombre_area: "Perímetro Norte",      geolocation_area: { latitude: 25.6880, longitude: -100.3140 }, foto_area: [{file_name:"mountain", file_url:"/mountain.svg"}] },
   { id: "5", nombre_area: "Oficinas Planta Baja", geolocation_area: { latitude: 25.6863, longitude: -100.3168 }, foto_area: [{file_name:"mountain", file_url:"/mountain.svg"}] },
 ];
+
+// ← DEMO incidencias con estructura real del servicio
 const DEMO_INCIDENCIAS = [
-  { id: "1", title: "Seguridad - Puerta sin cerrar", time: "22:30:15", img: "/mountain.svg" },
-  { id: "2", title: "Mantenimiento - Iluminación",   time: "23:15:42", img: "/mountain.svg" },
-  { id: "3", title: "Seguridad - Objeto sospechoso", time: "23:45:10", img: "/mountain.svg" },
+  {
+    id: "69b981a955603192bf787c77",
+    folio: "65197885-10",
+    nombre_del_recorrido: "Rondin Martes Monterrey",
+    categoria: "Delitos contra la propiedad",
+    subcategoria: "Vandalismo",
+    incidente: "Daño a mobiliario o infraestructura",
+    area_incidente: "Antenas",
+    ubicacion_incidente: "Planta Monterrey",
+    fecha_hora_incidente: "2026-03-17 17:30:03",
+    accion_tomada: "Prueba",
+    comentarios: "Esto es una prueba",
+    evidencias: [{ file_name: "041d0420.jpeg", file_url: "https://f001.backblazeb2.com/file/app-linkaform/public-client-126/116852/660459dde2b2d414bce9cf8f/69b98fdbc7741fa1c232ddc4.jpeg" }],
+    documentos: [],
+  },
+  {
+    id: "69b87d865cba9e11a40c3df5",
+    folio: "65185323-10",
+    nombre_del_recorrido: "Recorrido cada 4 horas",
+    categoria: "Delitos contra la propiedad",
+    subcategoria: "Robo",
+    incidente: "Robo de cámara",
+    area_incidente: null,
+    ubicacion_incidente: "Planta Monterrey",
+    fecha_hora_incidente: "",
+    accion_tomada: "",
+    comentarios: "Prieba",
+    evidencias: [{ file_name: "c72a80f6.jpeg", file_url: "https://f001.backblazeb2.com/file/app-linkaform/public-client-126/116852/660459dde2b2d414bce9cf8f/69bb1b917f54b4cea088ce23.jpeg" }],
+    documentos: [],
+  },
+  {
+    id: "69b86869e8c784e6dd0c3e10",
+    folio: "65184378-10",
+    nombre_del_recorrido: "Rondin Martes Monterrey",
+    categoria: "Delitos contra la propiedad",
+    subcategoria: "Vandalismo",
+    incidente: "Graffiti",
+    area_incidente: "Antenas",
+    ubicacion_incidente: "Planta Monterrey",
+    fecha_hora_incidente: "2026-03-19 22:17:29",
+    accion_tomada: "Prueba",
+    comentarios: "Prueba",
+    evidencias: [{ file_name: "030f0855.jpeg", file_url: "https://f001.backblazeb2.com/file/app-linkaform/public-client-126/116852/660459dde2b2d414bce9cf8f/69bc76331fb7cd085b5c9641.jpeg" }],
+    documentos: [],
+  },
+  {
+    id: "69b3145accaa2795d6d9db31",
+    folio: "65045595-10",
+    nombre_del_recorrido: "Rondin Martes Monterrey",
+    categoria: "Delitos contra la propiedad",
+    subcategoria: "Vandalismo",
+    incidente: "Daño a cristales / cristalazo",
+    area_incidente: "Antenas",
+    ubicacion_incidente: "Planta Monterrey",
+    fecha_hora_incidente: "2026-03-12 19:32:51",
+    accion_tomada: "Prieba",
+    comentarios: "Vidrio roto",
+    evidencias: [{ file_name: "8afc561f.jpeg", file_url: "https://f001.backblazeb2.com/file/app-linkaform/public-client-126/116852/660459dde2b2d414bce9cf8f/69b3151711189954e1fb5623.jpeg" }],
+    documentos: [],
+  },
+  {
+    id: "69b0553934c796cf93c68f2f",
+    folio: "64997910-10",
+    nombre_del_recorrido: "Rondin Martes Monterrey",
+    categoria: "Fraude y extorsión",
+    subcategoria: "General",
+    incidente: "Ingreso con credenciales falsas",
+    area_incidente: null,
+    ubicacion_incidente: "Planta Monterrey",
+    fecha_hora_incidente: "",
+    accion_tomada: "",
+    comentarios: "Prueba",
+    evidencias: [{ file_name: "f0b7454e.jpeg", file_url: "https://f001.backblazeb2.com/file/app-linkaform/public-client-126/116852/660459dde2b2d414bce9cf8f/69b06e720c9147c4661bb4c1.jpeg" }],
+    documentos: [],
+  },
 ];
+
 const DEMO_COMENTARIOS = [
-  { id: "1", title: "Todo en orden al inicio",       time: "22:05:00", img: "/mountain.svg" },
+  { id: "1", title: "Todo en orden al inicio",           time: "22:05:00", img: "/mountain.svg" },
   { id: "2", title: "Revisión completada sin novedades", time: "23:50:00", img: "/mountain.svg" },
 ];
 
@@ -61,7 +136,36 @@ function ListItem({ label, value }: ListItemProps) {
   );
 }
 
-function IncidenciaItem({ title, time, img }: { title: string; time: string; img: string }) {
+// ← Item de incidencia en lista (rediseñado para usar estructura real)
+function IncidenciaListItem({ item, onClick }: { item: any; onClick: () => void }) {
+  const img = item.evidencias?.[0]?.file_url || "/placeholder.svg";
+  return (
+    <div
+      onClick={onClick}
+      className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50 rounded-lg px-1 -mx-1 transition-colors"
+    >
+      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-slate-100 relative">
+        <Image src={img} alt={item.incidente} fill className="object-cover" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-slate-800 leading-tight truncate">{item.incidente}</p>
+        <p className="text-xs text-slate-400 mt-0.5">{item.area_incidente || item.ubicacion_incidente || "—"}</p>
+      </div>
+      <div className="shrink-0">
+        <span className={cn(
+          "text-[9px] font-bold uppercase px-2 py-0.5 rounded-full",
+          item.subcategoria === "Robo" ? "bg-red-100 text-red-600" :
+          item.subcategoria === "Vandalismo" ? "bg-orange-100 text-orange-600" :
+          "bg-slate-100 text-slate-500"
+        )}>
+          {item.subcategoria}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ComentarioItem({ title, time, img }: { title: string; time: string; img: string }) {
   return (
     <div className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
       <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-slate-100 relative">
@@ -75,7 +179,131 @@ function IncidenciaItem({ title, time, img }: { title: string; time: string; img
   );
 }
 
-// ← NUEVO: Panel de detalle de un área
+// ← NUEVO: Panel detalle de incidencia
+function IncidenciaDetailPanel({ item, onBack }: { item: any; onBack: () => void }) {
+  const evidencias: { file_name: string; file_url: string }[] = item.evidencias || [];
+
+  return (
+    <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background animate-in fade-in slide-in-from-right-4 duration-200">
+      {/* Header con back */}
+      <div className="px-6 pt-5 pb-4 shrink-0 border-b border-slate-100 flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="h-8 w-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors shrink-0"
+        >
+          <ArrowLeft className="w-4 h-4 text-slate-600" />
+        </button>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Detalle de incidencia</p>
+          <h3 className="text-base font-extrabold text-blue-600 leading-tight truncate">{item.incidente}</h3>
+        </div>
+        <span className={cn(
+          "text-[9px] font-bold uppercase px-2.5 py-1 rounded-full shrink-0",
+          item.subcategoria === "Robo" ? "bg-red-100 text-red-600" :
+          item.subcategoria === "Vandalismo" ? "bg-orange-100 text-orange-600" :
+          "bg-slate-100 text-slate-500"
+        )}>
+          {item.subcategoria}
+        </span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-4 no-scrollbar space-y-5">
+
+        {/* Badges de categoría y folio */}
+        <div className="flex flex-wrap gap-2">
+          <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-50 text-blue-600">
+            <span className="text-[10px] font-bold uppercase tracking-wider">#{item.folio}</span>
+          </div>
+          <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
+            <span className="text-[10px] font-bold uppercase tracking-wider">{item.categoria}</span>
+          </div>
+        </div>
+
+        {/* Info principal */}
+        <div className="grid grid-cols-2 gap-2">
+          {item.area_incidente && (
+            <div className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-100">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Área</p>
+              <p className="text-xs font-semibold text-slate-700">{item.area_incidente}</p>
+            </div>
+          )}
+          {item.ubicacion_incidente && (
+            <div className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-100">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Ubicación</p>
+              <p className="text-xs font-semibold text-slate-700">{item.ubicacion_incidente}</p>
+            </div>
+          )}
+          {item.fecha_hora_incidente && (
+            <div className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-100 col-span-2">
+              <div className="flex items-center gap-1 mb-0.5">
+                <Calendar className="w-3 h-3 text-slate-400" />
+                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Fecha y hora</p>
+              </div>
+              <p className="text-xs font-semibold text-slate-700">{item.fecha_hora_incidente}</p>
+            </div>
+          )}
+          {item.nombre_del_recorrido && (
+            <div className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-100 col-span-2">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Recorrido</p>
+              <p className="text-xs font-semibold text-slate-700">{item.nombre_del_recorrido}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Comentarios */}
+        {item.comentarios && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <FileText className="w-3.5 h-3.5 text-slate-400" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Comentarios</p>
+            </div>
+            <div className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
+              <p className="text-sm text-slate-600 leading-relaxed">{item.comentarios}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Acción tomada */}
+        {item.accion_tomada && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Wrench className="w-3.5 h-3.5 text-slate-400" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Acción tomada</p>
+            </div>
+            <div className="bg-green-50 border border-green-100 rounded-xl px-3 py-2.5">
+              <p className="text-sm text-green-700 leading-relaxed">{item.accion_tomada}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Evidencias */}
+        {evidencias.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Camera className="w-3.5 h-3.5 text-slate-400" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Evidencias ({evidencias.length})
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {evidencias.map((ev, i) => (
+                <div key={i} className="rounded-xl overflow-hidden border border-slate-100 bg-slate-50 aspect-video relative">
+                  <Image src={ev.file_url} alt={ev.file_name} fill className="object-cover" />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5">
+                    <p className="text-white text-[9px] truncate">{ev.file_name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+// Panel de detalle de área (sin cambios)
 function AreaDetailPanel({ area, onBack }: { area: any; onBack: () => void }) {
   const geo = area.raw?.geolocalizacion_area_ubicacion?.[0];
   const tagIds: string[] = area.raw?.area_tag_id || [];
@@ -83,7 +311,6 @@ function AreaDetailPanel({ area, onBack }: { area: any; onBack: () => void }) {
 
   return (
     <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background animate-in fade-in slide-in-from-right-4 duration-200">
-      {/* Header con back */}
       <div className="px-6 pt-5 pb-4 shrink-0 border-b border-slate-100 flex items-center gap-3">
         <button
           onClick={onBack}
@@ -98,8 +325,6 @@ function AreaDetailPanel({ area, onBack }: { area: any; onBack: () => void }) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-4 no-scrollbar space-y-5">
-
-        {/* Geolocalización */}
         <div>
           <div className="flex items-center gap-1.5 mb-2">
             <MapPin className="w-3.5 h-3.5 text-slate-400" />
@@ -121,7 +346,6 @@ function AreaDetailPanel({ area, onBack }: { area: any; onBack: () => void }) {
           )}
         </div>
 
-        {/* Tag IDs / NFC */}
         {tagIds.length > 0 && (
           <div>
             <div className="flex items-center gap-1.5 mb-2">
@@ -140,24 +364,16 @@ function AreaDetailPanel({ area, onBack }: { area: any; onBack: () => void }) {
           </div>
         )}
 
-        {/* Fotos del área */}
         {fotos.length > 0 && (
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Camera className="w-3.5 h-3.5 text-slate-400" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                Fotos ({fotos.length})
-              </p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Fotos ({fotos.length})</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {fotos.map((foto, i) => (
                 <div key={i} className="rounded-xl overflow-hidden border border-slate-100 bg-slate-50 aspect-video relative">
-                  <Image
-                    src={foto.file_url}
-                    alt={foto.file_name}
-                    fill
-                    className="object-cover"
-                  />
+                  <Image src={foto.file_url} alt={foto.file_name} fill className="object-cover" />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5">
                     <p className="text-white text-[9px] truncate">{foto.file_name}</p>
                   </div>
@@ -167,12 +383,10 @@ function AreaDetailPanel({ area, onBack }: { area: any; onBack: () => void }) {
           </div>
         )}
 
-        {/* Nombre del área */}
         <div className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
           <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1">Nombre del área</p>
           <p className="text-sm font-semibold text-slate-700">{area.nombre}</p>
         </div>
-
       </div>
     </div>
   );
@@ -189,6 +403,7 @@ export function PhotoRondinCardModal({
   const [activeTab, setActiveTab] = useState<"incidencias" | "comentarios">("incidencias");
   const [areaSearch, setAreaSearch] = useState("");
   const [selectedArea, setSelectedArea] = useState<any>(null);
+  const [selectedIncidencia, setSelectedIncidencia] = useState<any>(null); // ← NUEVO
 
   if (!record) return null;
 
@@ -204,17 +419,21 @@ export function PhotoRondinCardModal({
 
   const handleSelectArea = (area: any) => {
     setSelectedArea(area);
+    setSelectedIncidencia(null); // cierra incidencia si estaba abierta
     setSlideIndex(0);
   };
 
-  // ← NUEVO: volver al panel principal
   const handleBack = () => {
     setSelectedArea(null);
+    setSelectedIncidencia(null);
     setSlideIndex(0);
   };
 
   const effectiveMapData = mapData && mapData.length > 0 ? mapData : DEMO_MAP_DATA;
   const realAreas = record?.rawData?.areas || record?.areas || [];
+
+  // Usa incidencias del record si vienen, si no usa demo
+  const incidencias = record?.incidencias?.length > 0 ? record.incidencias : DEMO_INCIDENCIAS;
 
   const filteredAreas = realAreas
     .map((area: any) => ({
@@ -233,8 +452,107 @@ export function PhotoRondinCardModal({
   const progress = Math.round((inspectedAreas / totalAreas) * 100);
   const detailsList = record.modalDetailsList || [];
 
+  const rightPanel = selectedArea
+    ? <AreaDetailPanel area={selectedArea} onBack={handleBack} />
+    : selectedIncidencia
+    ? <IncidenciaDetailPanel item={selectedIncidencia} onBack={() => setSelectedIncidencia(null)} />
+    : (
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background">
+        <div className="px-6 pt-6 pb-4 shrink-0">
+          <div className="flex flex-wrap gap-1.5 justify-end mb-3">
+            {record.folio && (
+              <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#2987F7]">
+                <span className="text-[9px] font-black uppercase tracking-[0.1em]">#{record.folio}</span>
+              </div>
+            )}
+            {record.visit_type && (
+              <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#F3E8FF] text-[#9159F4]">
+                <span className="text-[9px] font-black uppercase tracking-[0.1em]">{record.visit_type}</span>
+              </div>
+            )}
+            {record.status && (
+              <div className={cn("inline-flex items-center px-2 py-0.5 rounded-full",
+                record.status === "Realizado" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600")}>
+                <span className="text-[9px] font-black uppercase tracking-[0.1em]">{record.status}</span>
+              </div>
+            )}
+          </div>
+          {record.description && (
+            <p className="text-sm text-slate-500">{record.description}</p>
+          )}
+        </div>
+
+        <div className="px-6 shrink-0">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-0 border-t border-slate-100 pt-3">
+            {detailsList.map((item: any, index: number) => {
+              const hasValue = Array.isArray(item.value)
+                ? item.value.length > 0
+                : item.value !== null && item.value !== undefined && item.value !== "";
+              if (!hasValue) return null;
+              const isFullWidth = Array.isArray(item.value);
+              return (
+                <div key={index} className={isFullWidth ? "col-span-2" : "col-span-1"}>
+                  <ListItem label={item.label || `Detalle ${index + 1}`} value={item.value} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex flex-col flex-1 min-h-0 px-6 mt-3 overflow-hidden">
+          <div className="flex gap-0 border-b border-slate-200 shrink-0">
+            {(["incidencias", "comentarios"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "px-4 pb-2 pt-1 text-sm font-medium border-b-2 transition-colors capitalize",
+                  activeTab === tab
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                )}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === "incidencias" && (
+                  <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-orange-100 text-orange-600 text-[9px] font-bold">
+                    {incidencias.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 overflow-y-auto py-2 no-scrollbar">
+            {activeTab === "incidencias" && (
+              <div>
+                {incidencias.map((item: any) => (
+                  <IncidenciaListItem
+                    key={item.id}
+                    item={item}
+                    onClick={() => setSelectedIncidencia(item)}
+                  />
+                ))}
+              </div>
+            )}
+            {activeTab === "comentarios" && (
+              <div>
+                {DEMO_COMENTARIOS.map((item) => (
+                  <ComentarioItem key={item.id} {...item} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {children && (
+            <div className="pt-3 border-t border-slate-100 shrink-0">
+              {children}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSlideIndex(0); setAreaSearch(""); setSelectedArea(null); } }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSlideIndex(0); setAreaSearch(""); setSelectedArea(null); setSelectedIncidencia(null); } }}>
       <DialogContent className="p-0 overflow-hidden !max-w-[1400px] w-[98vw] h-[95vh] rounded-3xl shadow-2xl flex flex-col border-none bg-background">
         <DialogTitle className="sr-only">Detalle — {record.title}</DialogTitle>
 
@@ -245,7 +563,6 @@ export function PhotoRondinCardModal({
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
 
-          {/* Lateral de áreas */}
           <div className="w-[240px] shrink-0 border-r border-slate-100 flex flex-col bg-slate-50/60 overflow-hidden">
             <div className="px-4 pt-5 pb-3 shrink-0">
               <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Áreas inspeccionadas</p>
@@ -298,7 +615,6 @@ export function PhotoRondinCardModal({
             </div>
           </div>
 
-          {/* Columna central: foto + mapa */}
           <div className="flex flex-col w-[380px] shrink-0 border-r border-slate-100 overflow-hidden bg-background">
             <div className="relative h-[50%] group overflow-hidden bg-zinc-950 border-b border-slate-200">
               <Image
@@ -309,7 +625,6 @@ export function PhotoRondinCardModal({
                 className="object-contain transition-all duration-500 ease-in-out"
                 priority
               />
-
               {slides[slideIndex].src !== "/placeholder.svg" && (
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3 z-10">
                   <p className="text-white text-xs font-semibold">
@@ -320,7 +635,6 @@ export function PhotoRondinCardModal({
                   </p>
                 </div>
               )}
-
               {slides.length > 1 && (
                 <>
                   <div className="absolute inset-x-3 inset-y-0 flex items-center justify-between z-20 pointer-events-none">
@@ -347,99 +661,12 @@ export function PhotoRondinCardModal({
             </div>
             <div className="flex-1 mb-5 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
               <div className="h-full w-full">
-                <MapView map_data={effectiveMapData} areas={record?.areas || []}/>
+                {/* <MapView map_data={effectiveMapData} areas={record?.areas || []}/> */}
               </div>
             </div>
           </div>
 
-          {/* ← CAMBIO: panel derecho — si hay área seleccionada muestra detalle, si no muestra info + tabs */}
-          {selectedArea ? (
-            <AreaDetailPanel area={selectedArea} onBack={handleBack} />
-          ) : (
-            <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background">
-              <div className="px-6 pt-6 pb-4 shrink-0">
-                <div className="flex flex-wrap gap-1.5 justify-end mb-3">
-                  {record.folio && (
-                    <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#2987F7]">
-                      <span className="text-[9px] font-black uppercase tracking-[0.1em]">#{record.folio}</span>
-                    </div>
-                  )}
-                  {record.visit_type && (
-                    <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#F3E8FF] text-[#9159F4]">
-                      <span className="text-[9px] font-black uppercase tracking-[0.1em]">{record.visit_type}</span>
-                    </div>
-                  )}
-                  {record.status && (
-                    <div className={cn("inline-flex items-center px-2 py-0.5 rounded-full",
-                      record.status === "Realizado" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600")}>
-                      <span className="text-[9px] font-black uppercase tracking-[0.1em]">{record.status}</span>
-                    </div>
-                  )}
-                </div>
-                {record.description && (
-                  <p className="text-sm text-slate-500">{record.description}</p>
-                )}
-              </div>
-
-              <div className="px-6 shrink-0">
-                <div className="grid grid-cols-2 gap-x-6 gap-y-0 border-t border-slate-100 pt-3">
-                  {detailsList.map((item: any, index: number) => {
-                    const hasValue = Array.isArray(item.value)
-                      ? item.value.length > 0
-                      : item.value !== null && item.value !== undefined && item.value !== "";
-                    if (!hasValue) return null;
-                    const isFullWidth = Array.isArray(item.value);
-                    return (
-                      <div key={index} className={isFullWidth ? "col-span-2" : "col-span-1"}>
-                        <ListItem label={item.label || `Detalle ${index + 1}`} value={item.value} />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex flex-col flex-1 min-h-0 px-6 mt-3 overflow-hidden">
-                <div className="flex gap-0 border-b border-slate-200 shrink-0">
-                  {(["incidencias", "comentarios"] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={cn(
-                        "px-4 pb-2 pt-1 text-sm font-medium border-b-2 transition-colors capitalize",
-                        activeTab === tab
-                          ? "border-blue-600 text-blue-600"
-                          : "border-transparent text-slate-500 hover:text-slate-700"
-                      )}>
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex-1 overflow-y-auto py-2 no-scrollbar">
-                  {activeTab === "incidencias" && (
-                    <div>
-                      {DEMO_INCIDENCIAS.map((item) => (
-                        <IncidenciaItem key={item.id} {...item} />
-                      ))}
-                    </div>
-                  )}
-                  {activeTab === "comentarios" && (
-                    <div>
-                      {DEMO_COMENTARIOS.map((item) => (
-                        <IncidenciaItem key={item.id} {...item} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {children && (
-                  <div className="pt-3 border-t border-slate-100 shrink-0">
-                    {children}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {rightPanel}
 
         </div>
       </DialogContent>
