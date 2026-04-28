@@ -148,7 +148,7 @@ const RondinesContent = () => {
 
               {(() => {
                 const photosDisabled = true;
-                const listDisabled = subTab === "recorridos";
+                const listDisabled = subTab === "recorridos"|| subTab === "rondines";
                 const tableDisabled = false;
 
                 const btnClass = (mode: string, disabled: boolean) =>

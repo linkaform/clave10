@@ -180,13 +180,13 @@ const RondinesTable: React.FC<ListProps> = ({
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
   const [globalFilter, setGlobalFilter] = React.useState("");
 
-  React.useEffect(() => {
-    if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join(" "));
-    } else {
-      setGlobalFilter("");
-    }
-  }, [searchTags]);
+  // React.useEffect(() => {
+  //   if (searchTags && searchTags.length > 0) {
+  //     setGlobalFilter(searchTags.join(" "));
+  //   } else {
+  //     setGlobalFilter("");
+  //   }
+  // }, [searchTags]);
 
   const columns = useMemo(() => getRondinesColumns(handleEliminar, handleVerRondin), [handleVerRondin]);
   const memoizedData = useMemo(() => data || [], [data]);
@@ -319,7 +319,7 @@ const RondinesTable: React.FC<ListProps> = ({
                   <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => { setRondinSeleccionado(null); setVerRondin(false); setActiveTab("Rondines"); }}
+                        onClick={() => { setRondinSeleccionado(null); setVerRondin(false); setActiveTab("recorridos"); }}
                         className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
                         <MoveLeft className="w-5 h-5" />
                       </button>
