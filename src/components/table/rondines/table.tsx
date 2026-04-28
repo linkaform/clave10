@@ -33,7 +33,6 @@ import { AreasList } from "@/components/areas-list-draggable";
 import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
 import { RondinesBitacoraTable } from "./bitacoras-table";
 import ChecksImagesSection from "@/components/ChecksImagesSection";
-import IncidenciasRondinesTable from "../incidencias-rondines/table";
 import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
 import { useBoothStore } from "@/store/useBoothStore";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
@@ -43,6 +42,7 @@ import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/Floating
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { useRondinesFilters, applyRondinesFilters } from "@/hooks/bitacora/useRondinesFilters";
+import IncidenciasRondinesTable from "../incidencias-rondines/table";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
