@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Search, ArrowLeft, MapPin, Camera, Calendar, FileText, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapItem } from "@/components/table/rondines/table";
-import MapView from "@/components/map-v2";
+import dynamic from "next/dynamic";
+const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
 interface PhotoDetailModalProps {
   record: any | null;
