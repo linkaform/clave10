@@ -22,7 +22,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { getRondinesColumns, Recorrido } from "./rondines-columns";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddRondinModal } from "@/components/modals/add-rondin";
 import { useMemo, useState } from "react";
 import { EliminarRondinModal } from "@/components/modals/delete-rondin-modal";
@@ -31,10 +31,10 @@ import dynamic from "next/dynamic";
 import { usePlayOrPauseRondin } from "@/hooks/Rondines/usePlayOrPauseROndin";
 import { AreasList } from "@/components/areas-list-draggable";
 import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
-import { RondinesBitacoraTable } from "./bitacoras-table";
-import ChecksImagesSection from "@/components/ChecksImagesSection";
-import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
-import { useBoothStore } from "@/store/useBoothStore";
+// import { RondinesBitacoraTable } from "./bitacoras-table";
+// import ChecksImagesSection from "@/components/ChecksImagesSection";
+// import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
+// import { useBoothStore } from "@/store/useBoothStore";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
@@ -42,7 +42,7 @@ import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/Floating
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { useRondinesFilters, applyRondinesFilters } from "@/hooks/bitacora/useRondinesFilters";
-import IncidenciasRondinesTable from "../incidencias-rondines/table";
+// import IncidenciasRondinesTable from "../incidencias-rondines/table";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
@@ -109,8 +109,8 @@ interface ListProps {
 
 const RondinesTable: React.FC<ListProps> = ({
   data, isLoading,
-  setDate1, setDate2, date1, date2,
-  dateFilter, setDateFilter, Filter, resetTableFilters,
+  // setDate1, setDate2, date1, date2,
+  // dateFilter, setDateFilter, Filter, resetTableFilters,
   setActiveTab,
   viewMode: viewModeProp,
   searchTags: searchTagsProp,
@@ -125,10 +125,10 @@ const RondinesTable: React.FC<ListProps> = ({
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
   const [rondinSeleccionado, setRondinSeleccionado] = useState<Recorrido | null>(null);
   const [verRondin, setVerRondin] = useState(false);
-  const { location } = useBoothStore();
-  const [selectedIncidencias, setSelectedIncidencias] = useState<string[]>([]);
-  const { listIncidenciasRondin } = useIncidenciaRondin("", "");
-  const [openModal, setOpenModal] = useState(false);
+  // const { location } = useBoothStore();
+  // const [selectedIncidencias, setSelectedIncidencias] = useState<string[]>([]);
+  // const { listIncidenciasRondin } = useIncidenciaRondin("", "");
+  // const [openModal, setOpenModal] = useState(false);
   const [viewModeLocal] = useState<ViewMode>("table");
   const viewMode = viewModeProp ?? viewModeLocal;
   // const setViewMode = (v: ViewMode) => setViewModeLocal(v);
@@ -254,7 +254,6 @@ const RondinesTable: React.FC<ListProps> = ({
     if (!filteredData?.length) return [];
     return filteredData.map((item: any) => formatListRecord(item, "rondin"));
   }, [filteredData]);
-  console.log("LIST RECORD", rondinListRecords)
   const filteredAreas = (areas || []).filter((a: any) =>
     (a.rondin_area || "").toLowerCase().includes(areaSearch.toLowerCase())
   );
@@ -489,7 +488,7 @@ const RondinesTable: React.FC<ListProps> = ({
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            {/* <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <Tabs defaultValue="rondiness" className="w-full">
                 <TabsList className="w-auto justify-start bg-transparent border-b border-gray-200 rounded-none p-0 mb-4 gap-0">
                   {["rondiness", "incidentes", "fotos"].map((tab) => (
@@ -515,7 +514,7 @@ const RondinesTable: React.FC<ListProps> = ({
                   <ChecksImagesSection location={location ?? ""} showTabs={false} />
                 </TabsContent>
               </Tabs>
-            </div>
+            </div> */}
 
           </div>
 
