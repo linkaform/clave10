@@ -33,6 +33,14 @@ export function mapCheckUbicacionGrid(raw: any, base: any) {
       ],
       rawData: raw,
       vehiculos: [],
-      equipos: [],
+      equipos: [], 
+      map_data: areas.map((a: any) => ({
+        id: a.area || `area-${Math.random()}`,
+        nombre_area: a.area,
+        geolocation_area: { latitude: 0, longitude: 0 },
+        foto_area: a?.detalle?.fotos?.length > 0
+          ? [{ file_name: a.detalle.fotos[0].file_name, file_url: a.detalle.fotos[0].file_url }]
+          : [],
+      })),
     };
   }

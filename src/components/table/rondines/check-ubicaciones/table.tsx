@@ -65,6 +65,7 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
   }, []);
 
   const columns = useMemo(
+    
     () => getCheckUbicacionesColumns(handleEliminar, handleVerCheck),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleVerCheck]
@@ -202,6 +203,8 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
           isLoading={isLoading}
           records={photoListRecords}
           globalSearch={[globalFilter]}
+          modalType="rondines"
+          getMapData={(record) => record?.rawData?.map_data ?? []}
           selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
           {renderActions}
         </PhotoListView>

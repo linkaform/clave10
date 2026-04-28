@@ -11,7 +11,6 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L, { latLngBounds } from "leaflet";
-import Link from "next/link";
 import "leaflet/dist/leaflet.css";
 import "../app/map.css";
 import osm from "@/app/map-config";
@@ -239,7 +238,7 @@ const MapView = ({ map_data, areas }: MapaRutasProps) => {
             >
               <div className="tooltip-div" id={`${instanceId}_tooltip-${obj.id}`}>
                 <p className="toltip-data" id={`${instanceId}_toltip-record-${obj.id}`}>
-                  <Link target="_blank" href={""}>{obj.folio}</Link>
+                <span style={{ pointerEvents: "none", cursor: "default" }}>{obj.folio}</span>
                   {" "}| {obj.duration}
                 </p>
                 <p
