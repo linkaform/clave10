@@ -3,14 +3,14 @@
 import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import RondinesTable from "@/components/table/rondines/table";
+import RecorridosTable from "@/components/table/rondines/table";
 import { useRondinesFilters } from "@/hooks/bitacora/useRondinesFilters";
 import { useShiftStore } from "@/store/useShiftStore";
 import { dateToString, downloadCSV } from "@/lib/utils";
 import { useGetListRondines } from "@/hooks/Rondines/useGetListRondines";
 import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
-import { RondinesBitacoraTable } from "@/components/table/rondines/bitacoras-table";
-import { useBoothStore } from "@/store/useBoothStore";
+// import { RondinesBitacoraTable } from "@/components/table/rondines/bitacoras-table";
+// import { useBoothStore } from "@/store/useBoothStore";
 import { Tabs as TabsOuter, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, LayoutGrid, LayoutList, Sheet, FileX2, Plus } from "lucide-react";
 import { TagSearchInput } from "@/components/tag-search-input";
@@ -20,9 +20,10 @@ import { AddRondinModal } from "@/components/modals/add-rondin";
 import IncidenciasRondinesTable, { incidenciasColumnsCSV } from "@/components/table/incidencias-rondines/table";
 
 const RondinesContent = () => {
+  
   const searchParams = useSearchParams();
-  const { location } = useBoothStore();
-  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<string>("");
+  // const { location } = useBoothStore();
+  // const [ setUbicacionSeleccionada] = useState<string>("");
   const { filter } = useShiftStore();
   const [dateFilter, setDateFilter] = useState<string>(filter);
   const [date1, setDate1] = useState<Date | "">("");
@@ -52,9 +53,9 @@ const RondinesContent = () => {
   const { listIncidenciasRondin } = useIncidenciaRondin("", "");
   console.log(isSidebarOpen, setIsSidebarOpen, activeFiltersCount);
 
-  useEffect(() => {
-    if (location) setUbicacionSeleccionada(location);
-  }, [location]);
+  // useEffect(() => {
+  //   if (location) setUbicacionSeleccionada(location);
+  // }, [location]);
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
@@ -145,43 +146,54 @@ const RondinesContent = () => {
                   </TabsTrigger>
                 </TabsList>
               </TabsOuter>
-
               {(() => {
-                const photosDisabled = true;
-                const listDisabled = subTab === "recorridos"|| subTab === "rondines";
-                const tableDisabled = false;
+  const btnClass = (mode: string) =>
+    `h-full w-10 transition-all rounded-none border-x border-slate-300/50 ${
+      viewMode === mode
+        ? "bg-blue-600 text-white hover:bg-blue-700"
+        : "text-slate-500 hover:bg-slate-200/50"
+    }`;
 
-                const btnClass = (mode: string, disabled: boolean) =>
-                  `h-full w-10 transition-all rounded-none border-x border-slate-300/50 ${
-                    disabled
-                      ? "opacity-30 cursor-not-allowed text-slate-400"
-                      : viewMode === mode
-                        ? "bg-blue-600 text-white hover:bg-blue-700"
-                        : "text-slate-500 hover:bg-slate-200/50"
-                  }`;
+  return (
+    <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
 
-                return (
-                  <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
-                    <Button variant="ghost" size="icon"
-                      className={btnClass("photos", photosDisabled)}
-                      disabled={photosDisabled}
-                      onClick={() => setViewMode("photos")}>
-                      <LayoutGrid size={18} />
-                    </Button>
-                    <Button variant="ghost" size="icon"
-                      className={btnClass("list", listDisabled)}
-                      disabled={listDisabled}
-                      onClick={() => setViewMode("list")}>
-                      <LayoutList size={18} />
-                    </Button>
-                    <Button variant="ghost" size="icon"
-                      className={btnClass("table", tableDisabled)}
-                      onClick={() => setViewMode("table")}>
-                      <Sheet size={18} />
-                    </Button>
-                  </div>
-                );
-              })()}
+      {/* GRID (incidencias y check-ubicaciones) */}
+      {(subTab === "incidencias" || subTab === "check-ubicaciones") && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={btnClass("photos")}
+          onClick={() => setViewMode("photos")}
+        >
+          <LayoutGrid size={18} />
+        </Button>
+      )}
+
+      {/* LIST (solo rondines) */}
+      {subTab === "rondines" && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={btnClass("list")}
+          onClick={() => setViewMode("list")}
+        >
+          <LayoutList size={18} />
+        </Button>
+      )}
+
+      {/* TABLE (siempre) */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={btnClass("table")}
+        onClick={() => setViewMode("table")}
+      >
+        <Sheet size={18} />
+      </Button>
+
+    </div>
+  );
+})()}
             </div>
           </div>
 
@@ -189,7 +201,7 @@ const RondinesContent = () => {
             <Tabs value={subTab} onValueChange={setSubTab} className="w-full">
 
               <TabsContent value="recorridos">
-                <RondinesTable
+                <RecorridosTable
                   data={listRondines}
                   isLoading={false}
                   setDate1={setDate1} setDate2={setDate2}
@@ -206,11 +218,19 @@ const RondinesContent = () => {
               </TabsContent>
 
               <TabsContent value="rondines">
-                <RondinesBitacoraTable showTabs={true} ubicacion={ubicacionSeleccionada} viewMode={viewMode} />
+                <div>PENDIENTE, ME QUEDE HACIENDO ESTE SERVICIO EN BACK, VISTA TABLA Y LIST CARD, forma Bitacora de rondines </div>
+                {/* <RondinesBitacoraTable showTabs={true} ubicacion={ubicacionSeleccionada} viewMode={viewMode} /> */}
               </TabsContent>
 
               <TabsContent value="check-ubicaciones">
-                <CheckUbicacionesTable viewMode={viewMode} />
+                <CheckUbicacionesTable 
+                  viewMode={viewMode} onExternalDynamicFiltersChange={()=>[]} total={undefined}                  // searchTags={searchTags}
+                  // setDate1={setStartDate}
+                  // setDate2={setEndDate}
+                  // setDateFilter={setActiveDateFilter}
+                  // setPagination={setPagination}
+                  // total={listBitacoras?.total_records}
+                />
               </TabsContent>
 
               <TabsContent value="incidencias">

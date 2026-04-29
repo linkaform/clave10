@@ -98,7 +98,7 @@ interface ListProps {
   dateFilter: string;
   setDateFilter: React.Dispatch<React.SetStateAction<string>>;
   Filter: () => void;
-  setActiveTab: React.Dispatch<React.SetStateAction<string>>;
+  setActiveTab: (tab: string) => void;
   activeTab: string;
   viewMode?: "table" | "photos" | "list";
   searchTags?: string[];
@@ -107,7 +107,7 @@ interface ListProps {
   filtersConfig?: any[];
 }
 
-const RondinesTable: React.FC<ListProps> = ({
+const RecorridosTable: React.FC<ListProps> = ({
   data, isLoading,
   // setDate1, setDate2, date1, date2,
   // dateFilter, setDateFilter, Filter, resetTableFilters,
@@ -258,13 +258,13 @@ const RondinesTable: React.FC<ListProps> = ({
     (a.rondin_area || "").toLowerCase().includes(areaSearch.toLowerCase())
   );
 
-  const estatusColor = (estatus: string) => {
-    if (estatus === "Corriendo") return "text-green-600";
-    if (estatus === "Cancelado") return "text-red-500";
-    if (estatus === "Cerrado") return "text-gray-400";
-    if (estatus === "Programado") return "text-purple-500";
-    return "text-gray-500";
-  };
+  // const estatusColor = (estatus: string) => {
+  //   if (estatus === "Corriendo") return "text-green-600";
+  //   if (estatus === "Cancelado") return "text-red-500";
+  //   if (estatus === "Cerrado") return "text-gray-400";
+  //   if (estatus === "Programado") return "text-purple-500";
+  //   return "text-gray-500";
+  // };
 
   return (
     <div className="w-full">
@@ -343,9 +343,22 @@ const RondinesTable: React.FC<ListProps> = ({
                           {rondin.folio}
                         </span>
                       )}
-                      <span className={`text-sm font-bold ${estatusColor(rondin?.estatus_rondin)}`}>
-                        {rondin?.estatus_rondin}
+                  {(() => {
+                    const statusMap: Record<string, string> = {
+                      Corriendo: "bg-green-50 text-green-700 border border-green-200 ring-1 ring-green-300/50",
+                      Pausado:   "bg-yellow-50 text-yellow-700 border border-yellow-200 ring-1 ring-yellow-300/50",
+                      Cancelado: "bg-red-50 text-red-700 border border-red-200 ring-1 ring-red-300/50",
+                      Cerrado:   "bg-slate-50 text-slate-500 border border-slate-200 ring-1 ring-slate-300/50",
+                      Programado:"bg-purple-50 text-purple-700 border border-purple-200 ring-1 ring-purple-300/50",
+                    };
+                    const estatus = rondin?.estatus_rondin ?? "";
+                    const style = statusMap[estatus] ?? "bg-slate-50 text-slate-500 border border-slate-200";
+                    return (
+                      <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-base font-bold ${style}`}>
+                        {estatus}
                       </span>
+                    );
+                  })()}
                       <div className="flex items-center gap-2">
                         <Button onClick={handlePause} size="icon"
                           className="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-none border-0"
@@ -626,4 +639,4 @@ const RondinesTable: React.FC<ListProps> = ({
   );
 };
 
-export default RondinesTable;
+export default RecorridosTable;

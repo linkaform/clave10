@@ -21,18 +21,47 @@ import { getCheckUbicacionesColumns, CheckUbicacion } from "./check-ubicaciones-
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import OutSelectedItemsButton from "@/components/Bitacoras/OutSelectedItemsButton";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
-import { ListRecord, PhotoRecord } from "@/types/bitacoras";
+import { FilterConfig, ListRecord, PhotoRecord } from "@/types/bitacoras";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { useGetListCheckUbicaciones } from "@/hooks/Rondines/useListCheckUbicaciones";
+import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 
 interface CheckUbicacionesTableProps {
   searchTags?: string[];
   viewMode?: "table" | "photos" | "list";
+  externalDynamicFilters?: Record<string, any>;
+  onExternalDynamicFiltersChange: (filters: Record<string, any>) => void;
+  setUbicacionSeleccionada?: (val: string) => void;
+  filtersConfig?: FilterConfig[];
+  stats?: {
+    personas_dentro: number;
+    salidas_registradas: number;
+  };
+  total: number | undefined;
+  dateFilter?: string;
+  setDateFilter?: (val: string) => void;
+  date1?: Date | "";
+  setDate1?: (val: Date | "") => void;
+  date2?: Date | "";
+  setDate2?: (val: Date | "") => void;
+
 }
 
 const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
-  searchTags,
   viewMode = "table",
+  externalDynamicFilters,
+  onExternalDynamicFiltersChange,
+  searchTags: externalSearchTags,
+  filtersConfig = [],
+  total,
+  stats,
+  dateFilter,
+  setDateFilter,
+  date1,
+  setDate1,
+  date2,
+  setDate2,
+  
 }) => {
   const { listCheckUbicaciones, isLoadingListCheckUbicaciones: isLoading } = useGetListCheckUbicaciones(true);
 
@@ -40,18 +69,26 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+    options: false, 
+  });
   const [rowSelection, setRowSelection] = React.useState({});
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
-  const [globalFilter, setGlobalFilter] = React.useState("");
+  // const [globalFilter, setGlobalFilter] = React.useState("");
 
-  React.useEffect(() => {
-    if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join(" "));
-    } else {
-      setGlobalFilter("");
-    }
-  }, [searchTags]);
+
+  const [localSearchTags, setLocalSearchTags] = useState<string[]>([]);
+  const searchTags = externalSearchTags || localSearchTags;
+  const setSearchTags = setLocalSearchTags;
+
+  
+  // React.useEffect(() => {
+  //   if (searchTags && searchTags.length > 0) {
+  //     setGlobalFilter(searchTags.join(" "));
+  //   } else {
+  //     setGlobalFilter("");
+  //   }
+  // }, [searchTags]);
 
   const handleEliminar = (check: CheckUbicacion) => {
     setCheckSeleccionado(check);
@@ -81,7 +118,7 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
+    onGlobalFilterChange: setSearchTags,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -89,17 +126,61 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
-    globalFilterFn: (row, _columnId, filterValue: string) => {
-      if (!filterValue) return true;
-      const tags = filterValue.toLowerCase().split(" ").filter(Boolean);
+    globalFilterFn: (row, columnId, filterValues: string[]) => {
+      if (!filterValues || filterValues.length === 0) return true;
+      const searchTags = filterValues.map((v) => v.toLowerCase());
+
+      // Obtenemos todos los valores de la fila de forma dinámica
       const allValues = row
         .getAllCells()
         .map((cell) => String(cell.getValue() || "").toLowerCase())
         .join(" ");
-      return tags.some((tag) => allValues.includes(tag));
+
+      // Lógica OR: Si el registro coincide con AL MENOS UNO de los tags
+      return searchTags.some((tag) => allValues.includes(tag));
     },
-    state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
+
+    manualPagination: true,
+    rowCount: total || 0,
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
+      pagination,
+      globalFilter: searchTags,
+    },
   });
+
+
+  const [localDynamicFilters, setLocalDynamicFilters] = useState<
+    Record<string, any>
+  >({});
+  const dynamicFilters = externalDynamicFilters || localDynamicFilters;
+  const setDynamicFilters =
+    onExternalDynamicFiltersChange || setLocalDynamicFilters;
+
+  // Sincronización de filtros con el servidor y locales
+  const externalFilters = useMemo(
+    () => ({
+      dynamic: dynamicFilters,
+      dateFilter,
+      date1,
+      date2,
+    }),
+    [dynamicFilters, dateFilter, date1, date2],
+  );
+
+
+  const onExternalFiltersChange = (newFilters: any) => {
+    if (newFilters.dateFilter !== undefined)
+      setDateFilter?.(newFilters.dateFilter);
+    if (newFilters.date1 !== undefined) setDate1?.(newFilters.date1);
+    if (newFilters.date2 !== undefined) setDate2?.(newFilters.date2);
+    if (newFilters.dynamic !== undefined) {
+      setDynamicFilters(newFilters.dynamic);
+    }
+  };
 
   const photoListRecords: ListRecord[] = useMemo(() => {
     return memoizedData.map((item: any, index: number) =>
@@ -121,12 +202,24 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderActions = (_record: PhotoRecord | ListRecord) => null;
-
   return (
     <div className="w-full">
-      {viewMode === "table" ? (
-        <>
-          <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">
+      <div className="flex gap-4 items-start">
+        {viewMode !== "table" && (
+          <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">
+            <FiltersPanel
+              filters={externalFilters}
+              onFiltersChange={onExternalFiltersChange}
+              filtersConfig={filtersConfig}
+              stats={stats}
+            />
+          </aside>
+        )}
+  
+        <div className="flex-1 min-w-0">
+          {viewMode === "table" ? (
+            <>
+              <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">
             <Table className="text-xs">
               <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -178,39 +271,38 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
                 )}
               </TableBody>
             </Table>
-          </div>
-          <div className="flex items-center justify-end space-x-2 py-4">
-            <div className="space-x-2">
-              <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-                Anterior
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-                Siguiente
-              </Button>
             </div>
-          </div>
-        </>
-      ) : viewMode === "photos" ? (
-        <PhotoGridView
-          isLoading={isLoading}
-          records={photoRecords}
-          globalSearch={[globalFilter]}
-          selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
-          {renderActions}
-        </PhotoGridView>
-      ) : (
-        <PhotoListView
-          isLoading={isLoading}
-          records={photoListRecords}
-          globalSearch={[globalFilter]}
-          modalType="rondines"
-          getMapData={(record) => record?.rawData?.map_data ?? []}
-          selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
-          {renderActions}
-        </PhotoListView>
-      )}
+            <div className="flex items-center justify-end space-x-2 py-4">
+              <div className="space-x-2">
+                <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Anterior</Button>
+                <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Siguiente</Button>
+              </div>
+            </div>
+          </>
+        ) : viewMode === "photos" ? (
+          <PhotoGridView
+            isLoading={isLoading}
+            records={photoRecords}
+            globalSearch={searchTags ?? []}
+            modalType="rondines"
+            getMapData={(record) => (record as any)?.rawData?.map_data ?? []}
+            selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
+            {renderActions}
+          </PhotoGridView>
+        ) : (
+          <PhotoListView
+            isLoading={isLoading}
+            records={photoListRecords}
+            globalSearch={searchTags ?? []}
+            modalType="rondines"
+            getMapData={(record) => record?.rawData?.map_data ?? []}
+            selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
+            {renderActions}
+          </PhotoListView>
+        )}
+      </div>
     </div>
-  );
-};
-
+  </div>
+  )
+}
 export default CheckUbicacionesTable;

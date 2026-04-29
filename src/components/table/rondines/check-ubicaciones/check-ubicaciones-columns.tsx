@@ -40,7 +40,7 @@ export const getCheckUbicacionesColumns = (
       </div>
     ),
     enableSorting: false,
-    enableHiding: false,
+    enableHiding: true,
   },
   {
     accessorKey: "nombre_recorrido",
