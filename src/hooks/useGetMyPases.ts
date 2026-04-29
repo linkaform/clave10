@@ -8,6 +8,7 @@ interface UseGetMyPasesProps {
   skip?: number;
   searchName?: string;
   tab?: string;
+  location?: string;
 }
 
 export const useGetMyPases = ({
@@ -15,6 +16,7 @@ export const useGetMyPases = ({
   skip,
   searchName,
   tab = "Todos",
+  location = "",
 }: UseGetMyPasesProps) => {
   const {
     data: data,
@@ -22,9 +24,9 @@ export const useGetMyPases = ({
     error,
     isFetching,
   } = useQuery<any>({
-    queryKey: ["getMyPases", tab, limit, skip, searchName],
+    queryKey: ["getMyPases", tab, limit, skip, searchName, location],
     queryFn: async () => {
-      const data = await getMyPases({ tab, limit, skip, searchName });
+      const data = await getMyPases({ tab, limit, skip, searchName, location });
       if (data?.error) {
         toast.error("Error al obtener pases");
       }

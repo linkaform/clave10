@@ -53,7 +53,7 @@ export function Header({
   },
   onLogout,
 }: HeaderProps) {
-  const { location: locationBooth } = useBoothStore();
+  const { location: locationBooth, area, setBooth } = useBoothStore();
   const { locations } = useAreasLocationStore();
 
   const [currentLocation, setCurrentLocation] = React.useState<string>("");
@@ -66,6 +66,7 @@ export function Header({
 
   const handleLocationChange = (loc: string) => {
     setCurrentLocation(loc);
+    setBooth(area ?? "", loc);
   };
 
   return (

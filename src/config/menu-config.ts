@@ -7,8 +7,8 @@ export const menuStructure: MenuConfig = {
       key: "accesos",
       label: "Accesos",
       icon: "door-open",
-      order: 1,
-      columns: 4,
+      order: 1, // <====== Orden del módulo en el menú principal
+      columns: 4, // <====== Número de columnas para esta sección
       sections: [
         {
           id: "entradas-salidas",
