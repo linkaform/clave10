@@ -20,7 +20,7 @@ import { Eye, Pencil, Trash } from "lucide-react";
   }
 
   // export const rondinesColumns: ColumnDef<Recorrido>[] = [
-  export const getRondinesColumns = ( onEliminarClick: (rondin: Recorrido) => void, handleVerRondin: (rondin: Recorrido) => void): ColumnDef<Recorrido>[] => [
+  export const getRecorridosColumns = ( onEliminarClick: (rondin: Recorrido) => void, handleVerRondin: (rondin: Recorrido) => void): ColumnDef<Recorrido>[] => [
     {
       id: "options",
       header: "Opciones",
@@ -59,7 +59,7 @@ import { Eye, Pencil, Trash } from "lucide-react";
     },
     {
       accessorKey: "nombre_del_rondin",
-      header: "Nombre del rondin",
+      header: "Nombre del recorrido",
       cell: ({ row }) => <div>{row.getValue("nombre_del_rondin")}</div>,
       enableSorting: true,
     },
@@ -127,7 +127,7 @@ import { Eye, Pencil, Trash } from "lucide-react";
     {
       accessorKey: "tipo_rondin",
       header: "Tipo",
-      cell: ({ row }) => <div className="uppercase">{row.getValue("tipo_rondin")}</div>,
+      cell: ({ row }) => <div className="capitalize">{row.getValue("tipo_rondin")}</div>,
       enableSorting: true,
     },
   ];

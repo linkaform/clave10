@@ -22,6 +22,7 @@ import { mapRondinIncidenciaGrid } from "@/mappers/incidencias.rondines.grid.map
 import { mapCheckUbicacionGrid } from "@/mappers/check-ubicaiones.grid.mapper";
 import { mapCheckUbicacionList } from "@/mappers/check-ubicaciones.list.mapper";
 
+import { mapRondinBitacoraList } from "@/mappers/rondin.bitacora.list.mapper";
 
 const mappers_list: Record<string, (raw: any, base: any) => ListRecord> = {
   bitacora: mapBitacoraList,
@@ -31,7 +32,9 @@ const mappers_list: Record<string, (raw: any, base: any) => ListRecord> = {
   rondin: mapRondinList,
   incidencia: mapIncidenciaList,
   falla: mapFallaList,
-  rondin_incidencia: mapRondinIncidenciaList,check_ubicacion: mapCheckUbicacionList,
+  rondin_incidencia: mapRondinIncidenciaList,
+  check_ubicacion: mapCheckUbicacionList,
+  rondin_bitacora: mapRondinBitacoraList,
 };
 
 const mappers_grid: Record<string, (raw: any, base: any) => PhotoRecord> = {
@@ -42,7 +45,8 @@ const mappers_grid: Record<string, (raw: any, base: any) => PhotoRecord> = {
   rondin: mapRondinGrid,
   incidencia: mapIncidenciaGrid,
   falla: mapFallaGrid,
-  rondin_incidencia: mapRondinIncidenciaGrid,check_ubicacion: mapCheckUbicacionGrid,
+  rondin_incidencia: mapRondinIncidenciaGrid,
+  check_ubicacion: mapCheckUbicacionGrid,
 };
 
 export type RegistryType =
@@ -55,7 +59,9 @@ export type RegistryType =
   | "falla"
   | "check_ubicaciones"
   | "rondin_incidencia"
-  | "check_ubicacion";
+  | "check_ubicacion"
+  | "rondin_bitacora"; 
+
 
 export function formatListRecord(raw: any, type: RegistryType): ListRecord {
   const base = {

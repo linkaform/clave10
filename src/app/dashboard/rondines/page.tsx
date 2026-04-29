@@ -7,7 +7,6 @@ import RecorridosTable from "@/components/table/rondines/table";
 import { useRondinesFilters } from "@/hooks/bitacora/useRondinesFilters";
 import { useShiftStore } from "@/store/useShiftStore";
 import { dateToString, downloadCSV } from "@/lib/utils";
-import { useGetListRondines } from "@/hooks/Rondines/useGetListRondines";
 import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
 // import { RondinesBitacoraTable } from "@/components/table/rondines/bitacoras-table";
 // import { useBoothStore } from "@/store/useBoothStore";
@@ -18,12 +17,15 @@ import { Button } from "@/components/ui/button";
 import CheckUbicacionesTable from "@/components/table/rondines/check-ubicaciones/table";
 import { AddRondinModal } from "@/components/modals/add-rondin";
 import IncidenciasRondinesTable, { incidenciasColumnsCSV } from "@/components/table/incidencias-rondines/table";
+import RondinesTable from "@/components/table/rondines/rondines/table";
+import { useGetListRondines } from "@/hooks/Rondines/useGetListBitacoraRondines";
+import { useBoothStore } from "@/store/useBoothStore";
 
 const RondinesContent = () => {
   
   const searchParams = useSearchParams();
-  // const { location } = useBoothStore();
-  // const [ setUbicacionSeleccionada] = useState<string>("");
+  const { location } = useBoothStore();
+  const [ ubicacionSeleccionada, setUbicacionSeleccionada] = useState<string>("");
   const { filter } = useShiftStore();
   const [dateFilter, setDateFilter] = useState<string>(filter);
   const [date1, setDate1] = useState<Date | "">("");
@@ -53,9 +55,9 @@ const RondinesContent = () => {
   const { listIncidenciasRondin } = useIncidenciaRondin("", "");
   console.log(isSidebarOpen, setIsSidebarOpen, activeFiltersCount);
 
-  // useEffect(() => {
-  //   if (location) setUbicacionSeleccionada(location);
-  // }, [location]);
+  useEffect(() => {
+    if (location) setUbicacionSeleccionada(location);
+  }, [location]);
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
@@ -157,43 +159,42 @@ const RondinesContent = () => {
   return (
     <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
 
-      {/* GRID (incidencias y check-ubicaciones) */}
-      {(subTab === "incidencias" || subTab === "check-ubicaciones") && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className={btnClass("photos")}
-          onClick={() => setViewMode("photos")}
-        >
-          <LayoutGrid size={18} />
-        </Button>
-      )}
+          {(subTab === "incidencias" || subTab === "check-ubicaciones") && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={btnClass("photos")}
+                  onClick={() => setViewMode("photos")}
+                >
+                  <LayoutGrid size={18} />
+                </Button>
+              )}
 
-      {/* LIST (solo rondines) */}
-      {subTab === "rondines" && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className={btnClass("list")}
-          onClick={() => setViewMode("list")}
-        >
-          <LayoutList size={18} />
-        </Button>
-      )}
+              {/* LIST (solo rondines) */}
+              {subTab === "rondines" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={btnClass("list")}
+                  onClick={() => setViewMode("list")}
+                >
+                  <LayoutList size={18} />
+                </Button>
+              )}
 
-      {/* TABLE (siempre) */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className={btnClass("table")}
-        onClick={() => setViewMode("table")}
-      >
-        <Sheet size={18} />
-      </Button>
+              {/* TABLE (siempre) */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={btnClass("table")}
+                onClick={() => setViewMode("table")}
+              >
+                <Sheet size={18} />
+              </Button>
 
-    </div>
-  );
-})()}
+            </div>
+          );
+        })()}
             </div>
           </div>
 
@@ -218,8 +219,7 @@ const RondinesContent = () => {
               </TabsContent>
 
               <TabsContent value="rondines">
-                <div>PENDIENTE, ME QUEDE HACIENDO ESTE SERVICIO EN BACK, VISTA TABLA Y LIST CARD, forma Bitacora de rondines </div>
-                {/* <RondinesBitacoraTable showTabs={true} ubicacion={ubicacionSeleccionada} viewMode={viewMode} /> */}
+                <RondinesTable showTabs={true} ubicacion={ubicacionSeleccionada} viewMode={viewMode} />
               </TabsContent>
 
               <TabsContent value="check-ubicaciones">

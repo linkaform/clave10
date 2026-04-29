@@ -453,10 +453,10 @@ const RondinesPage = () => {
 
 
               <TabsContent value="Fotos">
-                <div >
+                {/* <div >
                   	<RondinesTable data={data} isLoading={false} 
 						setDate1={setDate1} setDate2={setDate2} date1={date1} date2={date2} dateFilter={dateFilter} setDateFilter={setDateFilter} Filter={Filter} resetTableFilters={resetTableFilters} setActiveTab={setActiveTab} activeTab={""}/>
-                </div>
+                </div> */}
               </TabsContent>
 
               <TabsContent value="Rondines">
@@ -467,17 +467,17 @@ const RondinesPage = () => {
               </TabsContent>
 
               <TabsContent value="Calendario">
-                <div >
+                {/* <div >
 					<RondinesTable data={data} isLoading={false} 
 						setDate1={setDate1} setDate2={setDate2} date1={date1} date2={date2} dateFilter={dateFilter} setDateFilter={setDateFilter} Filter={Filter} resetTableFilters={resetTableFilters} setActiveTab={setActiveTab} activeTab={""}/>
-                </div>
+                </div> */}
               </TabsContent>
 
               <TabsContent value="Incidencias">
-                <div >
+                {/* <div >
 					<RondinesTable data={data} isLoading={false} 
 						setDate1={setDate1} setDate2={setDate2} date1={date1} date2={date2} dateFilter={dateFilter} setDateFilter={setDateFilter} Filter={Filter} resetTableFilters={resetTableFilters} setActiveTab={setActiveTab} activeTab={""}/>
-                </div>
+                </div> */}
               </TabsContent>
             </Tabs>
           </div>

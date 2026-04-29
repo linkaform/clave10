@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { getRondinesColumns, Recorrido } from "./rondines-columns";
+import { getRecorridosColumns, Recorrido } from "./recorridos-columns";
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddRondinModal } from "@/components/modals/add-rondin";
 import { useMemo, useState } from "react";
@@ -42,6 +42,7 @@ import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/Floating
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { useRondinesFilters, applyRondinesFilters } from "@/hooks/bitacora/useRondinesFilters";
+import { useGetListRecorridos } from "@/hooks/Rondines/useGetListRecorridos";
 // import IncidenciasRondinesTable from "../incidencias-rondines/table";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
@@ -108,7 +109,7 @@ interface ListProps {
 }
 
 const RecorridosTable: React.FC<ListProps> = ({
-  data, isLoading,
+  data:dataProp, isLoading:isLoadingProp,
   // setDate1, setDate2, date1, date2,
   // dateFilter, setDateFilter, Filter, resetTableFilters,
   setActiveTab,
@@ -118,6 +119,8 @@ const RecorridosTable: React.FC<ListProps> = ({
   onExternalFiltersChange: onExternalFiltersChangeProp,
   filtersConfig: filtersConfigProp,
 }) => {
+
+  const { listRecorridos, isLoadingListRecorridos } = useGetListRecorridos(true, "", "", 100, 0);
   const { playOrPauseRondinMutation, isLoading: isLoadingPlayOrPause } = usePlayOrPauseRondin();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -188,8 +191,12 @@ const RecorridosTable: React.FC<ListProps> = ({
   //   }
   // }, [searchTags]);
 
-  const columns = useMemo(() => getRondinesColumns(handleEliminar, handleVerRondin), [handleVerRondin]);
-  const memoizedData = useMemo(() => data || [], [data]);
+  const columns = useMemo(() => getRecorridosColumns(handleEliminar, handleVerRondin), [handleVerRondin]);
+  const memoizedData = useMemo(
+    () => (Array.isArray(listRecorridos) ? listRecorridos : dataProp || []),
+    [listRecorridos, dataProp]
+  );
+  const isLoading = isLoadingListRecorridos || isLoadingProp;
 
   const table = useReactTable({
     data: memoizedData ?? [],
@@ -533,11 +540,12 @@ const RecorridosTable: React.FC<ListProps> = ({
 
         ) : (
           <>
-            {isLoadingRondin && verRondin ? (
-              <div className="flex justify-center items-center h-screen">
-                <div className="w-24 h-24 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-              </div>
-            ) : (
+          {isLoadingRondin && verRondin ? (
+            <div className="flex flex-col items-center gap-2 text-slate-300 h-32 justify-center">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
+              <span className="text-xs font-normal text-slate-400">Cargando registros...</span>
+            </div>
+          ) : (
               <>
                 {viewMode === "table" && (
                   <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">

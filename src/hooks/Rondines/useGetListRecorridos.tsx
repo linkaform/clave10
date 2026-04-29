@@ -3,10 +3,9 @@ import { getListRondin } from "@/lib/rondines";
 import { errorMsj } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
-export const useGetListRondines = (enableList:boolean, date1:string, date2:string, limit:number, offset:number) => {
+export const useGetListRecorridos = (enableList:boolean, date1:string, date2:string, limit:number, offset:number) => {
 
-    //Obtener lista de Rondines
-    const {data: listRondines, isLoading:isLoadingListRondines, error:errorListRondines} = useQuery<RondinResponse>({
+    const {data: listRecorridos, isLoading:isLoadingListRecorridos, error:errorListRecorridos} = useQuery<RondinResponse>({
         queryKey: ["getListRondines", date1, date2, limit, offset],
         enabled:enableList,
         queryFn: async () => {
@@ -21,8 +20,8 @@ export const useGetListRondines = (enableList:boolean, date1:string, date2:strin
     });
 
     return{
-        listRondines,
-        isLoadingListRondines,
-        errorListRondines,
+        listRecorridos,
+        isLoadingListRecorridos,
+        errorListRecorridos,
     }
 }

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useGetListRondines } from "./useGetListRondines";
 import { useGetListCheckUbicaciones } from "./useListCheckUbicaciones";
 import { useIncidenciaRondin } from "./useRondinIncidencia";
 import { useRondinesFilters } from "@/hooks/bitacora/useRondinesFilters";
 import { useIncidenciasFilters } from "@/hooks/bitacora/useIncidenciasFilters";
+import { useGetListRecorridos } from "./useGetListRecorridos";
 
 export const useRondinesPage = () => {
   const [viewMode, setViewMode] = useState<"table" | "photos" | "list">("table");
@@ -43,7 +43,7 @@ export const useRondinesPage = () => {
   };
 
   // Data: Recorridos 
-  const { listRondines, isLoadingListRondines } = useGetListRondines(
+  const { listRecorridos, isLoadingListRecorridos } = useGetListRecorridos(
     true,
     dates[0],
     dates[1],
@@ -104,8 +104,8 @@ export const useRondinesPage = () => {
     resetTableFilters,
 
     // ── Data: Recorridos
-    listRondines,
-    isLoadingListRondines,
+    listRecorridos,
+    isLoadingListRecorridos,
 
     // ── Data: Check Ubicaciones
     listCheckUbicaciones,
