@@ -270,12 +270,12 @@ export function FiltersPanel({
                             ? currentValue.includes(option.value)
                             : currentValue === option.value;
 
-                          let count = 0;
+                          let count: number | undefined;
                           if (config.key === "status") {
                             if (option.value === "entrada") {
-                              count = stats?.personas_dentro || 0;
+                              count = stats?.personas_dentro ?? 0;
                             } else if (option.value === "salida") {
-                              count = stats?.salidas_registradas || 0;
+                              count = stats?.salidas_registradas ?? 0;
                             }
                           }
 
@@ -298,7 +298,7 @@ export function FiltersPanel({
                               )}>
                               <div className="flex items-center gap-2">
                                 <span>{option.label}</span>
-                                {count > 0 && (
+                                {count !== undefined && (
                                   <span
                                     className={cn(
                                       "flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold shadow-sm transition-colors",
