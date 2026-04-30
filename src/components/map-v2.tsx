@@ -16,7 +16,7 @@ import "../app/map.css";
 import osm from "@/app/map-config";
 import useAuthStore from "@/store/useAuthStore";
 import { Map } from "leaflet";
-import { MapItem } from "./table/rondines/table";
+import { MapItem } from "./table/rondines/recorridos/table";
 
 interface RecordData {
   id: number;

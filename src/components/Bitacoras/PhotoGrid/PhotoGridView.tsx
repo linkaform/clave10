@@ -9,7 +9,7 @@ import { SelectionBar } from "../SelectionBar";
 import { PhotoGridCardModal } from "./PhotoGridCardModal";
 import EquiposYVehiculosList from "../EquiposYVehiculosList";
 import { PhotoRondinCardModal } from "../PhotoList/PhotoRondinCardModal";
-import { MapItem } from "@/components/table/rondines/table";
+import { MapItem } from "@/components/table/rondines/recorridos/table";
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
   corriendo: "bg-green-600 border-green-600 text-white text-xs",

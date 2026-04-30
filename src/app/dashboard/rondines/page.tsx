@@ -3,11 +3,9 @@
 import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import RecorridosTable from "@/components/table/rondines/table";
 import { useRondinesFilters } from "@/hooks/bitacora/useRondinesFilters";
 import { useShiftStore } from "@/store/useShiftStore";
 import { dateToString, downloadCSV } from "@/lib/utils";
-import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
 // import { RondinesBitacoraTable } from "@/components/table/rondines/bitacoras-table";
 // import { useBoothStore } from "@/store/useBoothStore";
 import { Tabs as TabsOuter, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,10 +14,10 @@ import { TagSearchInput } from "@/components/tag-search-input";
 import { Button } from "@/components/ui/button";
 import CheckUbicacionesTable from "@/components/table/rondines/check-ubicaciones/table";
 import { AddRondinModal } from "@/components/modals/add-rondin";
-import IncidenciasRondinesTable, { incidenciasColumnsCSV } from "@/components/table/incidencias-rondines/table";
+import IncidenciasRondinesTable, { incidenciasColumnsCSV } from "@/components/table/rondines/incidencias-rondines/table";
 import RondinesTable from "@/components/table/rondines/rondines/table";
-import { useGetListRondines } from "@/hooks/Rondines/useGetListBitacoraRondines";
 import { useBoothStore } from "@/store/useBoothStore";
+import RecorridosTable from "@/components/table/rondines/recorridos/table";
 
 const RondinesContent = () => {
   
@@ -31,15 +29,28 @@ const RondinesContent = () => {
   const [date1, setDate1] = useState<Date | "">("");
   const [date2, setDate2] = useState<Date | "">("");
   const [dates, setDates] = useState<string[]>([]);
-  const { listRondines } = useGetListRondines(true, dates[0], dates[1], 100, 0);
+  console.log(dates)
   const [searchQuery, setSearchQuery] = useState<string[]>([]);
   const [subTab, setSubTab] = useState("recorridos");
   const [viewMode, setViewMode] = useState<"table" | "photos" | "list">("table");
+  const [titulo, setTitulo] = useState("")
+  const [totalRegistros, setTotalRegistros] = useState(0)
 
   useEffect(() => {
     if (subTab === "recorridos" && viewMode !== "table") {
       setViewMode("table");
     }
+  }, [subTab, viewMode]);
+  
+  useEffect(() => {
+    if (subTab === "recorridos" ) 
+      setTitulo("Recorridos Programados");
+    if (subTab === "rondines" ) 
+      setTitulo("Rondines");
+    if (subTab === "check-ubicaciones" ) 
+      setTitulo("Áreas inspeccionadas");
+    if (subTab === "incidencias" ) 
+      setTitulo("Incidencias");
   }, [subTab, viewMode]);
 
   const {
@@ -52,7 +63,7 @@ const RondinesContent = () => {
   } = useRondinesFilters();
   const [openModal, setOpenModal] = useState(false);
   const [selectedIncidencias, setSelectedIncidencias] = useState<string[]>([]);
-  const { listIncidenciasRondin } = useIncidenciaRondin("", "");
+
   console.log(isSidebarOpen, setIsSidebarOpen, activeFiltersCount);
 
   useEffect(() => {
@@ -62,8 +73,8 @@ const RondinesContent = () => {
   useEffect(() => {
     const tabParam = searchParams.get("tab");
     const map: Record<string, string> = {
-      rondines: "rondines",
       recorridos: "recorridos",
+      rondines: "rondines",
       checkubicaciones: "check-ubicaciones",
       incidencias: "incidencias",
     };
@@ -81,17 +92,21 @@ const RondinesContent = () => {
     setDateFilter("");
   };
 
+  useEffect(() => {
+    setTotalRegistros(0);
+  }, [subTab]);
+
   return (
     <div className="">
       <div className="flex flex-col">
         <div className="p-3 w-full mx-auto">
-          <div className="flex items-center justify-between w-full gap-4 sticky top-[68px] z-40 bg-white backdrop-blur-sm py-2 mb-4">
+          <div className="flex items-center justify-between w-full gap-4 sticky top-[68px] z-40 bg-white backdrop-blur-sm py-2">
             <div className="flex items-baseline gap-2 min-w-fit">
-              <h1 className="text-xl font-bold text-slate-900 whitespace-nowrap">
-                Registro y Seguimiento de Rondines
+              <h1 className="text-2xl font-bold text-slate-900 whitespace-nowrap">
+                {titulo}
               </h1>
               <span className="text-sm font-light text-slate-500 whitespace-nowrap">
-                {(listRondines as any)?.length || (listRondines as any)?.total_records || 0} registros
+                {totalRegistros ?? 0} registros
               </span>
             </div>
             <div className="flex items-center gap-4 min-w-0 justify-end flex-shrink-0">
@@ -139,7 +154,7 @@ const RondinesContent = () => {
                   <TabsTrigger
                     value="check-ubicaciones"
                     className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none shadow-none text-slate-600 hover:bg-slate-200/50">
-                    Check Ubicaciones
+                    Check de Áreas
                   </TabsTrigger>
                   <TabsTrigger
                     value="incidencias"
@@ -170,7 +185,6 @@ const RondinesContent = () => {
                 </Button>
               )}
 
-              {/* LIST (solo rondines) */}
               {subTab === "rondines" && (
                 <Button
                   variant="ghost"
@@ -182,7 +196,6 @@ const RondinesContent = () => {
                 </Button>
               )}
 
-              {/* TABLE (siempre) */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -201,53 +214,52 @@ const RondinesContent = () => {
           <div>
             <Tabs value={subTab} onValueChange={setSubTab} className="w-full">
 
-              <TabsContent value="recorridos">
-                <RecorridosTable
-                  data={listRondines}
-                  isLoading={false}
-                  setDate1={setDate1} setDate2={setDate2}
-                  date1={date1} date2={date2}
-                  dateFilter={dateFilter} setDateFilter={setDateFilter}
-                  Filter={Filter} resetTableFilters={resetTableFilters}
-                  setActiveTab={setSubTab} activeTab={subTab}
-                  viewMode={viewMode}
-                  searchTags={searchQuery}
-                  externalFilters={externalFilters}
-                  onExternalFiltersChange={onExternalFiltersChange}
-                  filtersConfig={filtersConfig}
-                />
-              </TabsContent>
+                <TabsContent value="recorridos">
+                    <RecorridosTable
+                    setDate1={setDate1} setDate2={setDate2}
+                    date1={date1} date2={date2}
+                    dateFilter={dateFilter} setDateFilter={setDateFilter}
+                    Filter={Filter} resetTableFilters={resetTableFilters}
+                    setActiveTab={setSubTab} activeTab={subTab}
+                    viewMode={viewMode}
+                    searchTags={searchQuery}
+                    externalFilters={externalFilters}
+                    onExternalFiltersChange={onExternalFiltersChange}
+                    filtersConfig={filtersConfig}
+                    setTotalRegistros={setTotalRegistros}
+                    />
+                </TabsContent>
 
-              <TabsContent value="rondines">
-                <RondinesTable showTabs={true} ubicacion={ubicacionSeleccionada} viewMode={viewMode} />
-              </TabsContent>
+                <TabsContent value="rondines">
+                    <RondinesTable 
+                    showTabs={true} 
+                    ubicacion={ubicacionSeleccionada} 
+                    viewMode={viewMode}  
+                    setTotalRegistros={setTotalRegistros}/>
+                </TabsContent>
 
-              <TabsContent value="check-ubicaciones">
-                <CheckUbicacionesTable 
-                  viewMode={viewMode} onExternalDynamicFiltersChange={()=>[]} total={undefined}                  // searchTags={searchTags}
-                  // setDate1={setStartDate}
-                  // setDate2={setEndDate}
-                  // setDateFilter={setActiveDateFilter}
-                  // setPagination={setPagination}
-                  // total={listBitacoras?.total_records}
-                />
-              </TabsContent>
+                <TabsContent value="check-ubicaciones">
+                    <CheckUbicacionesTable 
+                    viewMode={viewMode} 
+                    onExternalDynamicFiltersChange={()=>[]} 
+                    total={undefined}
+                    setTotalRegistros={setTotalRegistros}/>
+                </TabsContent>
 
-              <TabsContent value="incidencias">
-                <IncidenciasRondinesTable
-                  showTabs={true}
-                  data={listIncidenciasRondin}
-                  isLoading={false}
-                  setSelectedIncidencias={setSelectedIncidencias}
-                  selectedIncidencias={selectedIncidencias}
-                  date1={date1} date2={date2}
-                  setDate1={setDate1} setDate2={setDate2}
-                  dateFilter={dateFilter} setDateFilter={setDateFilter}
-                  Filter={Filter} resetTableFilters={resetTableFilters}
-                  openModal={openModal} setOpenModal={setOpenModal}
-                  viewMode={viewMode}
-                />
-              </TabsContent>
+                <TabsContent value="incidencias">
+                    <IncidenciasRondinesTable
+                    showTabs={true}
+                    setSelectedIncidencias={setSelectedIncidencias}
+                    selectedIncidencias={selectedIncidencias}
+                    date1={date1} date2={date2}
+                    setDate1={setDate1} setDate2={setDate2}
+                    dateFilter={dateFilter} setDateFilter={setDateFilter}
+                    Filter={Filter} resetTableFilters={resetTableFilters}
+                    openModal={openModal} setOpenModal={setOpenModal}
+                    viewMode={viewMode}
+                    setTotalRegistros={setTotalRegistros}
+                    />
+                </TabsContent>
 
             </Tabs>
           </div>

@@ -17,7 +17,6 @@ export const useGetListCheckUbicaciones = (
         throw new Error(`Error al obtener lista de check ubicaciones, Error: ${data.error}`);
       } else {
         const result = data.response?.data?.data;
-        console.log("RESULs", result)
         return Array.isArray(result) ? result : [];
       }
     },

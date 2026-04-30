@@ -22,19 +22,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { getRecorridosColumns, Recorrido } from "./recorridos-columns";
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddRondinModal } from "@/components/modals/add-rondin";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EliminarRondinModal } from "@/components/modals/delete-rondin-modal";
 import { useGetRondinById } from "@/hooks/Rondines/useGetRondinById";
 import dynamic from "next/dynamic";
 import { usePlayOrPauseRondin } from "@/hooks/Rondines/usePlayOrPauseROndin";
 import { AreasList } from "@/components/areas-list-draggable";
 import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
-// import { RondinesBitacoraTable } from "./bitacoras-table";
-// import ChecksImagesSection from "@/components/ChecksImagesSection";
-// import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
-// import { useBoothStore } from "@/store/useBoothStore";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
@@ -43,18 +38,11 @@ import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { useRondinesFilters, applyRondinesFilters } from "@/hooks/bitacora/useRondinesFilters";
 import { useGetListRecorridos } from "@/hooks/Rondines/useGetListRecorridos";
-// import IncidenciasRondinesTable from "../incidencias-rondines/table";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
 type ViewMode = "table" | "photos" | "list";
 
-const DEMO_MAP_DATA = [
-  { id: "689534634617f0951ac18af5", nombre_area: "Recursos eléctricos", geolocation_area: { latitude: 19.426763615482315, longitude: -99.13720130687581 } },
-  { id: "698653701b7735a0a164b4e0", nombre_area: "Antenas", geolocation_area: { latitude: 23.73873250194037, longitude: -99.15336012840272 } },
-  { id: "68a4f36488d1a1f78c011fcb", nombre_area: "Recursos de agua potable", geolocation_area: { latitude: 0, longitude: 0 } },
-  { id: "53:67:37:47:42:00:02", nombre_area: "Ventiladores", geolocation_area: { latitude: 0, longitude: 0 } },
-];
 
 export interface GeoLocation { latitude: number; longitude: number; }
 export interface GeoLocationSearch extends GeoLocation { search_txt: string; }
@@ -89,8 +77,6 @@ export interface RondinResponse {
 }
 
 interface ListProps {
-  data: any;
-  isLoading: boolean;
   resetTableFilters: () => void;
   setDate1: React.Dispatch<React.SetStateAction<Date | "">>;
   setDate2: React.Dispatch<React.SetStateAction<Date | "">>;
@@ -106,10 +92,11 @@ interface ListProps {
   externalFilters?: any;
   onExternalFiltersChange?: (filters: any) => void;
   filtersConfig?: any[];
+  setTotalRegistros: React.Dispatch<React.SetStateAction<number | 0>>;
 }
 
 const RecorridosTable: React.FC<ListProps> = ({
-  data:dataProp, isLoading:isLoadingProp,
+  
   // setDate1, setDate2, date1, date2,
   // dateFilter, setDateFilter, Filter, resetTableFilters,
   setActiveTab,
@@ -118,9 +105,10 @@ const RecorridosTable: React.FC<ListProps> = ({
   externalFilters: externalFiltersProp,
   onExternalFiltersChange: onExternalFiltersChangeProp,
   filtersConfig: filtersConfigProp,
+  setTotalRegistros
 }) => {
 
-  const { listRecorridos, isLoadingListRecorridos } = useGetListRecorridos(true, "", "", 100, 0);
+  const { listRecorridos, isLoadingListRecorridos: isLoading } = useGetListRecorridos(true, "", "", 100, 0);
   const { playOrPauseRondinMutation, isLoading: isLoadingPlayOrPause } = usePlayOrPauseRondin();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -128,6 +116,7 @@ const RecorridosTable: React.FC<ListProps> = ({
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
   const [rondinSeleccionado, setRondinSeleccionado] = useState<Recorrido | null>(null);
   const [verRondin, setVerRondin] = useState(false);
+
   // const { location } = useBoothStore();
   // const [selectedIncidencias, setSelectedIncidencias] = useState<string[]>([]);
   // const { listIncidenciasRondin } = useIncidenciaRondin("", "");
@@ -139,7 +128,7 @@ const RecorridosTable: React.FC<ListProps> = ({
   const [tipoAsignado, setTipoAsignado] = useState<"guardia" | "persona">("persona");
   const [ubicacionesLS, setUbicacionesLS] = useState<string[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     try {
       const stored = localStorage.getItem("ubicaciones_soter");
       setUbicacionesLS(stored ? JSON.parse(stored) : []);
@@ -147,6 +136,12 @@ const RecorridosTable: React.FC<ListProps> = ({
       setUbicacionesLS([]);
     }
   }, []);
+
+  useEffect(() => {
+    if (Array.isArray(listRecorridos)) {
+      setTotalRegistros(listRecorridos.length);
+    }
+  }, [listRecorridos, setTotalRegistros]);
 
   const {
     externalFilters: externalFiltersLocal,
@@ -193,10 +188,9 @@ const RecorridosTable: React.FC<ListProps> = ({
 
   const columns = useMemo(() => getRecorridosColumns(handleEliminar, handleVerRondin), [handleVerRondin]);
   const memoizedData = useMemo(
-    () => (Array.isArray(listRecorridos) ? listRecorridos : dataProp || []),
-    [listRecorridos, dataProp]
+    () => (Array.isArray(listRecorridos) ? listRecorridos : []),
+    [listRecorridos]
   );
-  const isLoading = isLoadingListRecorridos || isLoadingProp;
 
   const table = useReactTable({
     data: memoizedData ?? [],
@@ -508,42 +502,19 @@ const RecorridosTable: React.FC<ListProps> = ({
               </div>
             </div>
 
-            {/* <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <Tabs defaultValue="rondiness" className="w-full">
-                <TabsList className="w-auto justify-start bg-transparent border-b border-gray-200 rounded-none p-0 mb-4 gap-0">
-                  {["rondiness", "incidentes", "fotos"].map((tab) => (
-                    <TabsTrigger key={tab} value={tab}
-                      className="bg-transparent rounded-none px-4 pb-2 pt-1 text-sm font-medium text-gray-500 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 shadow-none capitalize">
-                      {tab === "rondiness" ? "Rondines" : tab === "incidentes" ? "Incidentes" : "Fotos"}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                <TabsContent value="rondiness">
-                  <RondinesBitacoraTable showTabs={false} ubicacion={rondin?.ubicacion} nombre_rondin={rondin?.nombre_del_rondin} />
-                </TabsContent>
-                <TabsContent value="incidentes">
-                  <IncidenciasRondinesTable showTabs={false} data={listIncidenciasRondin}
-                    isLoading={false} setSelectedIncidencias={setSelectedIncidencias}
-                    selectedIncidencias={selectedIncidencias}
-                    date1={date1} date2={date2} setDate1={setDate1} setDate2={setDate2}
-                    dateFilter={dateFilter} setDateFilter={setDateFilter}
-                    Filter={Filter} resetTableFilters={resetTableFilters}
-                    openModal={openModal} setOpenModal={setOpenModal} />
-                </TabsContent>
-                <TabsContent value="fotos">
-                  <ChecksImagesSection location={location ?? ""} showTabs={false} />
-                </TabsContent>
-              </Tabs>
-            </div> */}
-
           </div>
 
         ) : (
           <>
           {isLoadingRondin && verRondin ? (
-            <div className="flex flex-col items-center gap-2 text-slate-300 h-32 justify-center">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-              <span className="text-xs font-normal text-slate-400">Cargando registros...</span>
+            <div className="flex flex-col items-center gap-3 h-32 justify-center">
+              <div className="relative h-8 w-8">
+                <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
+                <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+              </div>
+              <span className="text-base text-slate-500">
+                Cargando registro...
+              </span>
             </div>
           ) : (
               <>
@@ -579,12 +550,17 @@ const RecorridosTable: React.FC<ListProps> = ({
                           <TableRow>
                             <TableCell colSpan={table.getVisibleFlatColumns().length} className="h-32 text-center">
                               {isLoading ? (
-                                <div className="flex flex-col items-center gap-2 text-slate-300">
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-                                  <span className="text-xs font-normal">Cargando registros...</span>
+                                <div className="flex flex-col items-center gap-3 h-32 justify-center">
+                                  <div className="relative h-8 w-8">
+                                    <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
+                                    <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                                  </div>
+                                  <span className="text-base text-slate-400">
+                                    Cargando registros...
+                                  </span>
                                 </div>
                               ) : (
-                                <span className="text-xs text-slate-300 font-normal">No se encontraron registros</span>
+                                <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
                               )}
                             </TableCell>
                           </TableRow>
@@ -620,7 +596,7 @@ const RecorridosTable: React.FC<ListProps> = ({
                           const original = filteredData.find(
                             (item: any) => item._id === record.id || item.folio === record.folio
                           );
-                          return original?.map_data?.length ? original.map_data : DEMO_MAP_DATA;
+                          return original?.map_data?.length ? original.map_data : [];
                         }} />
                     </div>
                   </div>

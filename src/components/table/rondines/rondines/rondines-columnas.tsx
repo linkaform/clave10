@@ -18,7 +18,7 @@ const EstatusBadge = ({ estatus }: { estatus: string }) => {
   );
 };
 
-export const getBitacorasRondinesColumns = (
+export const getRondinesColumns = (
   handleVer: (rondin: BitacoraRondin) => void
 ): ColumnDef<BitacoraRondin>[] => [
   {

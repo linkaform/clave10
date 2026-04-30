@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -44,7 +44,7 @@ interface CheckUbicacionesTableProps {
   setDate1?: (val: Date | "") => void;
   date2?: Date | "";
   setDate2?: (val: Date | "") => void;
-
+  setTotalRegistros: React.Dispatch<React.SetStateAction<number | 0>>;
 }
 
 const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
@@ -61,6 +61,7 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
   setDate1,
   date2,
   setDate2,
+  setTotalRegistros
   
 }) => {
   const { listCheckUbicaciones, isLoadingListCheckUbicaciones: isLoading } = useGetListCheckUbicaciones(true);
@@ -74,21 +75,16 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
   });
   const [rowSelection, setRowSelection] = React.useState({});
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
-  // const [globalFilter, setGlobalFilter] = React.useState("");
-
 
   const [localSearchTags, setLocalSearchTags] = useState<string[]>([]);
   const searchTags = externalSearchTags || localSearchTags;
   const setSearchTags = setLocalSearchTags;
 
-  
-  // React.useEffect(() => {
-  //   if (searchTags && searchTags.length > 0) {
-  //     setGlobalFilter(searchTags.join(" "));
-  //   } else {
-  //     setGlobalFilter("");
-  //   }
-  // }, [searchTags]);
+  useEffect(() => {
+    if (Array.isArray(listCheckUbicaciones)) {
+      setTotalRegistros(listCheckUbicaciones.length);
+    }
+  }, [listCheckUbicaciones, setTotalRegistros]);
 
   const handleEliminar = (check: CheckUbicacion) => {
     setCheckSeleccionado(check);
@@ -219,7 +215,7 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
         <div className="flex-1 min-w-0">
           {viewMode === "table" ? (
             <>
-              <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">
+              <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
             <Table className="text-xs">
               <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -257,12 +253,17 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
                   <TableRow>
                     <TableCell colSpan={columns.length} className="h-32 text-center">
                       {isLoading ? (
-                        <div className="flex flex-col items-center gap-2 text-slate-300">
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-                          <span className="text-xs font-normal">Cargando registros...</span>
-                        </div>
+                         <div className="flex flex-col items-center gap-3 h-32 justify-center">
+                            <div className="relative h-8 w-8">
+                              <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
+                              <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                            </div>
+                            <span className="text-base text-slate-400">
+                              Cargando registros...
+                            </span>
+                          </div>
                       ) : (
-                        <span className="text-xs text-slate-300 font-normal">
+                        <span className="text-base text-slate-400 font-normal">
                           No se encontraron registros
                         </span>
                       )}
