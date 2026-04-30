@@ -325,27 +325,41 @@ const RecorridosTable: React.FC<ListProps> = ({
               return (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-5 mb-4">
                   <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
-                    <div className="flex items-center gap-3">
+                  
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => { setRondinSeleccionado(null); setVerRondin(false); setActiveTab("recorridos"); }}
+                          className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
+                          <MoveLeft className="w-5 h-5" />
+                        </button>
+                      <h2 className="text-xl font-bold text-gray-900">{rondin.nombre_del_rondin}</h2>
+
+                      <AddRondinModal
+                        title="Editar Rondín"
+                        mode="edit"
+                        rondinData={rondinSeleccionado}
+                        rondinId={rondinSeleccionado ? rondinSeleccionado._id : ""}
+                        folio={rondinSeleccionado ? rondinSeleccionado.folio : ""}>
+                        <button className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      </AddRondinModal>
+
                       <button
-                        onClick={() => { setRondinSeleccionado(null); setVerRondin(false); setActiveTab("recorridos"); }}
-                        className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
-                        <MoveLeft className="w-5 h-5" />
+                        type="button"
+                        disabled={rondin?.estatus_rondin === "Corriendo" || isLoadingPlayOrPause}
+                        onClick={handlePlay}
+                        title="Ejecutar Rondín"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border bg-green-50 text-green-600 border-green-200 hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                        {isLoadingPlayOrPause && rondin?.estatus_rondin !== "Corriendo" ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Play className="w-3 h-3" />
+                        )}
+                        Ejecutar
                       </button>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-bold text-gray-900">{rondin.nombre_del_rondin}</h2>
-                        <AddRondinModal
-                          title="Editar Rondín"
-                          mode="edit"
-                          rondinData={rondinSeleccionado}
-                          rondinId={rondinSeleccionado ? rondinSeleccionado._id : ""}
-                          folio={rondinSeleccionado ? rondinSeleccionado.folio : ""}>
-                            <button className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              </svg>
-                            </button>
-                        </AddRondinModal>
-                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                       {rondin?.folio && (

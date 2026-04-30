@@ -184,12 +184,6 @@ const puntos = useMemo<Punto[]>(() =>
 
   const linePositions: [number, number][] = puntos.map(p => [p.lat, p.lng]);
 
-  if (!puntos.length) return (
-    <div className="flex items-center justify-center h-full text-xs text-gray-400">
-      Sin coordenadas disponibles
-    </div>
-  );
-
   return (
     <article key={mapKey} style={{ height: "100%", width: "100%" }}>
       <MapContainer
@@ -213,18 +207,19 @@ const puntos = useMemo<Punto[]>(() =>
             eventHandlers={{
               click: (e) => { e.originalEvent.stopPropagation(); },
             }}>
-            <Tooltip
-              permanent
-              direction="top"
-              className={`myTooltip myTooltip-${instanceId}`}
-              interactive={false} 
-            >
-              <div className="tooltip-div" style={{ pointerEvents: "none" }}>
-                <span className="toltip-data text-xs font-medium">
-                  {obj.folio}
-                </span>
-              </div>
-            </Tooltip>
+           <Tooltip
+            permanent
+            direction="right"
+            offset={[8, -22]}
+            className={`myTooltip myTooltip-${instanceId}`}
+            interactive={false}
+          >
+            <div className="tooltip-div" style={{ pointerEvents: "none" }}>
+              <span className="toltip-data text-xs font-medium whitespace-nowrap">
+                {obj.folio}
+              </span>
+            </div>
+          </Tooltip>
           </Marker>
         ))}
       </MapContainer>

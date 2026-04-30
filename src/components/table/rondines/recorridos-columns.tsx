@@ -110,7 +110,7 @@ import { Eye, Pencil, Trash } from "lucide-react";
       accessorKey: "asignado_a",
       header: "Asignado a",
       cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("asignado_a")|| "No Asignado"}</div>
+        <div className="capitalize">{row.getValue("asignado_a")|| "Guardia en turno"}</div>
       ),
       enableSorting: true,
     },

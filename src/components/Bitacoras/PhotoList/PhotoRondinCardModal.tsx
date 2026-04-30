@@ -4,10 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Search, ArrowLeft, MapPin, Camera, Calendar, FileText, Wrench } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, ArrowLeft, MapPin, Camera, Calendar, FileText, Wrench, ZoomIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapItem } from "@/components/table/rondines/recorridos/table";
 import dynamic from "next/dynamic";
+import ViewImage from "@/components/modals/view-image";
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
 interface PhotoDetailModalProps {
@@ -43,7 +44,11 @@ function ListItem({ label, value }: ListItemProps) {
   );
 }
 
-function IncidenciaListItem({ item, onClick }: { item: any; onClick: () => void }) {
+function IncidenciaListItem({ item, onClick, onImageClick }: { 
+  item: any; 
+  onClick: () => void;
+  onImageClick?: (url: string) => void;
+}) {
   const img = item.evidencias?.[0]?.file_url || item.incidente_evidencia?.[0]?.file_url || "/placeholder.svg";
   const subcategoria = item.subcategoria || item.sub_categoria || "";
   const incidente = item.incidente || item.incidente_open || "Sin incidente";
@@ -51,10 +56,12 @@ function IncidenciaListItem({ item, onClick }: { item: any; onClick: () => void 
 
   return (
     <div
-      onClick={onClick}
-      className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50 rounded-lg px-1 -mx-1 transition-colors"
+    onClick={onClick}
+    className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50 rounded-lg px-1 -mx-1 transition-colors"
     >
-      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-slate-100 relative">
+      <div 
+        className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-slate-100 relative"
+        onClick={(e) => { e.stopPropagation(); onImageClick?.(img); }}>
         <Image src={img} alt={incidente} fill className="object-cover" />
       </div>
       <div className="min-w-0 flex-1">
@@ -185,12 +192,10 @@ function IncidenciaDetailPanel({ item, onBack }: { item: any; onBack: () => void
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {evidencias.map((ev, i) => (
-                <div key={i} className="rounded-xl overflow-hidden border border-slate-100 bg-slate-50 aspect-video relative">
-                  <Image src={ev.file_url} alt={ev.file_name} fill className="object-cover" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5">
-                    <p className="text-white text-[9px] truncate">{ev.file_name}</p>
-                  </div>
+              {evidencias.map((ev: any, i: number) => (
+                <div key={i} className="relative w-full aspect-video rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
+                  <ViewImage imageUrl={ev} />
+                  <div className="absolute inset-0 pointer-events-none rounded-xl" />
                 </div>
               ))}
             </div>
@@ -317,15 +322,18 @@ export function PhotoRondinCardModal({
   const [areaSearch, setAreaSearch] = useState("");
   const [selectedArea, setSelectedArea] = useState<any>(null);
   const [selectedIncidencia, setSelectedIncidencia] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [viewImageOpen, setViewImageOpen] = useState(false);
 
   if (!record) return null;
-
   const slides =
-    selectedArea && selectedArea.fotos.length > 0
-      ? selectedArea.fotos.map((f: any) => ({ src: f.file_url, label: f.file_name || "Foto" }))
-      : record.images && record.images.length > 0
-      ? record.images.map((img: any, i: number) => ({ src: img, label: `Imagen ${i + 1}` }))
-      : [{ src: "/placeholder.svg", label: "Sin imagen" }];
+  selectedImage
+    ? [{ src: selectedImage, label: "Evidencia" }]
+    : selectedArea && selectedArea.fotos.length > 0
+    ? selectedArea.fotos.map((f: any) => ({ src: f.file_url, label: f.file_name || "Foto" }))
+    : record.images && record.images.length > 0
+    ? record.images.map((img: any, i: number) => ({ src: img, label: `Imagen ${i + 1}` }))
+    : [{ src: "/placeholder.svg", label: "Sin imagen" }];
 
   const prevSlide = () => setSlideIndex((i) => (i - 1 + slides.length) % slides.length);
   const nextSlide = () => setSlideIndex((i) => (i + 1) % slides.length);
@@ -333,15 +341,16 @@ export function PhotoRondinCardModal({
   const handleSelectArea = (area: any) => {
     setSelectedArea(area);
     setSelectedIncidencia(null);
+    setSelectedImage(null);
     setSlideIndex(0);
   };
 
   const handleBack = () => {
     setSelectedArea(null);
     setSelectedIncidencia(null);
+    setSelectedImage(null);
     setSlideIndex(0);
   };
-
   // Mapear áreas con estructura correcta del servicio
   const rawAreas = record?.rawData?.areas || record?.areas || [];
   const realAreas = rawAreas.map((a: any) => ({
@@ -370,14 +379,13 @@ export function PhotoRondinCardModal({
   const inspectedAreas = realAreas.filter((a: any) => a.hora).length;
   const progress = totalAreas > 0 ? Math.round((inspectedAreas / totalAreas) * 100) : 0;
   const detailsList = record.modalDetailsList || [];
-
   const rightPanel = selectedArea
     ? <AreaDetailPanel area={selectedArea} onBack={handleBack} />
     : selectedIncidencia
     ? <IncidenciaDetailPanel item={selectedIncidencia} onBack={() => setSelectedIncidencia(null)} />
     : (
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background">
-        <div className="px-6 pt-6 pb-4 shrink-0">
+        <div className="px-6 pt-1 pb-1 shrink-0">
           <div className="flex flex-wrap gap-1.5 justify-end mb-3">
             {record.folio && (
               <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#2987F7]">
@@ -396,9 +404,9 @@ export function PhotoRondinCardModal({
               </div>
             )}
           </div>
-          {/* {record.description && (
-            <p className="text-sm text-slate-500">{record.description}</p>
-          )} */}
+          {record.title && (
+            <h4 className="text-slate-700 font-bold text-lg">{record.title}</h4>
+          )}
         </div>
 
         <div className="px-6 shrink-0">
@@ -451,6 +459,7 @@ export function PhotoRondinCardModal({
                       key={item.id || i}
                       item={item}
                       onClick={() => setSelectedIncidencia(item)}
+                      onImageClick={(url) => { setSelectedImage(url); setSlideIndex(0); }}
                     />
                   ))
                 )}
@@ -471,7 +480,16 @@ export function PhotoRondinCardModal({
     );
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSlideIndex(0); setAreaSearch(""); setSelectedArea(null); setSelectedIncidencia(null); } }}>
+    <Dialog open={open} onOpenChange={(v) => { 
+      onOpenChange(v); 
+      if (!v) { 
+        setSlideIndex(0); 
+        setAreaSearch(""); 
+        setSelectedArea(null); 
+        setSelectedIncidencia(null); 
+        setSelectedImage(null); 
+      } 
+    }}>
       <DialogContent className="p-0 overflow-hidden !max-w-[1400px] w-[98vw] h-[95vh] rounded-3xl shadow-2xl flex flex-col border-none bg-background">
         <DialogTitle className="sr-only">Detalle — {record.title}</DialogTitle>
 
@@ -530,9 +548,9 @@ export function PhotoRondinCardModal({
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-slate-700 leading-tight truncate">{area.nombre}</p>
                       {area.hora ? (
-                        <p className="text-[10px] text-green-500 font-medium">✓ {area.hora}</p>
+                        <p className="text-[10px] text-slate-500">{area.hora}</p> 
                       ) : (
-                        <p className="text-[10px] text-slate-400">Sin check</p>
+                        <p className="text-[10px] text-slate-500">Sin check</p>
                       )}
                     </div>
                   </div>
@@ -542,49 +560,60 @@ export function PhotoRondinCardModal({
           </div>
 
           <div className="flex flex-col w-[380px] shrink-0 border-r border-slate-100 overflow-hidden bg-background">
-            <div className="relative h-[50%] group overflow-hidden bg-zinc-950 border-b border-slate-200">
-              <Image
-                key={slides[slideIndex].src}
-                src={slides[slideIndex].src}
-                alt={slides[slideIndex].label}
-                fill
-                className="object-contain transition-all duration-500 ease-in-out"
-                priority
-              />
-              {slides[slideIndex].src !== "/placeholder.svg" && (
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3 z-10">
-                  <p className="text-white text-xs font-semibold">
-                    {selectedArea?.nombre || record.title}
-                  </p>
-                  <p className="text-white/60 text-[10px]">
-                    {slides[slideIndex].label}
-                  </p>
-                </div>
-              )}
-              {slides.length > 1 && (
-                <>
-                  <div className="absolute inset-x-3 inset-y-0 flex items-center justify-between z-20 pointer-events-none">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); prevSlide(); }}
-                      className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105"
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); nextSlide(); }}
-                      className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105"
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="absolute top-3 right-3 z-30">
-                    <span className="bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
-                      {slideIndex + 1} / {slides.length}
-                    </span>
-                  </div>
-                </>
-              )}
+          <div className="relative h-[50%] group overflow-hidden bg-zinc-950 border-b border-slate-200">
+            <Image
+              key={slides[slideIndex].src}
+              src={slides[slideIndex].src}
+              alt={slides[slideIndex].label}
+              fill
+              className="object-contain transition-all duration-500 ease-in-out cursor-pointer"
+              priority
+              onClick={() => setViewImageOpen(true)}
+            />
+            {/* overlay hint */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none flex items-center justify-center">
+              <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-60 transition-opacity" />
             </div>
+
+            {slides[slideIndex].src !== "/placeholder.svg" && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3 z-10 pointer-events-none">
+                <p className="text-white text-xs font-semibold">
+                  {selectedArea?.nombre || record.title}
+                </p>
+                <p className="text-white/60 text-[10px]">
+                  {slides[slideIndex].label}
+                </p>
+              </div>
+            )}
+
+            {slides.length > 1 && (
+              <>
+                <div className="absolute inset-x-3 inset-y-0 flex items-center justify-between z-20 pointer-events-none">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); prevSlide(); }}
+                    className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105">
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); nextSlide(); }}
+                    className="pointer-events-auto h-9 w-9 flex items-center justify-center bg-white/90 text-black rounded-full shadow-lg transition-all hover:scale-105">
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="absolute top-3 right-3 z-30">
+                  <span className="bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+                    {slideIndex + 1} / {slides.length}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="hidden">
+            <ViewImage
+              imageUrl={slides.map((s: { src: any; label: any; }) => ({ file_url: s.src, file_name: s.label }))}
+            />
+          </div>
             <div className="flex-1 mb-5 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
               <div className="h-full w-full">
                 <MapView map_data={mapData??[]} areas={record?.areas || []}/>
@@ -595,6 +624,24 @@ export function PhotoRondinCardModal({
           {rightPanel}
         </div>
       </DialogContent>
+
+
+      {viewImageOpen && (
+        <Dialog open={viewImageOpen} onOpenChange={setViewImageOpen}>
+          <DialogContent className="p-0 max-w-5xl w-full bg-white overflow-hidden rounded-2xl shadow-2xl border-0">
+            <DialogTitle className="sr-only">Imagen</DialogTitle>
+            <div className="relative w-full bg-slate-50" style={{ height: '80vh' }}>
+              <Image
+                src={slides[slideIndex].src}
+                alt={slides[slideIndex].label}
+                fill
+                className="object-contain p-4"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
     </Dialog>
   );
 }

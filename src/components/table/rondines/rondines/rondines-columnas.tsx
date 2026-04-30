@@ -1,5 +1,6 @@
-import { ColumnDef } from "@tanstack/react-table";
-import { Eye } from "lucide-react";
+import { ColumnDef, Row, Table as TanstackTable } from "@tanstack/react-table";
+import { Eye, Printer } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { BitacoraRondin } from "./table";
 
 const estatusStyles: Record<string, string> = {
@@ -19,18 +20,38 @@ const EstatusBadge = ({ estatus }: { estatus: string }) => {
 };
 
 export const getRondinesColumns = (
-  handleVer: (rondin: BitacoraRondin) => void
+  handleVer: (rondin: BitacoraRondin) => void,
+  handleImprimir: (rondin: BitacoraRondin) => void,
 ): ColumnDef<BitacoraRondin>[] => [
+  {
+    id: "select",
+    header: ({ table }: { table: TanstackTable<BitacoraRondin> }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }: { row: Row<BitacoraRondin> }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     id: "options",
     header: "Opciones",
     cell: ({ row }) => (
-      <div className="flex space-x-2">
-        <div
-          className="cursor-pointer"
-          onClick={() => handleVer(row.original)}
-          title="Ver Rondín">
-          <Eye className="w-4 h-4" />
+      <div className="flex items-center gap-2">
+        <div className="cursor-pointer" onClick={() => handleVer(row.original)} title="Ver Rondín">
+          <Eye />
+        </div>
+        <div className="cursor-pointer " onClick={() => handleImprimir(row.original)} title="Imprimir">
+          <Printer />
         </div>
       </div>
     ),
@@ -57,12 +78,17 @@ export const getRondinesColumns = (
     ),
     enableSorting: true,
   },
-
   {
     accessorKey: "estatus_recorrido",
     header: "Estatus",
+    cell: ({ row }) => <EstatusBadge estatus={row.getValue("estatus_recorrido")} />,
+    enableSorting: true,
+  },
+  {
+    accessorKey: "fecha_hora_programada_inicio",
+    header: "Fecha programada",
     cell: ({ row }) => (
-      <EstatusBadge estatus={row.getValue("estatus_recorrido")} />
+      <div className="text-xs">{row.getValue("fecha_hora_programada_inicio") || "-"}</div>
     ),
     enableSorting: true,
   },
@@ -75,10 +101,10 @@ export const getRondinesColumns = (
     enableSorting: true,
   },
   {
-    accessorKey: "fecha_hora_fin",
-    header: "Fecha fin",
+    accessorKey: "asignado_a",
+    header: "Asignado a",
     cell: ({ row }) => (
-      <div className="text-xs">{row.getValue("fecha_hora_fin") || "-"}</div>
+      <div className="text-xs">{row.getValue("asignado_a") || "Guardia en turno"}</div>
     ),
     enableSorting: true,
   },
@@ -107,9 +133,7 @@ export const getRondinesColumns = (
     header: "Duración",
     cell: ({ row }) => {
       const val = row.getValue("duracion_rondin");
-      return (
-        <div className="text-xs">{val ? `${val} min` : "-"}</div>
-      );
+      return <div className="text-xs">{val ? `${val} min` : "-"}</div>;
     },
     enableSorting: true,
   },

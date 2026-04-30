@@ -61,7 +61,6 @@ export function PhotoListCard({
 
       <div className="flex gap-8 p-6 items-start w-full">
 
-        {/* Columna izquierda: imagen principal + thumbnails */}
         <div className="flex-shrink-0 w-[22%] flex flex-col gap-3">
           <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative w-full aspect-[4/3]">
             <Image

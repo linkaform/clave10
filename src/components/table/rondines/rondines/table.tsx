@@ -27,6 +27,8 @@ import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersP
 import { PhotoRondinCardModal } from "@/components/Bitacoras/PhotoList/PhotoRondinCardModal";
 import { useGetListRondines } from "@/hooks/Rondines/useGetListRecorridos";
 import { getRondinesColumns } from "./rondines-columnas";
+import { PrintRondinModal } from "@/components/modals/modal-imprimir-rondin";
+import { mapRondinBitacoraList } from "@/mappers/rondin.bitacora.list.mapper";
 
 export interface BitacoraRondin {
   id: string;
@@ -83,15 +85,22 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   setTotalRegistros
 }) => {
   const { listRondines, isLoadingListRondines: isLoading } = useGetListRondines(true, "", "", 100, 0);
+  const [rowSelection, setRowSelection] = React.useState({});
+  const [imprimirAbierto, setImprimirAbierto] = useState(false);
+  const [rondinImprimir, setRondinImprimir] = useState<BitacoraRondin[]>([]);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
   const [globalFilter, setGlobalFilter] = React.useState("");
-  const [rondinSeleccionado, setRondinSeleccionado] = useState<BitacoraRondin | null>(null);
+  const [rondinSeleccionado, setRondinSeleccionado] = useState<any | null>(null);
   const [modalVerAbierto, setModalVerAbierto] = useState(false);
+
+  const handleImprimir = (rondin: BitacoraRondin) => {
+    setRondinImprimir([rondin]);
+    setImprimirAbierto(true);
+  };
 
   useEffect(() => {
     if (Array.isArray(listRondines)) {
@@ -108,7 +117,12 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   }, [searchTags]);
 
   const handleVer = (rondin: BitacoraRondin) => {
-    setRondinSeleccionado(rondin);
+    const base = {
+      id: rondin.id,
+      folio: rondin.folio,
+    };
+    const formatted = mapRondinBitacoraList(rondin, base);
+    setRondinSeleccionado(formatted as any);
     setModalVerAbierto(true);
   };
 
@@ -118,13 +132,14 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   );
 
   const columns = useMemo(
-    () => getRondinesColumns(handleVer),
-    [handleVer]
+    () => getRondinesColumns(handleVer, handleImprimir),
+    []
   );
 
   const table = useReactTable({
     data: memoizedData,
     columns,
+    onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
@@ -133,7 +148,6 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
     globalFilterFn: (row, _columnId, filterValue: string) => {
       if (!filterValue) return true;
@@ -146,6 +160,12 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
     },
     state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
   });
+
+  const selectedRows = table.getFilteredSelectedRowModel().rows;
+  const selectedItems = selectedRows.map((row) => ({
+    record_id: row.original.id,
+    record_status: row.original.estatus_recorrido,
+  }));
 
   const photoListRecords: ListRecord[] = useMemo(() => {
     return memoizedData.map((item: any, index: number) =>
@@ -165,8 +185,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
     );
   }, [memoizedData]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const renderActions = (_record: PhotoRecord | ListRecord) => null;
+  const renderActions = () => null;
 
   return (
     <div className="w-full">
@@ -186,48 +205,46 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
             <>
               <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
                 <Table className="text-xs">
-                <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none ${header.id === "options" ? "w-1" : ""}`}>
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
+                  <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
+                        {headerGroup.headers.map((header) => (
+                          <TableHead
+                            key={header.id}
+                            className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none ${header.id === "options" ? "w-1" : ""}`}>
+                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                          </TableHead>
+                        ))}
+                      </TableRow>
                     ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
+                  </TableHeader>
                   <TableBody>
                     {table.getRowModel().rows?.length ? (
                       table.getRowModel().rows.map((row) => (
-                          <TableRow
-                            key={row.id}
-                            data-state={row.getIsSelected() && "selected"}
-                            className="hover:bg-slate-100 transition-colors border-slate-50">
-                            {row.getVisibleCells().map((cell) => (
-                              <TableCell
-                                key={cell.id}
-                                className={`py-2 px-3 border-r border-slate-100 last:border-r-0 ${cell.column.id === "options" ? "w-1" : ""} font-normal`}>
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                              </TableCell>
-                            ))}
-                          </TableRow>
+                        <TableRow
+                          key={row.id}
+                          data-state={row.getIsSelected() && "selected"}
+                          className="hover:bg-slate-100 transition-colors border-slate-50">
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell
+                              key={cell.id}
+                              className={`py-2 px-3 border-r border-slate-100 last:border-r-0 ${cell.column.id === "options" ? "w-1" : ""} font-normal`}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
                       ))
                     ) : (
                       <TableRow>
                         <TableCell colSpan={columns.length} className="h-32 text-center">
                           {isLoading ? (
-                             <div className="flex flex-col items-center gap-3 h-32 justify-center">
-                                <div className="relative h-8 w-8">
-                                  <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
-                                  <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                                </div>
-                                <span className="text-base text-slate-400">
-                                  Cargando registros...
-                                </span>
+                            <div className="flex flex-col items-center gap-3 h-32 justify-center">
+                              <div className="relative h-8 w-8">
+                                <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
+                                <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
                               </div>
+                              <span className="text-base text-slate-400">Cargando registros...</span>
+                            </div>
                           ) : (
                             <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
                           )}
@@ -255,7 +272,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
               globalSearch={searchTags ?? []}
               modalType="rondines"
               getMapData={(record) => (record as any)?.rawData?.map_data ?? []}
-              selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
+              selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} variant="imprimir"/>}>
               {renderActions}
             </PhotoGridView>
           ) : (
@@ -265,7 +282,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
               globalSearch={searchTags ?? []}
               modalType="rondines"
               getMapData={(record) => record?.rawData?.map_data ?? []}
-              selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
+              selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} variant="imprimir"/>}>
               {renderActions}
             </PhotoListView>
           )}
@@ -276,11 +293,52 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
         record={rondinSeleccionado as any}
         open={modalVerAbierto}
         onOpenChange={setModalVerAbierto}
-        mapData={rondinSeleccionado?.areas?.flatMap((a) =>
-          a.detalle?.fotos?.length > 0
-            ? [{ id: a.area, nombre_area: a.area, geolocation_area: { latitude: 0, longitude: 0 } }]
-            : []
-        )}
+        mapData={
+          rondinSeleccionado?.rawData?.map_data ??
+          rondinSeleccionado?.areas?.flatMap((a: any) =>
+            a.detalle?.fotos?.length > 0
+              ? [{ id: a.area, nombre_area: a.area, geolocation_area: { latitude: 0, longitude: 0 } }]
+              : []
+          ) ?? []
+        }
+      />
+
+      {selectedRows.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50">
+          <div className="bg-blue-600 text-white px-6 py-3 flex items-center justify-between shadow-lg">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-semibold flex items-center gap-2">
+                ✓ {selectedRows.length} seleccionado{selectedRows.length > 1 ? "s" : ""}
+              </span>
+              <button
+                onClick={() => table.toggleAllPageRowsSelected(true)}
+                className="text-sm font-bold bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors">
+                Seleccionar todos ({memoizedData.length})
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <OutSelectedItemsButton
+                selectedItems={selectedItems}
+                variant="imprimir"
+                onImprimir={() => {
+                  setRondinImprimir(selectedRows.map(r => r.original));
+                  setImprimirAbierto(true);
+                }}
+              />
+              <button
+                onClick={() => setRowSelection({})}
+                className="p-1.5 rounded-full hover:bg-white/20 transition-colors text-white">
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <PrintRondinModal
+        open={imprimirAbierto}
+        onOpenChange={setImprimirAbierto}
+        rondines={rondinImprimir}
       />
     </div>
   );
