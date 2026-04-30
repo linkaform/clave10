@@ -11,7 +11,6 @@ import {
 } from "@/mappers/bitacora.grid.mapper";
 import { mapAsistenciaList } from "@/mappers/asistencia.list.mapper";
 import { mapAsistenciaGrid } from "@/mappers/asistencia.grid.mapper";
-import { mapRondinList } from "@/mappers/rondin.list.mapper";
 import { mapRondinGrid } from "@/mappers/rondin.grid.mapper";
 import { mapIncidenciaList } from "@/mappers/incidencias.list.mapper";
 import { mapFallaList } from "@/mappers/fallas.list.mapper";
@@ -29,7 +28,6 @@ const mappers_list: Record<string, (raw: any, base: any) => ListRecord> = {
   bitacoras_equipos: mapBitacoraListEquipos,
   bitacora_vehiculos: mapBitacoraListVehiculos,
   asistencia_personal: mapAsistenciaList,
-  rondin: mapRondinList,
   incidencia: mapIncidenciaList,
   falla: mapFallaList,
   rondin_incidencia: mapRondinIncidenciaList,

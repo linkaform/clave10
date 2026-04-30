@@ -59,15 +59,12 @@ export function mapRondinBitacoraList(raw: any, base: any) {
       ],
   
       detailsList: [
-        { icon: null, label: "FOLIO", value: raw?.folio || "-" },
         { icon: null, label: "UBICACIÓN", value: raw?.ubicacion || "-" },
-        { icon: null, label: "ESTATUS", value: raw?.estatus_recorrido?.replace(/_/g, " ") || "-" },
-        { icon: null, label: "FECHA PROGRAMADA", value: raw?.fecha_hora_programada_inicio || "-" },
-        { icon: null, label: "FECHA INICIO", value: raw?.fecha_hora_inicio || "-" },
+        { icon: null, label: "REALIZADO POR", value: raw?.asignado_a || "Guardia en turno" },
+        { icon: null, label: "INICIO", value: raw?.fecha_hora_inicio || "-" },
+        { icon: null, label: "FINALIZACIÓN", value: raw?.fecha_hora_fin || raw?.updated_at || "-" },
         { icon: null, label: "DURACIÓN", value: raw?.duracion_rondin ? `${raw.duracion_rondin} min` : "-" },
-        { icon: null, label: "AVANCE", value: raw?.cantidad_areas_inspeccionadas ? `${raw.cantidad_areas_inspeccionadas}` : "0" },
-        { icon: null, label: "% AVANCE", value: raw?.porcentaje_avance ? `${raw.porcentaje_avance}` : "0%" },
-        { icon: null, label: "TIPO", value: raw?.tipo_rondin?.toUpperCase() || "-" },
+        { icon: null, label: "ÁREAS INSPECCIONADAS", value: raw?.cantidad_areas_inspeccionadas ? `${raw.cantidad_areas_inspeccionadas}` : "0" },
         { icon: null, label: "ÁREAS", value: areaNames },
       ],
   

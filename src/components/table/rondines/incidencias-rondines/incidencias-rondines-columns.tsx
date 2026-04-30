@@ -96,7 +96,7 @@ export const OptionsCell: React.FC<{
   return (
     <div className="flex space-x-2">
       <div className="cursor-pointer" title="Información de la Incidencia" onClick={() => onView(incidencia)}>
-        <Eye className="w-4 h-4" />
+        <Eye/>
       </div>
       <LoadingModal isOpen={showLoadingModal} text="Cargando..." />
     </div>

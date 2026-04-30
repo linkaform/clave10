@@ -172,7 +172,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
       formatListRecord({
         ...item,
         _id: `rondin-bitacora-${index}-${item.id || index}`,
-      }, "check_ubicacion")
+      }, "rondin_bitacora")
     );
   }, [memoizedData]);
 
@@ -181,7 +181,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
       formatPhotoRecord({
         ...item,
         _id: `rondin-bitacora-${index}-${item.id || index}`,
-      }, "check_ubicacion")
+      }, "rondin_bitacora")
     );
   }, [memoizedData]);
 
