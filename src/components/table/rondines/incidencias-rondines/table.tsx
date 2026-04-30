@@ -280,7 +280,7 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
                         {headerGroup.headers.map((header) => (
                           <TableHead
                             key={header.id}
-                            style={{ color: '#475569', fontSize: '11px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '8px 12px' }}>
+                            className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none ${header.id === "options" ? "w-1" : ""}`}>
                             {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                           </TableHead>
                         ))}
