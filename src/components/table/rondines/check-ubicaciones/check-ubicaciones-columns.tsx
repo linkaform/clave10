@@ -51,14 +51,6 @@ export const getCheckUbicacionesColumns = (
     enableSorting: true,
   },
   {
-    accessorKey: "ubicacion",
-    header: "Ubicación",
-    cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("ubicacion") || "-"}</div>
-    ),
-    enableSorting: true,
-  },
-  {
     accessorKey: "created_at",
     header: "Fecha",
     cell: ({ row }) => (

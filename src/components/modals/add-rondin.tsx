@@ -464,14 +464,15 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       form.setValue("sucede_recurrencia", sucede);
       if (rondinData.fecha_hora_programada)
         setDate(new Date(rondinData.fecha_hora_programada));
-      if (rondinData.areas && catalogAreasRondin) {
-        const cat = (rondinData?.areas ?? []).map((area: any) => ({
-          name: area ?? "",
-          id: area ?? "",
-        }));
-        console.log("areas", cat, catalogAreasRondin);
-        setAreasSeleccionadas(cat);
-      }
+        if (rondinData.areas && catalogAreasRondin) {
+          const cat = (rondinData?.areas ?? []).map((area: any) => {
+            if (typeof area === "string") return { name: area, id: area };
+            if (area?.rondin_area) return { name: area.rondin_area, id: area?.area_tag_id?.[0] ?? area.rondin_area };
+            if (area?.area) return { name: area.area, id: area.area };
+            return null;
+          }).filter(Boolean);
+          setAreasSeleccionadas(cat);
+        }
       if (
         rondinData?.que_dias_de_la_semana &&
         rondinData?.que_dias_de_la_semana.length > 0

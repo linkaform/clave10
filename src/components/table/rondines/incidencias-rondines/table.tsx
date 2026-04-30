@@ -183,7 +183,6 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
   return (
     <div className="w-full">
 
-      {/* Modales */}
       <div className="flex w-full justify-end">
         <EliminarIncidenciaModal
           title="Eliminar Incidencias"

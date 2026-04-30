@@ -57,14 +57,7 @@ export const getRondinesColumns = (
     ),
     enableSorting: true,
   },
-  {
-    accessorKey: "ubicacion",
-    header: "Ubicación",
-    cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("ubicacion") || "-"}</div>
-    ),
-    enableSorting: true,
-  },
+
   {
     accessorKey: "estatus_recorrido",
     header: "Estatus",

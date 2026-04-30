@@ -47,12 +47,14 @@ type ViewMode = "table" | "photos" | "list";
 export interface GeoLocation { latitude: number; longitude: number; }
 export interface GeoLocationSearch extends GeoLocation { search_txt: string; }
 export interface ImageData { nombre_area: string; id: string; foto_area: string; }
+
 export interface MapItem {
   nombre_area: string;
   geolocation_area?: { latitude: number; longitude: number };
   id: string;
   foto_area?: { file_name: string; file_url: string }[];
 }
+
 export interface FotoArea { file_name: string; file_url: string; name: string; }
 export interface Area {
   rondin_area: string;
@@ -172,6 +174,7 @@ const RecorridosTable: React.FC<ListProps> = ({
     setRondinSeleccionado(rondin);
     setVerRondin(true);
   };
+  const [mapKey, setMapKey] = useState(0);
 
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
@@ -267,6 +270,10 @@ const RecorridosTable: React.FC<ListProps> = ({
   //   return "text-gray-500";
   // };
 
+  useEffect(() => {
+    setMapKey(prev => prev + 1);
+  }, []); 
+
   return (
     <div className="w-full">
 
@@ -326,15 +333,17 @@ const RecorridosTable: React.FC<ListProps> = ({
                       </button>
                       <div className="flex items-center gap-2">
                         <h2 className="text-xl font-bold text-gray-900">{rondin.nombre_del_rondin}</h2>
-                        <AddRondinModal title="Editar Rondín" mode="edit"
+                        <AddRondinModal
+                          title="Editar Rondín"
+                          mode="edit"
                           rondinData={rondinSeleccionado}
                           rondinId={rondinSeleccionado ? rondinSeleccionado._id : ""}
                           folio={rondinSeleccionado ? rondinSeleccionado.folio : ""}>
-                          <button className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                          </button>
+                            <button className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
                         </AddRondinModal>
                       </div>
                     </div>
@@ -498,7 +507,7 @@ const RecorridosTable: React.FC<ListProps> = ({
               </div>
 
               <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ minHeight: "420px", zIndex: 0 }}>
-                <MapView map_data={rondin.map_data} />
+                <MapView key={mapKey} map_data={rondin.map_data} />
               </div>
             </div>
 
