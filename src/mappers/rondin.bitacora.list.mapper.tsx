@@ -42,12 +42,12 @@ export function mapRondinBitacoraList(raw: any, base: any) {
   
       badgesList: [
         {
-          customClass: `px-4 py-1 text-xs font-semibold rounded-xl whitespace-nowrap ${statusStyles[estatus] ?? "bg-gray-100 text-gray-600 hover:bg-gray-100"}`,
-          label: raw?.estatus_recorrido?.replace(/_/g, " ") || "Sin estatus",
+          customClass: "bg-blue-50 hover:bg-blue-50 px-4 py-1 text-xs font-bold text-blue-600 rounded-xl border border-blue-100 shadow-none",
+          label: raw?.folio || "S/F",
         },
         {
-          customClass: "bg-slate-100 hover:bg-slate-100 px-4 py-1 text-xs font-medium text-slate-600 rounded-xl border-0 shadow-none",
-          label: raw?.porcentaje_avance ? `${raw.porcentaje_avance}` : "0%",
+          customClass: `px-4 py-1 text-xs font-semibold rounded-xl whitespace-nowrap capitalize ${statusStyles[estatus] ?? "bg-gray-100 text-gray-600 hover:bg-gray-100"}`,
+          label: raw?.estatus_recorrido?.replace(/_/g, " ") || "Sin estatus",
         },
         ...(tieneIncidencias ? [{
           customClass: "bg-red-100 hover:bg-red-100 px-4 py-1 text-xs font-medium text-red-600 rounded-xl border-0 shadow-none",
@@ -57,7 +57,6 @@ export function mapRondinBitacoraList(raw: any, base: any) {
           label: "Sin incidencias",
         }]),
       ],
-  
       detailsList: [
         { icon: null, label: "UBICACIÓN", value: raw?.ubicacion || "-" },
         { icon: null, label: "REALIZADO POR", value: raw?.asignado_a || "Guardia en turno" },
