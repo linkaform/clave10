@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Circle,
   CircleCheck,
@@ -15,11 +15,14 @@ import {
   
 } from "lucide-react";
 
-import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGetListBitacoraRondines } from "@/hooks/Rondines/useGetListBitacora";
 import { CarruselDetalleArea } from "@/components/carrousel-detalle-area";
 import { CarruselDetalleRondin } from "@/components/carrousel-detalle-rondin";
-import { TagSearchInput } from "@/components/tag-search-input";
+import { ListRecord, PhotoRecord } from "@/types/bitacoras";
+import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
+import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
+import OutSelectedItemsButton from "@/components/Bitacoras/OutSelectedItemsButton";
+import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 
 const ESTADOS_CONFIG: Record<string, { icon: React.ElementType; className: string }> = {
 	finalizado: { icon: CircleCheck, className: "text-white bg-green-600 rounded-xl" },
@@ -78,8 +81,7 @@ type Rondin = {
 	hora: string;
 	categorias: Categoria[];
 };
-
-export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { showTabs: boolean, ubicacion:any, nombre_rondin?: string }) => {
+export const RondinesBitacoraTable = ({ ubicacion, nombre_rondin, viewMode = "table" }: { showTabs: boolean; ubicacion: any; nombre_rondin?: string; viewMode?: "table" | "photos" | "list" }) => {
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const [total, setTotal] = useState(0)
 	const [totalAreas, setTotalAreas] = useState(0)
@@ -110,7 +112,7 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 	const abrirCarrusel = () => setCarruselOpen(true);
 	const abrirCarruselRondin = () => setCarruselOpenRondin(true);
 
-	const [tags, setTags] = useState<string[]>([]);
+	const [tags] = useState<string[]>([]);
 	// const [inputValue, setInputValue] = useState("");
 	const [selectedArea, setSelectedArea] = useState<Area | null>(null);
 
@@ -305,312 +307,321 @@ export const RondinesBitacoraTable = ({ showTabs , ubicacion, nombre_rondin}: { 
 		setTotalAreas(selectedRondin?.areas?.length)
 	};
 
+	const flatData = useMemo(() => {
+		return (filteredData ?? []).flatMap((rondin) =>
+			rondin.categorias.flatMap((cat) =>
+				cat.areas.map((area) => ({
+					_id: `${rondin.hora}-${cat.titulo}-${area.nombre}`,
+					folio: `${rondin.hora}`,
+					nombre: area.nombre,
+					categoria: cat.titulo,
+					hora: rondin.hora,
+				}))
+			)
+		);
+	}, [filteredData]);
+	
+	const photoListRecords: ListRecord[] = useMemo(() => {
+		return flatData.map((item) => formatListRecord(item, "rondin"));
+	}, [flatData]);
+	
+	const photoRecords: PhotoRecord[] = useMemo(() => {
+		return flatData.map((item) => formatPhotoRecord(item, "rondin"));
+	}, [flatData]);
+	
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	const renderActions = (_record: PhotoRecord | ListRecord) => null;
+	
 	return (
 		<div >
+			{viewMode === "table" ? (
+			<>
 			<div className="flex justify-between items-center my-2 ">
-				<div className="flex w-full justify-start gap-4 ">
-					{showTabs &&
-						<div className="flex justify-center items-center">
-							<TabsList className="bg-blue-500 text-white p-1 rounded-md ">
-								<TabsTrigger value="Bitacora">Ejecuciones</TabsTrigger>
-								<TabsTrigger value="Rondines">Rondines</TabsTrigger>
-								<TabsTrigger value="Incidencias">Incidencias</TabsTrigger>
-								<TabsTrigger value="Fotos">Fotos</TabsTrigger>
-								<TabsTrigger value="Calendario">Calendario</TabsTrigger>
-							</TabsList>
-						</div>
-					}
-					<div className="flex gap-1 items-center">
-					<TagSearchInput
-						tags={tags}
-						onTagsChange={setTags}
-						placeholder="Buscar área o categoría..."
-						/>
+				
+					<div className="flex items-center gap-3 text-2xl font-bold capitalize select-none">
+						<button
+							onClick={handlePrevMonth}
+							className="p-1 rounded-full hover:bg-gray-200 transition"
+						>
+							<ChevronLeft size={28} />
+						</button>
+
+						<span className="w-40 text-center">{nombreMes}</span>
+
+						<button
+							onClick={handleNextMonth}
+							className="p-1 rounded-full hover:bg-gray-200 transition"
+						>
+							<ChevronRight size={28} />
+						</button>
 					</div>
-				</div>
-				<div className="flex items-center gap-3 text-2xl font-bold capitalize select-none">
-					<button
-						onClick={handlePrevMonth}
-						className="p-1 rounded-full hover:bg-gray-200 transition"
-					>
-						<ChevronLeft size={28} />
-					</button>
 
-					<span className="w-40 text-center">{nombreMes}</span>
-
-					<button
-						onClick={handleNextMonth}
-						className="p-1 rounded-full hover:bg-gray-200 transition"
-					>
-						<ChevronRight size={28} />
-					</button>
-				</div>
-
-				<div className="flex w-full justify-end gap-3">
-					<div className="flex items-center gap-2 flex-wrap justify-end">
-						{Object.entries(ESTADOS_CONFIG).map(([estado, config]) => {
-							const Icon = config.icon;
-							const isSelected = selectedEstados.includes(estado);
-							return (
-								<button
-									key={estado}
-									onClick={() => toggleEstadoFilter(estado)}
-									className={`flex items-center gap-1 px-2 py-1 rounded-md border transition-all ${isSelected
-										? "bg-blue-100 border-blue-500 ring-1 ring-blue-500"
-										: "bg-white border-gray-200 hover:bg-gray-50"
-										}`}
-									title={estado.replace("_", " ")}
-								>
-									<Icon className={`w-4 h-4 ${config.className}`} />
-									<span className="text-xs capitalize">{estado.replace("_", " ")}</span>
-								</button>
-							);
-						})}
-					</div>
-				</div>
-			</div>
-
-			<div className="overflow-auto  rounded" style={{ maxHeight: "80vh" }}>
-				{isLoading ? (
-					<div>
-						<div className="flex flex-col justify-start place-items-center mt-20">
-							<div className="w-16 h-16 border-8  border-t-blue-500 rounded-full animate-spin"></div>
-							<span className="text-gray-500">
-								Cargando información...
-							</span>
+					<div className="flex w-full justify-end gap-3">
+						<div className="flex items-center gap-2 flex-wrap justify-end">
+							{Object.entries(ESTADOS_CONFIG).map(([estado, config]) => {
+								const Icon = config.icon;
+								const isSelected = selectedEstados.includes(estado);
+								return (
+									<button
+										key={estado}
+										onClick={() => toggleEstadoFilter(estado)}
+										className={`flex items-center gap-1 px-2 py-1 rounded-md border transition-all ${isSelected
+											? "bg-blue-100 border-blue-500 ring-1 ring-blue-500"
+											: "bg-white border-gray-200 hover:bg-gray-50"}`}
+										title={estado.replace("_", " ")}
+									>
+										<Icon className={`w-4 h-4 ${config.className}`} />
+										<span className="text-xs capitalize">{estado.replace("_", " ")}</span>
+									</button>
+								);
+							})}
 						</div>
 					</div>
-				) : (
-					<table className="min-w-full border-collapse border">
-						<thead className="sticky top-0 z-0 bg-white">
-							<tr>
-								<th className="border p-2 bg-white">Rondines</th>
-								{[...Array(dias)].map((_, i) => {
-									const date = new Date();
-									date.setDate(i + 1);
-									const diaSemana = date
-										.toLocaleDateString("es-MX", { weekday: "short" })
-										.slice(0, 2);
-									const isSunday = date.getDay() === 0;
-
-							return (
-							<th
-							key={`label-${i}`}
-							className={`border p-1 text-center ${
-								isSunday ? "bg-blue-100" : "bg-white"
-							}`}
-							>
-							<div className="text-sm">{String(i + 1).padStart(2, "0")}</div>
-							<div className="text-xs font-medium capitalize text-gray-600">
-								{diaSemana}
+				</div><div className="overflow-auto  rounded" style={{ maxHeight: "80vh" }}>
+						{isLoading ? (
+							<div>
+								<div className="flex flex-col justify-start place-items-center mt-20">
+									<div className="w-16 h-16 border-8  border-t-blue-500 rounded-full animate-spin"></div>
+									<span className="text-gray-500">
+										Cargando información...
+									</span>
+								</div>
 							</div>
-							</th>
-							);
-						})}
-					</tr>
-					</thead>
+						) : (
+							<table className="min-w-full border-collapse border">
+								<thead className="sticky top-0 z-0 bg-white">
+									<tr>
+										<th className="border p-2 bg-white">Rondines</th>
+										{[...Array(dias)].map((_, i) => {
+											const date = new Date();
+											date.setDate(i + 1);
+											const diaSemana = date
+												.toLocaleDateString("es-MX", { weekday: "short" })
+												.slice(0, 2);
+											const isSunday = date.getDay() === 0;
 
-						<tbody>
-							{filteredData && filteredData.length === 0 ? (
-								<tr>
-								<td
-								  colSpan={dias + 1}
-								  className="text-center py-10 text-gray-500 font-bold"
-								>
-								  No hay registros para mostrar
-								</td>
-							  </tr>
-							  ) : (
-								filteredData
-									.map((rondin) => {
-										const matchHora = rondin.hora.toLowerCase().includes(globalFilter.toLowerCase());
-										// Filtrar las categorías y áreas dentro del rondín
-										const categoriasFiltradas = rondin.categorias
-											.map((categoria) => {
-												const matchCategoria = categoria.titulo
-													.toLowerCase()
-													.includes(globalFilter.toLowerCase());
+											return (
+												<th
+													key={`label-${i}`}
+													className={`border p-1 text-center ${isSunday ? "bg-blue-100" : "bg-white"}`}
+												>
+													<div className="text-sm">{String(i + 1).padStart(2, "0")}</div>
+													<div className="text-xs font-medium capitalize text-gray-600">
+														{diaSemana}
+													</div>
+												</th>
+											);
+										})}
+									</tr>
+								</thead>
 
-												// Filter areas based on globalFilter AND selectedEstados
-												const areasFiltradas = categoria.areas.filter((area) => {
-													const matchesGlobal = area.nombre.toLowerCase().includes(globalFilter.toLowerCase());
+								<tbody>
+									{filteredData && filteredData.length === 0 ? (
+										<tr>
+											<td
+												colSpan={dias + 1}
+												className="text-center py-10 text-gray-500 font-bold"
+											>
+												No hay registros para mostrar
+											</td>
+										</tr>
+									) : (
+										filteredData
+											.map((rondin) => {
+												const matchHora = rondin.hora.toLowerCase().includes(globalFilter.toLowerCase());
+												// Filtrar las categorías y áreas dentro del rondín
+												const categoriasFiltradas = rondin.categorias
+													.map((categoria) => {
+														const matchCategoria = categoria.titulo
+															.toLowerCase()
+															.includes(globalFilter.toLowerCase());
 
-													// If no states selected, match all states. Otherwise check if area has ANY of the selected states.
-													const matchesEstado = selectedEstados.length === 0 || area.estados.some(e => selectedEstados.includes(e.estado));
+														// Filter areas based on globalFilter AND selectedEstados
+														const areasFiltradas = categoria.areas.filter((area) => {
+															const matchesGlobal = area.nombre.toLowerCase().includes(globalFilter.toLowerCase());
 
-													return matchesGlobal && matchesEstado;
-												});
+															// If no states selected, match all states. Otherwise check if area has ANY of the selected states.
+															const matchesEstado = selectedEstados.length === 0 || area.estados.some(e => selectedEstados.includes(e.estado));
 
-												// Check if the category itself has any matching states in its summary (resumen)
-												// This is relevant if we want to show the category even if no areas match, 
-												// but usually we want to show categories that have matching areas OR matching summary items.
-												// Let's assume we want to show the category if it has matching areas OR if the category title matches AND there are some matching states in the summary?
-												// Actually, the previous logic was: matchCategoria || areasFiltradas.length > 0
+															return matchesGlobal && matchesEstado;
+														});
 
-												// New logic:
-												// We need to check if the category's summary (resumen) matches the selected states too.
-												const matchesResumenEstado = selectedEstados.length === 0 || (categoria.resumen && categoria.resumen.some(r => selectedEstados.includes(r.estado)));
+														// Check if the category itself has any matching states in its summary (resumen)
+														// This is relevant if we want to show the category even if no areas match, 
+														// but usually we want to show categories that have matching areas OR matching summary items.
+														// Let's assume we want to show the category if it has matching areas OR if the category title matches AND there are some matching states in the summary?
+														// Actually, the previous logic was: matchCategoria || areasFiltradas.length > 0
+														// New logic:
+														// We need to check if the category's summary (resumen) matches the selected states too.
+														const matchesResumenEstado = selectedEstados.length === 0 || (categoria.resumen && categoria.resumen.some(r => selectedEstados.includes(r.estado)));
 
-												// If the category matches the text filter, we still need to respect the state filter.
-												// If selectedEstados is active, we only show things that match the state.
+														// If the category matches the text filter, we still need to respect the state filter.
+														// If selectedEstados is active, we only show things that match the state.
+														// If areasFiltradas > 0, we definitely keep the category.
+														// If areasFiltradas == 0, but matchCategoria is true... do we keep it? 
+														// Only if it also matches the state filter (via resumen).
+														if (areasFiltradas.length > 0) {
+															return { ...categoria, areas: areasFiltradas };
+														}
 
-												// If areasFiltradas > 0, we definitely keep the category.
-												// If areasFiltradas == 0, but matchCategoria is true... do we keep it? 
-												// Only if it also matches the state filter (via resumen).
+														if (matchCategoria && matchesResumenEstado) {
+															return { ...categoria, areas: [] }; // Show category with no areas if it matches text & state
+														}
 
-												if (areasFiltradas.length > 0) {
-													return { ...categoria, areas: areasFiltradas };
-												}
+														return null;
+													})
+													.filter((cat) => cat !== null) as Categoria[];
 
-												if (matchCategoria && matchesResumenEstado) {
-													return { ...categoria, areas: [] }; // Show category with no areas if it matches text & state
+												// Logic to decide if we show the hour row
+												// If we have matching categories, we show it.
+												// If we have NO matching categories:
+												//   - If we have an active state filter, we HIDE it (return null).
+												//   - If we have NO active state filter, we respect the text search (matchHora).
+												const hasActiveStateFilter = selectedEstados.length > 0;
+												const shouldShowHour = categoriasFiltradas.length > 0 || (matchHora && !hasActiveStateFilter);
+
+												if (shouldShowHour) {
+													return { ...rondin, categorias: categoriasFiltradas };
 												}
 
 												return null;
 											})
-											.filter((cat) => cat !== null) as Categoria[];
-
-										// Logic to decide if we show the hour row
-										// If we have matching categories, we show it.
-										// If we have NO matching categories:
-										//   - If we have an active state filter, we HIDE it (return null).
-										//   - If we have NO active state filter, we respect the text search (matchHora).
-
-										const hasActiveStateFilter = selectedEstados.length > 0;
-										const shouldShowHour = categoriasFiltradas.length > 0 || (matchHora && !hasActiveStateFilter);
-
-										if (shouldShowHour) {
-											return { ...rondin, categorias: categoriasFiltradas };
-										}
-
-										return null;
-									})
-									.filter((r) => r !== null)
-									.map(({ hora, categorias }) => (
-										<React.Fragment key={hora}>
-											<tr>
-												<td className="font-bold flex items-center justify-start gap-2">
-													<button
-														className="ml-1 text-sm px-2 py-.5 bg-blue-500 text-white rounded hover:bg-blue-600"
-														onClick={() => toggleExpandAllForHora(hora, categorias)}
-													>
-														{categorias.every((c) =>
-															expandedCategorias.includes(`${hora}-${c.titulo}`)
-														)
-															? "-"
-															: "+"}
-													</button>
-													{hora}
-												</td>
-												{[...Array(dias)].map((_, i) => (
-													<td
-														key={i}
-														className={`border ${sundaysIndexes.includes(i) ? "bg-blue-100" : ""
-															}`}
-													></td>
-												))}
-											</tr>
-
-								{categorias.map((categoria, index:number) => {
-									const catKey = `${hora}-${categoria?.titulo}`;
-									const isExpanded = expandedCategorias.includes(catKey);
-									return (
-										<React.Fragment key={catKey}>
-											<tr
-												className="cursor-pointer font-semibold text-sm bg-green-100"
-												onClick={(e) => {
-													e.stopPropagation();
-
-													toggleExpand(catKey);
-												}}
-											>
-										<td className="border text-sm flex p-2">
-											<span className="mr-2">
-											{isExpanded ? (
-												<CircleChevronUp size={20} />
-											) : (
-												<CircleChevronDown size={20} />
-											)}
-											</span>
-											{categoria?.titulo}
-										</td>
-										{[...Array(dias)].map((_, i) => {
-											const isSunday = sundaysIndexes.includes(i);
-											const estadoDia = categoria?.resumen?.[i];
-										
-											return (
-												<td
-													key={i}
-													className={`border ${isSunday ? "bg-blue-200/50" : "bg-transparent"
-														}`}
-												>
-													<div className="flex justify-center items-center">
-														{estadoDia && (
-															<div
-																onClick={(e) => {
-																	setTotal(categorias.length)
-																	e.stopPropagation();
-																	setDiaSelected(i + 1);
-																	abrirCarruselRondin();
-																	setEstatus(estadoDia.estado);
-																	setHoraSeleccionada(hora)
-																	setSelectedRondin(categoria);
-																	setSelectedAreaIndex(index); 
-																}}
-																className="cursor-pointer"
+											.filter((r) => r !== null)
+											.map(({ hora, categorias }) => (
+												<React.Fragment key={hora}>
+													<tr>
+														<td className="font-bold flex items-center justify-start gap-2">
+															<button
+																className="ml-1 text-sm px-2 py-.5 bg-blue-500 text-white rounded hover:bg-blue-600"
+																onClick={() => toggleExpandAllForHora(hora, categorias)}
 															>
-																<EstadoIcono estado={estadoDia.estado} />
-															</div>
-														)}
-													</div>
-												</td>
-											);
-										})}
-										</tr>
+																{categorias.every((c) => expandedCategorias.includes(`${hora}-${c.titulo}`)
+																)
+																	? "-"
+																	: "+"}
+															</button>
+															{hora}
+														</td>
+														{[...Array(dias)].map((_, i) => (
+															<td
+																key={i}
+																className={`border ${sundaysIndexes.includes(i) ? "bg-blue-100" : ""}`}
+															></td>
+														))}
+													</tr>
 
-										{isExpanded &&
-										categoria?.areas?.map?.((area, idx) =>
-											renderArea(area, `${catKey}-area-${idx}`, categoria)
-										)}
-									</React.Fragment>
-									);
-								})}
-								</React.Fragment>
-								))
-							)}
-														
-						</tbody>
+													{categorias.map((categoria, index: number) => {
+														const catKey = `${hora}-${categoria?.titulo}`;
+														const isExpanded = expandedCategorias.includes(catKey);
+														return (
+															<React.Fragment key={catKey}>
+																<tr
+																	className="cursor-pointer font-semibold text-sm bg-green-100"
+																	onClick={(e) => {
+																		e.stopPropagation();
 
-					</table>
-					)}
+																		toggleExpand(catKey);
+																	} }
+																>
+																	<td className="border text-sm flex p-2">
+																		<span className="mr-2">
+																			{isExpanded ? (
+																				<CircleChevronUp size={20} />
+																			) : (
+																				<CircleChevronDown size={20} />
+																			)}
+																		</span>
+																		{categoria?.titulo}
+																	</td>
+																	{[...Array(dias)].map((_, i) => {
+																		const isSunday = sundaysIndexes.includes(i);
+																		const estadoDia = categoria?.resumen?.[i];
 
-				{carruselOpenRondin && (
-					<CarruselDetalleRondin
-					rondinesHoraSeleccionada={ data?.find((h: { hora: string; }) => h.hora === horaSeleccionada)?.categorias ?? []}
-					startIndex={startIndexRondin} 
-					diaSelected={diaSelected}
-					onClose={() => setCarruselOpenRondin(false)}
-					estatus={estatus}
-					onSelectArea={handleSelectArea}
-					total={total}
-					/>
-				)} 
+																		return (
+																			<td
+																				key={i}
+																				className={`border ${isSunday ? "bg-blue-200/50" : "bg-transparent"}`}
+																			>
+																				<div className="flex justify-center items-center">
+																					{estadoDia && (
+																						<div
+																							onClick={(e) => {
+																								setTotal(categorias.length);
+																								e.stopPropagation();
+																								setDiaSelected(i + 1);
+																								abrirCarruselRondin();
+																								setEstatus(estadoDia.estado);
+																								setHoraSeleccionada(hora);
+																								setSelectedRondin(categoria);
+																								setSelectedAreaIndex(index);
+																							} }
+																							className="cursor-pointer"
+																						>
+																							<EstadoIcono estado={estadoDia.estado} />
+																						</div>
+																					)}
+																				</div>
+																			</td>
+																		);
+																	})}
+																</tr>
 
-				{carruselOpen && (
-					
-					<CarruselDetalleArea
-						areas={selectedRondin?.areas ?? []}
-						startIndex={startIndexArea}
-						diaSelected={diaSelected}
-						rondinName={selectedRondin?.name}
-						estatus={estatus}
-						selectedRondin={selectedRondin}
-						onClose={() => setCarruselOpen(false)}
-						total={totalAreas}
-					/>
-				)}
-			</div>
+																{isExpanded &&
+																	categoria?.areas?.map?.((area, idx) => renderArea(area, `${catKey}-area-${idx}`, categoria)
+																	)}
+															</React.Fragment>
+														);
+													})}
+												</React.Fragment>
+											))
+									)}
 
+								</tbody>
+
+							</table>
+						)}
+
+						{carruselOpenRondin && (
+							<CarruselDetalleRondin
+								rondinesHoraSeleccionada={data?.find((h: { hora: string; }) => h.hora === horaSeleccionada)?.categorias ?? []}
+								startIndex={startIndexRondin}
+								diaSelected={diaSelected}
+								onClose={() => setCarruselOpenRondin(false)}
+								estatus={estatus}
+								onSelectArea={handleSelectArea}
+								total={total} />
+						)}
+
+						{carruselOpen && (
+
+							<CarruselDetalleArea
+								areas={selectedRondin?.areas ?? []}
+								startIndex={startIndexArea}
+								diaSelected={diaSelected}
+								rondinName={selectedRondin?.name}
+								estatus={estatus}
+								selectedRondin={selectedRondin}
+								onClose={() => setCarruselOpen(false)}
+								total={totalAreas} />
+						)}
+					</div></>
+			  ) : viewMode === "photos" ? (
+				<PhotoGridView
+					isLoading={isLoading}
+					records={photoRecords}
+					globalSearch={[globalFilter]}
+					selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
+					{renderActions}
+				</PhotoGridView>
+			) : (
+				<PhotoListView
+					isLoading={isLoading}
+					records={photoListRecords}
+					globalSearch={[globalFilter]}
+					selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
+					{renderActions}
+				</PhotoListView>
+			)}
 		</div>
 	);
 };

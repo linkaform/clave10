@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Archive, CircleHelp, Package } from "lucide-react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import PageTitle from "@/components/page-title";
@@ -21,7 +22,28 @@ import { useGetStats } from "@/hooks/useGetStats";
 import { useBoothStore } from "@/store/useBoothStore";
 import { AddArticuloConModal } from "@/components/modals/add-article.con";
 
+const TAB_MAP: Record<string, string> = {
+  paqueteria: "Paqueteria",
+  articulos_concesionados: "Concecionados",
+  articulos_perdidos: "Perdidos",
+};
+
 const ArticulosPage = () => {
+  return (
+    <React.Suspense fallback={<div>Cargando...</div>}>
+      <ArticulosContent />
+    </React.Suspense>
+  );
+};
+
+const ArticulosContent = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const actionParam = searchParams.get("action");
+  const statusParam = searchParams.get("status");
+
   const { location } = useBoothStore();
   console.log("LOCATION", location);
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(
@@ -33,7 +55,9 @@ const ArticulosPage = () => {
   const [date2, setDate2] = useState<Date | "">("");
   const [dates, setDates] = useState<string[]>([]);
   const [dateFilter, setDateFilter] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
+  const [statusPaqueteria, setStatusPaqueteria] = useState<string>("");
+  const [statusPerdidos, setStatusPerdidos] = useState<string>("");
+  const [statusConcesionados, setStatusConcesionados] = useState<string>("");
 
   const { data: stats } = useGetStats(
     true,
@@ -46,7 +70,7 @@ const ArticulosPage = () => {
     useArticulosPerdidos(
       ubicacionSeleccionada,
       areaSeleccionada == "todas" ? "" : areaSeleccionada,
-      "",
+      statusPerdidos,
       true,
       dates[0],
       dates[1],
@@ -57,7 +81,7 @@ const ArticulosPage = () => {
     useArticulosConcesionados(
       ubicacionSeleccionada,
       areaSeleccionada == "todas" ? "" : areaSeleccionada,
-      status,
+      statusConcesionados,
       true,
       dates[0],
       dates[1],
@@ -67,7 +91,7 @@ const ArticulosPage = () => {
   const { listPaqueteria, isLoadingListPaqueteria } = usePaqueteria(
     ubicacionSeleccionada,
     areaSeleccionada == "todas" ? "" : areaSeleccionada,
-    "",
+    statusPaqueteria,
     true,
     dates[0],
     dates[1],
@@ -76,9 +100,58 @@ const ArticulosPage = () => {
 
   const { tab, setTab } = useShiftStore();
 
-  const [selectedTab, setSelectedTab] = useState<string>(
-    tab ? tab : "Paqueteria",
-  );
+  const getInitialTab = () => {
+    if (tabParam) {
+      const mappedTab = TAB_MAP[tabParam.toLowerCase()];
+      if (mappedTab) return mappedTab;
+
+      const normalized =
+        tabParam.charAt(0).toUpperCase() + tabParam.slice(1).toLowerCase();
+      if (["Paqueteria", "Concecionados", "Perdidos"].includes(normalized)) {
+        return normalized;
+      }
+    }
+    return tab ? tab : "Paqueteria";
+  };
+
+  const [selectedTab, setSelectedTab] = useState<string>(getInitialTab());
+
+  // Sincronizar selectedTab con el parámetro 'tab' de la URL
+  useEffect(() => {
+    if (tabParam) {
+      const mappedTab = TAB_MAP[tabParam.toLowerCase()];
+      if (mappedTab) {
+        setSelectedTab(mappedTab);
+      } else {
+        const normalized =
+          tabParam.charAt(0).toUpperCase() + tabParam.slice(1).toLowerCase();
+        if (["Paqueteria", "Concecionados", "Perdidos"].includes(normalized)) {
+          setSelectedTab(normalized);
+        }
+      }
+    }
+  }, [tabParam]);
+
+  // Manejar el parámetro 'action' de la URL
+  useEffect(() => {
+    if (actionParam === "nuevo_paquete") {
+      setIsSuccessPaq(true);
+    }
+    if (actionParam === "nuevo_articulo_perdido") {
+      setIsSuccess(true);
+    }
+    if (actionParam === "nuevo_articulo_concesionado") {
+      setIsSuccessCon(true);
+    }
+  }, [actionParam]);
+
+  // Sincronizar status con el parámetro 'status' de la URL de forma independiente
+  useEffect(() => {
+    const currentStatus = statusParam || "";
+    if (selectedTab === "Paqueteria") setStatusPaqueteria(currentStatus);
+    if (selectedTab === "Perdidos") setStatusPerdidos(currentStatus);
+    if (selectedTab === "Concecionados") setStatusConcesionados(currentStatus);
+  }, [statusParam, selectedTab]);
 
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSuccessCon, setIsSuccessCon] = useState(false);
@@ -99,12 +172,44 @@ const ArticulosPage = () => {
   }, []);
 
   const openModal = () => setIsSuccess(true);
-  const closeModal = () => setIsSuccess(false);
 
   const openModalCon = () => setIsSuccessCon(true);
 
   const openModalPaq = () => setIsSuccessPaq(true);
-  const closeModalPaq = () => setIsSuccessPaq(false);
+
+  const handleOpenChange = (value: React.SetStateAction<boolean>) => {
+    const open = typeof value === "function" ? value(isSuccess) : value;
+    setIsSuccess(open);
+    if (!open && actionParam === "nuevo_articulo_perdido") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`${pathname}?${params.toString()}`);
+    }
+  };
+
+  const handleOpenChangePaq = (value: React.SetStateAction<boolean>) => {
+    const open = typeof value === "function" ? value(isSuccessPaq) : value;
+    setIsSuccessPaq(open);
+    if (!open && actionParam === "nuevo_paquete") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`${pathname}?${params.toString()}`);
+    }
+  };
+
+  const handleOpenChangeCon = (value: React.SetStateAction<boolean>) => {
+    const open = typeof value === "function" ? value(isSuccessCon) : value;
+    setIsSuccessCon(open);
+    if (!open && actionParam === "nuevo_articulo_concesionado") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`${pathname}?${params.toString()}`);
+    }
+  };
+
+  const closeModalPaq = () => {
+    handleOpenChangePaq(false);
+  };
 
   const Filter = () => {
     if (date1 && date2) {
@@ -125,12 +230,16 @@ const ArticulosPage = () => {
     setDate1("");
     setDate2("");
     setDateFilter("");
-    setStatus("");
+    setStatusPaqueteria("");
+    setStatusPerdidos("");
+    setStatusConcesionados("");
   };
 
   const handleTabChange = (tab: string, option: string, estado: string) => {
     setDateFilter(option);
-    setStatus(estado);
+    if (tab === "Paqueteria") setStatusPaqueteria(estado);
+    if (tab === "Perdidos") setStatusPerdidos(estado);
+    if (tab === "Concecionados") setStatusConcesionados(estado);
     setSelectedTab(tab);
   };
 
@@ -156,7 +265,9 @@ const ArticulosPage = () => {
               <>
                 <div
                   className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition ${
-                    status === "abierto" ? "bg-blue-100" : "hover:bg-gray-100"
+                    statusConcesionados === "abierto"
+                      ? "bg-blue-100"
+                      : "hover:bg-gray-100"
                   }`}
                   onClick={() =>
                     handleTabChange("Concecionados", "", "abierto")
@@ -176,7 +287,9 @@ const ArticulosPage = () => {
 
                 <div
                   className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition ${
-                    status === "parcial" ? "bg-blue-100" : "hover:bg-gray-100"
+                    statusConcesionados === "parcial"
+                      ? "bg-blue-100"
+                      : "hover:bg-gray-100"
                   }`}
                   onClick={() =>
                     handleTabChange("Concecionados", "", "parcial")
@@ -197,7 +310,9 @@ const ArticulosPage = () => {
 
                 <div
                   className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition ${
-                    status === "devuelto" ? "bg-blue-100" : "hover:bg-gray-100"
+                    statusConcesionados === "devuelto"
+                      ? "bg-blue-100"
+                      : "hover:bg-gray-100"
                   }`}
                   onClick={() =>
                     handleTabChange("Concecionados", "", "devuelto")
@@ -346,13 +461,13 @@ const ArticulosPage = () => {
           title={"Crear Artículo Perdido"}
           data={modalData}
           isSuccess={isSuccess}
-          setIsSuccess={setIsSuccess}
-          onClose={closeModal}
+          setIsSuccess={handleOpenChange}
+          onClose={() => handleOpenChange(false)}
         />
 
         <AddArticuloConModal
           isSuccess={isSuccessCon}
-          setIsSuccess={setIsSuccessCon}
+          setIsSuccess={handleOpenChangeCon}
           initialData={{}}>
           <div></div>
         </AddArticuloConModal>
@@ -360,7 +475,7 @@ const ArticulosPage = () => {
         <AddPaqueteriaModal
           title={"Crear Paquetería"}
           isSuccess={isSuccessPaq}
-          setIsSuccess={setIsSuccessPaq}
+          setIsSuccess={handleOpenChangePaq}
           onClose={closeModalPaq}
         />
       </div>

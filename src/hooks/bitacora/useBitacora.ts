@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useBitacoraFilters,
   useBitacoraFiltersExtra,
@@ -22,6 +22,19 @@ export const useBitacora = () => {
   // Lógica extra para el Drawer de filtros externos
   const extraFilters = useBitacoraFiltersExtra(filters);
 
+  // Manejo de Tabs desde la URL
+  const initialTab = filters.queryParams.tab?.[0] || "personal";
+  const [selectedTab, setSelectedTab] = useState(initialTab);
+
+  // Sincronizar el estado de la pestaña si cambia en la URL
+  useEffect(() => {
+    if (filters.queryParams.tab?.[0]) {
+      setSelectedTab(filters.queryParams.tab[0]);
+    } else {
+      setSelectedTab("personal");
+    }
+  }, [filters.queryParams.tab]);
+
   // Mapeamos para mantener nombres limpios
   return {
     ...filters,
@@ -33,6 +46,10 @@ export const useBitacora = () => {
     // Vista local
     viewMode,
     setViewMode,
+
+    // Tabs
+    selectedTab,
+    setSelectedTab,
 
     // Acciones específicas mapeadas
     handleAgregarBadge: modals.openAddBadgeModal,

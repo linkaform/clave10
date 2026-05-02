@@ -45,19 +45,21 @@ interface ListProps {
   handleSalida: (bitacora: Bitacora_record) => void;
   handleRegresarGafete: (bitacora: Bitacora_record) => void;
   handleAgregarBadge: (bitacora: Bitacora_record) => void;
-  // Filtros externos de la API
   dateFilter?: string;
   setDateFilter?: (val: string) => void;
   date1?: Date | "";
   setDate1?: (val: Date | "") => void;
   date2?: Date | "";
   setDate2?: (val: Date | "") => void;
-  // Configuración de filtros para el panel global
   externalDynamicFilters?: Record<string, any>;
   onExternalDynamicFiltersChange: (filters: Record<string, any>) => void;
   searchTags?: string[];
   setUbicacionSeleccionada?: (val: string) => void;
   filtersConfig?: FilterConfig[];
+  stats?: {
+    personas_dentro: number;
+    salidas_registradas: number;
+  };
 }
 
 const BitacorasTable: React.FC<ListProps> = ({
@@ -81,6 +83,7 @@ const BitacorasTable: React.FC<ListProps> = ({
   onExternalDynamicFiltersChange,
   searchTags: externalSearchTags,
   filtersConfig = [],
+  stats,
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -203,6 +206,7 @@ const BitacorasTable: React.FC<ListProps> = ({
               filters={externalFilters}
               onFiltersChange={onExternalFiltersChange}
               filtersConfig={filtersConfig}
+              stats={stats}
             />
           </aside>
         )}

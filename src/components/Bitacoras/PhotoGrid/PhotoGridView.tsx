@@ -3,11 +3,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { PhotoGridCard } from "./PhotoGridCard";
 import { ImageIcon } from "lucide-react";
-import { PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
+import { ListRecord, PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
 import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoGridCardModal } from "./PhotoGridCardModal";
 import EquiposYVehiculosList from "../EquiposYVehiculosList";
+import { PhotoRondinCardModal } from "../PhotoList/PhotoRondinCardModal";
+import { MapItem } from "@/components/table/rondines/recorridos/table";
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
   corriendo: "bg-green-600 border-green-600 text-white text-xs",
@@ -32,6 +34,8 @@ export function PhotoGridView({
   externalFilters,
   onExternalFiltersChange,
   globalSearch = [],
+  getMapData,
+  modalType = "normal",
 }: Omit<
   PhotoGridViewProps,
   "filtersConfig" | "hideSidebar" | "renderCustomActions"
@@ -42,6 +46,10 @@ export function PhotoGridView({
     | ((
         selectedItems: { record_id: string; record_status: string }[],
       ) => React.ReactNode);
+      /** Opcional — solo en rondines. Recibe el record seleccionado y devuelve los puntos del mapa */
+  getMapData?: (record: ListRecord) => MapItem[] | undefined;
+  /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
+  modalType?: "rondines" | "normal";
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoGridView(records, externalFilters, onExternalFiltersChange);
@@ -81,6 +89,10 @@ export function PhotoGridView({
       });
     });
   }, [baseFilteredRecords, globalSearch]);
+
+  const currentMapData = selectedRecord && getMapData
+    ? getMapData(selectedRecord)
+    : undefined;
 
   useEffect(() => {
     onSelectionChange?.(selectedItems);
@@ -174,6 +186,15 @@ export function PhotoGridView({
           </div>
         </main>
       </div>
+      {modalType === "rondines" ? (
+        <PhotoRondinCardModal
+          record={selectedRecord as any}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          mapData={currentMapData}
+        />
+      ) : (
+
       <PhotoGridCardModal
         badges={[
           {
@@ -198,7 +219,7 @@ export function PhotoGridView({
         {(selectedRecord?.vehiculos?.length ?? 0) > 0 || (selectedRecord?.equipos?.length ?? 0) > 0 ? (
           <EquiposYVehiculosList record={selectedRecord} />
         ) : null}
-      </PhotoGridCardModal>
+      </PhotoGridCardModal>)}
     </div>
   );
 }

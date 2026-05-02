@@ -362,7 +362,6 @@ const ReportPage = () => {
             )
           )}
 
-          {/* Vista fotos */}
           {viewMode === "photos" && (
             <div className="flex gap-4">
               {/* FloatingFiltersDrawer para mobile */}
@@ -393,7 +392,6 @@ const ReportPage = () => {
             </div>
           )}
 
-          {/* Vista lista */}
           {viewMode === "list" && (
             <div className="flex gap-4">
               <FloatingFiltersDrawer

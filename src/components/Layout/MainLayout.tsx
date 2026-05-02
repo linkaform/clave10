@@ -2,21 +2,20 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useRouter } from "next/navigation"; 
-import { Header } from "@/components/header";
+import { useRouter } from "next/navigation";
 import useAuthStore from "@/store/useAuthStore";
 import { isTokenExpired } from "@/lib/utils";
+import Menus from "../menus";
 
 export const MainLayout = ({ children }: { children: React.ReactNode }) => {
-  const { isAuth } = useAuthStore(); 
-  const router = useRouter(); 
+  const { isAuth } = useAuthStore();
+  const router = useRouter();
   const { logout } = useAuthStore();
 
-  
   useEffect(() => {
     const userJwt = localStorage.getItem("access_token") || "";
-    if (isTokenExpired(userJwt) || userJwt=="") {
-      logout()
+    if (isTokenExpired(userJwt) || userJwt == "") {
+      logout();
     }
   }, []);
 
@@ -28,10 +27,8 @@ export const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div>
-      <Header />
-      <main >
-        {children}
-      </main>
+      <Menus />
+      <main>{children}</main>
     </div>
   );
 };
