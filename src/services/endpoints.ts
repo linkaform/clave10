@@ -14,16 +14,20 @@ export const getRondinesFilters = () =>
     option: "rondines",
   });
 
-
 export const getIncidenciasFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "filters.py",
     option: "incidencias",
   });
 
-
 export const getFallasFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "filters.py",
     option: "fallas",
+  });
+
+export const getPasesFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "pases",
   });

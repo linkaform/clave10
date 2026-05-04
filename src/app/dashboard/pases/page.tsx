@@ -14,6 +14,8 @@ import { Search, LayoutGrid, Sheet, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import debounce from "lodash.debounce";
+import { useFilters } from "@/hooks/bitacora/useFilters";
+import { getPasesFilters } from "@/services/endpoints";
 
 type ViewMode = "table" | "grid";
 
@@ -36,6 +38,10 @@ const ListaPasesContent = () => {
   const [externalFilters, setExternalFilters] = useState<FilterState>({
     dynamic: {},
     dateFilter: "",
+  });
+  const { filters: pasesFilters } = useFilters({
+    key: "pases-filters",
+    endpoint: getPasesFilters,
   });
 
   const searchParams = useSearchParams();
@@ -85,7 +91,7 @@ const ListaPasesContent = () => {
           activeFiltersCount={activeFiltersCount}
           filters={externalFilters}
           onFiltersChange={setExternalFilters}
-          filtersConfig={[]}
+          filtersConfig={pasesFilters}
         />
       )}
 
@@ -115,6 +121,13 @@ const ListaPasesContent = () => {
               />
             </div>
 
+            <Link href="/dashboard/pase-entrada">
+              <Button className="bg-blue-500 hover:bg-blue-600 text-white h-10 px-4">
+                <Plus size={16} />
+                Nuevo Pase
+              </Button>
+            </Link>
+
             <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
               <Button
                 variant="ghost"
@@ -131,13 +144,6 @@ const ListaPasesContent = () => {
                 <Sheet size={18} />
               </Button>
             </div>
-
-            <Link href="/dashboard/pase-entrada">
-              <Button className="bg-blue-500 hover:bg-blue-600 text-white h-10 px-4">
-                <Plus size={16} />
-                Nuevo Pase
-              </Button>
-            </Link>
           </div>
         </div>
 
@@ -150,7 +156,7 @@ const ListaPasesContent = () => {
                 <FiltersPanel
                   filters={externalFilters}
                   onFiltersChange={setExternalFilters}
-                  filtersConfig={[]}
+                  filtersConfig={pasesFilters}
                 />
               </aside>
               <div className="flex-1 min-w-0">
