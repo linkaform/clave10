@@ -619,8 +619,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
           </DialogTitle>
           <p className="text-sm text-gray-400 mt-1">
             {mode === "edit"
-              ? "Edita los datos del rondín"
-              : "Completa los datos del nuevo rondín"}
+              ? "Edita los datos del recorrido"
+              : "Completa los datos del nuevo recorrido"}
           </p>
         </div>
 
@@ -1209,17 +1209,17 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                 {mode === "edit" ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="animate-spin" size={16} /> Actualizando
-                    rondin...
+                    recorrido...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
                     <Loader2 className="animate-spin" size={16} /> Creando
-                    rondin...
+                    recorrido...
                   </span>
                 )}
               </>
             ) : (
-              <>{mode == "edit" ? "Guardar rondin" : "Crear rondin"}</>
+              <>{mode == "edit" ? "Guardar recorrido" : "Crear recorrido"}</>
             )}
           </Button>
         </div>

@@ -112,17 +112,17 @@ const RondinesContent = () => {
             <div className="flex items-center gap-4 min-w-0 justify-end flex-shrink-0">
             {subTab === "recorridos" && (
               <AddRondinModal
-                title="Crear Rondín"
+                title="Crear recorrido"
                 mode="create">
-                <Button className="bg-blue-500 hover:bg-blue-600 text-white gap-2">
+                <Button className="bg-green-600 hover:bg-green-700 text-white gap-2">
                   <Plus size={16} />
-                  Crear Rondín
+                  Crear recorrido
                 </Button>
               </AddRondinModal>)}
 
               {subTab === "incidencias" && (
                 <Button
-                  className="w-full md:w-auto bg-blue-500 hover:bg-blue-600"
+                  className="w-full md:w-auto bg-blue-600 hover:bg-blue-700"
                   onClick={() => downloadCSV(selectedIncidencias, incidenciasColumnsCSV, "incidencias.csv")}>
                   <FileX2 />
                   Descargar
