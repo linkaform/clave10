@@ -22,6 +22,7 @@ import { mapCheckUbicacionGrid } from "@/mappers/check-ubicaiones.grid.mapper";
 import { mapCheckUbicacionList } from "@/mappers/check-ubicaciones.list.mapper";
 
 import { mapRondinBitacoraList } from "@/mappers/rondin.bitacora.list.mapper";
+import { mapPaseGrid } from "@/mappers/pase.grid.mapper";
 
 const mappers_list: Record<string, (raw: any, base: any) => ListRecord> = {
   bitacora: mapBitacoraList,
@@ -36,6 +37,7 @@ const mappers_list: Record<string, (raw: any, base: any) => ListRecord> = {
 };
 
 const mappers_grid: Record<string, (raw: any, base: any) => PhotoRecord> = {
+  pase: mapPaseGrid,
   bitacora: mapBitacoraGrid,
   bitacoras_equipos: mapBitacoraGridEquipos,
   bitacora_vehiculos: mapBitacoraGridVehiculos,
@@ -48,6 +50,7 @@ const mappers_grid: Record<string, (raw: any, base: any) => PhotoRecord> = {
 };
 
 export type RegistryType =
+  | "pase"
   | "bitacora"
   | "bitacora_vehiculos"
   | "bitacoras_equipos"

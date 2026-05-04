@@ -13,10 +13,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Plus } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-
 import {
   Table,
   TableBody,
@@ -25,9 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import SearchPases from "@/components/pages/pases/SearchPases";
 import UpdateFullPassModal from "@/components/modals/update-full-pass";
 import { useMemo, useState } from "react";
 import { OptionsCell } from "./pases-entrada-columns";
@@ -38,15 +32,11 @@ import { Badge } from "@/components/ui/badge";
 interface ListProps {
   isLoading: boolean;
   pases: any[];
-  onSearch: (value: string) => void;
-  title?: string;
 }
 
 const PasesEntradaTable: React.FC<ListProps> = ({
   isLoading,
   pases,
-  onSearch,
-  title,
 }) => {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -323,28 +313,6 @@ const PasesEntradaTable: React.FC<ListProps> = ({
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center my-3">
-        <div className="flex items-center gap-4">
-          {title && (
-            <h1 className="text-xl font-bold text-foreground whitespace-nowrap">
-              {title}
-            </h1>
-          )}
-          <div id="searchpases">
-            <SearchPases onSearch={onSearch} />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-end space-x-4">
-          <Link href="/dashboard/pase-entrada">
-            <Button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2">
-              <Plus />
-              Nuevo Pase
-            </Button>
-          </Link>
-        </div>
-      </div>
-
       <div className="">
         {modalEditarAbierto && paseSeleccionado && (
           <UpdateFullPassModal
