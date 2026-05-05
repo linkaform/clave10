@@ -68,6 +68,10 @@ const ListaPasesContent = () => {
     searchName,
     tab: activeStatus,
     location: location ?? "",
+    dynamicFilters: externalFilters.dynamic,
+    dateFilter: externalFilters.dateFilter,
+    date1: externalFilters.date1,
+    date2: externalFilters.date2,
   });
   const { records, actual_page, records_on_page, total_pages, total_records } =
     data || {};
