@@ -188,6 +188,13 @@ export default function LoginPage() {
                   onClick={() => setOpenOlvido(true)}>
                   ¿Olvidaste tu contraseña?
                 </button>
+
+                <p className="mt-3 text-sm text-gray-500">
+                  ¿No tienes cuenta?{" "}
+                  <a href="/auth/registro" className="text-[#3D8BF2] hover:underline font-semibold">
+                    Regístrate aquí
+                  </a>
+                </p>
               </CardContent>
             </Card>
           </form>
