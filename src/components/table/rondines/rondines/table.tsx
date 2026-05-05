@@ -27,8 +27,10 @@ import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersP
 import { PhotoRondinCardModal } from "@/components/Bitacoras/PhotoList/PhotoRondinCardModal";
 import { useGetListRondines } from "@/hooks/Rondines/useGetListRecorridos";
 import { getRondinesColumns } from "./rondines-columnas";
-import { PrintRondinModal } from "@/components/modals/modal-imprimir-rondin";
 import { mapRondinBitacoraList } from "@/mappers/rondin.bitacora.list.mapper";
+import { useGetPdfMutation } from "@/hooks/usetGetPdf";
+import useAuthStore from "@/store/useAuthStore";
+import Swal from "sweetalert2";
 
 export interface BitacoraRondin {
   id: string;
@@ -86,8 +88,6 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
 }) => {
   const { listRondines, isLoadingListRondines: isLoading } = useGetListRondines(true, "", "", 100, 0);
   const [rowSelection, setRowSelection] = React.useState({});
-  const [imprimirAbierto, setImprimirAbierto] = useState(false);
-  const [rondinImprimir, setRondinImprimir] = useState<BitacoraRondin[]>([]);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -96,10 +96,56 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [rondinSeleccionado, setRondinSeleccionado] = useState<any | null>(null);
   const [modalVerAbierto, setModalVerAbierto] = useState(false);
+  const [rondinActual, setRondinActual] = useState<BitacoraRondin | null>(null);
+  const { userParentId } =useAuthStore();
 
-  const handleImprimir = (rondin: BitacoraRondin) => {
-    setRondinImprimir([rondin]);
-    setImprimirAbierto(true);
+  const { refetch } = useGetPdfMutation(
+    rondinActual?.id ?? "",
+    590,
+    userParentId ||0 ,
+    `Bitacora_de_Rondines_${rondinActual?.folio ?? ""}`
+  );
+  
+  const handleImprimir = async (rondin: BitacoraRondin) => {
+    setRondinActual(rondin);
+    await new Promise(resolve => setTimeout(resolve, 50));
+  
+    Swal.fire({
+      title: "Preparando documento",
+      html: "Cargando PDF para imprimir...",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading(),
+    });
+  
+    try {
+      const result = await refetch();
+      const downloadUrl = result.data?.response?.data?.json?.download_url;
+  
+      if (downloadUrl) {
+        const blob = await (await fetch(downloadUrl)).blob();
+        const blobUrl = URL.createObjectURL(blob);
+        Swal.close();
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = blobUrl;
+        document.body.appendChild(iframe);
+        iframe.onload = () => {
+          iframe.contentWindow?.print();
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            URL.revokeObjectURL(blobUrl);
+          }, 2000);
+        };
+      } else {
+        Swal.close();
+        Swal.fire({ icon: "error", title: "Error", text: "No se encontró el PDF" });
+      }
+    } catch (err) {
+      Swal.close();
+      Swal.fire({ icon: "error", title: "Error al imprimir", text: `${err}` });
+    }
   };
 
   useEffect(() => {
@@ -186,7 +232,11 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   }, [memoizedData]);
 
   const renderActions = () => null;
-
+  const handleImprimirMultiple = async (rondines: BitacoraRondin[]) => {
+    for (const rondin of rondines) {
+      await handleImprimir(rondin);
+    }
+  };
   return (
     <div className="w-full">
       <div className="flex gap-4 items-start">
@@ -320,10 +370,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
               <OutSelectedItemsButton
                 selectedItems={selectedItems}
                 variant="imprimir"
-                onImprimir={() => {
-                  setRondinImprimir(selectedRows.map(r => r.original));
-                  setImprimirAbierto(true);
-                }}
+                onImprimir={() => handleImprimirMultiple(selectedRows.map(r => r.original))}
               />
               <button
                 onClick={() => setRowSelection({})}
@@ -335,11 +382,11 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
         </div>
       )}
 
-      <PrintRondinModal
+      {/* <PrintRondinModal
         open={imprimirAbierto}
         onOpenChange={setImprimirAbierto}
         rondines={rondinImprimir}
-      />
+      /> */}
     </div>
   );
 };

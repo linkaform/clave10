@@ -21,10 +21,12 @@ export function PhotoListCard({
   onSelect,
   mapData,
 }: ListCardProps & { mapData?: MapItem[] }) {
-  const allImages = record.images || [];
-  const [activeImage, setActiveImage] = useState(
-    allImages[0] || "/placeholder.svg",
+  const allImages = (record.images || []).filter(
+    (img: string) => img && img !== "/mountain.svg" && img.trim() !== ""
   );
+  
+  const fallback = "/sin_imagen_rondines.png";
+  const [activeImage, setActiveImage] = useState(allImages[0] || fallback);
   console.log(record)
   const showMap = mapData && mapData.length > 0;
   // Separar áreas del resto de detalles
@@ -104,7 +106,6 @@ export function PhotoListCard({
           )}
         </div>
 
-        {/* Columna derecha: info + mapa + áreas */}
         <div className="flex-1 flex flex-col justify-start min-w-0">
           <div className="flex justify-between items-start">
             <div className="min-w-0 flex-1">
@@ -165,15 +166,40 @@ export function PhotoListCard({
           )}
 
           {showMap && (
-            <div
-              className="rounded-xl overflow-hidden border border-slate-200 mb-4 w-full"
-              style={{ height: "180px" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ height: "180px", width: "100%" }}>
-                <MapView map_data={mapData} areas={record?.areas || []} />
+            <>
+              <div
+                className="rounded-xl overflow-hidden border border-slate-200 mb-2 w-full"
+                style={{ height: "180px" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{ height: "180px", width: "100%" }}>
+                  {/* <MapView map_data={mapData} areas={record?.areas || []} /> */}
+                </div>
               </div>
-            </div>
+
+              {(() => {
+                const areassinGeo = (mapData ?? []).filter(
+                  (item: any) =>
+                    !item.geolocation_area ||
+                    (item.geolocation_area.latitude === 0 && item.geolocation_area.longitude === 0)
+                );
+                if (areassinGeo.length === 0) return null;
+                return (
+                  <div className="mb-4 px-2 py-1.5 bg-red-50 border border-red-100 rounded-lg">
+                    <p className="text-[10px] font-bold text-red-500 uppercase tracking-wide mb-0.5">
+                      ⚠ Geolocalización no disponible
+                    </p>
+                    <p className="text-[10px] text-red-400 leading-snug">
+                      {(mapData ?? []).filter(
+                        (item: any) =>
+                          !item.geolocation_area ||
+                          (item.geolocation_area.latitude === 0 && item.geolocation_area.longitude === 0)
+                      ).map((a: any) => a.nombre_area || a.nombre || "Área sin nombre").join(", ")}
+                    </p>
+                  </div>
+                );
+              })()}
+            </>
           )}
 
           {areasItem && Array.isArray(areasItem.value) && areasItem.value.length > 0 && (

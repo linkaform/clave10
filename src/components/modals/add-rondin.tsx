@@ -798,7 +798,6 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                             {...field}
                             className="input"
                             onValueChange={(value: string) => {
-                              console.log("VALORRRRR", value);
                               field.onChange(value);
                             }}
                             value={field.value}

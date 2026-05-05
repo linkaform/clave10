@@ -29,10 +29,10 @@ const status = estatus === "corriendo"
     ubicacion: raw?.ubicacion,
     recurrencia: raw?.recurrencia,
     detailsList: [
-      { icon: null, label: "RECURRENCIA", value: raw?.recurrencia ? `Recurrencia: ${raw.recurrencia}` : "---" },
-      { icon: null, label: "DURACIÓN", value: raw?.duracion_esperada_rondin ? `Duración: ${raw.duracion_esperada_rondin}` : "---" },
+      { icon: null, label: "RECURRENCIA", value: raw?.recurrencia ? `Recurrencia: ${raw.recurrencia}` : "-" },
+      { icon: null, label: "DURACIÓN", value: raw?.duracion_esperada_rondin ? `Duración: ${raw.duracion_esperada_rondin}` : "-" },
       { icon: null, label: "CHECKPOINTS", value: `Checkpoints: ${raw?.cantidad_de_puntos ?? 0} puntos` },
-      { icon: null, label: "INICIO", value: raw?.fecha_inicio_rondin ? `Inicio: ${raw.fecha_inicio_rondin}` : "---" },
+      { icon: null, label: "INICIO", value: raw?.fecha_inicio_rondin ? `Inicio: ${raw.fecha_inicio_rondin}` : "-" },
       {
         icon: null,
         label: "ÁREAS",
