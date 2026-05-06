@@ -25,6 +25,7 @@ import type { MenuConfig } from "@/types/menu-types";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { useBoothStore } from "@/store/useBoothStore";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 interface HeaderProps {
   menuConfig: MenuConfig;
@@ -54,15 +55,19 @@ export function Header({
   onLogout,
 }: HeaderProps) {
   const { location: locationBooth, area, setBooth } = useBoothStore();
-  const { locations } = useAreasLocationStore();
+  const { locations, fetchLocations } = useAreasLocationStore();
 
   const [currentLocation, setCurrentLocation] = React.useState<string>("");
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (locationBooth) {
       setCurrentLocation(locationBooth);
     }
   }, [locationBooth]);
+
+  useEffect(() => {
+    fetchLocations();
+  }, [fetchLocations]);
 
   const handleLocationChange = (loc: string) => {
     setCurrentLocation(loc);
