@@ -73,9 +73,18 @@ const RondinesContent = () => {
 
   const [openModal, setOpenModal] = useState(false);
   const [selectedIncidencias, setSelectedIncidencias] = useState<string[]>([]);
-
+  
   useEffect(() => {
-    if (subTab === "recorridos" && viewMode !== "table") setViewMode("table");
+    const allowedViews: Record<string, ("table" | "photos" | "list")[]> = {
+      recorridos:          ["table"],
+      rondines:            ["table", "list"],
+      "check-ubicaciones": ["table", "photos"],
+      incidencias:         ["table", "photos"],
+    };
+    const allowed = allowedViews[subTab] ?? ["table"];
+    if (!allowed.includes(viewMode)) {
+      setViewMode("table");
+    }
   }, [subTab, viewMode]);
 
   useEffect(() => {
