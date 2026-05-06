@@ -196,23 +196,32 @@ export function PhotoGridView({
       ) : (
 
       <PhotoGridCardModal
-        badges={[
-          {
-            label: "",
-            value: (selectedRecord?.statusLabel || selectedRecord?.status || "").toUpperCase(),
-            customClass: getStatusBadgeClass(selectedRecord?.status || ""),
-          },
-          {
-            label: "",
-            value: selectedRecord?.visit_type || "",
-            customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs",
-          },
-          {
-            label: "",
-            value: `#${selectedRecord?.folio || ""}`,
-            customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs",
-          },
-        ]}
+      badges={[
+        ...(selectedRecord?.statusLabel
+          ? [{
+              label: "",
+              value: selectedRecord.statusLabel,
+              customClass: "bg-red-100 text-red-600 text-xs font-bold border border-red-200",
+            }]
+          : selectedRecord?.status
+            ? [{
+                label: "",
+                value: (selectedRecord.statusLabel || selectedRecord.status).toUpperCase(),
+                customClass: getStatusBadgeClass(selectedRecord.status),
+              }]
+            : []
+        ),
+        {
+          label: "",
+          value: selectedRecord?.visit_type || "",
+          customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs",
+        },
+        {
+          label: "",
+          value: `#${selectedRecord?.folio || ""}`,
+          customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs",
+        },
+      ]}
         record={selectedRecord}
         open={isModalOpen}
         onOpenChange={setIsModalOpen}>
