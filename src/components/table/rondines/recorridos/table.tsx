@@ -36,8 +36,8 @@ import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersP
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
-import { useRondinesFilters, applyRondinesFilters } from "@/hooks/bitacora/useRondinesFilters";
 import { useGetListRecorridos } from "@/hooks/Rondines/useGetListRecorridos";
+import { applyRecorridosFilters, useRecorridosFilters } from "@/hooks/Rondines/recorridos/useRecorridosFilters ";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
@@ -139,11 +139,6 @@ const RecorridosTable: React.FC<ListProps> = ({
     }
   }, []);
 
-  useEffect(() => {
-    if (Array.isArray(listRecorridos)) {
-      setTotalRegistros(listRecorridos.length);
-    }
-  }, [listRecorridos, setTotalRegistros]);
 
   const {
     externalFilters: externalFiltersLocal,
@@ -153,7 +148,7 @@ const RecorridosTable: React.FC<ListProps> = ({
     searchTags: searchTagsLocal,
     isSidebarOpen,
     setIsSidebarOpen,
-  } = useRondinesFilters();
+  } = useRecorridosFilters();
 
   const externalFilters = externalFiltersProp ?? externalFiltersLocal;
   const onExternalFiltersChange = onExternalFiltersChangeProp ?? onExternalFiltersChangeLocal;
@@ -181,13 +176,13 @@ const RecorridosTable: React.FC<ListProps> = ({
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
   const [globalFilter, setGlobalFilter] = React.useState("");
 
-  // React.useEffect(() => {
-  //   if (searchTags && searchTags.length > 0) {
-  //     setGlobalFilter(searchTags.join(" "));
-  //   } else {
-  //     setGlobalFilter("");
-  //   }
-  // }, [searchTags]);
+  React.useEffect(() => {
+    if (searchTags && searchTags.length > 0) {
+      setGlobalFilter(searchTags.join(" "));
+    } else {
+      setGlobalFilter("");
+    }
+  }, [searchTags]);
 
   const columns = useMemo(() => getRecorridosColumns(handleEliminar, handleVerRondin), [handleVerRondin]);
   const memoizedData = useMemo(
@@ -195,8 +190,13 @@ const RecorridosTable: React.FC<ListProps> = ({
     [listRecorridos]
   );
 
+  const filteredData = useMemo(
+    () => applyRecorridosFilters(memoizedData, externalFilters),
+    [memoizedData, externalFilters]
+  );
+
   const table = useReactTable({
-    data: memoizedData ?? [],
+    data: filteredData ?? [],
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -210,15 +210,24 @@ const RecorridosTable: React.FC<ListProps> = ({
     onPaginationChange: setPagination,
     globalFilterFn: (row, _columnId, filterValue: string) => {
       if (!filterValue) return true;
-      const tags = filterValue.toLowerCase().split(" ").filter(Boolean);
+      const normalize = (str: string) =>
+        str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    
+      const tags = filterValue.split("|").filter(Boolean).map(normalize);
+    
       const allValues = row
         .getAllCells()
-        .map((cell) => String(cell.getValue() || "").toLowerCase())
+        .map((cell) => normalize(String(cell.getValue() || "")))
         .join(" ");
+    
       return tags.some((tag) => allValues.includes(tag));
     },
     state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
   });
+
+  useEffect(() => {
+    setTotalRegistros(filteredData.length);
+  }, [filteredData, setTotalRegistros]);
 
   const handlePlay = () => {
     playOrPauseRondinMutation.mutate({
@@ -244,10 +253,6 @@ const RecorridosTable: React.FC<ListProps> = ({
     });
   };
 
-  const filteredData = useMemo(
-    () => applyRondinesFilters(memoizedData, externalFilters),
-    [memoizedData, externalFilters]
-  );
 
   const rondinPhotoRecords: PhotoRecord[] = useMemo(() => {
     if (!filteredData?.length) return [];
@@ -276,7 +281,6 @@ const RecorridosTable: React.FC<ListProps> = ({
 
   return (
     <div className="w-full">
-
       {viewMode === "table" && !verRondin && (
         <FloatingFiltersDrawer
           isOpen={isSidebarOpen}

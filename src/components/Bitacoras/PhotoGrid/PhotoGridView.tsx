@@ -149,12 +149,12 @@ export function PhotoGridView({
                 </div>
               ) : filteredRecords.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
-                  {filteredRecords.map((record) => (
+                  {filteredRecords.map((record, index) => (
                     <PhotoGridCard
                       headerBadge={record.visit_type}
                       titleCard={record.title}
                       descriptionCard={record.description}
-                      key={record.id}
+                      key={`${record.id}-${index}`}
                       record={record}
                       cardConfig={{
                         tagPosition: "sup-der",
