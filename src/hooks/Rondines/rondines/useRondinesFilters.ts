@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useFilters } from "./useFilters";
+import { useFilters } from "../../bitacora/useFilters";
 import { getRondinesFilters } from "@/services/endpoints";
 
 export type RondinesExternalFilters = {

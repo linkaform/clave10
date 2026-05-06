@@ -747,3 +747,5 @@ export function getRequerimientos(ubi: string): string[] {
   const data = JSON.parse(raw);
   return data?.requerimientos ?? [];
 }
+export const normalize = (str: string) =>
+  str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();

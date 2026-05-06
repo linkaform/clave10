@@ -133,7 +133,7 @@ import { Eye, Pencil, Trash } from "lucide-react";
     {
       accessorKey: "tipo_rondin",
       header: "Tipo",
-      cell: ({ row }) => <div className="capitalize">{row.getValue("tipo_rondin")}</div>,
+      cell: ({ row }) => <div className="uppercase">{row.getValue("tipo_rondin")}</div>,
       enableSorting: true,
     },
   ];

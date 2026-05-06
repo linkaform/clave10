@@ -1,46 +1,67 @@
 export function mapCheckUbicacionGrid(raw: any, base: any) {
-    const areas = Array.isArray(raw?.areas) ? raw.areas : [];
-    const tieneIncidencias = Array.isArray(raw?.incidencias) && raw.incidencias.length > 0;
-    const areasConCheck = areas.filter((a: any) => a?.detalle?.hora_de_check);
-    const fotos = areas.flatMap((a: any) => a?.detalle?.fotos ?? []).map((f: any) => f.file_url).filter(Boolean);
-    const images = fotos.length > 0 ? fotos : ["/mountain.svg"];
-    const areaNames = areas.map((a: any) => a.area).filter(Boolean);
+  const tieneIncidencias =
+    Array.isArray(raw?.grupo_incidencias_check) &&
+    raw.grupo_incidencias_check.length > 0;
+
+    const fotoEvidencia = Array.isArray(raw?.foto_evidencia_area)
+    ? raw.foto_evidencia_area
+        .map((f: any) => f.file_url)
+        .filter((url: string) => url?.startsWith("https://"))
+    : [];
   
-    return {
-      ...base,
-      id: raw?.id || "no-id",
-      folio: raw?.id || "S/F",
-      visit_type: raw?.ubicacion || "",
-      title: raw?.nombre_recorrido || "Sin nombre",
-      description: raw?.ubicacion || "Sin ubicación",
-      images,
-      status: tieneIncidencias ? "cerrado" : "abierto",
-      detailsList: [
-        { icon: null, label: "RECORRIDO", value: raw?.nombre_recorrido || "---" },
-        { icon: null, label: "UBICACIÓN", value: raw?.ubicacion || "---" },
-        { icon: null, label: "FECHA", value: raw?.created_at || "---" },
-        { icon: null, label: "TOTAL CHECKS", value: String(raw?.total_checks ?? 0) },
-        { icon: null, label: "CHECKS COMPLETADOS", value: String(areasConCheck.length) },
-        { icon: null, label: "ÁREAS", value: areaNames },
-      ],
-      modalDetailsList: [
-        { icon: null, label: "Recorrido", value: raw?.nombre_recorrido },
-        { icon: null, label: "Ubicación", value: raw?.ubicacion },
-        { icon: null, label: "Fecha", value: raw?.created_at },
-        { icon: null, label: "Total checks", value: String(raw?.total_checks ?? 0) },
-        { icon: null, label: "Checks completados", value: String(areasConCheck.length) },
-        { icon: null, label: "Áreas", value: areaNames },
-      ],
-      rawData: raw,
-      vehiculos: [],
-      equipos: [], 
-      map_data: areas.map((a: any) => ({
-        id: a.area || `area-${Math.random()}`,
-        nombre_area: a.area,
-        geolocation_area: { latitude: 0, longitude: 0 },
-        foto_area: a?.detalle?.fotos?.length > 0
-          ? [{ file_name: a.detalle.fotos[0].file_name, file_url: a.detalle.fotos[0].file_url }]
-          : [],
-      })),
-    };
-  }
+  const fotoArea = raw?.foto_area?.[0];
+  const validFotosArea = Array.isArray(fotoArea)
+    ? fotoArea
+        .map((f: any) => f.file_url)
+        .filter((url: string) => url?.startsWith("https://"))
+    : [];
+  
+  const images =
+    fotoEvidencia.length > 0
+      ? fotoEvidencia
+      : validFotosArea.length > 0
+        ? validFotosArea
+        : ["/mountain.svg"];
+
+  const rondinArea = Array.isArray(raw?.rondin_area)
+    ? raw.rondin_area.join(", ")
+    : raw?.rondin_area || "---";
+
+  const tipoArea = Array.isArray(raw?.tipo_de_area)
+    ? raw.tipo_de_area.join(", ")
+    : raw?.tipo_de_area || "---";
+
+  const ubicacion = raw?.incidente_location?.[0] || "---";
+
+  return {
+    ...base,
+    id: raw?.id || "no-id",
+    folio: raw?.folio || "S/F",
+    visit_type: tipoArea,
+    title: rondinArea,
+    description: raw?.comentario_check_area || "Sin comentario",
+    images,
+    status: tieneIncidencias ? "abierto" : "cerrado",
+    detailsList: [
+      { icon: null, label: "ÁREA", value: rondinArea },
+      { icon: null, label: "TIPO", value: tipoArea },
+      { icon: null, label: "UBICACIÓN", value: ubicacion },
+      { icon: null, label: "FECHA", value: raw?.created_at || "---" },
+      { icon: null, label: "ESTATUS", value: raw?.check_status?.replace(/_/g, " ") || "---" },
+      { icon: null, label: "INCIDENCIAS", value: tieneIncidencias ? String(raw.grupo_incidencias_check.length) : "Sin incidencias" },
+    ],
+    modalDetailsList: [
+      { icon: null, label: "Área", value: rondinArea },
+      { icon: null, label: "Tipo", value: tipoArea },
+      { icon: null, label: "Ubicación", value: ubicacion },
+      { icon: null, label: "Fecha", value: raw?.created_at || "---" },
+      { icon: null, label: "Estatus check", value: raw?.check_status?.replace(/_/g, " ") || "---" },
+      { icon: null, label: "Comentario", value: raw?.comentario_check_area || "---" },
+      { icon: null, label: "Incidencias", value: tieneIncidencias ? String(raw.grupo_incidencias_check.length) : "Sin incidencias" },
+    ],
+    rawData: raw,
+    vehiculos: [],
+    equipos: [],
+    map_data: [],
+  };
+}

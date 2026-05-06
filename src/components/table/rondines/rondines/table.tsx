@@ -27,8 +27,11 @@ import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersP
 import { PhotoRondinCardModal } from "@/components/Bitacoras/PhotoList/PhotoRondinCardModal";
 import { useGetListRondines } from "@/hooks/Rondines/useGetListRecorridos";
 import { getRondinesColumns } from "./rondines-columnas";
-import { PrintRondinModal } from "@/components/modals/modal-imprimir-rondin";
 import { mapRondinBitacoraList } from "@/mappers/rondin.bitacora.list.mapper";
+import { useGetPdfMutation } from "@/hooks/usetGetPdf";
+import useAuthStore from "@/store/useAuthStore";
+import Swal from "sweetalert2";
+import { RondinActionButtons } from "../rondinActionButtons";
 
 export interface BitacoraRondin {
   id: string;
@@ -86,8 +89,6 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
 }) => {
   const { listRondines, isLoadingListRondines: isLoading } = useGetListRondines(true, "", "", 100, 0);
   const [rowSelection, setRowSelection] = React.useState({});
-  const [imprimirAbierto, setImprimirAbierto] = useState(false);
-  const [rondinImprimir, setRondinImprimir] = useState<BitacoraRondin[]>([]);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -96,10 +97,56 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [rondinSeleccionado, setRondinSeleccionado] = useState<any | null>(null);
   const [modalVerAbierto, setModalVerAbierto] = useState(false);
+  const [rondinActual, setRondinActual] = useState<BitacoraRondin | null>(null);
+  const { userParentId } =useAuthStore();
 
-  const handleImprimir = (rondin: BitacoraRondin) => {
-    setRondinImprimir([rondin]);
-    setImprimirAbierto(true);
+  const { refetch } = useGetPdfMutation(
+    rondinActual?.id ?? "",
+    590,
+    userParentId ||0 ,
+    `Bitacora_de_Rondines_${rondinActual?.folio ?? ""}`
+  );
+  
+  const handleImprimir = async (rondin: BitacoraRondin) => {
+    setRondinActual(rondin);
+    await new Promise(resolve => setTimeout(resolve, 50));
+  
+    Swal.fire({
+      title: "Preparando documento",
+      html: "Cargando PDF para imprimir...",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading(),
+    });
+  
+    try {
+      const result = await refetch();
+      const downloadUrl = result.data?.response?.data?.json?.download_url;
+  
+      if (downloadUrl) {
+        const blob = await (await fetch(downloadUrl)).blob();
+        const blobUrl = URL.createObjectURL(blob);
+        Swal.close();
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = blobUrl;
+        document.body.appendChild(iframe);
+        iframe.onload = () => {
+          iframe.contentWindow?.print();
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            URL.revokeObjectURL(blobUrl);
+          }, 2000);
+        };
+      } else {
+        Swal.close();
+        Swal.fire({ icon: "error", title: "Error", text: "No se encontró el PDF" });
+      }
+    } catch (err) {
+      Swal.close();
+      Swal.fire({ icon: "error", title: "Error al imprimir", text: `${err}` });
+    }
   };
 
   useEffect(() => {
@@ -110,7 +157,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
 
   useEffect(() => {
     if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join(" "));
+      setGlobalFilter(searchTags.join("|"));
     } else {
       setGlobalFilter("");
     }
@@ -151,10 +198,12 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
     onPaginationChange: setPagination,
     globalFilterFn: (row, _columnId, filterValue: string) => {
       if (!filterValue) return true;
-      const tags = filterValue.toLowerCase().split(" ").filter(Boolean);
+      const normalize = (str: string) =>
+        str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const tags = filterValue.split("|").filter(Boolean).map(normalize);
       const allValues = row
         .getAllCells()
-        .map((cell) => String(cell.getValue() || "").toLowerCase())
+        .map((cell) => normalize(String(cell.getValue() || "")))
         .join(" ");
       return tags.some((tag) => allValues.includes(tag));
     },
@@ -185,11 +234,27 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
     );
   }, [memoizedData]);
 
-  const renderActions = () => null;
+  const handleImprimirMultiple = async (rondines: BitacoraRondin[]) => {
+    for (const rondin of rondines) {
+      await handleImprimir(rondin);
+    }
+  };
 
+  const renderActions = (record: PhotoRecord | ListRecord) => {
+    const rondin = memoizedData.find((b) => b.id === record.id);
+    if (!rondin) return null;
+    return (
+      <RondinActionButtons
+        rondin={rondin}
+        handleImprimir={handleImprimir}
+      />
+    );
+  };
+  
   return (
     <div className="w-full">
       <div className="flex gap-4 items-start">
+     
         {viewMode !== "table" && (
           <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">
             <FiltersPanel
@@ -320,10 +385,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
               <OutSelectedItemsButton
                 selectedItems={selectedItems}
                 variant="imprimir"
-                onImprimir={() => {
-                  setRondinImprimir(selectedRows.map(r => r.original));
-                  setImprimirAbierto(true);
-                }}
+                onImprimir={() => handleImprimirMultiple(selectedRows.map(r => r.original))}
               />
               <button
                 onClick={() => setRowSelection({})}
@@ -335,11 +397,11 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
         </div>
       )}
 
-      <PrintRondinModal
+      {/* <PrintRondinModal
         open={imprimirAbierto}
         onOpenChange={setImprimirAbierto}
         rondines={rondinImprimir}
-      />
+      /> */}
     </div>
   );
 };

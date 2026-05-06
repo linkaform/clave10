@@ -53,6 +53,7 @@ interface ListProps {
   onExternalFiltersChange?: (filters: any) => void;
   filtersConfig?: any[];
   setTotalRegistros: React.Dispatch<React.SetStateAction<number | 0>>;
+  searchTags?: string[];
 }
 
 export const incidenciasColumnsCSV = [
