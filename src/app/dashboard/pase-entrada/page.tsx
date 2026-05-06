@@ -302,22 +302,22 @@ const PaseEntradaPage = () => {
     ubicacionesSeleccionadasLista ?? [],
   );
 
-  const [enviar_correo_pre_registro] = useState<string[]>([]);
-  const [formatedDocs, setFormatedDocs] = useState<string[]>([]);
-  const [formatedEnvio, setFormatedEnvio] = useState<string[]>([]);
-  const [areasList, setAreasList] = useState<Areas[]>([]);
-  const [isActiveFechaFija, setIsActiveFechaFija] = useState(false);
-  const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(true);
-  const [isActivelimitarDias, setIsActiveLimitarDias] = useState(true);
-  const [isActiveCualquierDia, setIsActiveCualquierDia] = useState(true);
-  const [isActivelimitarDiasSemana, setIsActiveLimitarDiasSemana] =
-    useState(false);
-  const [isActiveAdvancedOptions, setIsActiveAdvancedOptions] = useState(false);
-  const [date, setDate] = React.useState<Date | undefined>();
-  const [selected, setSelected] = useState<Contacto | null>(null);
-  const [isOpenModal, setOpenModal] = useState(false);
-  const [todasAreas, setTodasAreas] = useState(true);
-  const today = new Date().toISOString().split("T")[0];
+	const [enviar_correo_pre_registro] = useState<string[]>([]);
+	const [formatedDocs, setFormatedDocs] = useState<string[]>([])
+	const [formatedEnvio, setFormatedEnvio] = useState<string[]>([])
+	const [areasList, setAreasList] = useState<Areas[]>([]);
+	const [isActiveFechaFija, setIsActiveFechaFija] = useState(false);
+	const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(true);
+	const [isActivelimitarDias, setIsActiveLimitarDias] = useState(true);
+	const [isActiveCualquierDia, setIsActiveCualquierDia] = useState(true);
+	const [isActivelimitarDiasSemana, setIsActiveLimitarDiasSemana] = useState(false);
+	const [isActiveAdvancedOptions, setIsActiveAdvancedOptions] = useState(false);
+	const [date, setDate] = React.useState<Date| undefined>();
+	// const [fechaDesde, setFechaDesde] = useState<string>('');
+	const [selected, setSelected] = useState<Contacto |null>(null);
+	const [isOpenModal, setOpenModal] = useState(false);
+	const [todasAreas,setTodasAreas] = useState(true)
+	const today = new Date().toISOString().split("T")[0];
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -593,42 +593,22 @@ const PaseEntradaPage = () => {
                 responsable que recibirá al visitante.
               </p>
 
-              <div className="space-y-5">
-                <FormField
-                  control={form.control}
-                  name="ubicaciones"
-                  render={() => (
-                    <FormItem>
-                      <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        <span className="text-red-400">*</span> Ubicaciones de
-                        la visita
-                      </FormLabel>
-                      <Multiselect
-                        options={ubicacionesFormatteadoStore ?? []}
-                        selectedValues={ubicacionesSeleccionadas}
-                        onSelect={setUbicacionesSeleccionadas}
-                        onRemove={setUbicacionesSeleccionadas}
-                        displayValue="name"
-                        style={{
-                          chips: {
-                            background: "#2563eb",
-                            borderRadius: "20px",
-                          },
-                          searchBox: {
-                            borderRadius: "12px",
-                            border: "1px solid #e5e7eb",
-                            background: "#f9fafb",
-                          },
-                        }}
-                      />
-                      <p className="text-xs text-gray-400 mt-1">
-                        Selecciona las ubicaciones a las que tendrá acceso el
-                        visitante.
-                      </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+	const [enviar_correo_pre_registro] = useState<string[]>([]);
+	const [formatedDocs, setFormatedDocs] = useState<string[]>([])
+	const [formatedEnvio, setFormatedEnvio] = useState<string[]>([])
+	const [areasList, setAreasList] = useState<Areas[]>([]);
+	const [isActiveFechaFija, setIsActiveFechaFija] = useState(false);
+	const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(true);
+	const [isActivelimitarDias, setIsActiveLimitarDias] = useState(true);
+	const [isActiveCualquierDia, setIsActiveCualquierDia] = useState(true);
+	const [isActivelimitarDiasSemana, setIsActiveLimitarDiasSemana] = useState(false);
+	const [isActiveAdvancedOptions, setIsActiveAdvancedOptions] = useState(false);
+	const [date, setDate] = React.useState<Date| undefined>();
+	// const [fechaDesde, setFechaDesde] = useState<string>('');
+	const [selected, setSelected] = useState<Contacto |null>(null);
+	const [isOpenModal, setOpenModal] = useState(false);
+	const [todasAreas,setTodasAreas] = useState(true)
+	const today = new Date().toISOString().split("T")[0];
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <FormField
