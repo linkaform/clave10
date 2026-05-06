@@ -190,12 +190,15 @@ const puntos = useMemo<Punto[]>(() =>
         center={center}
         zoom={DEFAULT_ZOOM}
         ref={mapRef}
+        maxZoom={22}
         whenReady={() => { if (mapRef.current) setZoom(mapRef.current); }}
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
           url={user?.userIdSoter === 126 ? osm?.maptiler.url_126 : osm.maptiler.url}
           attribution={osm.maptiler.attribution}
+          maxZoom={22}        
+          maxNativeZoom={19} 
         />
         <Polyline positions={linePositions} color="green" />
         <MyComponent prefix={instanceId} />

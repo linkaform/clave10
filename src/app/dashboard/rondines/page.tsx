@@ -4,14 +4,14 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useShiftStore } from "@/store/useShiftStore";
-import { dateToString, downloadCSV } from "@/lib/utils";
+import { dateToString } from "@/lib/utils";
 import { Tabs as TabsOuter, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, LayoutGrid, LayoutList, Sheet, FileX2, Plus } from "lucide-react";
+import { Search, LayoutGrid, LayoutList, Sheet, Plus } from "lucide-react";
 import { TagSearchInput } from "@/components/tag-search-input";
 import { Button } from "@/components/ui/button";
 import CheckUbicacionesTable from "@/components/table/rondines/check-ubicaciones/table";
 import { AddRondinModal } from "@/components/modals/add-rondin";
-import IncidenciasRondinesTable, { incidenciasColumnsCSV } from "@/components/table/rondines/incidencias-rondines/table";
+import IncidenciasRondinesTable from "@/components/table/rondines/incidencias-rondines/table";
 import RondinesTable from "@/components/table/rondines/rondines/table";
 import { useBoothStore } from "@/store/useBoothStore";
 import RecorridosTable from "@/components/table/rondines/recorridos/table";
@@ -42,6 +42,7 @@ const RondinesContent = () => {
   const [rondinesSidebarOpen, setRondinesSidebarOpen] = useState(false);
   const [checkAreasSidebarOpen, setCheckAreasSidebarOpen] = useState(false);
   const [incidenciasSidebarOpen, setIncidenciasSidebarOpen] = useState(false);
+  const [verRondin, setVerRondin] = useState(false);
 
   const {
     externalFilters: recorridosFilters,
@@ -127,7 +128,7 @@ const RondinesContent = () => {
   return (
     <div className="">
       {/* FloatingFiltersDrawer por tab — solo en vista tabla */}
-      {viewMode === "table" && subTab === "recorridos" && (
+      {viewMode === "table" && subTab === "recorridos" && verRondin===false &&(
         <FloatingFiltersDrawer
           isOpen={recorridosSidebarOpen}
           onOpenChange={setRecorridosSidebarOpen}
@@ -181,14 +182,14 @@ const RondinesContent = () => {
             </div>
             <div className="flex items-center gap-4 min-w-0 justify-end flex-shrink-0">
               
-              {subTab === "incidencias" && (
+              {/* {subTab === "incidencias" && (
                 <Button
                   className="w-full md:w-auto bg-blue-600 hover:bg-blue-700"
                   onClick={() => downloadCSV(selectedIncidencias, incidenciasColumnsCSV, "incidencias.csv")}>
                   <FileX2 />
                   Descargar
                 </Button>
-              )}
+              )} */}
 
               <div className="flex p-1 rounded-lg items-center border border-slate-200 w-[240px] overflow-hidden focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 bg-white transition-all">
                 <Search className="ml-2 mr-1 flex-shrink-0 text-slate-400" size={14} />
@@ -203,7 +204,7 @@ const RondinesContent = () => {
                 <AddRondinModal title="Crear recorrido" mode="create">
                   <Button className="bg-green-600 hover:bg-green-700 text-white gap-2">
                     <Plus size={16} />
-                    Crear recorrido
+                    Crear Recorrido
                   </Button>
                 </AddRondinModal>
               )}
@@ -234,6 +235,9 @@ const RondinesContent = () => {
                   }`;
                 return (
                   <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
+                    <Button variant="ghost" size="icon" className={btnClass("table")} onClick={() => setViewMode("table")}>
+                      <Sheet size={18} />
+                    </Button>
                     {(subTab === "incidencias" || subTab === "check-ubicaciones") && (
                       <Button variant="ghost" size="icon" className={btnClass("photos")} onClick={() => setViewMode("photos")}>
                         <LayoutGrid size={18} />
@@ -244,9 +248,6 @@ const RondinesContent = () => {
                         <LayoutList size={18} />
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" className={btnClass("table")} onClick={() => setViewMode("table")}>
-                      <Sheet size={18} />
-                    </Button>
                   </div>
                 );
               })()}
@@ -268,6 +269,8 @@ const RondinesContent = () => {
                   onExternalFiltersChange={onRecorridosFiltersChange}
                   filtersConfig={recorridosFiltersConfig}
                   setTotalRegistros={setTotalRegistros}
+                  verRondin={verRondin}
+                  setVerRondin={setVerRondin}
                 />
               </TabsContent>
 
