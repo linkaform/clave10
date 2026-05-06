@@ -45,7 +45,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
     
   export const getListBitacoraRondines = async (location: string, nombre_rondin?: string, year?:number ,month?:number)=> {
     const payload = {
-        option: "get_bitacora_rondines",
+        option: "get_bitacora",
         script_name: "rondines.py",
         ubicacion: location,
         nombre_rondin: nombre_rondin,

@@ -3,19 +3,16 @@ import { API_ENDPOINTS } from "@/config/api";
   
   interface CreatePase {
     access_pass : Access_pass|null,
-    location: string,
     enviar_pre_sms: enviar_pre_sms|null,
   }
   
   export const createPase = async ({
     access_pass,
-    location,
     enviar_pre_sms
   }: CreatePase) => {
     if(access_pass!==null && enviar_pre_sms!==null){
       const payload = {
         access_pass,
-        location,
         enviar_pre_sms,
         option: "create_access_pass",
         script_name: "pase_de_acceso.py",

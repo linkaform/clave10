@@ -3,11 +3,27 @@
 import { useState, useEffect, useMemo } from "react";
 import { PhotoGridCard } from "./PhotoGridCard";
 import { ImageIcon } from "lucide-react";
-import { PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
+import { ListRecord, PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
 import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoGridCardModal } from "./PhotoGridCardModal";
 import EquiposYVehiculosList from "../EquiposYVehiculosList";
+import { PhotoRondinCardModal } from "../PhotoList/PhotoRondinCardModal";
+import { MapItem } from "@/components/table/rondines/recorridos/table";
+
+const STATUS_BADGE_CLASSES: Record<string, string> = {
+  corriendo: "bg-green-600 border-green-600 text-white text-xs",
+  pausado:   "bg-yellow-500 border-yellow-500 text-white text-xs",
+  cancelado: "bg-red-600 border-red-600 text-white text-xs",
+  cerrado:   "bg-gray-400 border-gray-400 text-white text-xs",
+  entrada:   "bg-green-600 border-green-600 text-white text-xs",
+  salida:    "bg-red-600 border-red-600 text-white text-xs",
+  resuelto:  "bg-blue-600 border-blue-600 text-white text-xs",
+  abierto:   "bg-green-600 border-green-600 text-white text-xs",
+};
+
+const getStatusBadgeClass = (status: string) =>
+  STATUS_BADGE_CLASSES[status?.toLowerCase()] ?? "bg-gray-400 border-gray-400 text-white text-xs";
 
 export function PhotoGridView({
   isLoading,
@@ -18,6 +34,8 @@ export function PhotoGridView({
   externalFilters,
   onExternalFiltersChange,
   globalSearch = [],
+  getMapData,
+  modalType = "normal",
 }: Omit<
   PhotoGridViewProps,
   "filtersConfig" | "hideSidebar" | "renderCustomActions"
@@ -28,6 +46,10 @@ export function PhotoGridView({
     | ((
         selectedItems: { record_id: string; record_status: string }[],
       ) => React.ReactNode);
+      /** Opcional — solo en rondines. Recibe el record seleccionado y devuelve los puntos del mapa */
+  getMapData?: (record: ListRecord) => MapItem[] | undefined;
+  /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
+  modalType?: "rondines" | "normal";
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoGridView(records, externalFilters, onExternalFiltersChange);
@@ -35,15 +57,11 @@ export function PhotoGridView({
     { record_id: string; record_status: string }[]
   >([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<PhotoRecord | null>(
-    null,
-  );
+  const [selectedRecord, setSelectedRecord] = useState<PhotoRecord | null>(null);
 
   const filteredRecords = useMemo(() => {
     if (!globalSearch || globalSearch.length === 0) return baseFilteredRecords;
-
     return baseFilteredRecords.filter((record) => {
-      // Lógica OR: Si el registro coincide con AL MENOS UNO de los tags
       return globalSearch.some((tag) => {
         const tagLower = tag.toLowerCase();
         return (
@@ -71,6 +89,10 @@ export function PhotoGridView({
       });
     });
   }, [baseFilteredRecords, globalSearch]);
+
+  const currentMapData = selectedRecord && getMapData
+    ? getMapData(selectedRecord)
+    : undefined;
 
   useEffect(() => {
     onSelectionChange?.(selectedItems);
@@ -127,12 +149,12 @@ export function PhotoGridView({
                 </div>
               ) : filteredRecords.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
-                  {filteredRecords.map((record) => (
+                  {filteredRecords.map((record, index) => (
                     <PhotoGridCard
                       headerBadge={record.visit_type}
                       titleCard={record.title}
                       descriptionCard={record.description}
-                      key={record.id}
+                      key={`${record.id}-${index}`}
                       record={record}
                       cardConfig={{
                         tagPosition: "sup-der",
@@ -164,32 +186,49 @@ export function PhotoGridView({
           </div>
         </main>
       </div>
+      {modalType === "rondines" ? (
+        <PhotoRondinCardModal
+          record={selectedRecord as any}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          mapData={currentMapData}
+        />
+      ) : (
+
       <PhotoGridCardModal
-        badges={[
-          {
-            label: "",
-            value: selectedRecord?.status || "",
-            customClass:
-              selectedRecord?.status === "entrada"
-                ? "bg-green-600 border-green-600 text-white text-xs"
-                : "bg-red-600 border-red-600 text-white text-xs",
-          },
-          {
-            label: "",
-            value: selectedRecord?.visit_type || "",
-            customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs",
-          },
-          {
-            label: "",
-            value: `#${selectedRecord?.folio || ""}`,
-            customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs",
-          },
-        ]}
+      badges={[
+        ...(selectedRecord?.statusLabel
+          ? [{
+              label: "",
+              value: selectedRecord.statusLabel,
+              customClass: "bg-red-100 text-red-600 text-xs font-bold border border-red-200",
+            }]
+          : selectedRecord?.status
+            ? [{
+                label: "",
+                value: (selectedRecord.statusLabel || selectedRecord.status).toUpperCase(),
+                customClass: getStatusBadgeClass(selectedRecord.status),
+              }]
+            : []
+        ),
+        {
+          label: "",
+          value: selectedRecord?.visit_type || "",
+          customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs",
+        },
+        {
+          label: "",
+          value: `#${selectedRecord?.folio || ""}`,
+          customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs",
+        },
+      ]}
         record={selectedRecord}
         open={isModalOpen}
         onOpenChange={setIsModalOpen}>
-        <EquiposYVehiculosList record={selectedRecord} />
-      </PhotoGridCardModal>
+        {(selectedRecord?.vehiculos?.length ?? 0) > 0 || (selectedRecord?.equipos?.length ?? 0) > 0 ? (
+          <EquiposYVehiculosList record={selectedRecord} />
+        ) : null}
+      </PhotoGridCardModal>)}
     </div>
   );
 }

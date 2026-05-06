@@ -102,7 +102,7 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
       status_pase: dataPass.status_pase,
       visita_a: dataPass.visita_a,
       link: {
-        link: `${hostPro?.protocol}//${hostPro?.host}/pase-update.html`,
+        link: `${hostPro?.protocol}//${hostPro?.host}/pase-update`,
         docs: docs,
         qr_code: dataPass._id,
         creado_por_id: userIdSoter ?? 0,

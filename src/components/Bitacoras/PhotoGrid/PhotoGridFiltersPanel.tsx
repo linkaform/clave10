@@ -28,6 +28,7 @@ export function FiltersPanel({
   filters,
   onFiltersChange,
   filtersConfig = [],
+  stats,
 }: FiltersPanelProps) {
   const { handleDynamicChange, clearFilters, hasActiveFilters } =
     useFiltersPanel(filters, onFiltersChange);
@@ -269,6 +270,15 @@ export function FiltersPanel({
                             ? currentValue.includes(option.value)
                             : currentValue === option.value;
 
+                          let count: number | undefined;
+                          if (config.key === "status") {
+                            if (option.value === "entrada") {
+                              count = stats?.personas_dentro ?? 0;
+                            } else if (option.value === "salida") {
+                              count = stats?.salidas_registradas ?? 0;
+                            }
+                          }
+
                           return (
                             <button
                               key={option.value}
@@ -281,12 +291,25 @@ export function FiltersPanel({
                                 )
                               }
                               className={cn(
-                                "group flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border",
+                                "group flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border relative",
                                 isChecked
                                   ? "bg-[#2A7EFF] border-[#2A7EFF] text-white shadow-sm"
                                   : "bg-slate-50 border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
                               )}>
-                              {option.label}
+                              <div className="flex items-center gap-2">
+                                <span>{option.label}</span>
+                                {count !== undefined && (
+                                  <span
+                                    className={cn(
+                                      "flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold shadow-sm transition-colors",
+                                      isChecked
+                                        ? "bg-white/20 text-white"
+                                        : "bg-[#2A7EFF]/10 text-[#2A7EFF]",
+                                    )}>
+                                    {count}
+                                  </span>
+                                )}
+                              </div>
                             </button>
                           );
                         })}

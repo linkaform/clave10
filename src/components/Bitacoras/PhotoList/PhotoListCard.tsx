@@ -6,6 +6,10 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { ListCardProps } from "@/types/bitacoras";
 import { Checkbox } from "@/components/ui/checkbox";
+import dynamic from "next/dynamic";
+import { MapItem } from "@/components/table/rondines/recorridos/table";
+
+const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
 export function PhotoListCard({
   titleCard,
@@ -15,10 +19,22 @@ export function PhotoListCard({
   children,
   isSelected,
   onSelect,
-}: ListCardProps) {
-  const allImages = record.images || [];
-  const [activeImage, setActiveImage] = useState(
-    allImages[0] || "/placeholder.svg",
+  mapData,
+}: ListCardProps & { mapData?: MapItem[] }) {
+  const allImages = (record.images || []).filter(
+    (img: string) => img && img !== "/mountain.svg" && img.trim() !== ""
+  );
+  
+  const fallback = "/sin_imagen_rondines.png";
+  const [activeImage, setActiveImage] = useState(allImages[0] || fallback);
+  console.log(record)
+  const showMap = mapData && mapData.length > 0;
+  // Separar áreas del resto de detalles
+  const areasItem = record.detailsList?.find(
+    (item) => item.label?.toLowerCase() === "areas" || item.label?.toLowerCase() === "áreas"
+  );
+  const otherDetails = record.detailsList?.filter(
+    (item) => item.label?.toLowerCase() !== "areas" && item.label?.toLowerCase() !== "áreas"
   );
 
   return (
@@ -41,14 +57,13 @@ export function PhotoListCard({
         }}>
         <Checkbox
           checked={isSelected}
-          className="h-5 w-5 border-2 border-slate-300 bg-transparent data-[state=checked]:bg-[#2A7EFF] data-[state=checked]:border-[#2A7EFF]  data-[state=checked]:text-primary-foreground"
+          className="h-5 w-5 border-2 border-slate-300 bg-transparent data-[state=checked]:bg-[#2A7EFF] data-[state=checked]:border-[#2A7EFF] data-[state=checked]:text-primary-foreground"
         />
       </div>
 
       <div className="flex gap-8 p-6 items-start w-full">
-        {/* ── Bloque de imágenes: 30% del ancho del contenedor ── */}
-        <div className="flex-shrink-0 w-[30%] flex flex-col gap-3">
-          {/* Contenedor de la foto principal ── */}
+
+        <div className="flex-shrink-0 w-[22%] flex flex-col gap-3">
           <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative w-full aspect-[4/3]">
             <Image
               key={activeImage}
@@ -57,11 +72,10 @@ export function PhotoListCard({
               fill
               loading="eager"
               className="object-contain transition-opacity duration-200"
-              sizes="(max-width: 768px) 100vw, 30vw"
+              sizes="(max-width: 768px) 100vw, 22vw"
             />
           </div>
 
-          {/* Miniaturas de navegación */}
           {allImages.length > 1 && (
             <div className="flex gap-2 flex-wrap justify-start p-1">
               {allImages.map((img, idx) => (
@@ -92,9 +106,7 @@ export function PhotoListCard({
           )}
         </div>
 
-        {/* ── Información del registro ── */}
         <div className="flex-1 flex flex-col justify-start min-w-0">
-          {/* Encabezado: código, nombre y badge */}
           <div className="flex justify-between items-start">
             <div className="min-w-0 flex-1">
               <h3 className="text-lg font-bold text-slate-900 leading-tight text-balance">
@@ -112,56 +124,100 @@ export function PhotoListCard({
             )}
           </div>
 
-          {/* Empresa y descripción principal */}
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm text-slate-500 line-clamp-2">
               {descriptionCard}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-6">
-            {record.detailsList?.map((item, index) => {
-              const hasValue = Array.isArray(item.value)
-                ? item.value.length > 0
-                : item.value !== null &&
-                  item.value !== undefined &&
-                  item.value !== "";
-
-              if (!hasValue) return null;
-
-              const isFullWidth = Array.isArray(item.value);
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex flex-col gap-1",
-                    isFullWidth ? "col-span-2" : "col-span-1",
-                  )}>
-                  <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
-                    {item.label}
-                  </span>
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {Array.isArray(item.value) ? (
-                      item.value.map((val, i) => (
-                        <Badge
-                          key={i}
-                          variant="secondary"
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 rounded-md px-2 py-0.5 text-xs font-normal shadow-none">
-                          {val}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className={`text-xs ${item.customClass}`}>
-                        {item.value || "\u00A0"}
-                      </span>
-                    )}
+          {otherDetails && otherDetails.length > 0 && (
+            <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-4">
+              {otherDetails.map((item, index) => {
+                const hasValue = Array.isArray(item.value)
+                  ? item.value.length > 0
+                  : item.value !== null && item.value !== undefined && item.value !== "";
+                if (!hasValue) return null;
+                const isFullWidth = Array.isArray(item.value);
+                return (
+                  <div
+                    key={index}
+                    className={cn("flex flex-col gap-1", isFullWidth ? "col-span-2" : "col-span-1")}>
+                    <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
+                      {item.label}
+                    </span>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {Array.isArray(item.value) ? (
+                        item.value.map((val, i) => (
+                          <Badge key={i} variant="secondary"
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 rounded-md px-2 py-0.5 text-xs font-normal shadow-none">
+                            {val}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className={`text-xs ${item.customClass}`}>
+                          {item.value || "\u00A0"}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
-          {/* Botones de acción (children) */}
+          {showMap && (
+            <>
+              <div
+                className="rounded-xl overflow-hidden border border-slate-200 mb-2 w-full"
+                style={{ height: "180px" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{ height: "180px", width: "100%" }}>
+                  <MapView map_data={mapData} areas={record?.areas || []} />
+                </div>
+              </div>
+
+              {(() => {
+                const areassinGeo = (mapData ?? []).filter(
+                  (item: any) =>
+                    !item.geolocation_area ||
+                    (item.geolocation_area.latitude === 0 && item.geolocation_area.longitude === 0)
+                );
+                if (areassinGeo.length === 0) return null;
+                return (
+                  <div className="mb-4 px-2 py-1.5 bg-red-50 border border-red-100 rounded-lg">
+                    <p className="text-[10px] font-bold text-red-500 uppercase tracking-wide mb-0.5">
+                      ⚠ Geolocalización no disponible
+                    </p>
+                    <p className="text-[10px] text-red-400 leading-snug">
+                      {(mapData ?? []).filter(
+                        (item: any) =>
+                          !item.geolocation_area ||
+                          (item.geolocation_area.latitude === 0 && item.geolocation_area.longitude === 0)
+                      ).map((a: any) => a.nombre_area || a.nombre || "Área sin nombre").join(", ")}
+                    </p>
+                  </div>
+                );
+              })()}
+            </>
+          )}
+
+          {areasItem && Array.isArray(areasItem.value) && areasItem.value.length > 0 && (
+            <div className="flex flex-col gap-1 mb-4">
+              <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
+                {areasItem.label}
+              </span>
+              <div className="flex flex-wrap gap-2 items-center">
+                {areasItem.value.map((val, i) => (
+                  <Badge key={i} variant="secondary"
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 rounded-md px-2 py-0.5 text-xs font-normal shadow-none">
+                    {val}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
           {children && (
             <div
               className="flex gap-2 flex-wrap pt-3 border-t border-slate-100"

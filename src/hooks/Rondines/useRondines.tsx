@@ -23,8 +23,8 @@ export const useRondines = () => {
 			setLoading(true);
 			},
 			onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["getListRondines"] });
-			queryClient.invalidateQueries({ queryKey: ["getStatsRondines"] });
+			queryClient.invalidateQueries({ queryKey: ["getListRecorridos"] });
+			queryClient.invalidateQueries({ queryKey: ["getStatsRecorridos"] });
 			toast.success("Rondin creado correctamente.");
 			},
 			onError: (err) => {

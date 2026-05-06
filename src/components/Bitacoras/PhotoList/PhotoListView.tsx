@@ -8,6 +8,16 @@ import { usePhotoListView } from "@/hooks/bitacora/usePhotoListView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoListCardModal } from "./PhotoListCardModal";
 import EquiposYVehiculosList from "../EquiposYVehiculosList";
+import { PhotoRondinCardModal } from "./PhotoRondinCardModal";
+
+interface MapItem {
+  nombre_area: string;
+  geolocation_area?: {
+    latitude: number;
+    longitude: number;
+  };
+  id: string;
+}
 
 export default function PhotoListView({
   isLoading,
@@ -19,6 +29,8 @@ export default function PhotoListView({
   externalFilters,
   onExternalFiltersChange,
   globalSearch = [],
+  getMapData,
+  modalType = "normal",
 }: Omit<
   PhotoListViewProps,
   "filtersConfig" | "hideSidebar" | "renderCustomActions"
@@ -29,12 +41,18 @@ export default function PhotoListView({
     | ((
         selectedItems: { record_id: string; record_status: string }[],
       ) => React.ReactNode);
+  /** Opcional — solo en rondines. Recibe el record seleccionado y devuelve los puntos del mapa */
+  getMapData?: (record: ListRecord) => MapItem[] | undefined;
+  /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
+  modalType?: "rondines" | "normal";
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoListView(records as any, externalFilters, onExternalFiltersChange);
   const [selectedItems, setSelectedItems] = useState<
     { record_id: string; record_status: string }[]
   >([]);
+  console.log("FR", records)
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ListRecord | null>(null);
 
@@ -83,6 +101,11 @@ export default function PhotoListView({
 
   const clearSelection = () => setSelectedItems([]);
 
+  // Calcular mapData para el record seleccionado (solo si getMapData viene definido)
+  const currentMapData = selectedRecord && getMapData
+    ? getMapData(selectedRecord)
+    : undefined;
+
   return (
     <div className="flex h-full w-full bg-background flex-col relative overflow-hidden">
       <SelectionBar
@@ -123,6 +146,7 @@ export default function PhotoListView({
                       record={record}
                       titleCard={record.title}
                       descriptionCard={record.description}
+                      mapData={getMapData ? getMapData(record) : undefined}
                       isSelected={selectedItems.some(
                         (i) => i.record_id === record.id,
                       )}
@@ -162,12 +186,23 @@ export default function PhotoListView({
           </div>
         </section>
       </div>
-      <PhotoListCardModal
-        record={selectedRecord as any}
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}>
-        <EquiposYVehiculosList record={selectedRecord as any} />
-      </PhotoListCardModal>
+
+      {modalType === "rondines" ? (
+        <PhotoRondinCardModal
+          record={selectedRecord as any}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          mapData={currentMapData}
+        />
+      ) : (
+        <PhotoListCardModal
+          record={selectedRecord as any}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+        >
+          <EquiposYVehiculosList record={selectedRecord as any} />
+        </PhotoListCardModal>
+      )}
     </div>
   );
 }

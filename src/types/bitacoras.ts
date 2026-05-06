@@ -35,6 +35,7 @@ export interface PhotoRecord {
   description: string;
   images: string[];
   status: PhotoStatus;
+  statusLabel?: string;
   detailsList?: DetailsListItem[];
   modalDetailsList?: DetailsListItem[];
   rawData?: any;
@@ -80,6 +81,32 @@ export interface ListRecord {
   vehiculos?: Vehiculo[];
   equipos?: Equipo[];
   rawData?: any;
+  map_data?: AreaItem[]
+  areas?: MapDataItem[]
+}
+export interface MapDataItem {
+  nombre_area: string;
+  geolocation_area: {
+    latitude: number;
+    longitude: number;
+  };
+  id: string;
+}
+export interface FotoArea {
+  file_name: string;
+  file_url: string;
+}
+
+export interface GeolocalizacionArea {
+  latitude: number;
+  longitude: number;
+}
+
+export interface AreaItem {
+  rondin_area: string;
+  geolocalizacion_area_ubicacion: GeolocalizacionArea[];
+  area_tag_id: string[];
+  foto_area: FotoArea[];
 }
 
 export interface CardConfiguration {
@@ -169,6 +196,10 @@ export interface FiltersPanelProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
   filtersConfig?: FilterConfig[];
+  stats?: {
+    personas_dentro: number;
+    salidas_registradas: number;
+  };
 }
 
 export interface Visitor {

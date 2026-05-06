@@ -7,28 +7,46 @@ interface UseGetMyPasesProps {
   limit?: number;
   skip?: number;
   searchName?: string;
+  tab?: string;
+  location?: string;
+  dynamicFilters?: Record<string, string | string[]>;
+  dateFilter?: string;
+  date1?: Date | "";
+  date2?: Date | "";
 }
 
-export const useGetMyPases = ({ limit, skip, searchName }: UseGetMyPasesProps) => {
-
-  const tab = "Todos";
-
-  const { data: data, isLoading, error, isFetching } = useQuery<any>({
-    queryKey: ["getMyPases", tab, limit, skip, searchName],
+export const useGetMyPases = ({
+  limit,
+  skip,
+  searchName,
+  tab = "Todos",
+  location = "",
+  dynamicFilters = {},
+  dateFilter = "",
+  date1 = "",
+  date2 = "",
+}: UseGetMyPasesProps) => {
+  const {
+    data: data,
+    isLoading,
+    error,
+    isFetching,
+  } = useQuery<any>({
+    queryKey: ["getMyPases", tab, limit, skip, searchName, location, dynamicFilters, dateFilter, date1, date2],
     queryFn: async () => {
-      const data = await getMyPases({ tab, limit, skip, searchName });
+      const data = await getMyPases({ tab, limit, skip, searchName, location, dynamicFilters, dateFilter, date1, date2 });
       if (data?.error) {
-        toast.error("Error al obtener pases")
+        toast.error("Error al obtener pases");
       }
       return data.response?.data || [];
     },
-    refetchOnWindowFocus: false, // Prevenir cierre de modales en cambio de pestaña
+    refetchOnWindowFocus: false,
   });
 
   return {
     data,
     isLoading,
     error,
-    isFetching
+    isFetching,
   };
 };

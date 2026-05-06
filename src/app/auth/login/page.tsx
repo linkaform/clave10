@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense,  useState } from "react";
+import { Suspense, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,8 +28,9 @@ import { errorMsj } from "@/lib/utils";
 import { toast } from "sonner";
 
 const formSchema = z.object({
-  username: z.string()
-  .min(2, { message: "El usuario debe tener al menos 2 caracteres" }),
+  username: z
+    .string()
+    .min(2, { message: "El usuario debe tener al menos 2 caracteres" }),
   password: z
     .string()
     .min(2, { message: "La contraseña debe tener al menos 2 caracteres" }),
@@ -42,7 +43,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { setAuth } = useAuthStore();
   const queryClient = useQueryClient();
-  const {setBooth}= useBoothStore()
+  const { setBooth } = useBoothStore();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
@@ -57,25 +58,35 @@ export default function LoginPage() {
       setIsLoading(true);
       const response = await getLogin(values.username, values.password);
       if (response.success) {
-        setAuth(response.jwt, response.session_id, response.user.name, response.user.email, response.user.id, response.user.thumb, response.user.parent_info.id);
+        setAuth(
+          response.jwt,
+          response.session_id,
+          response.user.name,
+          response.user.email,
+          response.user.id,
+          response.user.thumb,
+          response.user.parent_info.id,
+        );
         const shiftData = await getShift({});
-         const hasError = (!shiftData?.success) || (shiftData?.response?.data?.status_code === 400);
-         
-         if (hasError) {
-           const textMsj = errorMsj(shiftData);
-           toast.error(`Error al obtener load shift, Error: ${textMsj?.text}`);
-         } else {
-           const area = shiftData?.response?.data?.location?.area || shiftData?.response?.data?.guard?.area;
-           const location = shiftData?.response?.data?.location?.name || shiftData?.response?.data?.guard?.location;
-           
-           setBooth(area, location);
- 
-           queryClient.setQueryData(
-             ["getShift"],
-             shiftData?.response?.data
-           );
-         }
- 
+        const hasError =
+          !shiftData?.success || shiftData?.response?.data?.status_code === 400;
+
+        if (hasError) {
+          const textMsj = errorMsj(shiftData);
+          toast.error(`Error al obtener load shift, Error: ${textMsj?.text}`);
+        } else {
+          const area =
+            shiftData?.response?.data?.location?.area ||
+            shiftData?.response?.data?.guard?.area;
+          const location =
+            shiftData?.response?.data?.location?.name ||
+            shiftData?.response?.data?.guard?.location;
+
+          setBooth(area, location);
+
+          queryClient.setQueryData(["getShift"], shiftData?.response?.data);
+        }
+
         router.push("/");
       } else {
         form.setError("password", {
@@ -92,13 +103,13 @@ export default function LoginPage() {
 
   return (
     <Suspense>
-      <div className="flex flex-col h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-gray-100">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <Card className="">
-              <CardContent className="flex  w-full md:w-[400px] h-[600px]  flex-col justify-center items-center ">
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <Card className="w-[440px] shadow-md border-0 rounded-2xl">
+              <CardContent className="flex flex-col items-center px-10 py-12">
                 <Image
-                  className="mb-10 flex mx-auto"
+                  className="mb-10"
                   src="https://f001.backblazeb2.com/file/app-linkaform/public-client-126/71202/60b81349bde5588acca320e1/694ace05f1bef74262302cc9.png"
                   alt="Clave 10"
                   width={174}
@@ -106,7 +117,7 @@ export default function LoginPage() {
                   priority
                 />
 
-                <div className="w-full">
+                <div className="w-full space-y-4">
                   <FormField
                     control={form.control}
                     name="username"
@@ -116,86 +127,77 @@ export default function LoginPage() {
                           <Input
                             {...field}
                             placeholder="Usuario"
-                            className="mb-5 placeholder:text-[#3D4D5C] bg-[#F0F2F5] h-[56px]  rounded-lg"
+                            className="bg-white border border-gray-200 h-12 rounded-lg placeholder:text-gray-400 text-sm"
                             type="text"
-                            onBlur={() => {
-                              field.onChange(field.value?.trim());
-                            }}
+                            onBlur={() => field.onChange(field.value?.trim())}
                           />
                         </FormControl>
-                        <FormMessage className="my-10" />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              onBlur={() => field.onChange(field.value?.trim())}
+                              placeholder="Password"
+                              className="bg-white border border-gray-200 h-12 rounded-lg placeholder:text-gray-400 text-sm pr-10"
+                              type={showPassword ? "password" : "text"}
+                            />
+                            <div
+                              className="absolute right-3 top-3 cursor-pointer text-gray-400 hover:text-gray-600"
+                              onClick={() => setShowPassword(!showPassword)}>
+                              {showPassword ? (
+                                <EyeOff size={18} />
+                              ) : (
+                                <Eye size={18} />
+                              )}
+                            </div>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
 
-                <div className="w-full mt-5">
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <div className="w-full relative">
-                        <Input
-                          {...field}
-                          onBlur={() => {
-                            field.onChange(field.value?.trim());
-                          }}
-                          placeholder="Password"
-                          className="w-full mb-5 placeholder:text-[#3D4D5C] bg-[#F0F2F5] h-[56px] rounded-lg"
-                          type={showPassword ? "password" : "text"}
-                        />
-                          <div
-                            className="absolute right-3 top-4 cursor-pointer"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {!showPassword && (
-                              <Eye className="text-gray-light" />
-                            )}
-                            {showPassword && (
-                              <EyeOff className="text-gray-light" />
-                            )}
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                </div>
-
-                <div className="flex justify-start w-full">
-                  <Button type="button" variant="link" className="mb-5" onClick={() => setOpenOlvido(true)}>
-                    ¿Olvidó su contraseña?
-                  </Button>
-                </div>
-
                 <Button
-                  className="flex w-3/4 mx-auto bg-button-primary hover:bg-bg-button-primary"
+                  className="w-full mt-6 h-12 bg-[#3D8BF2] hover:bg-blue-700 text-white rounded-lg font-bold text-sm"
                   type="submit"
-                  disabled={isLoading}
-                >
+                  disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <ReloadIcon className="mr-2 size-4 animate-spin" />
                       Cargando...
                     </>
                   ) : (
-                    "Login"
+                    "Iniciar sesión"
                   )}
                 </Button>
+
+                <button
+                  type="button"
+                  className="mt-4 text-sm text-[#3D8BF2] hover:underline font-semibold"
+                  onClick={() => setOpenOlvido(true)}>
+                  ¿Olvidaste tu contraseña?
+                </button>
               </CardContent>
             </Card>
           </form>
         </Form>
 
         <OlvidoContraModal
-        title="Recuperar contraseña"
-        open={openOlvido}
-        setOpen={setOpenOlvido}
-      />
-      
+          title="Recuperar contraseña"
+          open={openOlvido}
+          setOpen={setOpenOlvido}
+        />
       </div>
     </Suspense>
   );
