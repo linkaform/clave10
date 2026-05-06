@@ -95,6 +95,8 @@ interface ListProps {
   onExternalFiltersChange?: (filters: any) => void;
   filtersConfig?: any[];
   setTotalRegistros: React.Dispatch<React.SetStateAction<number | 0>>;
+  verRondin:boolean;
+  setVerRondin: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const RecorridosTable: React.FC<ListProps> = ({
@@ -107,7 +109,9 @@ const RecorridosTable: React.FC<ListProps> = ({
   externalFilters: externalFiltersProp,
   onExternalFiltersChange: onExternalFiltersChangeProp,
   filtersConfig: filtersConfigProp,
-  setTotalRegistros
+  setTotalRegistros,
+  verRondin, 
+  setVerRondin
 }) => {
 
   const { listRecorridos, isLoadingListRecorridos: isLoading } = useGetListRecorridos(true, "", "", 100, 0);
@@ -117,7 +121,7 @@ const RecorridosTable: React.FC<ListProps> = ({
   const { editAreasRodindMutation, isLoading: isLoadingEditAreas } = useEditAreasRondin();
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
   const [rondinSeleccionado, setRondinSeleccionado] = useState<Recorrido | null>(null);
-  const [verRondin, setVerRondin] = useState(false);
+  // const [verRondin, setVerRondin] = useState(false);
 
   // const { location } = useBoothStore();
   // const [selectedIncidencias, setSelectedIncidencias] = useState<string[]>([]);
