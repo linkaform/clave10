@@ -219,7 +219,7 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
               isLoading={isLoading}
               records={photoRecords}
               globalSearch={searchTags ?? []}
-              modalType="rondines"
+              modalType="normal"
               getMapData={(record) => (record as any)?.rawData?.map_data ?? []}
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
               {renderActions}
@@ -229,7 +229,7 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
               isLoading={isLoading}
               records={photoListRecords}
               globalSearch={searchTags ?? []}
-              modalType="rondines"
+              modalType="normal"
               getMapData={(record) => record?.rawData?.map_data ?? []}
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
               {renderActions}
