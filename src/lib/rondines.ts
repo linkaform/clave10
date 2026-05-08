@@ -75,13 +75,13 @@ import { API_ENDPOINTS } from "@/config/api";
         accion_recurrencia?:string
     }
 
-    export const getListRondin  = async (date1:string, date2:string, limit:number, offset:number ) => {
+    export const getListRecorridos  = async (date1:string, date2:string, limit:number, offset:number ) => {
         const payload = {
             dateFom: date1,
             dateTo: date2,
             limit: limit,
             offset: offset,
-            option: "get_rondines",
+            option: "get_recorridos",
             script_name: "rondines.py",
         };
     

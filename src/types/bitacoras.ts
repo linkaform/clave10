@@ -200,6 +200,7 @@ export interface FiltersPanelProps {
     personas_dentro: number;
     salidas_registradas: number;
   };
+  filtroUbicacion?:boolean
 }
 
 export interface Visitor {

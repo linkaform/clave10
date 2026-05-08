@@ -29,6 +29,7 @@ export function FiltersPanel({
   onFiltersChange,
   filtersConfig = [],
   stats,
+  filtroUbicacion = false
 }: FiltersPanelProps) {
   const { handleDynamicChange, clearFilters, hasActiveFilters } =
     useFiltersPanel(filters, onFiltersChange);
@@ -166,7 +167,7 @@ export function FiltersPanel({
         </AccordionItem>
 
         {/* Filtro de Ubicación (Base) */}
-        {storeLocations.length > 0 && (
+        {storeLocations.length > 0 && filtroUbicacion && (
           <AccordionItem value="ubicacion" className="border-none">
             <AccordionTrigger className="hover:no-underline py-3 px-1">
               <div className="flex items-center gap-2">

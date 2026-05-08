@@ -17,6 +17,7 @@ interface PhotoDetailModalProps {
   onOpenChange: (open: boolean) => void;
   children?: React.ReactNode;
   mapData?: MapItem[];
+  action?: React.ReactNode | ((record: any) => React.ReactNode);
 }
 
 interface ListItemProps {
@@ -84,8 +85,8 @@ function IncidenciaDetailPanel({ item, onBack, onSetImage }: {
   onBack: () => void;
   onSetImage?: (url: string) => void;
 }) {
-  const evidencias: { file_name: string; file_url: string }[] =
-    item.evidencias || item.incidente_evidencia || [];
+  const evidencias: any[] = item.evidencias || item.incidente_evidencia || [];
+  const documentos: any[] = item.documentos || item.incidente_documento || [];
   const subcategoria = item.subcategoria || item.sub_categoria || "-";
   const incidente = item.incidente || item.incidente_open || "Sin incidente";
   const comentarios = item.comentarios || item.comentario_incidente_bitacora || "-";
@@ -97,7 +98,6 @@ function IncidenciaDetailPanel({ item, onBack, onSetImage }: {
   return (
     <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="px-6 pt-4 pb-0 shrink-0">
-        {/* Volver */}
         <button
           onClick={onBack}
           className="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 text-xs font-medium mb-4 transition-colors"
@@ -106,7 +106,6 @@ function IncidenciaDetailPanel({ item, onBack, onSetImage }: {
           Volver
         </button>
 
-        {/* Título + badges */}
         <div className="flex items-start justify-between gap-3 mb-5">
           <h3 className="text-2xl font-extrabold text-slate-800 leading-tight">{incidente}</h3>
           <div className="flex gap-2 shrink-0 flex-wrap justify-end">
@@ -127,31 +126,27 @@ function IncidenciaDetailPanel({ item, onBack, onSetImage }: {
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 no-scrollbar space-y-4 pb-4">
-        {/* Área */}
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Área</p>
           <p className="text-sm font-medium text-slate-800">{area}</p>
         </div>
 
-        {/* Fecha y hora */}
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Fecha y hora</p>
           <p className="text-sm font-medium text-slate-800">{fechaHora}</p>
         </div>
 
-        {/* Comentarios */}
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Comentarios</p>
           <p className="text-sm text-slate-700 leading-relaxed">{comentarios}</p>
         </div>
 
-        {/* Acción tomada */}
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Acción tomada</p>
           <p className="text-sm text-slate-700 leading-relaxed">{accionTomada}</p>
         </div>
 
-        {/* Evidencias */}
+        {/* Evidencias — solo en carrusel central, thumbnails clickeables */}
         {evidencias.length > 0 && (
           <div>
             <div className="flex items-center gap-1.5 mb-2">
@@ -161,26 +156,63 @@ function IncidenciaDetailPanel({ item, onBack, onSetImage }: {
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2">
-            {evidencias.map((ev: any, i: number) => {
-              const url = typeof ev === "string" ? ev : ev.file_url;
-              return (
-                <div
-                  key={i}
-                  className="relative w-full rounded-xl overflow-hidden border border-slate-100 bg-slate-100 cursor-pointer"
-                  style={{ height: "150px" }}
-                  onClick={() => onSetImage?.(url)}
-                >
-                  <Image
-                    src={url}
-                    alt={`Evidencia ${i + 1}`}
-                    fill
-                    className="object-contain"
-                    onError={(e) => { (e.target as HTMLImageElement).src = "/sin_imagen_rondines.png"; }}
-                  />
-                </div>
-              );
-            })}
+              {evidencias.map((ev: any, i: number) => {
+                const url = typeof ev === "string" ? ev : ev.file_url;
+                return (
+                  <div
+                    key={i}
+                    className="relative w-full rounded-xl overflow-hidden border border-slate-100 bg-slate-100 cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
+                    style={{ height: "90px" }}
+                    onClick={() => onSetImage?.(url)}
+                  >
+                    <Image
+                      src={url}
+                      alt={`Evidencia ${i + 1}`}
+                      fill
+                      className="object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).src = "/sin_imagen_rondines.png"; }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
+        )}
+
+        {/* Documentos */}
+        {documentos.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <FileText className="w-3.5 h-3.5 text-slate-400" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Documentos ({documentos.length})
+              </p>
+            </div>
+            <div className={`space-y-2 ${documentos.length > 5 ? "max-h-[220px] overflow-y-auto pr-1" : ""}`}>
+              {documentos.map((doc: any, i: number) => {
+                const url = typeof doc === "string" ? doc : doc.file_url;
+                const name = typeof doc === "string"
+                  ? `Documento ${i + 1}`
+                  : (doc.file_name || `Documento ${i + 1}`);
+                return (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-red-500" />
+                    </div>
+                    <p className="text-xs font-medium text-slate-700 group-hover:text-blue-600 truncate flex-1">
+                      {name}
+                    </p>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 shrink-0" />
+                  </a>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -250,25 +282,83 @@ function ComentarioDetailPanel({ item, onBack }: { item: any; onBack: () => void
   );
 }
 
-function AreaDetailPanel({ area, onBack }: { area: any; onBack: () => void }) {
+function AreaDetailPanel({ area, onBack, onSetImage }: { 
+  area: any; 
+  onBack: () => void;
+  onSetImage?: (url: string) => void;
+}) {
   const [areaTab, setAreaTab] = useState<"generales" | "checklist" | "incidencias">("generales");
-
-  const fotos: { file_name: string; file_url: string }[] = area.fotos || [];
+  const [selectedCheck, setSelectedCheck] = useState<any>(null);  
+  // const fotos: { file_name: string; file_url: string }[] = area.fotos || [];
+  const fotoDefault = area.foto_default_area?.file_url ? area.foto_default_area : null;
+  const checksData: any[] = area?.checks_data || [];
+  console.log("DATAAAA",area)
   const incidenciasArea: any[] = area.incidencias || [];
   const comentarios: string = area.comentarios || "";
   const tiempoTraslado = area.tiempo_traslado !== "" ? area.tiempo_traslado : null;
   const horaCheck = area.hora || "";
-  const checksMes: any[] = area.raw?.detalle?.checks_mes || [];
-  const ubicacion = area.ubicacion || area.ubicacion_rondin || "-";
-  const recorrido = area.nombre_recorrido || "-";
+  // const ubicacion = area.ubicacion || area.ubicacion_rondin || "-";
+  // const recorrido = area.nombre_recorrido || "-";
   const realizadoPor = area.asignado_a || "-";
-
+  if (selectedCheck) {
+    return (
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background animate-in fade-in slide-in-from-right-4 duration-200">
+        <div className="px-6 pt-4 pb-0 shrink-0">
+          <button
+            onClick={() => setSelectedCheck(null)}
+            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 text-xs font-medium mb-4 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Volver
+          </button>
+          <h3 className="text-2xl font-extrabold text-slate-800 leading-tight mb-0.5">Detalle del check</h3>
+          <div className="border-b border-slate-100 mb-4 mt-4" />
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 no-scrollbar space-y-4 pb-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Fecha y hora</p>
+            <p className="text-sm font-medium text-slate-800">{selectedCheck.fecha_check || "-"}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Comentarios</p>
+            <p className="text-sm text-slate-700 leading-relaxed">{selectedCheck.comentarios_check || "Sin comentarios"}</p>
+          </div>
+          {selectedCheck.evidencias_check?.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Camera className="w-3.5 h-3.5 text-slate-400" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  Evidencias ({selectedCheck.evidencias_check.length})
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {selectedCheck.evidencias_check.map((ev: any, i: number) => (
+                  <div
+                    key={i}
+                    className="relative w-full rounded-xl overflow-hidden border border-slate-100 bg-slate-100 cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
+                    style={{ height: "90px" }}
+                    onClick={() => onSetImage?.(ev.file_url)}
+                  >
+                    <Image
+                      src={ev.file_url}
+                      alt={`Evidencia ${i + 1}`}
+                      fill
+                      className="object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).src = "/sin_imagen_rondines.png"; }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background animate-in fade-in slide-in-from-right-4 duration-200">
-      {/* Header */}
       <div className="px-6 pt-4 pb-0 shrink-0">
  
-      {/* Badges ← AQUÍ */}
       <div className="flex gap-2 justify-end mb-3">
         {area.folio_rondin && (
           <span className="text-[13px] font-bold  px-3 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
@@ -290,9 +380,9 @@ function AreaDetailPanel({ area, onBack }: { area: any; onBack: () => void }) {
             </span>
           );
         })()}
-        {checksMes.length > 0 && (
-          <span className="text-[11px] font-bold  px-3 py-1 rounded-full bg-green-50 text-green-600 border border-green-100">
-            {checksMes.length} Checklist
+       {checksData.length > 0 && (
+          <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-green-50 text-green-600 border border-green-100">
+            {checksData.length} Checklist
           </span>
         )}
         {incidenciasArea.length > 0 && (
@@ -340,14 +430,14 @@ function AreaDetailPanel({ area, onBack }: { area: any; onBack: () => void }) {
         {areaTab === "generales" && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-              <div>
+              {/* <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Ubicación</p>
                 <p className="text-sm font-medium text-slate-800">{ubicacion|| "-"}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Recorrido</p>
                 <p className="text-sm font-medium text-slate-800">{recorrido|| "-"}</p>
-              </div>
+              </div> */}
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Realizado por</p>
                 <p className="text-sm font-medium text-slate-800">{realizadoPor || "Guardia en turno"}</p>
@@ -371,107 +461,117 @@ function AreaDetailPanel({ area, onBack }: { area: any; onBack: () => void }) {
               </div>
             )}
 
-            {fotos.length > 0 && (
+            {fotoDefault && (
               <div>
                 <div className="flex items-center gap-1.5 mb-2">
                   <Camera className="w-3.5 h-3.5 text-slate-400" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Fotos ({fotos.length})</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Foto del área
+                  </p>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {fotos.map((foto: any, i: number) => (
-                    <div key={i} className="rounded-xl overflow-hidden border border-slate-100 bg-slate-50 aspect-video relative">
-                      <Image
-                        src={foto.file_url}
-                        alt={foto.file_name}
-                        fill
-                        className="object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).src = "/sin_imagen_rondines.png"; }}
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5">
-                        <p className="text-white text-[9px] truncate">{foto.file_name}</p>
-                      </div>
-                    </div>
-                  ))}
+                <div
+                  className="rounded-xl overflow-hidden border border-slate-100 bg-slate-50 relative cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
+                  style={{ height: "150px" , width:"150px"}}
+                  onClick={() => onSetImage?.(fotoDefault.file_url)}
+                >
+                  <Image
+                    src={fotoDefault.file_url}
+                    alt={fotoDefault.file_name || "Foto del área"}
+                    fill
+                    className="object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = "/sin_imagen_rondines.png"; }}
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5">
+                    <p className="text-white text-[9px] truncate">{fotoDefault.file_name}</p>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* TAB: CHECKLIST */}
-        {areaTab === "checklist" && (
-          <div>
-            {checksMes.length === 0 ? (
-              <p className="text-sm text-slate-400 italic text-center py-6">Sin checklist registrado</p>
-            ) : (
-              <>
-                {(() => {
-                  const respondidos = checksMes.filter((c: any) => c.respuesta && c.respuesta !== "").length;
-                  const total = checksMes.length;
-                  const pct = total > 0 ? Math.round((respondidos / total) * 100) : 0;
-                  return (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Conceptos respondidos</p>
-                        <span className="text-[10px] font-bold text-slate-600">{respondidos}/{total}</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
+      {/* TAB: CHECKLIST */}
+      {areaTab === "checklist" && (
+        <div>
+          {checksData.length === 0 ? (
+            <p className="text-sm text-slate-400 italic text-center py-6">
+              Sin checklist registrado
+            </p>
+          ) : (
+            <div>
+              {checksData.map((check: any, i: number) => {
+                const comentario = check.comentarios_check || "Sin comentarios";
+                const fecha = check.fecha_check || "";
+                const evidencia =
+                  check.evidencias_check?.[0]?.file_url ||
+                  "/sin_imagen_rondines.png";
+
+                // Valor del checklist
+                const respuesta = check.respuesta_check; // "SI" | "NO" | "N/A"
+
+                const badgeStyles = {
+                  SI: "bg-green-100 text-green-700 border-green-200",
+                  NO: "bg-red-100 text-red-700 border-red-200",
+                  "N/A": "bg-slate-100 text-slate-600 border-slate-200",
+                };
+
+                return (
+                  <div
+                    key={i}
+                    onClick={() => setSelectedCheck(check)}
+                    className="flex items-center gap-3 py-3 px-3 mb-2 last:mb-0 bg-slate-100 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors"
+                  >
+                    <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-slate-200 relative">
+                      {evidencia ? (
+                        <Image
+                          src={evidencia}
+                          alt={`Check ${i + 1}`}
+                          fill
+                          className="object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              "/sin_imagen_rondines.png";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Camera className="w-4 h-4 text-slate-300" />
+                        </div>
+                      )}
                     </div>
-                  );
-                })()}
 
-                <div className="space-y-0">
-                  {checksMes.map((check: any, i: number) => {
-                    const respuesta = check.respuesta || check.answer || "";
-                    const concepto = check.concepto || check.pregunta || check.nombre || `Concepto ${i + 1}`;
-                    const comentarioCheck = check.comentarios || check.comentario || "";
-                    const fotoCheck = check.foto?.file_url || check.evidencia?.file_url || "";
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-800 leading-tight">
+                          {comentario}
+                        </p>
 
-                    const respuestaColor =
-                      respuesta?.toLowerCase() === "sí" || respuesta?.toLowerCase() === "si"
-                        ? "text-green-600"
-                        : respuesta?.toLowerCase() === "no"
-                        ? "text-red-500"
-                        : "text-slate-400";
-
-                    return (
-                      <div key={i} className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
-                        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-slate-100 relative">
-                          {fotoCheck ? (
-                            <Image
-                              src={fotoCheck}
-                              alt={concepto}
-                              fill
-                              className="object-cover"
-                              onError={(e) => { (e.target as HTMLImageElement).src = "/sin_imagen_rondines.png"; }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Camera className="w-4 h-4 text-slate-300" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-slate-800 leading-tight">{concepto}</p>
-                          {comentarioCheck && (
-                            <p className="text-[10px] text-slate-400 mt-0.5">{comentarioCheck}</p>
-                          )}
-                        </div>
-                        <span className={cn("text-sm font-semibold shrink-0", respuestaColor)}>
-                          {respuesta || "-"}
-                        </span>
-                        <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+                        {respuesta && (
+                          <span
+                            className={`text-[10px] font-bold px-2 py-1 rounded-full border whitespace-nowrap ${
+                              badgeStyles[
+                                respuesta as keyof typeof badgeStyles
+                              ]
+                            }`}
+                          >
+                            {respuesta}
+                          </span>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-        )}
 
+                      {fecha && (
+                        <p className="text-xs text-slate-400 mt-0.5">{fecha}</p>
+                      )}
+                    </div>
+
+                    <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
         {/* TAB: INCIDENCIAS */}
         {areaTab === "incidencias" && (
           <div>
@@ -533,22 +633,25 @@ function AreaDetailPanel({ area, onBack }: { area: any; onBack: () => void }) {
     </div>
   );
 }
+
 export function PhotoRondinCardModal({
   record,
   open,
   onOpenChange,
   children,
   mapData,
+  action
 }: PhotoDetailModalProps) {
   const [slideIndex, setSlideIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"incidencias" | "comentarios">("incidencias");
   const [areaSearch, setAreaSearch] = useState("");
   const [selectedArea, setSelectedArea] = useState<any>(null);
   const [selectedIncidencia, setSelectedIncidencia] = useState<any>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [viewImageOpen, setViewImageOpen] = useState(false);
   const [selectedComentario, setSelectedComentario] = useState<any>(null);
-
+  const [expandedAreas, setExpandedAreas] = useState(false);
+  
   const comentariosGenerales = Array.isArray(record?.rawData?.comentarios_generales) && record.rawData.comentarios_generales.length > 0
   ? record.rawData.comentarios_generales
   : Array.isArray(record?.comentarios_generales) && record.comentarios_generales.length > 0
@@ -557,12 +660,21 @@ export function PhotoRondinCardModal({
 
   if (!record) return null;
   const slides =
-  selectedImage
-    ? [{ src: selectedImage, label: "Evidencia" }]
-    : selectedArea && selectedArea.fotos.length > 0
-    ? selectedArea.fotos.map((f: any) => ({ src: f.file_url, label: f.file_name || "Foto" }))
-    : record.images && record.images.filter((img: string) => img && img !== "/mountain.svg").length > 0
-    ? record.images.filter((img: string) => img && img !== "/mountain.svg").map((img: any, i: number) => ({ src: img, label: `Imagen ${i + 1}` }))
+  selectedImages.length > 0
+    ? selectedImages.map((src, i) => ({ src, label: `Evidencia ${i + 1}` }))
+    : selectedArea
+    ? selectedArea.fotos
+        .map((f: any) => f.file_url)
+        .filter((url: string) => url?.startsWith("https://"))
+        .length > 0
+      ? selectedArea.fotos
+          .filter((f: any) => f.file_url?.startsWith("https://"))
+          .map((f: any) => ({ src: f.file_url, label: f.file_name || "Foto" }))
+      : [{ src: "/sin_imagen_rondines.png", label: "Sin imagen" }]
+    : record.images && record.images.filter((img: string) => img && img !== "/mountain.svg" && img?.startsWith("https://")).length > 0
+    ? record.images
+        .filter((img: string) => img && img !== "/mountain.svg" && img?.startsWith("https://"))
+        .map((img: any, i: number) => ({ src: img, label: `Imagen ${i + 1}` }))
     : [{ src: "/sin_imagen_rondines.png", label: "Sin imagen" }];
 
   const prevSlide = () => setSlideIndex((i) => (i - 1 + slides.length) % slides.length);
@@ -575,15 +687,16 @@ export function PhotoRondinCardModal({
       asignado_a: record?.rawData?.asignado_a || "Guardia en turno",
       estatus_recorrido: record?.rawData?.estatus_recorrido || "",
       folio_rondin: record?.rawData?.folio || record?.folio || "",
+      checks_data: record?.rawData?.checks_data || record?.checks_data || [],
     });
     setSelectedIncidencia(null);
-    setSelectedImage(null);
+    setSelectedImages([]);
     setSlideIndex(0);
   };
   const handleBack = () => {
     setSelectedArea(null);
     setSelectedIncidencia(null);
-    setSelectedImage(null);
+    setSelectedImages([]);
     setSlideIndex(0);
   };
   // Mapear áreas con estructura correcta del servicio
@@ -593,12 +706,13 @@ export function PhotoRondinCardModal({
     hora: a?.detalle?.hora_de_check || "",
     img: a?.detalle?.fotos?.[0]?.file_url || a?.foto_area?.[0]?.file_url || "/placeholder.svg",
     fotos: a?.detalle?.fotos || a?.foto_area || [],
+    foto_default_area: a?.foto_default_area || null,
     incidencias: a?.detalle?.incidencias || [],
     comentarios: a?.detalle?.comentarios || "",
     tiempo_traslado: a?.detalle?.tiempo_traslado ?? "",
+    checks_data: a?.checks_data ?? [],
     raw: a,
   }));
-
   // Solo incidencias reales, sin demo
   const incidencias = Array.isArray(record?.rawData?.incidencias) && record.rawData.incidencias.length > 0
     ? record.rawData.incidencias
@@ -615,12 +729,12 @@ export function PhotoRondinCardModal({
   const progress = totalAreas > 0 ? Math.round((inspectedAreas / totalAreas) * 100) : 0;
   const detailsList = record.modalDetailsList || [];
   const rightPanel = selectedArea
-    ? <AreaDetailPanel area={selectedArea} onBack={handleBack} />
+    ? <AreaDetailPanel area={selectedArea} onBack={handleBack} onSetImage={(url) => { setSelectedImages([url]); setSlideIndex(0); }} />
     : selectedIncidencia
     ? <IncidenciaDetailPanel 
       item={selectedIncidencia} 
       onBack={() => { setSelectedIncidencia(null); }} 
-      onSetImage={(url) => { setSelectedImage(url); setSlideIndex(0); }}
+      onSetImage={(url) => { setSelectedImages([url]); setSlideIndex(0); }}
       />
     : selectedComentario                                                          
     ? <ComentarioDetailPanel item={selectedComentario} onBack={() => setSelectedComentario(null)} /> 
@@ -683,7 +797,7 @@ export function PhotoRondinCardModal({
       { label: "Inicio", key: "INICIO" },
       { label: "Finalización", key: "FINALIZACIÓN" },
       { label: "Duración", key: "DURACIÓN" },
-      { label: "Tipo de recorrido", key: "TIPO" },
+      { label: "Áreas Inspeccionadas", key: "ÁREAS INSPECCIONADAS" },
     ].map(({ label, key }) => {
       const found = detailsList.find((item: any) =>
         item.label?.toUpperCase().includes(key)
@@ -725,17 +839,70 @@ export function PhotoRondinCardModal({
             );
           })}
 
-        {(() => {
-          const areasItem = detailsList.find((item: any) =>
-            item.label?.toUpperCase().includes("ÁREA") || item.label?.toUpperCase().includes("AREA")
-          );
-          if (!areasItem || !Array.isArray(areasItem.value) || areasItem.value.length === 0) return null;
-          return (
-            <div className="col-span-2">
-              <ListItem label={areasItem.label} value={areasItem.value} />
+      {(() => {
+        const areasItem = detailsList.find(
+          (item: any) =>
+            item.label?.toUpperCase().includes("ÁREA") ||
+            item.label?.toUpperCase().includes("AREA")
+        );
+
+        if (
+          !areasItem ||
+          !Array.isArray(areasItem.value) ||
+          areasItem.value.length === 0
+        )
+          return null;
+
+        const showAll = expandedAreas;
+        const visibleAreas = showAll
+          ? areasItem.value
+          : areasItem.value.slice(0, 6);
+
+        const hiddenCount = areasItem.value.length - 6;
+
+        return (
+          <div className="col-span-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8] mb-1">
+              {areasItem.label}
+            </p>
+
+            <div className="flex flex-wrap gap-1.5">
+              {visibleAreas.map((areaName: string, i: number) => {
+                const matchedArea = realAreas.find(
+                  (a: any) =>
+                    a.nombre?.toLowerCase() === areaName?.toLowerCase()
+                );
+
+                return (
+                  <button
+                    key={i}
+                    onClick={() =>
+                      matchedArea && handleSelectArea(matchedArea)
+                    }
+                    className={`px-2 py-0.5 rounded-md text-sm font-normal border-0 bg-slate-100 text-slate-600 shadow-none transition-colors
+                      ${
+                        matchedArea
+                          ? "hover:bg-blue-100 hover:text-blue-600 cursor-pointer"
+                          : "cursor-default"
+                      }`}
+                  >
+                    {areaName}
+                  </button>
+                );
+              })}
+
+              {!showAll && hiddenCount > 0 && (
+                <button
+                  onClick={() => setExpandedAreas(true)}
+                  className="px-2 py-0.5 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                >
+                  +{hiddenCount}
+                </button>
+              )}
             </div>
-          );
-        })()}
+          </div>
+        );
+      })()}
       </div>
       </div>
 
@@ -778,13 +945,22 @@ export function PhotoRondinCardModal({
                       item={item}
                       onClick={() => {
                         setSelectedIncidencia(item);
-                        const fotoUrl = item.evidencias?.[0]?.file_url || item.incidente_evidencia?.[0]?.file_url;
-                        if (fotoUrl) {
-                          setSelectedImage(fotoUrl);
+                        const urls = (item.evidencias || item.incidente_evidencia || [])
+                          .map((e: any) => e.file_url)
+                          .filter(Boolean);
+                        if (urls.length > 0) {
+                          setSelectedImages(urls);
                           setSlideIndex(0);
                         }
                       }}
-                      onImageClick={(url) => { setSelectedImage(url); setSlideIndex(0); }}
+                      onImageClick={(url) => {
+                        const urls = (item.evidencias || item.incidente_evidencia || [])
+                          .map((e: any) => e.file_url)
+                          .filter(Boolean);
+                        const idx = urls.indexOf(url);
+                        setSelectedImages(urls);
+                        setSlideIndex(idx >= 0 ? idx : 0);
+                      }}
                     />
                   ))
                 )}
@@ -821,17 +997,23 @@ export function PhotoRondinCardModal({
         setSelectedArea(null); 
         setSelectedIncidencia(null);  
         setSelectedComentario(null); 
-        setSelectedImage(null); 
+        setSelectedImages([]); 
       } 
     }}>
-      <DialogContent className="p-0 overflow-hidden !max-w-[1400px] w-[98vw] h-[95vh] rounded-3xl shadow-2xl flex flex-col border-none bg-background">
+     <DialogContent className="p-0 overflow-hidden !max-w-[1400px] w-[98vw] h-[95vh] rounded-3xl shadow-2xl flex flex-col border-none bg-background">
         <DialogTitle className="sr-only">Detalle — {record.title}</DialogTitle>
+
+        {action && (
+          <div className="absolute top-3 right-14 z-50">
+            {typeof action === "function" ? (action as any)(record) : action}
+          </div>
+        )}
 
         <div className="px-6 pt-5 pb-3 shrink-0 border-b border-slate-100">
           <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Detalle del rondín</p>
           <h2 className="text-xl font-extrabold text-blue-600 leading-tight">{record.title}</h2>
         </div>
-
+    
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <div className="w-[240px] shrink-0 border-r border-slate-100 flex flex-col bg-slate-50/60 overflow-hidden">
             <div className="px-4 pt-5 pb-3 shrink-0">

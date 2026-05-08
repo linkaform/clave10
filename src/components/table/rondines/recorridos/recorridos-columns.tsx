@@ -64,10 +64,10 @@ import { Eye, Pencil, Trash } from "lucide-react";
       enableSorting: true,
     },
     {
-      accessorKey: "estatus_rondin",
+      accessorKey: "estatus_recorrido",
       header: "Estatus",
       cell: ({ row }) => {
-        const estatus = row.getValue("estatus_rondin") as string;
+        const estatus = row.getValue("estatus_recorrido") as string;
         const statusStyles: Record<string, string> = {
           corriendo: "bg-green-50 text-green-700 border border-green-200 ring-1 ring-green-300/50",
           pausado:   "bg-yellow-50 text-yellow-700 border border-yellow-200 ring-1 ring-yellow-300/50",
@@ -77,7 +77,7 @@ import { Eye, Pencil, Trash } from "lucide-react";
         };
         const style = statusStyles[estatus?.toLowerCase()] ?? "bg-slate-50 text-slate-500 border border-slate-200";
         return (
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${style}`}>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${style} capitalize`}>
             {estatus}
           </span>
         );

@@ -57,9 +57,23 @@ export function applyRecorridosFilters(
 
     // Filtro por recurrencia
     if (dynamic.recurrencia) {
-      if (item.recurrencia !== dynamic.recurrencia) return false;
-    }
+      const normalize = (text: string) =>
+        text
+          ?.toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "") 
+          .replace(/\s+/g, "_"); 
 
+      const recurrencias = Array.isArray(item.sucede_recurrencia)
+        ? item.sucede_recurrencia.map((r: string) => normalize(r))
+        : [];
+
+      const filtro = normalize(dynamic.recurrencia);
+
+      if (!recurrencias.includes(filtro)) {
+        return false;
+      }
+    }
     // Filtro por ubicación
     if (dynamic.ubicacion) {
       const itemUbicacion = (item.ubicacion || "").toLowerCase();
@@ -90,16 +104,22 @@ export function applyRecorridosFilters(
     
     // Filtro por area
     if (dynamic.area) {
-      const itemArea = (item.area || "").toLowerCase();
+      const itemAreas = Array.isArray(item.areas_name)
+        ? item.areas_name.map((a: string) => a.toLowerCase())
+        : [];
+    
       if (Array.isArray(dynamic.area)) {
         if (dynamic.area.length > 0) {
-          const match = dynamic.area.some(
-            (a: string) => a.toLowerCase() === itemArea
+          const match = dynamic.area.some((a: string) =>
+            itemAreas.includes(a.toLowerCase())
           );
+    
           if (!match) return false;
         }
       } else if (typeof dynamic.area === "string" && dynamic.area !== "") {
-        if (itemArea !== dynamic.area.toLowerCase()) return false;
+        if (!itemAreas.includes(dynamic.area.toLowerCase())) {
+          return false;
+        }
       }
     }
     // Filtro por fecha usando fecha_inicio_rondin

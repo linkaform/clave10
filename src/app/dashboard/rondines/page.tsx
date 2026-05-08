@@ -34,7 +34,7 @@ const RondinesContent = () => {
   console.log(dates);
   const [searchQuery, setSearchQuery] = useState<string[]>([]);
   const [subTab, setSubTab] = useState("recorridos");
-  const [viewMode, setViewMode] = useState<"table" | "photos" | "list">("table");
+  const [viewMode, setViewMode] = useState<"table" | "photos" | "list">("photos");
   const [titulo, setTitulo] = useState("");
   const [totalRegistros, setTotalRegistros] = useState(0);
 
@@ -77,16 +77,16 @@ const RondinesContent = () => {
   
   useEffect(() => {
     const allowedViews: Record<string, ("table" | "photos" | "list")[]> = {
-      recorridos:          ["table"],
-      rondines:            ["table", "list"],
-      "check-ubicaciones": ["table", "photos"],
-      incidencias:         ["table", "photos"],
+      recorridos: ["table"],
+      rondines: ["list", "table"],
+      "check-ubicaciones": ["photos", "table"],
+      incidencias: ["photos", "table"],
     };
+  
     const allowed = allowedViews[subTab] ?? ["table"];
-    if (!allowed.includes(viewMode)) {
-      setViewMode("table");
-    }
-  }, [subTab, viewMode]);
+  
+    setViewMode(allowed[0]);
+  }, [subTab]);
 
   useEffect(() => {
     if (subTab === "recorridos") setTitulo("Recorridos Programados");
@@ -136,6 +136,7 @@ const RondinesContent = () => {
           filters={recorridosFilters}
           onFiltersChange={onRecorridosFiltersChange}
           filtersConfig={recorridosFiltersConfig}
+          filtroUbicacion={false}
         />
       )}
       {viewMode === "table" && subTab === "rondines" && (
@@ -146,6 +147,7 @@ const RondinesContent = () => {
           filters={rondinesFilters}
           onFiltersChange={onRondinesFiltersChange}
           filtersConfig={rondinesFiltersConfig}
+          filtroUbicacion={false}
         />
       )}
       {viewMode === "table" && subTab === "check-ubicaciones" && (
@@ -156,6 +158,7 @@ const RondinesContent = () => {
           filters={checkAreasFilters}
           onFiltersChange={onCheckAreasFiltersChange}
           filtersConfig={checkAreasFiltersConfig}
+          filtroUbicacion={false}
         />
       )}
       {viewMode === "table" && subTab === "incidencias" && (
@@ -166,6 +169,7 @@ const RondinesContent = () => {
           filters={incidenciasFilters}
           onFiltersChange={onIncidenciasFiltersChange}
           filtersConfig={incidenciasFiltersConfig}
+          filtroUbicacion={false}
         />
       )}
 
@@ -233,23 +237,41 @@ const RondinesContent = () => {
                       ? "bg-blue-600 text-white hover:bg-blue-700"
                       : "text-slate-500 hover:bg-slate-200/50"
                   }`;
-                return (
-                  <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
-                    <Button variant="ghost" size="icon" className={btnClass("table")} onClick={() => setViewMode("table")}>
-                      <Sheet size={18} />
-                    </Button>
-                    {(subTab === "incidencias" || subTab === "check-ubicaciones") && (
-                      <Button variant="ghost" size="icon" className={btnClass("photos")} onClick={() => setViewMode("photos")}>
-                        <LayoutGrid size={18} />
+                  return (
+                    <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
+                      
+                      {(subTab === "incidencias" || subTab === "check-ubicaciones") && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={btnClass("photos")}
+                          onClick={() => setViewMode("photos")}
+                        >
+                          <LayoutGrid size={18} />
+                        </Button>
+                      )}
+                  
+                      {subTab === "rondines" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={btnClass("list")}
+                          onClick={() => setViewMode("list")}
+                        >
+                          <LayoutList size={18} />
+                        </Button>
+                      )}
+                  
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={btnClass("table")}
+                        onClick={() => setViewMode("table")}
+                      >
+                        <Sheet size={18} />
                       </Button>
-                    )}
-                    {subTab === "rondines" && (
-                      <Button variant="ghost" size="icon" className={btnClass("list")} onClick={() => setViewMode("list")}>
-                        <LayoutList size={18} />
-                      </Button>
-                    )}
-                  </div>
-                );
+                    </div>
+                  );
               })()}
             </div>
           </div>
@@ -276,6 +298,9 @@ const RondinesContent = () => {
 
               <TabsContent value="rondines">
                 <RondinesTable
+                resetTableFilters={resetTableFilters}
+                  setDate1={setDate1} setDate2={setDate2}
+                  date1={date1} date2={date2}
                   showTabs={true}
                   ubicacion={ubicacionSeleccionada}
                   viewMode={viewMode}
@@ -283,8 +308,7 @@ const RondinesContent = () => {
                   externalFilters={rondinesFilters}
                   onExternalFiltersChange={onRondinesFiltersChange}
                   filtersConfig={rondinesFiltersConfig}
-                  setTotalRegistros={setTotalRegistros}
-                />
+                  setTotalRegistros={setTotalRegistros} dateFilter={""}/>
               </TabsContent>
 
               <TabsContent value="check-ubicaciones">

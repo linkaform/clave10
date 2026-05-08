@@ -10,6 +10,7 @@ interface FloatingFiltersDrawerProps extends FiltersPanelProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   activeFiltersCount: number;
+  filtroUbicacion?:boolean
 }
 
 export function FloatingFiltersDrawer({
@@ -20,6 +21,7 @@ export function FloatingFiltersDrawer({
   onFiltersChange,
   filtersConfig,
   stats,
+  filtroUbicacion = false
 }: FloatingFiltersDrawerProps) {
   useEffect(() => {
     if (isOpen) {
@@ -71,6 +73,7 @@ export function FloatingFiltersDrawer({
               onFiltersChange={onFiltersChange}
               filtersConfig={filtersConfig}
               stats={stats}
+              filtroUbicacion={filtroUbicacion}
             />
           </div>
         </div>

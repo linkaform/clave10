@@ -13,7 +13,7 @@ const estatusStyles: Record<string, string> = {
 const EstatusBadge = ({ estatus }: { estatus: string }) => {
   const style = estatusStyles[estatus?.toLowerCase()] ?? "bg-slate-50 text-slate-500 border border-slate-200";
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${style}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${style} capitalize`}>
       {estatus?.replace(/_/g, " ")}
     </span>
   );
@@ -81,7 +81,7 @@ export const getRondinesColumns = (
   {
     accessorKey: "estatus_recorrido",
     header: "Estatus",
-    cell: ({ row }) => <EstatusBadge estatus={row.getValue("estatus_recorrido")} />,
+    cell: ({ row }) => <EstatusBadge  estatus={row.getValue("estatus_recorrido")} />,
     enableSorting: true,
   },
   {
