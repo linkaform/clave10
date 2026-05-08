@@ -50,10 +50,10 @@ export function mapRondinBitacoraList(raw: any, base: any) {
           label: raw?.estatus_recorrido?.replace(/_/g, " ") || "Sin estatus",
         },
         ...(tieneIncidencias ? [{
-          customClass: "bg-red-100 hover:bg-red-100 px-4 py-1 text-xs font-medium text-red-600 rounded-xl border-0 shadow-none",
+          customClass: "bg-red-100 hover:bg-red-100 px-4 py-1 text-xs font-bold text-red-600 rounded-xl border-0 shadow-none",
           label: `${incidencias.length} incidencia${incidencias.length > 1 ? "s" : ""}`,
         }] : [{
-          customClass: "bg-green-100 hover:bg-green-100 px-4 py-1 text-xs font-medium text-green-600 rounded-xl border-0 shadow-none",
+          customClass: "bg-green-100 hover:bg-green-100 px-4 py-1 text-xs font-bold text-green-600 rounded-xl border-0 shadow-none",
           label: "Sin incidencias",
         }]),
       ],
@@ -76,7 +76,7 @@ export function mapRondinBitacoraList(raw: any, base: any) {
         { icon: null, label: "Finalización", value: raw?.fecha_hora_inicio || "-" },
         { icon: null, label: "Duración", value: raw?.duracion_rondin ? `${raw.duracion_rondin} min` : "-" },
         // { icon: null, label: "Fecha programada", value: raw?.fecha_hora_programada_inicio },
-        { icon: null, label: "Tipo de recorrido", value: raw?.cantidad_areas_inspeccionadas ? `${raw.cantidad_areas_inspeccionadas}` : "0" },
+        { icon: null, label: "Áreas Inspeccionadas", value: raw?.cantidad_areas_inspeccionadas ? `${raw.cantidad_areas_inspeccionadas}` : "0" },
         // { icon: null, label: "% Avance", value: raw?.porcentaje_avance ? `${raw.porcentaje_avance}` : "0%" },
         // { icon: null, label: "Tipo derocrrido", value: raw?.tipo_rondin?.toUpperCase() || "-" },
         // { icon: null, label: "Asignado a", value: raw?.asignado_a || "Sin asignar" },

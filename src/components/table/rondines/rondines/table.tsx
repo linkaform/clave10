@@ -23,7 +23,6 @@ import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import OutSelectedItemsButton from "@/components/Bitacoras/OutSelectedItemsButton";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
-import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { PhotoRondinCardModal } from "@/components/Bitacoras/PhotoList/PhotoRondinCardModal";
 import { useGetListRondines } from "@/hooks/Rondines/useGetListRecorridos";
 import { getRondinesColumns } from "./rondines-columnas";
@@ -32,6 +31,8 @@ import { useGetPdfMutation } from "@/hooks/usetGetPdf";
 import useAuthStore from "@/store/useAuthStore";
 import Swal from "sweetalert2";
 import { RondinActionButtons } from "../rondinActionButtons";
+import { applyRondinesFilters, useRondinesFilters } from "@/hooks/Rondines/rondines/useRondinesFilters";
+import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 
 export interface BitacoraRondin {
   id: string;
@@ -69,6 +70,12 @@ export interface BitacoraRondin {
 }
 
 interface RondinesTableProps {
+  resetTableFilters: () => void;
+  setDate1: React.Dispatch<React.SetStateAction<Date | "">>;
+  setDate2: React.Dispatch<React.SetStateAction<Date | "">>;
+  date1: Date | "";
+  date2: Date | "";
+  dateFilter: string;
   viewMode?: "table" | "photos" | "list";
   searchTags?: string[];
   ubicacion?: string;
@@ -80,15 +87,16 @@ interface RondinesTableProps {
 }
 
 const RondinesTable: React.FC<RondinesTableProps> = ({
-  viewMode = "table",
-  searchTags,
-  externalFilters,
-  onExternalFiltersChange,
-  filtersConfig,
+  viewMode: viewModeProp,
+  searchTags:searchTagsProp,
+  externalFilters: externalFiltersProp,
+  onExternalFiltersChange: onExternalFiltersChangeProp,
+  filtersConfig: filtersConfigProp,
   setTotalRegistros
 }) => {
   const { listRondines, isLoadingListRondines: isLoading } = useGetListRondines(true, "", "", 100, 0);
   const [rowSelection, setRowSelection] = React.useState({});
+
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -99,6 +107,23 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   const [modalVerAbierto, setModalVerAbierto] = useState(false);
   const [rondinActual, setRondinActual] = useState<BitacoraRondin | null>(null);
   const { userParentId } =useAuthStore();
+
+  const {
+    externalFilters: externalFiltersLocal,
+    onExternalFiltersChange:onExternalFiltersChangeLocal,
+    filtersConfig: filtersConfigLocal,
+    searchTags: searchTagsLocal,
+  } = useRondinesFilters();
+
+  const viewMode= viewModeProp; 
+  const externalFilters = externalFiltersProp ?? externalFiltersLocal;
+  const onExternalFiltersChange = onExternalFiltersChangeProp ?? onExternalFiltersChangeLocal;
+  const filtersConfig = filtersConfigProp ?? filtersConfigLocal;
+  const searchTags = searchTagsProp ?? searchTagsLocal;
+
+
+
+
 
   const { refetch } = useGetPdfMutation(
     rondinActual?.id ?? "",
@@ -163,6 +188,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
     }
   }, [searchTags]);
 
+
   const handleVer = (rondin: BitacoraRondin) => {
     const base = {
       id: rondin.id,
@@ -173,18 +199,18 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
     setModalVerAbierto(true);
   };
 
+  const columns = useMemo(() => getRondinesColumns(handleVer, handleImprimir),[]);
   const memoizedData = useMemo(
     () => (Array.isArray(listRondines) ? listRondines : []) as BitacoraRondin[],
     [listRondines]
   );
-
-  const columns = useMemo(
-    () => getRondinesColumns(handleVer, handleImprimir),
-    []
-  );
+  const filteredData = useMemo(() => {
+    console.log("EXTERNAL FILTERS:", externalFilters);
+    return applyRondinesFilters(memoizedData, externalFilters);
+  }, [memoizedData, externalFilters]);
 
   const table = useReactTable({
-    data: memoizedData,
+    data: filteredData ?? [],
     columns,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
@@ -200,11 +226,21 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
       if (!filterValue) return true;
       const normalize = (str: string) =>
         str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    
       const tags = filterValue.split("|").filter(Boolean).map(normalize);
+    
       const allValues = row
         .getAllCells()
-        .map((cell) => normalize(String(cell.getValue() || "")))
+        .map((cell) => {
+          const columnId = cell.column.id;
+          let value = String(cell.getValue() || "");
+          if (columnId === "estatus_recorrido") {
+            value = value.replace(/_/g, " ");
+          }
+          return normalize(value);
+        })
         .join(" ");
+    
       return tags.some((tag) => allValues.includes(tag));
     },
     state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
@@ -252,15 +288,16 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   };
   
   return (
+
     <div className="w-full">
       <div className="flex gap-4 items-start">
      
         {viewMode !== "table" && (
-          <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">
+           <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto custom-scrollbar">
             <FiltersPanel
-              filters={externalFilters ?? { dynamic: {}, dateFilter: "", date1: "", date2: "" }}
-              onFiltersChange={onExternalFiltersChange ?? (() => {})}
-              filtersConfig={filtersConfig ?? []}
+              filters={externalFilters}
+              onFiltersChange={onExternalFiltersChange}
+              filtersConfig={filtersConfig}
             />
           </aside>
         )}
@@ -337,7 +374,9 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
               globalSearch={searchTags ?? []}
               modalType="rondines"
               getMapData={(record) => (record as any)?.rawData?.map_data ?? []}
-              selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} variant="imprimir"/>}>
+              selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} variant="imprimir"/>}
+              externalFilters={externalFilters}
+              onExternalFiltersChange={onExternalFiltersChange}>
               {renderActions}
             </PhotoGridView>
           ) : (
@@ -347,7 +386,9 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
               globalSearch={searchTags ?? []}
               modalType="rondines"
               getMapData={(record) => record?.rawData?.map_data ?? []}
-              selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} variant="imprimir"/>}>
+              selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} variant="imprimir"/>}
+              externalFilters={externalFilters}
+              onExternalFiltersChange={onExternalFiltersChange}>
               {renderActions}
             </PhotoListView>
           )}

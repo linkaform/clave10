@@ -24,7 +24,7 @@ export function applyRondinesFilters(
   filters: RondinesExternalFilters
 ): any[] {
   if (!data?.length) return [];
-
+  console.log("ITEMM" , data, filters)
   const dynamic = filters.dynamic || {};
   const dateFilter = filters.dateFilter || "";
   const date1 = filters.date1;
@@ -36,87 +36,71 @@ export function applyRondinesFilters(
 
   if (!hasActiveFilters) return data;
 
+  const normalize = (text: string) =>
+    text?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").replace(/\s+/g, " ").trim() || "";
+
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfWeek = new Date(startOfToday);
-  startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   return data.filter((item) => {
-    // Filtro por estatus
+    console.log("ITEMM" , item)
     if (dynamic.estatus_rondin) {
-      const itemEstatus = item.estatus_rondin?.toLowerCase() || "";
-      if (itemEstatus !== dynamic.estatus_rondin.toLowerCase()) return false;
+      console.log("HELLO")
+      if (normalize(item.estatus_recorrido || "") !== normalize(dynamic.estatus_rondin)) return false;
     }
 
-    // Filtro por tipo
-    if (dynamic.tipo_rondin) {
-      const itemTipo = item.tipo_rondin?.toLowerCase() || "";
-      if (itemTipo !== dynamic.tipo_rondin.toLowerCase()) return false;
+    if (dynamic.incidencias) {
+      const tieneIncidencias = Array.isArray(item.incidencias) && item.incidencias.length > 0;
+      if (dynamic.incidencias === "Si" && !tieneIncidencias) return false;
+      if (dynamic.incidencias === "No" && tieneIncidencias) return false;
     }
 
-    // Filtro por recurrencia
-    if (dynamic.recurrencia) {
-      if (item.recurrencia !== dynamic.recurrencia) return false;
+    if (Array.isArray(dynamic.asignado_a) && dynamic.asignado_a.length > 0) {
+      const itemAsignado = normalize(item.asignado_a || "");
+      const match = dynamic.asignado_a.some((a: string) => normalize(a) === itemAsignado);
+      if (!match) return false;
     }
 
-    // Filtro por ubicación
-    if (dynamic.ubicacion) {
-      const itemUbicacion = (item.ubicacion || "").toLowerCase();
-      if (Array.isArray(dynamic.ubicacion)) {
-        if (dynamic.ubicacion.length > 0) {
-          const match = dynamic.ubicacion.some(
-            (u: string) => u.toLowerCase() === itemUbicacion
-          );
-          if (!match) return false;
-        }
-      } else if (typeof dynamic.ubicacion === "string" && dynamic.ubicacion !== "") {
-        if (itemUbicacion !== dynamic.ubicacion.toLowerCase()) return false;
-      }
+    if (Array.isArray(dynamic.area) && dynamic.area.length > 0) {
+      const itemAreas = (item.areas || []).map((a: any) =>
+        normalize(a.area || a.detalle?.area || "")
+      );
+      const match = dynamic.area.some((a: string) => itemAreas.includes(normalize(a)));
+      if (!match) return false;
     }
 
-    // Filtro por fecha usando fecha_inicio_rondin
     if (dateFilter && dateFilter !== "" && dateFilter !== "all_records") {
-      const rawFecha = item.fecha_inicio_rondin;
+      const rawFecha = item.fecha_hora_inicio || item.fecha_hora_programada_inicio;
       if (!rawFecha) return false;
       const itemDate = new Date(rawFecha.replace(" ", "T"));
 
       if (dateFilter === "today") {
-        if (itemDate < startOfToday || itemDate >= new Date(startOfToday.getTime() + 86400000))
-          return false;
-
+        if (itemDate < startOfToday || itemDate >= new Date(startOfToday.getTime() + 86400000)) return false;
       } else if (dateFilter === "yesterday") {
         const startOfYesterday = new Date(startOfToday.getTime() - 86400000);
-        const endOfYesterday = startOfToday;
-        if (itemDate < startOfYesterday || itemDate >= endOfYesterday) return false;
-
+        if (itemDate < startOfYesterday || itemDate >= startOfToday) return false;
       } else if (dateFilter === "this_week") {
         const startOfWeek = new Date(startOfToday);
         startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
         if (itemDate < startOfWeek || itemDate > now) return false;
-
       } else if (dateFilter === "last_week") {
         const startOfThisWeek = new Date(startOfToday);
         startOfThisWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
         const startOfLastWeek = new Date(startOfThisWeek.getTime() - 7 * 86400000);
         if (itemDate < startOfLastWeek || itemDate >= startOfThisWeek) return false;
-
       } else if (dateFilter === "last_fifteen_days") {
         const fifteenDaysAgo = new Date(now.getTime() - 15 * 86400000);
         if (itemDate < fifteenDaysAgo || itemDate > now) return false;
-
       } else if (dateFilter === "this_month") {
         if (itemDate < startOfMonth || itemDate > now) return false;
-
       } else if (dateFilter === "last_month") {
         const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         if (itemDate < startOfLastMonth || itemDate >= endOfLastMonth) return false;
-
       } else if (dateFilter === "this_year") {
         const startOfYear = new Date(now.getFullYear(), 0, 1);
         if (itemDate < startOfYear || itemDate > now) return false;
-
       } else if (dateFilter === "range" && date1 && date2) {
         const from = new Date(date1);
         const to = new Date(date2);
@@ -147,6 +131,7 @@ export function useRondinesFilters() {
         (Object.keys(newFilters.dynamic).length === 0 &&
           newFilters.dateFilter === "")
       ) {
+        console.log("FILTROS RECIBIDOS:", newFilters)
         setExternalFilters(initialFilters);
         return;
       }

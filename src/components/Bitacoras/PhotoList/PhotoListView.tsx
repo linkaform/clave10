@@ -41,7 +41,6 @@ export default function PhotoListView({
     | ((
         selectedItems: { record_id: string; record_status: string }[],
       ) => React.ReactNode);
-  /** Opcional — solo en rondines. Recibe el record seleccionado y devuelve los puntos del mapa */
   getMapData?: (record: ListRecord) => MapItem[] | undefined;
   /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
   modalType?: "rondines" | "normal";
@@ -51,7 +50,6 @@ export default function PhotoListView({
   const [selectedItems, setSelectedItems] = useState<
     { record_id: string; record_status: string }[]
   >([]);
-  console.log("FR", records)
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ListRecord | null>(null);
@@ -63,6 +61,8 @@ export default function PhotoListView({
     return base.filter((record) => {
       return globalSearch.some((tag) => {
         const tagLower = tag.toLowerCase();
+
+        console.log(record.title?.toString().toLowerCase().includes(tagLower) , tag)
         return (
           record.title?.toString().toLowerCase().includes(tagLower) ||
           record.description?.toString().toLowerCase().includes(tagLower) ||
@@ -101,7 +101,6 @@ export default function PhotoListView({
 
   const clearSelection = () => setSelectedItems([]);
 
-  // Calcular mapData para el record seleccionado (solo si getMapData viene definido)
   const currentMapData = selectedRecord && getMapData
     ? getMapData(selectedRecord)
     : undefined;
@@ -193,6 +192,7 @@ export default function PhotoListView({
           open={isModalOpen}
           onOpenChange={setIsModalOpen}
           mapData={currentMapData}
+          action={children}
         />
       ) : (
         <PhotoListCardModal

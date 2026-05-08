@@ -1,5 +1,5 @@
 import { getListBitacoraRondines } from "@/lib/create-incidencia-rondin";
-import { getListRondin } from "@/lib/rondines";
+import { getListRecorridos } from "@/lib/rondines";
 import { errorMsj } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
@@ -9,13 +9,13 @@ export const useGetListRecorridos = (enableList:boolean, date1:string, date2:str
         queryKey: ["getListRecorridos", date1, date2, limit, offset],
         enabled:enableList,
         queryFn: async () => {
-            const data = await getListRondin(date1, date2, limit, offset);
+            const data = await getListRecorridos(date1, date2, limit, offset);
             const textMsj = errorMsj(data) 
             if (textMsj){
               throw new Error (`Error al obtener lista de rondines, Error: ${data.error}`);
             }else {
 
-              return Array.isArray(data.response?.data)? data.response?.data : [];
+              // return Array.isArray(data.response?.data)? data.response?.data : [];
               const res = Array.isArray(data.response?.data)? data.response?.data : [];
               return res ?? [];
             }

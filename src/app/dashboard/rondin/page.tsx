@@ -11,7 +11,7 @@ import { arraysIguales } from "@/lib/utils";
 import { CalendarClock } from "lucide-react";
 import { useGetStats } from "@/hooks/useGetStats";
 import GuardiasRondinesTable from "@/components/table/rondines/guardias/table";
-import RondinesTable from "@/components/table/rondines/rondines/table";
+// import RondinesTable from "@/components/table/rondines/rondines/table";
 
 
 
@@ -461,7 +461,11 @@ const RondinesPage = () => {
 
               <TabsContent value="Rondines">
                 <div >
-					<RondinesTable setTotalRegistros={()=>{}}									  />
+					{/* <RondinesTable setTotalRegistros={() => { } } resetTableFilters={function (): void {
+									  throw new Error("Function not implemented.");
+								  } } setDate1={function (value: React.SetStateAction<"" | Date>): void {
+									  throw new Error("Function not implemented.");
+								  } } setDate2={} date1={""} date2={""} dateFilter={""}									  /> */}
                 </div>
               </TabsContent>
 
