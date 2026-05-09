@@ -36,7 +36,7 @@ export function FloatingFiltersDrawer({
 
   return (
     <>
-      {/* Botón flotante lateral izquierdo */}
+      {/* Botón flotante lateral izquierdo*/}
       {!isOpen && (
         <div className="fixed -left-2 top-1/2 -translate-y-1/2 z-[45]">
           <Button

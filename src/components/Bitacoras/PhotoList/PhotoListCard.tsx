@@ -27,7 +27,6 @@ export function PhotoListCard({
   
   const fallback = "/sin_imagen_rondines.png";
   const [activeImage, setActiveImage] = useState(allImages[0] || fallback);
-  console.log(record)
   const showMap = mapData && mapData.length > 0;
   // Separar áreas del resto de detalles
   const areasItem = record.detailsList?.find(

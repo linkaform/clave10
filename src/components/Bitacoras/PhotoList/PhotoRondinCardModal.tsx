@@ -291,8 +291,7 @@ function AreaDetailPanel({ area, onBack, onSetImage }: {
   const [selectedCheck, setSelectedCheck] = useState<any>(null);  
   // const fotos: { file_name: string; file_url: string }[] = area.fotos || [];
   const fotoDefault = area.foto_default_area?.file_url ? area.foto_default_area : null;
-  const checksData: any[] = area?.checks_data || [];
-  console.log("DATAAAA",area)
+  const checksData: any[] = [];
   const incidenciasArea: any[] = area.incidencias || [];
   const comentarios: string = area.comentarios || "";
   const tiempoTraslado = area.tiempo_traslado !== "" ? area.tiempo_traslado : null;

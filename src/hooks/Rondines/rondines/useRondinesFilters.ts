@@ -24,7 +24,6 @@ export function applyRondinesFilters(
   filters: RondinesExternalFilters
 ): any[] {
   if (!data?.length) return [];
-  console.log("ITEMM" , data, filters)
   const dynamic = filters.dynamic || {};
   const dateFilter = filters.dateFilter || "";
   const date1 = filters.date1;
@@ -44,9 +43,7 @@ export function applyRondinesFilters(
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   return data.filter((item) => {
-    console.log("ITEMM" , item)
     if (dynamic.estatus_rondin) {
-      console.log("HELLO")
       if (normalize(item.estatus_recorrido || "") !== normalize(dynamic.estatus_rondin)) return false;
     }
 
@@ -131,7 +128,6 @@ export function useRondinesFilters() {
         (Object.keys(newFilters.dynamic).length === 0 &&
           newFilters.dateFilter === "")
       ) {
-        console.log("FILTROS RECIBIDOS:", newFilters)
         setExternalFilters(initialFilters);
         return;
       }

@@ -44,9 +44,9 @@ export function applyRecorridosFilters(
 
   return data.filter((item) => {
     // Filtro por estatus
-    if (dynamic.estatus_rondin) {
-      const itemEstatus = item.estatus_rondin?.toLowerCase() || "";
-      if (itemEstatus !== dynamic.estatus_rondin.toLowerCase()) return false;
+    if (dynamic.estatus_recorrido) {
+      const itemEstatus = item.estatus_recorrido?.toLowerCase() || "";
+      if (itemEstatus !== dynamic.estatus_recorrido.toLowerCase()) return false;
     }
 
     // Filtro por tipo

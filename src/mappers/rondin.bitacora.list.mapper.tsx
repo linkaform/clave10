@@ -9,10 +9,12 @@ export function mapRondinBitacoraList(raw: any, base: any) {
       cancelado: "bg-red-100 text-red-600 hover:bg-red-100",
     };
   
-    const status = estatus === "realizado" ? "abierto"
-      : estatus === "en_proceso" ? "corriendo"
-      : estatus === "cancelado" ? "cancelado"
-      : "cerrado";
+    const status = estatus === "realizado" ? "realizado"
+    : estatus === "en_proceso" ? "en proceso"
+    : estatus === "cancelado" ? "cancelado"
+    : estatus === "programado" ? "programado"
+    : estatus === "cerrado" ? "cerrado"
+    : estatus;
   
     const areas = Array.isArray(raw?.areas) ? raw.areas : [];
     const incidencias = Array.isArray(raw?.incidencias) ? raw.incidencias : [];
@@ -61,7 +63,7 @@ export function mapRondinBitacoraList(raw: any, base: any) {
         { icon: null, label: "UBICACIÓN", value: raw?.ubicacion || "-" },
         { icon: null, label: "REALIZADO POR", value: raw?.asignado_a || "Guardia en turno" },
         { icon: null, label: "INICIO", value: raw?.fecha_hora_inicio || "-" },
-        { icon: null, label: "FINALIZACIÓN", value: raw?.fecha_hora_fin || raw?.updated_at || "-" },
+        { icon: null, label: "FINALIZACIÓN", value: raw?.fecha_hora_fin || "-" },
         { icon: null, label: "DURACIÓN", value: raw?.duracion_rondin ? `${raw.duracion_rondin} min` : "-" },
         { icon: null, label: "ÁREAS INSPECCIONADAS", value: raw?.cantidad_areas_inspeccionadas ? `${raw.cantidad_areas_inspeccionadas}` : "0" },
         { icon: null, label: "ÁREAS", value: areaNames },
@@ -73,7 +75,7 @@ export function mapRondinBitacoraList(raw: any, base: any) {
         { icon: null, label: "Realizado por", value:raw?.asignado_a || "Guardia en turno"  },
         // { icon: null, label: "Estatus", value: raw?.estatus_recorrido?.replace(/_/g, " ") },
         { icon: null, label: "Inicio", value: raw?.fecha_hora_inicio || "-" },
-        { icon: null, label: "Finalización", value: raw?.fecha_hora_inicio || "-" },
+        { icon: null, label: "Finalización", value: raw?.fecha_hora_fin || "-" },
         { icon: null, label: "Duración", value: raw?.duracion_rondin ? `${raw.duracion_rondin} min` : "-" },
         // { icon: null, label: "Fecha programada", value: raw?.fecha_hora_programada_inicio },
         { icon: null, label: "Áreas Inspeccionadas", value: raw?.cantidad_areas_inspeccionadas ? `${raw.cantidad_areas_inspeccionadas}` : "0" },
