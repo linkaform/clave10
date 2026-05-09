@@ -174,7 +174,7 @@ const RondinesContent = () => {
 
       <div className="flex flex-col">
         <div className="p-3 w-full mx-auto">
-          <div className="flex items-center justify-between w-full gap-4 sticky top-[68px]  bg-white backdrop-blur-sm py-2">
+          <div className="flex items-center justify-between w-full gap-4 sticky top-[68px] z-40 bg-white backdrop-blur-sm py-2">
             <div className="flex items-baseline gap-2 min-w-fit">
               <h1 className="text-2xl font-bold text-slate-900 whitespace-nowrap">
                 {titulo}
