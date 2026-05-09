@@ -122,9 +122,6 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   const searchTags = searchTagsProp ?? searchTagsLocal;
 
 
-
-
-
   const { refetch } = useGetPdfMutation(
     rondinActual?.id ?? "",
     590,
@@ -205,7 +202,6 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
     [listRondines]
   );
   const filteredData = useMemo(() => {
-    console.log("EXTERNAL FILTERS:", externalFilters);
     return applyRondinesFilters(memoizedData, externalFilters);
   }, [memoizedData, externalFilters]);
 
@@ -253,22 +249,22 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   }));
 
   const photoListRecords: ListRecord[] = useMemo(() => {
-    return memoizedData.map((item: any, index: number) =>
+    return filteredData.map((item: any, index: number) =>
       formatListRecord({
         ...item,
         _id: `rondin-bitacora-${index}-${item.id || index}`,
       }, "rondin_bitacora")
     );
-  }, [memoizedData]);
-
+  }, [filteredData]);
+  
   const photoRecords: PhotoRecord[] = useMemo(() => {
-    return memoizedData.map((item: any, index: number) =>
+    return filteredData.map((item: any, index: number) =>
       formatPhotoRecord({
         ...item,
         _id: `rondin-bitacora-${index}-${item.id || index}`,
       }, "rondin_bitacora")
     );
-  }, [memoizedData]);
+  }, [filteredData]);
 
   const handleImprimirMultiple = async (rondines: BitacoraRondin[]) => {
     for (const rondin of rondines) {

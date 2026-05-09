@@ -57,32 +57,38 @@ export default function PhotoListView({
   const filteredRecords = useMemo(() => {
     const base = baseFilteredRecords as unknown as ListRecord[];
     if (!globalSearch || globalSearch.length === 0) return base;
-
+  
+    const normalize = (str: string) =>
+      str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  
     return base.filter((record) => {
       return globalSearch.some((tag) => {
-        const tagLower = tag.toLowerCase();
-
-        console.log(record.title?.toString().toLowerCase().includes(tagLower) , tag)
+        const tagLower = normalize(tag);
+        const tagNormalized = normalize(tag.replace(/_/g, " "));
+  
+        const statusValue = normalize((record.status?.toString() || "").replace(/_/g, " "));
+        const statusMatches = statusValue.includes(tagNormalized) || statusValue.includes(tagLower);
+        console.log("STATUS VALUEE", statusValue)
         return (
-          record.title?.toString().toLowerCase().includes(tagLower) ||
-          record.description?.toString().toLowerCase().includes(tagLower) ||
-          record.folio?.toString().toLowerCase().includes(tagLower) ||
-          record.status?.toString().toLowerCase().includes(tagLower) ||
+          statusMatches ||
+          normalize(record.title?.toString() || "").includes(tagLower) ||
+          normalize(record.description?.toString() || "").includes(tagLower) ||
+          normalize(record.folio?.toString() || "").includes(tagLower) ||
           record.detailsList?.some((detail) => {
             if (Array.isArray(detail.value)) {
               return detail.value.some((val) =>
-                val?.toString().toLowerCase().includes(tagLower),
+                normalize(val?.toString() || "").includes(tagLower),
               );
             }
-            return detail.value?.toString().toLowerCase().includes(tagLower);
+            return normalize(detail.value?.toString() || "").includes(tagLower);
           }) ||
           record.modalDetailsList?.some((detail) => {
             if (Array.isArray(detail.value)) {
               return detail.value.some((val) =>
-                val?.toString().toLowerCase().includes(tagLower),
+                normalize(val?.toString() || "").includes(tagLower),
               );
             }
-            return detail.value?.toString().toLowerCase().includes(tagLower);
+            return normalize(detail.value?.toString() || "").includes(tagLower);
           })
         );
       });

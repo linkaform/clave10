@@ -33,7 +33,6 @@ import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
-import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { useGetListRecorridos } from "@/hooks/Rondines/useGetListRecorridos";
@@ -147,11 +146,8 @@ const RecorridosTable: React.FC<ListProps> = ({
   const {
     externalFilters: externalFiltersLocal,
     onExternalFiltersChange: onExternalFiltersChangeLocal,
-    activeFiltersCount,
     filtersConfig: filtersConfigLocal,
     searchTags: searchTagsLocal,
-    isSidebarOpen,
-    setIsSidebarOpen,
   } = useRecorridosFilters();
 
   const externalFilters = externalFiltersProp ?? externalFiltersLocal;
@@ -285,7 +281,7 @@ const RecorridosTable: React.FC<ListProps> = ({
 
   return (
     <div className="w-full">
-      {viewMode === "table" && !verRondin && (
+      {/* {viewMode === "table" && !verRondin && (
         <FloatingFiltersDrawer
           isOpen={isSidebarOpen}
           onOpenChange={setIsSidebarOpen}
@@ -294,7 +290,7 @@ const RecorridosTable: React.FC<ListProps> = ({
           onFiltersChange={onExternalFiltersChange}
           filtersConfig={filtersConfig}
         />
-      )}
+      )} */}
 
       {modalEliminarAbierto && rondinSeleccionado && (
         <EliminarRondinModal
