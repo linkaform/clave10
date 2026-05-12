@@ -33,6 +33,7 @@ import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
+import { applyIncidenciasFilters } from "@/hooks/Rondines/incidencias/useIncidenciasFilters ";
 
 interface ListProps {
   showTabs: boolean;
@@ -74,7 +75,7 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
   externalFilters,
   onExternalFiltersChange,
   filtersConfig,
-  setTotalRegistros,
+  setTotalRegistros,searchTags,
 }) => {
   const { listIncidenciasRondin, isLoading } = useIncidenciaRondin("", "");
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -125,10 +126,22 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
     []
   );
 
+  useEffect(() => {
+    if (searchTags && searchTags.length > 0) {
+      setGlobalFilter(searchTags.join("|"));
+    } else {
+      setGlobalFilter("");
+    }
+  }, [searchTags]);
+
   const memoizedData = useMemo(() => listIncidenciasRondin || [], [listIncidenciasRondin]);
 
+  const filteredData = useMemo(() => {
+    return applyIncidenciasFilters(memoizedData, externalFilters);
+  }, [memoizedData, externalFilters]);
+  
   const table = useReactTable({
-    data: memoizedData,
+    data: filteredData??[],
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -142,11 +155,30 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
     onPaginationChange: setPagination,
     globalFilterFn: (row, _columnId, filterValue: string) => {
       if (!filterValue) return true;
-      const tags = filterValue.toLowerCase().split(" ").filter(Boolean);
-      const allValues = row
-        .getAllCells()
-        .map((cell) => String(cell.getValue() || "").toLowerCase())
-        .join(" ");
+      const normalize = (str: string) =>
+        str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    
+      console.log("filterValue raw:", filterValue); // ← temporal
+    
+      const tags = filterValue.split("|").filter(Boolean).map(normalize);
+    
+      console.log("tags normalizados:", tags); // ← temporal
+    
+      const raw = row.original as any;
+      const allValues = normalize([
+        raw?.folio || "",
+        raw?.incidente || "",
+        raw?.categoria || "",
+        raw?.subcategoria || "",
+        raw?.area_incidente || "",
+        raw?.ubicacion_incidente || "",
+        raw?.comentarios || "",
+        raw?.nombre_del_recorrido || "",
+        raw?.accion_tomada || "",
+      ].join(" "));
+    
+      console.log("allValues sample:", allValues.substring(0, 100)); // ← temporal
+    
       return tags.some((tag) => allValues.includes(tag));
     },
     state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
@@ -160,23 +192,27 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
     }
   }, [table.getFilteredSelectedRowModel().rows]);
 
+  useEffect(() => {
+    setTotalRegistros(filteredData.length);
+  }, [filteredData, setTotalRegistros]);
+
   const photoListRecords: ListRecord[] = useMemo(() => {
-    return memoizedData.map((item: any, index: number) =>
+    return filteredData.map((item: any, index: number) =>
       formatListRecord({
         ...item,
         _id: `incidencia-${index}-${item._id || item.id || item.folio || index}`,
       }, "rondin_incidencia")
     );
-  }, [memoizedData]);
+  }, [filteredData]);
 
   const photoRecords: PhotoRecord[] = useMemo(() => {
-    return memoizedData.map((item: any, index: number) =>
+    return filteredData.map((item: any, index: number) =>
       formatPhotoRecord({
         ...item,
         _id: `incidencia-${index}-${item._id || item.id || item.folio || index}`,
       }, "rondin_incidencia")
     );
-  }, [memoizedData]);
+  }, [filteredData]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderActions = (_record: PhotoRecord | ListRecord) => null;

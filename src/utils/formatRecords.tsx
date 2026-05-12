@@ -18,7 +18,7 @@ import { mapIncidenciaGrid } from "@/mappers/incidencias.grid.mapper";
 import { mapFallaGrid } from "@/mappers/fallas.grid.mapper";
 import { mapRondinIncidenciaList } from "@/mappers/incidencias.rondines.list.mapper";
 import { mapRondinIncidenciaGrid } from "@/mappers/incidencias.rondines.grid.mapper";
-import { mapCheckUbicacionGrid } from "@/mappers/check-ubicaiones.grid.mapper";
+import { mapCheckUbicacionGrid } from "@/mappers/check-ubicaciones.grid.mapper";
 import { mapCheckUbicacionList } from "@/mappers/check-ubicaciones.list.mapper";
 
 import { mapRondinBitacoraList } from "@/mappers/rondin.bitacora.list.mapper";

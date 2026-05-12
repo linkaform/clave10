@@ -19,6 +19,14 @@ const statusConfig: Record<
   completado: { label: "Completado", variant: "default" },
   en_proceso: { label: "En Proceso", variant: "secondary" },
   cerrado: { label: "Cerrado", variant: "outline" },
+  con_incidencias: {
+    label: "Con incidencias",
+    customClass: "bg-red-100 text-red-600 hover:bg-red-100",
+  },
+  sin_incidencias: {
+    label: "Sin incidencias",
+    customClass: "bg-green-100 text-green-600 hover:bg-green-100",
+  },
   entrada: {
     label: "Entrada",
     customClass: "bg-green-600 text-white hover:bg-green-600",

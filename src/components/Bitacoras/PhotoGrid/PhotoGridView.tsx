@@ -10,6 +10,7 @@ import { PhotoGridCardModal } from "./PhotoGridCardModal";
 import EquiposYVehiculosList from "../EquiposYVehiculosList";
 import { PhotoRondinCardModal } from "../PhotoList/PhotoRondinCardModal";
 import { MapItem } from "@/components/table/rondines/recorridos/table";
+import { PhotoCheckAreaModal } from "./PhotoGridCardModalRondin";
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
   corriendo: "bg-green-600 border-green-600 text-white text-xs",
@@ -49,7 +50,7 @@ export function PhotoGridView({
       /** Opcional — solo en rondines. Recibe el record seleccionado y devuelve los puntos del mapa */
   getMapData?: (record: ListRecord) => MapItem[] | undefined;
   /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
-  modalType?: "rondines" | "normal";
+  modalType?: "rondines" | "normal"| "rondines_v2" ;
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoGridView(records, externalFilters, onExternalFiltersChange);
@@ -193,6 +194,24 @@ export function PhotoGridView({
           onOpenChange={setIsModalOpen}
           mapData={currentMapData}
         />
+      ) :  modalType === "rondines_v2" ? (
+        <PhotoCheckAreaModal
+        record={selectedRecord}
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        badges={[
+          {
+            label: "",
+            value: `#${selectedRecord?.folio || ""}`,
+            customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-bold border border-blue-200",
+          },
+          ...(selectedRecord?.visit_type ? [{
+            label: "",
+            value: selectedRecord.visit_type,
+            customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-bold border border-purple-200",
+          }] : []),
+        ]}
+      />
       ) : (
 
       <PhotoGridCardModal

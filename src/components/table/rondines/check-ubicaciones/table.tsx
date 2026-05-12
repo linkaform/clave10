@@ -48,7 +48,6 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
   searchTags = [],
   filtersConfig = [],
   stats,
-  total,
   externalFilters = { dynamic: {}, dateFilter: "", date1: "", date2: "" },
   onExternalFiltersChange = () => {},
   setTotalRegistros,
@@ -62,7 +61,6 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
   const [globalFilter, setGlobalFilter] = React.useState("");
 
-  // Conectar searchTags al globalFilter
   React.useEffect(() => {
     if (searchTags && searchTags.length > 0) {
       setGlobalFilter(searchTags.join("|"));
@@ -119,12 +117,17 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
       const tags = filterValue.split("|").filter(Boolean).map(normalize);
       const allValues = row
         .getAllCells()
-        .map((cell) => normalize(String(cell.getValue() || "")))
+        .map((cell) => {
+          const columnId = cell.column.id;
+          let value = String(cell.getValue() || "");
+          if (columnId === "check_status") {
+            value = value.replace(/_/g, " ");
+          }
+          return normalize(value);
+        })
         .join(" ");
       return tags.some((tag) => allValues.includes(tag));
     },
-    manualPagination: true,
-    rowCount: total || 0,
     state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
   });
 
@@ -140,8 +143,7 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
     );
   }, [filteredData]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const renderActions = (_record: PhotoRecord | ListRecord) => null;
+  const renderActions = () => null;
 
   return (
     <div className="w-full">
@@ -219,7 +221,7 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
               isLoading={isLoading}
               records={photoRecords}
               globalSearch={searchTags ?? []}
-              modalType="normal"
+              modalType="rondines_v2"
               getMapData={(record) => (record as any)?.rawData?.map_data ?? []}
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
               {renderActions}
