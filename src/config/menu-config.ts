@@ -247,7 +247,8 @@ export const menuStructure: MenuConfig = {
             {
               key: "reporte_de_pases",
               label: "Reporte de pases",
-              type: "option",
+              type: "link",
+              href: "/reportes/reporte_asistencias",
               order: 1,
             },
           ],
