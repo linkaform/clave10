@@ -99,7 +99,6 @@ interface ListProps {
 }
 
 const RecorridosTable: React.FC<ListProps> = ({
-  
   // setDate1, setDate2, date1, date2,
   // dateFilter, setDateFilter, Filter, resetTableFilters,
   setActiveTab,

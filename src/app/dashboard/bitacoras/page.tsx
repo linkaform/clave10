@@ -8,14 +8,14 @@ import { AddBadgeModal } from "@/components/modals/add-badge-modal";
 import { DoOutModal } from "@/components/modals/do-out-modal";
 import ForceQuitConfirmationModal from "@/components/modals/force-quit-confirmation";
 import { ReturnGafeteModal } from "@/components/modals/return-gafete-modal";
-import { TagSearchInput } from "@/components/tag-search-input";
 import { forceQuitAllPersons } from "@/lib/endpoints";
-import { Search, LogOut, LayoutGrid, Sheet, LayoutList } from "lucide-react";
+import { LogOut, LayoutGrid, Sheet, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBitacora } from "@/hooks/bitacora/useBitacora";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import VehiculosTable from "@/components/table/bitacoras/vehiculos/table";
 import EquiposTable from "@/components/table/bitacoras/equipos/table";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const BitacorasContent = () => {
   const {
@@ -81,95 +81,56 @@ const BitacorasContent = () => {
         />
       )}
       <div className="p-6 space-y-4 pt-3 w-full">
-        <div className="flex items-center justify-between w-full gap-4 sticky top-[57px] z-40 bg-white backdrop-blur-sm py-2">
-          <div className="flex items-baseline gap-2 min-w-fit">
-            <h1 className="text-xl font-bold text-slate-900 whitespace-nowrap">
-              Bitácora de Entradas & Salidas
-            </h1>
-            <span className="text-sm font-light text-slate-500 whitespace-nowrap">
-              {listBitacoras?.total_records || 0} registros{" "}
-              {activeDateFilter === "today"
-                ? "de hoy"
-                : activeDateFilter === ""
-                  ? "en total"
-                  : ""}
-            </span>
+          <PageHeader
+          title="Bitácora de Entradas & Salidas"
+          totalRecords={listBitacoras?.total_records || 0}
+          onSearch={(val) => setSearchTags(val ? [val] : [])}
+          searchPlaceholder="Buscar...">
+
+          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-auto">
+            <TabsList className="bg-slate-100/50 h-10 p-0 border border-slate-300 divide-x divide-slate-300 rounded-lg overflow-hidden shadow-sm">
+              <TabsTrigger value="personal"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none border-x border-slate-300/50 shadow-none text-slate-600 hover:bg-slate-200/50">
+                Personal
+              </TabsTrigger>
+              <TabsTrigger value="vehiculos"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none border-x border-slate-300/50 shadow-none text-slate-600 hover:bg-slate-200/50">
+                Vehículos
+              </TabsTrigger>
+              <TabsTrigger value="equipos"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none border-x border-slate-300/50 shadow-none text-slate-600 hover:bg-slate-200/50">
+                Equipos
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
+            <Button variant="ghost" size="icon"
+              className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "photos" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
+              onClick={() => setViewMode?.("photos")}>
+              <LayoutGrid size={18} />
+            </Button>
+            <Button variant="ghost" size="icon"
+              className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
+              onClick={() => setViewMode?.("list")}>
+              <LayoutList size={18} />
+            </Button>
+            <Button variant="ghost" size="icon"
+              className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
+              onClick={() => setViewMode?.("table")}>
+              <Sheet size={18} />
+            </Button>
           </div>
 
-          <div className="flex items-center gap-4 min-w-0 justify-end flex-shrink-0">
-            <div className="flex p-1 rounded-lg items-center border border-slate-200 w-[240px] overflow-hidden focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 bg-white transition-all">
-              <Search
-                className="ml-2 mr-1 flex-shrink-0 text-slate-400"
-                size={14}
-              />
-              <TagSearchInput
-                tags={searchTags}
-                onTagsChange={setSearchTags}
-                placeholder="Buscar..."
-                className="w-full bg-transparent border-none shadow-none focus-visible:ring-0 h-8 text-sm min-w-0 px-1"
-              />
-            </div>
-
-            <Tabs
-              value={selectedTab}
-              onValueChange={setSelectedTab}
-              className="w-auto">
-              <TabsList className="bg-slate-100/50 h-10 p-0 border border-slate-300 divide-x divide-slate-300 rounded-lg overflow-hidden shadow-sm">
-                <TabsTrigger
-                  value="personal"
-                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none border-x border-slate-300/50 shadow-none text-slate-600 hover:bg-slate-200/50">
-                  Personal
-                </TabsTrigger>
-                <TabsTrigger
-                  value="vehiculos"
-                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none border-x border-slate-300/50 shadow-none text-slate-600 hover:bg-slate-200/50">
-                  Vehículos
-                </TabsTrigger>
-                <TabsTrigger
-                  value="equipos"
-                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none border-x border-slate-300/50 shadow-none text-slate-600 hover:bg-slate-200/50">
-                  Equipos
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "photos" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-                onClick={() => setViewMode?.("photos")}>
-                <LayoutGrid size={18} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-                onClick={() => setViewMode?.("list")}>
-                <LayoutList size={18} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-                onClick={() => setViewMode?.("table")}>
-                <Sheet size={18} />
-              </Button>
-            </div>
-
-            {hasPeopleInside && (
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={() => setIsForceQuitOpen(true)}
-                className="h-10 px-3 flex gap-2">
-                <LogOut size={16} />
-                Sacar
-              </Button>
-            )}
-          </div>
-        </div>
+          {hasPeopleInside && (
+            <Button type="button" variant="destructive" size="sm"
+              onClick={() => setIsForceQuitOpen(true)}
+              className="h-10 px-3 flex gap-2">
+              <LogOut size={16} />
+              Sacar
+            </Button>
+          )}
+        </PageHeader>
 
         <div className="w-full">
           <Tabs value={selectedTab} className="w-full">

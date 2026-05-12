@@ -35,12 +35,12 @@ import { useSearchPass } from "@/hooks/useSearchPass";
 import { Switch } from "../ui/switch";
 import { getCatalogoPasesAreaNoApi } from "@/lib/get-catalogos-pase-area";
 
-const linkSchema = z.object({
-	link: z.string().url({ message: "Por favor, ingresa una URL válida." }),
-	docs: z.array(z.string()).optional(),
-	creado_por_id: z.number().int({ message: "El ID debe ser un número entero." }),
-	creado_por_email: z.string().email({ message: "Por favor, ingresa un correo electrónico válido." }),
-});
+// const linkSchema = z.object({
+// 	link: z.string().url({ message: "Por favor, ingresa una URL válida." }),
+// 	docs: z.array(z.string()).optional(),
+// 	creado_por_id: z.number().int({ message: "El ID debe ser un número entero." }),
+// 	creado_por_email: z.string().email({ message: "Por favor, ingresa un correo electrónico válido." }),
+// });
 
 const enviarPreSmsSchema = z.object({
 	from: z.string().min(1, { message: "El campo 'from' no puede estar vacío." }),
@@ -78,14 +78,14 @@ const formSchema = z
 		}),
 		telefono: z.string().optional(),
 		empresa: z.string().optional(),
-		ubicacion: z.array(z.string()).optional(),
+		ubicacion: z.array(z.string()).min(1, { message: "Selecciona al menos una ubicación." }),
 		tema_cita: z.string().optional(),
 		descripcion: z.string().optional(),
 		perfil_pase: z.string().min(1),
 		status_pase: z.string().min(1),
 		visita_a: z.array(z.any()).optional(),
 		custom: z.boolean().optional(),
-		link: linkSchema,
+		link: z.any().optional(),
 		enviar_correo_pre_registro: z.array(z.string()).optional(),
 
 		tipo_visita_pase: z.enum(["fecha_fija", "rango_de_fechas"], {
@@ -121,18 +121,6 @@ const formSchema = z
 		path: ['fecha_desde_visita'],
 	})
 	.refine((data) => {
-		if (data.tipo_visita_pase === 'rango_de_fechas') {
-			const fechaDesdeValida = data.fecha_desde_visita && data.fecha_desde_hasta;
-			if (!fechaDesdeValida) {
-				return false;
-			}
-		}
-		return true;
-	}, {
-		message: "Ambas fechas (Desde y Hasta) son requeridas cuando el tipo de pase es 'rango de fechas'.",
-		path: ['fecha_desde_hasta'],
-	})
-	.refine((data) => {
 		if (!data.email && !data.telefono) {
 			return false;
 		}
@@ -163,13 +151,12 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	const [modalData, setModalData] = useState<any>(null);
 	const { ubicacionesDefaultFormatted, dataLocations: ubicaciones, isLoadingAreas: loadingCatAreas } = useCatalogoPaseAreaLocation(location ?? "", true, location ? true : false)
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted ?? []);
-	const ubicacionesFormattedUpdate = ubicacionesSeleccionadas?.map((u: any) => (u.name));
+	// const ubicacionesFormattedUpdate = ubicacionesSeleccionadas?.map((u: any) => (u));
 	const userEmailSoter = localStorage.getItem("userEmail_soter") || "";
 	const userIdSoter = parseInt(localStorage.getItem("userId_soter") || "0", 10);
 
 	const { data: dataConfigLocation, isLoading: loadingConfigLocation } = useGetConfSeguridad(ubicacionesSeleccionadas?.[0]?.id ?? [])
 	const ubicacionesFormatted = ubicaciones?.map((u: any) => ({ id: u, name: u }));
-
 	const [formatedDocs, setFormatedDocs] = useState<string[]>([])
 	const [isActiveRangoFecha, setIsActiveRangoFecha] = useState(dataPass.tipo_visita_pase || "rango_de_fechas");
 	const [comentariosList, setComentariosList] = useState<Comentarios[]>(dataPass.comentarios);
@@ -194,17 +181,28 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	const { assets } = useSearchPass(true);
 	const assetsUnique = uniqueArray(assets?.Visita_a)
 	assetsUnique.unshift("Usuario Actual");
+
 	const visitaAFormatted = (assetsUnique || [])
 	.filter((u: any) => u !== null && u !== undefined)
 	.map((u: any) => ({ id: u, name: u }));
+
 	const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>(dataPass?.visita_a);
 	const multiRef = useRef<any>(null);
 	const [fechaDesde, setFechaDesde] = useState<string>('');
+
+
 	useEffect(() => {
-		if (modalEditarAbierto && multiRef.current) {
-		  multiRef.current.toggleOptionsList(false);
+		if (modalEditarAbierto && dataPass?.ubicacion) {
+		  const ubicacionesFormateadas = Array.isArray(dataPass.ubicacion)
+			? dataPass.ubicacion.map((u: any) => 
+				typeof u === "string" ? { id: u, name: u } : u
+			  )
+			: [];
+		  setUbicacionesSeleccionadas(ubicacionesFormateadas);
 		}
 	  }, [modalEditarAbierto]);
+
+
 	// Estados para áreas dinámicas
 	const [areasTodas, setAreasTodas] = useState<any[]>([]);
 	const [areasDisponibles, setAreasDisponibles] = useState<any[]>([]);
@@ -278,7 +276,8 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			},
 			qr_pase: dataPass.qr_pase || [],
 			enviar_correo_pre_registro: formatedEnvio,
-			tipo_visita_pase: tipoVisita || "",
+			tipo_visita_pase: dataPass.tipo_fechas_pase || dataPass.tipo_visita_pase || "fecha_fija",
+			config_limitar_acceso: Number(dataPass.limite_de_acceso) || Number(dataPass.config_limitar_acceso) || 1,
 			fechaFija: dataPass.tipo_visita_pase == "fecha_fija" ?
 				dataPass.fechaFija : dataPass.fecha_desde_visita,
 			fecha_desde_visita: dataPass.tipo_visita_pase === "fecha_fija" ?
@@ -286,7 +285,6 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			fecha_desde_hasta: dataPass.fecha_desde_hasta !== "" ? dataPass.fecha_desde_hasta : "",
 			config_dia_de_acceso: config_dia_de_acceso === "limitar_días_de_acceso" ? config_dia_de_acceso : "cualquier_día",
 			config_dias_acceso: config_dias_acceso,
-			config_limitar_acceso: Number(dataPass.config_limitar_acceso) || 1,
 			areas: areasList,
 			comentarios: comentariosList,
 			enviar_pre_sms: {
@@ -315,17 +313,12 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 		});
 	};
 
-	useEffect(() => {
-		if (ubicacionesDefaultFormatted) {
-			setUbicacionesSeleccionadas(ubicacionesDefaultFormatted)
-		}
-	}, [ubicacionesDefaultFormatted]);
 
 	useEffect(() => {
 		if (modalEditarAbierto) {
 			form.setValue("fecha_desde_visita", dataPass.fecha_desde_visita.split(" ")[0])
 			form.setValue("fecha_desde_hasta", dataPass.fecha_desde_hasta.split(" ")[0])
-			setUbicacionesSeleccionadas(dataPass.ubicacion)
+			// setUbicacionesSeleccionadas(dataPass.ubicacion)
 		}
 	}, [modalEditarAbierto])
 
@@ -363,6 +356,13 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 
 
 	const onSubmit = (data: z.infer<typeof formSchema>) => {
+		if (!ubicacionesSeleccionadas || ubicacionesSeleccionadas.length === 0) {
+			form.setError("ubicacion", { 
+			  type: "manual", 
+			  message: "Selecciona al menos una ubicación." 
+			});
+			return;
+		  }
 		const formattedData = {
 			_id: dataPass._id,
 			folio: dataPass.folio,
@@ -370,7 +370,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			email: data.email || "",
 			telefono: data.telefono || "",
 			empresa: data.empresa || "",
-			ubicacion: ubicacionesFormattedUpdate,
+			ubicacion: ubicacionesSeleccionadas?.map((u: any) => u.name || u),
 			tema_cita: data.tema_cita || "",
 			descripcion: data.descripcion || "",
 			perfil_pase: dataPass.perfil_pase || "",
@@ -401,14 +401,14 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			fechaFija: date !== "" ? formatDateToString(date) : "",
 			fecha_desde_visita: tipoVisita === "fecha_fija" ? (date !== "" ? formatDateToString(date) : "") :
 				(data.fecha_desde_visita !== "" ? data.fecha_desde_visita : ""),
-			fecha_desde_hasta: data.fecha_desde_hasta ? data?.fecha_desde_hasta.split(" ")[0] : "",
+			fecha_desde_hasta: data.fecha_desde_hasta ? formatDateToString( new Date(data?.fecha_desde_hasta.split(" ")[0])):'',
 			grupo_equipos: dataPass.grupo_equipos,
 			grupo_vehiculos: dataPass.grupo_vehiculos,
 			foto: dataPass.foto || [],
 			identificacion: dataPass.identificacion || [],
 			todas_las_areas: todasAreas
 		};
-
+		console.log("FECHAS", formattedData.link)
 		if (tipoVisita == "fecha_fija" && date == "") {
 			form.setError("fechaFija", { type: "manual", message: "Fecha Fija es requerida cuando el tipo de pase es 'fecha fija'." });
 		} else if (tipoVisita == "rango_de_fechas" && (formattedData.fecha_desde_visita == "" || formattedData.fecha_desde_hasta == "")) {
@@ -426,11 +426,13 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 
 	const handleToggleTipoVisitaPase = (tipo: string) => {
 		if (tipo == "fecha_fija") {
+			form.setValue("tipo_visita_pase", "fecha_fija")
 			form.setValue('fecha_desde_hasta', '')
 			form.setValue('fecha_desde_visita', '')
 			setIsActiveFechaFija(true)
 			setIsActiveRangoFecha(false)
 		} else {
+			form.setValue("tipo_visita_pase", "rango_de_fechas")
 			form.setValue('fechaFija', '')
 			setDate("")
 			setIsActiveFechaFija(false)
@@ -614,21 +616,26 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 											</FormItem>
 										)}
 									/>
-
-									<div className="mt-0">
+										<div className="mt-0">
 										<div className="text-sm mb-2">Ubicaciones del pase: </div>
 										<Multiselect
 											options={ubicacionesFormatted}
-											selectedValues={ubicacionesDefaultFormatted}
+											selectedValues={ubicacionesSeleccionadas} 
 											onSelect={(selectedList) => {
-												setUbicacionesSeleccionadas(selectedList);
+											setUbicacionesSeleccionadas(selectedList);
+											form.clearErrors("ubicacion");
 											}}
 											onRemove={(selectedList) => {
-												setUbicacionesSeleccionadas(selectedList);
+											setUbicacionesSeleccionadas(selectedList);
 											}}
 											displayValue="name"
 										/>
-									</div>
+										{form.formState.errors.ubicacion && (
+											<p className="text-sm text-red-500 mt-1">
+											{form.formState.errors.ubicacion.message}
+											</p>
+										)}
+										</div>
 
 
 

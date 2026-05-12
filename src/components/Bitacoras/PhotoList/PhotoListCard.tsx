@@ -130,7 +130,10 @@ export function PhotoListCard({
           </div>
 
           {otherDetails && otherDetails.length > 0 && (
-            <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-4">
+            <div className={cn(
+              "grid gap-x-12 gap-y-6 mb-4",
+              showMap ? "grid-cols-3" : "grid-cols-2"  // ← 3 cols si hay mapa
+            )}>
               {otherDetails.map((item, index) => {
                 const hasValue = Array.isArray(item.value)
                   ? item.value.length > 0
@@ -140,7 +143,7 @@ export function PhotoListCard({
                 return (
                   <div
                     key={index}
-                    className={cn("flex flex-col gap-1", isFullWidth ? "col-span-2" : "col-span-1")}>
+                    className={cn("flex flex-col gap-1", isFullWidth ? "col-span-3" : "col-span-1")}>  {/* ← col-span-3 si fullwidth */}
                     <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
                       {item.label}
                     </span>
@@ -168,7 +171,7 @@ export function PhotoListCard({
             <>
               <div
                 className="rounded-xl overflow-hidden border border-slate-200 mb-2 w-full"
-                style={{ height: "180px" }}
+                style={{ height: "240px" }} 
                 onClick={(e) => e.stopPropagation()}
               >
                 <div style={{ height: "180px", width: "100%" }}>

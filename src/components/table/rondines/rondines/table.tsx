@@ -84,9 +84,12 @@ interface RondinesTableProps {
   onExternalFiltersChange?: (filters: any) => void;
   filtersConfig?: any[];
   setTotalRegistros: React.Dispatch<React.SetStateAction<number | 0>>;
+  openRecorridoId: string | null
+
 }
 
 const RondinesTable: React.FC<RondinesTableProps> = ({
+  openRecorridoId,
   viewMode: viewModeProp,
   searchTags:searchTagsProp,
   externalFilters: externalFiltersProp,
@@ -205,6 +208,15 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
     return applyRondinesFilters(memoizedData, externalFilters);
   }, [memoizedData, externalFilters]);
 
+
+  useEffect(() => {
+    if (!openRecorridoId || isLoading || !memoizedData.length) return;
+    const found = memoizedData.find((r: any) => r.id === openRecorridoId);
+    if (found) {
+      handleVer(found as BitacoraRondin);
+    }
+  }, [openRecorridoId, isLoading, memoizedData]);
+  
   const table = useReactTable({
     data: filteredData ?? [],
     columns,

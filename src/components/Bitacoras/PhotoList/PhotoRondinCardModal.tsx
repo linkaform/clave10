@@ -703,7 +703,7 @@ export function PhotoRondinCardModal({
   const realAreas = rawAreas.map((a: any) => ({
     nombre: a?.area || a?.detalle?.area || a?.rondin_area || "",
     hora: a?.detalle?.hora_de_check || "",
-    img: a?.detalle?.fotos?.[0]?.file_url || a?.foto_area?.[0]?.file_url || "/placeholder.svg",
+    img: a?.foto_default_area?.file_url || a?.detalle?.fotos?.[0]?.file_url || a?.foto_area?.[0]?.file_url || "/placeholder.svg", 
     fotos: a?.detalle?.fotos || a?.foto_area || [],
     foto_default_area: a?.foto_default_area || null,
     incidencias: a?.detalle?.incidencias || [],
