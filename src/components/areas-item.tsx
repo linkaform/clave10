@@ -10,7 +10,7 @@ interface AreasItemProps {
   onDelete: () => void;
   areaRaw: Areas;
   loadingCatAreas?: boolean;
-  catAreas?: { id: string; name: string; category: string }[];
+  catAreas?: string[];
   updateArea?: (value: string, fieldName: string) => void;
 }
 
