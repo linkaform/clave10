@@ -1,4 +1,5 @@
 // lib/api.ts
+import useAuthStore from "@/store/useAuthStore";
 import { toast } from "sonner";
 
 interface ApiPostOptions {
@@ -13,10 +14,15 @@ interface ApiPostOptions {
 export async function apiPost<TData>(
   url: string,
   body: Record<string, unknown>,
-  options: ApiPostOptions = {}
+  options: ApiPostOptions = {},
+  public_script = false,
 ): Promise<TData> {
   const { messages, showToast = false } = options;
   const userJwt = localStorage.getItem("access_token");
+  const { userParentId } = useAuthStore.getState();
+  if (public_script) {
+    body.account_id = userParentId;
+  }
 
   const promise = fetch(url, {
     method: "POST",
