@@ -454,9 +454,13 @@ const PaseEntradaPage = () => {
             ? formatFecha(data.fecha_desde_visita) + ` 00:00:00`
             : "",
       fecha_desde_hasta:
-        data.fecha_desde_hasta !== ""
-          ? formatFecha(data.fecha_desde_hasta) + ` 23:59:00`
-          : "",
+        tipoVisita === "fecha_fija"
+          ? date
+            ? (() => { const d = new Date(date); d.setHours(23, 59, 59, 0); return formatDateToString(d); })()
+            : ""
+          : data.fecha_desde_hasta !== ""
+            ? formatFecha(data.fecha_desde_hasta) + ` 23:59:00`
+            : "",
       config_dia_de_acceso:
         config_dia_de_acceso === "limitar_días_de_acceso"
           ? config_dia_de_acceso
