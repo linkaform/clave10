@@ -401,7 +401,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			fechaFija: date !== "" ? formatDateToString(date) : "",
 			fecha_desde_visita: tipoVisita === "fecha_fija" ? (date !== "" ? formatDateToString(date) : "") :
 				(data.fecha_desde_visita !== "" ? data.fecha_desde_visita : ""),
-			fecha_desde_hasta: data.fecha_desde_hasta ? formatDateToString( new Date(data?.fecha_desde_hasta.split(" ")[0])):'',
+			fecha_desde_hasta: data.fecha_desde_hasta ? (() => { const d = new Date(data.fecha_desde_hasta.split(" ")[0]); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} 23:59:59`; })() : '',
 			grupo_equipos: dataPass.grupo_equipos,
 			grupo_vehiculos: dataPass.grupo_vehiculos,
 			foto: dataPass.foto || [],
