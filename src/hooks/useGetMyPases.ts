@@ -9,6 +9,7 @@ interface UseGetMyPasesProps {
   searchName?: string;
   tab?: string;
   location?: string;
+  locations?: string[];
   dynamicFilters?: Record<string, string | string[]>;
   dateFilter?: string;
   date1?: Date | "";
@@ -21,6 +22,7 @@ export const useGetMyPases = ({
   searchName,
   tab = "Todos",
   location = "",
+  locations = [],
   dynamicFilters = {},
   dateFilter = "",
   date1 = "",
@@ -32,9 +34,9 @@ export const useGetMyPases = ({
     error,
     isFetching,
   } = useQuery<any>({
-    queryKey: ["getMyPases", tab, limit, skip, searchName, location, dynamicFilters, dateFilter, date1, date2],
+    queryKey: ["getMyPases", tab, limit, skip, searchName, location, locations, dynamicFilters, dateFilter, date1, date2],
     queryFn: async () => {
-      const data = await getMyPases({ tab, limit, skip, searchName, location, dynamicFilters, dateFilter, date1, date2 });
+      const data = await getMyPases({ tab, limit, skip, searchName, location, locations, dynamicFilters, dateFilter, date1, date2 });
       if (data?.error) {
         toast.error("Error al obtener pases");
       }

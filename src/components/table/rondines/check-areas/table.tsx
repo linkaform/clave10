@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { getCheckUbicacionesColumns, CheckUbicacion } from "./check-ubicaciones-columns";
+
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import OutSelectedItemsButton from "@/components/Bitacoras/OutSelectedItemsButton";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
@@ -26,6 +26,7 @@ import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { useGetListCheckUbicaciones } from "@/hooks/Rondines/useListCheckUbicaciones";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { applyCheckAreasFilters } from "@/hooks/Rondines/checkAreas/useCheckAreasFilters ";
+import { CheckArea, getCheckAreasColumns } from "./check-areas-columns";
 
 interface CheckUbicacionesTableProps {
   searchTags?: string[];
@@ -69,22 +70,22 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
     }
   }, [searchTags]);
 
-  const handleEliminar = (check: CheckUbicacion) => {
+  const handleEliminar = (check: CheckArea) => {
     console.log("Eliminar:", check);
   };
 
-  const handleVerCheck = React.useCallback((check: CheckUbicacion) => {
+  const handleVerCheck = React.useCallback((check: CheckArea) => {
     console.log("Ver check:", check);
   }, []);
 
   const columns = useMemo(
-    () => getCheckUbicacionesColumns(handleEliminar, handleVerCheck),
+    () => getCheckAreasColumns(handleEliminar, handleVerCheck),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleVerCheck]
   );
 
   const memoizedData = useMemo(
-    () => (Array.isArray(listCheckUbicaciones) ? listCheckUbicaciones : []) as CheckUbicacion[],
+    () => (Array.isArray(listCheckUbicaciones) ? listCheckUbicaciones : []) as CheckArea[],
     [listCheckUbicaciones]
   );
 

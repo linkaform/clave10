@@ -1,7 +1,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Eye, Trash, AlertCircle, CheckCircle } from "lucide-react";
 
-export interface CheckUbicacion {
+export interface CheckArea {
   id: string;
   folio: string;
   rondin_area: string[];
@@ -28,10 +28,10 @@ export interface CheckUbicacion {
   rondin: Record<string, any>;
 }
 
-export const getCheckUbicacionesColumns = (
-  onEliminarClick: (check: CheckUbicacion) => void,
-  handleVerCheck: (check: CheckUbicacion) => void
-): ColumnDef<CheckUbicacion>[] => [
+export const getCheckAreasColumns = (
+  onEliminarClick: (check: CheckArea) => void,
+  handleVerCheck: (check: CheckArea) => void
+): ColumnDef<CheckArea>[] => [
   {
     id: "options",
     header: "Opciones",

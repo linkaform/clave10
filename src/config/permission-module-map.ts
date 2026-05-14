@@ -17,6 +17,10 @@ export const PERMISSION_MODULE_MAP: Record<string, string[]> = {
   notas: ["turno-notas"],
   rondines: [
     "rondines",
+    "recorridos",
+    "check-areas",
+    "incidencias-rondines"
+
     // "configuracion-rondines"
   ],
   incidencias: [
