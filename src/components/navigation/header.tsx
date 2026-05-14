@@ -24,8 +24,10 @@ import { MegaMenu } from "./mega-menu";
 import type { MenuConfig } from "@/types/menu-types";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { useBoothStore } from "@/store/useBoothStore";
+import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
+import { Check } from "lucide-react";
 
 interface HeaderProps {
   menuConfig: MenuConfig;
@@ -54,25 +56,33 @@ export function Header({
   },
   onLogout,
 }: HeaderProps) {
-  const { location: locationBooth, area, setBooth } = useBoothStore();
+  const { location: locationBooth } = useBoothStore();
   const { locations, fetchLocations } = useAreasLocationStore();
 
-  const [currentLocation, setCurrentLocation] = React.useState<string>("");
+  const { selectedLocations, toggleLocation, setSelectedLocations } = useSelectedLocationsStore();
+  const initializedRef = React.useRef(false);
 
   useEffect(() => {
-    if (locationBooth) {
-      setCurrentLocation(locationBooth);
+    if (!initializedRef.current && locationBooth) {
+      initializedRef.current = true;
+      setSelectedLocations([locationBooth]);
     }
-  }, [locationBooth]);
+  }, [locationBooth, setSelectedLocations]);
 
   useEffect(() => {
     fetchLocations();
   }, [fetchLocations]);
 
-  const handleLocationChange = (loc: string) => {
-    setCurrentLocation(loc);
-    setBooth(area ?? "", loc);
+  const handleToggleLocation = (loc: string) => {
+    toggleLocation(loc);
   };
+
+  const triggerLabel =
+    selectedLocations.length === 0
+      ? "Seleccionar Ubicación"
+      : selectedLocations.length === 1
+        ? selectedLocations[0]
+        : `${selectedLocations.length} ubicaciones`;
 
   return (
     <header className="w-full shadow-sm py-2 px-6 lg:px-12 sticky top-0 left-0 bg-background z-50 border-b border-border">
@@ -100,31 +110,36 @@ export function Header({
                 <button
                   className={cn(
                     "group inline-flex h-9 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 gap-2",
-                    currentLocation && "text-primary",
+                    selectedLocations.length > 0 && "text-primary",
                   )}>
                   <Building2 className="h-5 w-5" strokeWidth={1.5} />
-                  {currentLocation || "Seleccionar Ubicación"}
+                  {triggerLabel}
                   <ChevronDown className="h-4 w-4 opacity-50 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56 mt-1">
+              <DropdownMenuContent align="start" className="w-64 mt-1">
                 <div className="max-h-[300px] overflow-y-auto p-1">
                   {locations.length > 0 ? (
-                    locations.map((loc) => (
-                      <DropdownMenuItem
-                        key={loc}
-                        className={cn(
-                          "cursor-pointer rounded-sm px-3 py-2 text-sm transition-colors focus:bg-accent focus:text-accent-foreground",
-                          currentLocation === loc
-                            ? "bg-accent text-primary font-semibold"
-                            : "text-foreground",
-                        )}
-                        onClick={() => {
-                          handleLocationChange(loc);
-                        }}>
-                        {loc}
-                      </DropdownMenuItem>
-                    ))
+                    locations.map((loc) => {
+                      const isSelected = selectedLocations.includes(loc);
+                      return (
+                        <DropdownMenuItem
+                          key={loc}
+                          className="cursor-pointer rounded-sm px-3 py-2 text-sm transition-colors focus:bg-accent focus:text-accent-foreground flex items-center justify-between gap-3 text-foreground"
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            handleToggleLocation(loc);
+                          }}>
+                          {loc}
+                          <div className={cn(
+                            "h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                            isSelected ? "bg-blue-600 border-blue-600" : "border-muted-foreground/40",
+                          )}>
+                            {isSelected && <Check className="h-3 w-3 text-white" strokeWidth={2.5} />}
+                          </div>
+                        </DropdownMenuItem>
+                      );
+                    })
                   ) : (
                     <div className="px-2 py-4 text-sm text-muted-foreground text-center">
                       No hay ubicaciones
