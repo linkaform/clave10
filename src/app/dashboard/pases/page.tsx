@@ -6,6 +6,7 @@ import PasesEntradaTable from "@/components/table/pases-entrada/table";
 import PaginationPases from "@/components/pages/pases/PaginationPases";
 import { useSearchParams } from "next/navigation";
 import { useBoothStore } from "@/store/useBoothStore";
+import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import PasesGrid from "@/components/pages/pases/PasesGrid";
@@ -45,6 +46,7 @@ const ListaPasesContent = () => {
 
   const searchParams = useSearchParams();
   const { location } = useBoothStore();
+  const { selectedLocations } = useSelectedLocationsStore();
 
   useEffect(() => {
     const status = searchParams.get("status");
@@ -57,6 +59,7 @@ const ListaPasesContent = () => {
     searchName,
     tab: activeStatus,
     location: location ?? "",
+    locations: selectedLocations,
     dynamicFilters: externalFilters.dynamic,
     dateFilter: externalFilters.dateFilter,
     date1: externalFilters.date1,

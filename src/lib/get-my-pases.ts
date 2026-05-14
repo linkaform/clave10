@@ -6,6 +6,7 @@ interface GetMyPasesParams {
   skip?: number;
   searchName?: string;
   location?: string;
+  locations?: string[];
   dynamicFilters?: Record<string, string | string[]>;
   dateFilter?: string;
   date1?: Date | "";
@@ -18,6 +19,7 @@ export const getMyPases = async ({
   skip = 0,
   searchName = "",
   location = "",
+  locations = [],
   dynamicFilters = {},
   dateFilter = "",
   date1 = "",
@@ -36,6 +38,7 @@ export const getMyPases = async ({
     skip,
     search_name: searchName,
     location,
+    locations,
     dynamic_filters,
     filterDate: dateFilter,
     dateFrom: date1 ? (date1 as Date).toISOString() : "",
