@@ -11,9 +11,9 @@ export function mapIncidenciaList(raw: any, base: any) {
   
     const incidenciaNombre = raw?.incidencia || raw?.tipo_incidencia || raw?.incidente || "Sin incidencia";
   
-    const estatusClass = estatus === "abierto"
+    const estatusClass = estatus === "cerrado"
       ? "bg-green-100 text-green-600 hover:bg-green-100"
-      : estatus === "cerrado"
+      : estatus === "abierto"
       ? "bg-red-100 text-red-600 hover:bg-red-100"
       : "bg-gray-100 text-gray-600 hover:bg-gray-100";
   
@@ -42,11 +42,11 @@ export function mapIncidenciaList(raw: any, base: any) {
           label: raw?.estatus || "Sin estatus",
         },
         {
-          customClass: `px-4 py-1 text-xs font-medium rounded-xl border-0 shadow-none whitespace-nowrap ${prioridadClass}`,
+          customClass: `px-4 py-1 text-xs font-bold rounded-xl border-0 shadow-bold whitespace-nowrap ${prioridadClass}`,
           label: raw?.prioridad_incidencia || "Sin prioridad",
         },
         {
-          customClass: "bg-indigo-100 hover:bg-indigo-100 px-4 py-1 text-xs font-medium text-indigo-600 rounded-xl border-0 shadow-none",
+          customClass: "bg-indigo-100 hover:bg-indigo-100 px-4 py-1 text-xs font-bold text-indigo-600 rounded-xl border-0 shadow-none",
           label: raw?.folio || "",
         },
       ],

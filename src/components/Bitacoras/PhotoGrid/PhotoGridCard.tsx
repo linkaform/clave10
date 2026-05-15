@@ -74,10 +74,12 @@ export function PhotoGridCard({
   const handleMouseEnter = () => {
     setIsHovered(true);
     if (record.images.length > 1) {
-      setCurrentImageIndex(1);
+      const nextImg = record.images[1];
+      if (nextImg && nextImg.trim() !== "") {
+        setCurrentImageIndex(1);
+      }
     }
   };
-
   const handleMouseLeave = () => {
     setIsHovered(false);
     setCurrentImageIndex(0);
@@ -100,7 +102,7 @@ export function PhotoGridCard({
         onMouseLeave={handleMouseLeave}>
         {record.images.length > 0 ? (
           <Image
-            src={record.images[currentImageIndex]}
+            src={record.images[currentImageIndex] || "sin_imagen_rondin.svg"}
             alt={record.title}
             fill={true}
             className={`object-cover transition-all duration-500 ${

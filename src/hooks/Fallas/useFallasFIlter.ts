@@ -1,26 +1,27 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useFilters } from "./useFilters";
-import {  getIncidenciasFilters } from "@/services/endpoints";
+import { getFallasFilters } from "@/services/endpoints";
+import { useFilters } from "../bitacora/useFilters";
+import { normalizeText } from "@/lib/utils";
 
-export type IncidenciasExternalFilters = {
+export type FallasExternalFilters = {
   dynamic: Record<string, any>;
   dateFilter?: string;
   date1?: Date | "";
   date2?: Date | "";
 };
 
-const initialFilters: IncidenciasExternalFilters = {
+const initialFilters: FallasExternalFilters = {
   dynamic: {},
   dateFilter: "",
   date1: "",
   date2: "",
 };
 
-export function applyIncidenciasFilters(
+export function applyFallasFilters(
   data: any[],
-  filters: IncidenciasExternalFilters
+  filters: FallasExternalFilters
 ): any[] {
   if (!data?.length) return [];
 
@@ -31,25 +32,14 @@ export function applyIncidenciasFilters(
 
   return data.filter((item) => {
     // Filtro por estatus
-    if (dynamic.estatus) {
-      const itemEstatus = item.estatus?.toLowerCase() || "";
-      if (itemEstatus !== dynamic.estatus.toLowerCase()) return false;
+    if (dynamic.estatus_falla) {
+      const estatusFilter = Array.isArray(dynamic.estatus_falla) ? dynamic.estatus_falla : [dynamic.estatus_falla];
+      const itemEstatus = normalizeText(item.falla_estatus);
+      if (!estatusFilter.some((e: string) => normalizeText(e) === itemEstatus)) return false;
     }
-
-    // Filtro por prioridad
-    if (dynamic.prioridad_incidencia) {
-      const itemPrioridad = item.prioridad_incidencia?.toLowerCase() || "";
-      if (itemPrioridad !== dynamic.prioridad_incidencia.toLowerCase()) return false;
-    }
-
-    // Filtro por categoría
-    if (dynamic.categoria) {
-      if (item.categoria !== dynamic.categoria) return false;
-    }
-
     // Filtro por ubicación
     if (dynamic.ubicacion) {
-      const itemUbicacion = (item.ubicacion_incidencia || "").toLowerCase();
+      const itemUbicacion = (item.falla_ubicacion || "").toLowerCase();
       if (Array.isArray(dynamic.ubicacion)) {
         if (dynamic.ubicacion.length > 0) {
           const match = dynamic.ubicacion.some(
@@ -62,9 +52,21 @@ export function applyIncidenciasFilters(
       }
     }
 
-    // Filtro por fecha usando fecha_hora_incidencia
+    if (dynamic.area) {
+      const areaFilter = Array.isArray(dynamic.area) ? dynamic.area : [dynamic.area];
+      const itemArea = normalizeText(item.falla_caseta);
+      if (!areaFilter.some((a: string) => normalizeText(a) === itemArea)) return false;
+    }
+    
+    if (dynamic.tipo_falla) {
+      const tipoFilter = Array.isArray(dynamic.tipo_falla) ? dynamic.tipo_falla : [dynamic.tipo_falla];
+      const itemTipo = normalizeText(item.falla);
+      if (!tipoFilter.some((t: string) => normalizeText(t) === itemTipo)) return false;
+    }
+
+    // Filtro por fecha usando falla_fecha_hora
     if (dateFilter && dateFilter !== "" && dateFilter !== "all_records") {
-      const rawFecha = item.fecha_hora_incidencia;
+      const rawFecha = item.falla_fecha_hora;
       if (!rawFecha) return false;
       const itemDate = new Date(rawFecha.replace(" ", "T"));
       const now = new Date();
@@ -110,19 +112,19 @@ export function applyIncidenciasFilters(
   });
 }
 
-export function useIncidenciasFilters() {
+export function useFallasFilters() {
   const [externalFilters, setExternalFilters] =
-    useState<IncidenciasExternalFilters>(initialFilters);
+    useState<FallasExternalFilters>(initialFilters);
   const [searchTags, setSearchTags] = useState<string[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { filters: filtersConfig, loadingFilters } = useFilters({
-    key: "incidencias-filters",
-    endpoint: getIncidenciasFilters,
+    key: "fallas-filters",
+    endpoint: getFallasFilters,
   });
 
   const onExternalFiltersChange = useCallback(
-    (newFilters: IncidenciasExternalFilters) => {
+    (newFilters: FallasExternalFilters) => {
       if (
         !newFilters.dynamic ||
         (Object.keys(newFilters.dynamic).length === 0 &&

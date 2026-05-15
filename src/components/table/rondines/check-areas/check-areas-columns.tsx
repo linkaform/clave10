@@ -38,15 +38,14 @@ export const getCheckAreasColumns = (
     cell: ({ row }) => (
       <div className="flex space-x-2">
         <div className="cursor-pointer" onClick={() => handleVerCheck(row.original)} title="Ver Check">
-          <Eye size={16} />
+          <Eye className="w-5 h-5" />
         </div>
         <div className="cursor-pointer" title="Eliminar Check" onClick={() => onEliminarClick(row.original)}>
-          <Trash size={16} />
+          <Trash className="w-5 h-5" />
         </div>
       </div>
     ),
     enableSorting: false,
-    enableHiding: true,
   },
   {
     accessorKey: "folio",

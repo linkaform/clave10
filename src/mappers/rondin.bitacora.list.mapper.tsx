@@ -19,15 +19,15 @@ export function mapRondinBitacoraList(raw: any, base: any) {
     const areas = Array.isArray(raw?.areas) ? raw.areas : [];
     const incidencias = Array.isArray(raw?.incidencias) ? raw.incidencias : [];
     const tieneIncidencias = incidencias.length > 0;
-  
+    
     const fotos = areas
     .flatMap((a: any) => a?.detalle?.fotos ?? [])
     .map((f: any) => f?.file_url)
-    .filter(Boolean);
+    .filter((url: any) => url && typeof url === "string" && url.trim() !== "");
   
   const fotosDefault = areas
     .map((a: any) => a?.foto_default_area?.file_url)
-    .filter(Boolean);
+    .filter((url: any) => url && typeof url === "string" && url.trim() !== "");
   
   const images = fotos.length > 0 
     ? fotos 

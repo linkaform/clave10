@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useShiftStore } from "@/store/useShiftStore";
-import { dateToString } from "@/lib/utils";
+import { dateToString, ViewMode } from "@/lib/utils";
 import { Tabs as TabsOuter, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutGrid, LayoutList, Sheet, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 import RecorridosTable from "@/components/table/rondines/recorridos/table";
 import { useRecorridosFilters } from "@/hooks/Rondines/recorridos/useRecorridosFilters ";
 import { useCheckAreasFilters } from "@/hooks/Rondines/checkAreas/useCheckAreasFilters ";
-import { useIncidenciasFilters } from "@/hooks/bitacora/useIncidenciasFilters";
+import { useIncidenciasFilters } from "@/hooks/Incidencias/useIncidenciasFilters";
 import { useRondinesFilters } from "@/hooks/Rondines/rondines/useRondinesFilters";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -35,7 +35,7 @@ const RondinesContent = () => {
   console.log(dates);
   const [searchQuery, setSearchQuery] = useState<string[]>([]);
   const [subTab, setSubTab] = useState("recorridos");
-  const [viewMode, setViewMode] = useState<"table" | "photos" | "list">("photos");
+  const [viewMode, setViewMode] = useState<ViewMode>("photos");
   const [titulo, setTitulo] = useState("");
   const [totalRegistros, setTotalRegistros] = useState(0);
 
@@ -225,10 +225,10 @@ const RondinesContent = () => {
               }} 
             className="w-auto">
             <TabsList className="bg-slate-100/50 h-10 p-0 border border-slate-300 divide-x divide-slate-300 rounded-lg overflow-hidden shadow-sm">
-              <TabsTrigger value="recorridos" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none shadow-none text-slate-600 hover:bg-slate-200/50">Recorridos</TabsTrigger>
+              <TabsTrigger value="recorridos"className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none shadow-none text-slate-600 hover:bg-slate-200/50">Recorridos</TabsTrigger>
               <TabsTrigger value="rondines" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none shadow-none text-slate-600 hover:bg-slate-200/50">Rondines</TabsTrigger>
-              <TabsTrigger value="check-areas" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none shadow-none text-slate-600 hover:bg-slate-200/50">Check de Áreas</TabsTrigger>
-              <TabsTrigger value="incidencias-rondines" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none shadow-none text-slate-600 hover:bg-slate-200/50">Incidencias</TabsTrigger>
+              <TabsTrigger value="check-areas"  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none shadow-none text-slate-600 hover:bg-slate-200/50">Check de Áreas</TabsTrigger>
+              <TabsTrigger value="incidencias-rondines"  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-6 h-full font-medium transition-all rounded-none shadow-none text-slate-600 hover:bg-slate-200/50">Incidencias</TabsTrigger>
             </TabsList>
           </TabsOuter>
 
@@ -240,16 +240,16 @@ const RondinesContent = () => {
             return (
               <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
                 {(subTab === "incidencias-rondines" || subTab === "check-areas") && (
-                  <Button variant="ghost" size="icon" className={btnClass("photos")} onClick={() => setViewMode("photos")}>
+                  <Button variant="ghost" size="icon" className={btnClass("photos")} onClick={() => {setViewMode("photos");setTitulo("Rondines");}}>
                     <LayoutGrid size={18} />
                   </Button>
                 )}
                 {subTab === "rondines" && (
-                  <Button variant="ghost" size="icon" className={btnClass("list")} onClick={() => setViewMode("list")}>
+                  <Button variant="ghost" size="icon" className={btnClass("list")} onClick={() => {setViewMode("list"); setTitulo("Rondines");}}>
                     <LayoutList size={18} />
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" className={btnClass("table")} onClick={() => setViewMode("table")}>
+                <Button variant="ghost" size="icon" className={btnClass("table")} onClick={() => {setViewMode("table");setTitulo("Rondines");}}>
                   <Sheet size={18} />
                 </Button>
               </div>

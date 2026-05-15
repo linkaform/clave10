@@ -4,16 +4,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { BitacoraRondin } from "./table";
 
 const estatusStyles: Record<string, string> = {
-  realizado: "bg-green-50 text-green-700 border border-green-200 ring-1 ring-green-300/50",
-  en_proceso: "bg-blue-50 text-blue-700 border border-blue-200 ring-1 ring-blue-300/50",
-  programado: "bg-purple-50 text-purple-700 border border-purple-200 ring-1 ring-purple-300/50",
-  cancelado: "bg-red-50 text-red-700 border border-red-200 ring-1 ring-red-300/50",
+  realizado: "bg-green-50 text-green-700 border border-green-200 ",
+  en_proceso: "bg-blue-50 text-blue-700 border border-blue-200",
+  programado: "bg-purple-50 text-purple-700 border border-purple-200",
+  cancelado: "bg-red-50 text-red-700 border border-red-200",
 };
 
 const EstatusBadge = ({ estatus }: { estatus: string }) => {
   const style = estatusStyles[estatus?.toLowerCase()] ?? "bg-slate-50 text-slate-500 border border-slate-200";
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${style} capitalize`}>
+    <span className={`inline-flex items-center px-2.5 rounded-full text-xs font-semibold ${style} capitalize`}>
       {estatus?.replace(/_/g, " ")}
     </span>
   );
@@ -48,10 +48,10 @@ export const getRondinesColumns = (
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <div className="cursor-pointer" onClick={() => handleVer(row.original)} title="Ver Rondín">
-          <Eye />
+          <Eye className="w-5 h-5" />
         </div>
         <div className="cursor-pointer " onClick={() => handleImprimir(row.original)} title="Imprimir">
-          <Printer />
+          <Printer className="w-5 h-5" />
         </div>
       </div>
     ),

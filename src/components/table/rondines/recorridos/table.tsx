@@ -30,11 +30,11 @@ import dynamic from "next/dynamic";
 import { usePlayOrPauseRondin } from "@/hooks/Rondines/usePlayOrPauseROndin";
 import { AreasList } from "@/components/areas-list-draggable";
 import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
-import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
-import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
-import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
-import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
-import { ListRecord, PhotoRecord } from "@/types/bitacoras";
+// import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
+// import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
+// import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
+// import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
+// import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { useGetListRecorridos } from "@/hooks/Rondines/useGetListRecorridos";
 import { applyRecorridosFilters, useRecorridosFilters } from "@/hooks/Rondines/recorridos/useRecorridosFilters ";
 
@@ -105,8 +105,8 @@ const RecorridosTable: React.FC<ListProps> = ({
   viewMode: viewModeProp,
   searchTags: searchTagsProp,
   externalFilters: externalFiltersProp,
-  onExternalFiltersChange: onExternalFiltersChangeProp,
-  filtersConfig: filtersConfigProp,
+  // onExternalFiltersChange: onExternalFiltersChangeProp,
+  // filtersConfig: filtersConfigProp,
   setTotalRegistros,
   verRondin, 
   setVerRondin
@@ -144,14 +144,14 @@ const RecorridosTable: React.FC<ListProps> = ({
 
   const {
     externalFilters: externalFiltersLocal,
-    onExternalFiltersChange: onExternalFiltersChangeLocal,
-    filtersConfig: filtersConfigLocal,
+    // onExternalFiltersChange: onExternalFiltersChangeLocal,
+    // filtersConfig: filtersConfigLocal,
     searchTags: searchTagsLocal,
   } = useRecorridosFilters();
 
   const externalFilters = externalFiltersProp ?? externalFiltersLocal;
-  const onExternalFiltersChange = onExternalFiltersChangeProp ?? onExternalFiltersChangeLocal;
-  const filtersConfig = filtersConfigProp ?? filtersConfigLocal;
+  // const onExternalFiltersChange = onExternalFiltersChangeProp ?? onExternalFiltersChangeLocal;
+  // const filtersConfig = filtersConfigProp ?? filtersConfigLocal;
   const searchTags = searchTagsProp ?? searchTagsLocal;
 
   const { data: rondin, isLoadingRondin } = useGetRondinById(
@@ -253,15 +253,15 @@ const RecorridosTable: React.FC<ListProps> = ({
   };
 
 
-  const rondinPhotoRecords: PhotoRecord[] = useMemo(() => {
-    if (!filteredData?.length) return [];
-    return filteredData.map((item: any) => formatPhotoRecord(item, "rondin"));
-  }, [filteredData]);
+  // const rondinPhotoRecords: PhotoRecord[] = useMemo(() => {
+  //   if (!filteredData?.length) return [];
+  //   return filteredData.map((item: any) => formatPhotoRecord(item, "rondin"));
+  // }, [filteredData]);
 
-  const rondinListRecords: ListRecord[] = useMemo(() => {
-    if (!filteredData?.length) return [];
-    return filteredData.map((item: any) => formatListRecord(item, "rondin"));
-  }, [filteredData]);
+  // const rondinListRecords: ListRecord[] = useMemo(() => {
+  //   if (!filteredData?.length) return [];
+  //   return filteredData.map((item: any) => formatListRecord(item, "rondin"));
+  // }, [filteredData]);
   const filteredAreas = (areas || []).filter((a: any) =>
     (a.rondin_area || "").toLowerCase().includes(areaSearch.toLowerCase())
   );
@@ -595,7 +595,7 @@ const RecorridosTable: React.FC<ListProps> = ({
                     </Table>
                   </div>
                 )}
-
+{/* 
                 {viewMode === "photos" && (
                   <div className="flex gap-4">
                     <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">
@@ -626,7 +626,7 @@ const RecorridosTable: React.FC<ListProps> = ({
                         }} />
                     </div>
                   </div>
-                )}
+                )} */}
               </>
             )}
           </>

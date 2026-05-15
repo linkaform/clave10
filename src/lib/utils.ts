@@ -9,6 +9,11 @@ import { toast } from "sonner";
 import catalogo from "../app/catalogo.json";
 import Swal from "sweetalert2";
 
+export type ViewMode = "table" | "photos" | "list";
+
+export const normalizeText = (text: any) =>
+  String(text ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
+
 export const isExcluded = (
   key: string,
   excludes?: { pases?: string[] },
