@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { getFallasFilters } from "@/services/endpoints";
 import { useFilters } from "../bitacora/useFilters";
 import { normalizeText } from "@/lib/utils";
@@ -12,12 +12,6 @@ export type FallasExternalFilters = {
   date2?: Date | "";
 };
 
-const initialFilters: FallasExternalFilters = {
-  dynamic: {},
-  dateFilter: "",
-  date1: "",
-  date2: "",
-};
 
 export function applyFallasFilters(
   data: any[],
@@ -50,6 +44,12 @@ export function applyFallasFilters(
       } else if (typeof dynamic.ubicacion === "string" && dynamic.ubicacion !== "") {
         if (itemUbicacion !== dynamic.ubicacion.toLowerCase()) return false;
       }
+    }
+    
+    if (dynamic.reportado_por) {
+      const reportaFilter = Array.isArray(dynamic.reportado_por) ? dynamic.reportado_por : [dynamic.reportado_por];
+      const itemReporta = normalizeText(item.falla_reporta_nombre);
+      if (!reportaFilter.some((r: string) => normalizeText(r) === itemReporta)) return false;
     }
 
     if (dynamic.area) {
@@ -113,8 +113,10 @@ export function applyFallasFilters(
 }
 
 export function useFallasFilters() {
-  const [externalFilters, setExternalFilters] =
-    useState<FallasExternalFilters>(initialFilters);
+  const [dynamicFilters, setDynamicFilters] = useState<Record<string, any>>({});
+  const [date1, setDate1] = useState<Date | "">("");
+  const [date2, setDate2] = useState<Date | "">("");
+  const [dateFilter, setDateFilter] = useState<string>("");
   const [searchTags, setSearchTags] = useState<string[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -123,37 +125,46 @@ export function useFallasFilters() {
     endpoint: getFallasFilters,
   });
 
-  const onExternalFiltersChange = useCallback(
-    (newFilters: FallasExternalFilters) => {
-      if (
-        !newFilters.dynamic ||
-        (Object.keys(newFilters.dynamic).length === 0 &&
-          newFilters.dateFilter === "")
-      ) {
-        setExternalFilters(initialFilters);
-        return;
-      }
-      setExternalFilters(newFilters);
-    },
-    []
-  );
+  const externalFilters = useMemo(() => ({
+    dynamic: dynamicFilters,
+    dateFilter,
+    date1,
+    date2,
+  }), [dynamicFilters, dateFilter, date1, date2]);
+
+  const onExternalFiltersChange = (newFilters: any) => {
+    const dynamicVacio = !newFilters.dynamic ||
+      Object.values(newFilters.dynamic).every(
+        (v) => Array.isArray(v) ? v.length === 0 : !v
+      );
+
+    if (dynamicVacio && !newFilters.dateFilter) {
+      setDynamicFilters({});
+      setDateFilter("");
+      setDate1("");
+      setDate2("");
+      return;
+    }
+
+    if (newFilters.dateFilter !== undefined) setDateFilter(newFilters.dateFilter);
+    if (newFilters.date1 !== undefined) setDate1(newFilters.date1);
+    if (newFilters.date2 !== undefined) setDate2(newFilters.date2);
+    if (newFilters.dynamic !== undefined) setDynamicFilters(newFilters.dynamic);
+  };
 
   const activeFiltersCount = useMemo(() => {
-    const dynamicCount = Object.entries(externalFilters.dynamic || {})
+    const dynamicCount = Object.entries(dynamicFilters)
       .filter(([key]) => key !== "ubicacion")
-      .map(([, v]) => v)
-      .flat()
-      .filter(Boolean).length;
+      .map(([, v]) => v).flat().filter(Boolean).length;
 
-    const ubicacionCount = Array.isArray(externalFilters.dynamic?.ubicacion)
-      ? externalFilters.dynamic.ubicacion.length
-      : externalFilters.dynamic?.ubicacion ? 1 : 0;
+    const ubicacionCount = Array.isArray(dynamicFilters?.ubicacion)
+      ? dynamicFilters.ubicacion.length
+      : dynamicFilters?.ubicacion ? 1 : 0;
 
-    const dateCount =
-      externalFilters.dateFilter && externalFilters.dateFilter !== "" ? 1 : 0;
+    const dateCount = dateFilter && dateFilter !== "" ? 1 : 0;
 
     return dynamicCount + ubicacionCount + dateCount;
-  }, [externalFilters]);
+  }, [dynamicFilters, dateFilter]);
 
   return {
     externalFilters,
