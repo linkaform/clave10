@@ -22,9 +22,9 @@ export const usePlayOrPauseRondin = () => {
             setLoading(true);
           },
           onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["getListRondines"] });
+            queryClient.invalidateQueries({ queryKey: ["getListRecorridos"] });
             queryClient.invalidateQueries({ queryKey: ["getStatsRondines"] });
-            queryClient.invalidateQueries({ queryKey: ["getRondinById"] });
+            queryClient.invalidateQueries({ queryKey: ["getRecorridoById"] });
 
             const accion = variables.paused ? "pausado" : "iniciado";
             toast.success(`Rondín ${accion} correctamente.`);

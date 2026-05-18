@@ -11,6 +11,7 @@ import EquiposYVehiculosList from "../EquiposYVehiculosList";
 import { PhotoRondinCardModal } from "../PhotoList/PhotoRondinCardModal";
 import { MapItem } from "@/components/table/rondines/recorridos/table";
 import { PhotoCheckAreaModal } from "./PhotoGridCardModalRondin";
+import { ViewIncidenciaModal } from "./PhotoGridCardModalIncidencia";
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
   corriendo: "bg-green-600 border-green-600 text-white text-xs",
@@ -50,7 +51,7 @@ export function PhotoGridView({
       /** Opcional — solo en rondines. Recibe el record seleccionado y devuelve los puntos del mapa */
   getMapData?: (record: ListRecord) => MapItem[] | undefined;
   /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
-  modalType?: "rondines" | "normal"| "rondines_v2" ;
+  modalType?: "rondines" | "normal"| "rondines_v2" | "incidencia" ;
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoGridView(records, externalFilters, onExternalFiltersChange);
@@ -187,6 +188,7 @@ export function PhotoGridView({
           </div>
         </main>
       </div>
+
       {modalType === "rondines" ? (
         <PhotoRondinCardModal
           record={selectedRecord as any}
@@ -194,60 +196,68 @@ export function PhotoGridView({
           onOpenChange={setIsModalOpen}
           mapData={currentMapData}
         />
-      ) :  modalType === "rondines_v2" ? (
+      ) : modalType === "rondines_v2" ? (
         <PhotoCheckAreaModal
-        record={selectedRecord}
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        badges={[
-          {
-            label: "",
-            value: `#${selectedRecord?.folio || ""}`,
-            customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-bold border border-blue-200",
-          },
-          ...(selectedRecord?.visit_type ? [{
-            label: "",
-            value: selectedRecord.visit_type,
-            customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-bold border border-purple-200",
-          }] : []),
-        ]}
-      />
-      ) : (
-
-      <PhotoGridCardModal
-      badges={[
-        ...(selectedRecord?.statusLabel
-          ? [{
+          record={selectedRecord}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          badges={[
+            {
               label: "",
-              value: selectedRecord.statusLabel,
-              customClass: "bg-red-100 text-red-600 text-xs font-bold border border-red-200",
-            }]
-          : selectedRecord?.status
-            ? [{
-                label: "",
-                value: (selectedRecord.statusLabel || selectedRecord.status).toUpperCase(),
-                customClass: getStatusBadgeClass(selectedRecord.status),
-              }]
-            : []
-        ),
-        {
-          label: "",
-          value: selectedRecord?.visit_type || "",
-          customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs",
-        },
-        {
-          label: "",
-          value: `#${selectedRecord?.folio || ""}`,
-          customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs",
-        },
-      ]}
-        record={selectedRecord}
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}>
-        {(selectedRecord?.vehiculos?.length ?? 0) > 0 || (selectedRecord?.equipos?.length ?? 0) > 0 ? (
-          <EquiposYVehiculosList record={selectedRecord} />
-        ) : null}
-      </PhotoGridCardModal>)}
+              value: `#${selectedRecord?.folio || ""}`,
+              customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-bold border border-blue-200",
+            },
+            ...(selectedRecord?.visit_type ? [{
+              label: "",
+              value: selectedRecord.visit_type,
+              customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-bold border border-purple-200",
+            }] : []),
+          ]}
+        />
+      ) : modalType === "incidencia" ? (
+        <ViewIncidenciaModal
+          record={selectedRecord}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          badges={[
+            {
+              label: "",
+              value: `#${selectedRecord?.folio || ""}`,
+              customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-bold border border-blue-200",
+            },
+            ...((selectedRecord as any)?.rawData?.estatus ? [{
+              label: "",
+              value: (selectedRecord as any).rawData.estatus,
+              customClass: (selectedRecord as any).rawData.estatus?.toLowerCase() === "abierto"
+                ? "bg-red-100 text-red-600 text-xs font-bold border border-red-200"
+                : "bg-green-100 text-green-600 text-xs font-bold border border-green-200",
+            }] : []),
+            ...((selectedRecord as any)?.rawData?.prioridad_incidencia ? [{
+              label: "",
+              value: (selectedRecord as any).rawData.prioridad_incidencia,
+              customClass: "bg-amber-100 text-amber-600 text-xs font-bold border border-amber-200",
+            }] : []),
+          ]}
+        />
+      ) : (
+        <PhotoGridCardModal
+          badges={[
+            ...(selectedRecord?.statusLabel
+              ? [{ label: "", value: selectedRecord.statusLabel, customClass: "bg-red-100 text-red-600 text-xs font-bold border border-red-200" }]
+              : selectedRecord?.status
+              ? [{ label: "", value: (selectedRecord.statusLabel || selectedRecord.status).toUpperCase(), customClass: getStatusBadgeClass(selectedRecord.status) }]
+              : []),
+            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs" },
+            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs" },
+          ]}
+          record={selectedRecord}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}>
+          {(selectedRecord?.vehiculos?.length ?? 0) > 0 || (selectedRecord?.equipos?.length ?? 0) > 0 ? (
+            <EquiposYVehiculosList record={selectedRecord} />
+          ) : null}
+        </PhotoGridCardModal>
+      )}
     </div>
   );
 }

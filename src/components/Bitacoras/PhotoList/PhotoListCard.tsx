@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,10 @@ export function PhotoListCard({
     (item) => item.label?.toLowerCase() !== "areas" && item.label?.toLowerCase() !== "áreas"
   );
 
+  useEffect(() => {
+    setActiveImage(allImages[0] || fallback);
+  }, [allImages, record.images]);
+
   return (
     <div
       className={cn(
@@ -66,7 +70,7 @@ export function PhotoListCard({
           <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative w-full aspect-[4/3]">
             <Image
               key={activeImage}
-              src={activeImage}
+              src={activeImage||"/sin_imagen_rondines.png"}
               alt={`Fotografía de ${titleCard}`}
               fill
               loading="eager"
@@ -93,7 +97,7 @@ export function PhotoListCard({
                       : "border-slate-200 hover:border-blue-400 hover:scale-105 opacity-60 hover:opacity-100",
                   )}>
                   <Image
-                    src={img}
+                    src={img||"/sin_imagen_rondines.png"}
                     alt=""
                     fill
                     className="object-cover object-top"

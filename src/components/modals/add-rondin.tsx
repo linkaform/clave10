@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import MultiSelect from "react-select";
-import { Loader2, Settings, CalendarClock, Layers } from "lucide-react";
+import { Loader2, Settings, CalendarClock, Layers, User } from "lucide-react";
 import { useRondines } from "@/hooks/Rondines/useRondines";
 import { Input } from "../ui/input";
 import { format } from "date-fns";
@@ -45,6 +45,7 @@ import { useEditarRondin } from "@/hooks/Rondines/useEditarRondin";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import DateTimePicker from "../dateTimerPicker";
+import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 
 interface AddRondinModalProps {
   title: string;
@@ -70,25 +71,18 @@ export type RondinPayload = {
   tiempo_para_ejecutar_tarea: number;
   tiempo_para_ejecutar_tarea_expresado_en: string;
   la_tarea_es_de: string;
-
   se_repite_cada?: string;
   sucede_recurrencia?: [];
-
   en_que_minuto_sucede?: string;
   cada_cuantos_minutos_se_repite?: string;
-
   en_que_hora_sucede?: string;
   cada_cuantas_horas_se_repite?: string;
-
   que_dias_de_la_semana?: string[];
   en_que_semana_sucede?: string;
-
   que_dia_del_mes?: string;
   cada_cuantos_dias_se_repite?: string;
-
   en_que_mes?: string;
   cada_cuantos_meses_se_repite?: number;
-
   la_recurrencia_cuenta_con_fecha_final?: string;
   fecha_final_recurrencia?: string;
   cron_conf: string;
@@ -176,12 +170,11 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 
   const { location } = useBoothStore();
   const [areasSeleccionadas, setAreasSeleccionadas] = useState<any[]>([]);
+  const [asignadoA, setAsignadoA] = useState<string>("guardia_en_turno");
   const { createRondinMutation, isLoading } = useRondines();
   const { editarRondinMutation, isLoading: isLoadingEdit } = useEditarRondin();
   const [date, setDate] = useState<Date | "">("");
-  const [que_dias_de_la_semana, set_que_dias_de_la_semana] = useState<string[]>(
-    [],
-  );
+  const [que_dias_de_la_semana, set_que_dias_de_la_semana] = useState<string[]>([]);
   const [en_que_semana_sucede, set_en_que_semana_sucede] = useState<string>("");
   const [en_que_mes, set_en_que_mes] = useState<string[]>([]);
   const [todas_las_semanas, set_todas_las_semanas] = useState(false);
@@ -189,9 +182,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   const [esRepetirCada, setEsRepetirCada] = useState<boolean | null>(null);
   const [mostrarFrecuencia, setMostrarFrecuencia] = useState(false);
   const [noRecurrente, setNoRecurrente] = useState(false);
-  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(
-    location ?? "",
-  );
+  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location ?? "");
+
   const { dataLocations: ubicaciones } = useCatalogoPaseAreaLocation(
     ubicacionSeleccionada,
     isSuccess,
@@ -199,6 +191,9 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   );
   const { data: catalogAreasRondin, isLoading: isLoadingAreas } =
     useCatalogAreasRondin(ubicacionSeleccionada ?? "", isSuccess);
+
+  const { data: dataEmpleados, isLoading: loadingEmpleados } =
+    useCatalogoAreaEmpleado(isSuccess, location??"", "Incidencias");
 
   const [dropdownOffset, setDropdownOffset] = useState({
     distance: 40,
@@ -252,6 +247,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       set_en_que_semana_sucede("");
       set_todas_las_semanas(false);
       set_en_que_mes([]);
+      setAsignadoA("guardia_en_turno");
       reset();
     }
   }, [isSuccess]);
@@ -263,28 +259,13 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   }, [esRepetirCada]);
 
   const diasSemana = [
-    "domingo",
-    "lunes",
-    "martes",
-    "miercoles",
-    "jueves",
-    "viernes",
-    "sabado",
+    "domingo", "lunes", "martes", "miercoles",
+    "jueves", "viernes", "sabado",
   ];
 
   const mesesDelAño = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
   ];
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -338,6 +319,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   const handleClose = () => {
     setIsSuccess(false);
   };
+
   const recurrencia = useWatch({
     control: form.control,
     name: "se_repite_cada",
@@ -355,11 +337,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 
   function toggleDia(dia: string) {
     set_que_dias_de_la_semana((prev: string[]) => {
-      if (prev.includes(dia)) {
-        return prev.filter((d: string) => d !== dia);
-      } else {
-        return [...prev, dia];
-      }
+      if (prev.includes(dia)) return prev.filter((d: string) => d !== dia);
+      else return [...prev, dia];
     });
   }
 
@@ -387,13 +366,11 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     return diasSemana[indiceCorregido];
   }
 
-  function obtenerRecurrencia(
-    values: Record<string, any>,
-  ): Record<string, any> {
+  function obtenerRecurrencia(values: Record<string, any>): Record<string, any> {
     switch (values.se_repite_cada) {
       case "diario":
         return {
-          que_dias_de_la_semana: que_dias_de_la_semana,
+          que_dias_de_la_semana,
           se_repite_cada: "diario",
           en_que_semana_sucede: "todas_las_semanas",
           sucede_recurrencia: ["dia_de_la_semana"],
@@ -403,9 +380,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         return {
           se_repite_cada: "semana",
           que_dias_de_la_semana: [date ? obtenerDiaSemana(date) : ""],
-          ...(!todas_las_semanas && {
-            en_que_semana_sucede: en_que_semana_sucede,
-          }),
+          ...(!todas_las_semanas && { en_que_semana_sucede }),
           sucede_recurrencia: ["dia_de_la_semana"],
         };
       case "mes": {
@@ -413,28 +388,23 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
           return {
             se_repite_cada: "mes",
             sucede_recurrencia: ["dia_del_mes"],
-            en_que_mes: en_que_mes,
+            en_que_mes,
             cada_cuantos_meses_se_repite: values.cada_cuantos_meses_se_repite,
           };
         }
         if (esRepetirCada == true) {
           return {
             se_repite_cada: "configurable",
-            que_dias_de_la_semana: que_dias_de_la_semana,
+            que_dias_de_la_semana,
             sucede_recurrencia: ["dia_de_la_semana"],
-            ...(todas_las_semanas
-              ? {}
-              : { en_que_semana_sucede: en_que_semana_sucede }),
-            en_que_mes: en_que_mes,
+            ...(todas_las_semanas ? {} : { en_que_semana_sucede }),
+            en_que_mes,
           };
         }
         return {};
       }
       case "configurable":
-        return {
-          se_repite_cada: "configurable",
-          cron_conf: values.cron_conf ?? "",
-        };
+        return { se_repite_cada: "configurable", cron_conf: values.cron_conf ?? "" };
       default:
         return {};
     }
@@ -464,79 +434,50 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       form.setValue("sucede_recurrencia", sucede);
       if (rondinData.fecha_hora_programada)
         setDate(new Date(rondinData.fecha_hora_programada));
-        if (rondinData.areas && catalogAreasRondin) {
-          const cat = (rondinData?.areas ?? []).map((area: any) => {
-            if (typeof area === "string") return { name: area, id: area };
-            if (area?.rondin_area) return { name: area.rondin_area, id: area?.area_tag_id?.[0] ?? area.rondin_area };
-            if (area?.area) return { name: area.area, id: area.area };
-            return null;
-          }).filter(Boolean);
-          setAreasSeleccionadas(cat);
-        }
-      if (
-        rondinData?.que_dias_de_la_semana &&
-        rondinData?.que_dias_de_la_semana.length > 0
-      ) {
-        console.log("que_dias_de_la_semana", rondinData.que_dias_de_la_semana);
+      if (rondinData.areas && catalogAreasRondin) {
+        const cat = (rondinData?.areas ?? []).map((area: any) => {
+          if (typeof area === "string") return { name: area, id: area };
+          if (area?.rondin_area) return { name: area.rondin_area, id: area?.area_tag_id?.[0] ?? area.rondin_area };
+          if (area?.area) return { name: area.area, id: area.area };
+          return null;
+        }).filter(Boolean);
+        setAreasSeleccionadas(cat);
+      }
+      if (rondinData?.asignado_a) {
+        setAsignadoA(rondinData.asignado_a);
+      }
+      if (rondinData?.que_dias_de_la_semana?.length > 0) {
         set_que_dias_de_la_semana(
           Array.isArray(rondinData.que_dias_de_la_semana)
-            ? rondinData.que_dias_de_la_semana
-            : [],
+            ? rondinData.que_dias_de_la_semana : [],
         );
       }
       if (!("se_repite_cada" in rondinData)) setNoRecurrente(true);
-      if (
-        rondinData?.en_que_semana_sucede &&
-        rondinData?.en_que_semana_sucede.length > 0
-      ) {
+      if (rondinData?.en_que_semana_sucede?.length > 0) {
         set_en_que_semana_sucede(rondinData.en_que_semana_sucede);
         if (rondinData.en_que_semana_sucede !== "todas_las_semanas")
           set_todas_las_semanas(false);
       }
-      if (rondinData?.en_que_mes && rondinData?.en_que_mes.length > 0) {
+      if (rondinData?.en_que_mes?.length > 0) {
         const meses = Array.isArray(rondinData.en_que_mes)
-          ? rondinData.en_que_mes
-          : [rondinData.en_que_mes];
+          ? rondinData.en_que_mes : [rondinData.en_que_mes];
         set_en_que_mes(meses);
-        const todosMeses = [
-          "enero",
-          "febrero",
-          "marzo",
-          "abril",
-          "mayo",
-          "junio",
-          "julio",
-          "agosto",
-          "septiembre",
-          "octubre",
-          "noviembre",
-          "diciembre",
-        ];
-        set_todas_las_meses(
-          meses.length === 12 && todosMeses.every((m) => meses.includes(m)),
-        );
+        const todosMeses = ["enero","febrero","marzo","abril","mayo","junio",
+          "julio","agosto","septiembre","octubre","noviembre","diciembre"];
+        set_todas_las_meses(meses.length === 12 && todosMeses.every((m) => meses.includes(m)));
       }
       if (rondinData.cada_cuantas_horas_se_repite) {
         setMostrarFrecuencia(true);
-        form.setValue(
-          "cada_cuantas_horas_se_repite",
-          rondinData.cada_cuantas_horas_se_repite,
-        );
+        form.setValue("cada_cuantas_horas_se_repite", rondinData.cada_cuantas_horas_se_repite);
       }
       if (rondinData.cada_cuantos_meses_se_repite) setEsRepetirCada(true);
-      else if (rondinData.en_que_mes && rondinData.en_que_mes.length > 0)
-        setEsRepetirCada(false);
+      else if (rondinData.en_que_mes?.length > 0) setEsRepetirCada(false);
       reset({
-        nombre_rondin:
-          rondinData.nombre_rondin || rondinData.nombre_del_rondin || "",
-        duracion_estimada:
-          rondinData.duracion_estimada?.replace(" minutos", "") || "",
-        se_repite_cada:
-          rondinData.se_repite_cada || rondinData.recurrencia || "",
-        cada_cuantas_horas_se_repite:
-          rondinData.cada_cuantas_horas_se_repite || "",
-        cada_cuantos_meses_se_repite:
-          rondinData.cada_cuantos_meses_se_repite || 0,
+        nombre_rondin: rondinData.nombre_rondin || rondinData.nombre_del_rondin || "",
+        duracion_estimada: rondinData.duracion_estimada?.replace(" minutos", "") || "",
+        se_repite_cada: rondinData.se_repite_cada || rondinData.recurrencia || "",
+        cada_cuantas_horas_se_repite: rondinData.cada_cuantas_horas_se_repite || "",
+        cada_cuantos_meses_se_repite: rondinData.cada_cuantos_meses_se_repite || 0,
         que_dia_del_mes: rondinData.que_dia_del_mes || "",
         que_dias_de_la_semana: rondinData.que_dias_de_la_semana || [],
         en_que_semana_sucede: rondinData.en_que_semana_sucede || "",
@@ -551,9 +492,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     const container = multiselectRef.current;
     if (!container) return;
     const updatePosition = () => {
-      const inputBox = container.querySelector(
-        ".searchWrapper",
-      ) as HTMLElement | null;
+      const inputBox = container.querySelector(".searchWrapper") as HTMLElement | null;
       if (!inputBox) return;
       const height = inputBox.offsetHeight || 39;
       const width = `${container.offsetWidth}px`;
@@ -561,9 +500,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       setDropdownOffset({ distance: height, width, margin });
     };
     updatePosition();
-    requestAnimationFrame(() => {
-      updatePosition();
-    });
+    requestAnimationFrame(() => updatePosition());
     setTimeout(updatePosition, 50);
     setTimeout(updatePosition, 150);
     setTimeout(updatePosition, 300);
@@ -591,9 +528,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     const container = multiselectRef.current;
     if (!container) return;
     const updatePosition = () => {
-      const inputBox = container.querySelector(
-        ".searchWrapper",
-      ) as HTMLElement | null;
+      const inputBox = container.querySelector(".searchWrapper") as HTMLElement | null;
       if (!inputBox) return;
       const height = inputBox.offsetHeight || 39;
       const width = `${container.offsetWidth}px`;
@@ -614,27 +549,19 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         aria-describedby=""
         onInteractOutside={(e) => e.preventDefault()}>
         <div className="px-6 pt-6 pb-3 flex-shrink-0 text-center border-b border-gray-100 bg-white">
-          <DialogTitle className="text-2xl font-bold text-gray-800">
-            {title}
-          </DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-gray-800">{title}</DialogTitle>
           <p className="text-sm text-gray-400 mt-1">
-            {mode === "edit"
-              ? "Edita los datos del recorrido"
-              : "Completa los datos del nuevo recorrido"}
+            {mode === "edit" ? "Edita los datos del recorrido" : "Completa los datos del nuevo recorrido"}
           </p>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 bg-gray-50/50">
           <Form {...form}>
             <form
-              onSubmit={(e) => {
-                e.stopPropagation();
-                form.handleSubmit(onSubmit)();
-              }}
+              onSubmit={(e) => { e.stopPropagation(); form.handleSubmit(onSubmit)(); }}
               className="flex flex-col gap-4">
-              <SectionCard
-                icon={<Settings size={15} />}
-                label="Información general">
+
+              <SectionCard icon={<Settings size={15} />} label="Información general">
                 <div className="flex flex-col gap-4">
                   <FormField
                     control={form.control}
@@ -652,12 +579,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                           value={formatForSelectString(ubicacionSeleccionada)}
                           options={formatForMultiselect(ubicaciones)}
                           onChange={(selectedOption) => {
-                            field.onChange(
-                              selectedOption ? selectedOption.value : "",
-                            );
-                            setUbicacionSeleccionada(
-                              selectedOption?.value ?? "",
-                            );
+                            field.onChange(selectedOption ? selectedOption.value : "");
+                            setUbicacionSeleccionada(selectedOption?.value ?? "");
                           }}
                           isClearable
                         />
@@ -692,21 +615,16 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                     render={({ field }: any) => (
                       <FormItem>
                         <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          Fecha y hora programada{" "}
-                          <span className="text-red-400">*</span>
+                          Fecha y hora programada <span className="text-red-400">*</span>
                         </FormLabel>
                         <FormControl>
                           <DateTimePicker
                             showTime={true}
                             allowPast={true}
                             placeholder="Selecciona fecha y hora"
-                            date={
-                              field.value ? new Date(field.value) : undefined
-                            }
+                            date={field.value ? new Date(field.value) : undefined}
                             setDate={(d) => {
-                              field.onChange(
-                                d ? format(d, "yyyy-MM-dd HH:mm:ss") : "",
-                              );
+                              field.onChange(d ? format(d, "yyyy-MM-dd HH:mm:ss") : "");
                               setDate(d ?? "");
                             }}
                           />
@@ -723,8 +641,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                       render={({ field }: any) => (
                         <FormItem>
                           <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                            Duración estimada{" "}
-                            <span className="text-red-400">*</span>
+                            Duración estimada <span className="text-red-400">*</span>
                           </FormLabel>
                           <FormControl>
                             <div className="flex items-center gap-2">
@@ -736,13 +653,9 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                                 placeholder="1–60"
                                 className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
                                 value={field.value}
-                                onChange={(e) => {
-                                  field.onChange(e.target.value);
-                                }}
+                                onChange={(e) => field.onChange(e.target.value)}
                               />
-                              <span className="text-sm text-gray-500 whitespace-nowrap">
-                                Minutos
-                              </span>
+                              <span className="text-sm text-gray-500 whitespace-nowrap">Minutos</span>
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -758,9 +671,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                             Tipo de rondín
                           </FormLabel>
                           <FormControl>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}>
+                            <Select value={field.value} onValueChange={field.onChange}>
                               <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
                                 <SelectValue placeholder="Selecciona tipo" />
                               </SelectTrigger>
@@ -775,12 +686,40 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                       )}
                     />
                   </div>
+
+                  {/* Asignado a */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5" /> Asignado a
+                    </label>
+                    <Select value={asignadoA} onValueChange={setAsignadoA}>
+                      <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
+                        <SelectValue placeholder="Selecciona una persona" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="guardia_en_turno">
+                          Guardia en turno
+                        </SelectItem>
+                        {loadingEmpleados ? (
+                          <SelectItem value="cargando" disabled>
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="w-3 h-3 animate-spin" /> Cargando...
+                            </span>
+                          </SelectItem>
+                        ) : (
+                          dataEmpleados?.map((empleado: string, i: number) => (
+                            <SelectItem key={i} value={empleado}>
+                              {empleado}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </SectionCard>
 
-              <SectionCard
-                icon={<CalendarClock size={15} />}
-                label="Recurrencia">
+              <SectionCard icon={<CalendarClock size={15} />} label="Recurrencia">
                 <div className="flex flex-col gap-4">
                   {noRecurrente && (
                     <div className="px-3 py-2 rounded-xl bg-yellow-50 border border-yellow-100 text-sm font-semibold text-yellow-700">
@@ -797,9 +736,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                           <Select
                             {...field}
                             className="input"
-                            onValueChange={(value: string) => {
-                              field.onChange(value);
-                            }}
+                            onValueChange={(value: string) => field.onChange(value)}
                             value={field.value}
                             disabled={mode === "create" ? !date : false}>
                             <SelectTrigger className="w-full">
@@ -809,9 +746,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                               <SelectItem value={"diario"}>Por Día</SelectItem>
                               <SelectItem value={"semana"}>Semanal</SelectItem>
                               <SelectItem value={"mes"}>Mensual</SelectItem>
-                              <SelectItem value={"configurable"}>
-                                Configurable
-                              </SelectItem>
+                              <SelectItem value={"configurable"}>Configurable</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormControl>
@@ -827,55 +762,35 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                         <div className="flex items-center gap-2 ml-3">
                           <input
                             type="checkbox"
-                            checked={
-                              que_dias_de_la_semana.length === diasSemana.length
-                            }
+                            checked={que_dias_de_la_semana.length === diasSemana.length}
                             onChange={toggleTodos}
                           />
                           <span className="text-sm">Todos los días</span>
                         </div>
                       </div>
                       <div className="flex flex-wrap mt-2">
-                        {diasSemana.map((dia) => {
-                          return (
-                            <FormItem
-                              key={dia?.toLowerCase()}
-                              className="flex items-center space-x-3">
-                              <FormControl>
-                                <Button
-                                  type="button"
-                                  onClick={() =>
-                                    toggleDia(dia?.toLocaleLowerCase())
-                                  }
-                                  className={`m-2 px-4 py-2 rounded-md transition-all duration-300 
-												${
-                          que_dias_de_la_semana.includes(dia?.toLowerCase())
-                            ? "bg-blue-600 text-white hover:bg-blue-700 hover:text-white hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]"
-                            : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]"
-                        }
-												hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
-                                  <div className="flex flex-wrap">
-                                    {que_dias_de_la_semana.includes(
-                                      dia?.toLowerCase(),
-                                    ) ? (
-                                      <>
-                                        <div className="">
-                                          {capitalizeFirstLetter(dia)}
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <div className="text-blue-600">
-                                          {capitalizeFirstLetter(dia)}
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                </Button>
-                              </FormControl>
-                            </FormItem>
-                          );
-                        })}
+                        {diasSemana.map((dia) => (
+                          <FormItem key={dia?.toLowerCase()} className="flex items-center space-x-3">
+                            <FormControl>
+                              <Button
+                                type="button"
+                                onClick={() => toggleDia(dia?.toLocaleLowerCase())}
+                                className={`m-2 px-4 py-2 rounded-md transition-all duration-300 
+                                  ${que_dias_de_la_semana.includes(dia?.toLowerCase())
+                                    ? "bg-blue-600 text-white hover:bg-blue-700 hover:text-white hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]"
+                                    : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]"
+                                  } hover:bg-trasparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
+                                <div className="flex flex-wrap">
+                                  {que_dias_de_la_semana.includes(dia?.toLowerCase()) ? (
+                                    <div>{capitalizeFirstLetter(dia)}</div>
+                                  ) : (
+                                    <div className="text-blue-600">{capitalizeFirstLetter(dia)}</div>
+                                  )}
+                                </div>
+                              </Button>
+                            </FormControl>
+                          </FormItem>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -883,13 +798,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                   {recurrencia === "diario" && (
                     <div className="flex gap-10">
                       <div className="mb-2 flex items-center gap-3">
-                        <span className="text-sm font-medium">
-                          Frecuencia (horas)
-                        </span>
-                        <Switch
-                          checked={mostrarFrecuencia}
-                          onCheckedChange={(v) => setMostrarFrecuencia(v)}
-                        />
+                        <span className="text-sm font-medium">Frecuencia (horas)</span>
+                        <Switch checked={mostrarFrecuencia} onCheckedChange={(v) => setMostrarFrecuencia(v)} />
                       </div>
                       {mostrarFrecuencia && (
                         <div className="flex items-center gap-3">
@@ -898,15 +808,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                             type="number"
                             min={1}
                             max={24}
-                            value={
-                              form.watch("cada_cuantas_horas_se_repite") ?? 1
-                            }
+                            value={form.watch("cada_cuantas_horas_se_repite") ?? 1}
                             onChange={(e) =>
-                              form.setValue(
-                                "cada_cuantas_horas_se_repite",
-                                e.target.value,
-                                { shouldValidate: true, shouldDirty: true },
-                              )
+                              form.setValue("cada_cuantas_horas_se_repite", e.target.value,
+                                { shouldValidate: true, shouldDirty: true })
                             }
                             className="w-24 px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
                           />
@@ -921,43 +826,26 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                       <div className="flex justify-between">
                         <FormLabel>Seleccione la semana del mes:</FormLabel>
                         <div className="flex items-center gap-2 ml-3">
-                          <input
-                            type="checkbox"
-                            onChange={(e: any) =>
-                              set_todas_las_semanas(e.target.checked)
-                            }
-                          />
+                          <input type="checkbox" onChange={(e: any) => set_todas_las_semanas(e.target.checked)} />
                           <span className="text-sm">Todas las semanas</span>
                         </div>
                       </div>
                       <div className="flex flex-wrap mt-2 mb-5">
-                        {[
-                          "Primer semana del mes",
-                          "Segunda semana del mes",
-                          "Tercer semana del mes",
-                          "Cuarta semana del mes",
-                          "Quinta semana del mes",
-                        ].map((semana) => {
-                          const value = semana
-                            .toLowerCase()
-                            .replace(/\s+/g, "_");
+                        {["Primer semana del mes","Segunda semana del mes","Tercer semana del mes",
+                          "Cuarta semana del mes","Quinta semana del mes"].map((semana) => {
+                          const value = semana.toLowerCase().replace(/\s+/g, "_");
                           return (
-                            <FormItem
-                              key={value}
-                              className="flex items-center space-x-3">
+                            <FormItem key={value} className="flex items-center space-x-3">
                               <FormControl>
                                 <Button
                                   type="button"
                                   onClick={() => toggleSemana(value)}
                                   className={`m-2 px-4 py-2 rounded-md transition-all duration-300 
-									${
-                    todas_las_semanas || en_que_semana_sucede === value
-                      ? "bg-blue-600 text-white hover:bg-blue-600 hover:text-white"
-                      : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]"
-                  }`}>
-                                  <div className="flex flex-wrap">
-                                    <div>{semana}</div>
-                                  </div>
+                                    ${todas_las_semanas || en_que_semana_sucede === value
+                                      ? "bg-blue-600 text-white hover:bg-blue-600 hover:text-white"
+                                      : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]"
+                                    }`}>
+                                  <div className="flex flex-wrap"><div>{semana}</div></div>
                                 </Button>
                               </FormControl>
                             </FormItem>
@@ -976,18 +864,13 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                           <FormItem>
                             <FormLabel>Corriendo cada: *</FormLabel>
                             <FormControl>
-                              <Select
-                                onValueChange={field.onChange}
-                                value={field.value}
-                                disabled={!date}>
+                              <Select onValueChange={field.onChange} value={field.value} disabled={!date}>
                                 <SelectTrigger className="w-full">
                                   <SelectValue placeholder="Selecciona una opción" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {opciones.map((op, i) => (
-                                    <SelectItem key={i} value={op}>
-                                      {op}
-                                    </SelectItem>
+                                    <SelectItem key={i} value={op}>{op}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
@@ -997,22 +880,20 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                         )}
                       />
 
-                      {recurrencia == "mes" && (
-                        <div className="flex flex-wrap gap-4">
-                          <Button
-                            type="button"
-                            onClick={() => seleccionar(true)}
-                            className={`px-4 py-2 rounded-md transition-all duration-300 ${esRepetirCada === true ? "bg-blue-600 text-white hover:bg-blue-700 hover:text-white" : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]"}`}>
-                            Repetir cada X mes
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={() => seleccionar(false)}
-                            className={`px-4 py-2 rounded-md transition-all duration-300 ${esRepetirCada === false ? "bg-blue-600 text-white hover:bg-blue-700 hover:text-white" : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]"}`}>
-                            Seleccionar meses
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex flex-wrap gap-4">
+                        <Button
+                          type="button"
+                          onClick={() => seleccionar(true)}
+                          className={`px-4 py-2 rounded-md transition-all duration-300 ${esRepetirCada === true ? "bg-blue-600 text-white hover:bg-blue-700 hover:text-white" : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]"}`}>
+                          Repetir cada X mes
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => seleccionar(false)}
+                          className={`px-4 py-2 rounded-md transition-all duration-300 ${esRepetirCada === false ? "bg-blue-600 text-white hover:bg-blue-700 hover:text-white" : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]"}`}>
+                          Seleccionar meses
+                        </Button>
+                      </div>
 
                       {esRepetirCada === true && (
                         <FormField
@@ -1020,9 +901,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                           name="cada_cuantos_meses_se_repite"
                           render={({ field }) => (
                             <div className="mt-3">
-                              <label className="text-sm font-medium mb-1 block">
-                                Se repetirá cada:
-                              </label>
+                              <label className="text-sm font-medium mb-1 block">Se repetirá cada:</label>
                               <Input
                                 type="number"
                                 min={1}
@@ -1030,16 +909,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                                 className="w-32 px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 value={field.value ?? ""}
                                 onChange={(e) =>
-                                  field.onChange(
-                                    e.target.value === ""
-                                      ? undefined
-                                      : Number(e.target.value),
-                                  )
+                                  field.onChange(e.target.value === "" ? undefined : Number(e.target.value))
                                 }
                               />
-                              <span className="ml-2 text-sm text-gray-600">
-                                mes(es)
-                              </span>
+                              <span className="ml-2 text-sm text-gray-600">mes(es)</span>
                             </div>
                           )}
                         />
@@ -1048,9 +921,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                       {esRepetirCada === false && (
                         <div className="mt-2">
                           <div className="flex justify-between">
-                            <FormLabel>
-                              Seleccione los meses de acceso:
-                            </FormLabel>
+                            <FormLabel>Seleccione los meses de acceso:</FormLabel>
                             <div className="flex items-center gap-2 ml-3">
                               <input
                                 type="checkbox"
@@ -1059,20 +930,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                                   const checked = e.target.checked;
                                   set_todas_las_meses(checked);
                                   if (checked) {
-                                    set_en_que_mes([
-                                      "enero",
-                                      "febrero",
-                                      "marzo",
-                                      "abril",
-                                      "mayo",
-                                      "junio",
-                                      "julio",
-                                      "agosto",
-                                      "septiembre",
-                                      "octubre",
-                                      "noviembre",
-                                      "diciembre",
-                                    ]);
+                                    set_en_que_mes(["enero","febrero","marzo","abril","mayo","junio",
+                                      "julio","agosto","septiembre","octubre","noviembre","diciembre"]);
                                   } else {
                                     set_en_que_mes([]);
                                   }
@@ -1085,23 +944,14 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                             {mesesDelAño.map((mes) => {
                               const mesLower = mes.toLowerCase();
                               return (
-                                <FormItem
-                                  key={mesLower}
-                                  className="flex items-center space-x-3">
+                                <FormItem key={mesLower} className="flex items-center space-x-3">
                                   <FormControl>
                                     <Button
                                       type="button"
                                       onClick={() => toggleMes(mesLower)}
                                       className={`m-2 px-4 py-2 rounded-md transition-all duration-300 ${en_que_mes.includes(mesLower) ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-white"} hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
                                       <div className="flex flex-wrap">
-                                        <div
-                                          className={
-                                            en_que_mes.includes(mesLower)
-                                              ? ""
-                                              : "text-blue-600"
-                                          }>
-                                          {mes}
-                                        </div>
+                                        <div className={en_que_mes.includes(mesLower) ? "" : "text-blue-600"}>{mes}</div>
                                       </div>
                                     </Button>
                                   </FormControl>
@@ -1136,9 +986,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                               }}
                             />
                           </FormControl>
-                          <small className="text-gray-500">
-                            Ingresa 5 valores separados por espacios.
-                          </small>
+                          <small className="text-gray-500">Ingresa 5 valores separados por espacios.</small>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1148,9 +996,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
               </SectionCard>
 
               <SectionCard icon={<Layers size={15} />} label="Áreas">
-                <div
-                  className="relative multiselect-wrapper"
-                  ref={multiselectRef}>
+                <div className="relative multiselect-wrapper" ref={multiselectRef}>
                   <div className="text-sm mb-2">Áreas: </div>
                   {isLoadingAreas ? (
                     <div className="border rounded-lg p-3 bg-gray-50 text-gray-500 text-sm">
@@ -1190,6 +1036,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
             </form>
           </Form>
         </div>
+
         <div className="flex-shrink-0 bg-white border-t border-gray-100 px-6 py-4 flex gap-3">
           <DialogClose asChild>
             <Button
@@ -1207,13 +1054,11 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
               <>
                 {mode === "edit" ? (
                   <span className="flex items-center gap-2">
-                    <Loader2 className="animate-spin" size={16} /> Actualizando
-                    recorrido...
+                    <Loader2 className="animate-spin" size={16} /> Actualizando recorrido...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    <Loader2 className="animate-spin" size={16} /> Creando
-                    recorrido...
+                    <Loader2 className="animate-spin" size={16} /> Creando recorrido...
                   </span>
                 )}
               </>

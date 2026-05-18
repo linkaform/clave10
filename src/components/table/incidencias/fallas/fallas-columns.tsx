@@ -1,4 +1,3 @@
-
 import {
     ColumnDef,   
   } from "@tanstack/react-table";
@@ -50,7 +49,7 @@ import { Imagen } from "@/components/upload-Image";
           onClick={() => {
             onView(falla)}}
         >
-        	<Eye /> 
+        	<Eye className="w-5 h-5" /> 
         </div>
   
 
@@ -61,23 +60,23 @@ import { Imagen } from "@/components/upload-Image";
         onClick={() => {
           onCerrarClick(falla)}}
         >
-          <ClipboardCheck />
+          <ClipboardCheck className="w-5 h-5"/>
         </div> : 
         <div
         
         title="Cerrar Falla"
         >
-          <ClipboardCheck  className="text-gray-300"/>
+          <ClipboardCheck  className="text-gray-300 w-5 h-5"/>
         </div>
         }
 
         <div
-          className="cursor-pointer"
+          className="cursor-pointer w-5 h-5"
            title="Eliminar Falla"
           onClick={() => {
             onEliminarClick(falla)}}
         >
-        	<Trash2 />
+        	<Trash2 className="w-5 h-5" />
         </div>
 
        
@@ -124,35 +123,35 @@ import { Imagen } from "@/components/upload-Image";
       accessorKey: "folio",
       header: "Folio",
       cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("folio")}</div>
+        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold border border-blue-100">
+          {row.getValue("folio")}
+        </span>
       ),
       enableSorting: true,
     },
-    {
-      accessorKey: "falla_fecha_hora",
-      header: "Fecha y hora",
-      cell: ({ row }) => (
-        <div>{row.getValue("falla_fecha_hora")}</div>
-      ),
-      enableSorting: true,
-    },
+
     {
       accessorKey: "falla_estatus",
       header: "Estado",
       cell: ({ row }) => {
-        const isAbierto = row.getValue("falla_estatus") === "abierto";
-
+        const estatus = row.getValue("falla_estatus") as string;
+        const statusMap: Record<string, string> = {
+          abierto: "bg-red-100 text-red-600 border border-red-200",
+          cerrado: "bg-green-100 text-green-600 border border-green-200",
+          resuelto: "bg-green-100 text-green-600 border border-green-200",
+        };
+        const cls = statusMap[estatus?.toLowerCase()] ?? "bg-slate-100 text-slate-600 border border-slate-200";
         return (
-          <div className={`capitalize font-semibold ${isAbierto ? 'text-red-600' : 'text-blue-600'}`}>
-            {row.getValue("falla_estatus")}
-          </div>
+          <span className={`inline-flex items-center px-2.5  rounded-full text-xs font-semibold capitalize ${cls}`}>
+            {estatus || "-"}
+          </span>
         );
       },
       enableSorting: true,
     },
     {
       accessorKey: "falla_caseta",
-      header: "Lugar del fallo",
+      header: "Lugar de la falla",
       cell: ({ row }) => (
         <div className="capitalize">{row.getValue("falla_caseta")}</div>
       ),
@@ -162,7 +161,7 @@ import { Imagen } from "@/components/upload-Image";
       accessorKey: "falla",
       header: "Falla",
       cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("falla")}</div>
+        <div className="block max-w-[150px] truncate capitalize" >{row.getValue("falla")}</div>
       ),
       enableSorting: true,
     },
@@ -179,11 +178,19 @@ import { Imagen } from "@/components/upload-Image";
       header: "Comentarios",
       cell: ({ row }) => {
         return (
-          <div className="capitalize">
+          <div className="capitalize block max-w-[150px] truncate">
             {row.getValue("falla_comentarios")}
           </div>
         );
       },
+      enableSorting: true,
+    },
+    {
+      accessorKey: "falla_fecha_hora",
+      header: "Fecha y hora",
+      cell: ({ row }) => (
+        <div>{row.getValue("falla_fecha_hora")}</div>
+      ),
       enableSorting: true,
     },
     {

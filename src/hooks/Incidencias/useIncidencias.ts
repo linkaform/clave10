@@ -20,7 +20,7 @@ export const useInciencias = (
   estatus?: string,
 ) => {
   const queryClient = useQueryClient();
-
+  // Lógica extra para el Drawer de filtros externos
   const { isLoading: loading, setLoading } = useShiftStore();
   //Obtener lista de Incidencias
   const {

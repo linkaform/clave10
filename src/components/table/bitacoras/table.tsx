@@ -108,6 +108,7 @@ const BitacorasTable: React.FC<ListProps> = ({
       printPaseFn,
     );
   }, [isLoading]);
+  
   const memoizedData = useMemo(() => data || [], [data]);
 
   const table = useReactTable({

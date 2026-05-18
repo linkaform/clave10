@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useGetListCheckUbicaciones } from "./useListCheckUbicaciones";
 import { useIncidenciaRondin } from "./useRondinIncidencia";
 import { useRondinesFilters } from "@/hooks/Rondines/rondines/useRondinesFilters";
-import { useIncidenciasFilters } from "@/hooks/bitacora/useIncidenciasFilters";
+import { useIncidenciasFilters } from "@/hooks/Incidencias/useIncidenciasFilters";
 import { useGetListRecorridos } from "./useGetListRecorridos";
 
 export const useRondinesPage = () => {

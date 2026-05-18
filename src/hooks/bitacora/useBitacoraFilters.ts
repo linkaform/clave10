@@ -170,7 +170,7 @@ export const useBitacoraFiltersExtra = (filters: any) => {
       if (
         setSelectedLocation &&
         JSON.stringify(newFilters.dynamic.ubicacion) !==
-          JSON.stringify(dynamicFilters.ubicacion)
+        JSON.stringify(dynamicFilters.ubicacion)
       ) {
         setSelectedLocation(newFilters.dynamic.ubicacion || []);
       }

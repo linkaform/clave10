@@ -1,26 +1,21 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import { useFilters } from "./useFilters";
-import {  getIncidenciasFilters } from "@/services/endpoints";
+import { useState, useMemo } from "react";
+import { getFallasFilters } from "@/services/endpoints";
+import { useFilters } from "../bitacora/useFilters";
+import { normalizeText } from "@/lib/utils";
 
-export type IncidenciasExternalFilters = {
+export type FallasExternalFilters = {
   dynamic: Record<string, any>;
   dateFilter?: string;
   date1?: Date | "";
   date2?: Date | "";
 };
 
-const initialFilters: IncidenciasExternalFilters = {
-  dynamic: {},
-  dateFilter: "",
-  date1: "",
-  date2: "",
-};
 
-export function applyIncidenciasFilters(
+export function applyFallasFilters(
   data: any[],
-  filters: IncidenciasExternalFilters
+  filters: FallasExternalFilters
 ): any[] {
   if (!data?.length) return [];
 
@@ -31,25 +26,14 @@ export function applyIncidenciasFilters(
 
   return data.filter((item) => {
     // Filtro por estatus
-    if (dynamic.estatus) {
-      const itemEstatus = item.estatus?.toLowerCase() || "";
-      if (itemEstatus !== dynamic.estatus.toLowerCase()) return false;
+    if (dynamic.estatus_falla) {
+      const estatusFilter = Array.isArray(dynamic.estatus_falla) ? dynamic.estatus_falla : [dynamic.estatus_falla];
+      const itemEstatus = normalizeText(item.falla_estatus);
+      if (!estatusFilter.some((e: string) => normalizeText(e) === itemEstatus)) return false;
     }
-
-    // Filtro por prioridad
-    if (dynamic.prioridad_incidencia) {
-      const itemPrioridad = item.prioridad_incidencia?.toLowerCase() || "";
-      if (itemPrioridad !== dynamic.prioridad_incidencia.toLowerCase()) return false;
-    }
-
-    // Filtro por categoría
-    if (dynamic.categoria) {
-      if (item.categoria !== dynamic.categoria) return false;
-    }
-
     // Filtro por ubicación
     if (dynamic.ubicacion) {
-      const itemUbicacion = (item.ubicacion_incidencia || "").toLowerCase();
+      const itemUbicacion = (item.falla_ubicacion || "").toLowerCase();
       if (Array.isArray(dynamic.ubicacion)) {
         if (dynamic.ubicacion.length > 0) {
           const match = dynamic.ubicacion.some(
@@ -61,10 +45,28 @@ export function applyIncidenciasFilters(
         if (itemUbicacion !== dynamic.ubicacion.toLowerCase()) return false;
       }
     }
+    
+    if (dynamic.reportado_por) {
+      const reportaFilter = Array.isArray(dynamic.reportado_por) ? dynamic.reportado_por : [dynamic.reportado_por];
+      const itemReporta = normalizeText(item.falla_reporta_nombre);
+      if (!reportaFilter.some((r: string) => normalizeText(r) === itemReporta)) return false;
+    }
 
-    // Filtro por fecha usando fecha_hora_incidencia
+    if (dynamic.area) {
+      const areaFilter = Array.isArray(dynamic.area) ? dynamic.area : [dynamic.area];
+      const itemArea = normalizeText(item.falla_caseta);
+      if (!areaFilter.some((a: string) => normalizeText(a) === itemArea)) return false;
+    }
+    
+    if (dynamic.tipo_falla) {
+      const tipoFilter = Array.isArray(dynamic.tipo_falla) ? dynamic.tipo_falla : [dynamic.tipo_falla];
+      const itemTipo = normalizeText(item.falla);
+      if (!tipoFilter.some((t: string) => normalizeText(t) === itemTipo)) return false;
+    }
+
+    // Filtro por fecha usando falla_fecha_hora
     if (dateFilter && dateFilter !== "" && dateFilter !== "all_records") {
-      const rawFecha = item.fecha_hora_incidencia;
+      const rawFecha = item.falla_fecha_hora;
       if (!rawFecha) return false;
       const itemDate = new Date(rawFecha.replace(" ", "T"));
       const now = new Date();
@@ -110,48 +112,59 @@ export function applyIncidenciasFilters(
   });
 }
 
-export function useIncidenciasFilters() {
-  const [externalFilters, setExternalFilters] =
-    useState<IncidenciasExternalFilters>(initialFilters);
+export function useFallasFilters() {
+  const [dynamicFilters, setDynamicFilters] = useState<Record<string, any>>({});
+  const [date1, setDate1] = useState<Date | "">("");
+  const [date2, setDate2] = useState<Date | "">("");
+  const [dateFilter, setDateFilter] = useState<string>("");
   const [searchTags, setSearchTags] = useState<string[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { filters: filtersConfig, loadingFilters } = useFilters({
-    key: "incidencias-filters",
-    endpoint: getIncidenciasFilters,
+    key: "fallas-filters",
+    endpoint: getFallasFilters,
   });
 
-  const onExternalFiltersChange = useCallback(
-    (newFilters: IncidenciasExternalFilters) => {
-      if (
-        !newFilters.dynamic ||
-        (Object.keys(newFilters.dynamic).length === 0 &&
-          newFilters.dateFilter === "")
-      ) {
-        setExternalFilters(initialFilters);
-        return;
-      }
-      setExternalFilters(newFilters);
-    },
-    []
-  );
+  const externalFilters = useMemo(() => ({
+    dynamic: dynamicFilters,
+    dateFilter,
+    date1,
+    date2,
+  }), [dynamicFilters, dateFilter, date1, date2]);
+
+  const onExternalFiltersChange = (newFilters: any) => {
+    const dynamicVacio = !newFilters.dynamic ||
+      Object.values(newFilters.dynamic).every(
+        (v) => Array.isArray(v) ? v.length === 0 : !v
+      );
+
+    if (dynamicVacio && !newFilters.dateFilter) {
+      setDynamicFilters({});
+      setDateFilter("");
+      setDate1("");
+      setDate2("");
+      return;
+    }
+
+    if (newFilters.dateFilter !== undefined) setDateFilter(newFilters.dateFilter);
+    if (newFilters.date1 !== undefined) setDate1(newFilters.date1);
+    if (newFilters.date2 !== undefined) setDate2(newFilters.date2);
+    if (newFilters.dynamic !== undefined) setDynamicFilters(newFilters.dynamic);
+  };
 
   const activeFiltersCount = useMemo(() => {
-    const dynamicCount = Object.entries(externalFilters.dynamic || {})
+    const dynamicCount = Object.entries(dynamicFilters)
       .filter(([key]) => key !== "ubicacion")
-      .map(([, v]) => v)
-      .flat()
-      .filter(Boolean).length;
+      .map(([, v]) => v).flat().filter(Boolean).length;
 
-    const ubicacionCount = Array.isArray(externalFilters.dynamic?.ubicacion)
-      ? externalFilters.dynamic.ubicacion.length
-      : externalFilters.dynamic?.ubicacion ? 1 : 0;
+    const ubicacionCount = Array.isArray(dynamicFilters?.ubicacion)
+      ? dynamicFilters.ubicacion.length
+      : dynamicFilters?.ubicacion ? 1 : 0;
 
-    const dateCount =
-      externalFilters.dateFilter && externalFilters.dateFilter !== "" ? 1 : 0;
+    const dateCount = dateFilter && dateFilter !== "" ? 1 : 0;
 
     return dynamicCount + ubicacionCount + dateCount;
-  }, [externalFilters]);
+  }, [dynamicFilters, dateFilter]);
 
   return {
     externalFilters,

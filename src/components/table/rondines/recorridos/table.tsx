@@ -30,13 +30,14 @@ import dynamic from "next/dynamic";
 import { usePlayOrPauseRondin } from "@/hooks/Rondines/usePlayOrPauseROndin";
 import { AreasList } from "@/components/areas-list-draggable";
 import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
-import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
-import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
-import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
-import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
-import { ListRecord, PhotoRecord } from "@/types/bitacoras";
+// import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
+// import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
+// import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
+// import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
+// import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { useGetListRecorridos } from "@/hooks/Rondines/useGetListRecorridos";
 import { applyRecorridosFilters, useRecorridosFilters } from "@/hooks/Rondines/recorridos/useRecorridosFilters ";
+import Swal from "sweetalert2";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
@@ -105,8 +106,8 @@ const RecorridosTable: React.FC<ListProps> = ({
   viewMode: viewModeProp,
   searchTags: searchTagsProp,
   externalFilters: externalFiltersProp,
-  onExternalFiltersChange: onExternalFiltersChangeProp,
-  filtersConfig: filtersConfigProp,
+  // onExternalFiltersChange: onExternalFiltersChangeProp,
+  // filtersConfig: filtersConfigProp,
   setTotalRegistros,
   verRondin, 
   setVerRondin
@@ -144,14 +145,14 @@ const RecorridosTable: React.FC<ListProps> = ({
 
   const {
     externalFilters: externalFiltersLocal,
-    onExternalFiltersChange: onExternalFiltersChangeLocal,
-    filtersConfig: filtersConfigLocal,
+    // onExternalFiltersChange: onExternalFiltersChangeLocal,
+    // filtersConfig: filtersConfigLocal,
     searchTags: searchTagsLocal,
   } = useRecorridosFilters();
 
   const externalFilters = externalFiltersProp ?? externalFiltersLocal;
-  const onExternalFiltersChange = onExternalFiltersChangeProp ?? onExternalFiltersChangeLocal;
-  const filtersConfig = filtersConfigProp ?? filtersConfigLocal;
+  // const onExternalFiltersChange = onExternalFiltersChangeProp ?? onExternalFiltersChangeLocal;
+  // const filtersConfig = filtersConfigProp ?? filtersConfigLocal;
   const searchTags = searchTagsProp ?? searchTagsLocal;
 
   const { data: rondin, isLoadingRondin } = useGetRondinById(
@@ -183,7 +184,56 @@ const RecorridosTable: React.FC<ListProps> = ({
     }
   }, [searchTags]);
 
-  const columns = useMemo(() => getRecorridosColumns(handleEliminar, handleVerRondin), [handleVerRondin]);
+  const handlePlay = () => {
+    playOrPauseRondinMutation.mutate({
+      record_id: rondinSeleccionado ? rondinSeleccionado._id : "",
+      paused: false,
+    });
+  };
+
+  const handlePause = () => {
+    playOrPauseRondinMutation.mutate({
+      record_id: rondinSeleccionado ? rondinSeleccionado._id : "",
+      paused: true,
+    });
+  };
+  const handlePlayPause = async (rondin: Recorrido, paused: boolean) => {
+    Swal.fire({
+      title: paused ? "Pausando rondín..." : "Ejecutando rondín...",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading(),
+    });
+  
+    try {
+      await playOrPauseRondinMutation.mutateAsync({
+        record_id: rondin._id,
+        paused,
+      });
+  
+      Swal.fire({
+        icon: "success",
+        title: paused ? "Rondín pausado" : "Rondín ejecutado",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `${err}`,
+      });
+    }
+  };
+
+  const columns = useMemo(() => getRecorridosColumns(
+    handleEliminar,
+    handleVerRondin,
+    handlePlayPause
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [handleVerRondin]);
+  
   const memoizedData = useMemo(
     () => (Array.isArray(listRecorridos) ? listRecorridos : []),
     [listRecorridos]
@@ -228,19 +278,7 @@ const RecorridosTable: React.FC<ListProps> = ({
     setTotalRegistros(filteredData.length);
   }, [filteredData, setTotalRegistros]);
 
-  const handlePlay = () => {
-    playOrPauseRondinMutation.mutate({
-      record_id: rondinSeleccionado ? rondinSeleccionado._id : "",
-      paused: false,
-    });
-  };
 
-  const handlePause = () => {
-    playOrPauseRondinMutation.mutate({
-      record_id: rondinSeleccionado ? rondinSeleccionado._id : "",
-      paused: true,
-    });
-  };
 
   const [areas, setAreas] = useState(rondin?.areas || []);
 
@@ -253,15 +291,15 @@ const RecorridosTable: React.FC<ListProps> = ({
   };
 
 
-  const rondinPhotoRecords: PhotoRecord[] = useMemo(() => {
-    if (!filteredData?.length) return [];
-    return filteredData.map((item: any) => formatPhotoRecord(item, "rondin"));
-  }, [filteredData]);
+  // const rondinPhotoRecords: PhotoRecord[] = useMemo(() => {
+  //   if (!filteredData?.length) return [];
+  //   return filteredData.map((item: any) => formatPhotoRecord(item, "rondin"));
+  // }, [filteredData]);
 
-  const rondinListRecords: ListRecord[] = useMemo(() => {
-    if (!filteredData?.length) return [];
-    return filteredData.map((item: any) => formatListRecord(item, "rondin"));
-  }, [filteredData]);
+  // const rondinListRecords: ListRecord[] = useMemo(() => {
+  //   if (!filteredData?.length) return [];
+  //   return filteredData.map((item: any) => formatListRecord(item, "rondin"));
+  // }, [filteredData]);
   const filteredAreas = (areas || []).filter((a: any) =>
     (a.rondin_area || "").toLowerCase().includes(areaSearch.toLowerCase())
   );
@@ -350,19 +388,7 @@ const RecorridosTable: React.FC<ListProps> = ({
                         </button>
                       </AddRondinModal>
 
-                      <button
-                        type="button"
-                        disabled={rondin?.estatus_rondin === "Corriendo" || isLoadingPlayOrPause}
-                        onClick={handlePlay}
-                        title="Ejecutar Rondín"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border bg-green-50 text-green-600 border-green-200 hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed">
-                        {isLoadingPlayOrPause && rondin?.estatus_rondin !== "Corriendo" ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Play className="w-3 h-3" />
-                        )}
-                        Ejecutar
-                      </button>
+                      
                     </div>
                     <div className="flex items-center gap-3">
                       {rondin?.folio && (
@@ -402,6 +428,18 @@ const RecorridosTable: React.FC<ListProps> = ({
                             ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
                         </Button>
                       </div>
+                      <button
+                        type="button"
+                        onClick={handlePlay}
+                        title="Ejecutar Rondín"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-md font-semibold transition-all border bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                        {isLoadingPlayOrPause && rondin?.estatus_rondin !== "Corriendo" ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Play className="w-4 h-4" />
+                        )}
+                        Ejecutar Ahora
+                        </button>
                       <button title="Eliminar Rondín" onClick={() => handleEliminar(rondin)}
                         className="p-2 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                         <Trash className="w-4 h-4" />
@@ -595,7 +633,7 @@ const RecorridosTable: React.FC<ListProps> = ({
                     </Table>
                   </div>
                 )}
-
+{/* 
                 {viewMode === "photos" && (
                   <div className="flex gap-4">
                     <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">
@@ -626,7 +664,7 @@ const RecorridosTable: React.FC<ListProps> = ({
                         }} />
                     </div>
                   </div>
-                )}
+                )} */}
               </>
             )}
           </>

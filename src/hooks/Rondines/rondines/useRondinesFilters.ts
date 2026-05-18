@@ -35,8 +35,8 @@ export function applyRondinesFilters(
 
   if (!hasActiveFilters) return data;
 
-  const normalize = (text: string) =>
-    text?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").replace(/\s+/g, " ").trim() || "";
+  const normalize = (text: any) =>
+    String(text ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -44,13 +44,20 @@ export function applyRondinesFilters(
 
   return data.filter((item) => {
     if (dynamic.estatus_rondin) {
-      if (normalize(item.estatus_recorrido || "") !== normalize(dynamic.estatus_rondin)) return false;
+      const estatusFilter = Array.isArray(dynamic.estatus_rondin)
+        ? dynamic.estatus_rondin
+        : [dynamic.estatus_rondin];
+      
+      const itemEstatus = normalize(item.estatus_recorrido || "");
+      const match = estatusFilter.some((e: string) => normalize(e) === itemEstatus);
+      if (!match) return false;
     }
 
     if (dynamic.incidencias) {
       const tieneIncidencias = Array.isArray(item.incidencias) && item.incidencias.length > 0;
-      if (dynamic.incidencias === "Si" && !tieneIncidencias) return false;
-      if (dynamic.incidencias === "No" && tieneIncidencias) return false;
+      const val = Array.isArray(dynamic.incidencias) ? dynamic.incidencias[0] : dynamic.incidencias;
+      if (val === "Si" && !tieneIncidencias) return false;
+      if (val === "No" && tieneIncidencias) return false;
     }
 
     if (Array.isArray(dynamic.asignado_a) && dynamic.asignado_a.length > 0) {

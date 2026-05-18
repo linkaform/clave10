@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useFilters } from "../../bitacora/useFilters";
 import { getRecorridosFilters } from "@/services/endpoints";
+import { normalizeText } from "@/lib/utils";
 
 export type RecorridosExternalFilters = {
   dynamic: Record<string, any>;
@@ -43,36 +44,42 @@ export function applyRecorridosFilters(
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   return data.filter((item) => {
-    // Filtro por estatus
     if (dynamic.estatus_recorrido) {
-      const itemEstatus = item.estatus_recorrido?.toLowerCase() || "";
-      if (itemEstatus !== dynamic.estatus_recorrido.toLowerCase()) return false;
+      const estatusFilter = Array.isArray(dynamic.estatus_recorrido)
+        ? dynamic.estatus_recorrido
+        : [dynamic.estatus_recorrido];
+      
+      const itemEstatus = normalizeText(item.estatus_recorrido || "");
+      const match = estatusFilter.some((e: string) => normalizeText(e) === itemEstatus);
+      if (!match) return false;
     }
-
-    // Filtro por tipo
     if (dynamic.tipo_rondin) {
-      const itemTipo = item.tipo_rondin?.toLowerCase() || "";
-      if (itemTipo !== dynamic.tipo_rondin.toLowerCase()) return false;
+      const tipoFilter = Array.isArray(dynamic.tipo_rondin)
+        ? dynamic.tipo_rondin
+        : [dynamic.tipo_rondin];
+      
+      const itemTipo = normalizeText(item.tipo_rondin || "");
+      const match = tipoFilter.some((t: string) => normalizeText(t) === itemTipo);
+      if (!match) return false;
     }
 
-    // Filtro por recurrencia
     if (dynamic.recurrencia) {
-      const normalize = (text: string) =>
-        text
-          ?.toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "") 
-          .replace(/\s+/g, "_"); 
-
+      const recurrenciaFilter = Array.isArray(dynamic.recurrencia)
+        ? dynamic.recurrencia
+        : [dynamic.recurrencia];
+    
+        const normalizeRec = (text: any) =>
+          String(text ?? "").toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/_/g, " ")
+            .trim();
+    
       const recurrencias = Array.isArray(item.sucede_recurrencia)
-        ? item.sucede_recurrencia.map((r: string) => normalize(r))
+        ? item.sucede_recurrencia.map((r: string) => normalizeRec(r))
         : [];
-
-      const filtro = normalize(dynamic.recurrencia);
-
-      if (!recurrencias.includes(filtro)) {
-        return false;
-      }
+      const match = recurrenciaFilter.some((r: string) => recurrencias.includes(normalizeRec(r)));
+      if (!match) return false;
     }
     // Filtro por ubicación
     if (dynamic.ubicacion) {
