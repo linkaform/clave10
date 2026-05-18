@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -27,6 +27,8 @@ import { useGetListCheckUbicaciones } from "@/hooks/Rondines/useListCheckUbicaci
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { applyCheckAreasFilters } from "@/hooks/Rondines/checkAreas/useCheckAreasFilters ";
 import { CheckArea, getCheckAreasColumns } from "./check-areas-columns";
+import { mapCheckUbicacionGrid } from "@/mappers/check-ubicaciones.grid.mapper";
+import { PhotoGridCardModal } from "@/components/Bitacoras/PhotoGrid/PhotoGridCardModal";
 
 interface CheckUbicacionesTableProps {
   searchTags?: string[];
@@ -57,11 +59,20 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ options: false });
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ options: true });
   const [rowSelection, setRowSelection] = React.useState({});
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
   const [globalFilter, setGlobalFilter] = React.useState("");
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  
+  const handleVerCheck = React.useCallback((check: CheckArea) => {
+    const base = { id: check.id, folio: check.folio };
+    const formatted = mapCheckUbicacionGrid(check, base);
+    setSelectedRecord(formatted);
+    setIsModalOpen(true);
+  }, []);
+  
   React.useEffect(() => {
     if (searchTags && searchTags.length > 0) {
       setGlobalFilter(searchTags.join("|"));
@@ -73,10 +84,6 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
   const handleEliminar = (check: CheckArea) => {
     console.log("Eliminar:", check);
   };
-
-  const handleVerCheck = React.useCallback((check: CheckArea) => {
-    console.log("Ver check:", check);
-  }, []);
 
   const columns = useMemo(
     () => getCheckAreasColumns(handleEliminar, handleVerCheck),
@@ -148,6 +155,33 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
 
   return (
     <div className="w-full">
+       {selectedRecord && (
+      <PhotoGridCardModal
+        badges={[
+          ...(selectedRecord?.status
+            ? [{
+                label: "",
+                value: selectedRecord.status,
+                customClass: "bg-slate-100 text-slate-600 text-xs font-bold border border-slate-200",
+              }]
+            : []),
+          {
+            label: "",
+            value: selectedRecord?.visit_type || "",
+            customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs",
+          },
+          {
+            label: "",
+            value: `#${selectedRecord?.folio || ""}`,
+            customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs",
+          },
+        ]}
+        record={selectedRecord}
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}>
+        {null}
+      </PhotoGridCardModal>
+    )}
       <div className="flex gap-4 items-start">
         {viewMode !== "table" && (
           <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">

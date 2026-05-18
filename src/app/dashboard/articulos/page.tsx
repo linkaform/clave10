@@ -3,7 +3,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Archive, CircleHelp, Package } from "lucide-react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import PageTitle from "@/components/page-title";
 import { useArticulosPerdidos } from "@/hooks/useArticulosPerdidos";
@@ -17,8 +16,6 @@ import { useShiftStore } from "@/store/useShiftStore";
 import { AddPaqueteriaModal } from "@/components/modals/add-paqueteria";
 import { dateToString } from "@/lib/utils";
 import { toast } from "sonner";
-import ChangeLocation from "@/components/changeLocation";
-import { useGetStats } from "@/hooks/useGetStats";
 import { useBoothStore } from "@/store/useBoothStore";
 import { AddArticuloConModal } from "@/components/modals/add-article.con";
 
@@ -59,12 +56,12 @@ const ArticulosContent = () => {
   const [statusPerdidos, setStatusPerdidos] = useState<string>("");
   const [statusConcesionados, setStatusConcesionados] = useState<string>("");
 
-  const { data: stats } = useGetStats(
-    true,
-    ubicacionSeleccionada,
-    areaSeleccionada == "todas" ? "" : areaSeleccionada,
-    "Articulos",
-  );
+  // const { data: stats } = useGetStats(
+  //   true,
+  //   ubicacionSeleccionada,
+  //   areaSeleccionada == "todas" ? "" : areaSeleccionada,
+  //   "Articulos",
+  // );
 
   const { listArticulosPerdidos, isLoadingListArticulosPerdidos } =
     useArticulosPerdidos(
@@ -235,13 +232,13 @@ const ArticulosContent = () => {
     setStatusConcesionados("");
   };
 
-  const handleTabChange = (tab: string, option: string, estado: string) => {
-    setDateFilter(option);
-    if (tab === "Paqueteria") setStatusPaqueteria(estado);
-    if (tab === "Perdidos") setStatusPerdidos(estado);
-    if (tab === "Concecionados") setStatusConcesionados(estado);
-    setSelectedTab(tab);
-  };
+  // const handleTabChange = (tab: string, option: string, estado: string) => {
+  //   setDateFilter(option);
+  //   if (tab === "Paqueteria") setStatusPaqueteria(estado);
+  //   if (tab === "Perdidos") setStatusPerdidos(estado);
+  //   if (tab === "Concecionados") setStatusConcesionados(estado);
+  //   setSelectedTab(tab);
+  // };
 
   return (
     <div>
@@ -252,18 +249,18 @@ const ArticulosContent = () => {
           </div>
 
           <div className="flex items-center gap-5">
-            <div className="w-1/2">
+            {/* <div className="w-1/2">
               <ChangeLocation
                 ubicacionSeleccionada={ubicacionSeleccionada}
                 areaSeleccionada={areaSeleccionada}
                 setUbicacionSeleccionada={setUbicacionSeleccionada}
                 setAreaSeleccionada={setAreaSeleccionada}
               />
-            </div>
+            </div> */}
 
             {selectedTab === "Concecionados" ? (
               <>
-                <div
+                {/* <div
                   className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition ${
                     statusConcesionados === "abierto"
                       ? "bg-blue-100"
@@ -283,9 +280,9 @@ const ArticulosContent = () => {
                     <div className="h-1 w-1/2 bg-blue-500" />
                   </div>
                   <span className="text-md">Artículos Abiertos</span>
-                </div>
+                </div> */}
 
-                <div
+                {/* <div
                   className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition ${
                     statusConcesionados === "parcial"
                       ? "bg-blue-100"
@@ -306,9 +303,9 @@ const ArticulosContent = () => {
                     <div className="h-1 w-1/2 bg-blue-500" />
                   </div>
                   <span className="text-md">Artículos Parciales</span>
-                </div>
+                </div> */}
 
-                <div
+                {/* <div
                   className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition ${
                     statusConcesionados === "devuelto"
                       ? "bg-blue-100"
@@ -330,11 +327,11 @@ const ArticulosContent = () => {
                   </div>
 
                   <span className="text-md">Artículos Devueltos</span>
-                </div>
+                </div> */}
               </>
             ) : (
               <>
-                <div
+                {/* <div
                   className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition ${
                     selectedTab == "Paqueteria"
                       ? "bg-blue-100"
@@ -354,9 +351,9 @@ const ArticulosContent = () => {
                   </div>
 
                   <span className="text-md">Paquetería</span>
-                </div>
+                </div> */}
 
-                <div
+                {/* <div
                   className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition ${
                     selectedTab == "Concecionados"
                       ? "bg-blue-100"
@@ -376,9 +373,9 @@ const ArticulosContent = () => {
                   </div>
 
                   <span className="text-md">Artículos Concesionados</span>
-                </div>
+                </div> */}
 
-                <div
+                {/* <div
                   className={`border p-4 px-12 py-1 rounded-md cursor-pointer transition ${
                     selectedTab == "Perdidos"
                       ? "bg-blue-100"
@@ -398,7 +395,7 @@ const ArticulosContent = () => {
                   </div>
 
                   <span className="text-md">Artículos Perdidos</span>
-                </div>
+                </div> */}
               </>
             )}
           </div>

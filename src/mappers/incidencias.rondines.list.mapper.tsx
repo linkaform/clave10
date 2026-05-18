@@ -38,9 +38,9 @@ export function mapRondinIncidenciaList(raw: any, base: any) {
         { icon: null, label: "ACCIÓN", value: raw?.accion_tomada || "---" },
       ],
       modalDetailsList: [
-        { icon: null, label: "Folio", value: raw?.folio },
+        // { icon: null, label: "Folio", value: raw?.folio },
         { icon: null, label: "Recorrido", value: raw?.nombre_del_recorrido },
-        { icon: null, label: "Ubicación", value: raw?.ubicacion_incidente },
+        // { icon: null, label: "Ubicación", value: raw?.ubicacion_incidente },
         { icon: null, label: "Área", value: raw?.area_incidente },
         { icon: null, label: "Categoría", value: raw?.categoria },
         { icon: null, label: "Sub-categoría", value: raw?.subcategoria },

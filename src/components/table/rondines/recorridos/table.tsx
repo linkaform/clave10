@@ -37,6 +37,7 @@ import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
 // import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { useGetListRecorridos } from "@/hooks/Rondines/useGetListRecorridos";
 import { applyRecorridosFilters, useRecorridosFilters } from "@/hooks/Rondines/recorridos/useRecorridosFilters ";
+import Swal from "sweetalert2";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
@@ -183,7 +184,56 @@ const RecorridosTable: React.FC<ListProps> = ({
     }
   }, [searchTags]);
 
-  const columns = useMemo(() => getRecorridosColumns(handleEliminar, handleVerRondin), [handleVerRondin]);
+  const handlePlay = () => {
+    playOrPauseRondinMutation.mutate({
+      record_id: rondinSeleccionado ? rondinSeleccionado._id : "",
+      paused: false,
+    });
+  };
+
+  const handlePause = () => {
+    playOrPauseRondinMutation.mutate({
+      record_id: rondinSeleccionado ? rondinSeleccionado._id : "",
+      paused: true,
+    });
+  };
+  const handlePlayPause = async (rondin: Recorrido, paused: boolean) => {
+    Swal.fire({
+      title: paused ? "Pausando rondín..." : "Ejecutando rondín...",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading(),
+    });
+  
+    try {
+      await playOrPauseRondinMutation.mutateAsync({
+        record_id: rondin._id,
+        paused,
+      });
+  
+      Swal.fire({
+        icon: "success",
+        title: paused ? "Rondín pausado" : "Rondín ejecutado",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: `${err}`,
+      });
+    }
+  };
+
+  const columns = useMemo(() => getRecorridosColumns(
+    handleEliminar,
+    handleVerRondin,
+    handlePlayPause
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [handleVerRondin]);
+  
   const memoizedData = useMemo(
     () => (Array.isArray(listRecorridos) ? listRecorridos : []),
     [listRecorridos]
@@ -228,19 +278,7 @@ const RecorridosTable: React.FC<ListProps> = ({
     setTotalRegistros(filteredData.length);
   }, [filteredData, setTotalRegistros]);
 
-  const handlePlay = () => {
-    playOrPauseRondinMutation.mutate({
-      record_id: rondinSeleccionado ? rondinSeleccionado._id : "",
-      paused: false,
-    });
-  };
 
-  const handlePause = () => {
-    playOrPauseRondinMutation.mutate({
-      record_id: rondinSeleccionado ? rondinSeleccionado._id : "",
-      paused: true,
-    });
-  };
 
   const [areas, setAreas] = useState(rondin?.areas || []);
 
@@ -350,19 +388,7 @@ const RecorridosTable: React.FC<ListProps> = ({
                         </button>
                       </AddRondinModal>
 
-                      <button
-                        type="button"
-                        disabled={rondin?.estatus_rondin === "Corriendo" || isLoadingPlayOrPause}
-                        onClick={handlePlay}
-                        title="Ejecutar Rondín"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border bg-green-50 text-green-600 border-green-200 hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed">
-                        {isLoadingPlayOrPause && rondin?.estatus_rondin !== "Corriendo" ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Play className="w-3 h-3" />
-                        )}
-                        Ejecutar
-                      </button>
+                      
                     </div>
                     <div className="flex items-center gap-3">
                       {rondin?.folio && (
@@ -402,6 +428,18 @@ const RecorridosTable: React.FC<ListProps> = ({
                             ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
                         </Button>
                       </div>
+                      <button
+                        type="button"
+                        onClick={handlePlay}
+                        title="Ejecutar Rondín"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-md font-semibold transition-all border bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                        {isLoadingPlayOrPause && rondin?.estatus_rondin !== "Corriendo" ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Play className="w-4 h-4" />
+                        )}
+                        Ejecutar Ahora
+                        </button>
                       <button title="Eliminar Rondín" onClick={() => handleEliminar(rondin)}
                         className="p-2 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                         <Trash className="w-4 h-4" />

@@ -324,6 +324,7 @@ const IncidenciasTable: React.FC<ListProps> = ({
               globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
+              modalType="incidencia"
             />
           )}
   

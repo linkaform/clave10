@@ -63,10 +63,10 @@ export function mapIncidenciaList(raw: any, base: any) {
         },
       ],
       modalDetailsList: [
-        { icon: null, label: "Folio", value: raw?.folio },
+        // { icon: null, label: "Folio", value: raw?.folio },
         { icon: null, label: "Estatus", value: raw?.estatus },
         { icon: null, label: "Prioridad", value: raw?.prioridad_incidencia },
-        { icon: null, label: "Ubicación", value: raw?.ubicacion_incidencia },
+        // { icon: null, label: "Ubicación", value: raw?.ubicacion_incidencia },
         { icon: null, label: "Área", value: raw?.area_incidencia },
         { icon: null, label: "Categoría", value: raw?.categoria },
         { icon: null, label: "Sub-categoría", value: raw?.sub_categoria },

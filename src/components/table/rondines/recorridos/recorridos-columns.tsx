@@ -1,54 +1,75 @@
-import { AddRondinModal } from "@/components/modals/add-rondin";
-import {
-    ColumnDef,   
-  } from "@tanstack/react-table";
-import { Eye, Pencil, Trash } from "lucide-react";
-
+  import { AddRondinModal } from "@/components/modals/add-rondin";
+  import { ColumnDef } from "@tanstack/react-table";
+  import { Eye, Pencil, Trash, Play, Pause } from "lucide-react";
 
   export interface Recorrido {
-    _id:string
-    folio: string
-    recurrencia: string
-    asignado_a: string
-    checkpoints: number
-    nombre_del_rondin: string
-    ubicacion: string
-    duracion_estimada?: string
-    fecha_hora_programada: string
-    cada_cuantos_dias_se_repite: string
-    areas: any
+    _id: string;
+    folio: string;
+    recurrencia: string;
+    asignado_a: string;
+    checkpoints: number;
+    nombre_del_rondin: string;
+    ubicacion: string;
+    duracion_estimada?: string;
+    fecha_hora_programada: string;
+    cada_cuantos_dias_se_repite: string;
+    areas: any;
+    estatus_recorrido?: string;
   }
 
-  // export const rondinesColumns: ColumnDef<Recorrido>[] = [
-  export const getRecorridosColumns = ( onEliminarClick: (rondin: Recorrido) => void, handleVerRondin: (rondin: Recorrido) => void): ColumnDef<Recorrido>[] => [
+  export const getRecorridosColumns = (
+    onEliminarClick: (rondin: Recorrido) => void,
+    handleVerRondin: (rondin: Recorrido) => void,
+    handlePlayPause?: (rondin: Recorrido, paused: boolean) => void
+  ): ColumnDef<Recorrido>[] => [
     {
       id: "options",
       header: "Opciones",
-      cell: ({ row }) => (
-        
-        <div className="flex space-x-2">
-          <div className="cursor-pointer" onClick={() => { handleVerRondin(row.original) }}  title="Ver Rondin">
-            <Eye className="w-5 h-5" /> 
-          </div>
-          <AddRondinModal
-            title="Editar Rondín"
-            mode="edit"
-            rondinData={ row.original}
-            rondinId={ row.original._id}
-            folio={ row.original.folio}
-          >
-            <div className="cursor-pointer" title="Editar Rondin">
-              <Pencil className="w-5 h-5" />
+      cell: ({ row }) => {
+        const estatus = row.original.estatus_recorrido?.toLowerCase();
+        const isCorriendo = estatus === "corriendo";
+
+        return (
+          <div className="flex space-x-2 items-center">
+            <div className="cursor-pointer" onClick={() => handleVerRondin(row.original)} title="Ver Rondin">
+              <Eye className="w-5 h-5" />
             </div>
-          </AddRondinModal>
-          <div className="cursor-pointer" title="Eliminar Rondin" onClick={() => { onEliminarClick(row.original) }} >
-            <Trash className="w-5 h-5" /> 
+            <AddRondinModal
+              title="Editar Rondín"
+              mode="edit"
+              rondinData={row.original}
+              rondinId={row.original._id}
+              folio={row.original.folio}>
+              <div className="cursor-pointer" title="Editar Rondin">
+                <Pencil className="w-5 h-5" />
+              </div>
+            </AddRondinModal>
+            {handlePlayPause && estatus!=="eliminado" && (
+              isCorriendo ? (
+                <div
+                  className="cursor-pointer text-red-500 hover:text-red-700 transition-colors"
+                  title="Pausar Rondín"
+                  onClick={() => handlePlayPause(row.original, true)}>
+                  <Pause className="w-5 h-5" />
+                </div>
+              ) : (
+                <div
+                  className="cursor-pointer text-green-500 hover:text-green-700 transition-colors"
+                  title="Ejecutar Rondín"
+                  onClick={() => handlePlayPause(row.original, false)}>
+                  <Play className="w-5 h-5" />
+                </div>
+              )
+            )}
+            <div className="cursor-pointer" title="Eliminar Rondin" onClick={() => onEliminarClick(row.original)}>
+              <Trash className="w-5 h-5" />
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
       enableSorting: false,
       enableHiding: false,
-    }, 
+    },
     {
       accessorKey: "folio",
       header: "Folio",

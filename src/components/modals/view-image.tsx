@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Imagen } from '../upload-Image';
 
-const ViewImage = ({ imageUrl }: { imageUrl: Imagen | Imagen[] }) => {
+const ViewImage = ({ imageUrl, size = "sm" }: { imageUrl: Imagen | Imagen[], size?: "sm" | "md" | "lg" }) => {
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -12,11 +12,18 @@ const ViewImage = ({ imageUrl }: { imageUrl: Imagen | Imagen[] }) => {
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
 
+  const sizeMap = {
+    sm: "w-8 h-8",
+    md: "w-16 h-16",
+    lg: "w-24 h-24",
+  };
+  const sizeClass = sizeMap[size];
+
   const images = Array.isArray(imageUrl) ? imageUrl : imageUrl ? [imageUrl] : [];
 
   if (images.length === 0) {
     return (
-      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+      <div className={`${sizeClass} rounded-full bg-slate-100 flex items-center justify-center`}>
         <span className="text-slate-300 text-xs">—</span>
       </div>
     );
@@ -44,12 +51,14 @@ const ViewImage = ({ imageUrl }: { imageUrl: Imagen | Imagen[] }) => {
 
   const handleMouseUp = () => setDragging(false);
 
+  const borderRadius = size === "sm" ? "rounded-full" : "rounded-xl";
+
   return (
     <>
       <button
         onClick={() => { setCurrent(0); setOpen(true); resetZoom(); }}
         className="relative flex items-center group">
-        <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-slate-200 shadow-sm hover:ring-blue-400 transition-all">
+        <div className={`relative ${sizeClass} ${borderRadius} overflow-hidden ring-1 ring-slate-200 shadow-sm hover:ring-blue-400 transition-all`}>
           <Image src={images[0]?.file_url ?? "/nouser.svg"} alt="foto" fill className="object-cover" />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
             <ZoomIn className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />

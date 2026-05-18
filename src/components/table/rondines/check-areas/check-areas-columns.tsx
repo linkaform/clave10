@@ -1,5 +1,5 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { Eye, Trash, AlertCircle, CheckCircle } from "lucide-react";
+import { Eye, AlertCircle, CheckCircle } from "lucide-react";
 
 export interface CheckArea {
   id: string;
@@ -40,9 +40,9 @@ export const getCheckAreasColumns = (
         <div className="cursor-pointer" onClick={() => handleVerCheck(row.original)} title="Ver Check">
           <Eye className="w-5 h-5" />
         </div>
-        <div className="cursor-pointer" title="Eliminar Check" onClick={() => onEliminarClick(row.original)}>
+        {/* <div className="cursor-pointer" title="Eliminar Check" onClick={() => onEliminarClick(row.original)}>
           <Trash className="w-5 h-5" />
-        </div>
+        </div> */}
       </div>
     ),
     enableSorting: false,
