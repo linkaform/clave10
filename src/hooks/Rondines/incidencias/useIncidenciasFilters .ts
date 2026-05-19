@@ -27,38 +27,34 @@ export function applyIncidenciasFilters(
     (dateFilter && dateFilter !== "");
 
   if (!hasActiveFilters) return data;
+  const normalize = (text: any) =>
+    String(text ?? "").toLowerCase().normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").trim();
+
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   return data.filter((item) => {
-    if (dynamic.estatus_rondin) {
-      const itemEstatus = item.estatus_rondin?.toLowerCase() || "";
-      if (itemEstatus !== dynamic.estatus_rondin.toLowerCase()) return false;
+    if (dynamic.estatus_incidencia) {
+      const filter = Array.isArray(dynamic.estatus_incidencia) ? dynamic.estatus_incidencia : [dynamic.estatus_incidencia];
+      if (!filter.some((f: string) => normalize(f) === normalize(item.estatus_incidencia || ""))) return false;
     }
-
-    if (dynamic.tipo_rondin) {
-      const itemTipo = item.tipo_rondin?.toLowerCase() || "";
-      if (itemTipo !== dynamic.tipo_rondin.toLowerCase()) return false;
+    
+    if (dynamic.reportado_por) {
+      const filter = Array.isArray(dynamic.reportado_por) ? dynamic.reportado_por : [dynamic.reportado_por];
+      if (!filter.some((f: string) => normalize(f) === normalize(item.reportado_por || ""))) return false;
     }
-
-    if (dynamic.recurrencia) {
-      if (item.recurrencia !== dynamic.recurrencia) return false;
+    
+    if (dynamic.tipo_incidencia) {
+      const filter = Array.isArray(dynamic.tipo_incidencia) ? dynamic.tipo_incidencia : [dynamic.tipo_incidencia];
+      if (!filter.some((f: string) => normalize(f) === normalize(item.incidente || ""))) return false;
     }
-
-    if (dynamic.ubicacion) {
-      const itemUbicacion = (item.ubicacion || "").toLowerCase();
-      if (Array.isArray(dynamic.ubicacion)) {
-        if (dynamic.ubicacion.length > 0) {
-          const match = dynamic.ubicacion.some(
-            (u: string) => u.toLowerCase() === itemUbicacion
-          );
-          if (!match) return false;
-        }
-      } else if (typeof dynamic.ubicacion === "string" && dynamic.ubicacion !== "") {
-        if (itemUbicacion !== dynamic.ubicacion.toLowerCase()) return false;
-      }
+    
+    if (dynamic.area) {
+      const filter = Array.isArray(dynamic.area) ? dynamic.area : [dynamic.area];
+      if (!filter.some((f: string) => normalize(f) === normalize(item.area_incidente || ""))) return false;
     }
 
     if (dateFilter && dateFilter !== "" && dateFilter !== "all_records") {
