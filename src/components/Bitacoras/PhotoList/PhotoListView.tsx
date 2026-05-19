@@ -9,6 +9,7 @@ import { SelectionBar } from "../SelectionBar";
 import { PhotoListCardModal } from "./PhotoListCardModal";
 import EquiposYVehiculosList from "../EquiposYVehiculosList";
 import { PhotoRondinCardModal } from "./PhotoRondinCardModal";
+import { ViewIncidenciaModal } from "../PhotoGrid/PhotoGridCardModalIncidencia";
 
 interface MapItem {
   nombre_area: string;
@@ -43,7 +44,7 @@ export default function PhotoListView({
       ) => React.ReactNode);
   getMapData?: (record: ListRecord) => MapItem[] | undefined;
   /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
-  modalType?: "rondines" | "normal";
+  modalType?: "rondines" | "normal"| "incidencia" ;
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoListView(records as any, externalFilters, onExternalFiltersChange);
@@ -199,6 +200,31 @@ export default function PhotoListView({
           onOpenChange={setIsModalOpen}
           mapData={currentMapData}
           action={children}
+        />
+      ) : modalType === "incidencia" ? (
+        <ViewIncidenciaModal
+          record={selectedRecord}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          badges={[
+            {
+              label: "",
+              value: `#${selectedRecord?.folio || ""}`,
+              customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-bold border border-blue-200",
+            },
+            ...((selectedRecord as any)?.rawData?.estatus ? [{
+              label: "",
+              value: (selectedRecord as any).rawData.estatus,
+              customClass: (selectedRecord as any).rawData.estatus?.toLowerCase() === "abierto"
+                ? "bg-red-100 text-red-600 text-xs font-bold border border-red-200"
+                : "bg-green-100 text-green-600 text-xs font-bold border border-green-200",
+            }] : []),
+            ...((selectedRecord as any)?.rawData?.prioridad_incidencia ? [{
+              label: "",
+              value: (selectedRecord as any).rawData.prioridad_incidencia,
+              customClass: "bg-amber-100 text-amber-600 text-xs font-bold border border-amber-200",
+            }] : []),
+          ]}
         />
       ) : (
         <PhotoListCardModal

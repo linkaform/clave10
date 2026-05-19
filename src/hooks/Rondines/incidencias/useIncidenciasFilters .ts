@@ -49,7 +49,7 @@ export function applyIncidenciasFilters(
     
     if (dynamic.tipo_incidencia) {
       const filter = Array.isArray(dynamic.tipo_incidencia) ? dynamic.tipo_incidencia : [dynamic.tipo_incidencia];
-      if (!filter.some((f: string) => normalize(f) === normalize(item.incidente || ""))) return false;
+      if (!filter.some((f: string) => normalize(f) === normalize(item.incidencia || ""))) return false;
     }
     
     if (dynamic.area) {

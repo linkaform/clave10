@@ -66,10 +66,10 @@ const IncidenciasTable: React.FC<ListProps> = ({
   modalEliminarMultiAbierto=false,
   viewMode, 
   setTotalRegistros,
-  searchTags,
-  filtersConfig,
-  externalFilters,
-  onExternalFiltersChange,
+  searchTags:searchTagsProp,
+  filtersConfig:filtersConfigProp,
+  externalFilters:externalFiltersProp,
+  onExternalFiltersChange:onExternalFiltersChangeProp,
 }) => {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -106,6 +106,14 @@ const IncidenciasTable: React.FC<ListProps> = ({
     setIncidenciaSeleccionada(incidencia);
     setModalVerAbierto(true);
   };
+
+  const externalFilters = useMemo(
+    () => externalFiltersProp ?? { dynamic: {}, dateFilter: "" },
+    [externalFiltersProp]
+  );
+  const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
+  const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
+  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   const columns = useMemo(() => {
     if (isLoading) return [];
@@ -335,6 +343,7 @@ const IncidenciasTable: React.FC<ListProps> = ({
               globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
+              modalType="incidencia"
             />
           )}
         </div>
