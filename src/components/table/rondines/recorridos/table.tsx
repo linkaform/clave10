@@ -36,7 +36,7 @@ import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
 // import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 // import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { useGetListRecorridos } from "@/hooks/Rondines/useGetListRecorridos";
-import { applyRecorridosFilters, useRecorridosFilters } from "@/hooks/Rondines/recorridos/useRecorridosFilters ";
+import { applyRecorridosFilters } from "@/hooks/Rondines/recorridos/useRecorridosFilters ";
 import Swal from "sweetalert2";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
@@ -106,8 +106,6 @@ const RecorridosTable: React.FC<ListProps> = ({
   viewMode: viewModeProp,
   searchTags: searchTagsProp,
   externalFilters: externalFiltersProp,
-  // onExternalFiltersChange: onExternalFiltersChangeProp,
-  // filtersConfig: filtersConfigProp,
   setTotalRegistros,
   verRondin, 
   setVerRondin
@@ -142,18 +140,12 @@ const RecorridosTable: React.FC<ListProps> = ({
     }
   }, []);
 
-
-  const {
-    externalFilters: externalFiltersLocal,
-    // onExternalFiltersChange: onExternalFiltersChangeLocal,
-    // filtersConfig: filtersConfigLocal,
-    searchTags: searchTagsLocal,
-  } = useRecorridosFilters();
-
-  const externalFilters = externalFiltersProp ?? externalFiltersLocal;
-  // const onExternalFiltersChange = onExternalFiltersChangeProp ?? onExternalFiltersChangeLocal;
-  // const filtersConfig = filtersConfigProp ?? filtersConfigLocal;
-  const searchTags = searchTagsProp ?? searchTagsLocal;
+  const externalFilters = useMemo(
+    () => externalFiltersProp ?? { dynamic: {}, dateFilter: "" },
+    [externalFiltersProp]
+  );
+  
+  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   const { data: rondin, isLoadingRondin } = useGetRondinById(
     rondinSeleccionado ? rondinSeleccionado._id : ""
@@ -238,11 +230,10 @@ const RecorridosTable: React.FC<ListProps> = ({
     () => (Array.isArray(listRecorridos) ? listRecorridos : []),
     [listRecorridos]
   );
-
-  const filteredData = useMemo(
-    () => applyRecorridosFilters(memoizedData, externalFilters),
-    [memoizedData, externalFilters]
-  );
+  const filteredData = useMemo(() => {
+    console.log("externalFilters en RecorridosTable:", JSON.stringify(externalFilters));
+    return applyRecorridosFilters(memoizedData, externalFilters);
+  }, [memoizedData, externalFilters]);
 
   const table = useReactTable({
     data: filteredData ?? [],

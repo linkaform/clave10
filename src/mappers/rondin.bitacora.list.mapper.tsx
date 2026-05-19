@@ -67,8 +67,8 @@ export function mapRondinBitacoraList(raw: any, base: any) {
         }]),
       ],
       detailsList: [
-        { icon: null, label: "UBICACIÓN", value: raw?.ubicacion || "-" },
-        { icon: null, label: "REALIZADO POR", value: raw?.asignado_a || "Guardia en turno" },
+        // { icon: null, label: "UBICACIÓN", value: raw?.ubicacion || "-" },
+        { icon: null, label: "ASIGNADO A", value: raw?.asignado_a || "Guardia en turno" },
         { icon: null, label: "INICIO", value: raw?.fecha_hora_inicio || "-" },
         { icon: null, label: "FINALIZACIÓN", value: raw?.fecha_hora_fin || "-" },
         { icon: null, label: "DURACIÓN", value: raw?.duracion_rondin ? `${raw.duracion_rondin} min` : "-" },
@@ -79,7 +79,7 @@ export function mapRondinBitacoraList(raw: any, base: any) {
       modalDetailsList: [
         // { icon: null, label: "Folio", value: raw?.folio },
         { icon: null, label: "Ubicación", value: raw?.ubicacion },
-        { icon: null, label: "Realizado por", value:raw?.asignado_a || "Guardia en turno"  },
+        { icon: null, label: "ASIGNADO A", value:raw?.asignado_a || "Guardia en turno"  },
         // { icon: null, label: "Estatus", value: raw?.estatus_recorrido?.replace(/_/g, " ") },
         { icon: null, label: "Inicio", value: raw?.fecha_hora_inicio || "-" },
         { icon: null, label: "Finalización", value: raw?.fecha_hora_fin || "-" },
