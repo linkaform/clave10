@@ -48,11 +48,11 @@ interface CheckUbicacionesTableProps {
 
 const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
   viewMode = "table",
-  searchTags = [],
-  filtersConfig = [],
+  searchTags:searchTagsProp,
+  filtersConfig :filtersConfigProp,
   stats,
-  externalFilters = { dynamic: {}, dateFilter: "", date1: "", date2: "" },
-  onExternalFiltersChange = () => {},
+  externalFilters :externalFiltersProp,
+  onExternalFiltersChange:onExternalFiltersChangeProp,
   setTotalRegistros,
 }) => {
   const { listCheckUbicaciones, isLoadingListCheckUbicaciones: isLoading } = useGetListCheckUbicaciones(true);
@@ -65,7 +65,15 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
-  
+
+  const externalFilters = useMemo(
+    () => externalFiltersProp ?? { dynamic: {}, dateFilter: "" },
+    [externalFiltersProp]
+  );
+  const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
+  const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
+  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
+
   const handleVerCheck = React.useCallback((check: CheckArea) => {
     const base = { id: check.id, folio: check.folio };
     const formatted = mapCheckUbicacionGrid(check, base);

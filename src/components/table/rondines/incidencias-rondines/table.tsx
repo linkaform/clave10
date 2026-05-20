@@ -72,10 +72,11 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
   setSelectedIncidencias,
   selectedIncidencias,
   viewMode,
-  externalFilters,
-  onExternalFiltersChange,
-  filtersConfig,
-  setTotalRegistros,searchTags,
+  externalFilters:externalFiltersProp,
+  onExternalFiltersChange:onExternalFiltersChangeProp,
+  filtersConfig:filtersConfigProp,
+  setTotalRegistros,
+  searchTags:searchTagsProp,
 }) => {
   const { listIncidenciasRondin, isLoading } = useIncidenciaRondin("", "");
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -95,16 +96,19 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
   const [globalFilter, setGlobalFilter] = React.useState("");
 
+  const externalFilters = useMemo(
+    () => externalFiltersProp ?? { dynamic: {}, dateFilter: "" },
+    [externalFiltersProp]
+  );
+  const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
+  const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
+  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
+
   useEffect(() => {
     if (Array.isArray(listIncidenciasRondin)) {
       setTotalRegistros(listIncidenciasRondin.length);
     }
   }, [listIncidenciasRondin, setTotalRegistros]);
-
-  // const handleEditar = (incidencia: Incidencia_record) => {
-  //   setIncidenciaSeleccionada(incidencia);
-  //   setModalEditarAbierto(true);
-  // };
 
   const handleEliminar = (incidencia: Incidencia_record) => {
     setIncidenciaSeleccionada(incidencia);
@@ -121,6 +125,8 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
     setModalVerAbierto(true);
   };
 
+
+  
   const columns = useMemo(
     () => getIncidenciasRondinesColumns(handleEliminar, handleSeguimiento, handleVer),
     []

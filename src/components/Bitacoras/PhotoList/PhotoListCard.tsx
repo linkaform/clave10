@@ -173,16 +173,14 @@ export function PhotoListCard({
 
           {showMap && (
             <>
-              <div
-                className="rounded-xl overflow-hidden border border-slate-200 mb-2 w-full"
-                style={{ height: "240px" }} 
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div style={{ height: "180px", width: "100%" }}>
-                  <MapView map_data={mapData} areas={record?.areas || []} />
-                </div>
+           <div
+              className="rounded-xl overflow-hidden border border-slate-200 mb-2 w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ height: "240px", width: "100%" }}>
+                <MapView map_data={mapData} areas={record?.areas || []} />
               </div>
-
+            </div>
               {(() => {
                 const areassinGeo = (mapData ?? []).filter(
                   (item: any) =>

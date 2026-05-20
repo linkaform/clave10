@@ -34,11 +34,11 @@ export function mapBitacoraList(raw: any, base: any) {
       },
     ],
     detailsList: [
-      {
-        icon: <MapPin className="h-3 w-3" />,
-        label: "Ubicación",
-        value: raw?.ubicacion,
-      },
+      // {
+      //   icon: <MapPin className="h-3 w-3" />,
+      //   label: "Ubicación",
+      //   value: raw?.ubicacion,
+      // },
       {
         icon: <Briefcase className="h-3 w-3" />,
         label: "Caseta",

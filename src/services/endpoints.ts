@@ -50,3 +50,9 @@ export const getPasesFilters = () =>
     option: "pases",
     public_script: true,
   });
+
+export const getMenus = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "menus.py",
+    option: "get_menus",
+  });

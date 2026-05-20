@@ -74,7 +74,7 @@ export function mapCheckUbicacionGrid(raw: any, base: any) {
     detailsList: [
       { icon: <MapPin className="h-3 w-3" />, label: "ÁREA", value:  `Área: ${rondinArea }`},
       { icon: <Route className="h-3 w-3" />, label: "RONDIN", value: `Rondín: ${nombreRecorrido}` },
-      { icon: <User className="h-3 w-3" />, label: "REALIZADO POR", value: `Realizado por: ${asignado}` },
+      { icon: <User className="h-3 w-3" />, label: "ASIGNADO A", value: `Realizado por: ${asignado}` },
       { icon: <Building2 className="h-3 w-3" />, label: "UBICACIÓN", value: ubicacion },
       { icon: <Calendar className="h-3 w-3" />, label: "FECHA", value: raw?.fecha_inspeccion_area || raw?.created_at || "-" },
     ],
@@ -82,7 +82,7 @@ export function mapCheckUbicacionGrid(raw: any, base: any) {
       { icon: null, label: "Área",          value: rondinArea },
       { icon: null, label: "Tipo",          value: tipoArea },
       { icon: null, label: "Rondin",     value: nombreRecorrido },
-      { icon: null, label: "Realizado por", value: asignado },
+      { icon: null, label: "Asignado a", value: asignado },
       { icon: null, label: "Ubicación",     value: ubicacion },
       { icon: null, label: "Fecha",         value: raw?.fecha_inspeccion_area || raw?.created_at || "-" },
       { icon: null, label: "Estado del check", value: raw?.check_status?.replace(/_/g, " ") || "-" },

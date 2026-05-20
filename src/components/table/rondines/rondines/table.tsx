@@ -31,7 +31,7 @@ import { useGetPdfMutation } from "@/hooks/usetGetPdf";
 import useAuthStore from "@/store/useAuthStore";
 import Swal from "sweetalert2";
 import { RondinActionButtons } from "../rondinActionButtons";
-import { applyRondinesFilters, useRondinesFilters } from "@/hooks/Rondines/rondines/useRondinesFilters";
+import { applyRondinesFilters } from "@/hooks/Rondines/rondines/useRondinesFilters";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 
 export interface BitacoraRondin {
@@ -111,19 +111,15 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   const [rondinActual, setRondinActual] = useState<BitacoraRondin | null>(null);
   const { userParentId } =useAuthStore();
 
-  const {
-    externalFilters: externalFiltersLocal,
-    onExternalFiltersChange:onExternalFiltersChangeLocal,
-    filtersConfig: filtersConfigLocal,
-    searchTags: searchTagsLocal,
-  } = useRondinesFilters();
-
   const viewMode= viewModeProp; 
-  const externalFilters = externalFiltersProp ?? externalFiltersLocal;
-  const onExternalFiltersChange = onExternalFiltersChangeProp ?? onExternalFiltersChangeLocal;
-  const filtersConfig = filtersConfigProp ?? filtersConfigLocal;
-  const searchTags = searchTagsProp ?? searchTagsLocal;
+  const externalFilters = useMemo(
+    () => externalFiltersProp ?? { dynamic: {}, dateFilter: "" },
+    [externalFiltersProp]
+  );
 
+  const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
+  const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
+  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   const { refetch } = useGetPdfMutation(
     rondinActual?.id ?? "",
