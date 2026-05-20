@@ -1,13 +1,12 @@
 "use client";
 
 import { MainLayout } from "@/components/Layout/MainLayout";
-import { useGetMenu }  from "@/hooks/useGetMenu";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-// import { useEffect } from "react";
+import { useGetMenu } from "@/hooks/useGetMenu";
 
 export default function Home() {
-    const router = useRouter(); 
+    const router = useRouter();
     const { menuItems, isLoadingMenu } = useGetMenu();
     
     // useEffect(()=>{

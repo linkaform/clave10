@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import type { MenuConfig } from "@/types/menu-types";
 
 export interface MenuItem {
   id:string;
@@ -11,10 +12,12 @@ interface MenuStore {
   menuItems:MenuItem[];
   labels:string[];
   excludes:Excludes | null;
+  menuConfig: MenuConfig | null;
   setLabels: (items:string[])=>void;
   setMenuItems: (items:MenuItem[]) =>void;
-  clearMenu: () => void;
   setExcludes: (excludes:Excludes) => void;
+  setMenuConfig: (config: MenuConfig) => void;
+  clearMenu: () => void;
 }
 
 export const useMenuStore = create(
@@ -23,14 +26,16 @@ export const useMenuStore = create(
       menuItems: [],
       labels:[],
       excludes: null,
+      menuConfig: null,
       setLabels: (items) => set({ labels: items }),
       setMenuItems: (items) => set({ menuItems: items }),
-      clearMenu: () => set({ menuItems: [], labels: [], excludes:null }),
       setExcludes: (items) => set({ excludes: items }),
+      setMenuConfig: (config) => set({ menuConfig: config }),
+      clearMenu: () => set({ menuItems: [], labels: [], excludes: null, menuConfig: null }),
     }),
     {
       name: "menu-store",
-      storage: createJSONStorage(() => localStorage), 
+      storage: createJSONStorage(() => localStorage),
     }
   )
 );
