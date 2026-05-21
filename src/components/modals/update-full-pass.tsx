@@ -982,7 +982,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 								<AreasList
 									areas={areasList}
 									setAreas={setAreasList}
-									catAreas={areasDisponibles}
+									catAreas={areasDisponibles.map((a) => a.label)}
 									loadingCatAreas={loadingCatAreas}
 									existingAreas={true} />
 							</> )}
