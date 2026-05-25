@@ -63,11 +63,11 @@ export function Header({
   const initializedRef = React.useRef(false);
 
   useEffect(() => {
-    if (!initializedRef.current && locationBooth) {
+    if (!initializedRef.current && locationBooth && selectedLocations.length === 0) {
       initializedRef.current = true;
       setSelectedLocations([locationBooth]);
     }
-  }, [locationBooth, setSelectedLocations]);
+  }, [locationBooth, selectedLocations, setSelectedLocations]);
 
   useEffect(() => {
     fetchLocations();
