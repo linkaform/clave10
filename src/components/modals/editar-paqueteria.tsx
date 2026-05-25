@@ -152,7 +152,7 @@ export const EditarPaqueteria: React.FC<EditarFallaModalProps> = ({
   return (
 	<Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
 		<div className="cursor-pointer" title="Editar Paquete" onClick={handleOpenModal}>
-			<Edit />
+			<Edit className="w-5 h-5"/>
 		</div>
 	<DialogContent className="max-w-3xl overflow-y-auto max-h-[80vh] flex flex-col" aria-describedby="">
 		<DialogHeader className="flex-shrink-0">

@@ -93,7 +93,7 @@ export const DevolucionPaqModal: React.FC<DevPaqModalProps> = ({
     return (
         <Dialog onOpenChange={setIsSuccess} open={isSuccess}>
           <div className="cursor-pointer" title="Entregar Paquete" onClick={handleOpenModal}>
-            <ArrowRightLeft />
+            <ArrowRightLeft className="w-5 h-5"/>
             </div>
     
           <DialogContent className="max-w-3xl overflow-y-auto max-h-[80vh] flex flex-col" aria-describedby="">

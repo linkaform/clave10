@@ -18,6 +18,7 @@ interface ViewIncidenciaModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   badges?: ModalBadgeItem[];
+  actions?: React.ReactNode;
 }
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
@@ -43,6 +44,7 @@ export function ViewIncidenciaModal({
   open,
   onOpenChange,
   badges = [],
+  actions,
 }: ViewIncidenciaModalProps) {
   const [slideIndex, setSlideIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"generales" | "patrimonial" | "seguimientos">("generales");
@@ -122,7 +124,7 @@ export function ViewIncidenciaModal({
             <div className="px-7 pt-7 pb-3 shrink-0 space-y-3">
 
               {/* Badges */}
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 justify-end">
                 {badges.map((badge, idx) => (
                   <div key={idx} className={cn(
                     "inline-flex items-center px-2 py-0.5 rounded-full border",
@@ -203,6 +205,13 @@ export function ViewIncidenciaModal({
                         </div>
                     </div>
                     )}
+                    
+                    {actions && (
+                      <div className="pt-2 border-t border-slate-100">
+                        {actions}
+                      </div>
+                    )}
+                    
                   {/* Personas involucradas */}
                   {personas.length > 0 && (
                     <>

@@ -7,25 +7,13 @@ export function mapCheckUbicacionGrid(raw: any, base: any) {
     Array.isArray(raw?.grupo_incidencias_check) &&
     raw.grupo_incidencias_check.length > 0;
 
-  const fotoEvidencia = Array.isArray(raw?.foto_evidencia_area)
-    ? raw.foto_evidencia_area
-        .map((f: any) => f.file_url)
-        .filter((url: string) => url?.startsWith("https://"))
-    : [];
-
-  const fotoArea = raw?.foto_area?.[0];
-  const validFotosArea = Array.isArray(fotoArea)
-    ? fotoArea
-        .map((f: any) => f.file_url)
-        .filter((url: string) => url?.startsWith("https://"))
-    : [];
-
-  const images =
-    fotoEvidencia.length > 0
-      ? fotoEvidencia
-      : validFotosArea.length > 0
-      ? validFotosArea
-      : ["/mountain.svg"];
+  const images = (() => {
+      const fotos = Array.isArray(raw?.foto_evidencia_area) && raw.foto_evidencia_area.length > 0
+        ? raw.foto_evidencia_area.map((f: any) => f.file_url).filter(Boolean)
+        : [];
+      
+      return fotos.length > 0 ? fotos : ["/sin_imagen_rondines.png"];
+    })();
 
   const rondinArea = Array.isArray(raw?.rondin_area)
     ? raw.rondin_area.join(", ")

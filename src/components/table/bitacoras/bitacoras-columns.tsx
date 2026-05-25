@@ -102,7 +102,6 @@ const OptionsCell: React.FC<{
 		const isSalida = bitacora.status_visita?.toLowerCase() === "salida";
 		const isEntrada = bitacora.status_visita?.toLowerCase() === "entrada";
 		const isAsignado = bitacora.status_gafete?.toLowerCase() === "asignado";
-
 		const iconClass = (disabled: boolean) =>
 			`p-1 rounded transition-colors ${disabled ? 'text-slate-300 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-300 text-black hover:text-blue-600'}`;
 
@@ -137,7 +136,6 @@ const OptionsCell: React.FC<{
 						</div>
 					</EqipmentLocalPassModal>
 				)}
-
 				{isEntrada && isAsignado ? (
 					<div className={iconClass(false)} title="Regresar gafete" onClick={() => onReturnGafete(bitacora)}>
 						<IdCard className="w-5 h-5 text-rose-500" />

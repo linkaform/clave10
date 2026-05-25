@@ -3,16 +3,17 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PhotoRecord } from "@/types/bitacoras";
 import { cn } from "@/lib/utils";
+import { ArrayBadgeList } from "@/components/arrayBagdeList";
 
 interface PhotoDetailModalProps {
   record: PhotoRecord | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children?: React.ReactNode;
+  actions?: React.ReactNode;
 }
 
 interface ListItemProps {
@@ -21,6 +22,8 @@ interface ListItemProps {
 }
 
 function ListItem({ label, value }: ListItemProps) {
+  const isGafete = label?.toLowerCase() === "gafete";
+
   return (
     <div className="py-2 first:pt-0 last:pb-0">
       <div className="min-w-0 flex-1">
@@ -28,15 +31,17 @@ function ListItem({ label, value }: ListItemProps) {
           {label}
         </p>
         <div className="flex flex-wrap gap-2 items-center">
-          {Array.isArray(value) ? (
-            value.map((val, i) => (
-              <Badge
-                key={i}
-                variant="outline"
-                className="bg-slate-100 text-slate-600 border-0 rounded-md px-2 py-0.5 text-xs font-normal shadow-none">
-                {val}
-              </Badge>
-            ))
+          {isGafete ? (
+            <div className="flex items-center gap-2">
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+                <Image src="/sin_imagen_rondines.png" alt="Gafete" fill className="object-cover" />
+              </div>
+              <span className={`text-[15px] font-medium ${value && value !== "No asignado" ? "text-[#1e293b]" : "text-slate-400"}`}>
+                {value || "No asignado"}
+              </span>
+            </div>
+          ) : Array.isArray(value) ? (
+            <ArrayBadgeList values={value} tooltipTitle="Todos" max={10} />
           ) : (
             <p className="text-[15px] font-medium text-[#1e293b] leading-snug">
               {value || "\u00A0"}
@@ -53,6 +58,7 @@ export function PhotoListCardModal({
   open,
   onOpenChange,
   children,
+  
 }: PhotoDetailModalProps) {
   const [slideIndex, setSlideIndex] = useState(0);
   console.log("Registro seleccionado para modal:", record);
@@ -67,7 +73,7 @@ export function PhotoListCardModal({
   const prevSlide = () =>
     setSlideIndex((i) => (i - 1 + slides.length) % slides.length);
   const nextSlide = () => setSlideIndex((i) => (i + 1) % slides.length);
-
+  console.log("modalDetailsList:", record.modalDetailsList);
   return (
     <Dialog
       open={open}
@@ -178,34 +184,34 @@ export function PhotoListCardModal({
               </div>
             </div>
 
-            <div className="overflow-y-auto flex-1 px-8 py-2 space-y-4 no-scrollbar">
-              {record.modalDetailsList &&
-                record.modalDetailsList.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="space-y-3">
-                      {record.modalDetailsList.map((item, index) => {
-                        const hasValue = Array.isArray(item.value)
-                          ? item.value.length > 0
-                          : item.value !== null &&
-                            item.value !== undefined &&
-                            item.value !== "";
+            <div className="overflow-y-auto flex-1 px-8 py-2 no-scrollbar">
+            {record.modalDetailsList && record.modalDetailsList.length > 0 && (
+              <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                {record.modalDetailsList.map((item, index) => {
+                  const hasValue = Array.isArray(item.value)
+                    ? item.value.length > 0
+                    : item.value !== null &&
+                      item.value !== undefined &&
+                      item.value !== "";
 
-                        if (!hasValue) return null;
+                  if (!hasValue) return null;
 
-                        return (
-                          <ListItem
-                            key={index}
-                            label={item.label || `Detalle ${index + 1}`}
-                            value={item.value}
-                          />
-                        );
-                      })}
+                  const isFullWidth = Array.isArray(item.value);
+
+                  return (
+                    <div key={index} className={isFullWidth ? "col-span-2" : "col-span-1"}>
+                      <ListItem
+                        label={item.label || `Detalle ${index + 1}`}
+                        value={item.value}
+                      />
                     </div>
-                  </div>
-                )}
+                  );
+                })}
+              </div>
+            )}
 
-              {children && <div className="space-y-4">{children}</div>}
-            </div>
+            {children && <div className="mt-4 space-y-4">{children}</div>}
+          </div>
           </div>
         </div>
       </DialogContent>

@@ -9,6 +9,7 @@ import { EditarPaqueteria } from "@/components/modals/editar-paqueteria";
 import { DevolucionPaqModal } from "@/components/modals/entregar-paqueteria";
 import ViewImage from "@/components/modals/view-image";
 import { Imagen } from "@/components/upload-Image";
+import { EstatusBadge } from "@/components/estatus-badge";
 
 
 export interface Paquete_record {
@@ -37,13 +38,13 @@ const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
 			title="Información del Paquete"
 			data={paquete} isSuccess={false}>
 			<div className="cursor-pointer" title="Ver Paquete">
-			<Eye /> 
+			<Eye className="w-5 h-5"/> 
 			</div>
 		</ViewPaqueteria>
 
       	<LoadingModal isOpen={showLoadingModal} text="Cargando..."/>
 
-      	<EditarPaqueteria
+      	<EditarPaqueteria 
         	title="Editar Paqueteria"
         	data={paquete} setShowLoadingModal={setShowLoadingModal} showLoadingModal={showLoadingModal}/>
 
@@ -110,20 +111,12 @@ export const paqueteriaColumns: ColumnDef<Paquete_record>[] = [
       ),
       enableSorting: true,
     },
-	{
-		accessorKey: "estatus_paqueteria",
-		header: "Estatus",
-    cell: ({ row }) => {
-      const isAbierto = row.getValue("estatus_paqueteria") === "entregado";
-  
-      return (
-        <div className={`capitalize font-semibold ${isAbierto ? 'text-red-600':'text-green-600'  }`}>
-        {row.getValue("estatus_paqueteria")}
-        </div>
-      );
+    {
+      accessorKey: "estatus_paqueteria",
+      header: "Estatus",
+      cell: ({ row }) => <EstatusBadge estatus={row.getValue("estatus_paqueteria")} />,
+      enableSorting: true,
     },
-		enableSorting: true,
-	 },
     {
       accessorKey: "fecha_recibido_paqueteria",
       header: "Fecha de entrega",

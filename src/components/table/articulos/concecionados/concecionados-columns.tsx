@@ -8,6 +8,7 @@ import { EquipoConcesionado } from "@/components/concesionados-tab-datos";
 import { useState } from "react";
 import { ConcesionadosVerEquipo } from "@/components/modals/concesionados-ver-equipo";
 import { DetalleDelSeguimiento } from "@/components/modals/concesionados-detalle-del-seguimiento";
+import { EstatusBadge } from "@/components/estatus-badge";
 
 export interface Articulo_con_record {
     _id:string,
@@ -27,7 +28,8 @@ export interface Articulo_con_record {
     persona_nombre_otro:string
     equipos:EquipoConcesionado[]
     grupo_equipos?:EquipoConcesionado[]
-    grupo_equipos_devolucion?:any[]
+    grupo_equipos_devolucion?:any[] 
+    tipo_persona_solicita: string
 }
 
 const OptionsCell: React.FC<{ row: any }> = ({ row }) => {
@@ -107,25 +109,6 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       enableSorting: true,
     },
     {
-      accessorKey: "status_concesion",
-      header: "Estado",
-      cell: ({ row }) => {
-        const status = row.getValue("status_concesion") as string;
-        const styles: Record<string, string> = {
-          abierto:  "bg-red-100 text-red-700 border-red-300",
-          parcial:  "bg-yellow-100 text-yellow-700 border-yellow-300",
-          devuelto: "bg-green-100 text-green-700 border-green-300",
-        };
-        const style = styles[status?.toLowerCase()] ?? "bg-gray-100 text-gray-600 border-gray-200";
-        return (
-          <div className={`inline-flex items-center justify-center px-2 text-sm font-semibold rounded-md border capitalize ${style}`}>
-            {status}
-          </div>
-        );
-      },
-      enableSorting: true,
-    },   
-    {
       accessorKey: "persona_nombre_concesion",
       header: "Empleado",
       cell: ({ row }) => {
@@ -138,14 +121,14 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       },
       enableSorting: true,
     },
-    {
-      accessorKey: "ubicacion_concesion",
-      header: "Ubicación",
-      cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("ubicacion_concesion")}</div>
-      ),
-      enableSorting: true,
-    },
+    // {
+    //   accessorKey: "ubicacion_concesion",
+    //   header: "Ubicación",
+    //   cell: ({ row }) => (
+    //     <div className="capitalize">{row.getValue("ubicacion_concesion")}</div>
+    //   ),
+    //   enableSorting: true,
+    // },
     {
       accessorKey: "caseta_concesion",
       header: "Área",
@@ -159,6 +142,12 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       header: "Equipos",
       cell: ({ row }) => <EquiposCell row={row} />,
       enableSorting: false,
+    },
+    {
+      accessorKey: "status_concesion",
+      header: "Estado",
+      cell: ({ row }) => <EstatusBadge estatus={row.getValue("status_concesion")} />,
+      enableSorting: true,
     },
     {
       accessorKey: "fecha_concesion",

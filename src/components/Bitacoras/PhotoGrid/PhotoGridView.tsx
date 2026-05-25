@@ -12,6 +12,7 @@ import { PhotoRondinCardModal } from "../PhotoList/PhotoRondinCardModal";
 import { MapItem } from "@/components/table/rondines/recorridos/table";
 import { PhotoCheckAreaModal } from "./PhotoGridCardModalRondin";
 import { ViewIncidenciaModal } from "./PhotoGridCardModalIncidencia";
+import { CustomSpinner } from "@/components/custom-spinner";
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
   corriendo: "bg-green-600 border-green-600 text-white text-xs",
@@ -38,10 +39,13 @@ export function PhotoGridView({
   globalSearch = [],
   getMapData,
   modalType = "normal",
+  showStatusBadge=true,
+  modalActions
 }: Omit<
   PhotoGridViewProps,
   "filtersConfig" | "hideSidebar" | "renderCustomActions"
 > & {
+  showStatusBadge?: boolean;
   globalSearch?: string[];
   selectionActions?:
     | React.ReactNode
@@ -143,12 +147,7 @@ export function PhotoGridView({
           <div className="flex-1 overflow-y-auto">
             <div>
               {isLoading ? (
-                <div className="flex flex-col items-center gap-2 text-slate-300 h-96 w-full justify-center">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-                  <span className="text-sm font-normal text-muted-foreground">
-                    Cargando registros...
-                  </span>
-                </div>
+               <CustomSpinner/>
               ) : filteredRecords.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
                   {filteredRecords.map((record, index) => (
@@ -217,7 +216,8 @@ export function PhotoGridView({
       ) : modalType === "incidencia" ? (
         <ViewIncidenciaModal
           record={selectedRecord}
-          open={isModalOpen}
+          open={isModalOpen} 
+          actions={modalActions?.(selectedRecord)}
           onOpenChange={setIsModalOpen}
           badges={[
             {
@@ -225,14 +225,14 @@ export function PhotoGridView({
               value: `#${selectedRecord?.folio || ""}`,
               customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-bold border border-blue-200",
             },
-            ...((selectedRecord as any)?.rawData?.estatus ? [{
+            ...(showStatusBadge && (selectedRecord as any)?.rawData?.estatus ? [{
               label: "",
               value: (selectedRecord as any).rawData.estatus,
               customClass: (selectedRecord as any).rawData.estatus?.toLowerCase() === "abierto"
                 ? "bg-red-100 text-red-600 text-xs font-bold border border-red-200"
                 : "bg-green-100 text-green-600 text-xs font-bold border border-green-200",
             }] : []),
-            ...((selectedRecord as any)?.rawData?.prioridad_incidencia ? [{
+            ...(showStatusBadge && (selectedRecord as any)?.rawData?.prioridad_incidencia ? [{
               label: "",
               value: (selectedRecord as any).rawData.prioridad_incidencia,
               customClass: "bg-amber-100 text-amber-600 text-xs font-bold border border-amber-200",
@@ -253,6 +253,7 @@ export function PhotoGridView({
           record={selectedRecord}
           open={isModalOpen}
           onOpenChange={setIsModalOpen}>
+            {modalActions?.(selectedRecord)}
           {(selectedRecord?.vehiculos?.length ?? 0) > 0 || (selectedRecord?.equipos?.length ?? 0) > 0 ? (
             <EquiposYVehiculosList record={selectedRecord} />
           ) : null}

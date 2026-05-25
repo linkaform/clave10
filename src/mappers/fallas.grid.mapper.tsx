@@ -9,7 +9,7 @@ export function mapFallaGrid(raw: any, base: any) {
   const images =
     Array.isArray(raw?.falla_evidencia) && raw.falla_evidencia.length > 0
       ? raw.falla_evidencia.map((e: any) => e.file_url).filter(Boolean)
-      : ["/blur2.jpg"];
+      : ["/sin_imagen_rondines.png"];
 
   const fallaNombre = raw?.falla || "Sin falla";
 

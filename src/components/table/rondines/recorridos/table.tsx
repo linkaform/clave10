@@ -38,6 +38,7 @@ import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
 import { useGetListRecorridos } from "@/hooks/Rondines/useGetListRecorridos";
 import { applyRecorridosFilters } from "@/hooks/Rondines/recorridos/useRecorridosFilters ";
 import Swal from "sweetalert2";
+import { CustomSpinner } from "@/components/custom-spinner";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
@@ -605,15 +606,7 @@ const RecorridosTable: React.FC<ListProps> = ({
                           <TableRow>
                             <TableCell colSpan={table.getVisibleFlatColumns().length} className="h-32 text-center">
                               {isLoading ? (
-                                <div className="flex flex-col items-center gap-3 h-32 justify-center">
-                                  <div className="relative h-8 w-8">
-                                    <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
-                                    <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                                  </div>
-                                  <span className="text-base text-slate-400">
-                                    Cargando registros...
-                                  </span>
-                                </div>
+                                <CustomSpinner />
                               ) : (
                                 <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
                               )}

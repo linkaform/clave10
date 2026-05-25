@@ -85,7 +85,9 @@ export function PhotoGridCard({
     setCurrentImageIndex(0);
   };
 
-  const statusInfo = statusConfig[record.status] || statusConfig["cerrado"];
+const statusInfo = record.status && (record.status as string) !== "none"
+  ? statusConfig[record.status]
+  : null;
 
   return (
     <Card
