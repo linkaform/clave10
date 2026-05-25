@@ -59,32 +59,29 @@ export const getPasesFilters = () =>
     public_script: true,
   });
 
-<<<<<<< Updated upstream
 export const getMenus = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "menus.py",
     option: "get_menus",
   });
-=======
-  export const getPaqueteriaFilters = () =>
-    apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-      script_name: "filters.py",
-      option: "paqueteria",
-      public_script: true,
-    });
 
-  export const getConcesionadosFilters = () =>
-    apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-      script_name: "filters.py",
-      option: "concesionados",
-      public_script: true,
-    });
+export const getPaqueteriaFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "paqueteria",
+    public_script: true,
+  });
 
-  export const getPerdidosFilters = () =>
-    apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-      script_name: "filters.py",
-      option: "perdidos",
-      public_script: true,
-    });
-  
->>>>>>> Stashed changes
+export const getConcesionadosFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "concesionados",
+    public_script: true,
+  });
+
+export const getPerdidosFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "perdidos",
+    public_script: true,
+  });
