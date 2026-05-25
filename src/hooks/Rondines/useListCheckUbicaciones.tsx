@@ -11,7 +11,7 @@ export const useGetListCheckUbicaciones = (
     queryKey: ["getListCheckUbicaciones", ubicacion, nombreRondin],
     enabled: enableList,
     queryFn: async () => {
-      const data = await getListCheckUbicaciones(ubicacion ?? "Planta Monterrey", nombreRondin);
+      const data = await getListCheckUbicaciones(ubicacion, nombreRondin);
       const textMsj = errorMsj(data);
       if (textMsj) {
         throw new Error(`Error al obtener lista de check ubicaciones, Error: ${data.error}`);

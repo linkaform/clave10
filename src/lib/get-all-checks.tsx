@@ -5,8 +5,8 @@ export const getListCheckUbicaciones = async (
     nombreRondin?: string,
   ) => {
     const payload = {
-      ubicacion: ubicacion ?? "",
-      nombre_rondin: nombreRondin ?? "",
+      ubicacion: ubicacion || "",
+      nombre_rondin: nombreRondin || "",
       option: "get_all_checks",
       script_name: "rondines.py",
     };
