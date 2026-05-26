@@ -22,8 +22,8 @@ export const useDoOut = () => {
   // });
 
     return useMutation({
-      mutationFn: async ({qr_code, location, area} : {qr_code: string, location:string, area:string}) => {
-          const response = await doOut(qr_code, location , area);
+      mutationFn: async ({qr_code, location, area, record_id} : {qr_code: string, location:string, area:string, record_id:string}) => {
+          const response = await doOut(qr_code, location , area, record_id);
           if(response?.response.data?.json?.success==false){
             throw new Error(`Error al realizar la salida, Error:${response?.response.data?.json?.error} `);
           }

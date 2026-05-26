@@ -262,6 +262,7 @@ const BitacorasContent = () => {
             fecha_salida={selectedRecord.fecha_salida}
             modalSalidaAbierto={isDoOutOpen}
             setModalSalidaAbierto={setIsDoOutOpen}
+            bitacora_record_id={selectedRecord._id}
           />
         ) : null}
 

@@ -20,6 +20,7 @@ interface AddBadgeModalProps {
   fecha_salida:string;
   setModalSalidaAbierto:Dispatch<SetStateAction<boolean>>; 
 	modalSalidaAbierto:boolean;
+  bitacora_record_id:string;
 }
 
 export const DoOutModal: React.FC<AddBadgeModalProps> = ({
@@ -28,14 +29,18 @@ export const DoOutModal: React.FC<AddBadgeModalProps> = ({
   id_bitacora,
   ubicacion,
   modalSalidaAbierto,
-  setModalSalidaAbierto
+  setModalSalidaAbierto,
+  bitacora_record_id
 }) => {
   const doOutMutation = useDoOut();
   const { isLoading } = useShiftStore()
 
   function onSubmit() {
     doOutMutation.mutate({
-      qr_code:id_bitacora,location:ubicacion, area
+      qr_code: id_bitacora,
+      location: ubicacion,
+      area,
+      record_id: bitacora_record_id,
     }, {
       onSuccess: () => {
         setModalSalidaAbierto(false)
