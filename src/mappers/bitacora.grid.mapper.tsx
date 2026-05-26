@@ -1,4 +1,4 @@
-import { Briefcase, CalendarDays, Contact, MapPin, User } from "lucide-react";
+import { Briefcase, CalendarDays, Contact, IdCard, MapPin, User } from "lucide-react";
 
 export function mapBitacoraGrid(raw: any, base: any) {
   return {
@@ -43,6 +43,7 @@ export function mapBitacoraGrid(raw: any, base: any) {
         label: "Visita a",
         value: raw?.visita_a?.[0]?.nombre,
       },
+      
       {
         icon: <Contact className="h-3 w-3" />,
         label: "Perfil de Visita",
@@ -52,6 +53,11 @@ export function mapBitacoraGrid(raw: any, base: any) {
         icon: <Briefcase className="h-3 w-3" />,
         label: "Empresa",
         value: raw?.contratista,
+      },
+      {
+        icon: <IdCard className="h-3 w-3" />,
+        label: "Gafete",
+        value: raw?.id_gafet || "No asignado",
       },
       {
         icon: <MapPin className="h-3 w-3" />,

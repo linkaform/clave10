@@ -37,6 +37,14 @@ export const getIncidenciasFilters = () =>
     public_script: true,
   });
 
+export const getIncidenciasRondinesFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "incidencias_rondines",
+    public_script: true,
+  });
+
+    
 export const getFallasFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "filters.py",
@@ -55,4 +63,25 @@ export const getMenus = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "menus.py",
     option: "get_menus",
+  });
+
+export const getPaqueteriaFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "paqueteria",
+    public_script: true,
+  });
+
+export const getConcesionadosFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "concesionados",
+    public_script: true,
+  });
+
+export const getPerdidosFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "perdidos",
+    public_script: true,
   });

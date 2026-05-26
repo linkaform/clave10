@@ -44,11 +44,13 @@ export const doOut = async (
   qr_code: string,
   location: string,
   area: string,
+  record_id: string,
 ) => {
   const payload = {
     qr_code: qr_code,
     location: location,
     area: area,
+    record_id: record_id,
     option: "do_out",
     script_name: "script_turnos.py",
   };

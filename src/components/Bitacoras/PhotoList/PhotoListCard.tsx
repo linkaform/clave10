@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { ListCardProps } from "@/types/bitacoras";
 import { Checkbox } from "@/components/ui/checkbox";
 import dynamic from "next/dynamic";
 import { MapItem } from "@/components/table/rondines/recorridos/table";
+import { ArrayBadgeList } from "@/components/arrayBagdeList";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
@@ -28,18 +29,22 @@ export function PhotoListCard({
   const fallback = "/sin_imagen_rondines.png";
   const [activeImage, setActiveImage] = useState(allImages[0] || fallback);
   const showMap = mapData && mapData.length > 0;
+  
   // Separar áreas del resto de detalles
   const areasItem = record.detailsList?.find(
     (item) => item.label?.toLowerCase() === "areas" || item.label?.toLowerCase() === "áreas"
   );
-  const otherDetails = record.detailsList?.filter(
-    (item) => item.label?.toLowerCase() !== "areas" && item.label?.toLowerCase() !== "áreas"
+  const gafeteItem = record.detailsList?.find(
+    (item) => item.label?.toLowerCase() === "gafete"
   );
-
-  useEffect(() => {
-    setActiveImage(allImages[0] || fallback);
-  }, [allImages, record.images]);
-
+  const otherDetails = record.detailsList?.filter(
+    (item) => 
+      item.label?.toLowerCase() !== "areas" && 
+      item.label?.toLowerCase() !== "áreas" &&
+      item.label?.toLowerCase() !== "gafete"
+  );
+  console.log("detailsList:", record.detailsList);
+console.log("gafeteItem:", gafeteItem);
   return (
     <div
       className={cn(
@@ -67,17 +72,16 @@ export function PhotoListCard({
       <div className="flex gap-8 p-6 items-start w-full">
 
         <div className="flex-shrink-0 w-[22%] flex flex-col gap-3">
-          <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative w-full aspect-[4/3]">
-            <Image
-              key={activeImage}
-              src={activeImage||"/sin_imagen_rondines.png"}
-              alt={`Fotografía de ${titleCard}`}
-              fill
-              loading="eager"
-              className="object-contain transition-opacity duration-200"
-              sizes="(max-width: 768px) 100vw, 22vw"
-            />
-          </div>
+        <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative w-full aspect-[4/3]">
+          <Image
+            src={activeImage || "/sin_imagen_rondines.png"}
+            alt={`Fotografía de ${titleCard}`}
+            fill
+            loading="eager"
+            className="object-contain transition-opacity duration-200"
+            sizes="(max-width: 768px) 100vw, 22vw"
+          />
+        </div>
 
           {allImages.length > 1 && (
             <div className="flex gap-2 flex-wrap justify-start p-1">
@@ -132,42 +136,59 @@ export function PhotoListCard({
               {descriptionCard}
             </span>
           </div>
-
-          {otherDetails && otherDetails.length > 0 && (
-            <div className={cn(
-              "grid gap-x-12 gap-y-6 mb-4",
-              showMap ? "grid-cols-3" : "grid-cols-2"  // ← 3 cols si hay mapa
-            )}>
-              {otherDetails.map((item, index) => {
-                const hasValue = Array.isArray(item.value)
-                  ? item.value.length > 0
-                  : item.value !== null && item.value !== undefined && item.value !== "";
-                if (!hasValue) return null;
-                const isFullWidth = Array.isArray(item.value);
-                return (
-                  <div
-                    key={index}
-                    className={cn("flex flex-col gap-1", isFullWidth ? "col-span-3" : "col-span-1")}>  {/* ← col-span-3 si fullwidth */}
-                    <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
-                      {item.label}
-                    </span>
-                    <div className="flex flex-wrap gap-2 items-center">
-                      {Array.isArray(item.value) ? (
-                        item.value.map((val, i) => (
-                          <Badge key={i} variant="secondary"
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 rounded-md px-2 py-0.5 text-xs font-normal shadow-none">
-                            {val}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className={`text-xs ${item.customClass}`}>
-                          {item.value || "\u00A0"}
-                        </span>
-                      )}
+          {(otherDetails && otherDetails.length > 0 || gafeteItem) && (
+              <div className="grid gap-x-12 gap-y-6 mb-4 grid-cols-3">
+                {otherDetails?.map((item, index) => {
+                  const hasValue = Array.isArray(item.value)
+                    ? item.value.length > 0
+                    : item.value !== null && item.value !== undefined && item.value !== "";
+                  if (!hasValue) return null;
+                  const isFullWidth = Array.isArray(item.value);
+                  return (
+                    <div
+                      key={index}
+                      className={cn("flex flex-col gap-1", isFullWidth ? "col-span-3" : "col-span-1")}>
+                      <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
+                        {item.label}
+                      </span>
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {Array.isArray(item.value) ? (
+                          item.value.map((val, i) => (
+                            <Badge key={i} variant="secondary"
+                              className="bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 rounded-md px-2 py-0.5 text-xs font-normal shadow-none">
+                              {val}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className={`text-xs ${item.customClass}`}>
+                            {item.value || "\u00A0"}
+                          </span>
+                        )}
+                      </div>
                     </div>
+                  );
+                })}
+
+              {gafeteItem && (
+                <div className="flex flex-col gap-1 col-span-1">
+                  <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
+                    Gafete
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+                      <Image
+                        src="/sin_imagen_rondines.png"
+                        alt="Gafete"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <span className={`text-xs ${gafeteItem.value && gafeteItem.value !== "No asignado" ? "text-slate-700 font-medium" : "text-slate-400"}`}>
+                      {gafeteItem.value || "No asignado"}
+                    </span>
                   </div>
-                );
-              })}
+                </div>
+              )}
             </div>
           )}
 
@@ -206,22 +227,14 @@ export function PhotoListCard({
             </>
           )}
 
-          {areasItem && Array.isArray(areasItem.value) && areasItem.value.length > 0 && (
-            <div className="flex flex-col gap-1 mb-4">
-              <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
-                {areasItem.label}
-              </span>
-              <div className="flex flex-wrap gap-2 items-center">
-                {areasItem.value.map((val, i) => (
-                  <Badge key={i} variant="secondary"
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 border-0 rounded-md px-2 py-0.5 text-xs font-normal shadow-none">
-                    {val}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
+        {areasItem && Array.isArray(areasItem.value) && areasItem.value.length > 0 && (
+          <div className="flex flex-col gap-1 mb-4">
+            <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
+              {areasItem.label}
+            </span>
+            <ArrayBadgeList values={areasItem.value} tooltipTitle="Todas las áreas" max={10}/>
+          </div>
+        )}
           {children && (
             <div
               className="flex gap-2 flex-wrap pt-3 border-t border-slate-100"

@@ -1,3 +1,5 @@
+import { Calendar, Layers, MapPin, Tag, User } from "lucide-react";
+
 export function mapIncidenciaGrid(raw: any, base: any) {
     const estatus = raw?.estatus?.toLowerCase() || "";
   
@@ -27,11 +29,11 @@ export function mapIncidenciaGrid(raw: any, base: any) {
       ubicacion_incidencia: raw?.ubicacion_incidencia,
       categoria: raw?.categoria,
       detailsList: [
-        { icon: null, label: "ÁREA", value: raw?.area_incidencia ? `Área: ${raw.area_incidencia}` : "---" },
-        { icon: null, label: "CATEGORÍA", value: raw?.categoria ? `${raw.categoria}` : "---" },
-        { icon: null, label: "SUB-CATEGORÍA", value: raw?.sub_categoria ? `${raw.sub_categoria}` : "---" },
-        { icon: null, label: "FECHA", value: raw?.fecha_hora_incidencia ? `${raw.fecha_hora_incidencia}` : "---" },
-        { icon: null, label: "REPORTA", value: raw?.reporta_incidencia && raw.reporta_incidencia !== false ? `${raw.reporta_incidencia}` : "---" },
+        { icon: <MapPin className="h-3 w-3" />, label: "ÁREA", value: raw?.area_incidencia ? `${raw.area_incidencia}` : "---" },
+        { icon: <Tag className="h-3 w-3" />, label: "CATEGORÍA", value: raw?.categoria ? `${raw.categoria}` : "---" },
+        { icon: <Layers className="h-3 w-3" />, label: "SUB-CATEGORÍA", value: raw?.sub_categoria ? `${raw.sub_categoria}` : "---" },
+        { icon: <Calendar className="h-3 w-3" />, label: "FECHA", value: raw?.fecha_hora_incidencia ? `${raw.fecha_hora_incidencia}` : "---" },
+        { icon: <User className="h-3 w-3" />, label: "REPORTA", value: raw?.reporta_incidencia && raw.reporta_incidencia !== false ? `${raw.reporta_incidencia}` : "---" },
       ],
       modalDetailsList: [
         { icon: null, label: "Folio", value: raw?.folio },

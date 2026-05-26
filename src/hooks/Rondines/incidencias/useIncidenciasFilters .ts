@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useFilters } from "../../bitacora/useFilters";
-import { getIncidenciasFilters } from "@/services/endpoints";
+import { getIncidenciasRondinesFilters } from "@/services/endpoints";
 
 export type IncidenciasExternalFilters = {
   dynamic: Record<string, any>;
@@ -109,8 +109,8 @@ export function useIncidenciasFilters() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { filters: filtersConfig, loadingFilters } = useFilters({
-    key: "incidencias-filters",
-    endpoint: getIncidenciasFilters,
+    key: "incidencias_rondines",
+    endpoint: getIncidenciasRondinesFilters,
   });
 
   const externalFilters = useMemo(() => ({

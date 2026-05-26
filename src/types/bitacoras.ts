@@ -166,6 +166,7 @@ export interface PhotoListViewProps {
   renderCustomActions?: (
     selectedItems: { record_id: string; record_status?: string }[],
   ) => React.ReactNode;
+  modalActions?: (record: PhotoRecord | null) => React.ReactNode;
 }
 
 export interface PhotoGridViewProps {
@@ -183,6 +184,8 @@ export interface PhotoGridViewProps {
   renderCustomActions?: (
     selectedItems: { record_id: string; record_status?: string }[],
   ) => React.ReactNode;
+  showStatusBadge?: boolean,
+  modalActions?: (record: PhotoRecord | null) => React.ReactNode;
 }
 
 export interface FilterState {

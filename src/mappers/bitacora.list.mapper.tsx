@@ -1,5 +1,5 @@
 import { cn, capitalizeFirstLetter } from "@/lib/utils";
-import { Briefcase, CalendarDays, Contact, MapPin, User } from "lucide-react";
+import { Briefcase, CalendarDays, Contact, IdCard, MapPin, User } from "lucide-react";
 
 export function mapBitacoraList(raw: any, base: any) {
   return {
@@ -34,11 +34,6 @@ export function mapBitacoraList(raw: any, base: any) {
       },
     ],
     detailsList: [
-      // {
-      //   icon: <MapPin className="h-3 w-3" />,
-      //   label: "Ubicación",
-      //   value: raw?.ubicacion,
-      // },
       {
         icon: <Briefcase className="h-3 w-3" />,
         label: "Caseta",
@@ -50,10 +45,15 @@ export function mapBitacoraList(raw: any, base: any) {
         value: raw?.visita_a?.[0]?.nombre,
       },
       {
-        icon: <Briefcase className="h-3 w-3" />,
-        label: "Tema de la cita",
-        value: "---",
+        icon: <IdCard className="h-3 w-3" />,
+        label: "Gafete",
+        value: raw?.id_gafet || "No asignado",
       },
+      // {
+      //   icon: <Briefcase className="h-3 w-3" />,
+      //   label: "Tema de la cita",
+      //   value: "---",
+      // },
       {
         icon: <CalendarDays className="h-3 w-3" />,
         label: "Fecha de entrada",
@@ -65,12 +65,12 @@ export function mapBitacoraList(raw: any, base: any) {
         value: raw?.fecha_salida ?? "---",
         customClass: "text-red-600 font-semibold",
       },
+   
       {
         icon: <Contact className="h-3 w-3" />,
-        label: "Áreas permitidas",
+        label: "areas", 
         value: raw.grupo_areas_acceso.map(
-          (area: { incidente_area: string; commentario_area: string }) =>
-            area.incidente_area,
+          (area: { incidente_area: string }) => area.incidente_area,
         ),
       },
     ],
@@ -101,8 +101,13 @@ export function mapBitacoraList(raw: any, base: any) {
         value: raw?.ubicacion,
       },
       {
+        icon: <IdCard className="h-3 w-3" />,
+        label: "Gafete",
+        value: raw?.id_gafet || "No asignado",
+      },
+      {
         icon: <Contact className="h-3 w-3" />,
-        label: "Áreas Permitidas",
+        label: "areas",
         value: Array.isArray(raw?.grupo_areas_acceso)
           ? raw.grupo_areas_acceso.map(
               (area: { incidente_area: string }) => area.incidente_area,
@@ -130,6 +135,7 @@ export function mapBitacoraListEquipos(raw: any, base: any) {
     ].filter((url): url is string => url !== null),
     status: raw?.status_visita === "Entrada" ? "entrada" : "salida",
     detailsList: [
+      
       {
         icon: <MapPin className="h-3 w-3" />,
         value: `Ubicación: ${raw?.ubicacion}`,

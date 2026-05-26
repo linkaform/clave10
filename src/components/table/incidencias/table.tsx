@@ -22,6 +22,8 @@ import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersP
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { applyIncidenciasFilters } from "@/hooks/Incidencias/useIncidenciasFilters";
+import { CustomSpinner } from "@/components/custom-spinner";
+import { IncidenciasActionButtons } from "@/components/Bitacoras/Incidencias/customActions";
 
 type ViewMode = "table" | "photos" | "list";
 
@@ -194,7 +196,18 @@ const IncidenciasTable: React.FC<ListProps> = ({
     return filteredData.map((item: any) => formatListRecord(item, "incidencia"));
   }, [filteredData]);
 
-  
+  const renderActions = (record: PhotoRecord | ListRecord) => {
+    const incidencia = memoizedData.find((b) => b._id === record.id || b.folio === record.folio);
+    if (!incidencia) return null;
+    return (
+      <IncidenciasActionButtons
+        incidencia={incidencia}
+        handleEditar={handleEditar}
+        handleSeguimiento={handleSeguimiento}
+        handleEliminar={handleEliminar}
+      />
+    );
+  };
   return (
     <div className="w-full">
       {/* Modales fuera del layout */}
@@ -297,10 +310,7 @@ const IncidenciasTable: React.FC<ListProps> = ({
                       <TableRow>
                         <TableCell colSpan={table.getVisibleFlatColumns().length} className="h-32 text-center">
                           {isLoading ? (
-                            <div className="flex flex-col items-center gap-2 text-slate-300">
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-                              <span className="text-xs font-normal">Cargando registros...</span>
-                            </div>
+                           <CustomSpinner/>
                           ) : (
                             <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
                           )}
@@ -333,7 +343,22 @@ const IncidenciasTable: React.FC<ListProps> = ({
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalType="incidencia"
-            />
+              modalActions={(record) => {
+                if (!record) return null;
+                const incidencia = memoizedData.find((b: any) => b._id === record.id || b.folio === record.folio);
+                if (!incidencia) return null;
+                return (
+                  <IncidenciasActionButtons
+                    incidencia={incidencia}
+                    handleEditar={handleEditar}
+                    handleSeguimiento={handleSeguimiento}
+                    handleEliminar={handleEliminar}
+                  />
+                );
+              }}
+            >
+            {renderActions}
+            </PhotoGridView>
           )}
   
           {viewMode === "list" && (
@@ -344,8 +369,24 @@ const IncidenciasTable: React.FC<ListProps> = ({
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalType="incidencia"
-            />
+              modalActions={(record) => {
+                if (!record) return null;
+                const incidencia = memoizedData.find((b: any) => b._id === record.id || b.folio === record.folio);
+                if (!incidencia) return null;
+                return (
+                  <IncidenciasActionButtons
+                    incidencia={incidencia}
+                    handleEditar={handleEditar}
+                    handleSeguimiento={handleSeguimiento}
+                    handleEliminar={handleEliminar}
+                  />
+                );
+              }}
+            >
+              {renderActions}
+            </PhotoListView>
           )}
+          
         </div>
       </div>
     </div>

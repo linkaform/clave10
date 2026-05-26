@@ -1,3 +1,5 @@
+import { MessageSquare } from "lucide-react";
+
 // rondin.bitacora.list.mapper.ts
 export function mapRondinBitacoraList(raw: any, base: any) {
     const estatus = raw?.estatus_recorrido?.toLowerCase() || "";
@@ -74,6 +76,7 @@ export function mapRondinBitacoraList(raw: any, base: any) {
         { icon: null, label: "DURACIÓN", value: raw?.duracion_rondin ? `${raw.duracion_rondin} min` : "-" },
         { icon: null, label: "ÁREAS INSPECCIONADAS", value: raw?.cantidad_areas_inspeccionadas ? `${raw.cantidad_areas_inspeccionadas}` : "0" },
         { icon: null, label: "ÁREAS", value: areaNames },
+     
       ],
   
       modalDetailsList: [
@@ -90,6 +93,8 @@ export function mapRondinBitacoraList(raw: any, base: any) {
         // { icon: null, label: "Tipo derocrrido", value: raw?.tipo_rondin?.toUpperCase() || "-" },
         // { icon: null, label: "Asignado a", value: raw?.asignado_a || "Sin asignar" },
         { icon: null, label: "Áreas", value: areaNames },
+        // { icon: <User className="h-3 w-3" />, label: "REALIZADO POR", value: raw?.asignado_a ? `Realizado por: ${raw.asignado_a}` : "-" },
+        { icon: <MessageSquare className="h-3 w-3" />, label: "COMENTARIO", value: raw?.comentario_general && raw.comentario_general !== "" ? raw.comentario_general : "-" },
       ],
   
       rawData: raw,

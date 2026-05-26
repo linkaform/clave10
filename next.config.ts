@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
         hostname: 'app.linkaform.com',
         pathname: '/media/**',
       },
+      {
+        protocol: "https",
+        hostname: "b2.linkaform.com", 
+        pathname: "/**",
+      },
     ],
   },
 };

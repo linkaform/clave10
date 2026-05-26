@@ -9,6 +9,7 @@ import { LoadingModal } from "@/components/modals/loading-modal";
 import { DevolucionArticuloModal } from "@/components/modals/devolucion-article-modal";
 import ViewImage from "@/components/modals/view-image";
 import { Imagen } from "@/components/upload-Image";
+import { EstatusBadge } from "@/components/estatus-badge";
 
 
 export interface Articulo_perdido_record {
@@ -47,7 +48,7 @@ const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
           title="Información del Artículo"
           data={articulo} isSuccess={false}>
             <div className="cursor-pointer" title="Ver Artículo">
-              <Eye /> 
+              <Eye className="w-5 h-5"/> 
             </div>
         </ViewArticulo>
 
@@ -102,17 +103,9 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
       enableSorting: true,
     },
     {
-      accessorKey:"estatus_perdido",
-      header:"Estatus",
-      cell: ({ row }) => {
-        const isAbierto = row.getValue("estatus_perdido") === "entregado";
-    
-        return (
-          <div className={`capitalize font-semibold ${isAbierto ? 'text-green-600' : 'text-red-600'}`}>
-          {row.getValue("estatus_perdido")}
-          </div>
-        );
-      },
+      accessorKey: "estatus_perdido",
+      header: "Estatus",
+      cell: ({ row }) => <EstatusBadge estatus={row.getValue("estatus_perdido")} />,
     },
     {
       accessorKey:"foto_perdido",

@@ -3,10 +3,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PhotoRecord } from "@/types/bitacoras";
 import { cn } from "@/lib/utils";
+import { ArrayBadgeList } from "@/components/arrayBagdeList";
 
 export interface ModalBadgeItem {
   label: string;
@@ -20,6 +20,7 @@ interface PhotoDetailModalProps {
   onOpenChange: (open: boolean) => void;
   badges?: ModalBadgeItem[];
   children?: React.ReactNode;
+    actions?: React.ReactNode;
 }
 
 interface ListItemProps {
@@ -30,6 +31,8 @@ interface ListItemProps {
 }
 
 function ListItem({ label, value }: ListItemProps) {
+  const isGafete = label?.toLowerCase() === "gafete";
+
   return (
     <div className="py-2 first:pt-0 last:pb-0">
       <div className="min-w-0 flex-1">
@@ -37,15 +40,17 @@ function ListItem({ label, value }: ListItemProps) {
           {label}
         </p>
         <div className="flex flex-wrap gap-2 items-center">
-          {Array.isArray(value) ? (
-            value.map((val, i) => (
-              <Badge
-                key={i}
-                variant="outline"
-                className="bg-slate-100 text-slate-600 border-0 rounded-md px-2 py-0.5 text-xs font-normal shadow-none">
-                {val}
-              </Badge>
-            ))
+          {isGafete ? (
+            <div className="flex items-center gap-2">
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+                <Image src="/sin_imagen_rondines.png" alt="Gafete" fill className="object-cover" />
+              </div>
+              <span className={`text-[15px] font-medium ${value && value !== "No asignado" ? "text-[#1e293b]" : "text-slate-400"}`}>
+                {value || "No asignado"}
+              </span>
+            </div>
+          ) : Array.isArray(value) ? (
+            <ArrayBadgeList values={value} tooltipTitle="Todos" max={10} />
           ) : (
             <p className="text-[15px] font-medium text-[#1e293b] leading-snug">
               {value || "\u00A0"}
@@ -63,6 +68,7 @@ export function PhotoGridCardModal({
   onOpenChange,
   badges = [],
   children,
+  actions
 }: PhotoDetailModalProps) {
   const [slideIndex, setSlideIndex] = useState(0);
   console.log("Registro seleccionado para modal:", record);
@@ -85,7 +91,7 @@ export function PhotoGridCardModal({
         onOpenChange(v);
         if (!v) setSlideIndex(0);
       }}>
-      <DialogContent className="p-0 overflow-hidden !max-w-[1000px] w-[95vw] sm:w-[92vw] h-[95vh] rounded-3xl shadow-2xl flex flex-col border-none bg-background">
+    <DialogContent className="p-0 overflow-hidden !max-w-[1200px] w-[95vw] sm:w-[92vw] h-[95vh] rounded-3xl shadow-2xl flex flex-col border-none bg-background">
         <DialogTitle className="sr-only">Detalle — {record.title}</DialogTitle>
 
         <div className="flex flex-col lg:row flex-1 min-h-0 overflow-hidden sm:flex-row">
@@ -181,35 +187,40 @@ export function PhotoGridCardModal({
                 </p>
               </div>
             </div>
-
+          
             {/* Scrollable Body */}
             <div className="overflow-y-auto flex-1 px-8 py-2 space-y-4 no-scrollbar">
               {/* Dynamic Details List */}
-              {record.modalDetailsList &&
-                record.modalDetailsList.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="space-y-3">
-                      {record.modalDetailsList.map((item, index) => {
-                        const hasValue = Array.isArray(item.value)
-                          ? item.value.length > 0
-                          : item.value !== null &&
-                            item.value !== undefined &&
-                            item.value !== "";
+              {record.modalDetailsList && record.modalDetailsList.length > 0 && (
+                <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                  {record.modalDetailsList.map((item, index) => {
+                    const hasValue = Array.isArray(item.value)
+                      ? item.value.length > 0
+                      : item.value !== null &&
+                        item.value !== undefined &&
+                        item.value !== "";
 
-                        if (!hasValue) return null;
+                    if (!hasValue) return null;
 
-                        return (
-                          <ListItem
-                            key={index}
-                            label={item.label || `Detalle ${index + 1}`}
-                            value={item.value}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                    const isFullWidth = Array.isArray(item.value);
 
+                    return (
+                      <div key={index} className={isFullWidth ? "col-span-2" : "col-span-1"}>
+                        <ListItem
+                          label={item.label || `Detalle ${index + 1}`}
+                          value={item.value}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {actions && (
+                <div className="pt-2 border-t border-slate-100">
+                  {actions}
+                </div>
+              )}
+                
               {children && <div className="space-y-4">{children}</div>}
             </div>
           </div>

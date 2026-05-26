@@ -34,6 +34,7 @@ import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
 import { applyIncidenciasFilters } from "@/hooks/Rondines/incidencias/useIncidenciasFilters ";
+import { CustomSpinner } from "@/components/custom-spinner";
 
 interface ListProps {
   showTabs: boolean;
@@ -78,7 +79,7 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
   setTotalRegistros,
   searchTags:searchTagsProp,
 }) => {
-  const { listIncidenciasRondin, isLoading } = useIncidenciaRondin("", "");
+  const { listIncidenciasRondin, isLoadingListIncidencias } = useIncidenciaRondin("", "");
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
@@ -95,7 +96,7 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
   const [rowSelection, setRowSelection] = React.useState({});
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
   const [globalFilter, setGlobalFilter] = React.useState("");
-
+  
   const externalFilters = useMemo(
     () => externalFiltersProp ?? { dynamic: {}, dateFilter: "" },
     [externalFiltersProp]
@@ -350,11 +351,8 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
                     ) : (
                       <TableRow>
                         <TableCell colSpan={table.getVisibleFlatColumns().length} className="h-32 text-center">
-                          {isLoading ? (
-                            <div className="flex flex-col items-center gap-2 text-slate-300">
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-                              <span className="text-xs font-normal">Cargando registros...</span>
-                            </div>
+                          {isLoadingListIncidencias ? (
+                           <CustomSpinner/>
                           ) : (
                             <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
                           )}
@@ -366,7 +364,7 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
               </div>
 
               <div className="flex items-center justify-end space-x-2 py-4">
-                {!isLoading && (
+                {!isLoadingListIncidencias && (
                   <div className="flex-1 text-sm text-muted-foreground">
                     {table.getFilteredSelectedRowModel().rows.length} de{" "}
                     {table.getFilteredRowModel().rows.length} items seleccionados.
@@ -384,15 +382,16 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
             </>
           ) : viewMode === "photos" ? (
             <PhotoGridView
-              isLoading={isLoading}
+              isLoading={isLoadingListIncidencias}
               records={photoRecords}
               globalSearch={[globalFilter]}
-              selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
+              selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}
+              showStatusBadge = {false} >
               {renderActions}
             </PhotoGridView>
           ) : (
             <PhotoListView
-              isLoading={isLoading}
+              isLoading={isLoadingListIncidencias}
               records={photoListRecords}
               globalSearch={[globalFilter]}
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>

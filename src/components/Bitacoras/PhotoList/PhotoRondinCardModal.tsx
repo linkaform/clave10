@@ -290,7 +290,7 @@ function AreaDetailPanel({ area, onBack, onSetImage }: {
   const [areaTab, setAreaTab] = useState<"generales" | "checklist" | "incidencias">("generales");
   const [selectedCheck, setSelectedCheck] = useState<any>(null);  
   // const fotos: { file_name: string; file_url: string }[] = area.fotos || [];
-  const fotoDefault = area.foto_default_area?.file_url ? area.foto_default_area : null;
+  // const fotoDefault = area.foto_default_area?.file_url ? area.foto_default_area : null;
   const checksData: any[] = [];
   const incidenciasArea: any[] = area.incidencias || [];
   const comentarios: string = area.comentarios || "";
@@ -459,33 +459,6 @@ function AreaDetailPanel({ area, onBack, onSetImage }: {
                 <p className="text-sm text-slate-700 leading-relaxed">{comentarios}</p>
               </div>
             )}
-
-            {fotoDefault && (
-              <div>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Camera className="w-3.5 h-3.5 text-slate-400" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                    Foto del área
-                  </p>
-                </div>
-                <div
-                  className="rounded-xl overflow-hidden border border-slate-100 bg-slate-50 relative cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
-                  style={{ height: "150px" , width:"150px"}}
-                  onClick={() => onSetImage?.(fotoDefault.file_url)}
-                >
-                  <Image
-                    src={fotoDefault.file_url}
-                    alt={fotoDefault.file_name || "Foto del área"}
-                    fill
-                    className="object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).src = "/sin_imagen_rondines.png"; }}
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5">
-                    <p className="text-white text-[9px] truncate">{fotoDefault.file_name}</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -651,10 +624,10 @@ export function PhotoRondinCardModal({
   const [selectedComentario, setSelectedComentario] = useState<any>(null);
   const [expandedAreas, setExpandedAreas] = useState(false);
   
-  const comentariosGenerales = Array.isArray(record?.rawData?.comentarios_generales) && record.rawData.comentarios_generales.length > 0
-  ? record.rawData.comentarios_generales
-  : Array.isArray(record?.comentarios_generales) && record.comentarios_generales.length > 0
-  ? record.comentarios_generales
+  const comentariosGenerales = Array.isArray(record?.rawData?.comentario_general) && record.rawData.comentario_general.length > 0
+  ? record.rawData.comentario_general
+  : Array.isArray(record?.comentario_general) && record.comentario_general.length > 0
+  ? record.comentario_general
   : [];
 
   if (!record) return null;
@@ -663,18 +636,23 @@ export function PhotoRondinCardModal({
     ? selectedImages.map((src, i) => ({ src, label: `Evidencia ${i + 1}` }))
     : selectedArea
     ? selectedArea.fotos
-        .map((f: any) => f.file_url)
-        .filter((url: string) => url?.startsWith("https://"))
+        .filter((f: any) => f.file_url?.startsWith("https://"))
         .length > 0
       ? selectedArea.fotos
           .filter((f: any) => f.file_url?.startsWith("https://"))
           .map((f: any) => ({ src: f.file_url, label: f.file_name || "Foto" }))
       : [{ src: "/sin_imagen_rondines.png", label: "Sin imagen" }]
-    : record.images && record.images.filter((img: string) => img && img !== "/mountain.svg" && img?.startsWith("https://")).length > 0
-    ? record.images
-        .filter((img: string) => img && img !== "/mountain.svg" && img?.startsWith("https://"))
-        .map((img: any, i: number) => ({ src: img, label: `Imagen ${i + 1}` }))
-    : [{ src: "/sin_imagen_rondines.png", label: "Sin imagen" }];
+    : (() => {
+        const evidenciasAreas = (record?.rawData?.areas || [])
+          .flatMap((a: any) => a?.detalle?.fotos || [])
+          .filter((f: any) => f?.file_url?.startsWith("https://"))
+          .map((f: any) => ({ src: f.file_url, label: f.file_name || "Foto" }));
+
+        return evidenciasAreas.length > 0
+          ? evidenciasAreas
+          : [{ src: "/sin_imagen_rondines.png", label: "Sin imagen" }];
+      })();
+
 
   const prevSlide = () => setSlideIndex((i) => (i - 1 + slides.length) % slides.length);
   const nextSlide = () => setSlideIndex((i) => (i + 1) % slides.length);

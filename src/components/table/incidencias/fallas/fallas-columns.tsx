@@ -2,7 +2,7 @@ import {
     ColumnDef,   
   } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ClipboardCheck, Eye, Trash2 } from "lucide-react";
+import { Eye, ListChecks, Trash2 } from "lucide-react";
 import ViewImage from "@/components/modals/view-image";
 import { Imagen } from "@/components/upload-Image";
 
@@ -60,13 +60,13 @@ import { Imagen } from "@/components/upload-Image";
         onClick={() => {
           onCerrarClick(falla)}}
         >
-          <ClipboardCheck className="w-5 h-5"/>
+          <ListChecks className="w-5 h-5"/>
         </div> : 
         <div
         
         title="Cerrar Falla"
         >
-          <ClipboardCheck  className="text-gray-300 w-5 h-5"/>
+          <ListChecks  className="text-gray-300 w-5 h-5"/>
         </div>
         }
 

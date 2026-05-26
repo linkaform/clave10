@@ -1,6 +1,6 @@
 import { LoadingModal } from "@/components/modals/loading-modal";
 import { AccionesTomadas, AfectacionPatrimonial, Depositos, PersonasInvolucradas } from "@/lib/incidencias";
-import { Check, Edit, Eye, Trash2 } from "lucide-react";
+import { Edit, Eye, ListChecks, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ColumnDef, Row, Table as TanstackTable } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -98,7 +98,7 @@ export const OptionsCell: React.FC<{
         <Edit className="w-5 h-5" />
       </div>
       <div className="cursor-pointer" onClick={() => onSeguimientoClick(incidencia)} title="Seguimiento Incidencia">
-        <Check className="w-5 h-5" />
+        <ListChecks className="w-5 h-5" />
       </div>
       <div className="cursor-pointer" title="Eliminar Incidencia" onClick={() => onEliminarClick(incidencia)}>
         <Trash2 className="w-5 h-5" />

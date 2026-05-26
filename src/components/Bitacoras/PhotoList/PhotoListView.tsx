@@ -10,6 +10,7 @@ import { PhotoListCardModal } from "./PhotoListCardModal";
 import EquiposYVehiculosList from "../EquiposYVehiculosList";
 import { PhotoRondinCardModal } from "./PhotoRondinCardModal";
 import { ViewIncidenciaModal } from "../PhotoGrid/PhotoGridCardModalIncidencia";
+import { CustomSpinner } from "@/components/custom-spinner";
 
 interface MapItem {
   nombre_area: string;
@@ -32,6 +33,7 @@ export default function PhotoListView({
   globalSearch = [],
   getMapData,
   modalType = "normal",
+  modalActions
 }: Omit<
   PhotoListViewProps,
   "filtersConfig" | "hideSidebar" | "renderCustomActions"
@@ -54,6 +56,7 @@ export default function PhotoListView({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ListRecord | null>(null);
+  const [selectedChildren, setSelectedChildren] = useState<React.ReactNode>(null);
 
   const filteredRecords = useMemo(() => {
     const base = baseFilteredRecords as unknown as ListRecord[];
@@ -69,7 +72,6 @@ export default function PhotoListView({
   
         const statusValue = normalize((record.status?.toString() || "").replace(/_/g, " "));
         const statusMatches = statusValue.includes(tagNormalized) || statusValue.includes(tagLower);
-        console.log("STATUS VALUEE", statusValue)
         return (
           statusMatches ||
           normalize(record.title?.toString() || "").includes(tagLower) ||
@@ -102,10 +104,14 @@ export default function PhotoListView({
 
   const handleCardClick = (record: ListRecord) => {
     setSelectedRecord(record);
+    if (typeof children === "function") {
+      setSelectedChildren(children(record));
+    } else {
+      setSelectedChildren(children);
+    }
     setIsModalOpen(true);
     onRecordClick?.(record as any);
   };
-
   const clearSelection = () => setSelectedItems([]);
 
   const currentMapData = selectedRecord && getMapData
@@ -139,12 +145,7 @@ export default function PhotoListView({
             <div>
               <div className={"space-y-4w-full"}>
                 {isLoading ? (
-                  <div className="flex flex-col items-center gap-2 text-slate-300 h-96 w-full justify-center">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-                    <span className="text-sm font-normal text-muted-foreground">
-                      Cargando registros...
-                    </span>
-                  </div>
+                 <CustomSpinner />
                 ) : filteredRecords.length > 0 ? (
                   filteredRecords.map((record) => (
                     <PhotoListCard
@@ -205,6 +206,7 @@ export default function PhotoListView({
         <ViewIncidenciaModal
           record={selectedRecord}
           open={isModalOpen}
+          actions={modalActions?.(selectedRecord)}
           onOpenChange={setIsModalOpen}
           badges={[
             {
@@ -230,8 +232,9 @@ export default function PhotoListView({
         <PhotoListCardModal
           record={selectedRecord as any}
           open={isModalOpen}
-          onOpenChange={setIsModalOpen}
-        >
+          actions={modalActions?.(selectedRecord)}
+          onOpenChange={setIsModalOpen}>
+          {selectedChildren}
           <EquiposYVehiculosList record={selectedRecord as any} />
         </PhotoListCardModal>
       )}

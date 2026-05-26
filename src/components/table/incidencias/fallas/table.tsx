@@ -24,6 +24,8 @@ import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { ViewMode } from "@/lib/utils";
 import { applyFallasFilters } from "@/hooks/Fallas/useFallasFIlter";
+import { CustomSpinner } from "@/components/custom-spinner";
+import { FallasActionButtons } from "@/components/Bitacoras/Fallas/customAction";
 
 interface ListProps {
   data: Fallas_record[];
@@ -163,7 +165,18 @@ const FallasTable: React.FC<ListProps> = ({
     if (!filteredData?.length) return [];
     return filteredData.map((item: any) => formatListRecord(item, "falla"));
   }, [filteredData]);
-
+  
+  const renderActions = (record: PhotoRecord | ListRecord) => {
+    const falla = memoizedData.find((f) => f._id === record.id || f.folio === record.folio);
+    if (!falla) return null;
+    return (
+      <FallasActionButtons
+        falla={falla}
+        handleCerrar={handleCerrar}
+        handleEliminar={handleEliminar}
+      />
+    );
+  };
   return (
     <div className="w-full">
       <EliminarFallaModal
@@ -263,13 +276,7 @@ const FallasTable: React.FC<ListProps> = ({
                       <TableRow>
                       <TableCell colSpan={columns.length} className="h-32 text-center">
                           {isLoading ? (
-                            <div className="flex flex-col items-center gap-3 h-32 justify-center">
-                              <div className="relative h-8 w-8">
-                                <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
-                                <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                              </div>
-                              <span className="text-base text-slate-400">Cargando registros...</span>
-                            </div>
+                            <CustomSpinner/>
                           ) : (
                             <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
                           )}
@@ -299,7 +306,9 @@ const FallasTable: React.FC<ListProps> = ({
               globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
-            />
+            >
+               {renderActions}
+            </PhotoGridView>
           )}
 
           {viewMode === "list" && (
@@ -309,7 +318,9 @@ const FallasTable: React.FC<ListProps> = ({
               globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
-            />
+            > 
+            {renderActions}
+            </PhotoListView>
           )}
         </div>
       </div>

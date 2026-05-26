@@ -5,18 +5,17 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Tabs as TabsOuter, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import IncidenciasTable from "@/components/table/incidencias/table";
-import FallasTable, { fallasColumnsCSV } from "@/components/table/incidencias/fallas/table";
+import FallasTable from "@/components/table/incidencias/fallas/table";
 import { useGetFallas } from "@/hooks/useGetFallas";
 import { AddFallaModal } from "@/components/modals/add-falla";
 import { AddIncidenciaModal } from "@/components/modals/add-incidencia";
 import { useInciencias } from "@/hooks/Incidencias/useIncidencias";
-import { dateToString, downloadCSV, ViewMode } from "@/lib/utils";
+import { dateToString, ViewMode } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
 import { useBoothStore } from "@/store/useBoothStore";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
-import { FileX2, LayoutGrid, LayoutList, Plus, Sheet, Trash2 } from "lucide-react";
-import { incidenciasColumnsCSV } from "@/components/table/rondines/incidencias-rondines/table";
+import { LayoutGrid, LayoutList, Plus, Sheet } from "lucide-react";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { useIncidenciasFilters } from "@/hooks/Incidencias/useIncidenciasFilters";
 import { useFallasFilters } from "@/hooks/Fallas/useFallasFIlter";
@@ -214,40 +213,6 @@ const IncidenciasPage = () => {
                 <Plus size={16} />
                 Nueva Falla
               </Button>
-            )}
-
-            {selectedTab === "Incidencias" && (
-              <>
-                <Button
-                  className="bg-blue-500 hover:bg-blue-600 text-white gap-2"
-                  onClick={() => downloadCSV(selectedIncidencias, incidenciasColumnsCSV, "incidencias.csv")}>
-                  <FileX2 size={16} /> Descargar
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="gap-2"
-                  onClick={() => setModalEliminarMultiAbierto(true)}
-                  disabled={selectedIncidencias.length === 0}>
-                  <Trash2 size={16} /> Eliminar
-                </Button>
-              </>
-            )}
-
-            {selectedTab === "Fallas" && (
-              <>
-                <Button
-                  className="bg-blue-500 hover:bg-blue-600 text-white gap-2"
-                  onClick={() => downloadCSV(selectedFallas, fallasColumnsCSV, "fallas.csv")}>
-                  <FileX2 size={16} /> Descargar
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="gap-2"
-                  onClick={() => setModalEliminarMultiAbierto(true)}
-                  disabled={selectedFallas.length === 0}>
-                  <Trash2 size={16} /> Eliminar
-                </Button>
-              </>
             )}
 
             <TabsOuter

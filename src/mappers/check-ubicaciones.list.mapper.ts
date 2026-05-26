@@ -7,7 +7,7 @@ export function mapCheckUbicacionList(raw: any, base: any) {
   const images =
     Array.isArray(fotoArea) && fotoArea.length > 0
       ? fotoArea.map((f: any) => f.file_url).filter(Boolean)
-      : ["/mountain.svg"];
+      : ["/sin_imagen_rondines.png"];
 
   const rondinArea = Array.isArray(raw?.rondin_area)
     ? raw.rondin_area.join(", ")
