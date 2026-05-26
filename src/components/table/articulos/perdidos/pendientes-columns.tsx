@@ -10,6 +10,9 @@ import { DevolucionArticuloModal } from "@/components/modals/devolucion-article-
 import ViewImage from "@/components/modals/view-image";
 import { Imagen } from "@/components/upload-Image";
 import { EstatusBadge } from "@/components/estatus-badge";
+import { PhotoGridCardModal } from "@/components/Bitacoras/PhotoGrid/PhotoGridCardModal";
+import { PerdidosActionButtons } from "@/components/Bitacoras/Perdidos/customActions";
+import { mapArticuloPerdidoGrid } from "@/mappers/perdidos.grid.mapper";
 
 
 export interface Articulo_perdido_record {
@@ -38,28 +41,38 @@ export interface Articulo_perdido_record {
 }
 
 
-const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
+const OptionsCell: React.FC<{ row: any }> = ({ row }) => {
   const articulo = row.original;
   const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const record = mapArticuloPerdidoGrid(articulo, {});
 
   return (
     <div className="flex space-x-2">
-		<ViewArticulo 
-          title="Información del Artículo"
-          data={articulo} isSuccess={false}>
-            <div className="cursor-pointer" title="Ver Artículo">
-              <Eye className="w-5 h-5"/> 
-            </div>
-        </ViewArticulo>
+      <div className="cursor-pointer" title="Ver Artículo" onClick={() => setIsModalOpen(true)}>
+        <Eye className="w-5 h-5" />
+      </div>
 
+      <PhotoGridCardModal
+        record={record}
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        badges={[
+          { label: "", value: record?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-semibold" },
+          { label: "", value: `#${record?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-semibold" },
+        ]}
+      >
+        <PerdidosActionButtons articulo={articulo} />
+      </PhotoGridCardModal>
 		<LoadingModal isOpen={showLoadingModal} text="Cargando..."/>
 		
 		<EditarArticuloModal 
-        title="Editar Artículo"
+        title="Editar Artículo Perdido"
         data={articulo} setShowLoadingModal={setShowLoadingModal} showLoadingModal={showLoadingModal}/>
 
 		<DevolucionArticuloModal 
-        title="Devolver Artículo"
+        title="Devolver Artículo Perdido"
         data={articulo} />
 
     </div>

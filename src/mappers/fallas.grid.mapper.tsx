@@ -45,7 +45,7 @@ export function mapFallaGrid(raw: any, base: any) {
       { icon: null, label: "Responsable", value: raw?.falla_responsable_solucionar_nombre || "Sin asignar" },
     ],
     rawData: raw,
-    vehiculos: [],
-    equipos: [],
+    vehiculos: null,
+    equipos: null,
   };
 }

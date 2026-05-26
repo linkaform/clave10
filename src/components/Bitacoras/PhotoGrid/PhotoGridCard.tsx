@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { PhotoCardProps } from "@/types/bitacoras";
+import { EstatusBadge } from "@/components/estatus-badge";
 
 const statusConfig: Record<
   string,
@@ -85,9 +86,9 @@ export function PhotoGridCard({
     setCurrentImageIndex(0);
   };
 
-const statusInfo = record.status && (record.status as string) !== "none"
-  ? statusConfig[record.status]
-  : null;
+// const statusInfo = record.status && (record.status as string) !== "none"
+//   ? statusConfig[record.status]
+//   : null;
 
   return (
     <Card
@@ -144,21 +145,17 @@ const statusInfo = record.status && (record.status as string) !== "none"
           {cardConfig?.folioTag && record?.folio && (
             <Badge
               variant={"default"}
-              className="bg-[#DBEAFE] hover:bg-[#DBEAFE] text-[0.65rem] py-0 px-2 h-5 text-blue-700 rounded-sm">
+              className="bg-[#DBEAFE] hover:bg-[#DBEAFE] text-[0.65rem] py-0 px-2 h-5 text-blue-700 rounded-slg">
               {record.folio}
             </Badge>
           )}
-          {statusInfo && (
-            <Badge
-              variant={statusInfo.variant}
-              className={cn(
-                "text-[0.65rem] py-0 px-2 h-5",
-                !statusInfo.variant && statusInfo.customClass,
-              )}>
-              {(record as any).statusLabel || statusInfo.label}
-            </Badge>
-          )}
-        </div>
+        {(record.statusLabel || record.status) && (record.status as string) !== "none" && (
+          <EstatusBadge
+            estatus={(record as any).statusLabel || record.status || ""}
+            // className="text-[0.65rem] py-0 px-2 h-5 rounded-lg"
+          />
+        )}
+          </div>
 
         {record.images.length > 1 && (
           <div className="absolute bottom-3 right-3 flex gap-1">

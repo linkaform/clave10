@@ -115,6 +115,7 @@ export interface CardConfiguration {
 }
 
 export interface BadgesListItem {
+  isEstatus: any;
   label: string;
   customClass?: string;
 }

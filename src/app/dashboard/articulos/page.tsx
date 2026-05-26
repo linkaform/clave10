@@ -7,7 +7,7 @@ import { Tabs as TabsOuter, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutGrid, LayoutList, Plus, Sheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useArticulosPerdidos } from "@/hooks/useArticulosPerdidos";
-import ArticulosPerdidosTable from "@/components/table/articulos/pendientes/table";
+import ArticulosPerdidosTable from "@/components/table/articulos/perdidos/table";
 import { AddArticuloModal } from "@/components/modals/add-article-lost";
 import ArticulosConTable from "@/components/table/articulos/concecionados/table";
 import { useArticulosConcesionados } from "@/hooks/useArticulosConcesionados";

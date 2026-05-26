@@ -46,11 +46,12 @@ export function mapArticuloConcesionadoList(raw: any, base: any) {
       : equiposText || "Sin equipos",
     images:finalImages,
     status: raw?.status_concesion?.toLowerCase() || "abierto",
-    statusLabel: statusConfig.label,
+    statusLabel: raw?.status_concesion || "",
     badgesList: [
       {
-        customClass: `px-4 py-1 text-xs font-semibold rounded-xl whitespace-nowrap ml-2 ${statusConfig.class}`,
+        isEstatus: true,
         label: statusConfig.label,
+        customClass: "",
       },
       ...(categoria ? [{
         customClass: "bg-purple-100 hover:bg-purple-100 px-4 py-1 text-xs font-medium text-purple-600 rounded-xl border-0 shadow-none",
@@ -88,7 +89,7 @@ export function mapArticuloConcesionadoList(raw: any, base: any) {
       { icon: <Package className="h-3 w-3" />, label: "Equipos", value: equipoNames },
     ],
     rawData: raw,
-    vehiculos: [],
-    equipos: [],
+    vehiculos: null,
+    equipos: null,
   };
 }

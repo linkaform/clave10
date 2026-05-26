@@ -10,6 +10,9 @@ import { DevolucionPaqModal } from "@/components/modals/entregar-paqueteria";
 import ViewImage from "@/components/modals/view-image";
 import { Imagen } from "@/components/upload-Image";
 import { EstatusBadge } from "@/components/estatus-badge";
+import { PhotoGridCardModal } from "@/components/Bitacoras/PhotoGrid/PhotoGridCardModal";
+import { mapPaqueteriaGrid } from "@/mappers/paqueteria.grid.mapper";
+import { PaqueteriaActionButtons } from "@/components/Bitacoras/Paqueteria/customAction";
 
 
 export interface Paquete_record {
@@ -31,16 +34,26 @@ export interface Paquete_record {
 
 const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
   	const paquete = row.original;
-	  const [showLoadingModal, setShowLoadingModal] = useState(false);
+    const [showLoadingModal, setShowLoadingModal] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+  
+    const record = mapPaqueteriaGrid(paquete, {});
   return (
     <div className="flex space-x-2">
-		<ViewPaqueteria 
-			title="Información del Paquete"
-			data={paquete} isSuccess={false}>
-			<div className="cursor-pointer" title="Ver Paquete">
-			<Eye className="w-5 h-5"/> 
-			</div>
-		</ViewPaqueteria>
+      <div className="cursor-pointer" title="Ver Paquete" onClick={() => setIsModalOpen(true)}>
+        <Eye className="w-5 h-5" />
+      </div> 
+      <PhotoGridCardModal
+        record={record}
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        badges={[
+          { label: "", value: record?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-semibold" },
+          { label: "", value: `#${record?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-semibold" },
+        ]}
+      >
+        <PaqueteriaActionButtons paquete={paquete} />
+      </PhotoGridCardModal>
 
       	<LoadingModal isOpen={showLoadingModal} text="Cargando..."/>
 

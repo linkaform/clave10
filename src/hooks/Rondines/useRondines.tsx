@@ -36,36 +36,6 @@ export const useRondines = () => {
 			},
 		});
 
-		// const updateRondinMutation = useMutation({
-		// 	mutationFn: async ({ rondin_id, rondin_data} : {rondin_id:string, rondin_data: any }) => {
-		// 		console.log("rondin_id", rondin_id)
-		// 		const response = await crearRondin(rondin_data);
-
-		// 		if(response.response.data.status =="error"){
-		// 			throw new Error(`Error al actualizar rondin Error: ${response.response.data.message }`);
-		// 		}else{
-		// 			return response.response?.data
-		// 		}
-		// 	},
-		// 	onMutate: () => {
-		// 	setLoading(true);
-		// 	},
-		// 	onSuccess: () => {
-		// 	queryClient.invalidateQueries({ queryKey: ["getListRondines"] });
-		// 	queryClient.invalidateQueries({ queryKey: ["getStatsRondines"] });
-		// 	toast.success("Rondin actualizado correctamente.");
-		// 	},
-		// 	onError: (err) => {
-		// 	console.error("Error al crear rondin", err);
-		// 	toast.error(err.message || "Hubo un error al actualizar rondin");
-		
-		// 	},
-		// 	onSettled: () => {
-		// 	setLoading(false);
-		// 	},
-		// });
-
-
     return{
         createRondinMutation,
 		// updateRondinMutation,

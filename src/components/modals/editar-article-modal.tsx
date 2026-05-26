@@ -30,9 +30,9 @@ import { format,  } from 'date-fns';
 import { useCatalogoArticulos } from "@/hooks/useCatalogoArticulos";
 import { Input } from "../ui/input";
 import { capitalizeFirstLetter, catalogoColores } from "@/lib/utils";
-import { Articulo_perdido_record } from "../table/articulos/pendientes/pendientes-columns";
+import { Articulo_perdido_record } from "../table/articulos/perdidos/pendientes-columns";
 import { useGetLockers } from "@/hooks/useGetLockers";
-import { Edit, Loader2 } from "lucide-react";
+import { Camera, Edit, Loader2, MapPin, Package, User } from "lucide-react";
 import DateTime from "../dateTime";
 import { useArticulosPerdidos } from "@/hooks/useArticulosPerdidos";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
@@ -170,464 +170,341 @@ export const EditarArticuloModal: React.FC<EditarFallaModalProps> = ({
 		setShowLoadingModal(true);
 	};
 
-  return (
-	<Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
-	<div className="cursor-pointer" title="Editar Artículo" onClick={handleOpenModal}>
-		<Edit className="w-5 h-5"/>
-	</div>
-        <DialogContent className="max-w-3xl overflow-y-auto max-h-[80vh] flex flex-col" aria-describedby="">
-			<DialogHeader className="flex-shrink-0">
-			<DialogTitle className="text-2xl text-center font-bold">
+	return (
+		<Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
+		  <div className="cursor-pointer" title="Editar Artículo" onClick={handleOpenModal}>
+			<Edit className="w-5 h-5" />
+		  </div>
+	  
+		  <DialogContent
+			className="p-0 overflow-hidden !max-w-[900px] w-[95vw] sm:w-[92vw] max-h-[95vh] rounded-3xl shadow-2xl flex flex-col border-none bg-background"
+			aria-describedby="">
+	  
+			<DialogHeader className="px-8 pt-8 pb-4 shrink-0 border-b border-slate-100">
+			  <DialogTitle className="text-2xl text-center font-bold text-gray-800">
 				{title}
-			</DialogTitle>
+			  </DialogTitle>
+			  <p className="text-center text-sm text-gray-400">
+				Modifica la información del artículo perdido
+			  </p>
 			</DialogHeader>
-            <div className="flex-grow overflow-y-auto p-4">
-			<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-			<FormField
-                    control={form.control}
-                    name="articulo_perdido"
-                    render={({ field}:any)=> (
-                        <FormItem>
-                            <FormLabel className="">
-                                <span className="text-red-500">*</span> Nombre:
-                            </FormLabel>{" "}
-                            <FormControl>
-                                <Input placeholder="Nombre Completo" {...field} value={field.value}
-                                />
-                            </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-				<FormField
-					control={form.control}
-					name="tipo_articulo_perdido"
-					render={({ field }:any) => (
-						<FormItem>
-							<FormLabel>Tipo de artículo:</FormLabel>
-							<FormControl>
-							<Select {...field} className="input"
-								onValueChange={(value:string) => {
-								field.onChange(value); 
-                                setTipoArt(value)
-							}}
-							value={tipoArt} 
-						>
-							<SelectTrigger className="w-full">
-								{isLoadingArticles && tipoArt == "" ? <SelectValue placeholder="Cargando Articulos..." />:
-                                <SelectValue placeholder="Selecciona un articulo" />}
-							</SelectTrigger>
-							<SelectContent>
-							{dataArticulos?.map((vehiculo:string, index:number) => (
-								<SelectItem key={index} value={vehiculo}>
-									{vehiculo}
-								</SelectItem>
-							))}
-							</SelectContent>
-						</Select>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>	
-
-				<FormField
-					control={form.control}
-					name="articulo_seleccion"
-					render={({ field }:any) => (
-						<FormItem>
-							<FormLabel>Artículo:</FormLabel>
-							<FormControl>
-							<Select {...field} className="input"
-								onValueChange={(value:string) => {
-								field.onChange(value); 
-							}}
-							value={field.value} 
-						>
-							<SelectTrigger className="w-full">
-								{isLoadingArticles && tipoArt ? (
-                                    <>
-                                    <div >Cargando articulos...</div>
-                                    </>
-								):(<>
-								{dataArticulos?.length > 0 ?( <>
-                                    <SelectValue placeholder="Selecciona una opcion..." />
-                                    </>)
-								:( <>
-                                    <div >Selecciona una categoria para ver las opciones...</div>
-                                    </>)
-								}
-								</>)}
-								
-							</SelectTrigger>
-							<SelectContent>
-							{dataArticulos?.length>0 ? (
-								dataArticulos?.map((item:string, index:number) => {
-									return (
-										<SelectItem key={index} value={item}>
-											{item}
-										</SelectItem>
-									)
-								})
-							):(
-								<><SelectItem disabled value={"no opciones"}>No hay opciones disponibles</SelectItem></>
-							)}
-							</SelectContent>
-						</Select>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>	
-	 			 <div className="flex justify-between">
-                    <LoadImage
-                        id="evidencia" 
-                        titulo={"Fotografía"} 
-                        setImg={setEvidencia}
-                        showWebcamOption={true}
-                        facingMode="environment"
-                        imgArray={evidencia}
-                        limit={10}
-                        />
+	  
+			<div className="overflow-y-auto flex-1 px-8 no-scrollbar">
+			  {!isSuccess ? (
+				// Skeleton mientras carga
+				<div className="space-y-6">
+				  {[1, 2, 3].map((s) => (
+					<div key={s} className="space-y-4">
+					  <div className="h-4 w-40 bg-slate-100 rounded animate-pulse" />
+					  <div className="grid grid-cols-2 gap-5">
+						{[1, 2, 3, 4].map((i) => (
+						  <div key={i} className="space-y-2">
+							<div className="h-3 w-24 bg-slate-100 rounded animate-pulse" />
+							<div className="h-10 w-full bg-slate-100 rounded-lg animate-pulse" />
+						  </div>
+						))}
+					  </div>
+					</div>
+				  ))}
 				</div>
-               
-                <FormField
-                    control={form.control}
-                    name="color_perdido"
-                    render={({ field }:any) => (
-                        <FormItem>
-                        <FormLabel>Color:</FormLabel>
-                        <FormControl>
-                        <Select {...field} className="input"
-                                onValueChange={(value:string) => {
-                                field.onChange(value); 
-                            }}
-                            value={field.value} 
-                            >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Selecciona un color" />
-                            </SelectTrigger>
-                            <SelectContent>
-                            {catalogoColores().map((vehiculo:string) => (
-                                <SelectItem key={vehiculo} value={vehiculo}>
-                                {vehiculo}
-                                </SelectItem>
-                            ))}
-                            </SelectContent>
-                            </Select>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />	
-
-                <FormField
-                    control={form.control}
-                    name="descripcion"
-                    render={({ field }:any) => (
-                        <FormItem>
-                        <FormLabel>Descripción: </FormLabel>
-                        <FormControl>
-                            <Textarea
-                            placeholder="Texto"
-                            className="resize-none"
-                            {...field}
-                            value={field.value}
-                            />
-                        </FormControl>
-
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-              
-
-                <FormField
-				control={form.control}
-				name="date_hallazgo_perdido"
-				render={() => (
-					<FormItem>
-					<FormLabel> Fecha del hallazgo:</FormLabel>
-					<FormControl>
-						{/* <Input type="datetime-local" placeholder="Fecha" {...field} /> */}
-						<DateTime date={date} setDate={setDate} />
-					</FormControl>
-
-					<FormMessage />
-					</FormItem>
-				)}
-				/>
-
-			    <FormField
-					control={form.control}
-					name="ubicacion_perdido"
-					render={({ field }:any) => (
-						<FormItem>
-							<FormLabel>Ubicacion:</FormLabel>
-							<FormControl>
-							<Select {...field} className="input"
-								onValueChange={(value:string) => {
-								field.onChange(value); 
-								setUbicacionSeleccionada(value); 
-							}}
-							value={ubicacionSeleccionada} 
-						>
-							<SelectTrigger className="w-full">
-								{isLoadingLocations?
-								<SelectValue placeholder="Cargando ubicaciones..." />:<SelectValue placeholder="Selecciona una ubicación" />}
-							</SelectTrigger>
-							<SelectContent>
-							{ubicaciones?.map((vehiculo:string, index:number) => (
-								<SelectItem key={index} value={vehiculo}>
-									{vehiculo}
-								</SelectItem>
-							))}
-							</SelectContent>
-						</Select>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<FormField
-					control={form.control}
-					name="area_perdido"
-					render={({ field }:any) => (
-						<FormItem>
-							<FormLabel>Area:</FormLabel>
-							<FormControl>
-							<Select {...field} className="input"
-								onValueChange={(value:string) => {
-								field.onChange(value); 
-							}}
-							value={field.value} 
-						>
-							<SelectTrigger className="w-full">
-							{isLoadingAreas?
-								 <>
-                                 <div >Cargando areas...</div>
-                                 </>:<>
-								{areas?.length > 0 ?( <>
-                                    <SelectValue placeholder="Selecciona una opcion..." />
-                                    </>)
-								:( <>
-                                    <div >Delecciona una ubicacion para ver las opciones...</div>
-                                    </>)
-								}
-								</>}
-							</SelectTrigger>
-							<SelectContent>
-							{areas?.length >0 ? (
-								<>
-								{areas?.map((area:string, index:number) => {
-								return(
-									<SelectItem key={index} value={area}>
-									{area}
-									</SelectItem>
-								)})} 
-								</>
-							):<SelectItem key={"1"} value={"1"} disabled>No hay opciones disponibles.</SelectItem>}
-							</SelectContent>
-						</Select>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-                <FormField
-				control={form.control}
-				name="comentario_perdido"
-				render={({ field }:any) => (
-					<FormItem>
-					<FormLabel>Comentarios</FormLabel>
-					<FormControl className="col-span-2">
-						<Textarea
-						placeholder="Texto"
-						className="resize-none w-full"
-						{...field}
-                        value={field.value}
+			  ) : (
+				<Form {...form}>
+				  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+	  
+					{/* Información general */}
+					<div className="space-y-4">
+					  <div className="flex items-center gap-2">
+						<MapPin className="text-blue-500 w-5 h-5" />
+						<h3 className="font-semibold text-gray-700">Información general</h3>
+					  </div>
+					  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+						<FormField control={form.control} name="ubicacion_perdido"
+						  render={({ field }: any) => (
+							<FormItem>
+							  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ubicación</FormLabel>
+							  <FormControl>
+								<Select {...field} onValueChange={(value: string) => { field.onChange(value); setUbicacionSeleccionada(value); }} value={ubicacionSeleccionada}>
+								  <SelectTrigger className="w-full">
+									{isLoadingLocations ? <SelectValue placeholder="Cargando ubicaciones..." /> : <SelectValue placeholder="Selecciona una ubicación" />}
+								  </SelectTrigger>
+								  <SelectContent>
+									{ubicaciones?.map((v: string, i: number) => <SelectItem key={i} value={v}>{v}</SelectItem>)}
+								  </SelectContent>
+								</Select>
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
 						/>
-					</FormControl>
-					<FormMessage />
-					</FormItem>
-				)}
-				/>
- 				
-        
-                <div className="flex gap-2 flex-col ">
-						<FormLabel className="mb-2">
-                        Quién entrega, Selecciona una opción:
-						</FormLabel>
+	  
+						<FormField control={form.control} name="area_perdido"
+						  render={({ field }: any) => (
+							<FormItem>
+							  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Área</FormLabel>
+							  <FormControl>
+								<Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
+								  <SelectTrigger className="w-full">
+									{isLoadingAreas
+									  ? <SelectValue placeholder="Cargando áreas..." />
+									  : <SelectValue placeholder={areas?.length > 0 ? "Selecciona una opción..." : "Selecciona una ubicación primero"} />}
+								  </SelectTrigger>
+								  <SelectContent>
+									{areas?.length > 0
+									  ? areas.map((a: string, i: number) => <SelectItem key={i} value={a}>{a}</SelectItem>)
+									  : <SelectItem key="1" value="1" disabled>No hay opciones disponibles.</SelectItem>}
+								  </SelectContent>
+								</Select>
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
+						/>
+	  
+						<FormField control={form.control} name="date_hallazgo_perdido"
+						  render={() => (
+							<FormItem>
+							  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha del hallazgo</FormLabel>
+							  <FormControl>
+								<DateTime date={date} setDate={setDate} />
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
+						/>
+	  
+						<FormField control={form.control} name="locker_perdido"
+						  render={({ field }: any) => (
+							<FormItem>
+							  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Área de resguardo</FormLabel>
+							  <FormControl>
+								<Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
+								  <SelectTrigger className="w-full">
+									{loadingGetLockers ? <SelectValue placeholder="Cargando opciones..." /> : <SelectValue placeholder="Selecciona una opción" />}
+								  </SelectTrigger>
+								  <SelectContent>
+									{responseGetLockers
+									  ? responseGetLockers.map((locker: any, i: number) => <SelectItem key={i} value={locker.locker_id}>{locker.locker_id}</SelectItem>)
+									  : <SelectItem value="0" disabled>Selecciona una ubicación</SelectItem>}
+								  </SelectContent>
+								</Select>
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
+						/>
+					  </div>
+					</div>
+	  
+					{/* Fotografía */}
+					<div className="space-y-4">
+					  <div className="flex items-center gap-2">
+						<Camera className="text-blue-500 w-5 h-5" />
+						<h3 className="font-semibold text-gray-700">Fotografía del artículo</h3>
+					  </div>
+					  <div className="grid grid-cols-2">
+						<LoadImage
+						  id="evidencia"
+						  titulo="Fotografía del artículo"
+						  setImg={setEvidencia}
+						  showWebcamOption={true}
+						  facingMode="environment"
+						  imgArray={evidencia}
+						  limit={10}
+						/>
+					  </div>
+					</div>
+					{/* Detalles del artículo */}
+					<div className="space-y-4">
+					  <div className="flex items-center gap-2">
+						<Package className="text-blue-500 w-5 h-5" />
+						<h3 className="font-semibold text-gray-700">Detalles del artículo</h3>
+					  </div>
+					  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+						<FormField control={form.control} name="articulo_perdido"
+						  render={({ field }: any) => (
+							<FormItem>
+							  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nombre</FormLabel>
+							  <FormControl>
+								<Input placeholder="Nombre del artículo" {...field} value={field.value} />
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
+						/>
+	  
+						<FormField control={form.control} name="tipo_articulo_perdido"
+						  render={({ field }: any) => (
+							<FormItem>
+							  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo de artículo</FormLabel>
+							  <FormControl>
+								<Select {...field} onValueChange={(value: string) => { field.onChange(value); setTipoArt(value); }} value={tipoArt}>
+								  <SelectTrigger className="w-full">
+									{isLoadingArticles && tipoArt === ""
+									  ? <SelectValue placeholder="Cargando artículos..." />
+									  : <SelectValue placeholder="Selecciona un tipo" />}
+								  </SelectTrigger>
+								  <SelectContent>
+								  {[...new Set(dataArticulos ?? [])].map((v: unknown, i: number) => (
+									<SelectItem key={i} value={v as string}>{v as string}</SelectItem>
+									))}
+								  </SelectContent>
+								</Select>
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
+						/>
+	  
+						<FormField control={form.control} name="articulo_seleccion"
+						  render={({ field }: any) => (
+							<FormItem>
+							  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Artículo</FormLabel>
+							  <FormControl>
+								<Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
+								  <SelectTrigger className="w-full">
+									{isLoadingArticles && tipoArt
+									  ? <SelectValue placeholder="Cargando artículos..." />
+									  : <SelectValue placeholder={dataArticulos?.length > 0 ? "Selecciona una opción..." : "Selecciona una categoría primero"} />}
+								  </SelectTrigger>
+								  <SelectContent>
+									{dataArticulos?.length > 0
+									  ? [...new Set(dataArticulos ?? [])].map((v: unknown, i: number) => (
+										<SelectItem key={i} value={v as string}>{v as string}</SelectItem>
+									  ))
+									  : <SelectItem disabled value="no opciones">No hay opciones disponibles</SelectItem>}
+								  </SelectContent>
+								</Select>
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
+						/>
+	  
+						<FormField control={form.control} name="color_perdido"
+						  render={({ field }: any) => (
+							<FormItem>
+							  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Color</FormLabel>
+							  <FormControl>
+								<Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
+								  <SelectTrigger className="w-full">
+									<SelectValue placeholder="Selecciona un color" />
+								  </SelectTrigger>
+								  <SelectContent>
+									{catalogoColores().map((v: string) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+								  </SelectContent>
+								</Select>
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
+						/>
+	  
+						<FormField control={form.control} name="descripcion"
+						  render={({ field }: any) => (
+							<FormItem className="col-span-2">
+							  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Descripción</FormLabel>
+							  <FormControl>
+								<Textarea placeholder="Escribe una descripción..." className="resize-none" {...field} value={field.value} />
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
+						/>
+	  
+						<FormField control={form.control} name="comentario_perdido"
+						  render={({ field }: any) => (
+							<FormItem className="col-span-2">
+							  <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Comentarios</FormLabel>
+							  <FormControl>
+								<Textarea placeholder="Comentarios adicionales..." className="resize-none" {...field} value={field.value} />
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
+						/>
+					  </div>
+					</div>
+	  
+					{/* Quién entrega */}
+					<div className="space-y-4">
+					  <div className="flex items-center gap-2">
+						<User className="text-blue-500 w-5 h-5" />
+						<h3 className="font-semibold text-gray-700">Quién entrega</h3>
+					  </div>
+					  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 						<div className="flex gap-2">
-							<div className="flex gap-2 flex-wrap">
-								<Button
-								type="button"
-								onClick={() => setIsActiveInterno("interno")}
-								className={`px-4 py-2 rounded-md transition-all duration-300 ${
-                                    isActiveInterno === 'interno'
-                                      ? 'bg-blue-600 text-white'
-                                      : 'border-2 border-blue-400 bg-transparent'
-                                  } hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`} //hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]
-								>
-								<div className="flex flex-wrap items-center">
-									{isActiveInterno == "interno"? (
-									<>
-										<div>Interno</div>
-									</>
-									) : (
-									<>
-										<div className="text-blue-600">Interno</div>
-									</>
-									)}
-								</div>
-								</Button>
-							</div>
-							<div className="flex gap-2 flex-wrap">
-								<Button
-								type="button"
-								onClick={() => setIsActiveInterno("externo")}
-								className={`px-4 py-2 rounded-md transition-all duration-300 ${
-                                    isActiveInterno === 'externo'
-                                      ? 'bg-blue-600 text-white'
-                                      : 'border-2 border-blue-400 bg-transparent'
-                                  } hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-								>
-								<div className="flex flex-wrap items-center">
-									{isActiveInterno == "externo"? (
-									<>
-										<div>Externo</div>
-									</>
-									) : (
-									<>
-										<div className="text-blue-600">Externo</div>
-									</>
-									)}
-								</div>
-								</Button>
-							</div>
-						</div>						
-				</div>
-                <br/>
-                {isActiveInterno=="interno"? (
-                    <FormField
-                        control={form.control}
-                            name="quien_entrega_interno"
-                            render={({ field }:any) => (
-                                <FormItem>
-                                    <FormLabel>Quien entrega Interno:</FormLabel>
-                                    <FormControl>
-                                    <Select {...field} className="input"
-                                        onValueChange={(value:string) => {
-                                        field.onChange(value); 
-                                    }}
-                                    value={field.value} 
-                                >
-                                    <SelectTrigger className="w-full">
-                                        {loadingAreaEmpleado?(<>
-                                            <SelectValue placeholder="Cargando opciones..." />
-                                        </>):(<>
-                                            <SelectValue placeholder="Selecciona una opcion" />
-                                        </>)}
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                    {dataAreaEmpleado?.map((vehiculo:string, index:number) => (
-                                        <SelectItem key={index} value={vehiculo}>
-                                            {vehiculo}
-                                        </SelectItem>
-                                    ))}
-                                    </SelectContent>
-                                </Select>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                        )}
-                    />	
-                ):(
-                    <FormField
-                        control={form.control}
-                            name="quien_entrega_externo"
-                            render={({ field}:any)=> (
-                                <FormItem>
-                                    <FormLabel className="">
-                                        <span className="text-red-500">*</span> Quien entrega Externo:
-                                    </FormLabel>{" "}
-                                    <FormControl>
-                                        <Input placeholder="Nombre" {...field} value={field.value}
-                                        />
-                                    </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                        )}
-                    />
-                )}
-
-                <FormField
-                    control={form.control}
-                        name="locker_perdido"
-                        render={({ field }:any) => (
-                            <FormItem>
-                                <FormLabel>Área de resguardo:</FormLabel>
-                                <FormControl>
-                                <Select {...field} className="input"
-                                    onValueChange={(value:string) => {
-                                    field.onChange(value); 
-                                }}
-                                value={field.value} 
-                            >
-                                <SelectTrigger className="w-full">
-                                    {loadingGetLockers?(<>
-                                        <SelectValue placeholder="Cargando opciones..." />
-                                    </>):(<>
-                                        <SelectValue placeholder="Selecciona una opcion" />
-                                    </>)}
-                                </SelectTrigger>
-                                <SelectContent>
-                                {responseGetLockers ? <>
-                                    {responseGetLockers?.map((locker:any, index:number) => (
-                                        <SelectItem key={index} value={locker.locker_id}>
-                                            {locker.locker_id}
-                                        </SelectItem>
-                                    ))}
-                                </>: 
-                                    <SelectItem key={"0"} value={"0"} disabled>
-                                        Selecciona una ubicación
-                                    </SelectItem>
-                                }
-                                </SelectContent>
-                            </Select>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                    )}
-                />	
-			</form>
-			</Form>
-		    </div>
-			<div className="flex gap-2">
-				<DialogClose asChild>
-						<Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose}>
-							Cancelar
-						</Button>
-					</DialogClose>
-
-					<Button
-						type="submit"
-						onClick={form.handleSubmit(onSubmit)}
-						className="w-full  bg-blue-500 hover:bg-blue-600 text-white " disabled={isLoading}
-					>
-						{isLoading ? (
-							<>
-								<Loader2 className="animate-spin" /> {"Editando falla..."}
-							</>
-						) : ("Editar falla")}
-					</Button>
+						  <button type="button" onClick={() => setIsActiveInterno("interno")}
+							className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+							  isActiveInterno === "interno"
+								? "bg-blue-600 text-white shadow-sm"
+								: "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50"
+							}`}>
+							Interno
+						  </button>
+						  <button type="button" onClick={() => setIsActiveInterno("externo")}
+							className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+							  isActiveInterno === "externo"
+								? "bg-blue-600 text-white shadow-sm"
+								: "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50"
+							}`}>
+							Externo
+						  </button>
+						</div>
+	  
+					
+					  </div>
+					  {isActiveInterno === "interno" ? (
+						  <FormField control={form.control} name="quien_entrega_interno"
+							render={({ field }: any) => (
+							  <FormItem>
+								<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Quien entrega (Interno)</FormLabel>
+								<FormControl>
+								  <Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
+									<SelectTrigger className="w-full">
+									  {loadingAreaEmpleado ? <SelectValue placeholder="Cargando opciones..." /> : <SelectValue placeholder="Selecciona una opción" />}
+									</SelectTrigger>
+									<SelectContent>
+									  {dataAreaEmpleado?.map((v: string, i: number) => <SelectItem key={i} value={v}>{v}</SelectItem>)}
+									</SelectContent>
+								  </Select>
+								</FormControl>
+								<FormMessage />
+							  </FormItem>
+							)}
+						  />
+						) : (
+						  <FormField control={form.control} name="quien_entrega_externo"
+							render={({ field }: any) => (
+							  <FormItem>
+								<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Quien entrega (Externo)</FormLabel>
+								<FormControl>
+								  <Input placeholder="Nombre de quien entrega" {...field} value={field.value} />
+								</FormControl>
+								<FormMessage />
+							  </FormItem>
+							)}
+						  />
+						)}
+					</div>
+	  
+	  
+				  </form>
+				</Form>
+			  )}
 			</div>
-            </DialogContent>
-        </Dialog>
-  );
+	  
+			<div className="flex gap-2 px-8 py-4 border-t border-slate-100 shrink-0">
+			  <DialogClose asChild>
+				<Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose}>
+				  Cancelar
+				</Button>
+			  </DialogClose>
+			  <Button type="submit" onClick={form.handleSubmit(onSubmit)}
+				className="w-full bg-blue-500 hover:bg-blue-600 text-white" disabled={isLoading}>
+				{isLoading ? <><Loader2 className="animate-spin" /> Editando artículo...</> : "Editar artículo"}
+			  </Button>
+			</div>
+		  </DialogContent>
+		</Dialog>
+	  );
 };

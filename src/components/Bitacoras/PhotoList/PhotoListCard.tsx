@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import dynamic from "next/dynamic";
 import { MapItem } from "@/components/table/rondines/recorridos/table";
 import { ArrayBadgeList } from "@/components/arrayBagdeList";
+import { EstatusBadge } from "@/components/estatus-badge";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
@@ -120,15 +121,21 @@ console.log("gafeteItem:", gafeteItem);
                 {titleCard}
               </h3>
             </div>
-            {record?.badgesList && record?.badgesList?.length > 0 && (
-              <div className="flex gap-2 mr-7">
-                {record?.badgesList?.map((badge, index) => (
+           
+          {record?.badgesList && record?.badgesList?.length > 0 && (
+            <div className="flex gap-2 mr-7 flex-wrap">
+              {record?.badgesList?.map((badge, index) =>
+                badge.isEstatus ? (
+                  <EstatusBadge key={index} estatus={badge.label} />
+                ) : (
                   <Badge key={index} className={badge.customClass}>
                     {badge.label}
                   </Badge>
-                ))}
-              </div>
-            )}
+                )
+              )}
+            </div>
+          )}
+
           </div>
 
           <div className="flex items-center gap-3 mb-4">
@@ -199,7 +206,7 @@ console.log("gafeteItem:", gafeteItem);
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ height: "240px", width: "100%" }}>
-                <MapView map_data={mapData} areas={record?.areas || []} />
+                {/* <MapView map_data={mapData} areas={record?.areas || []} /> */}
               </div>
             </div>
               {(() => {

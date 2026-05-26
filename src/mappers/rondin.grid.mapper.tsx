@@ -60,7 +60,7 @@ const status = estatus === "corriendo"
       },
     ],
     rawData: raw,
-    vehiculos: [],
-    equipos: [],
+    vehiculos: null,
+    equipos: null,
   };
 }

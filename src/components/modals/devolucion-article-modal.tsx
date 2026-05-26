@@ -26,7 +26,7 @@ import { ArrowRightLeft, Loader2 } from "lucide-react";
 import { Input } from "../ui/input";
 import { useShiftStore } from "@/store/useShiftStore";
 import { useArticulosPerdidos } from "@/hooks/useArticulosPerdidos";
-
+import { User, Camera } from "lucide-react";
 interface AddFallaModalProps {
   	title: string;
 	data: any;
@@ -135,167 +135,144 @@ export const DevolucionArticuloModal: React.FC<AddFallaModalProps> = ({
 		setIsSuccess(true);
 	};
 
-  return (
-    <Dialog onOpenChange={setIsSuccess} open={isSuccess}>
-      <div className="cursor-pointer" title="Devolver Artículo" onClick={handleOpenModal}>
-        <ArrowRightLeft className="w-5 h-5"/>
-	    </div>
-
-      <DialogContent className="max-w-3xl overflow-y-auto max-h-[80vh] flex flex-col" aria-describedby="">
-			<DialogHeader className="flex-shrink-0">
-			<DialogTitle className="text-2xl text-center font-bold">
+	return (
+		<Dialog onOpenChange={setIsSuccess} open={isSuccess}>
+		  <div className="cursor-pointer" title="Devolver Artículo" onClick={handleOpenModal}>
+			<ArrowRightLeft className="w-5 h-5" />
+		  </div>
+	  
+		  <DialogContent
+			className="p-0 overflow-hidden !max-w-[700px] w-[95vw] rounded-3xl shadow-2xl flex flex-col border-none bg-background"
+			aria-describedby="">
+	  
+			<DialogHeader className="px-8 pt-8 pb-4 shrink-0 border-b border-slate-100">
+			  <DialogTitle className="text-2xl text-center font-bold text-gray-800">
 				{title}
-			</DialogTitle>
+			  </DialogTitle>
+			  <p className="text-center text-sm text-gray-400">
+				Registra la devolución del artículo
+			  </p>
 			</DialogHeader>
-            <div className="overflow-y-auto p-2">
-                <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} >
-					<div className="w-full flex gap-2 mb-2">
-						<p className="font-bold ">Folio: </p>
-						<p  className="font-bold text-blue-500">{data?.folio} </p>
+	  
+			<div className="overflow-y-auto flex-1 px-8 no-scrollbar">
+			  <div className="flex gap-2 mb-6">
+				<p className="text-sm font-semibold text-gray-500">Folio:</p>
+				<p className="text-sm font-bold text-blue-500">{data?.folio}</p>
+			  </div>
+	  
+			  <Form {...form}>
+				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+	  
+				  {/* Datos de quien recibe */}
+				  <div className="space-y-4">
+					<div className="flex items-center gap-2">
+					  <User className="text-blue-500 w-5 h-5" />
+					  <h3 className="font-semibold text-gray-700">Datos de quien recibe</h3>
 					</div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6 ">
-
-                    <div className="flex justify-between">
-                            <LoadImage
-                                id="foto_recibe_perdido"
-                                titulo={"Foto de quien recibe"}
-                                setImg={setFoto}
-                                showWebcamOption={true}
-                                facingMode="user" 
-                                imgArray={foto} 
-                                limit={10}
-                                />
-                        </div>
-
-
-                        <div className="flex justify-between">
-                            <LoadImage
-                                id="identificacion_recibe_perdido"
-                                titulo={"Identificación de quien recibe"}
-                                setImg={setIden}
-                                showWebcamOption={true}
-                                facingMode="user" 
-                                imgArray={iden} 
-                                limit={10}
-                                />
-                        </div>
-
-
-                        <FormField
-                        control={form.control}
-                        name="recibe_perdido"
-                        render={({ field }:any) => (
-                            <FormItem>
-                            <FormLabel>Recibe:</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Quién recibe..." {...field} 
-                                onChange={(e) => {
-                                    field.onChange(e); // Actualiza el valor en react-hook-form
-                                }}
-                                value={field.value || ""}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-
-                      <FormField
-                        control={form.control}
-                        name="telefono_recibe_perdido"
-                        render={({ field }:any) => (
-                            <FormItem>
-                            <FormLabel>Teléfono de quien recibe:</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Teléfono..." {...field} 
-                                onChange={(e) => {
-                                    field.onChange(e); // Actualiza el valor en react-hook-form
-                                }}
-                                value={field.value || ""}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-
-                   
-                    </div>
-
-                    <div className="flex gap-2 flex-col ">
-						<FormLabel className="mb-2">
-                        Quién entrega, Selecciona una opción:
-						</FormLabel>
-						<div className="flex gap-2">
-							<div className="flex gap-2 flex-wrap">
-								<Button
-								type="button"
-								onClick={() => setIsActiveDevolucion("entregado")}
-								className={`px-4 py-2 rounded-md transition-all duration-300 ${
-                                    isActiveDevolucion === 'entregado'
-                                      ? 'bg-blue-600 text-white'
-                                      : 'border-2 border-blue-400 bg-transparent'
-                                  } hover:bg-current hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`} //hover:bg-transparent hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]
-								>
-								<div className="flex flex-wrap items-center">
-									{isActiveDevolucion == "entregado"? (
-									<>
-										<div>Entregado</div>
-									</>
-									) : (
-									<>
-										<div className="text-blue-600">Entregado</div>
-									</>
-									)}
-								</div>
-								</Button>
-							</div>
-							<div className="flex gap-2 flex-wrap">
-								<Button
-								type="button"
-								onClick={() => setIsActiveDevolucion("Donado")}
-								className={`px-4 py-2 rounded-md transition-all duration-300 ${
-                                    isActiveDevolucion === 'Donado'
-                                      ? 'bg-blue-600 text-white'
-                                      : 'border-2 border-blue-400 bg-transparent'
-                                  } hover:bg-current hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}
-								>
-								<div className="flex flex-wrap items-center">
-									{isActiveDevolucion == "Donado"? (
-									<>
-										<div>Donado</div>
-									</>
-									) : (
-									<>
-										<div className="text-blue-600">Donado</div>
-									</>
-									)}
-								</div>
-								</Button>
-							</div>
-						</div>						
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+					  <FormField control={form.control} name="recibe_perdido"
+						render={({ field }: any) => (
+						  <FormItem>
+							<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Recibe</FormLabel>
+							<FormControl>
+							  <Input placeholder="Nombre de quien recibe..." {...field}
+								onChange={(e) => field.onChange(e)} value={field.value || ""} />
+							</FormControl>
+							<FormMessage />
+						  </FormItem>
+						)}
+					  />
+	  
+					  <FormField control={form.control} name="telefono_recibe_perdido"
+						render={({ field }: any) => (
+						  <FormItem>
+							<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teléfono</FormLabel>
+							<FormControl>
+							  <Input placeholder="Teléfono..." {...field}
+								onChange={(e) => field.onChange(e)} value={field.value || ""} />
+							</FormControl>
+							<FormMessage />
+						  </FormItem>
+						)}
+					  />
 					</div>
-                </form>
-                </Form>
-            </div>
-            <div className="flex gap-2">
-				<DialogClose asChild>
-					<Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose}>
-						Cancelar
-					</Button>
-				</DialogClose>
-
-				
-				<Button
-					type="submit"
-					className="w-full bg-blue-500 hover:bg-blue-600 text-white " disabled={isLoading} onClick={form.handleSubmit(onSubmit)}>
-					{ !isLoading ? (<>
-					{("Devolver artículo")}
-					</>) :(<> <Loader2 className="animate-spin"/> {"Devolver artículo..."} </>)}
+				  </div>
+	  
+				  {/* Fotografías */}
+				  <div className="space-y-4">
+					<div className="flex items-center gap-2">
+					  <Camera className="text-blue-500 w-5 h-5" />
+					  <h3 className="font-semibold text-gray-700">Fotografías</h3>
+					</div>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+					  <LoadImage
+						id="foto_recibe_perdido"
+						titulo="Foto de quien recibe"
+						setImg={setFoto}
+						showWebcamOption={true}
+						facingMode="user"
+						imgArray={foto}
+						limit={10}
+					  />
+					  <LoadImage
+						id="identificacion_recibe_perdido"
+						titulo="Identificación de quien recibe"
+						setImg={setIden}
+						showWebcamOption={true}
+						facingMode="user"
+						imgArray={iden}
+						limit={10}
+						tipoOcr="id"
+						onOcrResult={(result) => {
+						  if (result?.nombre) form.setValue("recibe_perdido", result.nombre);
+						  if (result?.telefono) form.setValue("telefono_recibe_perdido", result.telefono);
+						}}
+					  />
+					</div>
+				  </div>
+	  
+				  {/* Tipo de devolución */}
+				  <div className="space-y-4">
+					<div className="flex items-center gap-2">
+					  <ArrowRightLeft className="text-blue-500 w-5 h-5" />
+					  <h3 className="font-semibold text-gray-700">Tipo de devolución</h3>
+					</div>
+					<div className="flex gap-2">
+					  <button type="button" onClick={() => setIsActiveDevolucion("entregado")}
+						className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+						  isActiveDevolucion === "entregado"
+							? "bg-blue-600 text-white shadow-sm"
+							: "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50"
+						}`}>
+						Entregado
+					  </button>
+					  <button type="button" onClick={() => setIsActiveDevolucion("Donado")}
+						className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+						  isActiveDevolucion === "Donado"
+							? "bg-blue-600 text-white shadow-sm"
+							: "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50"
+						}`}>
+						Donado
+					  </button>
+					</div>
+				  </div>
+	  
+				</form>
+			  </Form>
+			</div>
+	  
+			<div className="flex gap-2 px-8 py-4 border-t border-slate-100 shrink-0">
+			  <DialogClose asChild>
+				<Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose}>
+				  Cancelar
 				</Button>
-			</div>   
-      </DialogContent>
-    </Dialog>
-  );
+			  </DialogClose>
+			  <Button type="submit" onClick={form.handleSubmit(onSubmit)}
+				className="w-full bg-blue-500 hover:bg-blue-600 text-white" disabled={isLoading}>
+				{isLoading ? <><Loader2 className="animate-spin" /> Devolviendo artículo...</> : "Devolver artículo"}
+			  </Button>
+			</div>
+		  </DialogContent>
+		</Dialog>
+	  );
 };

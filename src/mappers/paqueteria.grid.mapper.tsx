@@ -57,7 +57,7 @@ export function mapPaqueteriaGrid(raw: any, base: any) {
       { icon: <Package className="h-3 w-3" />, label: "Descripción", value: raw?.descripcion_paqueteria },
     ],
     rawData: raw,
-    vehiculos: [],
-    equipos: [],
+    vehiculos: null,
+    equipos: null,
   };
 }

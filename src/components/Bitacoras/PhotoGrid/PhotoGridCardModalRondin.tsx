@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, ArrowUpRight, Camera } from "lucide-react";
 import { PhotoRecord } from "@/types/bitacoras";
 import { cn } from "@/lib/utils";
+import { EstatusBadge } from "@/components/estatus-badge";
 
 export interface ModalBadgeItem {
   label: string;
@@ -140,28 +141,22 @@ export function PhotoCheckAreaModal({
           {/* RIGHT: Info panel */}
           <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-background">
             <div className="px-8 pt-8 pb-4 shrink-0 space-y-3">
-
-              {/* Badges + botón ir al rondín */}
-              <div className="flex flex-wrap gap-1.5">
-                {badges.slice(0, 3).map((badge, idx) => (
+                {/* Badges + botón ir al rondín */}
+                <div className="flex flex-wrap gap-1.5">
+                  {record.statusLabel && (
+                    <EstatusBadge estatus={(record as any).statusLabel} />
+                  )}
+                  {badges.filter(b => b.value).map((badge, idx) => (
                     <div key={idx} className={cn(
-                    "inline-flex items-center px-2 py-0.5 rounded-full border",
-                    badge.customClass || "bg-primary/5 border-primary/20 text-primary"
+                      "inline-flex items-center px-2 py-0.5 rounded-full border",
+                      badge.customClass || "bg-primary/5 border-primary/20 text-primary"
                     )}>
-                    <span className="text-[9px] font-black uppercase tracking-[0.1em]">
+                      <span className="text-[9px] font-black uppercase tracking-[0.1em]">
                         {badge.label}{badge.value}
-                    </span>
+                      </span>
                     </div>
-                ))}
-                {incidencias.length > 0 && (
-                    <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-600 border border-red-200">
-                    <span className="text-[9px] font-black uppercase tracking-[0.1em]">
-                        {incidencias.length} incidencia{incidencias.length > 1 ? "s" : ""}
-                    </span>
-                    </div>
-                )}
+                  ))}
                 </div>
-
                 {/* Title + botón */}
                 <div className="flex items-start justify-between gap-4 pt-4">
                 <div className="min-w-0">

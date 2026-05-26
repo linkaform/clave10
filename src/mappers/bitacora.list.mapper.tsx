@@ -12,6 +12,7 @@ export function mapBitacoraList(raw: any, base: any) {
       raw?.identificacion?.[0]?.file_url?.replace(".jpg", ".thumbnail") || null,
     ].filter((url): url is string => url !== null),
     status: raw?.status_visita === "Entrada" ? "entrada" : "salida",
+    statusLabel: raw?.status_visita || "",
     badgesList: [
       {
         customClass: cn(

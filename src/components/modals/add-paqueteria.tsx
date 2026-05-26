@@ -131,14 +131,16 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
         className="p-0 overflow-hidden !max-w-[900px] w-[95vw] sm:w-[92vw] max-h-[95vh] rounded-3xl shadow-2xl flex flex-col border-none bg-background"
         aria-describedby=""
         onInteractOutside={(e) => e.preventDefault()}>
+		<DialogHeader className="px-8 pt-8 pb-4 shrink-0 border-b border-slate-100">
+			<DialogTitle className="text-2xl text-center font-bold text-gray-800">
+				{title}
+			</DialogTitle>
+			<p className="text-center text-sm text-gray-400">
+				Completa la información para registrar el paquete
+			</p>
+		</DialogHeader>
 
-        <DialogHeader className="px-8 pt-8 pb-4 shrink-0 border-b border-slate-100">
-          <DialogTitle className="text-xl font-extrabold tracking-tight">
-            {title}
-          </DialogTitle>
-        </DialogHeader>
-
-		<div className="overflow-y-auto flex-1 px-8 py-6 no-scrollbar">
+		<div className="overflow-y-auto flex-1 px-8 no-scrollbar">
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
@@ -320,7 +322,25 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
 				showWebcamOption={true}
 				facingMode="environment"
 				imgArray={evidencia}
-				limit={10}
+				limit={10} 
+				tipoOcr="truck"
+				onOcrResult={(result) => {
+					if (result?.descripcion) {
+					  form.setValue("descripcion_paqueteria", result.descripcion);
+					}
+					if (result?.paqueteria) {
+					  const normalize = (str: string) =>
+						str?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() ?? "";
+					  
+					  const match = dataProveedores?.find((p: string) =>
+						normalize(p).includes(normalize(result.paqueteria)) ||
+						normalize(result.paqueteria).includes(normalize(p))
+					  );
+					  if (match) {
+						form.setValue("proveedor", match);
+					  }
+					}
+				  }}
 				/>
 			</div>
 

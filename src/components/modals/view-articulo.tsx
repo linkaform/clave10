@@ -12,7 +12,7 @@ import Image from "next/image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../ui/carousel";
 import { Card, CardContent } from "../ui/card";
 import { capitalizeFirstLetter, formatDateToText } from "@/lib/utils";
-import { Articulo_perdido_record } from "../table/articulos/pendientes/pendientes-columns";
+import { Articulo_perdido_record } from "../table/articulos/perdidos/pendientes-columns";
 
 interface ViewArtModalProps {
   title: string;

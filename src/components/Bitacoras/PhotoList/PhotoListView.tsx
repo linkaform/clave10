@@ -235,7 +235,11 @@ export default function PhotoListView({
           actions={modalActions?.(selectedRecord)}
           onOpenChange={setIsModalOpen}>
           {selectedChildren}
-          <EquiposYVehiculosList record={selectedRecord as any} />
+          {selectedRecord?.vehiculos != null && selectedRecord?.equipos != null && (
+          ((selectedRecord?.vehiculos?.length ?? 0) > 0 || (selectedRecord?.equipos?.length ?? 0) > 0) && (
+            <EquiposYVehiculosList record={selectedRecord as any} />
+          )
+        )}
         </PhotoListCardModal>
       )}
     </div>

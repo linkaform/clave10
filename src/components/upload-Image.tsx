@@ -9,6 +9,7 @@ import Webcam from "react-webcam";
 import { base64ToFile, quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
 import Image from "next/image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
+import { useOcr } from "@/hooks/ocr/useOcr";
 
 export type Imagen = {
   file_url?: string;
@@ -25,6 +26,8 @@ interface CalendarDaysProps {
   limit?: number;
   /** Callback que notifica al padre cuando este componente está subiendo imágenes */
   onLoadingChange?: (isLoading: boolean) => void;
+  onOcrResult?: (result: any) => void; 
+  tipoOcr?: "id" | "paquete" | "truck"; 
 }
 
 const LoadImage: React.FC<CalendarDaysProps> = ({
@@ -36,6 +39,8 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   imgArray,
   limit = 50,
   onLoadingChange,
+  onOcrResult,
+  tipoOcr = "id",
 }) => {
 
   const [loadingWebcam, setLoadingWebcam] = useState(false);
@@ -44,13 +49,25 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   const [webcamReady, setWebcamReady] = useState(false);
   const { uploadImageMutation, isLoading } = useUploadImage();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const webcamRef = useRef<Webcam | null>(null);
   const videoConstraints = { width: 320, height: 240, facingMode };
   const reachedLimit = (imgArray?.length ?? 0) >= limit;
   const [activeIndex, setActiveIndex] = useState(0);
   const [carouselApi, setCarouselApi] = useState<any>(null);
+  const { ocrIdMutation, ocrPaqueteMutation, ocrTruckMutation } = useOcr();
 
+  const ocrMutation = tipoOcr === "paquete"
+    ? ocrPaqueteMutation
+    : tipoOcr === "truck"
+    ? ocrTruckMutation
+    : ocrIdMutation;
+
+  const handleAnalizar = async () => {
+    if (!imgArray?.length) return;
+    const urls = imgArray.map((i: Imagen) => i.file_url).filter(Boolean);
+    const result = await ocrMutation.mutateAsync(urls);
+    onOcrResult?.(result);
+  };
   // Notificar al padre cuando cambia isLoading
   useEffect(() => {
     onLoadingChange?.(isLoading);
@@ -322,7 +339,25 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
                   </>
                 )}
               </Carousel>
-
+              {onOcrResult && imgArray?.length > 0 && hideWebcam && (
+                <button
+                  type="button"
+                  onClick={handleAnalizar}
+                  disabled={ocrIdMutation.isPending}
+                  className="mt-2 w-52 flex items-center justify-center gap-2 bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                 {ocrMutation.isPending ? (
+                    <>
+                      <svg className="w-3 h-3 animate-spin text-white" viewBox="0 0 100 101" fill="none">
+                        <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591..." fill="currentColor" opacity="0.3"/>
+                        <path d="M93.9676 39.0409..." fill="currentColor"/>
+                      </svg>
+                      Analizando...
+                    </>
+                  ) : (
+                    <>✨ Analizar con IA</>
+                  )}
+                </button>
+              )}
               {imgArray.length > 1 && (
                 <div className="w-52 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
                   <div className="flex gap-2 pb-1" style={{ minWidth: "max-content" }}>
