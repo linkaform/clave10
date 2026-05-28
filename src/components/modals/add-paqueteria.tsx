@@ -1,38 +1,27 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Button } from "../ui/button";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "../ui/dialog";
-
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Textarea } from "../ui/textarea";
+import { Input } from "../ui/input";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { format } from 'date-fns';
 import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
 import DateTime from "../dateTime";
-import { Loader2, MapPin, Package, Truck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bot, CheckCircle2, Loader2, MapPin, Package, ScanLine, Sparkles } from "lucide-react";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { usePaqueteria } from "@/hooks/usePaqueteria";
 import LoadImage, { Imagen } from "../upload-Image";
 import { useCatalogoProveedores } from "@/hooks/useCatalogoProveedores";
 import { useGetLockers } from "@/hooks/useGetLockers";
 import { useBoothStore } from "@/store/useBoothStore";
+import { cn } from "@/lib/utils";
 
 interface AddFallaModalProps {
   title: string;
@@ -51,23 +40,29 @@ const formSchema = z.object({
   fecha_recibido_paqueteria: z.string().optional(),
   estatus_paqueteria: z.array(z.string()).optional(),
   proveedor: z.string().optional(),
+  // campos OCR
+  no_guia: z.string().optional(),
+  receptor: z.string().optional(),
+  remitente: z.string().optional(),
+  direccion_remitente: z.string().optional(),
 });
 
 export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
-  title,
-  isSuccess,
-  setIsSuccess,
+  title, isSuccess, setIsSuccess,
 }) => {
   const { location, area } = useBoothStore();
+  const [step, setStep] = useState(1);
   const [conSelected, setConSelected] = useState<string>(area ?? "");
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location ?? "");
   const { dataAreas: areas, dataLocations: ubicaciones, isLoadingAreas: loadingAreas, isLoadingLocations: loadingUbicaciones } = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, ubicacionSeleccionada ? true : false);
   const { data: dataAreaEmpleadoApoyo, isLoading: loadingAreaEmpleadoApoyo } = useCatalogoAreaEmpleadoApoyo(isSuccess);
-  const { dataProveedores, isLoadingProveedores } = useCatalogoProveedores(isSuccess);
+  const { dataProveedores } = useCatalogoProveedores(isSuccess);
   const { createPaqueteriaMutation, isLoading } = usePaqueteria(ubicacionSeleccionada, area ?? "", "", false, "", "", "");
   const { data: responseGetLockers, isLoading: loadingGetLockers } = useGetLockers(ubicacionSeleccionada ?? false, "", "Disponible", isSuccess);
   const [date, setDate] = useState<Date | "">("");
   const [evidencia, setEvidencia] = useState<Imagen[]>([]);
+  const [etiqueta, setEtiqueta] = useState<Imagen[]>([]);
+  const [ocrDone, setOcrDone] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -81,6 +76,10 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
       fecha_recibido_paqueteria: "",
       estatus_paqueteria: ["guardado"],
       proveedor: "",
+      no_guia: "",
+      receptor: "",
+      remitente: "",
+      direccion_remitente: "",
     },
   });
 
@@ -92,6 +91,10 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
       setDate(new Date());
       setUbicacionSeleccionada(location ?? "");
       setConSelected(area ?? "");
+      setStep(1);
+      setOcrDone(false);
+      setEvidencia([]);
+      setEtiqueta([]);
       reset({ ubicacion_paqueteria: location, area_paqueteria: area });
     }
   }, [isSuccess]);
@@ -103,10 +106,11 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
   function onSubmit(values: z.infer<typeof formSchema>) {
     if (date) {
       const formattedDate = format(new Date(date), 'yyyy-MM-dd HH:mm:ss');
+      const allImages = [...evidencia, ...etiqueta];
       const formatData = {
         ubicacion_paqueteria: ubicacionSeleccionada,
         area_paqueteria: values.area_paqueteria ?? "",
-        fotografia_paqueteria: evidencia ?? [],
+        fotografia_paqueteria: allImages ?? [],
         descripcion_paqueteria: values.descripcion_paqueteria ?? "",
         quien_recibe_paqueteria: values.quien_recibe_paqueteria ?? "",
         guardado_en_paqueteria: values.guardado_en_paqueteria ?? "",
@@ -122,248 +126,358 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
     }
   }
 
-  const handleClose = () => setIsSuccess(false);
+  const handleOcrResult = (result: any) => {
+    const data = result?.data ?? result;
+    if (data?.no_guia) form.setValue("no_guia", data.no_guia);
+    if (data?.receptor) form.setValue("receptor", data.receptor);
+    if (data?.remitente) form.setValue("remitente", data.remitente);
+    if (data?.direccion_remitente) form.setValue("direccion_remitente", data.direccion_remitente);
+    if (data?.paqueteria) {
+      const normalize = (str: string) =>
+        str?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() ?? "";
+      const match = dataProveedores?.find((p: string) =>
+        normalize(p).includes(normalize(data.paqueteria)) ||
+        normalize(data.paqueteria).includes(normalize(p))
+      );
+      if (match) form.setValue("proveedor", match);
+    }
+    if (data?.descripcion) form.setValue("descripcion_paqueteria", data.descripcion);
+    setOcrDone(true);
+  };
+
+  const handleClose = () => { setIsSuccess(false); setStep(1); };
+
+  const canGoNext = etiqueta.length > 0 || evidencia.length > 0;
 
   return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
       <DialogTrigger />
       <DialogContent
-        className="p-0 overflow-hidden !max-w-[900px] w-[95vw] sm:w-[92vw] max-h-[95vh] rounded-3xl shadow-2xl flex flex-col border-none bg-background"
+        className="p-0 overflow-hidden !max-w-[680px] w-[95vw] max-h-[95vh] rounded-3xl shadow-2xl flex flex-col border-none bg-white"
         aria-describedby=""
         onInteractOutside={(e) => e.preventDefault()}>
-		<DialogHeader className="px-8 pt-8 pb-4 shrink-0 border-b border-slate-100">
-			<DialogTitle className="text-2xl text-center font-bold text-gray-800">
-				{title}
-			</DialogTitle>
-			<p className="text-center text-sm text-gray-400">
-				Completa la información para registrar el paquete
-			</p>
-		</DialogHeader>
 
-		<div className="overflow-y-auto flex-1 px-8 no-scrollbar">
-		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Header */}
+        <DialogHeader className="px-8 pt-7 pb-0 shrink-0">
+          <div className="flex items-center gap-3 mb-2">
+            {step === 2 && (
+              <button type="button" onClick={() => setStep(1)}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
+            <div className="flex-1">
+              <DialogTitle className="text-xl font-bold text-slate-800">{title}</DialogTitle>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {step === 1 ? "Fotografía del paquete y etiqueta" : "Completa los detalles del envío"}
+              </p>
+            </div>
+            {/* Step indicator */}
+            <div className="flex items-center gap-1.5">
+              <div className={cn("w-2 h-2 rounded-full transition-all", step === 1 ? "bg-blue-500 w-6" : "bg-slate-200")} />
+              <div className={cn("w-2 h-2 rounded-full transition-all", step === 2 ? "bg-blue-500 w-6" : "bg-slate-200")} />
+            </div>
+          </div>
+          <div className="h-px bg-slate-100 -mx-8 mt-4" />
+        </DialogHeader>
 
-			{/* Sección información general */}
-			<div className="space-y-4">
-				<div className="flex items-center gap-2">
-				<MapPin className="text-blue-500 w-5 h-5" />
-				<h3 className="font-semibold text-gray-700">Información general</h3>
-				</div>
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-				<FormField
-					control={form.control}
-					name="ubicacion_paqueteria"
-					render={({ field }: any) => (
-					<FormItem>
-						<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ubicación</FormLabel>
-						<FormControl>
-						<Select {...field} onValueChange={(value: string) => { field.onChange(value); setUbicacionSeleccionada(value); }} value={ubicacionSeleccionada}>
-							<SelectTrigger className="w-full">
-							{loadingUbicaciones ? <SelectValue placeholder="Cargando ubicaciones..." /> : <SelectValue placeholder="Selecciona una ubicación" />}
-							</SelectTrigger>
-							<SelectContent>
-							{ubicaciones?.map((v: string, i: number) => <SelectItem key={i} value={v}>{v}</SelectItem>)}
-							</SelectContent>
-						</Select>
-						</FormControl>
-						<FormMessage />
-					</FormItem>
-					)}
-				/>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+            <div className="overflow-y-auto flex-1 px-8 py-6 no-scrollbar">
 
-				<FormField
-					control={form.control}
-					name="area_paqueteria"
-					render={({ field }: any) => (
-					<FormItem>
-						<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Área</FormLabel>
-						<FormControl>
-						<Select {...field} onValueChange={(value: string) => { field.onChange(value); setConSelected(value); }} value={conSelected}>
-							<SelectTrigger className="w-full">
-							{loadingAreas ? <SelectValue placeholder="Cargando areas..." /> : <SelectValue placeholder="Selecciona un área" />}
-							</SelectTrigger>
-							<SelectContent>
-							{areas?.length > 0
-								? areas.map((a: string, i: number) => <SelectItem key={i} value={a}>{a}</SelectItem>)
-								: <SelectItem key="1" value="1" disabled>No hay opciones disponibles.</SelectItem>}
-							</SelectContent>
-						</Select>
-						</FormControl>
-						<FormMessage />
-					</FormItem>
-					)}
-				/>
+              {/* ── STEP 1: Fotos ── */}
+              {step === 1 && (
+                <div className="space-y-6">
 
-				<FormField
-					control={form.control}
-					name="fecha_recibido_paqueteria"
-					render={() => (
-					<FormItem>
-						<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha de recepción</FormLabel>
-						<FormControl>
-						<DateTime date={date} setDate={setDate} disablePastDates={false} />
-						</FormControl>
-						<FormMessage />
-					</FormItem>
-					)}
-				/>
+                  <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center shrink-0 mt-0.5">
+                      <Bot className="w-4 h-4 text-white" />
+                    </div>
+					<div>
+					<p className="text-sm font-semibold text-blue-800">Análisis automático con IA</p>
+					<p className="text-xs text-blue-500 mt-0.5 leading-relaxed">
+						Al cargar las fotos,se extraerá información con IA. 
+					</p>
+					<p className="text-xs text-amber-500 mt-1 font-medium">
+						⚠ La IA puede cometer errores, verifica los datos antes de continuar.
+					</p>
+					</div>
+                  </div>
 
-				<FormField
-					control={form.control}
-					name="quien_recibe_paqueteria"
-					render={({ field }: any) => (
-					<FormItem>
-						<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Destinatario</FormLabel>
-						<FormControl>
-						<Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
-							<SelectTrigger className="w-full">
-							{loadingAreaEmpleadoApoyo
-								? <SelectValue placeholder="Cargando..." />
-								: <SelectValue placeholder={dataAreaEmpleadoApoyo?.length > 0 ? "Selecciona una opción..." : "Sin opciones"} />}
-							</SelectTrigger>
-							<SelectContent>
-							{dataAreaEmpleadoApoyo?.length > 0
-								? dataAreaEmpleadoApoyo.map((item: string, i: number) => <SelectItem key={i} value={item}>{item}</SelectItem>)
-								: <SelectItem disabled value="no opciones">No hay opciones disponibles</SelectItem>}
-							</SelectContent>
-						</Select>
-						</FormControl>
-						<FormMessage />
-					</FormItem>
-					)}
-				/>
-				</div>
-			</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center">
+                          <Package className="w-3.5 h-3.5 text-slate-500" />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Paquete</span>
+                      </div>
+                      <LoadImage
+                        id="evidencia"
+                        titulo="Fotografía del paquete"
+                        setImg={setEvidencia}
+                        showWebcamOption={true}
+                        facingMode="environment"
+                        imgArray={evidencia}
+                        limit={5}
+						showPlaceholder={true} 
+                      />
+                    </div>
 
-			{/* Sección paquete */}
-			<div className="space-y-4">
-				<div className="flex items-center gap-2">
-				<Package className="text-blue-500 w-5 h-5" />
-				<h3 className="font-semibold text-gray-700">Detalles del paquete</h3>
-				</div>
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-				<FormField
-					control={form.control}
-					name="proveedor"
-					render={({ field }: any) => (
-					<FormItem>
-						<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Proveedor</FormLabel>
-						<FormControl>
-						<Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
-							<SelectTrigger className="w-full">
-							{isLoadingProveedores
-								? <SelectValue placeholder="Cargando..." />
-								: <SelectValue placeholder={dataProveedores?.length > 0 ? "Selecciona una opción..." : "Sin opciones"} />}
-							</SelectTrigger>
-							<SelectContent>
-							{dataProveedores?.length > 0
-								? dataProveedores.map((item: string, i: number) => <SelectItem key={i} value={item}>{item}</SelectItem>)
-								: <SelectItem disabled value="no opciones">No hay opciones disponibles</SelectItem>}
-							</SelectContent>
-						</Select>
-						</FormControl>
-						<FormMessage />
-					</FormItem>
-					)}
-				/>
+                    {/* Foto etiqueta */}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center">
+                          <ScanLine className="w-3.5 h-3.5 text-blue-500" />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Etiqueta</span>
+                      </div>
+                     
+                      <LoadImage
+                        id="etiqueta"
+                        titulo="Fotografía de la etiqueta"
+                        setImg={setEtiqueta}
+                        showWebcamOption={true}
+                        facingMode="environment"
+                        imgArray={etiqueta}
+                        limit={5}
+                        tipoOcr="paquete"
+                        onOcrResult={handleOcrResult}
+						showPlaceholder={true} 
+                      />
+                    </div>
+                  </div>
 
-				<FormField
-					control={form.control}
-					name="guardado_en_paqueteria"
-					render={({ field }: any) => (
-					<FormItem>
-						<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Guardado en</FormLabel>
-						<FormControl>
-						<Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
-							<SelectTrigger className="w-full">
-							{loadingGetLockers
-								? <SelectValue placeholder="Cargando..." />
-								: <SelectValue placeholder={responseGetLockers?.length > 0 ? "Selecciona una opción..." : "Sin opciones"} />}
-							</SelectTrigger>
-							<SelectContent>
-							{responseGetLockers?.length > 0
-								? responseGetLockers.map((item: any, i: number) => <SelectItem key={i} value={item.locker_id}>{item.locker_id}</SelectItem>)
-								: <SelectItem disabled value="no opciones">No hay opciones disponibles</SelectItem>}
-							</SelectContent>
-						</Select>
-						</FormControl>
-						<FormMessage />
-					</FormItem>
-					)}
-				/>
+                  {/* Estado OCR */}
+                  {ocrDone && (
+                    <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                      <p className="text-xs text-green-700 font-medium">Datos extraídos de las imagenes. Revísalos en el siguiente paso.</p>
+                    </div>
+                  )}
 
-				<FormField
-					control={form.control}
-					name="descripcion_paqueteria"
-					render={({ field }: any) => (
-					<FormItem className="col-span-2">
-						<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Descripción</FormLabel>
-						<FormControl>
-						<Textarea placeholder="Escribe una descripción..." className="resize-none" {...field} />
-						</FormControl>
-						<FormMessage />
-					</FormItem>
-					)}
-				/>
-				</div>
-			</div>
+                  {/* Datos OCR preview */}
+                  {ocrDone && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Datos detectados por IA</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField control={form.control} name="no_guia"
+                          render={({ field }: any) => (
+                            <FormItem>
+                              <FormLabel className="text-xs text-slate-500">No. Guía</FormLabel>
+                              <FormControl><Input {...field} className="h-9 text-sm" /></FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField control={form.control} name="proveedor"
+                          render={({ field }: any) => (
+                            <FormItem>
+                              <FormLabel className="text-xs text-slate-500">Paquetería</FormLabel>
+                              <FormControl>
+                                <Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
+                                  <SelectTrigger className="h-9 text-sm">
+                                    <SelectValue placeholder="Selecciona..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {dataProveedores?.map((item: string, i: number) => <SelectItem key={i} value={item}>{item}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField control={form.control} name="receptor"
+                          render={({ field }: any) => (
+                            <FormItem>
+                              <FormLabel className="text-xs text-slate-500">Receptor</FormLabel>
+                              <FormControl><Input {...field} className="h-9 text-sm" /></FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField control={form.control} name="remitente"
+                          render={({ field }: any) => (
+                            <FormItem>
+                              <FormLabel className="text-xs text-slate-500">Remitente</FormLabel>
+                              <FormControl><Input {...field} className="h-9 text-sm" /></FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField control={form.control} name="descripcion_paqueteria"
+                          render={({ field }: any) => (
+                            <FormItem className="col-span-2">
+                              <FormLabel className="text-xs text-slate-500">Descripción</FormLabel>
+                              <FormControl><Textarea {...field} className="resize-none text-sm min-h-[70px]" placeholder="Descripción del contenido..." /></FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-			{/* Sección fotografía */}
-			<div className="space-y-4">
-				<div className="flex items-center gap-2">
-				<Truck className="text-blue-500 w-5 h-5" />
-				<h3 className="font-semibold text-gray-700">Fotografía</h3>
-				</div>
-				<LoadImage
-				id="evidencia"
-				titulo="Fotografía del paquete"
-				setImg={setEvidencia}
-				showWebcamOption={true}
-				facingMode="environment"
-				imgArray={evidencia}
-				limit={10} 
-				tipoOcr="truck"
-				onOcrResult={(result) => {
-					if (result?.descripcion) {
-					  form.setValue("descripcion_paqueteria", result.descripcion);
-					}
-					if (result?.paqueteria) {
-					  const normalize = (str: string) =>
-						str?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() ?? "";
-					  
-					  const match = dataProveedores?.find((p: string) =>
-						normalize(p).includes(normalize(result.paqueteria)) ||
-						normalize(result.paqueteria).includes(normalize(p))
-					  );
-					  if (match) {
-						form.setValue("proveedor", match);
-					  }
-					}
-				  }}
-				/>
-			</div>
+              {/* ── STEP 2: Detalles ── */}
+              {step === 2 && (
+                <div className="space-y-6">
 
-			</form>
-		</Form>
-		</div>
+                  {/* Información de entrega */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm font-semibold text-slate-700">Ubicación y entrega</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={form.control} name="ubicacion_paqueteria"
+                        render={({ field }: any) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Ubicación</FormLabel>
+                            <FormControl>
+                              <Select {...field} onValueChange={(value: string) => { field.onChange(value); setUbicacionSeleccionada(value); }} value={ubicacionSeleccionada}>
+                                <SelectTrigger className="w-full">
+                                  {loadingUbicaciones ? <SelectValue placeholder="Cargando..." /> : <SelectValue placeholder="Selecciona ubicación" />}
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {ubicaciones?.map((v: string, i: number) => <SelectItem key={i} value={v}>{v}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField control={form.control} name="area_paqueteria"
+                        render={({ field }: any) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Área</FormLabel>
+                            <FormControl>
+                              <Select {...field} onValueChange={(value: string) => { field.onChange(value); setConSelected(value); }} value={conSelected}>
+                                <SelectTrigger className="w-full">
+                                  {loadingAreas ? <SelectValue placeholder="Cargando..." /> : <SelectValue placeholder="Selecciona área" />}
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {areas?.length > 0
+                                    ? areas.map((a: string, i: number) => <SelectItem key={i} value={a}>{a}</SelectItem>)
+                                    : <SelectItem key="1" value="1" disabled>Sin opciones.</SelectItem>}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField control={form.control} name="fecha_recibido_paqueteria"
+                        render={() => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha de recepción</FormLabel>
+                            <FormControl>
+                              <DateTime date={date} setDate={setDate} disablePastDates={false} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField control={form.control} name="quien_recibe_paqueteria"
+                        render={({ field }: any) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Destinatario</FormLabel>
+                            <FormControl>
+                              <Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
+                                <SelectTrigger className="w-full">
+                                  {loadingAreaEmpleadoApoyo ? <SelectValue placeholder="Cargando..." /> : <SelectValue placeholder={dataAreaEmpleadoApoyo?.length > 0 ? "Selecciona..." : "Sin opciones"} />}
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dataAreaEmpleadoApoyo?.length > 0
+                                    ? dataAreaEmpleadoApoyo.map((item: string, i: number) => <SelectItem key={i} value={item}>{item}</SelectItem>)
+                                    : <SelectItem disabled value="no opciones">Sin opciones</SelectItem>}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField control={form.control} name="guardado_en_paqueteria"
+                        render={({ field }: any) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Locker / Guardado en</FormLabel>
+                            <FormControl>
+                              <Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
+                                <SelectTrigger className="w-full">
+                                  {loadingGetLockers ? <SelectValue placeholder="Cargando..." /> : <SelectValue placeholder={responseGetLockers?.length > 0 ? "Selecciona..." : "Sin opciones"} />}
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {responseGetLockers?.length > 0
+                                    ? responseGetLockers.map((item: any, i: number) => <SelectItem key={i} value={item.locker_id}>{item.locker_id}</SelectItem>)
+                                    : <SelectItem disabled value="no opciones">Sin opciones</SelectItem>}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-        <div className="flex gap-2 px-8 py-4 border-t border-slate-100 shrink-0">
-          <DialogClose asChild>
-            <Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose}>
-              Cancelar
-            </Button>
-          </DialogClose>
-          <Button
-            type="submit"
-            onClick={form.handleSubmit(onSubmit)}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-            disabled={isLoading}>
-            {isLoading ? (
-              <><Loader2 className="animate-spin" /> Guardando Artículo...</>
-            ) : "Guardar Artículo"}
-          </Button>
-        </div>
+                  {ocrDone && (
+                    <div className="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-100">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Resumen detectado por IA</span>
+                      </div>
+                      {[
+                        { label: "No. Guía", value: form.watch("no_guia") },
+                        { label: "Paquetería", value: form.watch("proveedor") },
+                        { label: "Receptor", value: form.watch("receptor") },
+                        { label: "Remitente", value: form.watch("remitente") },
+                      ].filter(i => i.value).map((item, i) => (
+                        <div key={i} className="flex justify-between text-xs">
+                          <span className="text-slate-400">{item.label}</span>
+                          <span className="text-slate-700 font-medium">{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 px-8 py-4 border-t border-slate-100 shrink-0">
+              {step === 1 ? (
+                <>
+                  <DialogClose asChild>
+                    <Button type="button" className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 shadow-none border-0" onClick={handleClose}>
+                      Cancelar
+                    </Button>
+                  </DialogClose>
+                  <Button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    disabled={!canGoNext}
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white gap-2">
+                    Siguiente
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button type="button" onClick={() => setStep(1)}
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 shadow-none border-0 gap-2">
+                    <ArrowLeft className="w-4 h-4" />
+                    Atrás
+                  </Button>
+                  <Button type="submit"
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white gap-2" disabled={isLoading}>
+                    {isLoading ? <><Loader2 className="animate-spin w-4 h-4" /> Guardando...</> : <><CheckCircle2 className="w-4 h-4" /> Guardar paquete</>}
+                  </Button>
+                </>
+              )}
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

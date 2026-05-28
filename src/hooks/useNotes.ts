@@ -15,9 +15,10 @@ export const useNotes = (enableGetNotes:boolean, area:string, location:string, p
     queryFn: async () => {
       if (!area || !location) return {};
       const fetchedData = await getNotes(area, location, limit, offset, dateFrom, dateTo, status); 
+      console.log("fet", fetchedData.response?.data )
       return fetchedData.response?.data ?? {};
     },
-    enabled: !!area && !!location && enableGetNotes,
+    enabled: !!location && enableGetNotes,
     placeholderData: {} as any,
     staleTime: 1000 * 60 * 5,
   });

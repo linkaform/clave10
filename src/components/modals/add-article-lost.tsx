@@ -34,7 +34,7 @@ import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { format } from "date-fns";
 
 import DateTime from "../dateTime";
-import { Camera, Loader2, MapPin, Package, Truck, User } from "lucide-react";
+import { Camera, Loader2, MapPin, Package, User } from "lucide-react";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { useArticulosPerdidos } from "@/hooks/useArticulosPerdidos";
 import { catalogoColores } from "@/lib/utils";

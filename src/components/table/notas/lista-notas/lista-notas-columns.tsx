@@ -37,20 +37,20 @@ export const listaNotasColumns: ColumnDef<ListaNota>[] = [
         {row.original.note_status !== "cerrado" ? (
           <CloseNoteModal title='Cerrar Nota' note={row.original}>
             <div className='cursor-pointer'>
-              <Check />
+              <Check className='w-5 h-5' />
             </div>
           </CloseNoteModal>
         ):null}
   
           <NoteDetailsModal title={row.original.note} note={row.original}>
             <div className='cursor-pointer'>
-              <Eye />
+              <Eye className='w-5 h-5' />
             </div>
           </NoteDetailsModal>
         {row.original.note_status !== "cerrado" ? (
             <EditNoteModal title='Editar Nota' note={row.original}>
               <div className='cursor-pointer'>
-                <Pencil />
+                <Pencil className='w-5 h-5' />
               </div>
             </EditNoteModal>
         ):null}

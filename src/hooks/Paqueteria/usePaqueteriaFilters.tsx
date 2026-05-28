@@ -53,7 +53,10 @@ export function applyPaqueteriaFilters(data: any[], filters: PaqueteriaExternalF
       const filter = Array.isArray(dynamic.quien_recibe_paqueteria) ? dynamic.quien_recibe_paqueteria : [dynamic.quien_recibe_paqueteria];
       if (!filter.some((f: string) => normalize(f) === normalize(item.quien_recibe_paqueteria || ""))) return false;
     }
-
+    if (dynamic.locker) {
+      const filter = Array.isArray(dynamic.locker) ? dynamic.locker : [dynamic.locker];
+      if (!filter.some((f: string) => normalize(f) === normalize(item.guardado_en_paqueteria || ""))) return false;
+    }
     if (dateFilter && dateFilter !== "" && dateFilter !== "all_records") {
       const rawFecha = item.fecha_recibido_paqueteria;
       if (!rawFecha) return false;

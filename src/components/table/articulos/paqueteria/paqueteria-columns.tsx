@@ -1,7 +1,6 @@
 import {
   ColumnDef, 
 } from "@tanstack/react-table";
-import { ViewPaqueteria } from "@/components/modals/view-paqueteria";
 import { Eye } from "lucide-react";
 import { LoadingModal } from "@/components/modals/loading-modal";
 import { useState } from "react";

@@ -9,54 +9,54 @@ import { cn } from "@/lib/utils";
 import { PhotoCardProps } from "@/types/bitacoras";
 import { EstatusBadge } from "@/components/estatus-badge";
 
-const statusConfig: Record<
-  string,
-  {
-    label: string;
-    variant?: "default" | "secondary" | "outline";
-    customClass?: string;
-  }
-> = {
-  completado: { label: "Completado", variant: "default" },
-  en_proceso: { label: "En Proceso", variant: "secondary" },
-  cerrado: { label: "Cerrado", variant: "outline" },
-  con_incidencias: {
-    label: "Con incidencias",
-    customClass: "bg-red-100 text-red-600 hover:bg-red-100",
-  },
-  sin_incidencias: {
-    label: "Sin incidencias",
-    customClass: "bg-green-100 text-green-600 hover:bg-green-100",
-  },
-  entrada: {
-    label: "Entrada",
-    customClass: "bg-green-600 text-white hover:bg-green-600",
-  },
-  salida: {
-    label: "Salida",
-    customClass: "bg-red-600 text-white hover:bg-red-600",
-  },
-  corriendo: {
-    label: "Corriendo",
-    customClass: "bg-green-600 text-white hover:bg-green-600",
-  },
-  pausado: {
-    label: "Pausado",
-    customClass: "bg-yellow-500 text-white hover:bg-yellow-500",
-  },
-  cancelado: {
-    label: "Cancelado",
-    customClass: "bg-red-600 text-white hover:bg-red-600",
-  },
-  abierto: {
-    label: "Abierto",
-    customClass: "bg-green-600 text-white hover:bg-green-600",
-  },
-  resuelto: {
-    label: "Resuelto",
-    customClass: "bg-blue-600 text-white hover:bg-blue-600",
-  },
-};
+// const statusConfig: Record<
+//   string,
+//   {
+//     label: string;
+//     variant?: "default" | "secondary" | "outline";
+//     customClass?: string;
+//   }
+// > = {
+//   completado: { label: "Completado", variant: "default" },
+//   en_proceso: { label: "En Proceso", variant: "secondary" },
+//   cerrado: { label: "Cerrado", variant: "outline" },
+//   con_incidencias: {
+//     label: "Con incidencias",
+//     customClass: "bg-red-100 text-red-600 hover:bg-red-100",
+//   },
+//   sin_incidencias: {
+//     label: "Sin incidencias",
+//     customClass: "bg-green-100 text-green-600 hover:bg-green-100",
+//   },
+//   entrada: {
+//     label: "Entrada",
+//     customClass: "bg-green-600 text-white hover:bg-green-600",
+//   },
+//   salida: {
+//     label: "Salida",
+//     customClass: "bg-red-600 text-white hover:bg-red-600",
+//   },
+//   corriendo: {
+//     label: "Corriendo",
+//     customClass: "bg-green-600 text-white hover:bg-green-600",
+//   },
+//   pausado: {
+//     label: "Pausado",
+//     customClass: "bg-yellow-500 text-white hover:bg-yellow-500",
+//   },
+//   cancelado: {
+//     label: "Cancelado",
+//     customClass: "bg-red-600 text-white hover:bg-red-600",
+//   },
+//   abierto: {
+//     label: "Abierto",
+//     customClass: "bg-green-600 text-white hover:bg-green-600",
+//   },
+//   resuelto: {
+//     label: "Resuelto",
+//     customClass: "bg-blue-600 text-white hover:bg-blue-600",
+//   },
+// };
 
 export function PhotoGridCard({
   headerBadge,

@@ -206,7 +206,7 @@ console.log("gafeteItem:", gafeteItem);
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ height: "240px", width: "100%" }}>
-                {/* <MapView map_data={mapData} areas={record?.areas || []} /> */}
+                <MapView map_data={mapData} areas={record?.areas || []} />
               </div>
             </div>
               {(() => {

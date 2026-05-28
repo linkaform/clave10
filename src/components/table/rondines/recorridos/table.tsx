@@ -554,7 +554,7 @@ const RecorridosTable: React.FC<ListProps> = ({
               </div>
 
               <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ minHeight: "420px", zIndex: 0 }}>
-                {/* <MapView key={mapKey} map_data={rondin.map_data} /> */}
+                <MapView key={mapKey} map_data={rondin.map_data} />
               </div>
             </div>
 

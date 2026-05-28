@@ -85,3 +85,11 @@ export const getPerdidosFilters = () =>
     option: "perdidos",
     public_script: true,
   });
+
+  export const getNotasFilters = () =>
+    apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+      script_name: "filters.py",
+      option: "notas",
+      public_script: true,
+    });
+  

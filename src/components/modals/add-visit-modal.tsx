@@ -290,20 +290,30 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <FormField
-              control={form.control}
-              name="nombre"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>* Nombre Completo</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Texto" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+            {requireIden && (
+              <>
+                <LoadImage
+                  id="identificacion"
+                  titulo={"Identificación"}
+                  setImg={setIdentificacion}
+                  showWebcamOption={true}
+                  facingMode="environment"
+                  imgArray={identificacion}
+                  limit={10}
+                  tipoOcr="id"
+                  onOcrResult={(result) => { 
+                    if (result.data && result?.data.length>0) {
+                      form.setValue("nombre", `${result.data[0]?.nombre_completo}`);
+                    }
+                  }}
+                />
+                {idError && (
+                  <div className="text-red-500 text-sm">
+                    La identificación es obligatoria
+                  </div>
+                )}
+              </>
+            )}
             {requireFoto && (
               <>
                 <LoadImage
@@ -322,26 +332,21 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
                 )}
               </>
             )}
+           
 
-            {requireIden && (
-              <>
-                <LoadImage
-                  id="identificacion"
-                  titulo={"Identificación"}
-                  setImg={setIdentificacion}
-                  showWebcamOption={true}
-                  facingMode="environment"
-                  imgArray={identificacion}
-                  limit={10}
-                />
-                {idError && (
-                  <div className="text-red-500 text-sm">
-                    La identificación es obligatoria
-                  </div>
-                )}
-              </>
-            )}
-
+            <FormField
+              control={form.control}
+              name="nombre"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>* Nombre Completo</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Texto" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="empresa"

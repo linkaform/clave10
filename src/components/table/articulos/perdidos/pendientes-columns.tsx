@@ -2,7 +2,6 @@ import {
   ColumnDef, 
 } from "@tanstack/react-table";
 import { useState } from "react";
-import { ViewArticulo } from "@/components/modals/view-articulo";
 import { Eye } from "lucide-react";
 import { EditarArticuloModal } from "@/components/modals/editar-article-modal";
 import { LoadingModal } from "@/components/modals/loading-modal";
