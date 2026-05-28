@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { format } from 'date-fns';
 import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
 import DateTime from "../dateTime";
-import { ArrowLeft, ArrowRight, Bot, CheckCircle2, Loader2, MapPin, Package, ScanLine, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell, Bot, CheckCircle2, List, Loader2, MapPin, Package, Pencil, ScanLine, Sparkles } from "lucide-react";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { usePaqueteria } from "@/hooks/usePaqueteria";
 import LoadImage, { Imagen } from "../upload-Image";
@@ -45,8 +45,57 @@ const formSchema = z.object({
   receptor: z.string().optional(),
   remitente: z.string().optional(),
   direccion_remitente: z.string().optional(),
+  notificacion: z.enum(["ninguna", "correo", "sms"]).optional(),
 });
 
+const InputOrSelect = ({
+	value, onChange, options, placeholder, isLoading: loading,
+  }: {
+	value: string;
+	onChange: (v: string) => void;
+	options: string[];
+	placeholder: string;
+	isLoading?: boolean;
+  }) => {
+	const [isInput, setIsInput] = useState(false);
+	const hasMatch = options?.some(
+	  (o) => o?.toLowerCase() === value?.toLowerCase()
+	);
+  
+	const forceInput = value && !hasMatch;
+	const showInput = isInput || forceInput;
+  
+	return (
+	  <div className="flex items-center gap-1.5">
+		<div className="flex-1">
+		  {showInput ? (
+			<Input
+			  value={value}
+			  onChange={(e) => onChange(e.target.value)}
+			  placeholder={placeholder}
+			  className="h-9 text-sm"
+			/>
+		  ) : (
+			<Select value={value} onValueChange={onChange}>
+			  <SelectTrigger className="h-9 text-sm">
+				{loading ? <SelectValue placeholder="Cargando..." /> : <SelectValue placeholder={placeholder} />}
+			  </SelectTrigger>
+			  <SelectContent>
+				{options?.map((item, i) => <SelectItem key={i} value={item}>{item}</SelectItem>)}
+			  </SelectContent>
+			</Select>
+		  )}
+		</div>
+		<button
+		  type="button"
+		  onClick={() => setIsInput(!showInput)}
+		  className="w-7 h-7 rounded-lg flex items-center justify-center border border-slate-200 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors shrink-0"
+		  title={showInput ? "Ver lista" : "Escribir manualmente"}>
+		  {showInput ? <List className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
+		</button>
+	  </div>
+	);
+  };
 export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
   title, isSuccess, setIsSuccess,
 }) => {
@@ -80,6 +129,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
       receptor: "",
       remitente: "",
       direccion_remitente: "",
+	  notificacion: "ninguna",
     },
   });
 
@@ -127,22 +177,22 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
   }
 
   const handleOcrResult = (result: any) => {
-    const data = result?.data ?? result;
-    if (data?.no_guia) form.setValue("no_guia", data.no_guia);
-    if (data?.receptor) form.setValue("receptor", data.receptor);
-    if (data?.remitente) form.setValue("remitente", data.remitente);
-    if (data?.direccion_remitente) form.setValue("direccion_remitente", data.direccion_remitente);
-    if (data?.paqueteria) {
-      const normalize = (str: string) =>
-        str?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() ?? "";
-      const match = dataProveedores?.find((p: string) =>
-        normalize(p).includes(normalize(data.paqueteria)) ||
-        normalize(data.paqueteria).includes(normalize(p))
-      );
-      if (match) form.setValue("proveedor", match);
-    }
-    if (data?.descripcion) form.setValue("descripcion_paqueteria", data.descripcion);
-    setOcrDone(true);
+	const data = result?.data ?? result;
+	if (data?.no_guia) form.setValue("no_guia", data.no_guia);
+	if (data?.receptor) form.setValue("receptor", data.receptor);
+	if (data?.remitente) form.setValue("remitente", data.remitente);
+	if (data?.direccion_remitente) form.setValue("direccion_remitente", data.direccion_remitente);
+	if (data?.paqueteria) {
+	  const normalize = (str: string) =>
+		str?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() ?? "";
+	  const match = dataProveedores?.find((p: string) =>
+		normalize(p).includes(normalize(data.paqueteria)) ||
+		normalize(data.paqueteria).includes(normalize(p))
+	  );
+	  if (match) form.setValue("proveedor", match);
+	}
+	if (data?.descripcion) form.setValue("descripcion_paqueteria", data.descripcion);
+	setOcrDone(true);
   };
 
   const handleClose = () => { setIsSuccess(false); setStep(1); };
@@ -182,7 +232,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+          <form className="flex flex-col flex-1 min-h-0">
             <div className="overflow-y-auto flex-1 px-8 py-6 no-scrollbar">
 
               {/* ── STEP 1: Fotos ── */}
@@ -273,30 +323,37 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                           )}
                         />
                         <FormField control={form.control} name="proveedor"
-                          render={({ field }: any) => (
-                            <FormItem>
-                              <FormLabel className="text-xs text-slate-500">Paquetería</FormLabel>
-                              <FormControl>
-                                <Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
-                                  <SelectTrigger className="h-9 text-sm">
-                                    <SelectValue placeholder="Selecciona..." />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {dataProveedores?.map((item: string, i: number) => <SelectItem key={i} value={item}>{item}</SelectItem>)}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField control={form.control} name="receptor"
-                          render={({ field }: any) => (
-                            <FormItem>
-                              <FormLabel className="text-xs text-slate-500">Receptor</FormLabel>
-                              <FormControl><Input {...field} className="h-9 text-sm" /></FormControl>
-                            </FormItem>
-                          )}
-                        />
+						render={({ field }: any) => (
+							<FormItem>
+							<FormLabel className="text-xs text-slate-500">Paquetería</FormLabel>
+							<FormControl>
+								<InputOrSelect
+								value={field.value}
+								onChange={field.onChange}
+								options={dataProveedores ?? []}
+								placeholder="Selecciona o escribe..."
+								/>
+							</FormControl>
+							</FormItem>
+						)}
+						/>
+
+						<FormField control={form.control} name="quien_recibe_paqueteria"
+						render={({ field }: any) => (
+							<FormItem>
+							<FormLabel className="text-xs text-slate-500">Destinatario</FormLabel>
+							<FormControl>
+								<InputOrSelect
+								value={field.value}
+								onChange={field.onChange}
+								options={dataAreaEmpleadoApoyo ?? []}
+								placeholder="Selecciona o escribe..."
+								isLoading={loadingAreaEmpleadoApoyo}
+								/>
+							</FormControl>
+							</FormItem>
+						)}
+						/>
                         <FormField control={form.control} name="remitente"
                           render={({ field }: any) => (
                             <FormItem>
@@ -379,7 +436,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                           </FormItem>
                         )}
                       />
-                      <FormField control={form.control} name="quien_recibe_paqueteria"
+                      {/* <FormField control={form.control} name="quien_recibe_paqueteria"
                         render={({ field }: any) => (
                           <FormItem>
                             <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Destinatario</FormLabel>
@@ -398,7 +455,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                             <FormMessage />
                           </FormItem>
                         )}
-                      />
+                      /> */}
                       <FormField control={form.control} name="guardado_en_paqueteria"
                         render={({ field }: any) => (
                           <FormItem>
@@ -421,7 +478,40 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                       />
                     </div>
                   </div>
-
+				  <div className="space-y-3">
+					<div className="flex items-center gap-2">
+						<Bell className="w-4 h-4 text-blue-500" />
+						<span className="text-sm font-semibold text-slate-700">Notificación</span>
+					</div>
+					<FormField control={form.control} name="notificacion"
+						render={({ field }: any) => (
+						<FormItem>
+							<FormControl>
+							<div className="flex items-center gap-2 bg-slate-100 rounded-xl p-1 w-fit">
+								{[
+								{ value: "ninguna", label: "Ninguna" },
+								{ value: "correo", label: "Correo" },
+								{ value: "sms", label: "SMS" },
+								].map((opt) => (
+								<button
+									key={opt.value}
+									type="button"
+									onClick={() => field.onChange(opt.value)}
+									className={cn(
+									"px-4 py-1.5 rounded-lg text-xs font-semibold transition-all",
+									field.value === opt.value
+										? "bg-white text-blue-600 shadow-sm"
+										: "text-slate-500 hover:text-slate-700"
+									)}>
+									{opt.label}
+								</button>
+								))}
+							</div>
+							</FormControl>
+						</FormItem>
+						)}
+					/>
+					</div>
                   {ocrDone && (
                     <div className="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-100">
                       <div className="flex items-center gap-2 mb-3">
@@ -469,7 +559,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                     <ArrowLeft className="w-4 h-4" />
                     Atrás
                   </Button>
-                  <Button type="submit"
+                  <Button type="button" onClick={form.handleSubmit(onSubmit)}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white gap-2" disabled={isLoading}>
                     {isLoading ? <><Loader2 className="animate-spin w-4 h-4" /> Guardando...</> : <><CheckCircle2 className="w-4 h-4" /> Guardar paquete</>}
                   </Button>
