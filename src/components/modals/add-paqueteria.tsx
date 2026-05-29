@@ -481,7 +481,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
 				  <div className="space-y-3">
 					<div className="flex items-center gap-2">
 						<Bell className="w-4 h-4 text-blue-500" />
-						<span className="text-sm font-semibold text-slate-700">Notificación</span>
+						<span className="text-sm font-semibold text-slate-700">Notificación a destinatario</span>
 					</div>
 					<FormField control={form.control} name="notificacion"
 						render={({ field }: any) => (

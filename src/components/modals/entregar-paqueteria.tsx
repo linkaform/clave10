@@ -26,6 +26,10 @@ import { usePaqueteria } from "@/hooks/usePaqueteria";
 import { ArrowRightLeft, Loader2 } from "lucide-react";
 import { Input } from "../ui/input";
 import DateTime from "../dateTime";
+import { useRef, useEffect } from "react";
+import { useUploadImage } from "@/hooks/useUploadImage";
+import { base64ToFile } from "@/lib/utils";
+import Image from "next/image";
 
 interface DevPaqModalProps {
   	title: string;
@@ -35,7 +39,11 @@ interface DevPaqModalProps {
 const formSchema = z.object({
     estatus_paqueteria:  z.array(z.string()).optional(),
     fecha_entregado_paqueteria: z.string().optional(),
-    entregado_a_paqueteria: z.string().optional()
+    entregado_a_paqueteria: z.string().optional(),
+    firma: z.object({
+      file_url: z.string(),
+      file_name: z.string(),
+    }).optional(),
 });
 
 
@@ -47,13 +55,59 @@ export const DevolucionPaqModal: React.FC<DevPaqModalProps> = ({
 	const { devolverPaqueteriaMutation, isLoading} = usePaqueteria("", "", "guardado",false, "", "", "")
 	// const [isActiveDevolucion, setIsActiveDevolucion] = useState<string>("entregado");
 	const [date, setDate] = useState<Date|"">("");
-
+  const [textoFirma, setTextoFirma] = useState("");
+  const [vistaPrevia, setVistaPrevia] = useState<string>("");
+  const { uploadImageMutation, response, isLoading: isLoadingImage } = useUploadImage();
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  
+  const convertirTextoAImagen = (texto: string): string => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    canvas.width = 400;
+    canvas.height = 100;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#000000";
+    ctx.font = "bold italic 32px Georgia, serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(texto, canvas.width / 2, canvas.height / 2);
+    return canvas.toDataURL("image/png");
+  };
+  
+  const handleTextoChange = async (texto: string) => {
+    setTextoFirma(texto);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (texto.trim()) {
+      timeoutRef.current = setTimeout(async () => {
+        try {
+          const imagenBase64 = convertirTextoAImagen(texto);
+          setVistaPrevia(imagenBase64);
+          const imagenFile = base64ToFile(imagenBase64, `firma_${Date.now()}`);
+          uploadImageMutation.mutate({ img: imagenFile });
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      }, 800);
+    } else {
+      setVistaPrevia("");
+      form.setValue("firma", { file_name: "", file_url: "" });
+    }
+  };
+  
+  useEffect(() => {
+    if (response?.file_url) {
+      form.setValue("firma", { file_url: response.file_url, file_name: response.file_name ?? "" });
+    }
+  }, [response]);
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			estatus_paqueteria: ["entregado"],
 			fecha_entregado_paqueteria: "",
-            entregado_a_paqueteria:""
+            entregado_a_paqueteria:"",
+            firma: undefined,
 		},
 	});
     
@@ -142,6 +196,40 @@ export const DevolucionPaqModal: React.FC<DevPaqModalProps> = ({
                       </FormItem>
                     )}
                   />
+
+                <div className="flex justify-end mt-2 mb-4">
+                  <FormField control={form.control} name="firma"
+                    render={() => (
+                      <FormItem className="w-full">
+                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Firma</FormLabel>
+                        <FormControl>
+                          <div className="space-y-3">
+                            <Input
+                              className="border-gray-200 font-bold italic bg-white"
+                              style={{ fontFamily: "Georgia, serif" }}
+                              placeholder="Escribe tu firma..."
+                              value={textoFirma}
+                              disabled={isLoadingImage}
+                              onChange={(e) => handleTextoChange(e.target.value)}
+                            />
+                            {vistaPrevia && (
+                              <div className="border rounded-lg p-3 bg-gray-50">
+                                <p className="text-xs text-gray-500 mb-2">Vista previa:</p>
+                                <Image height={100} width={200} src={vistaPrevia} alt="Vista previa de firma" className="max-w-full h-auto" />
+                              </div>
+                            )}
+                            {isLoadingImage && (
+                              <p className="text-sm text-gray-400 flex items-center gap-2">
+                                <Loader2 className="animate-spin w-4 h-4" /> Subiendo firma...
+                              </p>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 </form>
               </Form>
             </div>
