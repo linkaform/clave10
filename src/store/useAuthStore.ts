@@ -4,6 +4,7 @@ import { useAreasLocationStore } from "./useGetAreaLocationByUser";
 import { useMenuStore } from "./useGetMenuStore";
 import { useGuardSelectionStore } from "./useGuardStore";
 import { useShiftStore } from "./useShiftStore";
+import { useSelectedLocationsStore } from "./useSelectedLocationsStore";
 
 interface AuthState {
   token: string | null;
@@ -50,6 +51,10 @@ const useAuthStore = create<AuthState>((set) => {
       localStorage.setItem("userId_soter", userIdSoter.toString() );
       localStorage.setItem("userPhoto_soter", userPhoto);
       localStorage.setItem("userParentId_soter", userParentId.toString() );
+      // Limpia stores del usuario anterior antes de setear el nuevo
+      useSelectedLocationsStore.getState().clearSelectedLocations();
+      useAreasLocationStore.getState().clearAreasLocation();
+      useMenuStore.getState().clearMenu();
       // Actualiza el estado
       set({ token, userId, userNameSoter, userEmailSoter, userIdSoter,isAuth: true , userPhoto, userParentId });
     },
