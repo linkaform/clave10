@@ -181,11 +181,15 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
       setImg(updatedImgs);
       // Auto-analizar si tiene onOcrResult
       if (onOcrResult) {
-        const urls = updatedImgs
-        .map((i: Imagen) => i.file_url)
-        .filter((url): url is string => Boolean(url));
-        const ocrResult = await ocrMutation.mutateAsync(urls);
-        onOcrResult?.(ocrResult);
+        try {
+          const urls = updatedImgs
+            .map((i: Imagen) => i.file_url)
+            .filter((url): url is string => Boolean(url));
+          const result = await ocrMutation.mutateAsync(urls);
+          onOcrResult?.(result);
+        } catch {
+          onOcrResult?.({}); 
+        }
       }
     }
     setHideWebcam(true);

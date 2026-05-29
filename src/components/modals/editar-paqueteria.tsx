@@ -21,7 +21,6 @@ import { useGetLockers } from "@/hooks/useGetLockers";
 import { Textarea } from "../ui/textarea";
 import { useCatalogoProveedores } from "@/hooks/useCatalogoProveedores";
 import LoadImage, { Imagen } from "../upload-Image";
-import { cn } from "@/lib/utils";
 
 interface EditarFallaModalProps {
   title: string;
