@@ -23,7 +23,7 @@ import {
 import { MegaMenu } from "./mega-menu";
 import type { MenuConfig } from "@/types/menu-types";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
-import { useBoothStore } from "@/store/useBoothStore";
+
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -56,18 +56,9 @@ export function Header({
   },
   onLogout,
 }: HeaderProps) {
-  const { location: locationBooth } = useBoothStore();
   const { locations, fetchLocations } = useAreasLocationStore();
 
-  const { selectedLocations, toggleLocation, setSelectedLocations } = useSelectedLocationsStore();
-  const initializedRef = React.useRef(false);
-
-  useEffect(() => {
-    if (!initializedRef.current && locationBooth && selectedLocations.length === 0) {
-      initializedRef.current = true;
-      setSelectedLocations([locationBooth]);
-    }
-  }, [locationBooth, selectedLocations, setSelectedLocations]);
+  const { selectedLocations, toggleLocation } = useSelectedLocationsStore();
 
   useEffect(() => {
     fetchLocations();
