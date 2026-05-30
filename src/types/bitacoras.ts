@@ -66,6 +66,7 @@ export interface Equipo {
   imagen?: string;
   foto_equipo?: Imagen[];
 }
+export type ModalType = "rondines" | "normal" | "rondines_v2" | "incidencia" | "art_concesionado";
 
 export interface ListRecord {
   id: string;
@@ -83,6 +84,11 @@ export interface ListRecord {
   rawData?: any;
   map_data?: AreaItem[]
   areas?: MapDataItem[]
+  devolucionProgreso?: {
+    devueltas: number;
+    total: number;
+    porcentaje: number;
+  };
 }
 export interface MapDataItem {
   nombre_area: string;
@@ -150,6 +156,11 @@ export interface ListCardProps {
   isSelected?: boolean;
   onSelect?: (record: any) => void;
   isSelectionMode?: boolean;
+  devolucionProgreso?: {
+    devueltas: number;
+    total: number;
+    porcentaje: number;
+  };
 }
 
 export interface PhotoListViewProps {

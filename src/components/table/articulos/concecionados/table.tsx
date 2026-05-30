@@ -219,6 +219,7 @@ const ArticulosConTable: React.FC<ListProps> = ({
               globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
+              modalType="art_concesionado"
               modalActions={(record) => {
                 if (!record) return null;
                 const concesionado = memoizedData.find((c) => c._id === record.id || c.folio === record.folio);
@@ -237,6 +238,7 @@ const ArticulosConTable: React.FC<ListProps> = ({
               globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
+              modalType="art_concesionado"
             >
               {renderActions}
             </PhotoListView>

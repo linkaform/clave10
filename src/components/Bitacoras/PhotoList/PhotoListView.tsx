@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { ImageIcon } from "lucide-react";
 import { PhotoListCard } from "./PhotoListCard";
-import { PhotoListViewProps, ListRecord } from "@/types/bitacoras";
+import { PhotoListViewProps, ListRecord, ModalType } from "@/types/bitacoras";
 import { usePhotoListView } from "@/hooks/bitacora/usePhotoListView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoListCardModal } from "./PhotoListCardModal";
@@ -11,6 +11,7 @@ import EquiposYVehiculosList from "../EquiposYVehiculosList";
 import { PhotoRondinCardModal } from "./PhotoRondinCardModal";
 import { ViewIncidenciaModal } from "../PhotoGrid/PhotoGridCardModalIncidencia";
 import { CustomSpinner } from "@/components/custom-spinner";
+import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-de-la-concesion";
 
 interface MapItem {
   nombre_area: string;
@@ -46,7 +47,7 @@ export default function PhotoListView({
       ) => React.ReactNode);
   getMapData?: (record: ListRecord) => MapItem[] | undefined;
   /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
-  modalType?: "rondines" | "normal"| "incidencia" ;
+  modalType?:ModalType
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoListView(records as any, externalFilters, onExternalFiltersChange);
@@ -193,7 +194,6 @@ export default function PhotoListView({
           </div>
         </section>
       </div>
-
       {modalType === "rondines" ? (
         <PhotoRondinCardModal
           record={selectedRecord as any}
@@ -202,6 +202,14 @@ export default function PhotoListView({
           mapData={currentMapData}
           action={children}
         />
+      ) : modalType === "art_concesionado" ? (
+        selectedRecord && (selectedRecord as any)?.rawData ? (
+          <DetalleDeLaConcesion
+            data={(selectedRecord as any).rawData}
+            open={isModalOpen}
+            onOpenChange={setIsModalOpen}
+          />
+        ) : null
       ) : modalType === "incidencia" ? (
         <ViewIncidenciaModal
           record={selectedRecord}
@@ -233,13 +241,14 @@ export default function PhotoListView({
           record={selectedRecord as any}
           open={isModalOpen}
           actions={modalActions?.(selectedRecord)}
-          onOpenChange={setIsModalOpen}>
+          onOpenChange={setIsModalOpen}
+        >
           {selectedChildren}
           {selectedRecord?.vehiculos != null && selectedRecord?.equipos != null && (
-          ((selectedRecord?.vehiculos?.length ?? 0) > 0 || (selectedRecord?.equipos?.length ?? 0) > 0) && (
-            <EquiposYVehiculosList record={selectedRecord as any} />
-          )
-        )}
+            ((selectedRecord?.vehiculos?.length ?? 0) > 0 || (selectedRecord?.equipos?.length ?? 0) > 0) && (
+              <EquiposYVehiculosList record={selectedRecord as any} />
+            )
+          )}
         </PhotoListCardModal>
       )}
     </div>

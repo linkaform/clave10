@@ -45,6 +45,10 @@ const formSchema = z.object({
   remitente: z.string().optional(),
   direccion_remitente: z.string().optional(),
   notificacion: z.enum(["ninguna", "correo", "sms"]).optional(),
+  email_receptor: z.string().optional(),
+  tipo_paquete: z.string().optional(),
+  telefono_receptor:z.string().optional(),
+  telefono_remitente:z.string().optional()
 });
 
 const InputOrSelect = ({
@@ -129,6 +133,10 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
       remitente: "",
       direccion_remitente: "",
       notificacion: "ninguna",
+      email_receptor:"",
+      telefono_receptor:"",
+      tipo_paquete:"",
+      telefono_remitente:""
     },
   });
 
@@ -187,7 +195,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
     if (data?.remitente) form.setValue("remitente", data.remitente);
     if (data?.direccion_remitente) form.setValue("direccion_remitente", data.direccion_remitente);
     if (data?.descripcion) form.setValue("descripcion_paqueteria", data.descripcion);
-
+    if (data?.tipo_paquete) form.setValue("tipo_paquete", data.tipo_paquete);
     if (data?.paqueteria) {
       const normalize = (str: string) =>
         str?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() ?? "";
@@ -236,7 +244,6 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
         <Form {...form}>
           <form className="flex flex-col flex-1 min-h-0">
             <div className="overflow-y-auto flex-1 px-8 py-6 no-scrollbar">
-
               {/* ── STEP 1: Fotos ── */}
               {step === 1 && (
                 <div className="space-y-6">
@@ -298,7 +305,6 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                       />
                     </div>
                   </div>
-
                   {/* Banner OCR done */}
                   {ocrDone && (
                     <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-2.5">
@@ -306,7 +312,6 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                       <p className="text-xs text-green-700 font-medium">Análisis completado. Revisa y corrige los datos detectados.</p>
                     </div>
                   )}
-
                   {/* Inputs — siempre visibles tras OCR (con o sin datos) */}
                   {ocrDone && (
                     <div className="space-y-3">
@@ -315,78 +320,145 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                         <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Datos del paquete</span>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
-                        <FormField control={form.control} name="no_guia"
-                          render={({ field }: any) => (
-                            <FormItem>
-                              <FormLabel className="text-xs text-slate-500">No. Guía</FormLabel>
-                              <FormControl><Input {...field} className="h-9 text-sm" placeholder="Número de guía" /></FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField control={form.control} name="proveedor"
-                          render={({ field }: any) => (
-                            <FormItem>
-                              <FormLabel className="text-xs text-slate-500">Paquetería</FormLabel>
-                              <FormControl>
-                                <InputOrSelect
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  options={dataProveedores ?? []}
-                                  placeholder="Selecciona o escribe..."
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField control={form.control} name="quien_recibe_paqueteria"
-                          render={({ field }: any) => (
-                            <FormItem>
-                              <FormLabel className="text-xs text-slate-500">Destinatario</FormLabel>
-                              <FormControl>
-                                <InputOrSelect
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  options={dataAreaEmpleadoApoyo ?? []}
-                                  placeholder="Selecciona o escribe..."
-                                  isLoading={loadingAreaEmpleadoApoyo}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField control={form.control} name="remitente"
-                          render={({ field }: any) => (
-                            <FormItem>
-                              <FormLabel className="text-xs text-slate-500">Remitente</FormLabel>
-                              <FormControl><Input {...field} className="h-9 text-sm" placeholder="Nombre del remitente" /></FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField control={form.control} name="descripcion_paqueteria"
-                          render={({ field }: any) => (
-                            <FormItem className="col-span-2">
-                              <FormLabel className="text-xs text-slate-500">Descripción</FormLabel>
-                              <FormControl>
-                                <Textarea {...field} className="resize-none text-sm min-h-[70px]" placeholder="Descripción del contenido..." />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                      {/* 1. Destinatario — primero, col completa */}
+                      <FormField control={form.control} name="quien_recibe_paqueteria"
+                        render={({ field }: any) => (
+                          <FormItem className="col-span-2">
+                            <FormLabel className="text-xs text-slate-500">Destinatario</FormLabel>
+                            <FormControl>
+                              <InputOrSelect
+                                value={field.value}
+                                onChange={field.onChange}
+                                options={dataAreaEmpleadoApoyo ?? []}
+                                placeholder="Selecciona o escribe..."
+                                isLoading={loadingAreaEmpleadoApoyo}
+                              />
+                            </FormControl>
+                            <div className="flex gap-3 mt-1 px-1">
+                            {form.watch("email_receptor") ? (
+                              <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                                <span className="font-mono">{form.watch("email_receptor")}</span>
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-amber-400 flex items-center gap-1">
+                                 No se detectó email del destinatario.
+                              </span>
+                            )}
+                            {form.watch("telefono_receptor") ? (
+                              <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                                 <span className="font-mono">{form.watch("telefono_receptor")}</span>
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-amber-400 flex items-center gap-1">
+                               No se detectó teléfono del destinatario.
+                              </span>
+                            )}
+                          </div>
+                          </FormItem>
+                        )}
+                      />
+                    {/* No. Guía */}
+                    <FormField control={form.control} name="no_guia"
+                      render={({ field }: any) => (
+                        <FormItem>
+                          <FormLabel className="text-xs text-slate-500">No. Guía</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" placeholder="Número de guía" />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Tipo de paquete */}
+                    <FormField control={form.control} name="tipo_paquete"
+                      render={({ field }: any) => (
+                        <FormItem>
+                          <FormLabel className="text-xs text-slate-500">Tipo de paquete</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" placeholder="Ej. sobre, caja, bolsa..." />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Descripción — col completa */}
+                    <FormField control={form.control} name="descripcion_paqueteria"
+                      render={({ field }: any) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel className="text-xs text-slate-500">Descripción</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} className="resize-none text-sm min-h-[70px]" placeholder="Descripción del contenido..." />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                      {/* 4. Remitente — col completa con dirección y teléfono debajo */}
+                      <FormField control={form.control} name="remitente"
+                        render={({ field }: any) => (
+                          <FormItem className="col-span-2">
+                            <FormLabel className="text-xs text-slate-500">Remitente</FormLabel>
+                            <FormControl><Input {...field} className="h-9 text-sm" placeholder="Nombre del remitente" /></FormControl>
+                            {(form.watch("direccion_remitente") || form.watch("telefono_remitente")) && (
+                              <div className="flex flex-col gap-0.5 mt-1 px-1">
+                                {form.watch("direccion_remitente") && (
+                                  <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                                    📍 {form.watch("direccion_remitente")}
+                                  </span>
+                                )}
+                                {form.watch("telefono_remitente") && (
+                                  <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                                    📱 <span className="font-mono">{form.watch("telefono_remitente")}</span>
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* 5. Paquetería / Proveedor */}
+                      <FormField control={form.control} name="proveedor"
+                        render={({ field }: any) => (
+                          <FormItem className="col-span-2">
+                            <FormLabel className="text-xs text-slate-500">Paquetería</FormLabel>
+                            <FormControl>
+                              <InputOrSelect
+                                value={field.value}
+                                onChange={field.onChange}
+                                options={dataProveedores ?? []}
+                                placeholder="Selecciona o escribe..."
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* ── STEP 2: Detalles ── */}
               {step === 2 && (
                 <div className="space-y-6">
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm font-semibold text-slate-700">Ubicación y entrega</span>
+                      <span className="text-sm font-semibold text-slate-700">Recepción y ubicación</span>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
+                      {/* 1. Fecha */}
+                      <FormField control={form.control} name="fecha_recibido_paqueteria"
+                        render={() => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha de recepción</FormLabel>
+                            <FormControl>
+                              <DateTime date={date} setDate={setDate} disablePastDates={false} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {/* 2. Ubicación */}
                       <FormField control={form.control} name="ubicacion_paqueteria"
                         render={({ field }: any) => (
                           <FormItem>
@@ -405,6 +477,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                           </FormItem>
                         )}
                       />
+                      {/* 3. Área */}
                       <FormField control={form.control} name="area_paqueteria"
                         render={({ field }: any) => (
                           <FormItem>
@@ -425,21 +498,11 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                           </FormItem>
                         )}
                       />
-                      <FormField control={form.control} name="fecha_recibido_paqueteria"
-                        render={() => (
-                          <FormItem>
-                            <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha de recepción</FormLabel>
-                            <FormControl>
-                              <DateTime date={date} setDate={setDate} disablePastDates={false} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {/* 4. Guardado en */}
                       <FormField control={form.control} name="guardado_en_paqueteria"
                         render={({ field }: any) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Locker / Guardado en</FormLabel>
+                            <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Guardado en</FormLabel>
                             <FormControl>
                               <Select {...field} onValueChange={(value: string) => field.onChange(value)} value={field.value}>
                                 <SelectTrigger className="w-full">
@@ -459,33 +522,36 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm font-semibold text-slate-700">Notificación a destinatario</span>
+                  {/* 5. Notificación — solo si el receptor tiene email o teléfono */}
+                  {(form.watch("email_receptor") || form.watch("telefono_receptor")) && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm font-semibold text-slate-700">Notificación a destinatario</span>
+                      </div>
+                      <FormField control={form.control} name="notificacion"
+                        render={({ field }: any) => (
+                          <FormItem>
+                            <FormControl>
+                              <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-1 w-fit">
+                                {[
+                                  { value: "ninguna", label: "Ninguna" },
+                                  ...(form.watch("email_receptor") ? [{ value: "correo", label: "Correo" }] : []),
+                                  ...(form.watch("telefono_receptor") ? [{ value: "sms", label: "SMS" }] : []),
+                                ].map((opt) => (
+                                  <button key={opt.value} type="button" onClick={() => field.onChange(opt.value)}
+                                    className={cn("px-4 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                                      field.value === opt.value ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
                     </div>
-                    <FormField control={form.control} name="notificacion"
-                      render={({ field }: any) => (
-                        <FormItem>
-                          <FormControl>
-                            <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-1 w-fit">
-                              {[
-                                { value: "ninguna", label: "Ninguna" },
-                                { value: "correo", label: "Correo" },
-                                { value: "sms", label: "SMS" },
-                              ].map((opt) => (
-                                <button key={opt.value} type="button" onClick={() => field.onChange(opt.value)}
-                                  className={cn("px-4 py-1.5 rounded-lg text-xs font-semibold transition-all",
-                                    field.value === opt.value ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
-                                  {opt.label}
-                                </button>
-                              ))}
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  )}
 
                   {ocrDone && (
                     <div className="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-100">
@@ -494,15 +560,24 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({
                         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Resumen detectado por IA</span>
                       </div>
                       {[
-                        { label: "No. Guía", value: form.watch("no_guia") },
-                        { label: "Paquetería", value: form.watch("proveedor") },
                         { label: "Destinatario", value: form.watch("quien_recibe_paqueteria") },
-                        { label: "Remitente", value: form.watch("remitente") },
+                        { label: "Email destinatario", value: form.watch("email_receptor") },
+                        { label: "Teléfono destinatario", value: form.watch("telefono_receptor") },
+                        { label: "No. Guía", value: form.watch("no_guia") },
+                        { label: "Tipo de paquete", value: form.watch("tipo_paquete") },
                         { label: "Descripción", value: form.watch("descripcion_paqueteria") },
-                      ].filter(i => i.value).map((item, i) => (
+                        { label: "Remitente", value: form.watch("remitente") },
+                        { label: "Dirección remitente", value: form.watch("direccion_remitente") },
+                        { label: "Teléfono remitente", value: form.watch("telefono_remitente") },
+                        { label: "Paquetería", value: form.watch("proveedor") },
+                      ].map((item, i) => (
                         <div key={i} className="flex justify-between text-xs">
-                          <span className="text-slate-400">{item.label}</span>
-                          <span className="text-slate-700 font-medium truncate ml-4 max-w-[60%] text-right">{item.value}</span>
+                          <span className="text-slate-400 shrink-0">{item.label}</span>
+                          {item.value ? (
+                            <span className="text-slate-700 font-medium truncate ml-4 max-w-[60%] text-right">{item.value}</span>
+                          ) : (
+                            <span className="text-amber-400 ml-4 text-right">No detectado</span>
+                          )}
                         </div>
                       ))}
                     </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { PhotoGridCard } from "./PhotoGridCard";
 import { ImageIcon } from "lucide-react";
-import { ListRecord, PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
+import { ListRecord, ModalType, PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
 import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoGridCardModal } from "./PhotoGridCardModal";
@@ -13,6 +13,7 @@ import { MapItem } from "@/components/table/rondines/recorridos/table";
 import { PhotoCheckAreaModal } from "./PhotoGridCardModalRondin";
 import { ViewIncidenciaModal } from "./PhotoGridCardModalIncidencia";
 import { CustomSpinner } from "@/components/custom-spinner";
+import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-de-la-concesion";
 
 // const STATUS_BADGE_CLASSES: Record<string, string> = {
 //   corriendo: "bg-green-600 border-green-600 text-white text-xs",
@@ -55,7 +56,7 @@ export function PhotoGridView({
       /** Opcional — solo en rondines. Recibe el record seleccionado y devuelve los puntos del mapa */
   getMapData?: (record: ListRecord) => MapItem[] | undefined;
   /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
-  modalType?: "rondines" | "normal"| "rondines_v2" | "incidencia" ;
+  modalType?: ModalType;
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoGridView(records, externalFilters, onExternalFiltersChange);
@@ -216,7 +217,7 @@ export function PhotoGridView({
       ) : modalType === "incidencia" ? (
         <ViewIncidenciaModal
           record={selectedRecord}
-          open={isModalOpen} 
+          open={isModalOpen}
           actions={modalActions?.(selectedRecord)}
           onOpenChange={setIsModalOpen}
           badges={[
@@ -239,12 +240,20 @@ export function PhotoGridView({
             }] : []),
           ]}
         />
+      ) : modalType === "art_concesionado" ? (
+        selectedRecord && (selectedRecord as any)?.rawData ? (
+          <DetalleDeLaConcesion
+            data={(selectedRecord as any).rawData}
+            open={isModalOpen}
+            onOpenChange={setIsModalOpen}
+          />
+        ) : null
       ) : (
         <PhotoGridCardModal
-        badges={[
-          { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-semibold" },
-          { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-semibold" },
-        ]}
+          badges={[
+            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-semibold" },
+            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-semibold" },
+          ]}
           record={selectedRecord}
           open={isModalOpen}
           onOpenChange={setIsModalOpen}>
