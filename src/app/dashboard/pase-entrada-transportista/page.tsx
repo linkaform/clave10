@@ -1203,6 +1203,7 @@ const PaseEntradaTransportistaPage = () => {
       case "entrega_materia_prima":
         return {
           tipo_de_operacion: TIPO_OPERACION_LABEL[data.tipo_operacion],
+          creado_desde: "pase_de_entrada_web",
           proveedor_y_material: {
             proveedor: data.proveedor,
             material: data.material,
@@ -1228,6 +1229,7 @@ const PaseEntradaTransportistaPage = () => {
       case "recoleccion_materia_prima":
         return {
           tipo_de_operacion: TIPO_OPERACION_LABEL[data.tipo_operacion],
+          creado_desde: "pase_de_entrada_web",
           origen_recoleccion: {
             proveedor: data.proveedor_origen,
             direccion_recoleccion: data.direccion_recoleccion,
@@ -1254,6 +1256,7 @@ const PaseEntradaTransportistaPage = () => {
       case "entrega_producto_terminado":
         return {
           tipo_de_operacion: TIPO_OPERACION_LABEL[data.tipo_operacion],
+          creado_desde: "pase_de_entrada_web",
           cliente_y_producto: {
             cliente: data.cliente,
             direccion_entrega: data.direccion_entrega,
@@ -1282,6 +1285,7 @@ const PaseEntradaTransportistaPage = () => {
       case "recoleccion_producto_terminado":
         return {
           tipo_de_operacion: TIPO_OPERACION_LABEL[data.tipo_operacion],
+          creado_desde: "pase_de_entrada_web",
           cliente_y_producto: {
             cliente: data.cliente,
             orden_venta_remision: data.orden_venta_remision || null,
