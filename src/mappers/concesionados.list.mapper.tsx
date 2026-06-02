@@ -35,6 +35,17 @@ export function mapArticuloConcesionadoList(raw: any, base: any) {
   const categoria = firstEquipo?.categoria_equipo_concesion || "";
   const maxLength = 50;
   const equiposText = equipoNames.join(", ");
+
+  const totalUnidades = equipos.reduce(
+    (acc: number, e: any) => acc + Number(e.cantidad_equipo_concesion ?? 0), 0
+  );
+  const totalDevueltas = equipos.reduce(
+    (acc: number, e: any) => acc + Number(e.cantidad_equipo_devuelto ?? 0), 0
+  );
+  const porcentajeDevolucion = totalUnidades > 0
+    ? Math.round((totalDevueltas / totalUnidades) * 100)
+    : 0;
+
   return {
     ...base,
     id: raw?._id || "no-id",
@@ -46,11 +57,17 @@ export function mapArticuloConcesionadoList(raw: any, base: any) {
       : equiposText || "Sin equipos",
     images:finalImages,
     status: raw?.status_concesion?.toLowerCase() || "abierto",
-    statusLabel: statusConfig.label,
+    statusLabel: raw?.status_concesion || "",
+    devolucionProgreso: {
+      devueltas: totalDevueltas,
+      total: totalUnidades,
+      porcentaje: porcentajeDevolucion,
+    },
     badgesList: [
       {
-        customClass: `px-4 py-1 text-xs font-semibold rounded-xl whitespace-nowrap ml-2 ${statusConfig.class}`,
+        isEstatus: true,
         label: statusConfig.label,
+        customClass: "",
       },
       ...(categoria ? [{
         customClass: "bg-purple-100 hover:bg-purple-100 px-4 py-1 text-xs font-medium text-purple-600 rounded-xl border-0 shadow-none",
@@ -62,7 +79,7 @@ export function mapArticuloConcesionadoList(raw: any, base: any) {
       },
     ],
     detailsList: [
-      { icon: <User className="h-3 w-3" />, label: "Persona", value: persona },
+      { icon: <User className="h-3 w-3" />, label: "Solicitante", value: persona },
       { icon: <MapPin className="h-3 w-3" />, label: "Caseta", value: raw?.caseta_concesion },
       { icon: <MapPin className="h-3 w-3" />, label: "Ubicación", value: raw?.ubicacion_concesion },
       { icon: <CalendarDays className="h-3 w-3" />, label: "Fecha concesión", value: raw?.fecha_concesion },
@@ -79,7 +96,7 @@ export function mapArticuloConcesionadoList(raw: any, base: any) {
       },
     ],
     modalDetailsList: [
-      { icon: <User className="h-3 w-3" />, label: "Persona", value: persona },
+      { icon: <User className="h-3 w-3" />, label: "Solicitante", value: persona },
       { icon: <MapPin className="h-3 w-3" />, label: "Caseta", value: raw?.caseta_concesion },
       { icon: <MapPin className="h-3 w-3" />, label: "Ubicación", value: raw?.ubicacion_concesion },
       { icon: <CalendarDays className="h-3 w-3" />, label: "Fecha concesión", value: raw?.fecha_concesion },
@@ -88,7 +105,7 @@ export function mapArticuloConcesionadoList(raw: any, base: any) {
       { icon: <Package className="h-3 w-3" />, label: "Equipos", value: equipoNames },
     ],
     rawData: raw,
-    vehiculos: [],
-    equipos: [],
+    vehiculos: null,
+    equipos: null,
   };
 }

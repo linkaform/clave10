@@ -26,6 +26,10 @@ import { usePaqueteria } from "@/hooks/usePaqueteria";
 import { ArrowRightLeft, Loader2 } from "lucide-react";
 import { Input } from "../ui/input";
 import DateTime from "../dateTime";
+import { useRef, useEffect } from "react";
+import { useUploadImage } from "@/hooks/useUploadImage";
+import { base64ToFile } from "@/lib/utils";
+import Image from "next/image";
 
 interface DevPaqModalProps {
   	title: string;
@@ -35,7 +39,11 @@ interface DevPaqModalProps {
 const formSchema = z.object({
     estatus_paqueteria:  z.array(z.string()).optional(),
     fecha_entregado_paqueteria: z.string().optional(),
-    entregado_a_paqueteria: z.string().optional()
+    entregado_a_paqueteria: z.string().optional(),
+    firma: z.object({
+      file_url: z.string(),
+      file_name: z.string(),
+    }).optional(),
 });
 
 
@@ -47,13 +55,59 @@ export const DevolucionPaqModal: React.FC<DevPaqModalProps> = ({
 	const { devolverPaqueteriaMutation, isLoading} = usePaqueteria("", "", "guardado",false, "", "", "")
 	// const [isActiveDevolucion, setIsActiveDevolucion] = useState<string>("entregado");
 	const [date, setDate] = useState<Date|"">("");
-
+  const [textoFirma, setTextoFirma] = useState("");
+  const [vistaPrevia, setVistaPrevia] = useState<string>("");
+  const { uploadImageMutation, response, isLoading: isLoadingImage } = useUploadImage();
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  
+  const convertirTextoAImagen = (texto: string): string => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    canvas.width = 400;
+    canvas.height = 100;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#000000";
+    ctx.font = "bold italic 32px Georgia, serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(texto, canvas.width / 2, canvas.height / 2);
+    return canvas.toDataURL("image/png");
+  };
+  
+  const handleTextoChange = async (texto: string) => {
+    setTextoFirma(texto);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (texto.trim()) {
+      timeoutRef.current = setTimeout(async () => {
+        try {
+          const imagenBase64 = convertirTextoAImagen(texto);
+          setVistaPrevia(imagenBase64);
+          const imagenFile = base64ToFile(imagenBase64, `firma_${Date.now()}`);
+          uploadImageMutation.mutate({ img: imagenFile });
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      }, 800);
+    } else {
+      setVistaPrevia("");
+      form.setValue("firma", { file_name: "", file_url: "" });
+    }
+  };
+  
+  useEffect(() => {
+    if (response?.file_url) {
+      form.setValue("firma", { file_url: response.file_url, file_name: response.file_name ?? "" });
+    }
+  }, [response]);
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			estatus_paqueteria: ["entregado"],
 			fecha_entregado_paqueteria: "",
-            entregado_a_paqueteria:""
+            entregado_a_paqueteria:"",
+            firma: undefined,
 		},
 	});
     
@@ -93,77 +147,104 @@ export const DevolucionPaqModal: React.FC<DevPaqModalProps> = ({
     return (
         <Dialog onOpenChange={setIsSuccess} open={isSuccess}>
           <div className="cursor-pointer" title="Entregar Paquete" onClick={handleOpenModal}>
-            <ArrowRightLeft className="w-5 h-5"/>
-            </div>
-    
-          <DialogContent className="max-w-3xl overflow-y-auto max-h-[80vh] flex flex-col" aria-describedby="">
-                <DialogHeader className="flex-shrink-0">
-                <DialogTitle className="text-2xl text-center font-bold">
-                    {title}
-                </DialogTitle>
-                </DialogHeader>
-                <div className="overflow-y-auto p-2">
-                    <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} >
-                    <div className="w-full flex gap-2 mb-2">
-                        <p className="font-bold ">Folio: </p>
-                        <p className="font-bold text-blue-500">{data?.folio} </p>
-                    </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6 ">
-                            <FormField
-                            control={form.control}
-                            name="entregado_a_paqueteria"
-                            render={({ field }:any) => (
-                                <FormItem>
-                                <FormLabel>Entregado a:</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Entregado a ..." {...field} 
-                                    onChange={(e) => {
-                                        field.onChange(e); // Actualiza el valor en react-hook-form
-                                    }}
-                                    value={field.value || ""}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
+            <ArrowRightLeft className="w-5 h-5" />
+          </div>
+      
+          <DialogContent
+            className="p-0 overflow-hidden !max-w-[500px] w-[95vw] rounded-3xl shadow-2xl flex flex-col border-none bg-background"
+            aria-describedby="">
+      
+            <DialogHeader className="px-8 pt-8 pb-4 shrink-0 border-b border-slate-100">
+              <DialogTitle className="text-2xl text-center font-bold text-gray-800">
+                {title}
+              </DialogTitle>
+              <p className="text-center text-sm text-gray-400">
+                Registra la entrega del paquete
+              </p>
+            </DialogHeader>
+      
+            <div className="overflow-y-auto flex-1 px-8  no-scrollbar">
+              <div className="flex gap-2 mb-6">
+                <p className="text-sm font-semibold text-gray-500">Folio:</p>
+                <p className="text-sm font-bold text-blue-500">{data?.folio}</p>
+              </div>
+      
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 gap-5">
+                  <FormField control={form.control} name="entregado_a_paqueteria"
+                    render={({ field }: any) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Entregado a</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nombre de quien recibe..." {...field}
+                            onChange={(e) => field.onChange(e)}
+                            value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+      
+                  <FormField control={form.control} name="fecha_entregado_paqueteria"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha de entrega</FormLabel>
+                        <FormControl>
+                          <DateTime date={date} setDate={setDate} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                <div className="flex justify-end mt-2 mb-4">
+                  <FormField control={form.control} name="firma"
+                    render={() => (
+                      <FormItem className="w-full">
+                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Firma</FormLabel>
+                        <FormControl>
+                          <div className="space-y-3">
+                            <Input
+                              className="border-gray-200 font-bold italic bg-white"
+                              style={{ fontFamily: "Georgia, serif" }}
+                              placeholder="Escribe tu firma..."
+                              value={textoFirma}
+                              disabled={isLoadingImage}
+                              onChange={(e) => handleTextoChange(e.target.value)}
                             />
-    
-                            <FormField
-                            control={form.control}
-                            name="fecha_entregado_paqueteria"
-                            render={() => (
-                                <FormItem>
-                                <FormLabel>Fecha de entrega:</FormLabel>
-                                <FormControl>
-                                <FormControl>
-                                    <DateTime date={date} setDate={setDate} />
-                                </FormControl>
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
+                            {vistaPrevia && (
+                              <div className="border rounded-lg p-3 bg-gray-50">
+                                <p className="text-xs text-gray-500 mb-2">Vista previa:</p>
+                                <Image height={100} width={200} src={vistaPrevia} alt="Vista previa de firma" className="max-w-full h-auto" />
+                              </div>
                             )}
-                            />
-                        </div>
-                    </form>
-                    </Form>
+                            {isLoadingImage && (
+                              <p className="text-sm text-gray-400 flex items-center gap-2">
+                                <Loader2 className="animate-spin w-4 h-4" /> Subiendo firma...
+                              </p>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                <div className="flex gap-2">
-                    <DialogClose asChild>
-                        <Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose}>
-                            Cancelar
-                        </Button>
-                    </DialogClose>
-    
-                    
-                    <Button
-                        type="submit"
-                        className="w-full bg-blue-500 hover:bg-blue-600 text-white " disabled={isLoading} onClick={form.handleSubmit(onSubmit)}>
-                        { !isLoading ? (<>
-                        {("Entregar artículo")}
-                        </>) :(<> <Loader2 className="animate-spin"/> {"Entregando artículo..."} </>)}
-                    </Button>
-                </div>   
+                </form>
+              </Form>
+            </div>
+      
+            <div className="flex gap-2 px-8 py-4 border-t border-slate-100 shrink-0">
+              <DialogClose asChild>
+                <Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose}>
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button type="submit" onClick={form.handleSubmit(onSubmit)}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white" disabled={isLoading}>
+                {isLoading ? <><Loader2 className="animate-spin" /> Entregando artículo...</> : "Entregar artículo"}
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       );

@@ -28,11 +28,16 @@ export function mapArticuloConcesionadoGrid(raw: any, base: any) {
   const equipoNames = equipos.map((e: any) => e.nombre_equipo).filter(Boolean);
   const maxLength = 50;
   const equiposText = equipoNames.join(", ");
+  const truncate = (text: string, max = 33) =>
+    text.length > max ? text.slice(0, max) + "..." : text;
+
+  const totalUnidades = equipos.reduce((acc: number, e: any) => acc + Number(e.cantidad_equipo_concesion ?? 0), 0);
+  const totalDevueltas = equipos.reduce((acc: number, e: any) => acc + Number(e.cantidad_equipo_devuelto ?? 0), 0);
   return {
     ...base,
     id: raw?._id || "no-id",
     folio: raw?.folio || "S/F",
-    visit_type: raw?.caseta_concesion || "",
+    visit_type: raw?.caseta_concesion || "No disponible",
       // title: persona,
     title: equiposText.length > maxLength 
       ? equiposText.slice(0, maxLength) + "..." 
@@ -44,28 +49,29 @@ export function mapArticuloConcesionadoGrid(raw: any, base: any) {
       {
         icon: <Package className="h-3 w-3" />,
         label: "EQUIPOS",
-        value: equipoNames.length > 0 ? `Equipos: ${equipoNames.join(", ")}` : "",
+        value: equipoNames.length > 0 ? truncate(`Equipos: ${equipoNames.join(", ")}`) : "",
+      },
+      {
+        icon: <User className="h-3 w-3" />,
+        label: "Solicitante",
+        value: persona ? truncate(`Solicitante: ${persona}`) : "",
       },
       {
         icon: <MapPin className="h-3 w-3" />,
         label: "CASETA",
-        value: raw?.caseta_concesion ? `Caseta: ${raw.caseta_concesion}` : "",
+        value: truncate(raw?.caseta_concesion ? `Caseta: ${raw.caseta_concesion}` : "Caseta: No disponible"),
       },
       {
         icon: <MapPin className="h-3 w-3" />,
         label: "UBICACIÓN",
-        value: raw?.ubicacion_concesion ? `Ubicación: ${raw.ubicacion_concesion}` : "",
+        value: raw?.ubicacion_concesion ? truncate(`Ubicación: ${raw.ubicacion_concesion}`) : "",
       },
       {
-        icon: <CalendarDays className="h-3 w-3" />,
-        label: "FECHA",
-        value: raw?.fecha_concesion ? `Fecha: ${raw.fecha_concesion}` : "",
+        icon: <Package className="h-3 w-3" />,
+        label: "DEVUELTAS",
+        value: `Devueltas: ${totalDevueltas} / ${totalUnidades}`,
       },
-      {
-        icon: <CalendarDays className="h-3 w-3" />,
-        label: "CIERRE",
-        value: raw?.fecha_cierre_concesion ? `Cierre: ${raw.fecha_cierre_concesion}` : "",
-      },
+
     ],
     modalDetailsList: [
       { icon: <User className="h-3 w-3" />, label: "Persona", value: persona },
@@ -81,7 +87,7 @@ export function mapArticuloConcesionadoGrid(raw: any, base: any) {
       },
     ],
     rawData: raw,
-    vehiculos: [],
-    equipos: [],
+    vehiculos: null,
+    equipos: null,
   };
 }

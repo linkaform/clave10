@@ -34,26 +34,31 @@ export function applyArticulosPerdidosFilters(data: any[], filters: ArticulosPer
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   return data.filter((item) => {
-    if (dynamic.estatus_perdido) {
-      const filter = Array.isArray(dynamic.estatus_perdido) ? dynamic.estatus_perdido : [dynamic.estatus_perdido];
+
+    if (dynamic.estatus_p) {
+      const filter = Array.isArray(dynamic.estatus_p) ? dynamic.estatus_p : [dynamic.estatus_p];
       if (!filter.some((f: string) => normalize(f) === normalize(item.estatus_perdido || ""))) return false;
     }
-
-    if (dynamic.tipo_articulo_perdido) {
-      const filter = Array.isArray(dynamic.tipo_articulo_perdido) ? dynamic.tipo_articulo_perdido : [dynamic.tipo_articulo_perdido];
+  
+    if (dynamic.categoria) {
+      const filter = Array.isArray(dynamic.categoria) ? dynamic.categoria : [dynamic.categoria];
       if (!filter.some((f: string) => normalize(f) === normalize(item.tipo_articulo_perdido || ""))) return false;
     }
-
-    if (dynamic.area_perdido) {
-      const filter = Array.isArray(dynamic.area_perdido) ? dynamic.area_perdido : [dynamic.area_perdido];
+  
+    if (dynamic.articulo) {
+      const filter = Array.isArray(dynamic.articulo) ? dynamic.articulo : [dynamic.articulo];
+      if (!filter.some((f: string) => normalize(f) === normalize(item.articulo_seleccion || ""))) return false;
+    }
+  
+    if (dynamic.color) {
+      const filter = Array.isArray(dynamic.color) ? dynamic.color : [dynamic.color];
+      if (!filter.some((f: string) => normalize(f) === normalize(item.color_perdido || ""))) return false;
+    }
+  
+    if (dynamic.area_paqueteria) {
+      const filter = Array.isArray(dynamic.area_paqueteria) ? dynamic.area_paqueteria : [dynamic.area_paqueteria];
       if (!filter.some((f: string) => normalize(f) === normalize(item.area_perdido || ""))) return false;
     }
-
-    if (dynamic.quien_entrega) {
-      const filter = Array.isArray(dynamic.quien_entrega) ? dynamic.quien_entrega : [dynamic.quien_entrega];
-      if (!filter.some((f: string) => normalize(f) === normalize(item.quien_entrega || ""))) return false;
-    }
-
     if (dateFilter && dateFilter !== "" && dateFilter !== "all_records") {
       const rawFecha = item.date_hallazgo_perdido;
       if (!rawFecha) return false;

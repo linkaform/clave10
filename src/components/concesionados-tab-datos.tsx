@@ -6,7 +6,6 @@ import { ConcesionadosAgregarEquipoModal } from "./modals/concesionados-agregar-
 import { Imagen } from "./upload-Image";
 import { ConcesionadosVerEquipo } from "./modals/concesionados-ver-equipo";
 import { formatCurrency } from "@/lib/utils";
-
 export type DevolucionItem = {
   id_movimiento_devolucion: string;
   estatus_equipo: string;

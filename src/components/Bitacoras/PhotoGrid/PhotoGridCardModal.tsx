@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PhotoRecord } from "@/types/bitacoras";
 import { cn } from "@/lib/utils";
 import { ArrayBadgeList } from "@/components/arrayBagdeList";
+import { EstatusBadge } from "@/components/estatus-badge";
 
 export interface ModalBadgeItem {
   label: string;
@@ -158,26 +159,24 @@ export function PhotoGridCardModal({
           <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-background">
             {/* Main Header Container */}
             <div className="px-8 pt-8 pb-6 shrink-0 space-y-4">
-              {/* Dynamic Badges Header */}
-              {badges && badges.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 justify-end">
-                  {badges.slice(0, 3).map((badge, idx) => (
-                    <div
-                      key={idx}
-                      className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-full border",
-                        badge.customClass ||
-                          "bg-primary/5 border-primary/20 text-primary",
-                      )}>
-                      <span className="text-[9px] font-black uppercase tracking-[0.1em]">
-                        {badge.label}
-                        {badge.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
+            {/* Dynamic Badges Header */}
+            <div className="flex flex-wrap gap-1.5 justify-end">
+                {record.statusLabel && (
+                  <EstatusBadge estatus={record.statusLabel} />
+                )}
+                {badges && badges.filter(b => b.value).map((badge, idx) => (
+                  <div
+                    key={idx}
+                    className={cn(
+                      "inline-flex items-center px-2 py-0.5 rounded-full border",
+                      badge.customClass || "bg-primary/5 border-primary/20 text-primary",
+                    )}>
+                    <span className="text-[9px] font-black uppercase tracking-[0.1em]">
+                      {badge.label}{badge.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
               <div>
                 <h2 className="text-xl sm:text-2xl font-extrabold">
                   {record.title}

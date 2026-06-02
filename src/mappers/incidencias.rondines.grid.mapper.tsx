@@ -38,7 +38,7 @@ export function mapRondinIncidenciaGrid(raw: any, base: any) {
         { icon: null, label: "Fecha", value: raw?.fecha_hora_incidente },
       ],
       rawData: raw,
-      vehiculos: [],
-      equipos: [],
+      vehiculos: null,
+      equipos: null,
     };
   }

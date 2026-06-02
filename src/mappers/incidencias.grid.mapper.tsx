@@ -55,7 +55,7 @@ export function mapIncidenciaGrid(raw: any, base: any) {
         },
       ],
       rawData: raw,
-      vehiculos: [],
-      equipos: [],
+      vehiculos: null,
+      equipos: null,
     };
   }

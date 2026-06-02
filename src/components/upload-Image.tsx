@@ -9,6 +9,7 @@ import Webcam from "react-webcam";
 import { base64ToFile, quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
 import Image from "next/image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
+import { useOcr } from "@/hooks/ocr/useOcr";
 
 export type Imagen = {
   file_url?: string;
@@ -25,6 +26,9 @@ interface CalendarDaysProps {
   limit?: number;
   /** Callback que notifica al padre cuando este componente está subiendo imágenes */
   onLoadingChange?: (isLoading: boolean) => void;
+  onOcrResult?: (result: any) => void; 
+  tipoOcr?: "id" | "paquete" | "truck"; 
+  showPlaceholder?: boolean;
 }
 
 const LoadImage: React.FC<CalendarDaysProps> = ({
@@ -36,6 +40,9 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   imgArray,
   limit = 50,
   onLoadingChange,
+  onOcrResult,
+  tipoOcr = "id",
+  showPlaceholder=false
 }) => {
 
   const [loadingWebcam, setLoadingWebcam] = useState(false);
@@ -44,13 +51,25 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   const [webcamReady, setWebcamReady] = useState(false);
   const { uploadImageMutation, isLoading } = useUploadImage();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const webcamRef = useRef<Webcam | null>(null);
   const videoConstraints = { width: 320, height: 240, facingMode };
   const reachedLimit = (imgArray?.length ?? 0) >= limit;
   const [activeIndex, setActiveIndex] = useState(0);
   const [carouselApi, setCarouselApi] = useState<any>(null);
+  const { ocrIdMutation, ocrPaqueteMutation, ocrTruckMutation } = useOcr();
 
+  const ocrMutation = tipoOcr === "paquete"
+    ? ocrPaqueteMutation
+    : tipoOcr === "truck"
+    ? ocrTruckMutation
+    : ocrIdMutation;
+
+  // const handleAnalizar = async () => {
+  //   if (!imgArray?.length) return;
+  //   const urls = imgArray.map((i: Imagen) => i.file_url).filter(Boolean);
+  //   const result = await ocrMutation.mutateAsync(urls);
+  //   onOcrResult?.(result);
+  // };
   // Notificar al padre cuando cambia isLoading
   useEffect(() => {
     onLoadingChange?.(isLoading);
@@ -103,11 +122,20 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     const nuevos = results.filter(
       (r) => r?.file_url && !imgArray?.some((i: Imagen) => i.file_url === r.file_url)
     );
-    if (nuevos.length > 0) setImg([...(imgArray ?? []), ...nuevos]);
-
+    if (nuevos.length > 0) {
+      const updatedImgs = [...(imgArray ?? []), ...nuevos];
+      setImg(updatedImgs);
+      // Auto-analizar si tiene onOcrResult
+      if (onOcrResult) {
+        const urls = updatedImgs
+          .map((i: Imagen) => i.file_url)
+          .filter((url): url is string => Boolean(url));
+        const result = await ocrMutation.mutateAsync(urls);
+        onOcrResult?.(result);
+      }
+    }
     setHideWebcam(true);
     setHideButtonWebcam(false);
-
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -148,8 +176,22 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     const nuevoArchivo = new File([base64], nuevoNombre, { type: base64.type });
 
     const result = await uploadImageMutation.mutateAsync({ img: nuevoArchivo });
-    if (result?.file_url) setImg([...(imgArray ?? []), result]);
-
+    if (result?.file_url) {
+      const updatedImgs = [...(imgArray ?? []), result];
+      setImg(updatedImgs);
+      // Auto-analizar si tiene onOcrResult
+      if (onOcrResult) {
+        try {
+          const urls = updatedImgs
+            .map((i: Imagen) => i.file_url)
+            .filter((url): url is string => Boolean(url));
+          const result = await ocrMutation.mutateAsync(urls);
+          onOcrResult?.(result);
+        } catch {
+          onOcrResult?.({}); 
+        }
+      }
+    }
     setHideWebcam(true);
     setHideButtonWebcam(false);
     setWebcamReady(false);
@@ -172,7 +214,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
 
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <Label>{titulo}</Label>
+        {!showPlaceholder && <Label>{titulo}</Label>}
         </div>
 
         <div className="flex items-center gap-1.5 ml-2">
@@ -247,13 +289,22 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
       )}
 
       <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-2" />
-
-      {isLoading ? (
-        <div className="flex items-center gap-2 py-1">
-          <Spinner />
-          <span className="text-xs text-gray-400">Subiendo...</span>
+      {showPlaceholder && imgArray?.length === 0 && !isLoading && hideWebcam && (
+        <div className="border-2 border-dashed border-slate-200 rounded-2xl h-40 flex flex-col items-center justify-center gap-2 bg-slate-50">
+          <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center">
+            <Camera className="w-5 h-5 text-slate-400" />
+          </div>
+          {titulo && <p className="text-xs text-slate-400">{titulo}</p>}
         </div>
-      ) : (
+      )}
+      {isLoading || ocrMutation.isPending ? (
+      <div className="flex items-center gap-2 py-1">
+        <Spinner />
+        <span className="text-xs text-gray-400">
+          {ocrMutation.isPending ? "Analizando imagen..." : "Subiendo..."}
+        </span>
+      </div>
+    ) : (
         <>
           {!hideWebcam && (
             <div className="mt-1 w-48">
@@ -322,7 +373,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
                   </>
                 )}
               </Carousel>
-
+             
               {imgArray.length > 1 && (
                 <div className="w-52 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
                   <div className="flex gap-2 pb-1" style={{ minWidth: "max-content" }}>

@@ -32,11 +32,12 @@ export function mapArticuloPerdidoList(raw: any, base: any) {
     description: raw?.descripcion || raw?.comentario_perdido || "Sin descripción",
     images,
     status: raw?.estatus_perdido?.toLowerCase() || "pendiente",
-    statusLabel: statusConfig.label,
+    statusLabel: raw?.estatus_perdido || "",
     badgesList: [
       {
-        customClass: `px-4 py-1 text-xs font-semibold rounded-xl whitespace-nowrap ml-2 ${statusConfig.class}`,
+        isEstatus: true,
         label: statusConfig.label,
+        customClass: statusConfig.class,
       },
       ...(raw?.tipo_articulo_perdido ? [{
         customClass: "bg-purple-100 hover:bg-purple-100 px-4 py-1 text-xs font-medium text-purple-600 rounded-xl border-0 shadow-none",
@@ -78,7 +79,7 @@ export function mapArticuloPerdidoList(raw: any, base: any) {
       { icon: <User className="h-3 w-3" />, label: "Recibe", value: raw?.recibe_perdido || "Pendiente" },
     ],
     rawData: raw,
-    vehiculos: [],
-    equipos: [],
+    vehiculos: null,
+    equipos: null,
   };
 }

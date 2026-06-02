@@ -491,6 +491,9 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                             facingMode="environment"
                             limit={20}
                             onLoadingChange={setLoadingIdentificacion}
+                            onOcrResult={(result) => {
+                              console.log("OCR result:", result);
+                            }}
                           />
                           {fieldState.error && (
                             <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>

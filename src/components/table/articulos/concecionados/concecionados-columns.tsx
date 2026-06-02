@@ -38,12 +38,12 @@ const OptionsCell: React.FC<{ row: any }> = ({ row }) => {
     <div className="flex space-x-2">
       <DetalleDeLaConcesion data={articulo} isSuccess={false}>
         <div className="cursor-pointer" title="Ver Artículo">
-          <Eye />
+          <Eye className="w-5 h-5"/>
         </div>
       </DetalleDeLaConcesion>
       
       <DetalleDelSeguimiento data={articulo} isSuccess={false}>
-        <div><ArrowLeftRight /></div>
+        <div><ArrowLeftRight className="w-5 h-5"/></div>
       </DetalleDelSeguimiento>
     </div>
   );

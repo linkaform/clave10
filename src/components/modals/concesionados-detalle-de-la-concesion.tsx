@@ -35,20 +35,20 @@ export type Concesion = {
   grupo_equipos_devolucion?: any;
   equipos?: EquipoConcesionado[];
 };
-
 interface ViewArtModalProps {
   data: Concesion;
-  isSuccess: boolean;
-  children: React.ReactNode;
+  isSuccess?: boolean;
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
-
 const estatusStyle: Record<string, string> = {
   abierto: "bg-red-100 text-red-600 border-red-200",
   parcial: "bg-yellow-100 text-yellow-700 border-yellow-200",
   devuelto: "bg-green-100 text-green-700 border-green-200",
 };
 
-export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, children }) => {
+export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, children, open, onOpenChange }) => {
   const [equipos, setEquipos] = useState<EquipoConcesionado[]>([]);
 
   useEffect(() => {
@@ -70,8 +70,8 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
   const identificacion = identificacionRaw?.file_url ? identificacionRaw : null;
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
 
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col bg-white p-0 overflow-hidden">
 

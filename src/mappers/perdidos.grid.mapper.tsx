@@ -73,7 +73,7 @@ export function mapArticuloPerdidoGrid(raw: any, base: any) {
       { icon: <User className="h-3 w-3" />, label: "Recibe", value: raw?.recibe_perdido || "Pendiente" },
     ],
     rawData: raw,
-    vehiculos: [],
-    equipos: [],
+    vehiculos: null,
+    equipos: null,
   };
 }

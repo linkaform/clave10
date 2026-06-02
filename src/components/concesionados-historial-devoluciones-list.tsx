@@ -10,7 +10,7 @@ export const HistorialDevolucionesList: React.FC<HistorialDevolucionesListProps>
 }) => {
   const [verDevolucionModal, setVerDevolucionModal] = useState(false);
   const [devolucionSeleccionada, setDevolucionSeleccionada] = useState<any>(null);
-
+  console.log("devo", devoluciones)
   if (!devoluciones || devoluciones.length === 0) return null;
 
   return (

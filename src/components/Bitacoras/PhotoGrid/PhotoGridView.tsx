@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { PhotoGridCard } from "./PhotoGridCard";
 import { ImageIcon } from "lucide-react";
-import { ListRecord, PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
+import { ListRecord, ModalType, PhotoGridViewProps, PhotoRecord } from "@/types/bitacoras";
 import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoGridCardModal } from "./PhotoGridCardModal";
@@ -13,20 +13,21 @@ import { MapItem } from "@/components/table/rondines/recorridos/table";
 import { PhotoCheckAreaModal } from "./PhotoGridCardModalRondin";
 import { ViewIncidenciaModal } from "./PhotoGridCardModalIncidencia";
 import { CustomSpinner } from "@/components/custom-spinner";
+import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-de-la-concesion";
 
-const STATUS_BADGE_CLASSES: Record<string, string> = {
-  corriendo: "bg-green-600 border-green-600 text-white text-xs",
-  pausado:   "bg-yellow-500 border-yellow-500 text-white text-xs",
-  cancelado: "bg-red-600 border-red-600 text-white text-xs",
-  cerrado:   "bg-gray-400 border-gray-400 text-white text-xs",
-  entrada:   "bg-green-600 border-green-600 text-white text-xs",
-  salida:    "bg-red-600 border-red-600 text-white text-xs",
-  resuelto:  "bg-blue-600 border-blue-600 text-white text-xs",
-  abierto:   "bg-green-600 border-green-600 text-white text-xs",
-};
+// const STATUS_BADGE_CLASSES: Record<string, string> = {
+//   corriendo: "bg-green-600 border-green-600 text-white text-xs",
+//   pausado:   "bg-yellow-500 border-yellow-500 text-white text-xs",
+//   cancelado: "bg-red-600 border-red-600 text-white text-xs",
+//   cerrado:   "bg-gray-400 border-gray-400 text-white text-xs",
+//   entrada:   "bg-green-600 border-green-600 text-white text-xs",
+//   salida:    "bg-red-600 border-red-600 text-white text-xs",
+//   resuelto:  "bg-blue-600 border-blue-600 text-white text-xs",
+//   abierto:   "bg-green-600 border-green-600 text-white text-xs",
+// };
 
-const getStatusBadgeClass = (status: string) =>
-  STATUS_BADGE_CLASSES[status?.toLowerCase()] ?? "bg-gray-400 border-gray-400 text-white text-xs";
+// const getStatusBadgeClass = (status: string) =>
+//   STATUS_BADGE_CLASSES[status?.toLowerCase()] ?? "bg-gray-400 border-gray-400 text-white text-xs";
 
 export function PhotoGridView({
   isLoading,
@@ -55,7 +56,7 @@ export function PhotoGridView({
       /** Opcional — solo en rondines. Recibe el record seleccionado y devuelve los puntos del mapa */
   getMapData?: (record: ListRecord) => MapItem[] | undefined;
   /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
-  modalType?: "rondines" | "normal"| "rondines_v2" | "incidencia" ;
+  modalType?: ModalType;
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
     usePhotoGridView(records, externalFilters, onExternalFiltersChange);
@@ -216,7 +217,7 @@ export function PhotoGridView({
       ) : modalType === "incidencia" ? (
         <ViewIncidenciaModal
           record={selectedRecord}
-          open={isModalOpen} 
+          open={isModalOpen}
           actions={modalActions?.(selectedRecord)}
           onOpenChange={setIsModalOpen}
           badges={[
@@ -239,16 +240,19 @@ export function PhotoGridView({
             }] : []),
           ]}
         />
+      ) : modalType === "art_concesionado" ? (
+        selectedRecord && (selectedRecord as any)?.rawData ? (
+          <DetalleDeLaConcesion
+            data={(selectedRecord as any).rawData}
+            open={isModalOpen}
+            onOpenChange={setIsModalOpen}
+          />
+        ) : null
       ) : (
         <PhotoGridCardModal
           badges={[
-            ...(selectedRecord?.statusLabel
-              ? [{ label: "", value: selectedRecord.statusLabel, customClass: "bg-red-100 text-red-600 text-xs font-bold border border-red-200" }]
-              : selectedRecord?.status
-              ? [{ label: "", value: (selectedRecord.statusLabel || selectedRecord.status).toUpperCase(), customClass: getStatusBadgeClass(selectedRecord.status) }]
-              : []),
-            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs" },
-            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs" },
+            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-semibold" },
+            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-semibold" },
           ]}
           record={selectedRecord}
           open={isModalOpen}

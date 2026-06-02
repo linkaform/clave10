@@ -34,22 +34,34 @@ export function applyArticulosConcesionadosFilters(data: any[], filters: Articul
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   return data.filter((item) => {
+
     if (dynamic.status_concesion) {
       const filter = Array.isArray(dynamic.status_concesion) ? dynamic.status_concesion : [dynamic.status_concesion];
       if (!filter.some((f: string) => normalize(f) === normalize(item.status_concesion || ""))) return false;
     }
-
-    if (dynamic.caseta_concesion) {
-      const filter = Array.isArray(dynamic.caseta_concesion) ? dynamic.caseta_concesion : [dynamic.caseta_concesion];
-      if (!filter.some((f: string) => normalize(f) === normalize(item.caseta_concesion || ""))) return false;
+  
+    if (dynamic.persona_nombre_concesion) {
+      const filter = Array.isArray(dynamic.persona_nombre_concesion) ? dynamic.persona_nombre_concesion : [dynamic.persona_nombre_concesion];
+      const persona = item.persona_nombre_concesion || item.persona_nombre_otro || "";
+      if (!filter.some((f: string) => normalize(f) === normalize(persona))) return false;
     }
-
+  
+    if (dynamic.categoria_equipo_concesion) {
+      const filter = Array.isArray(dynamic.categoria_equipo_concesion) ? dynamic.categoria_equipo_concesion : [dynamic.categoria_equipo_concesion];
+      const categorias = (item.grupo_equipos || []).map((e: any) => normalize(e.categoria_equipo_concesion || ""));
+      if (!filter.some((f: string) => categorias.includes(normalize(f)))) return false;
+    }
+  
     if (dynamic.nombre_equipo) {
       const filter = Array.isArray(dynamic.nombre_equipo) ? dynamic.nombre_equipo : [dynamic.nombre_equipo];
       const equipoNames = (item.grupo_equipos || []).map((e: any) => normalize(e.nombre_equipo || ""));
       if (!filter.some((f: string) => equipoNames.includes(normalize(f)))) return false;
     }
-
+  
+    if (dynamic.area_paqueteria) {
+      const filter = Array.isArray(dynamic.area_paqueteria) ? dynamic.area_paqueteria : [dynamic.area_paqueteria];
+      if (!filter.some((f: string) => normalize(f) === normalize(item.caseta_concesion || ""))) return false;
+    }
     if (dateFilter && dateFilter !== "" && dateFilter !== "all_records") {
       const rawFecha = item.fecha_concesion;
       if (!rawFecha) return false;

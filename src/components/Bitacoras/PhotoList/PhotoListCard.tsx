@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import dynamic from "next/dynamic";
 import { MapItem } from "@/components/table/rondines/recorridos/table";
 import { ArrayBadgeList } from "@/components/arrayBagdeList";
+import { EstatusBadge } from "@/components/estatus-badge";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
@@ -120,15 +121,21 @@ console.log("gafeteItem:", gafeteItem);
                 {titleCard}
               </h3>
             </div>
-            {record?.badgesList && record?.badgesList?.length > 0 && (
-              <div className="flex gap-2 mr-7">
-                {record?.badgesList?.map((badge, index) => (
+           
+          {record?.badgesList && record?.badgesList?.length > 0 && (
+            <div className="flex gap-2 mr-7 flex-wrap">
+              {record?.badgesList?.map((badge, index) =>
+                badge.isEstatus ? (
+                  <EstatusBadge key={index} estatus={badge.label} />
+                ) : (
                   <Badge key={index} className={badge.customClass}>
                     {badge.label}
                   </Badge>
-                ))}
-              </div>
-            )}
+                )
+              )}
+            </div>
+          )}
+
           </div>
 
           <div className="flex items-center gap-3 mb-4">
@@ -233,6 +240,41 @@ console.log("gafeteItem:", gafeteItem);
               {areasItem.label}
             </span>
             <ArrayBadgeList values={areasItem.value} tooltipTitle="Todas las áreas" max={10}/>
+          </div>
+        )}
+
+        {record?.devolucionProgreso && (
+          <div className="mt-2 pt-3 border-t border-slate-100">
+            <div className="flex justify-between items-center mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400">Progreso de devolución</span>
+                <span className="text-[11px] text-slate-300">·</span>
+                <span className="text-[11px] text-slate-400 tabular-nums">
+                  {record.devolucionProgreso.devueltas}/{record.devolucionProgreso.total} unidades
+                </span>
+              </div>
+              <span className={`text-xs font-bold tabular-nums ${
+                record.devolucionProgreso.porcentaje === 100
+                  ? "text-green-600"
+                  : record.devolucionProgreso.porcentaje > 0
+                  ? "text-yellow-600"
+                  : "text-red-500"
+              }`}>
+                {record.devolucionProgreso.porcentaje}%
+              </span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  record.devolucionProgreso.porcentaje === 100
+                    ? "bg-green-500"
+                    : record.devolucionProgreso.porcentaje > 0
+                    ? "bg-yellow-400"
+                    : "bg-red-400"
+                }`}
+                style={{ width: `${record.devolucionProgreso.porcentaje}%` }}
+              />
+            </div>
           </div>
         )}
           {children && (

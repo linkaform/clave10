@@ -16,23 +16,17 @@ export function mapPaqueteriaList(raw: any, base: any) {
       // description: raw?.descripcion_paqueteria || "Sin descripción",
       images,
       status: isEntregado ? "entregado" : "guardado",
-      statusLabel: isEntregado ? "Entregado" : "Guardado",
+      statusLabel: isEntregado ? "entregado" : "guardado",
       badgesList: [
         {
-          customClass: `px-4 py-1 text-xs font-semibold rounded-xl whitespace-nowrap ml-2 ${
-            isEntregado
-              ? "bg-green-600 text-white hover:bg-green-600"
-              : "bg-amber-500 text-white hover:bg-amber-500"
-          }`,
-          label: isEntregado ? "Entregado" : "Guardado",
-        },
-        {
-          customClass: "bg-purple-100 hover:bg-purple-100 px-4 py-1 text-xs font-medium text-purple-600 rounded-xl border-0 shadow-none",
-          label: raw?.proveedor || "Sin proveedor",
-        },
-        {
-          customClass: "bg-indigo-100 hover:bg-indigo-100 px-4 py-1 text-xs font-medium text-indigo-600 rounded-xl border-0 shadow-none",
+          customClass: "bg-indigo-100 hover:bg-indigo-100 px-4 py-1 text-xs font-semibold text-indigo-600 rounded-xl border-0 shadow-none whitespace-nowrap",
           label: raw?.folio,
+        },
+        {
+          customClass: isEntregado
+            ? "bg-green-100 hover:bg-green-100 px-4 py-1 text-xs font-semibold text-green-600 rounded-xl border-0 shadow-none whitespace-nowrap"
+            : "bg-yellow-100 hover:bg-yellow-100 px-4 py-1 text-xs font-semibold text-yellow-600 rounded-xl border-0 shadow-none whitespace-nowrap",
+          label: isEntregado ? "Entregado" : "Guardado",
         },
       ],
       detailsList: [
@@ -60,7 +54,7 @@ export function mapPaqueteriaList(raw: any, base: any) {
         { icon: <Package className="h-3 w-3" />, label: "Descripción", value: raw?.descripcion_paqueteria },
       ],
       rawData: raw,
-      vehiculos: [],
-      equipos: [],
+      vehiculos: null,
+      equipos: null,
     };
   }

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { PhotoGridActionButtons } from "@/components/Bitacoras/PhotoGrid/PhotoGridActionButtons";
-import { Articulo_perdido_record } from "@/components/table/articulos/pendientes/pendientes-columns";
+import { Articulo_perdido_record } from "@/components/table/articulos/perdidos/pendientes-columns";
 import { EditarArticuloModal } from "@/components/modals/editar-article-modal";
 import { DevolucionArticuloModal } from "@/components/modals/devolucion-article-modal";
 import { LoadingModal } from "@/components/modals/loading-modal";

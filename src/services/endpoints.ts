@@ -85,3 +85,30 @@ export const getPerdidosFilters = () =>
     option: "perdidos",
     public_script: true,
   });
+
+export const getNotasFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "notas",
+    public_script: true,
+  });
+
+export const createPaseTransportista = (payload: unknown) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "create_pass_transportista",
+    payload,
+  });
+
+export const getHorariosData = (dia?: number) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_horarios_data",
+    ...(dia !== undefined && { dia }),
+  });
+
+export const getAndenes = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_andenes",
+  });

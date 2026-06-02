@@ -5,8 +5,8 @@ import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PhotoRecord } from "@/types/bitacoras";
-import { cn } from "@/lib/utils";
 import { ArrayBadgeList } from "@/components/arrayBagdeList";
+import { EstatusBadge } from "@/components/estatus-badge";
 
 interface PhotoDetailModalProps {
   record: PhotoRecord | null;
@@ -143,18 +143,8 @@ export function PhotoListCardModal({
           <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-background">
             <div className="px-8 pt-8 pb-6 shrink-0 space-y-4">
               <div className="flex flex-wrap gap-1.5 justify-end">
-                {record.status && (
-                  <div
-                    className={cn(
-                      "inline-flex items-center px-2 py-0.5 rounded-full border",
-                      record.status === "entrada"
-                        ? "bg-green-600 border-green-600 text-white"
-                        : "bg-red-600 border-red-600 text-white",
-                    )}>
-                    <span className="text-[9px] font-black uppercase tracking-[0.1em]">
-                      {record.status}
-                    </span>
-                  </div>
+                {record.statusLabel && (
+                  <EstatusBadge estatus={record.statusLabel} />
                 )}
                 {record.visit_type && (
                   <div className="inline-flex items-center px-2 py-0.5 rounded-full border bg-[#F3E8FF] border-[#F3E8FF] text-[#9159F4]">

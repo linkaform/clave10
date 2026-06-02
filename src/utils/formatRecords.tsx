@@ -29,6 +29,8 @@ import { mapArticuloPerdidoGrid } from "@/mappers/perdidos.grid.mapper";
 import { mapPaqueteriaList } from "@/mappers/paqueteria.list.mapper";
 import { mapArticuloConcesionadoList } from "@/mappers/concesionados.list.mapper";
 import { mapArticuloPerdidoList } from "@/mappers/perdidos.list.mapper";
+import { mapNotaList } from "@/mappers/notas.list.mapper";
+import { mapNotaGrid } from "@/mappers/notas.grid.mapper";
 
 const mappers_list: Record<string, (raw: any, base: any) => ListRecord> = {
   bitacora: mapBitacoraList,
@@ -42,7 +44,8 @@ const mappers_list: Record<string, (raw: any, base: any) => ListRecord> = {
   rondin_bitacora: mapRondinBitacoraList,
   paqueteria: mapPaqueteriaList,
   concesionados: mapArticuloConcesionadoList,
-  perdidos: mapArticuloPerdidoList
+  perdidos: mapArticuloPerdidoList,
+  notas: mapNotaList
 };
 
 const mappers_grid: Record<string, (raw: any, base: any) => PhotoRecord> = {
@@ -58,7 +61,8 @@ const mappers_grid: Record<string, (raw: any, base: any) => PhotoRecord> = {
   check_ubicacion: mapCheckUbicacionGrid,
   paqueteria: mapPaqueteriaGrid,
   concesionados: mapArticuloConcesionadoGrid,
-  perdidos: mapArticuloPerdidoGrid
+  perdidos: mapArticuloPerdidoGrid,
+  notas: mapNotaGrid
 };
 
 export type RegistryType =
@@ -76,7 +80,8 @@ export type RegistryType =
   | "rondin_bitacora"
   | "paqueteria"
   | "concesionados"
-  | "perdidos"; 
+  | "perdidos"
+  | "notas"; 
 
 
 
