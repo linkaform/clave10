@@ -199,41 +199,89 @@ console.log("gafeteItem:", gafeteItem);
             </div>
           )}
 
-          {showMap && (
-            <>
-           <div
-              className="rounded-xl overflow-hidden border border-slate-200 mb-2 w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ height: "240px", width: "100%" }}>
-                <MapView map_data={mapData} areas={record?.areas || []} />
+        {showMap && (
+          <>
+            <div className="flex gap-3 mb-2 w-full">
+              {/* Mapa 1 — Ruta planeada con fotos default */}
+              <div className="flex flex-col flex-1">
+                <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider mb-1">
+                  Ruta planeada
+                </span>
+                <div
+                  className="rounded-xl overflow-hidden border border-slate-200 w-full"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div style={{ height: "240px", width: "100%" }}>
+                    <MapView map_data={(mapData ?? []).map((item) => ({...item,foto_area: item.foto_area,}))} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Mapa 2 — Áreas realizadas con evidencias de detalle */}
+              <div className="flex flex-col flex-1">
+                <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider mb-1">
+                  Ruta realizada
+                </span>
+                <div
+                  className="rounded-xl overflow-hidden border border-slate-200 w-full"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div style={{ height: "240px", width: "100%" }}>
+                    <MapView
+                      map_data={(() => {
+                        const rawAreas: any[] = record?.rawData?.areas || record?.areas || [];
+                        return (mapData ?? [])
+                          .map((item) => {
+                            // Buscar el área correspondiente que tenga detalle con hora_de_check
+                            const areaConDetalle = rawAreas.find(
+                              (a: any) =>
+                                (a?.area || a?.detalle?.area) === item.nombre_area &&
+                                a?.detalle?.hora_de_check
+                            );
+                            if (!areaConDetalle) return null;
+
+                            // Primera foto de detalle.fotos, si no hay usar fallback
+                            const primeraFoto =
+                              areaConDetalle?.detalle?.fotos?.[0]?.file_url || null;
+
+                            return {
+                              ...item,
+                              foto_area: primeraFoto
+                                ? [{ file_name: "evidencia", file_url: primeraFoto }]
+                                : [{ file_name: "sin imagen", file_url: "/sin_imagen_rondines.png" }],
+                            };
+                          })
+                          .filter(Boolean) as MapItem[];
+                      })()}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-              {(() => {
-                const areassinGeo = (mapData ?? []).filter(
-                  (item: any) =>
-                    !item.geolocation_area ||
-                    (item.geolocation_area.latitude === 0 && item.geolocation_area.longitude === 0)
-                );
-                if (areassinGeo.length === 0) return null;
-                return (
-                  <div className="mb-4 px-2 py-1.5 bg-red-50 border border-red-100 rounded-lg">
-                    <p className="text-[10px] font-bold text-red-500 uppercase tracking-wide mb-0.5">
-                      ⚠ Geolocalización no disponible
-                    </p>
-                    <p className="text-[10px] text-red-400 leading-snug">
-                      {(mapData ?? []).filter(
-                        (item: any) =>
-                          !item.geolocation_area ||
-                          (item.geolocation_area.latitude === 0 && item.geolocation_area.longitude === 0)
-                      ).map((a: any) => a.nombre_area || a.nombre || "Área sin nombre").join(", ")}
-                    </p>
-                  </div>
-                );
-              })()}
-            </>
-          )}
 
+            {/* Warning áreas sin geolocalización */}
+            {(() => {
+              const areassinGeo = (mapData ?? []).filter(
+                (item: any) =>
+                  !item.geolocation_area ||
+                  (item.geolocation_area.latitude === 0 && item.geolocation_area.longitude === 0)
+              );
+              if (areassinGeo.length === 0) return null;
+              return (
+                <div className="mb-4 px-2 py-1.5 bg-red-50 border border-red-100 rounded-lg">
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-wide mb-0.5">
+                    ⚠ Geolocalización no disponible
+                  </p>
+                  <p className="text-[10px] text-red-400 leading-snug">
+                    {areassinGeo
+                      .map((a: any) => a.nombre_area || a.nombre || "Área sin nombre")
+                      .join(", ")}
+                  </p>
+                </div>
+              );
+            })()}
+          </>
+        )}
         {areasItem && Array.isArray(areasItem.value) && areasItem.value.length > 0 && (
           <div className="flex flex-col gap-1 mb-4">
             <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">

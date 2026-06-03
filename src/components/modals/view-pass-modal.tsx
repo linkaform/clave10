@@ -25,6 +25,9 @@ import ModalDescargarPase from "./download-pase-options";
 import { Imagen } from "../upload-Image";
 import { Equipo } from "@/lib/update-pass";
 import { getImgPassUrl } from "@/lib/endpoints";
+import { useUpdateAccessPass } from "@/hooks/useUpdatePass";
+import { useConfirmModal } from "@/hooks/useConfirmModal";
+import { ConfirmModal } from "../confirm-modal";
 
 type Vehiculo_custom = {
   tipo_vehiculo: string;
@@ -143,11 +146,11 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
   const [urlImgPass, setUrlImgPass] = useState<string>("");
   const { createSendCorreoSms, createSendSms, isLoadingCorreo, isLoadingSms } = useSendCorreoSms();
   const downloadUrl = responsePdf?.response?.data?.data?.download_url;
-
+  const {updatePassMutation, isLoadingUpdate} = useUpdateAccessPass()
   const [openAddMail, setOpenAddMail] = useState(false);
   const [openAddPhone, setOpenAddPhone] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-
+  const cancelModal = useConfirmModal();
   const ubicaciones: string[] = Array.isArray(data?.ubicacion)
     ? data.ubicacion
     : typeof data?.ubicacion === "string" && data.ubicacion
@@ -274,7 +277,7 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
       <DialogTrigger asChild>{children}</DialogTrigger>
 
       <DialogContent
-        className="max-w-2xl max-h-[92vh] flex flex-col pointer-events-auto p-0 gap-0 rounded-3xl overflow-hidden border-none [&>button]:z-50"
+        className="max-w-4xl max-h-[92vh] flex flex-col pointer-events-auto p-0 gap-0 rounded-3xl overflow-hidden border-none [&>button]:z-50"
         onInteractOutside={(e) => e.preventDefault()}
         aria-describedby=""
       >
@@ -522,24 +525,18 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
         <div className="flex-shrink-0 bg-white border-t border-gray-100 px-6 py-5 flex flex-col sm:flex-row gap-2">
           <DialogClose asChild>
             <Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl h-11 font-semibold">
-              Cancelar
+              Cerrar
             </Button>
           </DialogClose>
 
           <Button
-            className="w-full bg-slate-600 hover:bg-slate-700 text-white rounded-xl h-11 font-semibold"
-            onClick={() => {
-              navigator.clipboard.writeText(data?.link?.link).then(() => {
-                toast("¡Enlace copiado!", {
-                  description: "El enlace ha sido copiado correctamente al portapapeles.",
-                  action: { label: "Abrir enlace", onClick: () => window.open(data?.link?.link, "_blank") },
-                });
-              });
-              setOpen(false);
-            }}
+            className="w-full bg-red-500 hover:bg-red-600 text-white rounded-xl h-11 font-semibold"
+            onClick={cancelModal.openModal}
+            disabled={isLoadingUpdate}
           >
-            Copiar Link
+            Cancelar pase
           </Button>
+
 
           <Button
             className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-xl h-11 font-semibold"
@@ -572,6 +569,21 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
           onDescargarImagen={handleDescargarImagen}
           onDescargarPDF={handleDescargarPDF}
         />
+        <ConfirmModal
+          open={cancelModal.isOpen}
+          onClose={cancelModal.closeModal}
+          onConfirm={() =>
+            updatePassMutation.mutate(
+              { id: data._id, account_id: account_id!, access_pass: { status_pase: "cancelado" } },
+              { onSuccess: cancelModal.closeModal }
+            )
+          }
+          title="¿Cancelar pase?"
+          description="Esta acción cambiará el estatus del pase a cancelado."
+          confirmText="Sí, cancelar"
+          isLoading={isLoadingUpdate}
+        />
+
       </DialogContent>
     </Dialog>
   );

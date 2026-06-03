@@ -32,7 +32,7 @@ const NotasContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [totalRegistros, setTotalRegistros] = useState(0);
   const [searchQuery, setSearchQuery] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   const {
     externalFilters: notasFilters,
@@ -100,6 +100,11 @@ const NotasContent = () => {
 
         <div className="flex items-center bg-slate-100/50 h-9 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
           <Button variant="ghost" size="icon"
+            className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
+            onClick={() => setViewMode("table")}>
+            <Sheet size={16} />
+          </Button>
+          <Button variant="ghost" size="icon"
             className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
             onClick={() => setViewMode("list")}>
             <LayoutList size={16} />
@@ -109,11 +114,7 @@ const NotasContent = () => {
             onClick={() => setViewMode("photos")}>
             <LayoutGrid size={16} />
           </Button>
-          <Button variant="ghost" size="icon"
-            className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-            onClick={() => setViewMode("table")}>
-            <Sheet size={16} />
-          </Button>
+          
         </div>
       </PageHeader>
 
