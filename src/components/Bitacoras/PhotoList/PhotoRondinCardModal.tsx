@@ -425,43 +425,42 @@ function AreaDetailPanel({ area, onBack, onSetImage }: {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-6 py-4 no-scrollbar">
 
-        {/* TAB: GENERALES */}
-        {areaTab === "generales" && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-              {/* <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Ubicación</p>
-                <p className="text-sm font-medium text-slate-800">{ubicacion|| "-"}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Recorrido</p>
-                <p className="text-sm font-medium text-slate-800">{recorrido|| "-"}</p>
-              </div> */}
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Realizado por</p>
-                <p className="text-sm font-medium text-slate-800">{realizadoPor || "Guardia en turno"}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Fecha de inspección</p>
-                <p className="text-sm font-medium text-slate-800">{horaCheck || "-"}</p>
-              </div>
-              {tiempoTraslado !== null && (
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Tiempo traslado</p>
-                  <p className="text-sm font-medium text-slate-800">{tiempoTraslado|| "0"} min</p>
-                </div>
-              )}
+      {/* TAB: GENERALES */}
+      {areaTab === "generales" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+            {/* <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Ubicación</p>
+              <p className="text-sm font-medium text-slate-800">{ubicacion|| "-"}</p>
             </div>
-
-            {comentarios && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Recorrido</p>
+              <p className="text-sm font-medium text-slate-800">{recorrido|| "-"}</p>
+            </div> */}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Realizado por</p>
+              <p className="text-sm font-medium text-slate-800">{realizadoPor || "Guardia en turno"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Fecha de inspección</p>
+              <p className="text-sm font-medium text-slate-800">{horaCheck || "-"}</p>
+            </div>
+            {tiempoTraslado !== null && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Comentarios</p>
-                <p className="text-sm text-slate-700 leading-relaxed">{comentarios}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Tiempo traslado</p>
+                <p className="text-sm font-medium text-slate-800">{tiempoTraslado|| "0"} min</p>
               </div>
             )}
           </div>
-        )}
 
+          {comentarios && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Comentarios</p>
+              <p className="text-sm text-slate-700 leading-relaxed">{comentarios}</p>
+            </div>
+          )}
+        </div>
+      )}
       {/* TAB: CHECKLIST */}
       {areaTab === "checklist" && (
         <div>
@@ -544,63 +543,63 @@ function AreaDetailPanel({ area, onBack, onSetImage }: {
           )}
         </div>
       )}
-        {/* TAB: INCIDENCIAS */}
-        {areaTab === "incidencias" && (
-          <div>
-            {incidenciasArea.length === 0 ? (
-              <p className="text-sm text-slate-400 italic text-center py-6">Sin incidencias en esta área</p>
-            ) : (
-              <div className="space-y-0">
-                {incidenciasArea.map((inc: any, i: number) => {
-                  const img = inc.evidencias?.[0]?.file_url || inc.incidente_evidencia?.[0]?.file_url || "/sin_imagen_rondines.png";
-                  const fecha = inc.fecha_hora_incidente || inc.fecha_hora || "";
-                  const subcategoria = inc.subcategoria || inc.sub_categoria || "";
-                  const incidente = inc.incidente || "Sin incidente";
-                  const accion = inc.accion_tomada || inc.incidente_accion || "";
-                  const comentarioInc = inc.comentarios || inc.comentario_incidente_bitacora || "";
+      {/* TAB: INCIDENCIAS */}
+      {areaTab === "incidencias" && (
+        <div>
+          {incidenciasArea.length === 0 ? (
+            <p className="text-sm text-slate-400 italic text-center py-6">Sin incidencias en esta área</p>
+          ) : (
+            <div className="space-y-0">
+              {incidenciasArea.map((inc: any, i: number) => {
+                const img = inc.evidencias?.[0]?.file_url || inc.incidente_evidencia?.[0]?.file_url || "/sin_imagen_rondines.png";
+                const fecha = inc.fecha_hora_incidente || inc.fecha_hora || "";
+                const subcategoria = inc.subcategoria || inc.sub_categoria || "";
+                const incidente = inc.incidente || "Sin incidente";
+                const accion = inc.accion_tomada || inc.incidente_accion || "";
+                const comentarioInc = inc.comentarios || inc.comentario_incidente_bitacora || "";
 
-                  return (
-                    <div key={i} className="py-3 border-b border-slate-100 last:border-0">
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-slate-100 relative">
-                          <Image
-                            src={img}
-                            alt={incidente}
-                            fill
-                            className="object-cover"
-                            onError={(e) => { (e.target as HTMLImageElement).src = "/sin_imagen_rondines.png"; }}
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-slate-800 leading-tight">{incidente}</p>
-                          {fecha && <p className="text-[10px] text-slate-400 mt-0.5">{fecha}</p>}
-                          {subcategoria && (
-                            <span className="inline-block mt-1 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                              {subcategoria}
-                            </span>
-                          )}
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-slate-300 shrink-0 mt-1" />
+                return (
+                  <div key={i} className="py-3 border-b border-slate-100 last:border-0">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-slate-100 relative">
+                        <Image
+                          src={img}
+                          alt={incidente}
+                          fill
+                          className="object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = "/sin_imagen_rondines.png"; }}
+                        />
                       </div>
-                      {comentarioInc && (
-                        <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 mt-2 ml-15">
-                          <p className="text-[10px] font-bold uppercase text-slate-400 mb-0.5">Comentario</p>
-                          <p className="text-xs text-slate-600">{comentarioInc}</p>
-                        </div>
-                      )}
-                      {accion && (
-                        <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2 mt-2">
-                          <p className="text-[10px] font-bold uppercase text-green-600 mb-0.5">Acción tomada</p>
-                          <p className="text-xs text-green-700">{accion}</p>
-                        </div>
-                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-800 leading-tight">{incidente}</p>
+                        {fecha && <p className="text-[10px] text-slate-400 mt-0.5">{fecha}</p>}
+                        {subcategoria && (
+                          <span className="inline-block mt-1 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                            {subcategoria}
+                          </span>
+                        )}
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-300 shrink-0 mt-1" />
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+                    {comentarioInc && (
+                      <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 mt-2 ml-15">
+                        <p className="text-[10px] font-bold uppercase text-slate-400 mb-0.5">Comentario</p>
+                        <p className="text-xs text-slate-600">{comentarioInc}</p>
+                      </div>
+                    )}
+                    {accion && (
+                      <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2 mt-2">
+                        <p className="text-[10px] font-bold uppercase text-green-600 mb-0.5">Acción tomada</p>
+                        <p className="text-xs text-green-700">{accion}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
       </div>
     </div>
   );
@@ -624,10 +623,10 @@ export function PhotoRondinCardModal({
   const [selectedComentario, setSelectedComentario] = useState<any>(null);
   const [expandedAreas, setExpandedAreas] = useState(false);
   
-  const comentariosGenerales = Array.isArray(record?.rawData?.comentario_general) && record.rawData.comentario_general.length > 0
-  ? record.rawData.comentario_general
-  : Array.isArray(record?.comentario_general) && record.comentario_general.length > 0
-  ? record.comentario_general
+  const comentariosGenerales = Array.isArray(record?.rawData?.comentarios_generales) && record.rawData.comentarios_generales.length > 0
+  ? record.rawData.comentarios_generales
+  : Array.isArray(record?.comentarios_generales) && record.comentarios_generales.length > 0
+  ? record.comentarios_generales
   : [];
 
   if (!record) return null;

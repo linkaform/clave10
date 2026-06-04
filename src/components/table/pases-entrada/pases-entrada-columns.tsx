@@ -100,7 +100,7 @@ export const OptionsCell: React.FC<{ row: any,onEditarClick: (pase: any) => void
         isSuccess={false} 
         >
           <div className="cursor-pointer">
-            <Eye /> 
+            <Eye className="w-5 h-5"/> 
           </div>
       </ViewPassModal>
       
@@ -109,7 +109,7 @@ export const OptionsCell: React.FC<{ row: any,onEditarClick: (pase: any) => void
           onClick={() => onEditarClick(dataFull)}
           title="Editar Pase"
         >
-          <Edit />
+          <Edit className="w-5 h-5"/>
         </div>
 
     </div>

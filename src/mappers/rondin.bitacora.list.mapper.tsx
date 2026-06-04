@@ -27,15 +27,9 @@ export function mapRondinBitacoraList(raw: any, base: any) {
     .map((f: any) => f?.file_url)
     .filter((url: any) => url && typeof url === "string" && url.trim() !== "");
   
-  const fotosDefault = areas
-    .map((a: any) => a?.foto_default_area?.file_url)
-    .filter((url: any) => url && typeof url === "string" && url.trim() !== "");
-  
   const images = fotos.length > 0 
     ? fotos 
-    : fotosDefault.length > 0 
-    ? fotosDefault 
-    : ["/mountain.svg"];
+    : ["/sin_imagen_rondines.png"];
     
     const areaNames = areas.map((a: any) => a?.area).filter(Boolean);
   
@@ -82,7 +76,7 @@ export function mapRondinBitacoraList(raw: any, base: any) {
       modalDetailsList: [
         // { icon: null, label: "Folio", value: raw?.folio },
         { icon: null, label: "Ubicación", value: raw?.ubicacion },
-        { icon: null, label: "ASIGNADO A", value:raw?.asignado_a || "Guardia en turno"  },
+        { icon: null, label: "Asignado a", value:raw?.asignado_a || "Guardia en turno"  },
         // { icon: null, label: "Estatus", value: raw?.estatus_recorrido?.replace(/_/g, " ") },
         { icon: null, label: "Inicio", value: raw?.fecha_hora_inicio || "-" },
         { icon: null, label: "Finalización", value: raw?.fecha_hora_fin || "-" },
@@ -94,7 +88,7 @@ export function mapRondinBitacoraList(raw: any, base: any) {
         // { icon: null, label: "Asignado a", value: raw?.asignado_a || "Sin asignar" },
         { icon: null, label: "Áreas", value: areaNames },
         // { icon: <User className="h-3 w-3" />, label: "REALIZADO POR", value: raw?.asignado_a ? `Realizado por: ${raw.asignado_a}` : "-" },
-        { icon: <MessageSquare className="h-3 w-3" />, label: "COMENTARIO", value: raw?.comentario_general && raw.comentario_general !== "" ? raw.comentario_general : "-" },
+        { icon: <MessageSquare className="h-3 w-3" />, label: "Comentario General", value: raw?.comentario_general && raw.comentario_general !== "" ? raw.comentario_general : "-" },
       ],
   
       rawData: raw,

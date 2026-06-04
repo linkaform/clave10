@@ -96,6 +96,7 @@ export const ListaNotasTable = ({
   );
   console.log("not", notes)
   const actual_page = notes?.actual_page ?? 1;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const records = notes?.records ?? [];
   const total_pages = notes?.total_pages ?? 1;
   const total_records = notes?.total_records ?? 0;
