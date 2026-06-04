@@ -6,34 +6,15 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Truck,
-  ArrowLeftRight,
-  Package,
-  Building2,
-  Info,
-  AlertTriangle,
-  Upload,
-  X,
-  Plus,
-  CalendarDays,
-  BoxesIcon,
-  User,
+  Truck, ArrowLeftRight, Package, Building2,
+  Info, BoxesIcon, User, MapPin, Send, Eye, Upload, Sparkles, X, FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
@@ -41,12 +22,11 @@ import { useUploadImage } from "@/hooks/useUploadImage";
 import { reemplazarGuionMinuscula } from "@/lib/utils";
 import { useCreatePaseTransportista } from "@/hooks/useCreatePaseTransportista";
 import { ConfirmPaseTransportistaModal } from "@/components/modals/confirm-pase-transportista-modal";
+import { PaseTransportistaSuccessModal } from "@/components/modals/pase-transportista-success-modal";
 import { useQuery } from "@tanstack/react-query";
 import { getHorariosData, getAndenes } from "@/services/endpoints";
-import {
-  HorariosConcurrenciaChart,
-  type HorarioItem,
-} from "@/components/horarios-concurrencia-chart";
+import { HorariosConcurrenciaChart, type HorarioItem } from "@/components/horarios-concurrencia-chart";
+import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -59,173 +39,129 @@ interface Documento {
   uploading: boolean;
 }
 
+// ── Constantes ─────────────────────────────────────────────────────────────────
+
+
+const TIPOS_OPERACION = [
+  { value: "entrega_materia_prima" as const,          label: "Entrega de materia prima",       description: "El proveedor viene a tu planta",         icon: Truck,          tags: ["DDP", "DAP", "CIF"] },
+  { value: "recoleccion_materia_prima" as const,      label: "Recolección de materia prima",   description: "Tu transporte va al proveedor",           icon: ArrowLeftRight, tags: ["FOB", "EXW", "FCA"] },
+  { value: "entrega_producto_terminado" as const,     label: "Entrega de producto terminado",  description: "Tu transporte lleva el producto",         icon: Package,        tags: ["DAP", "DDP cliente"] },
+  { value: "recoleccion_producto_terminado" as const, label: "Recolección de producto terminado", description: "El cliente recoge en tu planta",       icon: Building2,      tags: ["EXW", "FCA tu planta"] },
+] as const;
+
+const TIPO_OPERACION_LABEL: Record<string, string> = {
+  entrega_materia_prima:          "entrega_de_materia_prima",
+  entrega_producto_terminado:     "entrega_de_producto_terminado",
+  recoleccion_materia_prima:      "recoleccion_de_materia_prima",
+  recoleccion_producto_terminado: "recoleccion_de_producto_terminado",
+};
+
+const SEGUNDA_PERSONA: Record<string, { titulo: string; subtitulo: string }> = {
+  entrega_materia_prima:          { titulo: "Quién entrega",    subtitulo: "recibirá el pase" },
+  recoleccion_materia_prima:      { titulo: "Proveedor origen", subtitulo: "referencia del origen" },
+  entrega_producto_terminado:     { titulo: "Cliente destino",  subtitulo: "referencia del destino" },
+  recoleccion_producto_terminado: { titulo: "Cliente",          subtitulo: "recibirá el pase" },
+};
+
+const GENERAR_PASE: Record<string, { info: string; botones: { label: string; primary: boolean }[] }> = {
+  entrega_materia_prima: {
+    info: "El pase se enviará al proveedor con un QR. El proveedor podrá reenviarlo al transportista.",
+    botones: [{ label: "Enviar a proveedor", primary: true }],
+  },
+  recoleccion_materia_prima: {
+    info: "El pase se enviará al proveedor de transporte para que asigne conductor y llene los datos del vehículo.",
+    botones: [{ label: "Enviar a transportista", primary: true }, { label: "Notificar a proveedor", primary: false }],
+  },
+  entrega_producto_terminado: {
+    info: "El pase se enviará al proveedor de transporte. Una vez que llene sus datos, podrás notificar al cliente.",
+    botones: [{ label: "Enviar a transportista", primary: true }, { label: "Notificar a cliente", primary: false }],
+  },
+  recoleccion_producto_terminado: {
+    info: "El pase se enviará al cliente con un QR. El cliente podrá reenviarlo al transportista.",
+    botones: [{ label: "Enviar a cliente", primary: true }],
+  },
+};
+
+const METODOS_EMBARQUE = ["Terrestre", "Aéreo", "Marítimo", "Ferroviario", "Multimodal"];
+const INCOTERMS = ["EXW", "FCA", "FAS", "FOB", "CFR", "CIF", "CPT", "CIP", "DAP", "DPU", "DDP"];
+const HORARIOS_SIMPLES = [
+  "06:00-08:00", "07:00-09:00", "08:00-10:00", "09:00-11:00",
+  "10:00-12:00", "11:00-13:00", "12:00-14:00", "13:00-15:00",
+  "14:00-16:00", "15:00-17:00", "16:00-18:00", "17:00-19:00",
+  "18:00-20:00", "19:00-21:00",
+];
+const HORAS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);
+const INTERVALOS = [1, 2, 3, 4];
+
 // ── Schema ─────────────────────────────────────────────────────────────────────
 
-const formSchema = z
-  .object({
-    tipo_operacion: z.enum(
-      [
-        "entrega_materia_prima",
-        "recoleccion_materia_prima",
-        "entrega_producto_terminado",
-        "recoleccion_producto_terminado",
-      ],
-      { required_error: "Selecciona un tipo de operación." },
-    ),
+const formSchema = z.object({
+  tipo_operacion: z.enum([
+    "entrega_materia_prima", "recoleccion_materia_prima",
+    "entrega_producto_terminado", "recoleccion_producto_terminado",
+  ], { required_error: "Selecciona un tipo de operación." }),
 
-    // ── Entrega (materia prima / producto terminado)
-    proveedor: z.string().optional(),
-    material: z.string().optional(),
-    cantidad: z
-      .string()
-      .optional()
-      .refine((val) => !val || /^\d+$/.test(val), {
-        message: "La cantidad debe ser un número entero.",
-      }),
+  // Quien recibe
+  crea_el_pase_nombre:   z.string().min(1, { message: "El nombre es requerido." }),
+  crea_el_pase_email:    z.string().min(1, { message: "El email es requerido." }),
+  crea_el_pase_telefono: z.string().optional(),
 
-    // ── Recolección de materia prima
-    proveedor_origen: z.string().optional(),
-    direccion_recoleccion: z.string().optional(),
-    material_a_recoger: z.string().optional(),
+  // Segunda persona
+  recibe_el_pase_nombre:   z.string().optional(),
+  recibe_el_pase_email:    z.string().optional(),
+  recibe_el_pase_telefono: z.string().optional(),
 
-    // ── Entrega de producto terminado
-    cliente: z.string().optional(),
-    direccion_entrega: z.string().optional(),
-    producto: z.string().optional(),
-    orden_venta_remision: z.string().optional(),
-    responsable_entrega: z.string().optional(),
-    responsable_despacho: z.string().optional(),
+  // Material (AI)
+  material_proveedor_cliente: z.string().optional(),
+  material_nombre:            z.string().optional(),
+  material_cantidad:          z.string().optional().refine(
+    (val) => !val || /^\d+$/.test(val), { message: "Debe ser un número entero." }
+  ),
+  material_orden_compra: z.string().optional(),
 
-    // ── Compartido
-    orden_compra: z.string().optional(),
-    transportista: z.string().optional(),
-    placas: z.string().optional(),
-    nombre_operador: z.string().optional(),
-    fecha_pase_transportista_desde: z.string().optional(),
-    fecha_pase_transportista_hasta: z.string().optional(),
-    horario: z.string().optional(),
-    anden: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    const add = (path: string, msg: string) =>
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: msg, path: [path] });
+  // Lugar de entrega / recepción
+  ubicacion:      z.string().optional(),
+  direccion_lugar: z.string().optional(),
+  fecha_pase_transportista_desde: z.string().optional(),
+  fecha_pase_transportista_hasta: z.string().optional(),
+  horario: z.string().optional(),
+  anden:   z.string().optional(),
 
-    if (data.tipo_operacion === "entrega_materia_prima") {
-      if (!data.proveedor) add("proveedor", "El proveedor es requerido.");
-      if (!data.material) add("material", "El material es requerido.");
-      if (!data.fecha_pase_transportista_desde)
-        add(
-          "fecha_pase_transportista_desde",
-          "La fecha de llegada es requerida.",
-        );
-      if (!data.anden) add("anden", "El andén es requerido.");
-    }
+  // Lugar de recolección (tipos 2 y 3)
+  lugar_reco_lugar:     z.string().optional(),
+  lugar_reco_direccion: z.string().optional(),
+  lugar_reco_fecha:     z.string().optional(),
+  lugar_reco_horario:   z.string().optional(),
+  lugar_reco_anden:     z.string().optional(),
+  transporte_responsable: z.string().optional(),
+  transporte_email:       z.string().optional(),
+  transporte_telefono:    z.string().optional(),
+  metodo_embarque: z.string().optional(),
+  incoterm:        z.string().optional(),
+}).superRefine((data, ctx) => {
+  const add = (path: string, msg: string) =>
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: msg, path: [path] });
 
-    if (data.tipo_operacion === "recoleccion_materia_prima") {
-      if (!data.proveedor_origen)
-        add("proveedor_origen", "El proveedor / origen es requerido.");
-      if (!data.direccion_recoleccion)
-        add(
-          "direccion_recoleccion",
-          "La dirección de recolección es requerida.",
-        );
-      if (!data.material_a_recoger)
-        add("material_a_recoger", "El material a recoger es requerido.");
-      if (!data.transportista)
-        add("transportista", "El transportista es requerido.");
-      if (!data.placas)
-        add("placas", "Las placas del vehículo son requeridas.");
-      if (!data.fecha_pase_transportista_desde)
-        add(
-          "fecha_pase_transportista_desde",
-          "La fecha estimada de retorno es requerida.",
-        );
-      if (!data.anden) add("anden", "El andén es requerido.");
-    }
+  if (!data.crea_el_pase_nombre) add("crea_el_pase_nombre", "El nombre es requerido.");
+  if (!data.crea_el_pase_email)  add("crea_el_pase_email",  "El email es requerido.");
+  if (!data.recibe_el_pase_nombre) add("recibe_el_pase_nombre", "El nombre es requerido.");
+  if (!data.recibe_el_pase_email)  add("recibe_el_pase_email",  "El email es requerido.");
 
-    if (data.tipo_operacion === "entrega_producto_terminado") {
-      if (!data.cliente) add("cliente", "El cliente es requerido.");
-      if (!data.direccion_entrega)
-        add("direccion_entrega", "La dirección de entrega es requerida.");
-      if (!data.producto) add("producto", "El producto es requerido.");
-      if (!data.transportista)
-        add("transportista", "El transportista es requerido.");
-      if (!data.placas)
-        add("placas", "Las placas del vehículo son requeridas.");
-      if (!data.fecha_pase_transportista_desde)
-        add(
-          "fecha_pase_transportista_desde",
-          "La fecha de salida es requerida.",
-        );
-      if (!data.anden) add("anden", "El andén de embarque es requerido.");
-    }
-
-    if (data.tipo_operacion === "recoleccion_producto_terminado") {
-      if (!data.cliente) add("cliente", "El cliente es requerido.");
-      if (!data.producto) add("producto", "El producto es requerido.");
-      if (!data.fecha_pase_transportista_desde)
-        add(
-          "fecha_pase_transportista_desde",
-          "La fecha de recolección es requerida.",
-        );
-      if (!data.anden) add("anden", "El andén de embarque es requerido.");
-    }
-  });
+  if (["recoleccion_materia_prima", "entrega_producto_terminado"].includes(data.tipo_operacion)) {
+    if (!data.lugar_reco_lugar)     add("lugar_reco_lugar",     "El lugar es requerido.");
+    if (!data.lugar_reco_direccion) add("lugar_reco_direccion", "La dirección es requerida.");
+    if (!data.lugar_reco_fecha)     add("lugar_reco_fecha",     "La fecha es requerida.");
+    if (!data.transporte_responsable) add("transporte_responsable", "El responsable es requerido.");
+    if (!data.transporte_email)       add("transporte_email",       "El email es requerido.");
+  }
+});
 
 type FormValues = z.infer<typeof formSchema>;
 
-// ── Constantes ─────────────────────────────────────────────────────────────────
-
-const TIPOS_OPERACION = [
-  {
-    value: "entrega_materia_prima" as const,
-    label: "Entrega de materia prima",
-    description: "El proveedor viene a tu planta con mercancía",
-    icon: Truck,
-    tags: ["DDP", "DAP", "CIF"],
-  },
-  {
-    value: "recoleccion_materia_prima" as const,
-    label: "Recolección de materia prima",
-    description: "Tu transporte va por la mercancía al proveedor",
-    icon: ArrowLeftRight,
-    tags: ["FOB", "EXW", "FCA"],
-  },
-  {
-    value: "entrega_producto_terminado" as const,
-    label: "Entrega de producto terminado",
-    description: "Tu transporte lleva el producto al cliente",
-    icon: Package,
-    tags: ["DAP", "DDP cliente"],
-  },
-  {
-    value: "recoleccion_producto_terminado" as const,
-    label: "Recolección de producto terminado",
-    description: "El cliente recoge en tu planta",
-    icon: Building2,
-    tags: ["EXW", "FCA tu planta"],
-  },
-] as const;
-
-const TIPOS_DOCUMENTO = [
-  { value: "carta_porte", label: "Carta porte" },
-  { value: "factura", label: "Factura" },
-  { value: "remision", label: "Remisión" },
-  { value: "pedido", label: "Pedido" },
-  { value: "guia", label: "Guía" },
-  { value: "otro", label: "Otro" },
-];
-
 // ── Componentes auxiliares ─────────────────────────────────────────────────────
 
-function Section({
-  icon: Icon,
-  title,
-  children,
-}: {
-  icon: React.ElementType;
-  title: string;
-  children: React.ReactNode;
+function Section({ icon: Icon, title, children }: {
+  icon: React.ElementType; title: string; children: React.ReactNode;
 }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
@@ -240,628 +176,396 @@ function Section({
   );
 }
 
-function InfoBox({ children }: { children: React.ReactNode }) {
+function InfoBox({ children, warning }: { children: React.ReactNode; warning?: boolean }) {
   return (
-    <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-5 text-sm text-blue-800">
-      <Info className="w-4 h-4 mt-0.5 shrink-0 text-blue-500" />
+    <div className={cn(
+      "flex items-start gap-2 rounded-xl px-4 py-3 mb-4 text-sm",
+      warning
+        ? "bg-amber-50 border border-amber-200 text-amber-800"
+        : "bg-blue-50 border border-blue-200 text-blue-800"
+    )}>
+      <Info className={cn("w-4 h-4 mt-0.5 shrink-0", warning ? "text-amber-500" : "text-blue-500")} />
       <p>{children}</p>
     </div>
   );
 }
 
-function WarnBox({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mt-4 text-sm text-amber-800">
-      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
-      <p>{children}</p>
-    </div>
-  );
-}
-
-function FieldLabel({
-  required,
-  children,
-}: {
-  required?: boolean;
-  children: React.ReactNode;
+function FieldLabel({ required, children, ia }: {
+  required?: boolean; children: React.ReactNode; ia?: boolean;
 }) {
   return (
-    <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-      {required && <span className="text-red-400">* </span>}
+    <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+      {required && <span className="text-red-400">*</span>}
       {children}
+      {ia && (
+        <span className="inline-flex items-center gap-0.5 bg-blue-100 text-blue-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+          <Sparkles className="w-2.5 h-2.5" /> IA
+        </span>
+      )}
     </FormLabel>
   );
 }
 
-// ── Secciones por tipo de operación ───────────────────────────────────────────
-
-function SeccionEntregaMateriaPrima({
-  form,
-}: {
+function PersonaFields({ form, prefix, required }: {
   form: ReturnType<typeof useForm<FormValues>>;
+  prefix: "crea_el_pase" | "recibe_el_pase";
+  required?: boolean;
 }) {
   return (
-    <Section icon={BoxesIcon} title="Proveedor y material">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <FormField
-          control={form.control}
-          name="proveedor"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel required>Proveedor</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Buscar proveedor..."
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="material"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel required>Material</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Ej. Resina PET"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="cantidad"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel>Cantidad</FieldLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="Ej. 20"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="orden_compra"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel>Orden de compra</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="OC-2026-0042"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-    </Section>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <FormField control={form.control} name={`${prefix}_nombre`} render={({ field }) => (
+        <FormItem>
+          <FieldLabel required={required}>Nombre</FieldLabel>
+          <FormControl>
+            <Input placeholder="Nombre completo" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )} />
+      <FormField control={form.control} name={`${prefix}_email`} render={({ field }) => (
+        <FormItem>
+          <FieldLabel required={required}>Email</FieldLabel>
+          <FormControl>
+            <Input placeholder="correo@empresa.com" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )} />
+      <FormField control={form.control} name={`${prefix}_telefono`} render={({ field }) => (
+        <FormItem>
+          <FieldLabel>Teléfono</FieldLabel>
+          <FormControl>
+            <Input placeholder="+52 55 1234 5678" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )} />
+    </div>
   );
 }
 
-function SeccionRecoleccionMateriaPrima({
-  form,
-}: {
+// ── Secciones ──────────────────────────────────────────────────────────────────
+
+function SeccionQuienRecibe({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 bg-blue-50 rounded-xl">
+          <User className="w-4 h-4 text-blue-600" />
+        </div>
+        <div>
+          <p className="font-semibold text-gray-700">Quien recibe</p>
+          <p className="text-xs text-gray-400">persona que crea el pase</p>
+        </div>
+      </div>
+      <PersonaFields form={form} prefix="crea_el_pase" required />
+    </div>
+  );
+}
+
+function SeccionSegundaPersona({ form, tipo }: {
   form: ReturnType<typeof useForm<FormValues>>;
+  tipo: string;
+}) {
+  const config = SEGUNDA_PERSONA[tipo] ?? { titulo: "Contacto", subtitulo: "" };
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 bg-blue-50 rounded-xl">
+          <Building2 className="w-4 h-4 text-blue-600" />
+        </div>
+        <div>
+          <p className="font-semibold text-gray-700">{config.titulo}</p>
+          {config.subtitulo && <p className="text-xs text-gray-400">{config.subtitulo}</p>}
+        </div>
+      </div>
+      <PersonaFields form={form} prefix="recibe_el_pase" required />
+    </div>
+  );
+}
+
+function SeccionMaterial({ form, documentos, onRemoveDoc, onArchivoDoc }: {
+  form: ReturnType<typeof useForm<FormValues>>;
+  documentos: Documento[];
+  onRemoveDoc: (id: string) => void;
+  onArchivoDoc: (id: string, file: File) => void;
 }) {
   return (
-    <Section icon={BoxesIcon} title="Origen de recolección">
+    <Section icon={BoxesIcon} title="Material">
       <InfoBox>
-        El pase se envía al transportista con instrucciones de a dónde ir y qué
-        recoger. También funciona como pase de entrada al regresar a tu planta.
+        Sube la factura, OC o carta porte y la IA extraerá los datos automáticamente.
+        Puedes corregir cualquier campo.
       </InfoBox>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <FormField
-          control={form.control}
-          name="proveedor_origen"
-          render={({ field }) => (
-            <FormItem className="md:col-span-2">
-              <FieldLabel required>Proveedor / Origen</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Buscar proveedor..."
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="direccion_recoleccion"
-          render={({ field }) => (
-            <FormItem className="md:col-span-2">
-              <FieldLabel required>Dirección de recolección</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Calle, ciudad, estado..."
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="material_a_recoger"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel required>Material a recoger</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Ej. Acero inoxidable"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="orden_compra"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel>Orden de compra</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="OC-2026-0042"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+
+      {/* Upload múltiple IA */}
+      <div className="mb-5">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          Factura / OC / Carta porte / Packing slip
+          <span className="inline-flex items-center gap-0.5 bg-blue-100 text-blue-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+            <Sparkles className="w-2.5 h-2.5" /> IA
+          </span>
+        </p>
+
+        {/* Cards de docs subidos */}
+        {documentos.filter((d) => d.file_url || d.uploading).length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {documentos.filter((d) => d.file_url || d.uploading).map((doc) => {
+              const isImage = /\.(jpe?g|png|gif|webp)$/i.test(doc.file_name);
+              return (
+                <div key={doc.id} className="relative group w-20">
+                  {/* Thumbnail */}
+                  <div className="w-20 h-20 rounded-xl border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                    {doc.uploading ? (
+                      <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                    ) : isImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={doc.file_url} alt={doc.file_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-1">
+                        <FileText className="w-7 h-7 text-blue-400" />
+                        <span className="text-[9px] font-bold text-blue-400 uppercase">
+                          {doc.file_name.split(".").pop()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Nombre */}
+                  {!doc.uploading && (
+                    <p className="text-[9px] text-gray-500 mt-1 truncate text-center leading-tight">{doc.file_name}</p>
+                  )}
+                  {/* Eliminar */}
+                  {doc.file_url && (
+                    <button type="button" onClick={() => onRemoveDoc(doc.id)}
+                      className="absolute -top-1.5 -right-1.5 hidden group-hover:flex w-5 h-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm">
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Slot de upload */}
+        {documentos.filter((d) => !d.file_url && !d.uploading).slice(0, 1).map((doc) => (
+          <label key={doc.id} className="flex items-center gap-2 h-10 w-full rounded-xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500 px-3 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+            <Upload className="w-4 h-4 shrink-0" />
+            <span className="text-xs">Seleccionar o arrastrar archivo</span>
+            <input type="file" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) onArchivoDoc(doc.id, f); }} />
+          </label>
+        ))}
+      </div>
+
+      {/* Botón IA */}
+      {(() => {
+        const tieneDoc = documentos.some((d) => d.file_url);
+        return (
+          <button
+            type="button"
+            disabled={!tieneDoc}
+            className={cn(
+              "w-full flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-semibold transition-all mb-5",
+              tieneDoc
+                ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-sm shadow-blue-200 hover:opacity-90"
+                : "bg-gray-100 text-gray-400 cursor-not-allowed"
+            )}
+          >
+            <Sparkles className="w-4 h-4" />
+            {tieneDoc ? "Extraer datos con IA" : "Sube un documento para usar IA"}
+          </button>
+        );
+      })()}
+
+      {/* Campos IA */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField control={form.control} name="material_proveedor_cliente" render={({ field }) => (
+          <FormItem>
+            <FieldLabel ia>Proveedor / Cliente</FieldLabel>
+            <FormControl>
+              <Input placeholder="Extraído del documento..." className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+        <FormField control={form.control} name="material_nombre" render={({ field }) => (
+          <FormItem>
+            <FieldLabel ia>Material</FieldLabel>
+            <FormControl>
+              <Input placeholder="Extraído del documento..." className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+        <FormField control={form.control} name="material_cantidad" render={({ field }) => (
+          <FormItem>
+            <FieldLabel ia>Cantidad</FieldLabel>
+            <FormControl>
+              <Input type="number" min={0} step={1} placeholder="" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+        <FormField control={form.control} name="material_orden_compra" render={({ field }) => (
+          <FormItem>
+            <FieldLabel ia>Orden de compra</FieldLabel>
+            <FormControl>
+              <Input placeholder="Extraído del documento..." className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
       </div>
     </Section>
   );
 }
 
-function SeccionTransportistaEntrega({
-  form,
-}: {
-  form: ReturnType<typeof useForm<FormValues>>;
-}) {
+function SeccionLugarRecoleccion({ form }: { form: ReturnType<typeof useForm<FormValues>> }) {
   return (
-    <Section icon={User} title="Transportista">
-      <InfoBox>
-        El proveedor usa su propio transporte. Si ya sabes quién viene,
-        captúralo. Si no, el pase queda como{" "}
-        <strong>pendiente de transportista</strong> — el guardia registrará los
-        datos al llegar.
-      </InfoBox>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <FormField
-          control={form.control}
-          name="transportista"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel>Transportista</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Buscar o captura libre..."
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="placas"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel>Placas del vehículo</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Opcional si no se conoce"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 bg-blue-50 rounded-xl">
+          <MapPin className="w-4 h-4 text-blue-600" />
+        </div>
+        <p className="font-semibold text-gray-700">Lugar de recolección</p>
       </div>
-      <WarnBox>
-        Si se deja vacío, el guardia completará los datos en caseta al momento
-        de la llegada.
-      </WarnBox>
-    </Section>
+
+      <div className="space-y-4">
+        {/* Lugar y dirección */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField control={form.control} name="lugar_reco_lugar" render={({ field }) => (
+            <FormItem>
+              <FieldLabel required>Lugar</FieldLabel>
+              <FormControl>
+                <Input placeholder="Nombre de la ubicación origen" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="lugar_reco_direccion" render={({ field }) => (
+            <FormItem>
+              <FieldLabel required>Dirección</FieldLabel>
+              <FormControl>
+                <Input placeholder="Calle, ciudad, estado" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </div>
+
+        {/* Fecha, horario, andén */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormField control={form.control} name="lugar_reco_fecha" render={({ field }) => (
+            <FormItem>
+              <FieldLabel required>Fecha</FieldLabel>
+              <FormControl>
+                <Input type="date" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="lugar_reco_horario" render={({ field }) => (
+            <FormItem>
+              <FieldLabel>Horario</FieldLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HORARIOS_SIMPLES.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="lugar_reco_anden" render={({ field }) => (
+            <FormItem>
+              <FieldLabel>Andén</FieldLabel>
+              <FormControl>
+                <Input placeholder="Opcional" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </div>
+
+        {/* Proveedor de transporte */}
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Proveedor de transporte <span className="text-gray-400 lowercase font-normal">(recibirá el pase)</span>
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField control={form.control} name="transporte_responsable" render={({ field }) => (
+              <FormItem>
+                <FieldLabel required>Responsable</FieldLabel>
+                <FormControl>
+                  <Input placeholder="Contacto en transportista" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="transporte_email" render={({ field }) => (
+              <FormItem>
+                <FieldLabel required>Email</FieldLabel>
+                <FormControl>
+                  <Input placeholder="transportista@empresa.com" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="transporte_telefono" render={({ field }) => (
+              <FormItem>
+                <FieldLabel>Teléfono</FieldLabel>
+                <FormControl>
+                  <Input placeholder="" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+          </div>
+        </div>
+
+        {/* Método de embarque e Incoterm */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField control={form.control} name="metodo_embarque" render={({ field }) => (
+            <FormItem>
+              <FieldLabel>Método de embarque</FieldLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {METODOS_EMBARQUE.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="incoterm" render={({ field }) => (
+            <FormItem>
+              <FieldLabel>Incoterm</FieldLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INCOTERMS.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </div>
+      </div>
+    </div>
   );
 }
-
-function SeccionTransportistaAsignado({
-  form,
-}: {
-  form: ReturnType<typeof useForm<FormValues>>;
-}) {
-  return (
-    <Section icon={User} title="Transportista asignado">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <FormField
-          control={form.control}
-          name="transportista"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel required>Transportista</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Buscar o captura libre..."
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="placas"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel required>Placas del vehículo</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Ej. ABC-123-D"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="nombre_operador"
-          render={({ field }) => (
-            <FormItem className="md:col-span-2">
-              <FieldLabel>Nombre del operador</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Opcional"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-    </Section>
-  );
-}
-
-function SeccionEntregaProductoTerminado({
-  form,
-}: {
-  form: ReturnType<typeof useForm<FormValues>>;
-}) {
-  return (
-    <Section icon={BoxesIcon} title="Cliente y producto">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <FormField
-          control={form.control}
-          name="cliente"
-          render={({ field }) => (
-            <FormItem className="md:col-span-2">
-              <FieldLabel required>Cliente</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Buscar cliente..."
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="direccion_entrega"
-          render={({ field }) => (
-            <FormItem className="md:col-span-2">
-              <FieldLabel required>Dirección de entrega</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Planta o almacén del cliente..."
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="producto"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel required>Producto</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Ej. Producto terminado A"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="orden_venta_remision"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel>Orden de venta / Remisión</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="OV-2026-0018"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="cantidad"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel>Cantidad</FieldLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="Ej. 5"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="responsable_entrega"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel>Responsable de entrega</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Nombre del encargado"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-    </Section>
-  );
-}
-
-function SeccionRecoleccionProductoTerminado({
-  form,
-}: {
-  form: ReturnType<typeof useForm<FormValues>>;
-}) {
-  return (
-    <Section icon={BoxesIcon} title="Cliente y producto">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <FormField
-          control={form.control}
-          name="cliente"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel required>Cliente</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Buscar cliente..."
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="orden_venta_remision"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel required>Orden de venta / Remisión</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="OV-2026-0018"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="producto"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel required>Producto</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Ej. Producto terminado A"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="cantidad"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel>Cantidad</FieldLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="Ej. 3"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="responsable_despacho"
-          render={({ field }) => (
-            <FormItem className="md:col-span-2">
-              <FieldLabel>Responsable de despacho</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Quien entrega el producto en almacén"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-    </Section>
-  );
-}
-
-function SeccionTransportistaCliente({
-  form,
-}: {
-  form: ReturnType<typeof useForm<FormValues>>;
-}) {
-  return (
-    <Section icon={User} title="Transportista del cliente">
-      <InfoBox>
-        El cliente usa su propio transporte. Si ya te informaron quién viene,
-        captúralo. Si no, el guardia registrará los datos al momento de la
-        llegada.
-      </InfoBox>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <FormField
-          control={form.control}
-          name="transportista"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel>Transportista</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Buscar o captura libre..."
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="placas"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel>Placas del vehículo</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Opcional si no se conoce"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="nombre_operador"
-          render={({ field }) => (
-            <FormItem className="md:col-span-2">
-              <FieldLabel>Nombre del operador</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Opcional"
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-      <WarnBox>
-        Si se deja vacío, el guardia completará los datos en caseta al momento
-        de la llegada.
-      </WarnBox>
-    </Section>
-  );
-}
-
-const HORAS = Array.from(
-  { length: 24 },
-  (_, i) => `${String(i).padStart(2, "0")}:00`,
-);
-const INTERVALOS = [1, 2, 3, 4];
 
 function generarSlots(horaInicio: string, intervalo: number): string[] {
   const inicio = parseInt(horaInicio.split(":")[0], 10);
@@ -877,17 +581,7 @@ function generarSlots(horaInicio: string, intervalo: number): string[] {
   return slots;
 }
 
-function SeccionProgramacion({
-  form,
-  title = "Programación",
-  andenLabel = "Andén de recepción",
-  horarios = [],
-  diaIndex = 0,
-  onDiaChange,
-  isLoadingHorarios = false,
-  andenes = [],
-  isLoadingAndenes = false,
-}: {
+function SeccionProgramacion({ form, title = "Lugar de entrega / recepción", andenLabel = "Andén", horarios = [], diaIndex = 0, onDiaChange, isLoadingHorarios = false, andenes = [], isLoadingAndenes = false, locations = [] }: {
   form: ReturnType<typeof useForm<FormValues>>;
   title?: string;
   andenLabel?: string;
@@ -897,248 +591,232 @@ function SeccionProgramacion({
   isLoadingHorarios?: boolean;
   andenes?: string[];
   isLoadingAndenes?: boolean;
+  locations?: string[];
 }) {
   const [usarRango, setUsarRango] = useState(false);
   const [usarHorario, setUsarHorario] = useState(false);
   const [horaInicio, setHoraInicio] = useState("08:00");
   const [intervalo, setIntervalo] = useState(2);
-
   const slots = generarSlots(horaInicio, intervalo);
 
-  const handleToggleRango = (checked: boolean) => {
-    setUsarRango(checked);
-    if (!checked) form.setValue("fecha_pase_transportista_hasta", "");
-  };
-
   return (
-    <Section icon={CalendarDays} title={title}>
+    <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 bg-blue-50 rounded-xl">
+          <MapPin className="w-4 h-4 text-blue-600" />
+        </div>
+        <p className="font-semibold text-gray-700">{title}</p>
+      </div>
+
       <div className="space-y-5">
-        {/* ── Fecha ── */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Fecha
-            </p>
-            <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
-              <span>Rango de fechas</span>
-              <Switch
-                checked={usarRango}
-                onCheckedChange={handleToggleRango}
-                className="data-[state=checked]:bg-blue-600"
-              />
-            </label>
-          </div>
-
-          <div
-            className={cn(
-              "grid gap-5",
-              usarRango
-                ? "grid-cols-1 md:grid-cols-2"
-                : "grid-cols-1 md:grid-cols-2",
-            )}>
-            <FormField
-              control={form.control}
-              name="fecha_pase_transportista_desde"
-              render={({ field }) => (
-                <FormItem>
-                  {usarRango && <FieldLabel required>Desde</FieldLabel>}
-                  <FormControl>
-                    <Input
-                      type="date"
-                      className="rounded-xl border-gray-200 bg-gray-50"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {usarRango && (
-              <FormField
-                control={form.control}
-                name="fecha_pase_transportista_hasta"
-                render={({ field }) => (
-                  <FormItem>
-                    <FieldLabel required>Hasta</FieldLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        className="rounded-xl border-gray-200 bg-gray-50"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* ── Horario ── */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Horario disponible
-            </p>
-            <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
-              <span>Habilitar horario</span>
-              <Switch
-                checked={usarHorario}
-                onCheckedChange={(checked) => {
-                  setUsarHorario(checked);
-                  if (!checked) form.setValue("horario", "");
-                }}
-                className="data-[state=checked]:bg-blue-600"
-              />
-            </label>
-          </div>
-          {usarHorario && (
-            <>
-              {horarios.length > 0 && (
-                <div className="mb-4">
-                  <HorariosConcurrenciaChart
-                    horarios={horarios}
-                    diaIndex={diaIndex}
-                    onDiaChange={onDiaChange ?? (() => {})}
-                    isLoading={isLoadingHorarios}
-                  />
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                  <p className="text-xs text-gray-400 mb-1">Hora de inicio</p>
-                  <Select
-                    value={horaInicio}
-                    onValueChange={(v) => {
-                      setHoraInicio(v);
-                      form.setValue("horario", "");
-                    }}>
-                    <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HORAS.map((h) => (
-                        <SelectItem key={h} value={h}>
-                          {h}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 mb-1">
-                    Cada cuántas horas
-                  </p>
-                  <Select
-                    value={String(intervalo)}
-                    onValueChange={(v) => {
-                      setIntervalo(Number(v));
-                      form.setValue("horario", "");
-                    }}>
-                    <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INTERVALOS.map((i) => (
-                        <SelectItem key={i} value={String(i)}>
-                          {i}h
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <FormField
-                control={form.control}
-                name="horario"
-                render={({ field }) => (
-                  <FormItem>
-                    <FieldLabel required>Selecciona un slot</FieldLabel>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {slots.map((slot) => (
-                        <button
-                          key={slot}
-                          type="button"
-                          onClick={() => field.onChange(slot)}
-                          className={cn(
-                            "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
-                            field.value === slot
-                              ? "bg-blue-600 text-white border-blue-600"
-                              : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600",
-                          )}>
-                          {slot}
-                        </button>
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </>
-          )}
-        </div>
-
-        {/* ── Andén ── */}
-        <FormField
-          control={form.control}
-          name="anden"
-          render={({ field }) => (
+        {/* Ubicación y dirección */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField control={form.control} name="ubicacion" render={({ field }) => (
             <FormItem>
-              <FieldLabel required>{andenLabel}</FieldLabel>
+              <FieldLabel required>Ubicación</FieldLabel>
               <FormControl>
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={isLoadingAndenes}>
+                <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
-                    <SelectValue
-                      placeholder={
-                        isLoadingAndenes
-                          ? "Cargando andenes..."
-                          : "Seleccionar andén..."
-                      }
-                    />
+                    <SelectValue placeholder="Seleccionar ubicación..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {andenes?.map((a) => (
-                      <SelectItem key={a} value={a}>
-                        {a}
-                      </SelectItem>
-                    ))}
+                    {locations.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </FormControl>
               <FormMessage />
             </FormItem>
+          )} />
+          <FormField control={form.control} name="direccion_lugar" render={({ field }) => (
+            <FormItem>
+              <FieldLabel>Dirección</FieldLabel>
+              <FormControl>
+                <Input placeholder="Av. Industrial 420, Monterrey" className="rounded-xl border-gray-200 bg-gray-50" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </div>
+
+        {/* Fecha con toggle */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha</p>
+            <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+              <span>Rango de fechas</span>
+              <Switch checked={usarRango} onCheckedChange={(c) => { setUsarRango(c); if (!c) form.setValue("fecha_pase_transportista_hasta", ""); }} className="data-[state=checked]:bg-blue-600" />
+            </label>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField control={form.control} name="fecha_pase_transportista_desde" render={({ field }) => (
+              <FormItem>
+                {usarRango && <FieldLabel required>Desde</FieldLabel>}
+                <FormControl><Input type="date" className="rounded-xl border-gray-200 bg-gray-50" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            {usarRango && (
+              <FormField control={form.control} name="fecha_pase_transportista_hasta" render={({ field }) => (
+                <FormItem>
+                  <FieldLabel required>Hasta</FieldLabel>
+                  <FormControl><Input type="date" className="rounded-xl border-gray-200 bg-gray-50" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            )}
+          </div>
+        </div>
+
+        {/* Horario con toggle */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Horario</p>
+            <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+              <span>Habilitar horario</span>
+              <Switch checked={usarHorario} onCheckedChange={(c) => { setUsarHorario(c); if (!c) form.setValue("horario", ""); }} className="data-[state=checked]:bg-blue-600" />
+            </label>
+          </div>
+          {usarHorario && (
+            <>
+              <div className="mb-4">
+                {isLoadingHorarios && horarios.length === 0 ? (
+                  <div className="rounded-xl border border-gray-100 bg-white p-4 flex items-center justify-center h-24">
+                    <span className="w-5 h-5 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <HorariosConcurrenciaChart horarios={horarios} diaIndex={diaIndex} onDiaChange={onDiaChange ?? (() => {})} isLoading={isLoadingHorarios} />
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Hora de inicio</p>
+                  <Select value={horaInicio} onValueChange={(v) => { setHoraInicio(v); form.setValue("horario", ""); }}>
+                    <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50"><SelectValue /></SelectTrigger>
+                    <SelectContent>{HORAS.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Cada cuántas horas</p>
+                  <Select value={String(intervalo)} onValueChange={(v) => { setIntervalo(Number(v)); form.setValue("horario", ""); }}>
+                    <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50"><SelectValue /></SelectTrigger>
+                    <SelectContent>{INTERVALOS.map((i) => <SelectItem key={i} value={String(i)}>{i}h</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <FormField control={form.control} name="horario" render={({ field }) => (
+                <FormItem>
+                  <FieldLabel required>Selecciona un slot</FieldLabel>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {slots.map((slot) => (
+                      <button key={slot} type="button" onClick={() => field.onChange(slot)}
+                        className={cn("px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+                          field.value === slot ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600")}>
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </>
           )}
-        />
+        </div>
+
+        {/* Andén */}
+        <FormField control={form.control} name="anden" render={({ field }) => (
+          <FormItem>
+            <FieldLabel>{andenLabel}</FieldLabel>
+            <FormControl>
+              <Select value={field.value} onValueChange={field.onChange} disabled={isLoadingAndenes}>
+                <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
+                  <SelectValue placeholder={isLoadingAndenes ? "Cargando andenes..." : "Seleccionar andén..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {andenes.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
       </div>
-    </Section>
+    </div>
+  );
+}
+
+function SeccionGenerarPase({ tipo, onEnviar, isPending }: {
+  tipo: string;
+  onEnviar: () => void;
+  isPending: boolean;
+}) {
+  const config = GENERAR_PASE[tipo];
+  if (!config) return null;
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 bg-blue-50 rounded-xl">
+          <Send className="w-4 h-4 text-blue-600" />
+        </div>
+        <p className="font-semibold text-gray-700">Generar y enviar pase</p>
+      </div>
+      <InfoBox>{config.info}</InfoBox>
+      <div className="flex flex-wrap gap-3">
+        {config.botones.map(({ label, primary }) => (
+          label === "Vista previa" ? (
+            <Button key={label} type="button" variant="outline"
+              className="rounded-full border-gray-200 text-gray-600 gap-2">
+              <Eye className="w-4 h-4" /> {label}
+            </Button>
+          ) : primary ? (
+            <Button key={label} type="button" disabled={isPending}
+              className="rounded-full bg-blue-600 hover:bg-blue-700 text-white gap-2"
+              onClick={onEnviar}>
+              {isPending
+                ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Enviando...</>
+                : <><Send className="w-4 h-4" /> {label}</>
+              }
+            </Button>
+          ) : (
+            <Button key={label} type="button" variant="outline"
+              className="rounded-full border-blue-200 text-blue-600 hover:bg-blue-50 gap-2">
+              <Send className="w-4 h-4" /> {label}
+            </Button>
+          )
+        ))}
+      </div>
+    </div>
   );
 }
 
 // ── Componente principal ───────────────────────────────────────────────────────
 
 const PaseEntradaTransportistaPage = () => {
-  const [documentos, setDocumentos] = useState<Documento[]>([
-    {
-      id: crypto.randomUUID(),
-      tipo: "",
-      archivo: null,
-      file_name: "",
-      file_url: "",
-      uploading: false,
-    },
-  ]);
   const { uploadImageMutation } = useUploadImage();
   const { mutate: crearPase, isPending } = useCreatePaseTransportista();
-  const [modalPayload, setModalPayload] = useState<Record<string, any> | null>(
-    null,
-  );
-
+  const [modalPayload, setModalPayload] = useState<Record<string, any> | null>(null);
+  const [successData, setSuccessData] = useState<{ id: string; folio: string } | null>(null);
   const [diaIndex, setDiaIndex] = useState(0);
+
+  const emptyDoc = (): Documento => ({ id: crypto.randomUUID(), tipo: "", archivo: null, file_name: "", file_url: "", uploading: false });
+  const [documentos, setDocumentos] = useState<Documento[]>([emptyDoc()]);
+
+  const handleRemoveDoc = (id: string) => setDocumentos((p) => p.filter((d) => d.id !== id));
+  const handleArchivoDoc = async (id: string, file: File) => {
+    setDocumentos((p) => p.map((d) => d.id === id ? { ...d, archivo: file, uploading: true } : d));
+    try {
+      const renamed = new File([file], reemplazarGuionMinuscula("doc_transportista " + file.name), { type: file.type });
+      const result = await uploadImageMutation.mutateAsync({ img: renamed });
+      setDocumentos((p) => [
+        ...p.map((d) => d.id === id ? { ...d, file_name: (result?.file_name ?? file.name).replace(/ /g, "_"), file_url: result?.file_url ?? "", uploading: false } : d),
+        emptyDoc(),
+      ]);
+    } catch {
+      setDocumentos((p) => p.map((d) => d.id === id ? { ...d, uploading: false } : d));
+    }
+  };
+
+  const { locations, fetchLocations } = useAreasLocationStore();
+  React.useEffect(() => { fetchLocations(); }, [fetchLocations]);
 
   const { data: andenesData, isLoading: isLoadingAndenes } = useQuery({
     queryKey: ["getAndenes"],
@@ -1146,7 +824,6 @@ const PaseEntradaTransportistaPage = () => {
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 30,
   });
-
   const andenes: string[] = andenesData?.response?.data ?? [];
 
   const { data: horariosData, isFetching: isLoadingHorarios } = useQuery({
@@ -1156,212 +833,75 @@ const PaseEntradaTransportistaPage = () => {
     placeholderData: (prev) => prev,
     staleTime: 1000 * 60 * 30,
   });
-
   const horarios: HorarioItem[] = horariosData?.response?.data?.horarios ?? [];
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       tipo_operacion: "entrega_materia_prima",
-      proveedor: "",
-      material: "",
-      cantidad: "",
-      proveedor_origen: "",
-      direccion_recoleccion: "",
-      material_a_recoger: "",
-      orden_compra: "",
-      transportista: "",
-      placas: "",
-      nombre_operador: "",
-      fecha_pase_transportista_desde: "",
-      fecha_pase_transportista_hasta: "",
-      horario: "",
-      anden: "",
+      crea_el_pase_nombre: "", crea_el_pase_email: "", crea_el_pase_telefono: "",
+      recibe_el_pase_nombre: "", recibe_el_pase_email: "", recibe_el_pase_telefono: "",
+      material_proveedor_cliente: "", material_nombre: "", material_cantidad: "", material_orden_compra: "",
+      ubicacion: "", direccion_lugar: "",
+      fecha_pase_transportista_desde: "", fecha_pase_transportista_hasta: "",
+      horario: "", anden: "",
+      lugar_reco_lugar: "", lugar_reco_direccion: "", lugar_reco_fecha: "",
+      lugar_reco_horario: "", lugar_reco_anden: "",
+      transporte_responsable: "", transporte_email: "", transporte_telefono: "",
+      metodo_embarque: "", incoterm: "",
     },
   });
 
   const tipoOperacion = form.watch("tipo_operacion");
+  const tieneRecoleccion = ["recoleccion_materia_prima", "entrega_producto_terminado"].includes(tipoOperacion);
 
-  const TIPO_OPERACION_LABEL: Record<string, string> = {
-    entrega_materia_prima: "entrega_de_materia_prima",
-    entrega_producto_terminado: "entrega_de_producto_terminado",
-    recoleccion_materia_prima: "recoleccion_de_materia_prima",
-    recoleccion_producto_terminado: "recoleccion_de_producto_terminado",
-  };
 
-  const buildPayload = (data: FormValues) => {
-    const documentosPayload = documentos
-      .filter((d) => d.tipo)
-      .map((d) => ({
-        tipo_de_documento: d.tipo,
-        documento_transportista: d.file_url
-          ? [{ file_name: d.file_name, file_url: d.file_url }]
-          : [],
-      }));
-
-    switch (data.tipo_operacion) {
-      case "entrega_materia_prima":
-        return {
-          tipo_de_operacion: TIPO_OPERACION_LABEL[data.tipo_operacion],
-          creado_desde: "pase_de_entrada_web",
-          proveedor_y_material: {
-            proveedor: data.proveedor,
-            material: data.material,
-            cantidad: data.cantidad ? parseInt(data.cantidad, 10) : null,
-            orden_compra: data.orden_compra || null,
-          },
-          transportista: {
-            nombre: data.transportista || null,
-            placas_vehiculo: data.placas || null,
-          },
-          programacion: {
-            fecha_pase_transportista_desde: data.fecha_pase_transportista_desde,
-            ...(data.fecha_pase_transportista_hasta && {
-              fecha_pase_transportista_hasta:
-                data.fecha_pase_transportista_hasta,
-            }),
-            horario_disponible: data.horario,
-            anden: data.anden,
-          },
-          documentos: documentosPayload,
-        };
-
-      case "recoleccion_materia_prima":
-        return {
-          tipo_de_operacion: TIPO_OPERACION_LABEL[data.tipo_operacion],
-          creado_desde: "pase_de_entrada_web",
-          origen_recoleccion: {
-            proveedor: data.proveedor_origen,
-            direccion_recoleccion: data.direccion_recoleccion,
-            material_a_recoger: data.material_a_recoger,
-            orden_compra: data.orden_compra || null,
-          },
-          transportista: {
-            nombre: data.transportista || null,
-            placas_vehiculo: data.placas || null,
-            nombre_operador: data.nombre_operador || null,
-          },
-          programacion_regreso: {
-            fecha_pase_transportista_desde: data.fecha_pase_transportista_desde,
-            ...(data.fecha_pase_transportista_hasta && {
-              fecha_pase_transportista_hasta:
-                data.fecha_pase_transportista_hasta,
-            }),
-            horario_disponible: data.horario,
-            anden: data.anden,
-          },
-          documentos: documentosPayload,
-        };
-
-      case "entrega_producto_terminado":
-        return {
-          tipo_de_operacion: TIPO_OPERACION_LABEL[data.tipo_operacion],
-          creado_desde: "pase_de_entrada_web",
-          cliente_y_producto: {
-            cliente: data.cliente,
-            direccion_entrega: data.direccion_entrega,
-            producto: data.producto,
-            orden_venta_remision: data.orden_venta_remision || null,
-            cantidad: data.cantidad ? parseInt(data.cantidad, 10) : null,
-            responsable_entrega: data.responsable_entrega || null,
-          },
-          transportista: {
-            nombre: data.transportista || null,
-            placas_vehiculo: data.placas || null,
-            nombre_operador: data.nombre_operador || null,
-          },
-          programacion_salida: {
-            fecha_pase_transportista_desde: data.fecha_pase_transportista_desde,
-            ...(data.fecha_pase_transportista_hasta && {
-              fecha_pase_transportista_hasta:
-                data.fecha_pase_transportista_hasta,
-            }),
-            horario_disponible: data.horario,
-            anden: data.anden,
-          },
-          documentos: documentosPayload,
-        };
-
-      case "recoleccion_producto_terminado":
-        return {
-          tipo_de_operacion: TIPO_OPERACION_LABEL[data.tipo_operacion],
-          creado_desde: "pase_de_entrada_web",
-          cliente_y_producto: {
-            cliente: data.cliente,
-            orden_venta_remision: data.orden_venta_remision || null,
-            producto: data.producto,
-            cantidad: data.cantidad ? parseInt(data.cantidad, 10) : null,
-            responsable_despacho: data.responsable_despacho || null,
-          },
-          transportista: {
-            nombre: data.transportista || null,
-            placas_vehiculo: data.placas || null,
-            nombre_operador: data.nombre_operador || null,
-          },
-          programacion: {
-            fecha_pase_transportista_desde: data.fecha_pase_transportista_desde,
-            ...(data.fecha_pase_transportista_hasta && {
-              fecha_pase_transportista_hasta:
-                data.fecha_pase_transportista_hasta,
-            }),
-            horario_disponible: data.horario,
-            anden: data.anden,
-          },
-          documentos: documentosPayload,
-        };
-    }
-  };
-
-  const onSubmit = (data: FormValues) => {
-    const payload = buildPayload(data);
-    setModalPayload(payload as Record<string, any>);
-  };
-
-  const emptyDoc = (): Documento => ({
-    id: crypto.randomUUID(),
-    tipo: "",
-    archivo: null,
-    file_name: "",
-    file_url: "",
-    uploading: false,
+  const buildPayload = (data: FormValues) => ({
+    tipo_de_operacion: TIPO_OPERACION_LABEL[data.tipo_operacion],
+    creado_desde: "pase_de_entrada_web",
+    dominio: typeof window !== "undefined" ? window.location.origin : "",
+    crea_el_pase: { nombre: data.crea_el_pase_nombre, email: data.crea_el_pase_email, telefono: data.crea_el_pase_telefono || null },
+    recibe_el_pase: { nombre: data.recibe_el_pase_nombre || null, email: data.recibe_el_pase_email || null, telefono: data.recibe_el_pase_telefono || null },
+    material: {
+      proveedor_cliente: data.material_proveedor_cliente || null,
+      material: data.material_nombre || null,
+      cantidad: data.material_cantidad ? parseInt(data.material_cantidad, 10) : null,
+      orden_compra: data.material_orden_compra || null,
+      documentos: documentos
+        .filter((d) => d.file_url)
+        .map((d) => ({ file_name: d.file_name, file_url: d.file_url })),
+    },
+    lugar_entrega_recepcion: {
+      ubicacion: data.ubicacion || null,
+      direccion: data.direccion_lugar || null,
+      fecha_pase_transportista_desde: data.fecha_pase_transportista_desde || null,
+      ...(data.fecha_pase_transportista_hasta && { fecha_pase_transportista_hasta: data.fecha_pase_transportista_hasta }),
+      horario_disponible: data.horario || null,
+      anden: data.anden || null,
+    },
+    ...(tieneRecoleccion && {
+      lugar_recoleccion: {
+        lugar: data.lugar_reco_lugar || null,
+        direccion: data.lugar_reco_direccion || null,
+        fecha: data.lugar_reco_fecha || null,
+        horario: data.lugar_reco_horario || null,
+        anden: data.lugar_reco_anden || null,
+        transporte: {
+          responsable: data.transporte_responsable || null,
+          email: data.transporte_email || null,
+          telefono: data.transporte_telefono || null,
+        },
+        metodo_embarque: data.metodo_embarque || null,
+        incoterm: data.incoterm || null,
+      },
+    }),
   });
 
-  const addDocumento = () => setDocumentos((prev) => [...prev, emptyDoc()]);
-
-  const removeDocumento = (id: string) =>
-    setDocumentos((prev) => prev.filter((d) => d.id !== id));
-
-  const handleArchivoChange = async (id: string, file: File) => {
-    setDocumentos((prev) =>
-      prev.map((d) =>
-        d.id === id ? { ...d, archivo: file, uploading: true } : d,
-      ),
-    );
-    try {
-      const renamed = new File(
-        [file],
-        reemplazarGuionMinuscula("doc_transportista " + file.name),
-        { type: file.type },
-      );
-      const result = await uploadImageMutation.mutateAsync({ img: renamed });
-      setDocumentos((prev) =>
-        prev.map((d) =>
-          d.id === id
-            ? {
-                ...d,
-                file_name: result?.file_name ?? file.name,
-                file_url: result?.file_url ?? "",
-                uploading: false,
-              }
-            : d,
-        ),
-      );
-    } catch {
-      setDocumentos((prev) =>
-        prev.map((d) => (d.id === id ? { ...d, uploading: false } : d)),
-      );
-    }
+  const onSubmit = (data: FormValues) => {
+    setModalPayload(buildPayload(data) as Record<string, any>);
   };
+
+  const programacionProps = { form, horarios, diaIndex, onDiaChange: setDiaIndex, isLoadingHorarios, andenes, isLoadingAndenes, locations };
 
   return (
     <div className="min-h-screen bg-gray-100 py-5 px-4">
@@ -1369,271 +909,94 @@ const PaseEntradaTransportistaPage = () => {
         open={!!modalPayload}
         onClose={() => setModalPayload(null)}
         onConfirm={() => {
-          crearPase(modalPayload, { onSuccess: () => setModalPayload(null) });
+          crearPase(modalPayload, {
+            onSuccess: (result) => {
+              setModalPayload(null);
+              if (result?.id) setSuccessData({ id: result.id, folio: result.folio });
+            },
+          });
         }}
         payload={modalPayload}
         isPending={isPending}
       />
+
+      <PaseTransportistaSuccessModal
+        open={!!successData}
+        onClose={() => setSuccessData(null)}
+        id={successData?.id ?? ""}
+        folio={successData?.folio ?? ""}
+      />
+
       <Form {...form}>
         <form onSubmit={(e) => e.preventDefault()}>
           <div className="flex flex-col space-y-5 max-w-4xl mx-auto pt-4">
+
             {/* Header */}
             <div className="text-center">
-              <h1 className="font-bold text-2xl text-gray-800">
-                Pase de entrada — Transportista
-              </h1>
-              <p className="text-sm text-gray-400 mt-1">
-                Registra el ingreso de un vehículo de carga
-              </p>
+              <h1 className="font-bold text-2xl text-gray-800">Pase de entrada — Transportista</h1>
+              <p className="text-sm text-gray-400 mt-1">Registra el ingreso de un vehículo de carga</p>
             </div>
 
-            {/* ── TIPO DE OPERACIÓN ── */}
+            {/* Tipo de operación */}
             <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                Tipo de operación
-              </p>
-              <FormField
-                control={form.control}
-                name="tipo_operacion"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="grid grid-cols-4 gap-2">
-                      {TIPOS_OPERACION.map(
-                        ({ value, label, description, icon: Icon, tags }) => {
-                          const isSelected = field.value === value;
-                          return (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => field.onChange(value)}
-                              className={cn(
-                                "flex flex-col items-center text-center p-3 rounded-xl border-2 transition-all duration-150 gap-2",
-                                isSelected
-                                  ? "border-teal-500 bg-teal-50/50"
-                                  : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50",
-                              )}>
-                              <div
-                                className={cn(
-                                  "p-2 rounded-lg",
-                                  isSelected ? "bg-teal-100" : "bg-gray-100",
-                                )}>
-                                <Icon
-                                  className={cn(
-                                    "w-5 h-5",
-                                    isSelected
-                                      ? "text-teal-600"
-                                      : "text-gray-400",
-                                  )}
-                                />
-                              </div>
-                              <p
-                                className={cn(
-                                  "font-semibold text-xs leading-snug",
-                                  isSelected
-                                    ? "text-teal-700"
-                                    : "text-gray-700",
-                                )}>
-                                {label}
-                              </p>
-                              <p className="text-[10px] text-gray-400 leading-snug hidden sm:block">
-                                {description}
-                              </p>
-                              <div className="flex flex-wrap justify-center gap-1">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Tipo de operación</p>
+              <FormField control={form.control} name="tipo_operacion" render={({ field }) => (
+                <FormItem>
+                  <div className="grid grid-cols-2 gap-2">
+                    {TIPOS_OPERACION.map(({ value, label, description, icon: Icon, tags }) => {
+                      const isSelected = field.value === value;
+                      return (
+                        <button key={value} type="button" onClick={() => field.onChange(value)}
+                          className={cn("text-left p-4 rounded-xl border-2 transition-all duration-150",
+                            isSelected ? "border-teal-500 bg-teal-50/50" : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50")}>
+                          <div className="flex items-start gap-3">
+                            <Icon className={cn("w-5 h-5 mt-0.5 shrink-0", isSelected ? "text-teal-600" : "text-gray-400")} />
+                            <div className="min-w-0">
+                              <p className={cn("font-semibold text-sm leading-snug", isSelected ? "text-teal-700" : "text-gray-700")}>{label}</p>
+                              <p className="text-xs text-gray-400 mt-0.5 leading-snug">{description}</p>
+                              <div className="flex flex-wrap gap-1 mt-2">
                                 {tags.map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="text-[9px] font-medium bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
-                                    {tag}
-                                  </span>
+                                  <span key={tag} className="text-[10px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{tag}</span>
                                 ))}
                               </div>
-                            </button>
-                          );
-                        },
-                      )}
-                    </div>
-                    <FormMessage className="mt-2" />
-                  </FormItem>
-                )}
-              />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <FormMessage className="mt-2" />
+                </FormItem>
+              )} />
             </div>
 
-            {/* ── SECCIONES DINÁMICAS ── */}
-            {tipoOperacion === "entrega_materia_prima" && (
-              <>
-                <SeccionEntregaMateriaPrima form={form} />
-                <SeccionTransportistaEntrega form={form} />
-                <SeccionProgramacion
-                  form={form}
-                  horarios={horarios}
-                  diaIndex={diaIndex}
-                  onDiaChange={setDiaIndex}
-                  isLoadingHorarios={isLoadingHorarios}
-                  andenes={andenes}
-                  isLoadingAndenes={isLoadingAndenes}
-                />
-              </>
-            )}
+            {/* Quien recibe */}
+            <SeccionQuienRecibe form={form} />
 
-            {tipoOperacion === "recoleccion_materia_prima" && (
-              <>
-                <SeccionRecoleccionMateriaPrima form={form} />
-                <SeccionTransportistaAsignado form={form} />
-                <SeccionProgramacion
-                  form={form}
-                  title="Programación de regreso"
-                  horarios={horarios}
-                  diaIndex={diaIndex}
-                  onDiaChange={setDiaIndex}
-                  isLoadingHorarios={isLoadingHorarios}
-                  andenes={andenes}
-                  isLoadingAndenes={isLoadingAndenes}
-                />
-              </>
-            )}
+            {/* Segunda persona */}
+            <SeccionSegundaPersona form={form} tipo={tipoOperacion} />
 
-            {tipoOperacion === "entrega_producto_terminado" && (
-              <>
-                <SeccionEntregaProductoTerminado form={form} />
-                <SeccionTransportistaAsignado form={form} />
-                <SeccionProgramacion
-                  form={form}
-                  title="Programación de salida"
-                  andenLabel="Andén de embarque"
-                  horarios={horarios}
-                  diaIndex={diaIndex}
-                  onDiaChange={setDiaIndex}
-                  isLoadingHorarios={isLoadingHorarios}
-                  andenes={andenes}
-                  isLoadingAndenes={isLoadingAndenes}
-                />
-              </>
-            )}
+            {/* Material */}
+            <SeccionMaterial
+              form={form}
+              documentos={documentos}
+              onRemoveDoc={handleRemoveDoc}
+              onArchivoDoc={handleArchivoDoc}
+            />
 
-            {tipoOperacion === "recoleccion_producto_terminado" && (
-              <>
-                <SeccionRecoleccionProductoTerminado form={form} />
-                <SeccionTransportistaCliente form={form} />
-                <SeccionProgramacion
-                  form={form}
-                  andenLabel="Andén de embarque"
-                  horarios={horarios}
-                  diaIndex={diaIndex}
-                  onDiaChange={setDiaIndex}
-                  isLoadingHorarios={isLoadingHorarios}
-                  andenes={andenes}
-                  isLoadingAndenes={isLoadingAndenes}
-                />
-              </>
-            )}
+            {/* Lugar de entrega / recepción */}
+            <SeccionProgramacion {...programacionProps} />
 
-            {/* ── DOCUMENTOS ── */}
-            {tipoOperacion && (
-              <Section icon={Upload} title="Documentos">
-                <div className="space-y-3">
-                  {documentos.map((doc) => (
-                    <div key={doc.id} className="flex items-center gap-2">
-                      <select
-                        value={doc.tipo}
-                        onChange={(e) =>
-                          setDocumentos((prev) =>
-                            prev.map((d) =>
-                              d.id === doc.id
-                                ? { ...d, tipo: e.target.value }
-                                : d,
-                            ),
-                          )
-                        }
-                        className="h-10 rounded-xl border border-gray-200 bg-gray-50 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-blue-300 min-w-[160px]">
-                        <option value="">Seleccionar tipo...</option>
-                        {TIPOS_DOCUMENTO.map(({ value, label }) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                      <label
-                        className={cn(
-                          "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-dashed text-sm px-3 transition-colors",
-                          doc.uploading
-                            ? "border-blue-300 bg-blue-50 text-blue-500 cursor-wait"
-                            : doc.file_url
-                              ? "border-green-300 bg-green-50 text-green-700 cursor-pointer"
-                              : "border-gray-300 bg-gray-50 text-gray-500 cursor-pointer hover:border-blue-400 hover:bg-blue-50",
-                        )}>
-                        {doc.uploading ? (
-                          <>
-                            <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                            <span className="truncate">Subiendo...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-4 h-4 shrink-0" />
-                            <span className="truncate">
-                              {doc.file_name || "Seleccionar o arrastrar"}
-                            </span>
-                          </>
-                        )}
-                        <input
-                          type="file"
-                          className="hidden"
-                          disabled={doc.uploading}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleArchivoChange(doc.id, file);
-                          }}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => removeDocumento(doc.id)}
-                        className="h-10 w-10 flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 hover:bg-red-50 hover:border-red-200 text-gray-400 hover:text-red-500 transition-colors shrink-0">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={addDocumento}
-                    className="w-full rounded-xl border-dashed border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 h-10">
-                    <Plus className="w-4 h-4 mr-1" />
-                    Agregar documento
-                  </Button>
-                </div>
-              </Section>
-            )}
+            {/* Lugar de recolección (tipos 2 y 3) */}
+            {tieneRecoleccion && <SeccionLugarRecoleccion form={form} />}
 
-            {/* ── ACCIONES ── */}
-            {tipoOperacion && (
-              <div className="flex gap-3 justify-center pb-8 mt-2">
-                <Button
-                  className="bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 w-full sm:w-1/3 md:w-1/4 rounded-full py-3 font-semibold transition-all"
-                  variant="outline"
-                  type="button"
-                  onClick={() => window.history.back()}>
-                  ← Cancelar
-                </Button>
-                <Button
-                  className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-1/3 md:w-1/4 rounded-full py-3 font-semibold shadow-sm shadow-blue-200 transition-all"
-                  variant="secondary"
-                  type="submit"
-                  disabled={isPending}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    form.handleSubmit(onSubmit)();
-                  }}>
-                  {isPending ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Enviando...
-                    </span>
-                  ) : (
-                    "Siguiente →"
-                  )}
-                </Button>
-              </div>
-            )}
+            {/* Generar y enviar pase */}
+            <SeccionGenerarPase
+              tipo={tipoOperacion}
+              onEnviar={() => form.handleSubmit(onSubmit)()}
+              isPending={isPending}
+            />
+
           </div>
         </form>
       </Form>

@@ -1,16 +1,12 @@
 "use client";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Truck, BoxesIcon, FileText, User, CheckCircle2 } from "lucide-react";
+import { User, BoxesIcon, MapPin, Truck, FileText, Send, Building2 } from "lucide-react";
 
-interface ConfirmPaseTransportistaModalProps {
+interface Props {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -19,7 +15,7 @@ interface ConfirmPaseTransportistaModalProps {
 }
 
 function Row({ label, value }: { label: string; value?: string | number | null }) {
-  if (!value && value !== 0) return null;
+  if (value === null || value === undefined || value === "") return null;
   return (
     <div className="flex justify-between gap-4 py-1.5 border-b border-gray-100 last:border-0">
       <span className="text-xs text-gray-400 uppercase tracking-wide font-medium shrink-0">{label}</span>
@@ -28,10 +24,8 @@ function Row({ label, value }: { label: string; value?: string | number | null }
   );
 }
 
-function SectionBlock({ icon: Icon, title, children }: {
-  icon: React.ElementType;
-  title: string;
-  children: React.ReactNode;
+function Block({ icon: Icon, title, children }: {
+  icon: React.ElementType; title: string; children: React.ReactNode;
 }) {
   return (
     <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
@@ -44,94 +38,126 @@ function SectionBlock({ icon: Icon, title, children }: {
   );
 }
 
-export function ConfirmPaseTransportistaModal({
-  open, onClose, onConfirm, payload, isPending,
-}: ConfirmPaseTransportistaModalProps) {
+const TIPO_LABEL: Record<string, string> = {
+  entrega_de_materia_prima:          "Entrega de materia prima",
+  recoleccion_de_materia_prima:      "Recolección de materia prima",
+  entrega_de_producto_terminado:     "Entrega de producto terminado",
+  recoleccion_de_producto_terminado: "Recolección de producto terminado",
+};
+
+const SEGUNDA_PERSONA_TITULO: Record<string, string> = {
+  entrega_de_materia_prima:          "Quién entrega",
+  recoleccion_de_materia_prima:      "Proveedor origen",
+  entrega_de_producto_terminado:     "Cliente destino",
+  recoleccion_de_producto_terminado: "Cliente",
+};
+
+export function ConfirmPaseTransportistaModal({ open, onClose, onConfirm, payload, isPending }: Props) {
   if (!payload) return null;
 
-  const tipoLabel = (payload.tipo_de_operacion as string)?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const tipo = payload.tipo_de_operacion as string;
+  const tipoLabel = TIPO_LABEL[tipo] ?? tipo;
+  const segundaLabel = SEGUNDA_PERSONA_TITULO[tipo] ?? "Contacto";
 
-  const proveedor = payload.proveedor_y_material;
-  const origen = payload.origen_recoleccion;
-  const cliente = payload.cliente_y_producto;
-  const mainSection = proveedor ?? origen ?? cliente;
-
-  const transportista = payload.transportista;
-  const programacion = payload.programacion ?? payload.programacion_regreso ?? payload.programacion_salida;
+  const quienRecibe = payload.crea_el_pase;
+  const segundaPersona = payload.recibe_el_pase;
+  const material = payload.material;
+  const lugar = payload.lugar_entrega_recepcion;
+  const recoleccion = payload.lugar_recoleccion;
   const documentos: any[] = payload.documentos ?? [];
+
+  const hasRecoleccion = !!recoleccion;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-gray-800">Confirmar pase de entrada</DialogTitle>
           <p className="text-sm text-gray-400 mt-0.5">Revisa la información antes de enviar</p>
         </DialogHeader>
 
-        <div className="space-y-3 py-2">
+        <div className="py-2 space-y-3">
 
-          {/* Tipo de operación */}
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-teal-700 text-xs font-semibold px-3 py-1.5 rounded-full">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              {tipoLabel}
-            </span>
-          </div>
+          {/* Tipo */}
+          <span className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-teal-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+            {tipoLabel}
+          </span>
 
-          {/* Datos principales */}
-          {mainSection && (
-            <SectionBlock icon={BoxesIcon} title={
-              proveedor ? "Proveedor y material"
-              : origen ? "Origen de recolección"
-              : "Cliente y producto"
-            }>
-              <Row label="Proveedor / Cliente" value={mainSection.proveedor ?? mainSection.cliente} />
-              <Row label="Dirección" value={mainSection.direccion_recoleccion ?? mainSection.direccion_entrega} />
-              <Row label="Material / Producto" value={mainSection.material ?? mainSection.material_a_recoger ?? mainSection.producto} />
-              <Row label="Cantidad" value={mainSection.cantidad} />
-              <Row label="Orden de compra" value={mainSection.orden_compra} />
-              <Row label="Orden de venta / Remisión" value={mainSection.orden_venta_remision} />
-              <Row label="Responsable" value={mainSection.responsable_entrega ?? mainSection.responsable_despacho} />
-            </SectionBlock>
-          )}
+          {/* Grid 2x2 */}
+          <div className="grid grid-cols-2 gap-3">
 
-          {/* Transportista */}
-          {transportista && (transportista.nombre || transportista.placas_vehiculo) && (
-            <SectionBlock icon={User} title="Transportista">
-              <Row label="Nombre" value={transportista.nombre} />
-              <Row label="Placas" value={transportista.placas_vehiculo} />
-              <Row label="Operador" value={transportista.nombre_operador} />
-            </SectionBlock>
-          )}
+            {/* Quien recibe */}
+            {quienRecibe && (
+              <Block icon={User} title="Quien recibe">
+                <Row label="Nombre"   value={quienRecibe.nombre} />
+                <Row label="Email"    value={quienRecibe.email} />
+                <Row label="Teléfono" value={quienRecibe.telefono} />
+              </Block>
+            )}
 
-          {/* Programación */}
-          {programacion && (
-            <SectionBlock icon={CalendarDays} title="Programación">
-              <Row label="Fecha desde" value={programacion.fecha_pase_transportista_desde} />
-              <Row label="Fecha hasta" value={programacion.fecha_pase_transportista_hasta} />
-              <Row label="Horario" value={programacion.horario_disponible} />
-              <Row label="Andén" value={programacion.anden} />
-            </SectionBlock>
-          )}
+            {/* Segunda persona */}
+            {segundaPersona?.nombre && (
+              <Block icon={Building2} title={segundaLabel}>
+                <Row label="Nombre"   value={segundaPersona.nombre} />
+                <Row label="Email"    value={segundaPersona.email} />
+                <Row label="Teléfono" value={segundaPersona.telefono} />
+              </Block>
+            )}
 
-          {/* Documentos */}
-          {documentos.filter((d) => d.tipo_de_documento).length > 0 && (
-            <SectionBlock icon={FileText} title="Documentos">
-              {documentos
-                .filter((d) => d.tipo_de_documento)
-                .map((doc, i) => (
+            {/* Material */}
+            {material && (
+              <Block icon={BoxesIcon} title="Material">
+                <Row label="Proveedor / Cliente" value={material.proveedor_cliente} />
+                <Row label="Material"            value={material.material} />
+                <Row label="Cantidad"            value={material.cantidad} />
+                <Row label="Orden de compra"     value={material.orden_compra} />
+              </Block>
+            )}
+
+            {/* Lugar de entrega / recepción */}
+            {lugar && (
+              <Block icon={MapPin} title="Lugar de entrega / recepción">
+                <Row label="Ubicación"   value={lugar.ubicacion} />
+                <Row label="Dirección"   value={lugar.direccion} />
+                <Row label="Fecha desde" value={lugar.fecha_pase_transportista_desde} />
+                <Row label="Fecha hasta" value={lugar.fecha_pase_transportista_hasta} />
+                <Row label="Horario"     value={lugar.horario_disponible} />
+                <Row label="Andén"       value={lugar.anden} />
+              </Block>
+            )}
+
+            {/* Lugar de recolección */}
+            {hasRecoleccion && (
+              <Block icon={Truck} title="Lugar de recolección">
+                <Row label="Lugar"            value={recoleccion.lugar} />
+                <Row label="Dirección"        value={recoleccion.direccion} />
+                <Row label="Fecha"            value={recoleccion.fecha} />
+                <Row label="Horario"          value={recoleccion.horario} />
+                <Row label="Andén"            value={recoleccion.anden} />
+                <Row label="Responsable"      value={recoleccion.transporte?.responsable} />
+                <Row label="Email transporte" value={recoleccion.transporte?.email} />
+                <Row label="Método embarque"  value={recoleccion.metodo_embarque} />
+                <Row label="Incoterm"         value={recoleccion.incoterm} />
+              </Block>
+            )}
+
+            {/* Documentos */}
+            {documentos.filter((d) => d.tipo_de_documento).length > 0 && (
+              <Block icon={FileText} title="Documentos">
+                {documentos.filter((d) => d.tipo_de_documento).map((doc, i) => (
                   <div key={i} className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0">
                     <span className="text-xs text-gray-400 uppercase tracking-wide font-medium">
                       {(doc.tipo_de_documento as string).replace(/_/g, " ")}
                     </span>
-                    <span className="text-xs text-gray-600 truncate max-w-[200px]">
+                    <span className="text-xs text-gray-600 truncate max-w-[120px]">
                       {doc.documento_transportista?.[0]?.file_name ?? "—"}
                     </span>
                   </div>
                 ))}
-            </SectionBlock>
-          )}
+              </Block>
+            )}
 
+          </div>
         </div>
 
         <DialogFooter className="gap-2 pt-2">
@@ -143,7 +169,7 @@ export function ConfirmPaseTransportistaModal({
             className="rounded-full bg-blue-600 hover:bg-blue-700 text-white">
             {isPending
               ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Enviando...</span>
-              : <span className="flex items-center gap-1.5"><Truck className="w-4 h-4" />Confirmar y enviar</span>
+              : <span className="flex items-center gap-1.5"><Send className="w-4 h-4" />Confirmar y enviar</span>
             }
           </Button>
         </DialogFooter>
