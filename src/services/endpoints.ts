@@ -112,3 +112,24 @@ export const getAndenes = () =>
     script_name: "transportistas.py",
     option: "get_andenes",
   });
+
+export const getPassTransportista = (record_id: string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_pass_transportista",
+    record_id,
+  }, {}, true);
+
+export const getPassTransportistaByToken = (token: string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_pass_transportista",
+    token,
+  }, {}, true);
+
+export const generateSubmitTokenTransportista = (record_id: string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "generate_submit_token_transportista",
+    record_id,
+  }, {}, true);
