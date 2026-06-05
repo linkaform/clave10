@@ -14,7 +14,8 @@ export interface GrupoRequisito {
   datos_requeridos: string[];
   ubicacion: string;
   envio_por: string[];
-  prefijo_telefonico: string;
+  prefijo_telefonico: number;
+  tolerancia_de_entrada: number;
 }
 
 interface MenuStore {
@@ -29,7 +30,6 @@ interface MenuStore {
   setExcludes: (excludes: Excludes) => void;
   setMenuConfig: (config: MenuConfig) => void;
   setGrupoRequisitos: (items: GrupoRequisito[]) => void;
-  setToleranciaDeEntrada: (value: number | null) => void;
   clearMenu: () => void;
 }
 
@@ -47,7 +47,6 @@ export const useMenuStore = create(
       setExcludes: (items) => set({ excludes: items }),
       setMenuConfig: (config) => set({ menuConfig: config }),
       setGrupoRequisitos: (items) => set({ grupoRequisitos: items }),
-      setToleranciaDeEntrada: (value) => set({ toleranciaDeEntrada: value }),
       clearMenu: () => set({ menuItems: [], labels: [], excludes: null, menuConfig: null, grupoRequisitos: [], toleranciaDeEntrada: null }),
     }),
     {

@@ -238,20 +238,20 @@ const PaseEntradaPage = () => {
   
   useEffect(() => {
     if (!ubicacionesSeleccionadas?.length || !grupoRequisitos?.length) return;
-    
+  
     const ubicacionNombre = ubicacionesSeleccionadas[0]?.name ?? ubicacionesSeleccionadas[0]?.id ?? "";
-    
+  
     const requisito = grupoRequisitos.find(
       (r) => r.ubicacion?.toLowerCase() === ubicacionNombre?.toLowerCase()
     );
   
     if (requisito?.prefijo_telefonico) {
-      const country = prefijoToCountry[requisito.prefijo_telefonico] ?? "MX";
+      const country = prefijoToCountry[String(requisito.prefijo_telefonico)] ?? "MX";
       setDefaultCountry(country);
     } else {
       setDefaultCountry("MX");
     }
-  }, [grupoRequisitos, ubicacionesSeleccionadas]);
+  }, [ubicacionesSeleccionadas, grupoRequisitos]);
 
   // Preseleccionar ubicación cuando cargue el store
   useEffect(() => {
