@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { useEffect, useState } from "react";
-import { Loader2, User, Shield, CalendarClock, Car, Wrench, Image as ImageIcon, Layers, MessageSquare } from "lucide-react";
+import { Loader2, User, Shield, CalendarClock, Car, Wrench, Image as ImageIcon, Layers, MessageSquare, Copy } from "lucide-react";
 import { Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import CalendarDays from "../calendar-days";
@@ -222,6 +222,16 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
       toast.error("Error al descargar el PDF: " + error);
     }
   }
+  
+  const handleCopyLink = () => {
+    const link = data?.link?.link;
+    if (!link) {
+      toast.error("No hay link disponible");
+      return;
+    }
+    navigator.clipboard.writeText(link);
+    toast.success("Link copiado al portapapeles");
+  };
 
   const onDescargarPNG = async (imgUrl: string) => {
     try {
@@ -529,6 +539,7 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
             </Button>
           </DialogClose>
 
+       
           <Button
             className="w-full bg-red-500 hover:bg-red-600 text-white rounded-xl h-11 font-semibold"
             onClick={cancelModal.openModal}
@@ -537,7 +548,13 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
             Cancelar pase
           </Button>
 
-
+          <Button
+          className="w-full bg-gray-700 hover:bg-gray-800 text-white rounded-xl h-11 font-semibold"
+          onClick={handleCopyLink}
+          >
+          <Copy size={15} className="mr-1.5" /> Copiar link
+          </Button>
+          
           <Button
             className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-xl h-11 font-semibold"
             onClick={onEnviarCorreo}

@@ -31,8 +31,10 @@ import { useGetLocalVehiculos } from "@/hooks/useLocalCatVehiculos";
 import { Vehiculo } from "@/lib/update-pass";
 import { useAccessStore } from "@/store/useAccessStore";
 import { useUpdateBitacora } from "@/hooks/useUpdateBitacora";
-import { catalogoColores, catalogoEstados } from "@/lib/utils";
+import { catalogoColores } from "@/lib/utils";
 import LoadImage from "../upload-Image";
+import { useCatalogoEstados } from "@/hooks/useCatalogoEstados";
+import useAuthStore from "@/store/useAuthStore";
 
 interface Props {
   title: string;
@@ -64,6 +66,8 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
   fetch = false,
 }) => {
   const [open, setOpen] = useState(false);
+  const { userParentId } = useAuthStore();
+
   const [tipoVehiculoState, setTipoVehiculoState] = useState("");
   const [catalogSearch, setCatalogSearch] = useState("");
   const [marcaState, setMarcaState] = useState("");
@@ -79,14 +83,20 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
     (state) => state.setSelectedVehiculos,
   );
   const { updateBitacoraMutation, isLoading } = useUpdateBitacora();
-  const catEstados = catalogoEstados().map((tipo: any) => ({
-    value: tipo,
-    label: tipo,
-  }));
+
   const catColores = catalogoColores().map((tipo: any) => ({
     value: tipo,
     label: tipo,
   }));
+
+  const { data: dataEstados } = useCatalogoEstados(userParentId ?? 0, open);
+  const catEstados = Array.isArray(dataEstados)
+  ? dataEstados.map((estado: string) => ({
+      value: estado,
+      label: estado,
+    }))
+  : [];
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -325,7 +335,7 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
                       options={catEstados}
                       className="react-select-estado"
                       onChange={(value: any) => {
-                        field.onChange(value ? [value.value] : []); // ← no "" ni undefined
+                        field.onChange(value ? [value.value] : []);
                       }}
                       isClearable
                     />

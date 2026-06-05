@@ -181,6 +181,13 @@ const PaseUpdate = () => {
     [requireFoto, requireIden],
   );
 
+  const vehiculoHabilitado = (() => {
+    const val = dataCatalogos?.pass_selected?.habilitar_vehiculo;
+    if (!val) return false;
+    if (typeof val === "boolean") return val;
+    return ["si", "sí"].includes(String(val).toLowerCase().trim());
+  })();
+
   useEffect(() => {
     if (dataCatalogos) {
       setEquipos(dataCatalogos.pass_selected?.grupo_equipos ?? []);
@@ -732,6 +739,7 @@ const PaseUpdate = () => {
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
           <div className="space-y-2">
+            {vehiculoHabilitado && 
             <div className="flex items-center justify-between">
               <span className="font-semibold text-slate-700">Vehículos</span>
               <VehicleLocalPassModal
@@ -748,8 +756,8 @@ const PaseUpdate = () => {
                   <span className="sm:hidden font-bold">+</span>
                 </button>
               </VehicleLocalPassModal>
-            </div>
-
+            </div>}
+            {vehiculoHabilitado && 
             <Accordion type="multiple" className="w-full">
               {vehicles.map((vehiculo, index) => (
                 <AccordionPrimitive.Item
@@ -840,7 +848,7 @@ const PaseUpdate = () => {
                   No se han agregado vehículos.
                 </p>
               )}
-            </Accordion>
+            </Accordion>}
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">

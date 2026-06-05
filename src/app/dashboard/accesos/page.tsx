@@ -91,7 +91,12 @@ const AccesosPage = () => {
 	}
   }, [searchPass?.grupo_equipos, searchPass?.grupo_vehiculos, searchPass?.tipo_movimiento]);
 
-
+  const vehiculoHabilitado = (() => {
+	const val = searchPass?.habilitar_vehiculo;
+	if (!val) return false;
+	if (typeof val === "boolean") return val;
+	return ["si", "sí"].includes(String(val).toLowerCase().trim());
+  })();
 
   const handleGetPdf = async () => {
 	try {
@@ -510,7 +515,8 @@ const AccesosPage = () => {
 					 		</div>
 
 					 		<div className="">
-					 			<VehiculosAutorizadosTable vehiculos={vehiculos} setVehiculos={setVehiculos} setSelectedVehiculos={setSelectedVehiculos} selectedVehiculos={selectedVehiculos} tipoMovimiento={tipoMovimiento}/>
+					 			<VehiculosAutorizadosTable vehiculos={vehiculos} setVehiculos={setVehiculos} setSelectedVehiculos={setSelectedVehiculos} selectedVehiculos={selectedVehiculos} tipoMovimiento={tipoMovimiento}
+								vehiculoHabilitado={vehiculoHabilitado}/>
 					 		</div>
 					 	</div>
 					 </div>

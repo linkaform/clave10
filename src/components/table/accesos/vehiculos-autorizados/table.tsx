@@ -37,9 +37,10 @@ interface TableProps {
   vehiculos: Vehiculo[]
   setVehiculos: React.Dispatch<React.SetStateAction<Vehiculo[]>>
   tipoMovimiento: string;
+  vehiculoHabilitado:boolean
 }
 
-export const VehiculosAutorizadosTable: React.FC<TableProps> = ({ vehiculos, setSelectedVehiculos, selectedVehiculos, setVehiculos, tipoMovimiento }) => {
+export const VehiculosAutorizadosTable: React.FC<TableProps> = ({ vehiculos, setSelectedVehiculos, selectedVehiculos, setVehiculos, tipoMovimiento,vehiculoHabilitado }) => {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -87,7 +88,7 @@ export const VehiculosAutorizadosTable: React.FC<TableProps> = ({ vehiculos, set
             <Button
               size="sm"
               className="h-8 px-2.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white transition-colors"
-              disabled={tipoMovimiento == "Salida"}
+              disabled={tipoMovimiento == "Salida"|| !vehiculoHabilitado}
             >
               <Plus className="w-4 h-4 mr-1" />
               Vehículo
@@ -99,7 +100,7 @@ export const VehiculosAutorizadosTable: React.FC<TableProps> = ({ vehiculos, set
               size="sm"
               variant="outline"
               className="h-8 px-2.5 text-xs font-medium text-blue-700 border-blue-200 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-              disabled={tipoMovimiento == "Salida"}
+              disabled={tipoMovimiento == "Salida"|| !vehiculoHabilitado}
             >
               <List className="w-4 h-4 mr-1" />
               Ver Seleccionados
@@ -110,7 +111,7 @@ export const VehiculosAutorizadosTable: React.FC<TableProps> = ({ vehiculos, set
             size="sm"
             variant="outline"
             className="h-8 w-8 p-0 text-amber-700 border-amber-200 hover:bg-amber-50 hover:text-amber-800 transition-colors"
-            disabled={tipoMovimiento == "Salida"}
+            disabled={tipoMovimiento == "Salida"|| !vehiculoHabilitado}
             onClick={() => {
               setSelectedVehiculos([]);
               table.resetRowSelection();
@@ -148,10 +149,10 @@ export const VehiculosAutorizadosTable: React.FC<TableProps> = ({ vehiculos, set
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className="group transition-colors hover:bg-gray-50/50 border-b border-gray-50 last:border-none"
-                  >
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  className={`group transition-colors hover:bg-gray-50/50 border-b border-gray-50 last:border-none ${!vehiculoHabilitado ? "opacity-50 pointer-events-none" : ""}`}
+                >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="py-2.5 px-4 text-sm text-gray-700 font-medium whitespace-nowrap">
                         {flexRender(
