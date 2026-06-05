@@ -20,8 +20,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
-import { List, UserRound, CalendarDays, Layers } from "lucide-react";
-import { formatDateToString, formatFecha, isExcluded } from "@/lib/utils";
+import { List, UserRound, CalendarDays, Layers, Car } from "lucide-react";
+import { formatDateToString, formatFecha, isExcluded, prefijoToCountry } from "@/lib/utils";
 import { Areas } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
@@ -127,6 +127,7 @@ const formSchema = z
       numero: z.string().optional(),
     }),
     todas_las_areas: z.boolean().optional(),
+    habilitar_vehiculo: z.string()
   })
   .refine(
     (data) => {
@@ -177,13 +178,14 @@ const formSchema = z
 
 const PaseEntradaPage = () => {
   const [tipoVisita, setTipoVisita] = useState("rango_de_fechas");
-
-  const { excludes } = useMenuStore();
+  const { excludes, grupoRequisitos } = useMenuStore();
   const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>([]);
   const [config_dia_de_acceso, set_config_dia_de_acceso] =
     useState("cualquier_día");
   const [isSuccess, setIsSuccess] = useState(false);
   const [modalData, setModalData] = useState<any>(null);
+  const [defaultCountry, setDefaultCountry] = useState<any>("MX");
+  const [habilitarVehiculo, setHabilitarVehiculo] = useState(true);
   const {
     locations: ubicacionesStore,
     defaultLocations,
@@ -233,6 +235,23 @@ const PaseEntradaPage = () => {
       if (ubicacion) fetchAreas(ubicacion);
     }
   }, [fetchAreas, ubicacionesSeleccionadas]);
+  
+  useEffect(() => {
+    if (!ubicacionesSeleccionadas?.length || !grupoRequisitos?.length) return;
+  
+    const ubicacionNombre = ubicacionesSeleccionadas[0]?.name ?? ubicacionesSeleccionadas[0]?.id ?? "";
+  
+    const requisito = grupoRequisitos.find(
+      (r) => r.ubicacion?.toLowerCase() === ubicacionNombre?.toLowerCase()
+    );
+  
+    if (requisito?.prefijo_telefonico) {
+      const country = prefijoToCountry[String(requisito.prefijo_telefonico)] ?? "MX";
+      setDefaultCountry(country);
+    } else {
+      setDefaultCountry("MX");
+    }
+  }, [ubicacionesSeleccionadas, grupoRequisitos]);
 
   // Preseleccionar ubicación cuando cargue el store
   useEffect(() => {
@@ -357,6 +376,7 @@ const PaseEntradaPage = () => {
         numero: "528120084370",
       },
       todas_las_areas: todasAreas,
+      habilitar_vehiculo:"sí"
     },
   });
 
@@ -477,6 +497,7 @@ const PaseEntradaPage = () => {
         numero: data.telefono,
       },
       todas_las_areas: todasAreas,
+      habilitar_vehiculo: habilitarVehiculo ? "sí" : "no",
     };
 
     if (tipoVisita == "fecha_fija" && !date) {
@@ -560,7 +581,6 @@ const PaseEntradaPage = () => {
     const localDate = new Date(date.getTime() - offset * 60 * 1000);
     return localDate.toISOString().split("T")[0];
   };
-
   return (
     <div className="min-h-screen bg-gray-100 py-5 px-4">
       <EntryPassModal
@@ -834,7 +854,7 @@ const PaseEntradaPage = () => {
                                   form.setValue("telefono", value || "");
                                 }}
                                 placeholder="Teléfono"
-                                defaultCountry="MX"
+                                defaultCountry={defaultCountry} 
                                 containerComponentProps={{
                                   className:
                                     "flex h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-3 py-0 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
@@ -1218,6 +1238,25 @@ const PaseEntradaPage = () => {
                   )}
                 </div>
               )}
+
+              <div className="bg-white rounded-2xl shadow-md border border-blue-60 p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-blue-50 rounded-xl">
+                      <Car className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-700">Vehículo</p>
+                      <p className="text-xs text-gray-400">Permitir acceso con vehículo</p>
+                    </div>
+                  </div>
+                  <Switch
+                    className="data-[state=checked]:bg-blue-600"
+                    checked={habilitarVehiculo}
+                    onCheckedChange={setHabilitarVehiculo}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">

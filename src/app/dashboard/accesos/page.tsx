@@ -41,7 +41,7 @@ import { useGetShift } from "@/hooks/useGetShift";
 import { exitRegister, registerIncoming } from "@/lib/access";
 import { PermisosTable } from "@/components/table/accesos/permisos-certificaciones/table";
 import useAuthStore from "@/store/useAuthStore";
-import { esHexadecimal, imprimirYDescargarPDF, isExcluded } from "@/lib/utils";
+import { esHexadecimal, imprimirYDescargarPDF, isExcluded, isVehiculoHabilitado } from "@/lib/utils";
 import Link from "next/link";
 import { useGetStats } from "@/hooks/useGetStats";
 import { ScanPassOptionsModal } from "@/components/modals/scan-pass-options";
@@ -91,8 +91,7 @@ const AccesosPage = () => {
 	}
   }, [searchPass?.grupo_equipos, searchPass?.grupo_vehiculos, searchPass?.tipo_movimiento]);
 
-
-
+  const vehiculoHabilitado = isVehiculoHabilitado(searchPass?.habilitar_vehiculo);
   const handleGetPdf = async () => {
 	try {
 	  const result = await refetch();
@@ -378,7 +377,7 @@ const AccesosPage = () => {
 							</ActivePassesModal>
 						</div>
 					</div>
-					<div className="flex flex-col sm:flex-row gap-2">
+ 					<div className="flex flex-col sm:flex-row gap-2">
 					{searchPass?.tipo_movimiento === "Entrada" && (
 						<Button
 						className="bg-green-600 hover:bg-green-700"
@@ -510,7 +509,8 @@ const AccesosPage = () => {
 					 		</div>
 
 					 		<div className="">
-					 			<VehiculosAutorizadosTable vehiculos={vehiculos} setVehiculos={setVehiculos} setSelectedVehiculos={setSelectedVehiculos} selectedVehiculos={selectedVehiculos} tipoMovimiento={tipoMovimiento}/>
+					 			<VehiculosAutorizadosTable vehiculos={vehiculos} setVehiculos={setVehiculos} setSelectedVehiculos={setSelectedVehiculos} selectedVehiculos={selectedVehiculos} tipoMovimiento={tipoMovimiento}
+								vehiculoHabilitado={vehiculoHabilitado}/>
 					 		</div>
 					 	</div>
 					 </div>

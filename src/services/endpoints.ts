@@ -133,3 +133,17 @@ export const generateSubmitTokenTransportista = (record_id: string) =>
     option: "generate_submit_token_transportista",
     record_id,
   }, {}, true);
+
+export const getLocationData = (location: string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_location_data",
+    location,
+  });
+
+export const getUsersDataTransportista = (location?: string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_users_data",
+    ...(location && { location }),
+  });

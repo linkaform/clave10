@@ -62,3 +62,24 @@ export const runOcrId = async (imageUrls: string[]) => {
     const data = await response.json();
     return data;
   };
+
+  export const runOcrVehiculo = async (imageUrls: string[]) => {
+    const payload = {
+      script_name: "ocr_docs.py",
+      image_source: imageUrls,
+      option: "ocr_doc",
+      fields:['color, tipo_vehiculo', 'matricula', "modelo", "marca"]
+    };
+    console.log("payload", JSON.stringify(payload));
+    const userJwt = localStorage.getItem("access_token");
+    const response = await fetch(API_ENDPOINTS.runScript, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${userJwt}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    return data;
+  };

@@ -29,7 +29,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { EqipmentLocalPassModal } from "@/components/modals/add-local-equipo";
-import { formatEquipos, formatVehiculos } from "@/lib/utils";
+import { formatEquipos, formatVehiculos, isVehiculoHabilitado } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
@@ -180,6 +180,8 @@ const PaseUpdate = () => {
     () => createSchema(requireFoto, requireIden),
     [requireFoto, requireIden],
   );
+
+  const vehiculoHabilitado = isVehiculoHabilitado(dataCatalogos?.pass_selected?.habilitar_vehiculo);
 
   useEffect(() => {
     if (dataCatalogos) {
@@ -732,6 +734,7 @@ const PaseUpdate = () => {
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
           <div className="space-y-2">
+            {vehiculoHabilitado && 
             <div className="flex items-center justify-between">
               <span className="font-semibold text-slate-700">Vehículos</span>
               <VehicleLocalPassModal
@@ -748,8 +751,8 @@ const PaseUpdate = () => {
                   <span className="sm:hidden font-bold">+</span>
                 </button>
               </VehicleLocalPassModal>
-            </div>
-
+            </div>}
+            {vehiculoHabilitado && 
             <Accordion type="multiple" className="w-full">
               {vehicles.map((vehiculo, index) => (
                 <AccordionPrimitive.Item
@@ -840,7 +843,7 @@ const PaseUpdate = () => {
                   No se han agregado vehículos.
                 </p>
               )}
-            </Accordion>
+            </Accordion>}
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">

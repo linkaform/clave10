@@ -31,8 +31,11 @@ import { useGetLocalVehiculos } from "@/hooks/useLocalCatVehiculos";
 import { Vehiculo } from "@/lib/update-pass";
 import { useAccessStore } from "@/store/useAccessStore";
 import { useUpdateBitacora } from "@/hooks/useUpdateBitacora";
-import { catalogoColores, catalogoEstados } from "@/lib/utils";
+import { catalogoColores } from "@/lib/utils";
 import LoadImage from "../upload-Image";
+import { useCatalogoEstados } from "@/hooks/useCatalogoEstados";
+import useAuthStore from "@/store/useAuthStore";
+import { useOcr } from "@/hooks/ocr/useOcr";
 
 interface Props {
   title: string;
@@ -64,12 +67,15 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
   fetch = false,
 }) => {
   const [open, setOpen] = useState(false);
+  const { userParentId } = useAuthStore();
+
   const [tipoVehiculoState, setTipoVehiculoState] = useState("");
   const [catalogSearch, setCatalogSearch] = useState("");
   const [marcaState, setMarcaState] = useState("");
   const [tiposCat, setTiposCat] = useState<string[]>([]);
   const [marcasCat, setMarcasCat] = useState<string[]>([]);
   const [modelosCat, setModelosCat] = useState<string[]>([]);
+  const { ocrVehiculoMutation } = useOcr();
   const { data: dataVehiculos } = useGetLocalVehiculos({
     tipo: tipoVehiculoState,
     marca: marcaState,
@@ -79,14 +85,20 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
     (state) => state.setSelectedVehiculos,
   );
   const { updateBitacoraMutation, isLoading } = useUpdateBitacora();
-  const catEstados = catalogoEstados().map((tipo: any) => ({
-    value: tipo,
-    label: tipo,
-  }));
+
   const catColores = catalogoColores().map((tipo: any) => ({
     value: tipo,
     label: tipo,
   }));
+
+  const { data: dataEstados } = useCatalogoEstados(userParentId ?? 0, open);
+  const catEstados = Array.isArray(dataEstados)
+  ? dataEstados.map((estado: string) => ({
+      value: estado,
+      label: estado,
+    }))
+  : [];
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -210,6 +222,18 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
     }
   }, [open]);
 
+  const handleOcrVehiculo = async (imageUrl: string) => {
+    const result = await ocrVehiculoMutation.mutateAsync([imageUrl]);
+    console.log("RESULT", result)
+    if (result?.data?.vehiculo) {
+      const v = result.data.vehiculo;
+      form.setValue("tipo", [v.tipo_vehiculo ?? ""]);
+      form.setValue("marca", [v.marca ?? ""]);
+      form.setValue("modelo", [v.modelo ?? ""]);
+      form.setValue("color", [v.color ?? ""]);
+      form.setValue("placas", v.placa_vehiculo ?? "");
+    }
+  };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild onClick={() => setOpen(true)}>
@@ -228,6 +252,36 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
         <div className="px-4 overflow-y-auto flex-1">
           <Form {...form}>
             <form className="space-y-8 ">
+
+            <FormField
+                control={form.control}
+                name="foto_vehiculo"
+                render={({ field, fieldState }) => (
+                  <div className="space-y-2">
+                    <FormLabel className="flex gap-1">
+                      Foto del Vehículo
+                    </FormLabel>
+                    <FormControl>
+                      <LoadImage
+                        id="foto_vehiculo"
+                        titulo={""}
+                        imgArray={field.value || []}
+                        setImg={field.onChange}
+                        showWebcamOption={true}
+                        facingMode="environment"
+                        tipoOcr="vehiculo"
+                        onOcrResult={handleOcrVehiculo}
+                      />
+                    </FormControl>
+                    {fieldState.error && (
+                      <span className="text-red-500 text-xs mt-1 block px-1">
+                        {fieldState.error.message}
+                      </span>
+                    )}
+                  </div>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="tipo"
@@ -325,7 +379,7 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
                       options={catEstados}
                       className="react-select-estado"
                       onChange={(value: any) => {
-                        field.onChange(value ? [value.value] : []); // ← no "" ni undefined
+                        field.onChange(value ? [value.value] : []);
                       }}
                       isClearable
                     />
@@ -377,33 +431,7 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="foto_vehiculo"
-                render={({ field, fieldState }) => (
-                  <div className="space-y-2">
-                    <FormLabel className="flex gap-1">
-                      Foto del Vehículo
-                    </FormLabel>
-                    <FormControl>
-                      <LoadImage
-                        id="foto_vehiculo"
-                        titulo={""}
-                        imgArray={field.value || []}
-                        setImg={field.onChange}
-                        showWebcamOption={true}
-                        facingMode="environment"
-                        limit={1}
-                      />
-                    </FormControl>
-                    {fieldState.error && (
-                      <span className="text-red-500 text-xs mt-1 block px-1">
-                        {fieldState.error.message}
-                      </span>
-                    )}
-                  </div>
-                )}
-              />
+           
             </form>
           </Form>
         </div>

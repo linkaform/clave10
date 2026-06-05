@@ -103,15 +103,14 @@ export const OptionsCell: React.FC<{ row: any,onEditarClick: (pase: any) => void
             <Eye className="w-5 h-5"/> 
           </div>
       </ViewPassModal>
-      
+      {dataFull?.status_pase?.toLowerCase() !=="cancelado" &&
         <div
           className="cursor-pointer"
           onClick={() => onEditarClick(dataFull)}
           title="Editar Pase"
         >
           <Edit className="w-5 h-5"/>
-        </div>
-
+        </div>}
     </div>
   );
 };
