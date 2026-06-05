@@ -21,7 +21,7 @@ import { VehicleLocalPassModal } from "./add-local-vehicule";
 import { EqipmentLocalPassModal } from "./add-local-equipo";
 import { toast } from "sonner";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
-import { uniqueArray } from "@/lib/utils";
+import { isVehiculoHabilitado, uniqueArray } from "@/lib/utils";
 import { useSearchPass } from "@/hooks/useSearchPass";
 import { DialogTitle } from "../ui/dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
@@ -66,12 +66,7 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
     name: item.nombre,
   }));
 
-  const vehiculoHabilitado = (() => {
-    const val = dataCatalogos?.habilitar_vehiculo;
-    if (!val) return false;
-    if (typeof val === "boolean") return val;
-    return ["si", "sí"].includes(String(val).toLowerCase().trim());
-  })();
+  const vehiculoHabilitado = isVehiculoHabilitado(dataCatalogos?.habilitar_vehiculo);
 
   const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>(
     visitaDataFormateada.length > 0

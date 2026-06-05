@@ -185,7 +185,7 @@ const PaseEntradaPage = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [modalData, setModalData] = useState<any>(null);
   const [defaultCountry, setDefaultCountry] = useState<any>("MX");
-  const [habilitarVehiculo, setHabilitarVehiculo] = useState(false);
+  const [habilitarVehiculo, setHabilitarVehiculo] = useState(true);
   const {
     locations: ubicacionesStore,
     defaultLocations,
@@ -497,7 +497,7 @@ const PaseEntradaPage = () => {
         numero: data.telefono,
       },
       todas_las_areas: todasAreas,
-      habilitar_vehiculo:habilitarVehiculo
+      habilitar_vehiculo: habilitarVehiculo ? "sí" : "no",
     };
 
     if (tipoVisita == "fecha_fija" && !date) {
@@ -581,7 +581,6 @@ const PaseEntradaPage = () => {
     const localDate = new Date(date.getTime() - offset * 60 * 1000);
     return localDate.toISOString().split("T")[0];
   };
-
   return (
     <div className="min-h-screen bg-gray-100 py-5 px-4">
       <EntryPassModal

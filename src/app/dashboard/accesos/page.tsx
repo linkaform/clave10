@@ -41,7 +41,7 @@ import { useGetShift } from "@/hooks/useGetShift";
 import { exitRegister, registerIncoming } from "@/lib/access";
 import { PermisosTable } from "@/components/table/accesos/permisos-certificaciones/table";
 import useAuthStore from "@/store/useAuthStore";
-import { esHexadecimal, imprimirYDescargarPDF, isExcluded } from "@/lib/utils";
+import { esHexadecimal, imprimirYDescargarPDF, isExcluded, isVehiculoHabilitado } from "@/lib/utils";
 import Link from "next/link";
 import { useGetStats } from "@/hooks/useGetStats";
 import { ScanPassOptionsModal } from "@/components/modals/scan-pass-options";
@@ -91,13 +91,7 @@ const AccesosPage = () => {
 	}
   }, [searchPass?.grupo_equipos, searchPass?.grupo_vehiculos, searchPass?.tipo_movimiento]);
 
-  const vehiculoHabilitado = (() => {
-	const val = searchPass?.habilitar_vehiculo;
-	if (!val) return false;
-	if (typeof val === "boolean") return val;
-	return ["si", "sí"].includes(String(val).toLowerCase().trim());
-  })();
-
+  const vehiculoHabilitado = isVehiculoHabilitado(searchPass?.habilitar_vehiculo);
   const handleGetPdf = async () => {
 	try {
 	  const result = await refetch();

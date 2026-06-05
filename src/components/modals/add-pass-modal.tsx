@@ -8,7 +8,7 @@ import {
 } from "../ui/dialog";
 import CalendarDays from "../calendar-days";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { CalendarClock, Layers, Loader2, MessageSquare, ShieldCheck, UserRound } from "lucide-react";
+import { CalendarClock, Car, Layers, Loader2, MessageSquare, ShieldCheck, UserRound } from "lucide-react";
 import { GeneratedPassModal } from "./generated-pass-modal";
 import { Access_pass, Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
@@ -186,12 +186,12 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
       setOpenGeneratedPass(true)
   },[responseCreatePase])
 
-  const handleClose = () => {
-    setIsSuccess(false); 
-    onClose(); 
-};
-
-  return (
+	const handleClose = () => {
+		setIsSuccess(false); 
+		onClose(); 
+	};
+	console.log("DATA PASS",dataPass)
+  	return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal >
 		<DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh] flex flex-col p-0 border-none rounded-3xl" aria-describedby="" onInteractOutside={(e) => e.preventDefault()}>
 			<div className="bg-blue-600 p-6 text-white text-center flex-shrink-0">
@@ -296,7 +296,26 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 						<CalendarDays diasDisponibles={dataPass?.config_dias_acceso}/>
 					</div>
 				)}
-
+				{/* Vehículo */}
+				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+				<div className="flex items-center justify-between">
+					<div className="flex items-center gap-2">
+					<div className="bg-blue-50 p-1.5 rounded-lg">
+						<Car size={16} className="text-blue-600" />
+					</div>
+					<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Acceso con vehículo </span>
+					</div>
+					<Badge
+					className={
+						dataPass?.habilitar_vehiculo === "sí"
+						? "bg-green-100 text-green-700 hover:bg-green-100 border-none font-black text-[10px]"
+						: "bg-red-100 text-red-700 hover:bg-red-100 border-none font-black text-[10px]"
+					}
+					>
+					{dataPass?.habilitar_vehiculo === "sí" ? "Permitido" : "No permitido"}
+					</Badge>
+				</div>
+				</div>
 				{(dataPass?.areas.length > 0 || dataPass?.comentarios.length > 0) && (
 					<div className="space-y-3">
 						{dataPass?.areas.length > 0 && (

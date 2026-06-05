@@ -821,3 +821,10 @@ export const prefijoToCountry: Record<string, string> = {
   "971": "AE",
   "98": "IR",
 };
+
+export const isVehiculoHabilitado = (val: any): boolean => {
+  if (val === null || val === undefined || val === "") return true;
+  if (typeof val === "boolean") return val;
+  const normalized = String(val).toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return normalized === "si";
+};

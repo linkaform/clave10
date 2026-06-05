@@ -27,7 +27,7 @@ interface CalendarDaysProps {
   /** Callback que notifica al padre cuando este componente está subiendo imágenes */
   onLoadingChange?: (isLoading: boolean) => void;
   onOcrResult?: (result: any) => void; 
-  tipoOcr?: "id" | "paquete" | "truck"; 
+  tipoOcr?: "id" | "paquete" | "truck" | "vehiculo"; 
   showPlaceholder?: boolean;
 }
 
@@ -56,12 +56,14 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   const reachedLimit = (imgArray?.length ?? 0) >= limit;
   const [activeIndex, setActiveIndex] = useState(0);
   const [carouselApi, setCarouselApi] = useState<any>(null);
-  const { ocrIdMutation, ocrPaqueteMutation, ocrTruckMutation } = useOcr();
+  const { ocrIdMutation, ocrPaqueteMutation, ocrTruckMutation , ocrVehiculoMutation} = useOcr();
 
   const ocrMutation = tipoOcr === "paquete"
     ? ocrPaqueteMutation
     : tipoOcr === "truck"
     ? ocrTruckMutation
+    : tipoOcr === "vehiculo"
+    ? ocrVehiculoMutation
     : ocrIdMutation;
 
   // const handleAnalizar = async () => {

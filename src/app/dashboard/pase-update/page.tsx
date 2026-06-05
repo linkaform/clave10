@@ -29,7 +29,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { EqipmentLocalPassModal } from "@/components/modals/add-local-equipo";
-import { formatEquipos, formatVehiculos } from "@/lib/utils";
+import { formatEquipos, formatVehiculos, isVehiculoHabilitado } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
@@ -181,12 +181,7 @@ const PaseUpdate = () => {
     [requireFoto, requireIden],
   );
 
-  const vehiculoHabilitado = (() => {
-    const val = dataCatalogos?.pass_selected?.habilitar_vehiculo;
-    if (!val) return false;
-    if (typeof val === "boolean") return val;
-    return ["si", "sí"].includes(String(val).toLowerCase().trim());
-  })();
+  const vehiculoHabilitado = isVehiculoHabilitado(dataCatalogos?.pass_selected?.habilitar_vehiculo);
 
   useEffect(() => {
     if (dataCatalogos) {
