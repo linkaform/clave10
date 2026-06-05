@@ -11,7 +11,6 @@ export const useGetMenu = () => {
     setMenuItems,
     setExcludes,
     setGrupoRequisitos,
-    setToleranciaDeEntrada,
     grupoRequisitos,
     toleranciaDeEntrada,
   } = useMenuStore();
@@ -29,31 +28,7 @@ export const useGetMenu = () => {
 
         setLabels(dataRaw);
         setExcludes(excludeInputs);
-        setGrupoRequisitos(data.response?.data.requisitos_acceso || [{
-            "envio_por": [
-                "correo",
-                "sms"
-            ],
-            "datos_requeridos": [
-                "identificacion",
-                "fotografia"
-            ],
-            "ubicacion": "Planta Monterrey",
-            "prefijo_telefonico": "US"
-        },
-        {
-            "envio_por": [
-                "correo",
-                "sms"
-            ],
-            "datos_requeridos": [
-                "fotografia"
-            ],
-            "ubicacion": "Planta Durango",
-            "prefijo_telefonico": "US"
-        },
-]);
-        setToleranciaDeEntrada(data.response?.data.tolerancia_de_entrada ?? 2);
+        setGrupoRequisitos(data.response?.data.requisitos || []);
 
         const transformedData = dataRaw.map((item: string) => {
           let text = item;

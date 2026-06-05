@@ -383,7 +383,7 @@ const AccesosPage = () => {
 							</ActivePassesModal>
 						</div>
 					</div>
-					<div className="flex flex-col sm:flex-row gap-2">
+ 					<div className="flex flex-col sm:flex-row gap-2">
 					{searchPass?.tipo_movimiento === "Entrada" && (
 						<Button
 						className="bg-green-600 hover:bg-green-700"
