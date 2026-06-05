@@ -54,7 +54,7 @@ interface EntryPassUpdateModalProps {
     comentarios: Comentarios[];
     enviar_pre_sms: enviar_pre_sms;
 	todas_las_areas:boolean;
-	habilitar_vehiculo:boolean;
+	habilitar_vehiculo:string;
   };
   isSuccess: boolean;
   setIsSuccess: Dispatch<SetStateAction<boolean>>;

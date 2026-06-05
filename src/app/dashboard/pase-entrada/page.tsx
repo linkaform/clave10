@@ -127,7 +127,7 @@ const formSchema = z
       numero: z.string().optional(),
     }),
     todas_las_areas: z.boolean().optional(),
-    habilitar_vehiculo: z.boolean()
+    habilitar_vehiculo: z.string()
   })
   .refine(
     (data) => {
@@ -376,7 +376,7 @@ const PaseEntradaPage = () => {
         numero: "528120084370",
       },
       todas_las_areas: todasAreas,
-      habilitar_vehiculo:true
+      habilitar_vehiculo:"sí"
     },
   });
 

@@ -48,6 +48,7 @@ export interface SearchAccessPass {
   limite_de_acceso?: number;
   total_entradas?:string;
   anfitrions_data?:any;
+  habilitar_vehiculo:string
 }
 
 
