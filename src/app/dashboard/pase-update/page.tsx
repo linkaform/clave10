@@ -367,7 +367,7 @@ const PaseUpdate = () => {
 
   useEffect(() => {
     if (dataCatalogos?.pass_selected) {
-      const acompanantes = 3;
+      const acompanantes = dataCatalogos.pass_selected.acompanantes?? 0;
       // Genera filas vacías según el número de acompañantes
       const rows = Array.from({ length: acompanantes }, () => ({
         id: crypto.randomUUID(),
@@ -747,13 +747,16 @@ const PaseUpdate = () => {
               />
             )}
           </div>
-          <MiembrosPase
-          miembros={miembrosAcompanantes}
-          title={"Acompañantes"}
-          setMiembros={setMiembrosAcompanantes}
-          rowErrors={{}}
-          setRowErrors={() => {}}
-          />
+
+          {dataCatalogos && dataCatalogos.pass_selected && (dataCatalogos.pass_selected?.acompanantes ?? 0) > 0 &&
+            <MiembrosPase
+            miembros={miembrosAcompanantes}
+            title={"Acompañantes"}
+            setMiembros={setMiembrosAcompanantes}
+            rowErrors={{}}
+            setRowErrors={() => {}}
+            />
+          }
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
           <div className="space-y-2">
