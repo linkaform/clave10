@@ -199,6 +199,33 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
         <div className="">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <FormField
+                  control={form.control}
+                  name="foto_equipo"
+                  render={({ field, fieldState }) => (
+                    <div className="space-y-2 col-span-1 md:col-span-2">
+                      <FormLabel className="flex gap-1">
+                        Foto del Equipo
+                      </FormLabel>
+                      <FormControl>
+                        <LoadImage
+                          id="foto_equipo"
+                          titulo={""}
+                          imgArray={field.value || []}
+                          setImg={field.onChange}
+                          showWebcamOption={true}
+                          facingMode="environment"
+                        />
+                      </FormControl>
+                      {fieldState.error && (
+                        <span className="text-red-500 text-xs mt-1 block px-1">
+                          {fieldState.error.message}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                />
+
               <FormField
                 control={form.control}
                 name="tipo"
@@ -347,33 +374,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="foto_equipo"
-                  render={({ field, fieldState }) => (
-                    <div className="space-y-2 col-span-1 md:col-span-2">
-                      <FormLabel className="flex gap-1">
-                        Foto del Equipo
-                      </FormLabel>
-                      <FormControl>
-                        <LoadImage
-                          id="foto_equipo"
-                          titulo={""}
-                          imgArray={field.value || []}
-                          setImg={field.onChange}
-                          showWebcamOption={true}
-                          facingMode="environment"
-                          limit={1}
-                        />
-                      </FormControl>
-                      {fieldState.error && (
-                        <span className="text-red-500 text-xs mt-1 block px-1">
-                          {fieldState.error.message}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                />
+               
               </div>
             </form>
           </Form>

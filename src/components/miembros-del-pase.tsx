@@ -30,6 +30,7 @@ interface MiembrosPaseProps {
   setMiembros: React.Dispatch<React.SetStateAction<Miembro[]>>;
   rowErrors: Record<string, { email: boolean; telefono: boolean }>;
   setRowErrors: React.Dispatch<React.SetStateAction<Record<string, { email: boolean; telefono: boolean }>>>;
+  title?:string
 }
 
 const isValidEmail = (val: string) =>
@@ -47,7 +48,7 @@ const EMPTY_ROW = (): Miembro => ({
 const ROW_HEIGHT = 41; // px por fila aprox
 const MAX_VISIBLE = 15;
 
-const MiembrosPase: React.FC<MiembrosPaseProps> = ({ miembros, setMiembros, rowErrors, setRowErrors }) => {
+const MiembrosPase: React.FC<MiembrosPaseProps> = ({ miembros, setMiembros, rowErrors, setRowErrors ,title="Miembros del pase"}) => {
   const [openImportar, setOpenImportar] = useState(false);
   const [draftRow, setDraftRow] = useState<Miembro>(EMPTY_ROW());
   const [draftErrors, setDraftErrors] = useState({ email: false, telefono: false });
@@ -118,7 +119,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({ miembros, setMiembros, rowE
             <div className="p-2 bg-blue-50 rounded-xl">
               <Users className="w-4 h-4 text-blue-600" />
             </div>
-            <h1 className="font-semibold text-gray-700">Miembros del pase</h1>
+            <h1 className="font-semibold text-gray-700">{title}</h1>
           </div>
           <Button
             type="button"

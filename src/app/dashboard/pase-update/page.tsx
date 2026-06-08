@@ -36,6 +36,7 @@ import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
 // import { API_ENDPOINTS } from "@/config/api";
 import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
+import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
 const grupoEquipos = z
   .array(
     z.object({
@@ -163,6 +164,7 @@ const PaseUpdate = () => {
   const downloadUrl = responsePdf?.response?.data?.data?.download_url;
   const requireFoto = showIneIden?.includes("foto") ?? false;
   const requireIden = showIneIden?.includes("iden") ?? false;
+  const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
 
   const [errorFotografia, setErrorFotografia] = useState("");
   const [errorIdentificacion, setErrorIdentificacion] = useState("");
@@ -361,6 +363,21 @@ const PaseUpdate = () => {
     }
   };
 
+
+
+  useEffect(() => {
+    if (dataCatalogos?.pass_selected) {
+      const acompanantes = 3;
+      // Genera filas vacías según el número de acompañantes
+      const rows = Array.from({ length: acompanantes }, () => ({
+        id: crypto.randomUUID(),
+        nombre: "",
+        email: "",
+        telefono: "",
+      }));
+      setMiembrosAcompanantes(rows);
+    }
+  }, [dataCatalogos]);
   // const handleClickAppleButton = async () => {
   // 	const record_id = dataCatalogos?.pass_selected?._id;
   // 	const userJwt = localStorage.getItem("access_token");
@@ -730,7 +747,13 @@ const PaseUpdate = () => {
               />
             )}
           </div>
-
+          <MiembrosPase
+          miembros={miembrosAcompanantes}
+          title={"Acompañantes"}
+          setMiembros={setMiembrosAcompanantes}
+          rowErrors={{}}
+          setRowErrors={() => {}}
+          />
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
           <div className="space-y-2">
