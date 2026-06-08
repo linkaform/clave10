@@ -44,6 +44,7 @@ export interface PassSelected {
     longitude: number;
   }[];
   habilitar_vehiculo?:boolean 
+  acompanantes?:number
 }
 
 export interface VisitaA {

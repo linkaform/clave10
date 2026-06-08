@@ -127,7 +127,8 @@ const formSchema = z
       numero: z.string().optional(),
     }),
     todas_las_areas: z.boolean().optional(),
-    habilitar_vehiculo: z.string()
+    habilitar_vehiculo: z.string(),
+    acompanantes: z.number().min(0).optional(),
   })
   .refine(
     (data) => {
@@ -376,7 +377,8 @@ const PaseEntradaPage = () => {
         numero: "528120084370",
       },
       todas_las_areas: todasAreas,
-      habilitar_vehiculo:"sí"
+      habilitar_vehiculo:"sí",
+      acompanantes: 0,
     },
   });
 
@@ -498,6 +500,7 @@ const PaseEntradaPage = () => {
       },
       todas_las_areas: todasAreas,
       habilitar_vehiculo: habilitarVehiculo ? "sí" : "no",
+      acompanantes: Number(data.acompanantes) || 0,
     };
 
     if (tipoVisita == "fecha_fija" && !date) {
@@ -908,6 +911,33 @@ const PaseEntradaPage = () => {
                         />
                       )}
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <FormField
+                        control={form.control}
+                        name="acompanantes"
+                        render={({ field }: any) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                              Acompañantes
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="0"
+                                type="number"
+                                min={0}
+                                step={1}
+                                className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
+                                {...field}
+                                value={field.value ?? 0}
+                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                              />
+                            </FormControl>
+                            <p className="text-xs text-gray-400 mt-1">Número de personas adicionales que acompañan al visitante.</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                     </div>
                   </div>
                 </TabsContent>
 
