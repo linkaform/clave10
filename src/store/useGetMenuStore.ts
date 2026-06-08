@@ -24,7 +24,6 @@ interface MenuStore {
   excludes: Excludes | null;
   menuConfig: MenuConfig | null;
   grupoRequisitos: GrupoRequisito[];
-  toleranciaDeEntrada: number | null;
   setLabels: (items: string[]) => void;
   setMenuItems: (items: MenuItem[]) => void;
   setExcludes: (excludes: Excludes) => void;
@@ -41,13 +40,12 @@ export const useMenuStore = create(
       excludes: null,
       menuConfig: null,
       grupoRequisitos: [],
-      toleranciaDeEntrada: null,
       setLabels: (items) => set({ labels: items }),
       setMenuItems: (items) => set({ menuItems: items }),
       setExcludes: (items) => set({ excludes: items }),
       setMenuConfig: (config) => set({ menuConfig: config }),
       setGrupoRequisitos: (items) => set({ grupoRequisitos: items }),
-      clearMenu: () => set({ menuItems: [], labels: [], excludes: null, menuConfig: null, grupoRequisitos: [], toleranciaDeEntrada: null }),
+      clearMenu: () => set({ menuItems: [], labels: [], excludes: null, menuConfig: null, grupoRequisitos: []}),
     }),
     {
       name: "menu-store",

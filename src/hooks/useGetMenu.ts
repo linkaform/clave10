@@ -12,7 +12,6 @@ export const useGetMenu = () => {
     setExcludes,
     setGrupoRequisitos,
     grupoRequisitos,
-    toleranciaDeEntrada,
   } = useMenuStore();
 
   const { isLoading: isLoadingMenu, error: errorMenu, refetch: refetfchMenu } = useQuery<any>({
@@ -61,6 +60,5 @@ export const useGetMenu = () => {
     errorMenu,
     refetfchMenu,
     grupoRequisitos,
-    toleranciaDeEntrada,
   };
 };

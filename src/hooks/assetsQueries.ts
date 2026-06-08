@@ -38,26 +38,32 @@ const formatAssets = (ubicacionesSeleccionadas: any[]) => {
     const location = ubicacion.id;
     const localData = getLocalAssets(location);
     if (!localData) continue;
-
+  
     for (const cat of assets) {
       const items: string[] = localData[cat] ?? [];
+  
       items.forEach((item) => {
         const key = `${item}_${cat}`;
+  
         if (seen.has(key)) return;
         seen.add(key);
-
+  
         const locations = itemCount.get(key)!;
-        const isInAll = locations.size === ubicacionesSeleccionadas.length;
-
+        const locationArray = Array.from(locations);
+        
+        const locationNames =
+          locationArray.length > 5
+            ? `${locationArray.slice(0, 5).join(", ")}...`
+            : locationArray.join(", ");
+        
         all.push({
           id: item,
-          name: isInAll ? `${item} - Todas las ubicaciones` : `${item} - ${location}`,
+          name: `${item} - ${locationNames}`,
           category: cat,
         });
       });
     }
   }
-
   return all.sort((a, b) => {
     const aAll = a.name.includes("Todas las ubicaciones") ? 0 : 1;
     const bAll = b.name.includes("Todas las ubicaciones") ? 0 : 1;
