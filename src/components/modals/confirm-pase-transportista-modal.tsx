@@ -4,7 +4,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { User, BoxesIcon, MapPin, Truck, FileText, Send, Building2 } from "lucide-react";
+import { User, MapPin, Truck, Send, Building2, FileText } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -12,30 +12,6 @@ interface Props {
   onConfirm: () => void;
   payload: Record<string, any> | null | undefined;
   isPending: boolean;
-}
-
-function Row({ label, value }: { label: string; value?: string | number | null }) {
-  if (value === null || value === undefined || value === "") return null;
-  return (
-    <div className="flex justify-between gap-4 py-1.5 border-b border-gray-100 last:border-0">
-      <span className="text-xs text-gray-400 uppercase tracking-wide font-medium shrink-0">{label}</span>
-      <span className="text-xs text-gray-700 text-right">{value}</span>
-    </div>
-  );
-}
-
-function Block({ icon: Icon, title, children }: {
-  icon: React.ElementType; title: string; children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Icon className="w-4 h-4 text-blue-500" />
-        <p className="text-sm font-semibold text-gray-700">{title}</p>
-      </div>
-      {children}
-    </div>
-  );
 }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -46,11 +22,47 @@ const TIPO_LABEL: Record<string, string> = {
 };
 
 const SEGUNDA_PERSONA_TITULO: Record<string, string> = {
-  entrega_de_materia_prima:          "Quién entrega",
+  entrega_de_materia_prima:          "Quien envía",
   recoleccion_de_materia_prima:      "Proveedor origen",
   entrega_de_producto_terminado:     "Cliente destino",
   recoleccion_de_producto_terminado: "Cliente",
 };
+
+function CardLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2.5">
+      {children}
+    </p>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex flex-col gap-0.5 py-1.5">
+      <span className="text-[10px] text-blue-300 uppercase tracking-wide font-medium">{label}</span>
+      <span className="text-xs text-gray-700 font-medium leading-snug">{value}</span>
+    </div>
+  );
+}
+
+function Card({ icon: Icon, title, children }: {
+  icon: React.ElementType;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 flex flex-col gap-0.5">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="p-1.5 bg-white rounded-lg shadow-sm">
+          <Icon className="w-3.5 h-3.5 text-blue-500" />
+        </div>
+        <CardLabel>{title}</CardLabel>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export function ConfirmPaseTransportistaModal({ open, onClose, onConfirm, payload, isPending }: Props) {
   if (!payload) return null;
@@ -59,105 +71,162 @@ export function ConfirmPaseTransportistaModal({ open, onClose, onConfirm, payloa
   const tipoLabel = TIPO_LABEL[tipo] ?? tipo;
   const segundaLabel = SEGUNDA_PERSONA_TITULO[tipo] ?? "Contacto";
 
-  const quienRecibe = payload.crea_el_pase;
+  const quienRecibe    = payload.crea_el_pase;
   const segundaPersona = payload.recibe_el_pase;
-  const material = payload.material;
-  const lugar = payload.lugar_entrega_recepcion;
-  const recoleccion = payload.lugar_recoleccion;
-  const documentos: any[] = payload.documentos ?? [];
+  const material       = payload.material;
+  const lugar          = payload.lugar_entrega_recepcion;
+  const recoleccion    = payload.lugar_recoleccion;
 
-  const hasRecoleccion = !!recoleccion;
+  const materialItems: any[] = material?.items ?? [];
+  const documentos: any[]    = material?.documentos ?? [];
+
+  const MATERIAL_COLS: { key: string; label: string }[] = [
+    { key: "contenedor", label: "Contenedor" },
+    { key: "sello",      label: "Sello" },
+    { key: "tipo",       label: "Tipo" },
+    { key: "cantidad",   label: "Cantidad" },
+    { key: "peso",       label: "Peso" },
+    { key: "volumen",    label: "Volumen" },
+  ];
+
+  const colsConDatos = MATERIAL_COLS.filter((c) =>
+    materialItems.some((row) => row[c.key]),
+  );
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-gray-800">Confirmar pase de entrada</DialogTitle>
-          <p className="text-sm text-gray-400 mt-0.5">Revisa la información antes de enviar</p>
+          <DialogTitle className="text-base font-bold text-gray-800">
+            Confirmar pase de entrada
+          </DialogTitle>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="inline-flex items-center bg-teal-50 border border-teal-200 text-teal-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+              {tipoLabel}
+            </span>
+          </div>
         </DialogHeader>
 
-        <div className="py-2 space-y-3">
+        <div className="space-y-3 py-1">
 
-          {/* Tipo */}
-          <span className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-teal-700 text-xs font-semibold px-3 py-1.5 rounded-full">
-            {tipoLabel}
-          </span>
-
-          {/* Grid 2x2 */}
+          {/* Fila 1: Lugares */}
           <div className="grid grid-cols-2 gap-3">
+            <Card icon={Truck} title="Lugar de recolección">
+              {recoleccion ? (
+                <div className="grid grid-cols-2 gap-x-4">
+                  <InfoRow label="Lugar"       value={recoleccion.lugar} />
+                  <InfoRow label="Dirección"   value={recoleccion.direccion} />
+                  <InfoRow label="Fecha"       value={recoleccion.fecha} />
+                  <InfoRow label="Horario"     value={recoleccion.horario} />
+                  <InfoRow label="Andén"       value={recoleccion.anden} />
+                  <InfoRow label="Responsable" value={recoleccion.transporte?.responsable} />
+                  <InfoRow label="Incoterm"    value={recoleccion.incoterm} />
+                </div>
+              ) : (
+                <p className="text-xs text-blue-200 italic">No aplica para este tipo de operación</p>
+              )}
+            </Card>
 
-            {/* Quien recibe */}
-            {quienRecibe && (
-              <Block icon={User} title="Quien recibe">
-                <Row label="Nombre"   value={quienRecibe.nombre} />
-                <Row label="Email"    value={quienRecibe.email} />
-                <Row label="Teléfono" value={quienRecibe.telefono} />
-              </Block>
+            <Card icon={MapPin} title="Lugar de entrega / recepción">
+              {lugar ? (
+                <div className="grid grid-cols-2 gap-x-4">
+                  <InfoRow label="Ubicación"   value={lugar.ubicacion} />
+                  <InfoRow label="Dirección"   value={lugar.direccion} />
+                  <InfoRow label="Área"        value={lugar.area} />
+                  <InfoRow label="Fecha desde" value={lugar.fecha_pase_transportista_desde} />
+                  <InfoRow label="Fecha hasta" value={lugar.fecha_pase_transportista_hasta} />
+                  <InfoRow label="Horario"     value={lugar.horario_disponible} />
+                  <InfoRow label="Andén"       value={lugar.anden} />
+                </div>
+              ) : (
+                <p className="text-xs text-blue-200 italic">Sin información</p>
+              )}
+            </Card>
+          </div>
+
+          {/* Fila 2: Personas */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card icon={Building2} title={segundaLabel}>
+              {segundaPersona?.nombre ? (
+                <>
+                  <InfoRow label="Nombre"   value={segundaPersona.nombre} />
+                  <InfoRow label="Email"    value={segundaPersona.email} />
+                  <InfoRow label="Teléfono" value={segundaPersona.telefono} />
+                </>
+              ) : (
+                <p className="text-xs text-blue-200 italic">Sin información</p>
+              )}
+            </Card>
+
+            <Card icon={User} title="Quien recibe">
+              {quienRecibe ? (
+                <>
+                  <InfoRow label="Nombre"   value={quienRecibe.nombre} />
+                  <InfoRow label="Email"    value={quienRecibe.email} />
+                  <InfoRow label="Teléfono" value={quienRecibe.telefono} />
+                </>
+              ) : (
+                <p className="text-xs text-blue-200 italic">Sin información</p>
+              )}
+            </Card>
+          </div>
+
+          {/* Fila 3: Tabla de materiales */}
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <CardLabel>
+                Materiales
+                {material?.proveedor_cliente && (
+                  <span className="ml-2 normal-case font-normal text-blue-300">— {material.proveedor_cliente}</span>
+                )}
+                {material?.orden_compra && (
+                  <span className="ml-2 normal-case font-normal text-blue-300">OC {material.orden_compra}</span>
+                )}
+              </CardLabel>
+            </div>
+
+            {colsConDatos.length > 0 && materialItems.length > 0 ? (
+              <div className="overflow-x-auto rounded-xl border border-blue-100 bg-white">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-blue-50 bg-blue-50/80">
+                      {colsConDatos.map((c) => (
+                        <th key={c.key} className="text-left px-3 py-2 text-[10px] font-bold text-blue-400 uppercase tracking-wide whitespace-nowrap">
+                          {c.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {materialItems.map((row, i) => (
+                      <tr key={i} className="border-b border-blue-50/60 last:border-0">
+                        {colsConDatos.map((c) => (
+                          <td key={c.key} className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap">
+                            {row[c.key] ?? <span className="text-gray-300">—</span>}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-xs text-blue-200 italic">Sin materiales registrados</p>
             )}
 
-            {/* Segunda persona */}
-            {segundaPersona?.nombre && (
-              <Block icon={Building2} title={segundaLabel}>
-                <Row label="Nombre"   value={segundaPersona.nombre} />
-                <Row label="Email"    value={segundaPersona.email} />
-                <Row label="Teléfono" value={segundaPersona.telefono} />
-              </Block>
-            )}
-
-            {/* Material */}
-            {material && (
-              <Block icon={BoxesIcon} title="Material">
-                <Row label="Proveedor / Cliente" value={material.proveedor_cliente} />
-                <Row label="Material"            value={material.material} />
-                <Row label="Cantidad"            value={material.cantidad} />
-                <Row label="Orden de compra"     value={material.orden_compra} />
-              </Block>
-            )}
-
-            {/* Lugar de entrega / recepción */}
-            {lugar && (
-              <Block icon={MapPin} title="Lugar de entrega / recepción">
-                <Row label="Ubicación"   value={lugar.ubicacion} />
-                <Row label="Dirección"   value={lugar.direccion} />
-                <Row label="Fecha desde" value={lugar.fecha_pase_transportista_desde} />
-                <Row label="Fecha hasta" value={lugar.fecha_pase_transportista_hasta} />
-                <Row label="Horario"     value={lugar.horario_disponible} />
-                <Row label="Andén"       value={lugar.anden} />
-              </Block>
-            )}
-
-            {/* Lugar de recolección */}
-            {hasRecoleccion && (
-              <Block icon={Truck} title="Lugar de recolección">
-                <Row label="Lugar"            value={recoleccion.lugar} />
-                <Row label="Dirección"        value={recoleccion.direccion} />
-                <Row label="Fecha"            value={recoleccion.fecha} />
-                <Row label="Horario"          value={recoleccion.horario} />
-                <Row label="Andén"            value={recoleccion.anden} />
-                <Row label="Responsable"      value={recoleccion.transporte?.responsable} />
-                <Row label="Email transporte" value={recoleccion.transporte?.email} />
-                <Row label="Método embarque"  value={recoleccion.metodo_embarque} />
-                <Row label="Incoterm"         value={recoleccion.incoterm} />
-              </Block>
-            )}
-
-            {/* Documentos */}
-            {documentos.filter((d) => d.tipo_de_documento).length > 0 && (
-              <Block icon={FileText} title="Documentos">
-                {documentos.filter((d) => d.tipo_de_documento).map((doc, i) => (
-                  <div key={i} className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0">
-                    <span className="text-xs text-gray-400 uppercase tracking-wide font-medium">
-                      {(doc.tipo_de_documento as string).replace(/_/g, " ")}
-                    </span>
-                    <span className="text-xs text-gray-600 truncate max-w-[120px]">
-                      {doc.documento_transportista?.[0]?.file_name ?? "—"}
-                    </span>
+            {/* Documentos adjuntos */}
+            {documentos.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {documentos.map((doc, i) => (
+                  <div key={i} className="flex items-center gap-1.5 bg-white border border-blue-100 rounded-lg px-2.5 py-1.5">
+                    <FileText className="w-3 h-3 text-blue-400 shrink-0" />
+                    <span className="text-[11px] text-gray-600 truncate max-w-[160px]">{doc.file_name}</span>
                   </div>
                 ))}
-              </Block>
+              </div>
             )}
-
           </div>
+
         </div>
 
         <DialogFooter className="gap-2 pt-2">

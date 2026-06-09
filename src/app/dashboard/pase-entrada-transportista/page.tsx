@@ -36,6 +36,7 @@ import {
   Sparkles,
   X,
   FileText,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Search, UserPlus, CalendarDays } from "lucide-react";
@@ -66,8 +67,24 @@ import {
 } from "@/components/horarios-concurrencia-chart";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
+import { useMenuStore } from "@/store/useGetMenuStore";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+const PHONE_PREFIX_TO_COUNTRY: Record<number, string> = {
+  1: "US", 7: "RU", 27: "ZA", 30: "GR", 31: "NL", 32: "BE", 33: "FR",
+  34: "ES", 36: "HU", 39: "IT", 40: "RO", 41: "CH", 43: "AT", 44: "GB",
+  45: "DK", 46: "SE", 47: "NO", 48: "PL", 49: "DE", 51: "PE", 52: "MX",
+  53: "CU", 54: "AR", 55: "BR", 56: "CL", 57: "CO", 58: "VE", 60: "MY",
+  61: "AU", 62: "ID", 63: "PH", 64: "NZ", 65: "SG", 66: "TH", 81: "JP",
+  82: "KR", 84: "VN", 86: "CN", 90: "TR", 91: "IN", 92: "PK", 98: "IR",
+};
+
+function prefijoToCountry(prefijo?: number): string {
+  return (prefijo != null && PHONE_PREFIX_TO_COUNTRY[prefijo]) || "MX";
+}
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -78,6 +95,16 @@ interface Documento {
   file_name: string;
   file_url: string;
   uploading: boolean;
+}
+
+interface MaterialItem {
+  id: string;
+  contenedor: string;
+  sello: string;
+  tipo: string;
+  cantidad: string;
+  peso: string;
+  volumen: string;
 }
 
 // ── Constantes ─────────────────────────────────────────────────────────────────
@@ -237,13 +264,6 @@ const formSchema = z
 
     // Material (AI)
     material_proveedor_cliente: z.string().optional(),
-    material_nombre: z.string().optional(),
-    material_cantidad: z
-      .string()
-      .optional()
-      .refine((val) => !val || /^\d+$/.test(val), {
-        message: "Debe ser un número entero.",
-      }),
     material_orden_compra: z.string().optional(),
 
     // Lugar de entrega / recepción
@@ -376,10 +396,12 @@ function PersonaFields({
   form,
   prefix,
   required,
+  defaultCountry = "MX",
 }: {
   form: ReturnType<typeof useForm<FormValues>>;
   prefix: "crea_el_pase" | "recibe_el_pase";
   required?: boolean;
+  defaultCountry?: string;
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -428,7 +450,7 @@ function PersonaFields({
                 {...field}
                 onChange={(v) => field.onChange(v ?? "")}
                 placeholder="Teléfono"
-                defaultCountry="MX"
+                defaultCountry={defaultCountry as any}
                 containerComponentProps={{
                   className:
                     "flex h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-3 py-0 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 md:text-sm",
@@ -456,9 +478,11 @@ type Empleado = {
 function SeccionQuienRecibe({
   form,
   empleados = [],
+  defaultCountry = "MX",
 }: {
   form: ReturnType<typeof useForm<FormValues>>;
   empleados?: Empleado[];
+  defaultCountry?: string;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -663,7 +687,7 @@ function SeccionQuienRecibe({
                   {...field}
                   onChange={(v) => field.onChange(v ?? "")}
                   placeholder="Teléfono"
-                  defaultCountry="MX"
+                  defaultCountry={defaultCountry as any}
                   containerComponentProps={{
                     className:
                       "flex h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-3 py-0 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 md:text-sm",
@@ -683,9 +707,11 @@ function SeccionQuienRecibe({
 function SeccionSegundaPersona({
   form,
   tipo,
+  defaultCountry = "MX",
 }: {
   form: ReturnType<typeof useForm<FormValues>>;
   tipo: string;
+  defaultCountry?: string;
 }) {
   const config = SEGUNDA_PERSONA[tipo] ?? { titulo: "Contacto", subtitulo: "" };
   return (
@@ -701,7 +727,7 @@ function SeccionSegundaPersona({
           )}
         </div>
       </div>
-      <PersonaFields form={form} prefix="recibe_el_pase" required />
+      <PersonaFields form={form} prefix="recibe_el_pase" required defaultCountry={defaultCountry} />
     </div>
   );
 }
@@ -711,11 +737,23 @@ function SeccionMaterial({
   documentos,
   onRemoveDoc,
   onArchivoDoc,
+  materialItems,
+  onAddMaterialItem,
+  onRemoveMaterialItem,
+  onChangeMaterialItem,
 }: {
   form: ReturnType<typeof useForm<FormValues>>;
   documentos: Documento[];
   onRemoveDoc: (id: string) => void;
   onArchivoDoc: (id: string, file: File) => void;
+  materialItems: MaterialItem[];
+  onAddMaterialItem: () => void;
+  onRemoveMaterialItem: (id: string) => void;
+  onChangeMaterialItem: (
+    id: string,
+    field: keyof Omit<MaterialItem, "id">,
+    value: string,
+  ) => void;
 }) {
   return (
     <Section icon={BoxesIcon} title="Material">
@@ -733,7 +771,6 @@ function SeccionMaterial({
           </span>
         </p>
 
-        {/* Cards de docs subidos */}
         {documentos.filter((d) => d.file_url || d.uploading).length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {documentos
@@ -742,7 +779,6 @@ function SeccionMaterial({
                 const isImage = /\.(jpe?g|png|gif|webp)$/i.test(doc.file_name);
                 return (
                   <div key={doc.id} className="relative group w-20">
-                    {/* Thumbnail */}
                     <div className="w-20 h-20 rounded-xl border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
                       {doc.uploading ? (
                         <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -762,13 +798,11 @@ function SeccionMaterial({
                         </div>
                       )}
                     </div>
-                    {/* Nombre */}
                     {!doc.uploading && (
                       <p className="text-[9px] text-gray-500 mt-1 truncate text-center leading-tight">
                         {doc.file_name}
                       </p>
                     )}
-                    {/* Eliminar */}
                     {doc.file_url && (
                       <button
                         type="button"
@@ -783,7 +817,6 @@ function SeccionMaterial({
           </div>
         )}
 
-        {/* Slot de upload */}
         {documentos
           .filter((d) => !d.file_url && !d.uploading)
           .slice(0, 1)
@@ -826,8 +859,8 @@ function SeccionMaterial({
         );
       })()}
 
-      {/* Campos IA */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Proveedor / Cliente + Orden de compra */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
         <FormField
           control={form.control}
           name="material_proveedor_cliente"
@@ -837,43 +870,6 @@ function SeccionMaterial({
               <FormControl>
                 <Input
                   placeholder="Extraído del documento..."
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="material_nombre"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel ia>Material</FieldLabel>
-              <FormControl>
-                <Input
-                  placeholder="Extraído del documento..."
-                  className="rounded-xl border-gray-200 bg-gray-50"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="material_cantidad"
-          render={({ field }) => (
-            <FormItem>
-              <FieldLabel ia>Cantidad</FieldLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder=""
                   className="rounded-xl border-gray-200 bg-gray-50"
                   {...field}
                 />
@@ -900,14 +896,100 @@ function SeccionMaterial({
           )}
         />
       </div>
+
+      {/* Tabla de contenedores / materiales */}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          Contenedores / Materiales
+          <span className="inline-flex items-center gap-0.5 bg-blue-100 text-blue-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+            <Sparkles className="w-2.5 h-2.5" /> IA
+          </span>
+        </p>
+        <div className="rounded-xl border border-gray-200 overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50">
+                {(
+                  [
+                    "Contenedor",
+                    "Sello",
+                    "Tipo",
+                    "Cantidad",
+                    "Peso",
+                    "Volumen",
+                  ] as const
+                ).map((h) => (
+                  <th
+                    key={h}
+                    className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">
+                    {h}
+                  </th>
+                ))}
+                <th className="w-8" />
+              </tr>
+            </thead>
+            <tbody>
+              {materialItems.map((item) => (
+                <tr
+                  key={item.id}
+                  className="border-b border-gray-100 last:border-0 group">
+                  {(
+                    [
+                      { field: "contenedor", placeholder: "CRLU1357272" },
+                      { field: "sello", placeholder: "1905481" },
+                      { field: "tipo", placeholder: "40HR" },
+                      { field: "cantidad", placeholder: "1,980 cartones" },
+                      { field: "peso", placeholder: "25,140.5 kg" },
+                      { field: "volumen", placeholder: "44.65 m³" },
+                    ] as {
+                      field: keyof Omit<MaterialItem, "id">;
+                      placeholder: string;
+                    }[]
+                  ).map(({ field, placeholder }) => (
+                    <td key={field} className="px-3 py-2">
+                      <input
+                        value={item[field]}
+                        onChange={(e) =>
+                          onChangeMaterialItem(item.id, field, e.target.value)
+                        }
+                        placeholder={placeholder}
+                        className="w-full bg-transparent text-sm text-gray-700 placeholder:text-gray-300 outline-none min-w-[80px]"
+                      />
+                    </td>
+                  ))}
+                  <td className="px-2 py-2">
+                    {materialItems.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveMaterialItem(item.id)}
+                        className="flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <button
+          type="button"
+          onClick={onAddMaterialItem}
+          className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-gray-200 text-xs font-medium text-gray-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50 transition-all">
+          <Plus className="w-3.5 h-3.5" />
+          Agregar fila
+        </button>
+      </div>
     </Section>
   );
 }
 
 function SeccionLugarRecoleccion({
   form,
+  defaultCountry = "MX",
 }: {
   form: ReturnType<typeof useForm<FormValues>>;
+  defaultCountry?: string;
 }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
@@ -1073,7 +1155,7 @@ function SeccionLugarRecoleccion({
                       {...field}
                       onChange={(v) => field.onChange(v ?? "")}
                       placeholder="Teléfono"
-                      defaultCountry="MX"
+                      defaultCountry={defaultCountry as any}
                       containerComponentProps={{
                         className:
                           "flex h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-3 py-0 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 md:text-sm",
@@ -1144,64 +1226,90 @@ function SeccionLugarRecoleccion({
   );
 }
 
-// function ComboboxField({ value, onChange, options, placeholder = "Buscar...", disabled = false }: {
-//   value: string;
-//   onChange: (v: string) => void;
-//   options: string[];
-//   placeholder?: string;
-//   disabled?: boolean;
-// }) {
-//   const [query, setQuery] = useState("");
-//   const [open, setOpen] = useState(false);
+function ComboboxField({
+  value,
+  onChange,
+  options,
+  placeholder = "Buscar...",
+  disabled = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder?: string;
+  disabled?: boolean;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
 
-//   const filtrados = query.trim()
-//     ? options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
-//     : options;
+  const filtrados = query.trim()
+    ? options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
+    : options;
 
-//   const limpiar = () => { onChange(""); setQuery(""); };
+  const limpiar = () => {
+    onChange("");
+    setQuery("");
+  };
 
-//   return value ? (
-//     <div className="flex items-center justify-between gap-2 h-10 px-3 rounded-xl border border-blue-200 bg-blue-50 text-sm">
-//       <span className="truncate text-gray-700 font-medium">{value}</span>
-//       <button type="button" onClick={limpiar} className="text-gray-400 hover:text-gray-600 shrink-0 transition-colors">
-//         <X className="w-3.5 h-3.5" />
-//       </button>
-//     </div>
-//   ) : (
-//     <div className="relative">
-//       <div className={cn(
-//         "flex items-center gap-2 px-3 h-10 rounded-xl border border-gray-200 bg-gray-50 transition-all",
-//         disabled ? "opacity-50 cursor-not-allowed" : "focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-200"
-//       )}>
-//         <Search className="w-4 h-4 text-gray-400 shrink-0" />
-//         <input
-//           type="text"
-//           value={query}
-//           disabled={disabled}
-//           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-//           onFocus={() => setOpen(true)}
-//           onBlur={() => setTimeout(() => setOpen(false), 150)}
-//           placeholder={disabled ? "Selecciona una ubicación primero" : placeholder}
-//           className="flex-1 bg-transparent text-sm text-gray-700 placeholder:text-gray-400 outline-none disabled:cursor-not-allowed"
-//         />
-//       </div>
-//       {open && !disabled && filtrados.length > 0 && (
-//         <div className="absolute z-20 mt-1 w-full bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
-//           <ul className="max-h-48 overflow-y-auto py-1">
-//             {filtrados.map((o) => (
-//               <li key={o}>
-//                 <button type="button" onMouseDown={() => { onChange(o); setQuery(""); setOpen(false); }}
-//                   className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors truncate">
-//                   {o}
-//                 </button>
-//               </li>
-//             ))}
-//           </ul>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
+  return value ? (
+    <div className="flex items-center justify-between gap-2 h-10 px-3 rounded-xl border border-blue-200 bg-blue-50 text-sm">
+      <span className="truncate text-gray-700 font-medium">{value}</span>
+      <button
+        type="button"
+        onClick={limpiar}
+        className="text-gray-400 hover:text-gray-600 shrink-0 transition-colors">
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  ) : (
+    <div className="relative">
+      <div
+        className={cn(
+          "flex items-center gap-2 px-3 h-10 rounded-xl border border-gray-200 bg-gray-50 transition-all",
+          disabled
+            ? "opacity-50 cursor-not-allowed"
+            : "focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-200",
+        )}>
+        <Search className="w-4 h-4 text-gray-400 shrink-0" />
+        <input
+          type="text"
+          value={query}
+          disabled={disabled}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder={
+            disabled ? "Selecciona una ubicación primero" : placeholder
+          }
+          className="flex-1 bg-transparent text-sm text-gray-700 placeholder:text-gray-400 outline-none disabled:cursor-not-allowed"
+        />
+      </div>
+      {open && !disabled && filtrados.length > 0 && (
+        <div className="absolute z-20 mt-1 w-full bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
+          <ul className="max-h-48 overflow-y-auto py-1">
+            {filtrados.map((o) => (
+              <li key={o}>
+                <button
+                  type="button"
+                  onMouseDown={() => {
+                    onChange(o);
+                    setQuery("");
+                    setOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors truncate">
+                  {o}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function FechaEsInput({
   value,
@@ -1309,7 +1417,7 @@ function generarSlots(horaInicio: string, intervalo: number): string[] {
 function SeccionProgramacion({
   form,
   title = "Lugar de entrega / recepción",
-  andenLabel = "Andén",
+  andenLabel = "Andén (OPCIONAL)",
   horarios = [],
   diaIndex = 0,
   onDiaChange,
@@ -1334,13 +1442,20 @@ function SeccionProgramacion({
 
   const ubicacion = form.watch("ubicacion");
 
-  const { data: locationData } = useQuery({
+  const { data: locationData, isFetching: isFetchingLocation } = useQuery({
     queryKey: ["getLocationData", ubicacion],
     queryFn: () => getLocationData(ubicacion!),
     enabled: !!ubicacion,
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 30,
   });
+
+  React.useEffect(() => {
+    if (!ubicacion) {
+      form.setValue("direccion_lugar", "");
+      form.setValue("area", "");
+    }
+  }, [ubicacion, form]);
 
   React.useEffect(() => {
     if (!locationData?.response?.data) return;
@@ -1373,18 +1488,12 @@ function SeccionProgramacion({
               <FormItem>
                 <FieldLabel required>Ubicación</FieldLabel>
                 <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
-                      <SelectValue placeholder="Seleccionar ubicación..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((l) => (
-                        <SelectItem key={l} value={l}>
-                          {l}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ComboboxField
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    options={locations}
+                    placeholder="Buscar ubicación..."
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -1398,7 +1507,12 @@ function SeccionProgramacion({
                 <FieldLabel>Dirección</FieldLabel>
                 <FormControl>
                   <Input
-                    placeholder="Av. Industrial 420, Monterrey"
+                    placeholder={
+                      isFetchingLocation
+                        ? "Buscando..."
+                        : "Av. Industrial 420, Monterrey"
+                    }
+                    disabled={isFetchingLocation}
                     className="rounded-xl border-gray-200 bg-gray-50"
                     {...field}
                   />
@@ -1414,21 +1528,15 @@ function SeccionProgramacion({
               <FormItem>
                 <FieldLabel>Área</FieldLabel>
                 <FormControl>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={locationAreas.length === 0}>
-                    <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
-                      <SelectValue placeholder="Seleccionar área" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locationAreas.map((a) => (
-                        <SelectItem key={a} value={a}>
-                          {a}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ComboboxField
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    options={locationAreas}
+                    placeholder={
+                      isFetchingLocation ? "Buscando..." : "Buscar área..."
+                    }
+                    disabled={isFetchingLocation || locationAreas.length === 0}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -1730,6 +1838,31 @@ const PaseEntradaTransportistaPage = () => {
   });
   const [documentos, setDocumentos] = useState<Documento[]>([emptyDoc()]);
 
+  const emptyMaterialItem = (): MaterialItem => ({
+    id: crypto.randomUUID(),
+    contenedor: "",
+    sello: "",
+    tipo: "",
+    cantidad: "",
+    peso: "",
+    volumen: "",
+  });
+  const [materialItems, setMaterialItems] = useState<MaterialItem[]>([
+    emptyMaterialItem(),
+  ]);
+  const handleAddMaterialItem = () =>
+    setMaterialItems((p) => [...p, emptyMaterialItem()]);
+  const handleRemoveMaterialItem = (id: string) =>
+    setMaterialItems((p) => p.filter((m) => m.id !== id));
+  const handleChangeMaterialItem = (
+    id: string,
+    field: keyof Omit<MaterialItem, "id">,
+    value: string,
+  ) =>
+    setMaterialItems((p) =>
+      p.map((m) => (m.id === id ? { ...m, [field]: value } : m)),
+    );
+
   const handleRemoveDoc = (id: string) =>
     setDocumentos((p) => p.filter((d) => d.id !== id));
   const handleArchivoDoc = async (id: string, file: File) => {
@@ -1773,6 +1906,10 @@ const PaseEntradaTransportistaPage = () => {
   const { selectedLocations } = useSelectedLocationsStore();
   const primeraLocation = selectedLocations[0] ?? "";
 
+  const { grupoRequisitos } = useMenuStore();
+  const grupoReq = grupoRequisitos.find((g) => g.ubicacion === primeraLocation);
+  const defaultCountry = prefijoToCountry(grupoReq?.prefijo_telefonico);
+
   const { data: usersData } = useQuery({
     queryKey: ["getUsersDataTransportista", primeraLocation],
     queryFn: () => getUsersDataTransportista(primeraLocation || undefined),
@@ -1814,8 +1951,6 @@ const PaseEntradaTransportistaPage = () => {
       recibe_el_pase_email: "",
       recibe_el_pase_telefono: "",
       material_proveedor_cliente: "",
-      material_nombre: "",
-      material_cantidad: "",
       material_orden_compra: "",
       ubicacion: "",
       direccion_lugar: "",
@@ -1860,11 +1995,25 @@ const PaseEntradaTransportistaPage = () => {
     },
     material: {
       proveedor_cliente: data.material_proveedor_cliente || null,
-      material: data.material_nombre || null,
-      cantidad: data.material_cantidad
-        ? parseInt(data.material_cantidad, 10)
-        : null,
       orden_compra: data.material_orden_compra || null,
+      items: materialItems
+        .filter(
+          (m) =>
+            m.contenedor ||
+            m.sello ||
+            m.tipo ||
+            m.cantidad ||
+            m.peso ||
+            m.volumen,
+        )
+        .map((m) => ({
+          contenedor: m.contenedor || null,
+          sello: m.sello || null,
+          tipo: m.tipo || null,
+          cantidad: m.cantidad || null,
+          peso: m.peso || null,
+          volumen: m.volumen || null,
+        })),
       documentos: documentos
         .filter((d) => d.file_url)
         .map((d) => ({ file_name: d.file_name, file_url: d.file_url })),
@@ -2022,10 +2171,10 @@ const PaseEntradaTransportistaPage = () => {
             </div>
 
             {/* Quien recibe */}
-            <SeccionQuienRecibe form={form} empleados={empleados} />
+            <SeccionQuienRecibe form={form} empleados={empleados} defaultCountry={defaultCountry} />
 
             {/* Segunda persona */}
-            <SeccionSegundaPersona form={form} tipo={tipoOperacion} />
+            <SeccionSegundaPersona form={form} tipo={tipoOperacion} defaultCountry={defaultCountry} />
 
             {/* Material */}
             <SeccionMaterial
@@ -2033,13 +2182,17 @@ const PaseEntradaTransportistaPage = () => {
               documentos={documentos}
               onRemoveDoc={handleRemoveDoc}
               onArchivoDoc={handleArchivoDoc}
+              materialItems={materialItems}
+              onAddMaterialItem={handleAddMaterialItem}
+              onRemoveMaterialItem={handleRemoveMaterialItem}
+              onChangeMaterialItem={handleChangeMaterialItem}
             />
 
             {/* Lugar de entrega / recepción */}
             <SeccionProgramacion {...programacionProps} />
 
             {/* Lugar de recolección (tipos 2 y 3) */}
-            {tieneRecoleccion && <SeccionLugarRecoleccion form={form} />}
+            {tieneRecoleccion && <SeccionLugarRecoleccion form={form} defaultCountry={defaultCountry} />}
 
             {/* Generar y enviar pase */}
             <SeccionGenerarPase
