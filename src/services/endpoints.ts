@@ -134,6 +134,14 @@ export const generateSubmitTokenTransportista = (record_id: string) =>
     record_id,
   }, {}, true);
 
+export const validateTokenTransportista = (record_id: string, token: string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "validate_token",
+    record_id,
+    token,
+  }, {}, true);
+
 export const getLocationData = (location: string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "transportistas.py",
