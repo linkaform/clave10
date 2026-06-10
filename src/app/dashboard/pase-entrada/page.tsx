@@ -41,7 +41,6 @@ import { useAssetsByLocations } from "@/hooks/assetsQueries";
 import DateTimePicker from "@/components/dateTimerPicker";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
 
 const formSchema = z
   .object({
@@ -311,10 +310,7 @@ const PaseEntradaPage = () => {
     }
   }, []);
 
-  const [miembros, setMiembros] = useState<Miembro[]>([]);
-  const [miembrosRowErrors, setMiembrosRowErrors] = useState<
-    Record<string, { email: boolean; telefono: boolean }>
-  >({});
+
 
   const ubicacionesSeleccionadasLista = ubicacionesSeleccionadas?.map(
     (u: any) => u.name,
@@ -519,7 +515,7 @@ const PaseEntradaPage = () => {
         message: "Ambas fechas son requeridas",
       });
     } else {
-      const miembrosFinales = [...miembros];
+      // const miembrosFinales = [...miembros];
       if (data.nombre?.trim()) {
         // const visitantePrincipal: import("@/components/miembros-del-pase").Miembro = {
         // 	id: crypto.randomUUID(),
@@ -535,7 +531,7 @@ const PaseEntradaPage = () => {
         // 	setMiembros(miembrosFinales);
         // }
       }
-      setModalData({ ...formattedData, miembros: miembrosFinales });
+      setModalData({ ...formattedData });
       setIsSuccess(true);
     }
   };
@@ -722,11 +718,11 @@ const PaseEntradaPage = () => {
                     className="bg-transparent rounded-none px-4 pb-2 pt-1 text-sm font-medium text-gray-500 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=inactive]:hover:text-gray-700 shadow-none">
                     Datos del visitante
                   </TabsTrigger>
-                  <TabsTrigger
+                  {/* <TabsTrigger
                     value="miembros-grupo"
                     className="bg-transparent rounded-none px-4 pb-2 pt-1 text-sm font-medium text-gray-500 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=inactive]:hover:text-gray-700 shadow-none">
                     Miembros del pase
-                  </TabsTrigger>
+                  </TabsTrigger> */}
                 </TabsList>
 
                 <TabsContent value="datos-visita">
@@ -941,14 +937,14 @@ const PaseEntradaPage = () => {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="miembros-grupo">
+                {/* <TabsContent value="miembros-grupo">
                   <MiembrosPase
                     miembros={miembros}
                     setMiembros={setMiembros}
                     rowErrors={miembrosRowErrors}
                     setRowErrors={setMiembrosRowErrors}
                   />
-                </TabsContent>
+                </TabsContent> */}
               </Tabs>
             </div>
 
