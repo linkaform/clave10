@@ -80,7 +80,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
     label: tipo,
   }));
   const { userIdSoter } = useAuthStore();
-  const { data: tiposEquiposData } = useGetTipoEquipos({
+  const { data: tiposEquiposData , isLoading: loadingTipos} = useGetTipoEquipos({
     account_id: userIdSoter,
     isModalOpen: open,
   });
@@ -302,39 +302,39 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                     </div>
                   )}
                 />
-
-              <FormField
-                control={form.control}
-                name="tipo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>* Tipo</FormLabel>
-                    <Select
-                      options={catTiposEquipos}
-                      aria-labelledby="tipo-label"
-                      inputId="tipo-input"
-                      name="tipo"
-                      onChange={(selectedOption) => {
-                        field.onChange(
-                          selectedOption ? selectedOption.value : "",
-                        );
-                        if (selectedOption?.value === "otros") {
-                          setTimeout(() => {
-                            nombreInputRef.current?.focus();
-                          }, 0); // esperar a que el input se monte
+                
+                <FormField
+                  control={form.control}
+                  name="tipo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>* Tipo</FormLabel>
+                      <Select
+                        options={catTiposEquipos}
+                        aria-labelledby="tipo-label"
+                        inputId="tipo-input"
+                        name="tipo"
+                        isLoading={loadingTipos}
+                        isDisabled={loadingTipos}
+                        loadingMessage={() => "Cargando tipos..."}
+                        placeholder={loadingTipos ? "Cargando..." : "Selecciona un tipo"}
+                        onChange={(selectedOption) => {
+                          field.onChange(selectedOption ? selectedOption.value : "");
+                          if (selectedOption?.value === "otros") {
+                            setTimeout(() => nombreInputRef.current?.focus(), 0);
+                          }
+                        }}
+                        value={
+                          field.value
+                            ? { value: field.value, label: field.value }
+                            : null
                         }
-                      }}
-                      value={
-                        field.value
-                          ? { value: field.value, label: field.value }
-                          : null
-                      }
-                      isClearable
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                        isClearable
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
               {tipoValue === "Otra" && (
                 <FormField
