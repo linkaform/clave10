@@ -58,7 +58,8 @@ export type Access_pass={
     areas?: Areas[],
     comentarios?: Comentarios[],
     enviar_pre_sms:enviar_pre_sms,
-    habilitar_vehiculo:string
+    habilitar_vehiculo:string;
+    acompanantes:number | any[];
 }
 
 
@@ -96,7 +97,8 @@ export type Update_full_pass = {
       autorizado_por: string,
       walkin_fotografia: Imagen[],
       walkin_identificacion:Imagen[],
-      enviar_correo: string[]
+      enviar_correo: string[],
+      acompanantes:number | any[];
 }
 
 export const usePaseEntrada = (locationConfSeguridad:string[]) => {

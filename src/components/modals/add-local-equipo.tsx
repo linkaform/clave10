@@ -22,7 +22,7 @@ import { Input } from "../ui/input";
 
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { catalogoColores, catalogoTipoEquipos } from "@/lib/utils";
+import { catalogoColores } from "@/lib/utils";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAccessStore } from "@/store/useAccessStore";
@@ -32,6 +32,8 @@ import { ScanBarcodeModal } from "@/components/modals/scan-barcode-modal";
 import { ScanBarcode } from "lucide-react";
 import { Equipo } from "@/lib/update-pass";
 import LoadImage from "../upload-Image";
+import { useGetTipoEquipos } from "@/hooks/useGetTipoEquipos";
+import useAuthStore from "@/store/useAuthStore";
 
 interface Props {
   title: string;
@@ -72,14 +74,52 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
   );
   const selectedEquipos = useAccessStore((state) => state.selectedEquipos);
   const { updateBitacoraMutation, isLoading } = useUpdateBitacora();
-  const catTiposEquipos = catalogoTipoEquipos().map((tipo: any) => ({
-    value: tipo,
-    label: tipo,
-  }));
+
   const catColores = catalogoColores().map((tipo: any) => ({
     value: tipo,
     label: tipo,
   }));
+  const { userIdSoter } = useAuthStore();
+  const { data: tiposEquiposData } = useGetTipoEquipos({
+    account_id: userIdSoter,
+    isModalOpen: open,
+  });
+  console.log('tiposEquiposData=', tiposEquiposData);
+  const catTiposEquipos = (Array.isArray(tiposEquiposData) ? tiposEquiposData : tiposEquiposData?.data ?? []).map((tipo: string) => ({
+    value: tipo,
+    label: tipo,
+  }));
+  const normalizar = (str: string) =>
+    str
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+
+ const handleOcrEquipo = async (result: any) => {
+  const v = result?.data;
+  if (!v) return;
+  if (v.tipo) {
+    const tipoNorm = normalizar(String(v.tipo));
+    const tipoMatch = catTiposEquipos.find(
+      (t: any) => normalizar(String(t.value)) === tipoNorm
+    );
+    if (tipoMatch) form.setValue("tipo", tipoMatch.value);
+  }
+
+  if (v.marca) form.setValue("marca", v.marca);
+  if (v.modelo) form.setValue("modelo", v.modelo);
+  if (v.num_serie) form.setValue("serie", v.num_serie);
+
+  if (v.color) {
+    const colorNorm = normalizar(String(v.color));
+    const colorMatch = catColores.find(
+      (c: any) => normalizar(String(c.value)) === colorNorm
+    );
+    console.log('colorMatch=', colorMatch);
+    if (colorMatch) form.setValue("color", colorMatch.value);
+  }
+};
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -199,6 +239,40 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
         <div className="">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <div className="flex items-start gap-3 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
+              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="2" y="3" width="20" height="14" rx="2" />
+                  <path d="M8 21h8M12 17v4" />
+                  <path d="M9 9l2 2 4-4" />
+                </svg>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <p className="text-sm font-semibold text-blue-900">
+                  Análisis automático con IA
+                </p>
+                <p className="text-xs text-blue-600">
+                  Sube hasta <span className="font-semibold">5 fotos</span> del equipo — enfoca el{" "}
+                  <span className="font-semibold">número de serie</span>, etiquetas, marca y modelo.
+                  La IA extraerá la información automáticamente.
+                </p>
+                <p className="text-xs text-amber-500 font-medium flex items-center gap-1 mt-0.5">
+                  ⚠ La IA puede cometer errores, verifica los datos antes de continuar.
+                </p>
+              </div>
+            </div>
+
             <FormField
                   control={form.control}
                   name="foto_equipo"
@@ -215,6 +289,9 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                           setImg={field.onChange}
                           showWebcamOption={true}
                           facingMode="environment"
+                          showPlaceholder
+                          tipoOcr="equipo"                    
+                          onOcrResult={handleOcrEquipo} 
                         />
                       </FormControl>
                       {fieldState.error && (
@@ -247,6 +324,11 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                           }, 0); // esperar a que el input se monte
                         }
                       }}
+                      value={
+                        field.value
+                          ? { value: field.value, label: field.value }
+                          : null
+                      }
                       isClearable
                     />
                     <FormMessage />
@@ -350,6 +432,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                       <FormLabel> Color</FormLabel>
                       <Select
                         aria-labelledby="aria-label"
+                        menuPlacement="top"
                         inputId="aria-example-input"
                         name="aria-live-color"
                         options={catColores}
@@ -358,6 +441,11 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                             selectedOption ? selectedOption.value : "",
                           );
                         }}
+                        value={
+                          field.value
+                            ? { value: field.value, label: field.value }
+                            : null
+                        }
                         isClearable
                         menuPosition="absolute"
                         styles={{

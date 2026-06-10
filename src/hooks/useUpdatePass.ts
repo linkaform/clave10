@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { errorMsj } from "@/lib/utils";
 import { Imagen } from "@/components/upload-Image";
 
-
 export type Update_pass = {
   nombre_pase?: string,
   email_pase?: string,
@@ -41,6 +40,7 @@ export type Update_pass = {
   acepto_aviso_privacidad?:string,
 	acepto_aviso_datos_personales?:string,
 	conservar_datos_por?:string
+  acompanantes?: number | any[];
 }
 
 
