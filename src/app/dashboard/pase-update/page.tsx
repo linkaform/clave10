@@ -95,7 +95,7 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
       ubicacion: z.string().nullable().optional(),
       email: z.string().nullable().optional(),
       telefono: z.string().nullable().optional(),
-
+      acompanantes: z.array(z.any()).optional().default([]),
       acepto_aviso_privacidad: z.boolean().refine((val) => val === true, {
         message: "Debes aceptar el aviso de privacidad",
       }),
@@ -165,7 +165,14 @@ const PaseUpdate = () => {
   const requireFoto = showIneIden?.includes("foto") ?? false;
   const requireIden = showIneIden?.includes("iden") ?? false;
   const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
-
+  const [ocrFotoResult, setOcrFotoResult] = useState<any>(null);
+  const [ocrIdenResult, setOcrIdenResult] = useState<any>(null);
+  const handleOcrFotografia = (result: any) => {
+    setOcrFotoResult(result?.data ?? null);
+  };
+  const handleOcrIdentificacion = (result: any) => {
+    setOcrIdenResult(result?.data ?? null);
+  };
   const [errorFotografia, setErrorFotografia] = useState("");
   const [errorIdentificacion, setErrorIdentificacion] = useState("");
 
@@ -207,6 +214,7 @@ const PaseUpdate = () => {
       email: "",
       telefono: "",
       acepto_aviso_privacidad: false,
+      acompanantes:[]
     },
   });
 
@@ -463,6 +471,14 @@ const PaseUpdate = () => {
       telefono: dataCatalogos?.pass_selected?.telefono || "",
       acepto_aviso_privacidad: data.acepto_aviso_privacidad,
       conservar_datos_por: radioSelected,
+      acompanantes: miembrosAcompanantes.map((m) => ({
+        nombre: m.nombre,
+        email: m.email,
+        telefono: m.telefono,
+        foto: m.foto
+          ? [{ file_url: m.foto, file_name: `foto-${m.nombre || m.id}.jpg` }]
+          : [],
+      })),
     };
 
     setModalData(formattedData);
@@ -622,7 +638,7 @@ const PaseUpdate = () => {
         parentUserId={account_id}
       />
       {dataCatalogos?.pass_selected?.estatus == "proceso" ? (
-        <div className="max-w-xl mx-auto px-4 py-6 space-y-6 pt-0">
+        <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 pt-0">
           <h1 className="font-bold text-2xl text-center text-slate-800">
             Pase De Entrada
           </h1>
@@ -706,8 +722,28 @@ const PaseUpdate = () => {
                         imgArray={field.value || []}
                         setImg={field.onChange}
                         facingMode="user"
+                        tipoOcr="persona"
                         limit={1}
+                        onOcrResult={handleOcrFotografia}
+                        ocrResultChildren={
+                          ocrFotoResult ? (
+                            <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
+                              ocrFotoResult.es_persona
+                                ? "bg-green-50 border-green-200 text-green-700"
+                                : "bg-red-50 border-red-200 text-red-600"
+                            }`}>
+                              {ocrFotoResult.es_persona ? (
+                                <><span className="text-green-500 text-base">✓</span>
+                                <span>Se detectó una persona en la foto</span></>
+                              ) : (
+                                <><span className="text-red-500 text-base">✗</span>
+                                <span>No se detectó una persona — sube una foto del rostro</span></>
+                              )}
+                            </div>
+                          ) : null
+                        }
                       />
+
                       {fieldState.error && (
                         <span className="text-red-500 text-xs mt-1 block">
                           {fieldState.error.message}
@@ -734,7 +770,52 @@ const PaseUpdate = () => {
                         setImg={field.onChange}
                         showWebcamOption={true}
                         facingMode="environment"
+                        tipoOcr="id"
                         limit={1}
+                        onOcrResult={handleOcrIdentificacion}
+                        ocrResultChildren={
+                        ocrIdenResult ? (() => {
+                        const iden = Array.isArray(ocrIdenResult) ? ocrIdenResult[0] : ocrIdenResult;
+
+                        const nombrePase = dataCatalogos?.pass_selected?.nombre?.toLowerCase().trim() ?? "";
+                        const nombreId = (iden.nombre_completo ?? iden.nombre ?? "").toLowerCase().trim();
+                        const coinciden = nombrePase && nombreId && (
+                          nombreId.includes(nombrePase) ||
+                          nombrePase.includes(nombreId) ||
+                          nombrePase.split(" ").some((p: string) => nombreId.includes(p))
+                        );
+                        const esId = iden.tipo_documento &&
+                          ["ine", "licencia"].includes(iden.tipo_documento.toLowerCase().trim());
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
+                                esId ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-600"
+                              }`}>
+                                {esId ? (
+                                  <><span className="text-green-500 text-base">✓</span>
+                                  <span>Identificación detectada — <strong>{ocrIdenResult.tipo_documento ?? "ID"}</strong></span></>
+                                ) : (
+                                  <><span className="text-red-500 text-base">✗</span>
+                                  <span>No se detectó una identificación válida</span></>
+                                )}
+                              </div>
+                              {ocrIdenResult.nombre && (
+                                <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
+                                  coinciden ? "bg-green-50 border-green-200 text-green-700" : "bg-amber-50 border-amber-200 text-amber-700"
+                                }`}>
+                                  {coinciden ? (
+                                    <><span className="text-green-500 text-base">✓</span>
+                                    <span>Los nombres coinciden — <strong>{ocrIdenResult.nombre}</strong></span></>
+                                  ) : (
+                                    <><span className="text-amber-500 text-base">⚠</span>
+                                    <span>Nombre en ID: <strong>{ocrIdenResult.nombre}</strong> — verifica que coincida</span></>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })() : null
+                      }
                       />
                       {fieldState.error && (
                         <span className="text-red-500 text-xs mt-1 block">
@@ -747,7 +828,6 @@ const PaseUpdate = () => {
               />
             )}
           </div>
-
           {dataCatalogos && dataCatalogos.pass_selected && (dataCatalogos.pass_selected?.acompanantes ?? 0) > 0 &&
             <MiembrosPase
             miembros={miembrosAcompanantes}
@@ -755,6 +835,8 @@ const PaseUpdate = () => {
             setMiembros={setMiembrosAcompanantes}
             rowErrors={{}}
             setRowErrors={() => {}}
+            useIA
+            acompantes={3}
             />
           }
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
@@ -801,8 +883,7 @@ const PaseUpdate = () => {
 
                   <AccordionPrimitive.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                     <div className="px-3 pt-1 pb-3 text-xs text-slate-600">
-                      {vehiculo.foto_vehiculo &&
-                      vehiculo.foto_vehiculo.length > 0 ? (
+                      {(vehiculo.foto_vehiculo?.length ?? 0) > 0 ? (
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
                             <p>
@@ -827,7 +908,7 @@ const PaseUpdate = () => {
                           <div className="flex flex-col items-center justify-center border rounded-md p-1 bg-white">
                             <Image
                               src={
-                                vehiculo.foto_vehiculo[0].file_url ||
+                                vehiculo.foto_vehiculo?.[0]?.file_url ||
                                 "/nouser.svg"
                               }
                               alt="Foto vehículo"
@@ -1239,8 +1320,7 @@ const PaseUpdate = () => {
                                       </AccordionTrigger>
                                       <AccordionContent>
                                         <div className="p-4 text-sm">
-                                          {vehiculo.foto_vehiculo &&
-                                          vehiculo.foto_vehiculo.length > 0 ? (
+                                          {(vehiculo.foto_vehiculo?.length ?? 0) > 0 ? (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                               <div className="space-y-1">
                                                 <p>
@@ -1274,8 +1354,8 @@ const PaseUpdate = () => {
                                                 </p>
                                                 <Image
                                                   src={
-                                                    vehiculo.foto_vehiculo[0]
-                                                      .file_url || "/nouser.svg"
+                                                    vehiculo.foto_vehiculo?.[0]
+                                                      ?.file_url || "/nouser.svg"
                                                   }
                                                   alt="Foto vehículo"
                                                   width={150}

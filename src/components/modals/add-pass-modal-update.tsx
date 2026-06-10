@@ -124,7 +124,8 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
       autorizado_por: userEmailSoter ??"",
       walkin_fotografia:dataPass.foto,
       walkin_identificacion:dataPass.identificacion,
-      enviar_correo:[]
+      enviar_correo:[],
+      acompanantes:dataPass.acompapantes??[]
     };
       setSendDataUpdate(accessPassData)
   };

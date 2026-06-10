@@ -55,6 +55,7 @@ interface EntryPassUpdateModalProps {
     enviar_pre_sms: enviar_pre_sms;
 	todas_las_areas:boolean;
 	habilitar_vehiculo:string;
+	acompanantes:number;
   };
   isSuccess: boolean;
   setIsSuccess: Dispatch<SetStateAction<boolean>>;
@@ -140,7 +141,8 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
         numero: dataPass.enviar_pre_sms.numero,
       },
 	  todas_las_areas:dataPass.todas_las_areas,
-	  habilitar_vehiculo:dataPass.habilitar_vehiculo
+	  habilitar_vehiculo:dataPass.habilitar_vehiculo,
+	  acompanantes:dataPass.acompanantes
     };
     const enviarPreSms : enviar_pre_sms= {
       from: dataPass.enviar_pre_sms.from,
@@ -190,7 +192,6 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 		setIsSuccess(false); 
 		onClose(); 
 	};
-	console.log("DATA PASS",dataPass)
   	return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal >
 		<DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh] flex flex-col p-0 border-none rounded-3xl" aria-describedby="" onInteractOutside={(e) => e.preventDefault()}>
@@ -316,6 +317,24 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 					</Badge>
 				</div>
 				</div>
+				{/* Acompañantes */}
+				{(dataPass?.acompanantes ?? 0) > 0 && (
+				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+					<div className="flex items-center justify-between">
+					<div className="flex items-center gap-2">
+						<div className="bg-blue-50 p-1.5 rounded-lg">
+						<UserRound size={16} className="text-blue-600" />
+						</div>
+						<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+						Acompañantes
+						</span>
+					</div>
+					<Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none font-black text-[10px]">
+						{dataPass.acompanantes} {dataPass.acompanantes === 1 ? "persona" : "personas"}
+					</Badge>
+					</div>
+				</div>
+				)}
 				{(dataPass?.areas.length > 0 || dataPass?.comentarios.length > 0) && (
 					<div className="space-y-3">
 						{dataPass?.areas.length > 0 && (

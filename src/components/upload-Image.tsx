@@ -24,11 +24,13 @@ interface CalendarDaysProps {
   facingMode: string;
   imgArray: any;
   limit?: number;
+  showImage?:boolean;
   /** Callback que notifica al padre cuando este componente está subiendo imágenes */
   onLoadingChange?: (isLoading: boolean) => void;
   onOcrResult?: (result: any) => void; 
-  tipoOcr?: "id" | "paquete" | "truck" | "vehiculo"; 
+  tipoOcr?: "id" | "paquete" | "truck" | "vehiculo"  | "equipo" | "persona";
   showPlaceholder?: boolean;
+  ocrResultChildren?: React.ReactNode;
 }
 
 const LoadImage: React.FC<CalendarDaysProps> = ({
@@ -42,7 +44,9 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   onLoadingChange,
   onOcrResult,
   tipoOcr = "id",
-  showPlaceholder=false
+  showPlaceholder=false,
+  ocrResultChildren,
+  showImage=true
 }) => {
 
   const [loadingWebcam, setLoadingWebcam] = useState(false);
@@ -56,7 +60,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   const reachedLimit = (imgArray?.length ?? 0) >= limit;
   const [activeIndex, setActiveIndex] = useState(0);
   const [carouselApi, setCarouselApi] = useState<any>(null);
-  const { ocrIdMutation, ocrPaqueteMutation, ocrTruckMutation , ocrVehiculoMutation} = useOcr();
+  const { ocrIdMutation, ocrPaqueteMutation, ocrTruckMutation , ocrVehiculoMutation, ocrEquipoMutation, ocrPersonaMutation} = useOcr();
 
   const ocrMutation = tipoOcr === "paquete"
     ? ocrPaqueteMutation
@@ -64,6 +68,10 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     ? ocrTruckMutation
     : tipoOcr === "vehiculo"
     ? ocrVehiculoMutation
+    : tipoOcr === "equipo"
+    ? ocrEquipoMutation
+    : tipoOcr === "persona"
+    ? ocrPersonaMutation
     : ocrIdMutation;
 
   // const handleAnalizar = async () => {
@@ -121,6 +129,8 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
       })
     );
 
+    console.log('results upload=', JSON.stringify(results)); 
+
     const nuevos = results.filter(
       (r) => r?.file_url && !imgArray?.some((i: Imagen) => i.file_url === r.file_url)
     );
@@ -132,6 +142,8 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
         const urls = updatedImgs
           .map((i: Imagen) => i.file_url)
           .filter((url): url is string => Boolean(url));
+          console.log('updatedImgs=', JSON.stringify(updatedImgs));
+          console.log('urls=', JSON.stringify(urls));
         const result = await ocrMutation.mutateAsync(urls);
         onOcrResult?.(result);
       }
@@ -333,7 +345,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
               </div>
             </div>
           )}
-          {hideWebcam && imgArray?.length > 0 && (
+          {hideWebcam && imgArray?.length > 0  && showImage && (
             <div className="w-full flex flex-col items-center mt-1 gap-2">
               <Carousel className="w-52" setApi={setCarouselApi}>
                 <CarouselContent>
@@ -420,6 +432,11 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
             </div>
           )}
         </>
+      )}
+      {ocrResultChildren && (
+        <div className="mt-2">
+          {ocrResultChildren}
+        </div>
       )}
     </div>
   );

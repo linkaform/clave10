@@ -31,3 +31,30 @@ export interface getVehiculosParams {
     const data = await response.json();
     return data;
   };
+
+
+export interface getEquiposParams {
+    account_id: number,
+    isModalOpen?:boolean
+  }
+  
+  export const getEquipos = async ({
+    account_id,
+  }:getEquiposParams) => {
+    const payload = {
+        account_id,
+        option: "catalago_tipo_equipo",
+        script_name: "pase_de_acceso_use_api.py",
+    };
+
+    const response = await fetch(API_ENDPOINTS.runScript, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+  
+    const data = await response.json();
+    return data;
+  };
