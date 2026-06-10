@@ -32,7 +32,7 @@ const TurnStatus = ({
 	setForceOpenStartPhoto: Dispatch<SetStateAction<boolean>>;
   }) => {
   
-  	const [currentDateTime, setCurrentDateTime] = useState(new Date());
+  	const [currentDateTime, setCurrentDateTime] = useState(shift?.guard.status_turn =="Turno Abierto"? shift?.guard.checkin_date: shift?.guard.checkout_date);
   	const turno =  capitalizeOnlyFirstLetter(shift?.guard.status_turn?? "")
 	const checkin_id = shift?.booth_status?.checkin_id
 	const { userIdSoter} = useAuthStore()
@@ -50,27 +50,30 @@ const TurnStatus = ({
 	const location = shift?.location?.name?? "";
 	const area = shift?.location?.area?? ""
 
-  useEffect(() => {
-	
-    const interval = setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 60000);
+	useEffect(() => {
+	if (shift?.guard.status_turn === "Turno Abierto" && shift?.guard.checkin_date) {
+		setCurrentDateTime(shift?.guard.checkin_date);
+	} else if (shift?.guard.checkout_date) {
+		setCurrentDateTime(shift?.guard.checkout_date);
+	}
+	}, [shift?.guard.status_turn, shift?.guard.checkin_date, shift?.guard.checkout_date]);
 
-    return () => clearInterval(interval); 
+	const [formattedDate, formattedTime] = (() => {
+	if (!currentDateTime || typeof currentDateTime !== "string") return ["", ""];
+	const [date, time24] = currentDateTime.split(" ");
+	if (!time24) return [date, ""];
 
-  }, [setIdentificacion, shift?.guard?.start_turn_image, ]);
+	const [hh, mm] = time24.split(":");
+	let hours = parseInt(hh, 10);
+	const ampm = hours >= 12 ? "PM" : "AM";
+	hours = hours % 12 || 12;
+
+	return [date, `${String(hours).padStart(2, "0")}:${mm} ${ampm}`];
+	})();
 
 
-  const formattedDate = currentDateTime.toLocaleDateString("es-MX", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+	console.log("currentDateTime",formattedDate, formattedTime)
 
-  const formattedTime = currentDateTime.toLocaleTimeString("es-MX", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }); 
 
 	useEffect(() => {
 	if (openClosePhotoModal === true && identificacion && identificacion.length > 0) {

@@ -196,7 +196,20 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 									<div className="space-y-0.5">
 										<p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Vigencia</p>
 										<p className="text-slate-900 font-medium text-sm">
-											{searchPass?.fecha_de_caducidad?.toString() || "No expira"}
+											{(() => {
+												const val = searchPass?.fecha_de_caducidad?.toString();
+												if (!val) return "No expira";
+
+												const [date, time24] = val.split(" ");
+												if (!time24) return val;
+
+												const [hh, mm] = time24.split(":");
+												let hours = parseInt(hh, 10);
+												const ampm = hours >= 12 ? "PM" : "AM";
+												hours = hours % 12 || 12;
+
+												return `${date} ${String(hours).padStart(2, "0")}:${mm} ${ampm}`;
+												})()}
 										</p>
 									</div>
 								</div>
