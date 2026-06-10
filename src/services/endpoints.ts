@@ -155,3 +155,9 @@ export const getUsersDataTransportista = (location?: string) =>
     option: "get_users_data",
     ...(location && { location }),
   });
+
+export const getProveedoresTransportista = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_proveedores_transportista",
+  });
