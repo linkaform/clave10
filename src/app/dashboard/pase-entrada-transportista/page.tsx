@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -60,6 +60,7 @@ import {
   getAndenes,
   getUsersDataTransportista,
   getLocationData,
+  getProveedoresTransportista,
 } from "@/services/endpoints";
 import {
   HorariosConcurrenciaChart,
@@ -68,6 +69,7 @@ import {
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { useMenuStore } from "@/store/useGetMenuStore";
+import useAuthStore from "@/store/useAuthStore";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 
@@ -91,6 +93,7 @@ function prefijoToCountry(prefijo?: number): string {
 interface Documento {
   id: string;
   tipo: string;
+  no_doc: string;
   archivo: File | null;
   file_name: string;
   file_url: string;
@@ -179,10 +182,9 @@ const GENERAR_PASE: Record<
     ],
   },
   entrega_producto_terminado: {
-    info: "El pase se enviará al proveedor de transporte. Una vez que llene sus datos, podrás notificar al cliente.",
+    info: "El pase se enviará al proveedor de transporte para que asigne conductor y llene los datos del vehículo.",
     botones: [
       { label: "Enviar a transportista", primary: true },
-      { label: "Notificar a cliente", primary: false },
     ],
   },
   recoleccion_producto_terminado: {
@@ -191,26 +193,7 @@ const GENERAR_PASE: Record<
   },
 };
 
-const METODOS_EMBARQUE = [
-  "Terrestre",
-  "Aéreo",
-  "Marítimo",
-  "Ferroviario",
-  "Multimodal",
-];
-const INCOTERMS = [
-  "EXW",
-  "FCA",
-  "FAS",
-  "FOB",
-  "CFR",
-  "CIF",
-  "CPT",
-  "CIP",
-  "DAP",
-  "DPU",
-  "DDP",
-];
+
 const HORARIOS_SIMPLES = [
   "06:00-08:00",
   "07:00-09:00",
@@ -277,6 +260,7 @@ const formSchema = z
 
     // Lugar de recolección (tipos 2 y 3)
     lugar_reco_lugar: z.string().optional(),
+    lugar_reco_es_nuevo: z.boolean().optional(),
     lugar_reco_direccion: z.string().optional(),
     lugar_reco_fecha: z.string().optional(),
     lugar_reco_horario: z.string().optional(),
@@ -484,11 +468,26 @@ function SeccionQuienRecibe({
   empleados?: Empleado[];
   defaultCountry?: string;
 }) {
+  const { userNameSoter, userEmailSoter } = useAuthStore();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [usandoOtro, setUsandoOtro] = useState(false);
 
   const nombreSeleccionado = form.watch("crea_el_pase_nombre");
   const esNuevo = form.watch("crea_el_pase_es_nuevo");
+
+  // Pre-fill con el usuario actual al montar
+  useEffect(() => {
+    if (userNameSoter && !form.getValues("crea_el_pase_nombre")) {
+      form.setValue("crea_el_pase_nombre", userNameSoter);
+      form.setValue("crea_el_pase_email", userEmailSoter ?? "");
+    }
+  }, [userNameSoter, userEmailSoter, form]);
+
+  const esUsuarioActual =
+    !usandoOtro &&
+    nombreSeleccionado === userNameSoter &&
+    !esNuevo;
 
   const filtrados = query.trim()
     ? empleados.filter((e) =>
@@ -501,7 +500,6 @@ function SeccionQuienRecibe({
   const seleccionar = (e: (typeof empleados)[0]) => {
     form.setValue("crea_el_pase_nombre", e.nombre);
     form.setValue("crea_el_pase_email", e.email ?? "");
-    // Solo auto-rellena el teléfono si viene en formato internacional (+)
     form.setValue(
       "crea_el_pase_telefono",
       e.telefono?.startsWith("+") ? e.telefono : "",
@@ -520,12 +518,15 @@ function SeccionQuienRecibe({
     setOpen(false);
   };
 
-  const limpiar = () => {
-    form.setValue("crea_el_pase_nombre", "");
-    form.setValue("crea_el_pase_email", "");
+  const volverAUsuarioActual = () => {
+    form.setValue("crea_el_pase_nombre", userNameSoter ?? "");
+    form.setValue("crea_el_pase_email", userEmailSoter ?? "");
     form.setValue("crea_el_pase_telefono", "");
     form.setValue("crea_el_pase_es_nuevo", false);
+    setUsandoOtro(false);
+    setQuery("");
   };
+
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
@@ -541,115 +542,120 @@ function SeccionQuienRecibe({
 
       {/* Grid 3 columnas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Columna 1: buscador */}
+        {/* Columna 1: responsable */}
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
             <span className="text-red-400">*</span> Responsable
           </p>
 
-          {nombreSeleccionado ? (
-            <div
-              className={cn(
-                "flex items-center justify-between gap-2 px-3 h-10 rounded-xl border",
-                esNuevo
-                  ? "border-amber-300 bg-amber-50"
-                  : "border-blue-200 bg-blue-50",
-              )}>
+          <div className="relative">
+            {/* Tarjeta del usuario seleccionado */}
+            <div className={cn(
+              "flex items-center justify-between gap-2 px-3 h-11 rounded-xl border transition-all",
+              esUsuarioActual ? "border-blue-200 bg-blue-50" :
+              esNuevo        ? "border-amber-300 bg-amber-50" :
+                               "border-blue-200 bg-blue-50"
+            )}>
               <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
-                    esNuevo
-                      ? "bg-amber-200 text-amber-700"
-                      : "bg-blue-200 text-blue-700",
-                  )}>
-                  {nombreSeleccionado.charAt(0).toUpperCase()}
+                <div className={cn(
+                  "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                  esNuevo ? "bg-amber-200 text-amber-700" : "bg-blue-200 text-blue-700"
+                )}>
+                  {nombreSeleccionado ? nombreSeleccionado.charAt(0).toUpperCase() : "?"}
                 </div>
-                <span className="text-sm font-medium text-gray-700 truncate">
-                  {nombreSeleccionado}
-                </span>
-                {esNuevo && (
-                  <span className="text-[9px] font-semibold bg-amber-200 text-amber-700 px-1.5 py-0.5 rounded-full shrink-0">
-                    Nuevo
-                  </span>
-                )}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold text-gray-700 truncate">
+                      {nombreSeleccionado || "Sin seleccionar"}
+                    </span>
+                    {esUsuarioActual && (
+                      <span className="text-[9px] font-bold bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded-full shrink-0">tú</span>
+                    )}
+                    {esNuevo && (
+                      <span className="text-[9px] font-bold bg-amber-200 text-amber-700 px-1.5 py-0.5 rounded-full shrink-0">nuevo</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-400 truncate">{form.watch("crea_el_pase_email") || "—"}</p>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={limpiar}
-                className="text-gray-400 hover:text-gray-600 transition-colors shrink-0">
-                <X className="w-3.5 h-3.5" />
+                onClick={() => { setOpen((v) => !v); setQuery(""); }}
+                className="shrink-0 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-white border border-blue-200 rounded-lg px-2.5 h-7 transition-all hover:bg-blue-50">
+                Cambiar
               </button>
             </div>
-          ) : (
-            <div className="relative">
-              <div className="flex items-center gap-2 px-3 h-10 rounded-xl border border-gray-200 bg-gray-50 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-200 transition-all">
-                <Search className="w-4 h-4 text-gray-400 shrink-0" />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setOpen(true);
-                  }}
-                  onFocus={() => setOpen(true)}
-                  onBlur={() => setTimeout(() => setOpen(false), 150)}
-                  placeholder="Buscar por nombre..."
-                  className="flex-1 bg-transparent text-sm text-gray-700 placeholder:text-gray-400 outline-none"
-                />
-              </div>
 
-              {open && (query.trim() || !nombreSeleccionado) && (
-                <div className="absolute z-20 mt-1 w-full bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
-                  {filtrados.length > 0 && (
-                    <ul className="max-h-48 overflow-y-auto py-1">
-                      {filtrados.map((e) => (
-                        <li key={e.nombre}>
-                          <button
-                            type="button"
-                            onMouseDown={() => seleccionar(e)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 transition-colors text-left">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-semibold shrink-0">
-                              {e.nombre.charAt(0)}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-gray-700 truncate">
-                                {e.nombre}
-                              </p>
-                              <p className="text-xs text-gray-400 truncate">
-                                {e.email}
-                              </p>
-                            </div>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {sinResultados && (
-                    <button
-                      type="button"
-                      onMouseDown={crearNuevo}
-                      className="w-full flex items-center gap-3 px-3 py-3 hover:bg-amber-50 transition-colors text-left">
-                      <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                        <UserPlus className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">
-                          Agregar{" "}
-                          <span className="text-blue-600">
-                            &ldquo;{query}&rdquo;
-                          </span>
-                        </p>
-                        <p className="text-xs text-amber-600">
-                          Nuevo contacto — no existe en el sistema
-                        </p>
-                      </div>
-                    </button>
-                  )}
+            {/* Dropdown de búsqueda */}
+            {open && (
+              <div className="absolute z-20 mt-1 w-full bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
+                {/* Buscador */}
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
+                  <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={query}
+                    autoFocus
+                    onChange={(e) => setQuery(e.target.value)}
+                    onBlur={() => setTimeout(() => setOpen(false), 150)}
+                    placeholder="Buscar empleado..."
+                    className="flex-1 bg-transparent text-sm text-gray-700 placeholder:text-gray-400 outline-none py-1"
+                  />
                 </div>
-              )}
-            </div>
-          )}
+
+                <ul className="max-h-52 overflow-y-auto py-1">
+                  {/* Usuario actual siempre primero si hay nombre */}
+                  {userNameSoter && !query.trim() && (
+                    <li>
+                      <button type="button" onMouseDown={volverAUsuarioActual}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 transition-colors text-left bg-blue-50/50">
+                        <div className="w-8 h-8 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center text-sm font-semibold shrink-0">
+                          {userNameSoter.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium text-gray-700 truncate">{userNameSoter}</p>
+                            <span className="text-[9px] font-bold bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded-full shrink-0">tú</span>
+                          </div>
+                          <p className="text-xs text-gray-400 truncate">{userEmailSoter}</p>
+                        </div>
+                      </button>
+                    </li>
+                  )}
+
+                  {filtrados.map((e) => (
+                    <li key={e.nombre}>
+                      <button type="button" onMouseDown={() => { seleccionar(e); setUsandoOtro(true); }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 transition-colors text-left">
+                        <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm font-semibold shrink-0">
+                          {e.nombre.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-700 truncate">{e.nombre}</p>
+                          <p className="text-xs text-gray-400 truncate">{e.email}</p>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+
+                  {sinResultados && (
+                    <li>
+                      <button type="button" onMouseDown={crearNuevo}
+                        className="w-full flex items-center gap-3 px-3 py-3 hover:bg-amber-50 transition-colors text-left">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                          <UserPlus className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Agregar <span className="text-blue-600">&ldquo;{query}&rdquo;</span></p>
+                          <p className="text-xs text-amber-600">Nuevo contacto — no existe en el sistema</p>
+                        </div>
+                      </button>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
 
           {form.formState.errors.crea_el_pase_nombre && (
             <p className="text-xs text-red-500 mt-1">
@@ -732,11 +738,24 @@ function SeccionSegundaPersona({
   );
 }
 
+const TIPOS_DOCUMENTO = [
+  "BL / Conocimiento de embarque",
+  "Sea Waybill",
+  "Salida de Puerto",
+  "Factura",
+  "Orden de Compra",
+  "Carta Porte",
+  "Packing Slip",
+  "Otro",
+] as const;
+
 function SeccionMaterial({
   form,
   documentos,
   onRemoveDoc,
   onArchivoDoc,
+  onAddDoc,
+  onChangeDocField,
   materialItems,
   onAddMaterialItem,
   onRemoveMaterialItem,
@@ -746,6 +765,8 @@ function SeccionMaterial({
   documentos: Documento[];
   onRemoveDoc: (id: string) => void;
   onArchivoDoc: (id: string, file: File) => void;
+  onAddDoc: () => void;
+  onChangeDocField: (id: string, field: "tipo" | "no_doc", value: string) => void;
   materialItems: MaterialItem[];
   onAddMaterialItem: () => void;
   onRemoveMaterialItem: (id: string) => void;
@@ -755,109 +776,125 @@ function SeccionMaterial({
     value: string,
   ) => void;
 }) {
+  const tieneDoc = documentos.some((d) => d.file_url);
   return (
     <Section icon={BoxesIcon} title="Material">
       <InfoBox>
-        Sube la factura, OC o carta porte y la IA extraerá los datos
-        automáticamente. Puedes corregir cualquier campo.
+        Sube los documentos del embarque (BL, Salida de Puerto, Factura, etc.) y la IA extraerá los datos automáticamente.
       </InfoBox>
 
-      {/* Upload múltiple IA */}
-      <div className="mb-5">
+      {/* Tabla de documentos */}
+      <div className="mb-4">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-          Factura / Orden de Compra / Carta porte / Packing slip
+          Documentos
           <span className="inline-flex items-center gap-0.5 bg-blue-100 text-blue-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
             <Sparkles className="w-2.5 h-2.5" /> IA
           </span>
         </p>
 
-        {documentos.filter((d) => d.file_url || d.uploading).length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-2">
-            {documentos
-              .filter((d) => d.file_url || d.uploading)
-              .map((doc) => {
-                const isImage = /\.(jpe?g|png|gif|webp)$/i.test(doc.file_name);
-                return (
-                  <div key={doc.id} className="relative group w-20">
-                    <div className="w-20 h-20 rounded-xl border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
-                      {doc.uploading ? (
-                        <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                      ) : isImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={doc.file_url}
-                          alt={doc.file_name}
-                          className="w-full h-full object-cover"
+        <div className="rounded-xl border border-gray-200">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50">
+                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide w-56">Tipo</th>
+                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide w-36">No. Documento</th>
+                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Archivo</th>
+                <th className="w-8" />
+              </tr>
+            </thead>
+            <tbody>
+              {documentos.map((doc) => (
+                <tr key={doc.id} className="border-b border-gray-100 last:border-0 group">
+                  {/* Tipo */}
+                  <td className="px-3 py-2">
+                    <ComboboxField
+                      value={doc.tipo ?? ""}
+                      onChange={(v) => onChangeDocField(doc.id, "tipo", v)}
+                      options={TIPOS_DOCUMENTO as unknown as string[]}
+                      placeholder="Buscar tipo..."
+                    />
+                  </td>
+                  {/* No. Documento */}
+                  <td className="px-3 py-2">
+                    <input
+                      value={doc.no_doc ?? ""}
+                      onChange={(e) => onChangeDocField(doc.id, "no_doc", e.target.value)}
+                      placeholder="Ej. BL-2026-001"
+                      className="w-full bg-transparent text-sm text-gray-700 placeholder:text-gray-300 outline-none"
+                    />
+                  </td>
+                  {/* Archivo */}
+                  <td className="px-3 py-2">
+                    {doc.uploading ? (
+                      <span className="flex items-center gap-2 text-xs text-blue-500">
+                        <span className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                        Subiendo...
+                      </span>
+                    ) : doc.file_url ? (
+                      <span className="flex items-center gap-1.5 bg-blue-50 border border-blue-100 rounded-lg px-2 py-1 w-fit max-w-[200px]">
+                        <FileText className="w-3 h-3 text-blue-400 shrink-0" />
+                        <span className="text-[11px] text-gray-600 truncate">{doc.file_name}</span>
+                        <button
+                          type="button"
+                          onClick={() => onRemoveDoc(doc.id)}
+                          className="ml-1 text-gray-400 hover:text-red-500 shrink-0">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ) : (
+                      <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer hover:text-blue-500 transition-colors w-fit">
+                        <Upload className="w-3.5 h-3.5 shrink-0" />
+                        <span>Seleccionar archivo</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) onArchivoDoc(doc.id, f);
+                          }}
                         />
-                      ) : (
-                        <div className="flex flex-col items-center gap-1">
-                          <FileText className="w-7 h-7 text-blue-400" />
-                          <span className="text-[9px] font-bold text-blue-400 uppercase">
-                            {doc.file_name.split(".").pop()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    {!doc.uploading && (
-                      <p className="text-[9px] text-gray-500 mt-1 truncate text-center leading-tight">
-                        {doc.file_name}
-                      </p>
+                      </label>
                     )}
-                    {doc.file_url && (
+                  </td>
+                  {/* Eliminar fila */}
+                  <td className="px-2 py-2">
+                    {documentos.length > 1 && (
                       <button
                         type="button"
                         onClick={() => onRemoveDoc(doc.id)}
-                        className="absolute -top-1.5 -right-1.5 hidden group-hover:flex w-5 h-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm">
-                        <X className="w-3 h-3" />
+                        className="flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100">
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     )}
-                  </div>
-                );
-              })}
-          </div>
-        )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-        {documentos
-          .filter((d) => !d.file_url && !d.uploading)
-          .slice(0, 1)
-          .map((doc) => (
-            <label
-              key={doc.id}
-              className="flex items-center gap-2 h-10 w-full rounded-xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500 px-3 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-              <Upload className="w-4 h-4 shrink-0" />
-              <span className="text-xs">Seleccionar o arrastrar archivo</span>
-              <input
-                type="file"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) onArchivoDoc(doc.id, f);
-                }}
-              />
-            </label>
-          ))}
+        <button
+          type="button"
+          onClick={onAddDoc}
+          className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-gray-200 text-xs font-medium text-gray-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50 transition-all">
+          <Plus className="w-3.5 h-3.5" />
+          Agregar documento
+        </button>
       </div>
 
       {/* Botón IA */}
-      {(() => {
-        const tieneDoc = documentos.some((d) => d.file_url);
-        return (
-          <button
-            type="button"
-            disabled={!tieneDoc}
-            className={cn(
-              "w-full flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-semibold transition-all mb-5",
-              tieneDoc
-                ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-sm shadow-blue-200 hover:opacity-90"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed",
-            )}>
-            <Sparkles className="w-4 h-4" />
-            {tieneDoc
-              ? "Extraer datos con IA"
-              : "Sube un documento para usar IA"}
-          </button>
-        );
-      })()}
+      <button
+        type="button"
+        disabled={!tieneDoc}
+        className={cn(
+          "w-full flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-semibold transition-all mb-5",
+          tieneDoc
+            ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-sm shadow-blue-200 hover:opacity-90"
+            : "bg-gray-100 text-gray-400 cursor-not-allowed",
+        )}>
+        <Sparkles className="w-4 h-4" />
+        {tieneDoc ? "Extraer datos con IA" : "Sube un documento para usar IA"}
+      </button>
 
       {/* Proveedor / Cliente + Orden de compra */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
@@ -987,10 +1024,24 @@ function SeccionMaterial({
 function SeccionLugarRecoleccion({
   form,
   defaultCountry = "MX",
+  proveedores = [],
 }: {
   form: ReturnType<typeof useForm<FormValues>>;
   defaultCountry?: string;
+  proveedores?: { nombre: string; direccion: string }[];
 }) {
+  const lugarSeleccionado = form.watch("lugar_reco_lugar");
+  const esNuevo = form.watch("lugar_reco_es_nuevo") ?? false;
+
+  React.useEffect(() => {
+    const proveedor = proveedores.find((p) => p.nombre === lugarSeleccionado);
+    if (proveedor) {
+      form.setValue("lugar_reco_direccion", proveedor.direccion);
+    } else if (!lugarSeleccionado) {
+      form.setValue("lugar_reco_direccion", "");
+    }
+  }, [lugarSeleccionado, proveedores, form]);
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
       <div className="flex items-center gap-2 mb-4">
@@ -1010,10 +1061,15 @@ function SeccionLugarRecoleccion({
               <FormItem>
                 <FieldLabel required>Lugar</FieldLabel>
                 <FormControl>
-                  <Input
-                    placeholder="Nombre de la ubicación origen"
-                    className="rounded-xl border-gray-200 bg-gray-50"
-                    {...field}
+                  <CreatableComboboxField
+                    value={field.value ?? ""}
+                    isNuevo={esNuevo}
+                    onSelect={(v, isNuevo) => {
+                      field.onChange(v);
+                      form.setValue("lugar_reco_es_nuevo", isNuevo);
+                    }}
+                    options={proveedores.map((p) => p.nombre)}
+                    placeholder="Buscar o escribir proveedor..."
                   />
                 </FormControl>
                 <FormMessage />
@@ -1048,10 +1104,9 @@ function SeccionLugarRecoleccion({
               <FormItem>
                 <FieldLabel required>Fecha</FieldLabel>
                 <FormControl>
-                  <Input
-                    type="date"
-                    className="rounded-xl border-gray-200 bg-gray-50"
-                    {...field}
+                  <FechaEsInput
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
                   />
                 </FormControl>
                 <FormMessage />
@@ -1170,57 +1225,6 @@ function SeccionLugarRecoleccion({
           </div>
         </div>
 
-        {/* Método de embarque e Incoterm */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="metodo_embarque"
-            render={({ field }) => (
-              <FormItem>
-                <FieldLabel>Método de embarque</FieldLabel>
-                <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
-                      <SelectValue placeholder="Seleccionar..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {METODOS_EMBARQUE.map((m) => (
-                        <SelectItem key={m} value={m}>
-                          {m}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="incoterm"
-            render={({ field }) => (
-              <FormItem>
-                <FieldLabel>Incoterm</FieldLabel>
-                <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
-                      <SelectValue placeholder="Seleccionar..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INCOTERMS.map((i) => (
-                        <SelectItem key={i} value={i}>
-                          {i}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
       </div>
     </div>
   );
@@ -1304,6 +1308,98 @@ function ComboboxField({
                 </button>
               </li>
             ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CreatableComboboxField({
+  value,
+  isNuevo,
+  onSelect,
+  options,
+  placeholder = "Buscar o escribir...",
+}: {
+  value: string;
+  isNuevo: boolean;
+  onSelect: (value: string, isNuevo: boolean) => void;
+  options: string[];
+  placeholder?: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const filtrados = query.trim()
+    ? options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
+    : options;
+
+  const exactMatch = options.some(
+    (o) => o.toLowerCase() === query.trim().toLowerCase(),
+  );
+
+  const limpiar = () => {
+    onSelect("", false);
+    setQuery("");
+  };
+
+  return value ? (
+    <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-blue-200 bg-blue-50 text-sm">
+      <span className="truncate text-gray-700 font-medium flex-1">{value}</span>
+      {isNuevo && (
+        <span className="shrink-0 text-[9px] font-bold bg-amber-100 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+          Nuevo
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={limpiar}
+        className="text-gray-400 hover:text-gray-600 shrink-0 transition-colors">
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  ) : (
+    <div className="relative">
+      <div className="flex items-center gap-2 px-3 h-10 rounded-xl border border-gray-200 bg-gray-50 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-200 transition-all">
+        <Search className="w-4 h-4 text-gray-400 shrink-0" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder={placeholder}
+          className="flex-1 bg-transparent text-sm text-gray-700 placeholder:text-gray-400 outline-none"
+        />
+      </div>
+      {open && (
+        <div className="absolute z-20 mt-1 w-full bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
+          <ul className="max-h-48 overflow-y-auto py-1">
+            {filtrados.map((o) => (
+              <li key={o}>
+                <button
+                  type="button"
+                  onMouseDown={() => { onSelect(o, false); setQuery(""); setOpen(false); }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors truncate">
+                  {o}
+                </button>
+              </li>
+            ))}
+            {query.trim() && !exactMatch && (
+              <li>
+                <button
+                  type="button"
+                  onMouseDown={() => { onSelect(query.trim(), true); setQuery(""); setOpen(false); }}
+                  className="w-full text-left px-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-50 transition-colors flex items-center gap-2">
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  Agregar &ldquo;{query.trim()}&rdquo;
+                </button>
+              </li>
+            )}
+            {filtrados.length === 0 && !query.trim() && (
+              <li className="px-3 py-2 text-xs text-gray-400 italic">Sin opciones</li>
+            )}
           </ul>
         </div>
       )}
@@ -1635,6 +1731,9 @@ function SeccionProgramacion({
                     diaIndex={diaIndex}
                     onDiaChange={onDiaChange ?? (() => {})}
                     isLoading={isLoadingHorarios}
+                    slots={slots}
+                    selectedSlot={form.watch("horario") ?? ""}
+                    onSlotSelect={(slot) => form.setValue("horario", slot)}
                   />
                 )}
               </div>
@@ -1831,12 +1930,16 @@ const PaseEntradaTransportistaPage = () => {
   const emptyDoc = (): Documento => ({
     id: crypto.randomUUID(),
     tipo: "",
+    no_doc: "",
     archivo: null,
     file_name: "",
     file_url: "",
     uploading: false,
   });
   const [documentos, setDocumentos] = useState<Documento[]>([emptyDoc()]);
+
+  const handleChangeDocField = (id: string, field: "tipo" | "no_doc", value: string) =>
+    setDocumentos((p) => p.map((d) => (d.id === id ? { ...d, [field]: value } : d)));
 
   const emptyMaterialItem = (): MaterialItem => ({
     id: crypto.randomUUID(),
@@ -1878,8 +1981,8 @@ const PaseEntradaTransportistaPage = () => {
         { type: file.type },
       );
       const result = await uploadImageMutation.mutateAsync({ img: renamed });
-      setDocumentos((p) => [
-        ...p.map((d) =>
+      setDocumentos((p) =>
+        p.map((d) =>
           d.id === id
             ? {
                 ...d,
@@ -1889,8 +1992,7 @@ const PaseEntradaTransportistaPage = () => {
               }
             : d,
         ),
-        emptyDoc(),
-      ]);
+      );
     } catch {
       setDocumentos((p) =>
         p.map((d) => (d.id === id ? { ...d, uploading: false } : d)),
@@ -1940,6 +2042,15 @@ const PaseEntradaTransportistaPage = () => {
   });
   const horarios: HorarioItem[] = horariosData?.response?.data?.horarios ?? [];
 
+  const { data: proveedoresData } = useQuery({
+    queryKey: ["getProveedoresTransportista"],
+    queryFn: getProveedoresTransportista,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 30,
+  });
+  const proveedores: { nombre: string; direccion: string }[] =
+    proveedoresData?.response?.data ?? [];
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -1960,6 +2071,7 @@ const PaseEntradaTransportistaPage = () => {
       anden: "",
       area: "",
       lugar_reco_lugar: "",
+      lugar_reco_es_nuevo: false,
       lugar_reco_direccion: "",
       lugar_reco_fecha: "",
       lugar_reco_horario: "",
@@ -1977,6 +2089,12 @@ const PaseEntradaTransportistaPage = () => {
     "recoleccion_materia_prima",
     "entrega_producto_terminado",
   ].includes(tipoOperacion);
+
+  React.useEffect(() => {
+    if (primeraLocation && !form.getValues("ubicacion")) {
+      form.setValue("ubicacion", primeraLocation);
+    }
+  }, [primeraLocation, form]);
 
   const buildPayload = (data: FormValues) => ({
     tipo_de_operacion: TIPO_OPERACION_LABEL[data.tipo_operacion],
@@ -2033,6 +2151,7 @@ const PaseEntradaTransportistaPage = () => {
     ...(tieneRecoleccion && {
       lugar_recoleccion: {
         lugar: data.lugar_reco_lugar || null,
+        es_nuevo: data.lugar_reco_es_nuevo ?? false,
         direccion: data.lugar_reco_direccion || null,
         fecha: data.lugar_reco_fecha || null,
         horario: data.lugar_reco_horario || null,
@@ -2182,17 +2301,19 @@ const PaseEntradaTransportistaPage = () => {
               documentos={documentos}
               onRemoveDoc={handleRemoveDoc}
               onArchivoDoc={handleArchivoDoc}
+              onAddDoc={() => setDocumentos((p) => [...p, emptyDoc()])}
+              onChangeDocField={handleChangeDocField}
               materialItems={materialItems}
               onAddMaterialItem={handleAddMaterialItem}
               onRemoveMaterialItem={handleRemoveMaterialItem}
               onChangeMaterialItem={handleChangeMaterialItem}
             />
 
+            {/* Lugar de recolección (tipos 2 y 3) */}
+            {tieneRecoleccion && <SeccionLugarRecoleccion form={form} defaultCountry={defaultCountry} proveedores={proveedores} />}
+
             {/* Lugar de entrega / recepción */}
             <SeccionProgramacion {...programacionProps} />
-
-            {/* Lugar de recolección (tipos 2 y 3) */}
-            {tieneRecoleccion && <SeccionLugarRecoleccion form={form} defaultCountry={defaultCountry} />}
 
             {/* Generar y enviar pase */}
             <SeccionGenerarPase
