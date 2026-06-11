@@ -24,12 +24,12 @@ export async function apiPost<TData>(
     body.account_id = userParentId;
   }
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (userJwt) headers.Authorization = `Bearer ${userJwt}`;
+
   const promise = fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${userJwt}`,
-    },
+    headers,
     body: JSON.stringify(body),
   }).then(async (res) => {
     if (!res.ok) {

@@ -76,12 +76,48 @@ import "react-phone-number-input/style.css";
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const PHONE_PREFIX_TO_COUNTRY: Record<number, string> = {
-  1: "US", 7: "RU", 27: "ZA", 30: "GR", 31: "NL", 32: "BE", 33: "FR",
-  34: "ES", 36: "HU", 39: "IT", 40: "RO", 41: "CH", 43: "AT", 44: "GB",
-  45: "DK", 46: "SE", 47: "NO", 48: "PL", 49: "DE", 51: "PE", 52: "MX",
-  53: "CU", 54: "AR", 55: "BR", 56: "CL", 57: "CO", 58: "VE", 60: "MY",
-  61: "AU", 62: "ID", 63: "PH", 64: "NZ", 65: "SG", 66: "TH", 81: "JP",
-  82: "KR", 84: "VN", 86: "CN", 90: "TR", 91: "IN", 92: "PK", 98: "IR",
+  1: "US",
+  7: "RU",
+  27: "ZA",
+  30: "GR",
+  31: "NL",
+  32: "BE",
+  33: "FR",
+  34: "ES",
+  36: "HU",
+  39: "IT",
+  40: "RO",
+  41: "CH",
+  43: "AT",
+  44: "GB",
+  45: "DK",
+  46: "SE",
+  47: "NO",
+  48: "PL",
+  49: "DE",
+  51: "PE",
+  52: "MX",
+  53: "CU",
+  54: "AR",
+  55: "BR",
+  56: "CL",
+  57: "CO",
+  58: "VE",
+  60: "MY",
+  61: "AU",
+  62: "ID",
+  63: "PH",
+  64: "NZ",
+  65: "SG",
+  66: "TH",
+  81: "JP",
+  82: "KR",
+  84: "VN",
+  86: "CN",
+  90: "TR",
+  91: "IN",
+  92: "PK",
+  98: "IR",
 };
 
 function prefijoToCountry(prefijo?: number): string {
@@ -93,6 +129,7 @@ function prefijoToCountry(prefijo?: number): string {
 interface Documento {
   id: string;
   tipo: string;
+  tipo_es_nuevo: boolean;
   no_doc: string;
   archivo: File | null;
   file_name: string;
@@ -176,23 +213,17 @@ const GENERAR_PASE: Record<
   },
   recoleccion_materia_prima: {
     info: "El pase se enviará al proveedor de transporte para que asigne conductor y llene los datos del vehículo.",
-    botones: [
-      { label: "Enviar a transportista", primary: true },
-      { label: "Notificar a proveedor", primary: false },
-    ],
+    botones: [{ label: "Enviar a transportista", primary: true }],
   },
   entrega_producto_terminado: {
     info: "El pase se enviará al proveedor de transporte para que asigne conductor y llene los datos del vehículo.",
-    botones: [
-      { label: "Enviar a transportista", primary: true },
-    ],
+    botones: [{ label: "Enviar a transportista", primary: true }],
   },
   recoleccion_producto_terminado: {
     info: "El pase se enviará al cliente con un QR. El cliente podrá reenviarlo al transportista.",
     botones: [{ label: "Enviar a cliente", primary: true }],
   },
 };
-
 
 const HORARIOS_SIMPLES = [
   "06:00-08:00",
@@ -485,9 +516,7 @@ function SeccionQuienRecibe({
   }, [userNameSoter, userEmailSoter, form]);
 
   const esUsuarioActual =
-    !usandoOtro &&
-    nombreSeleccionado === userNameSoter &&
-    !esNuevo;
+    !usandoOtro && nombreSeleccionado === userNameSoter && !esNuevo;
 
   const filtrados = query.trim()
     ? empleados.filter((e) =>
@@ -527,7 +556,6 @@ function SeccionQuienRecibe({
     setQuery("");
   };
 
-
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
       <div className="flex items-center gap-2 mb-4">
@@ -550,18 +578,26 @@ function SeccionQuienRecibe({
 
           <div className="relative">
             {/* Tarjeta del usuario seleccionado */}
-            <div className={cn(
-              "flex items-center justify-between gap-2 px-3 h-11 rounded-xl border transition-all",
-              esUsuarioActual ? "border-blue-200 bg-blue-50" :
-              esNuevo        ? "border-amber-300 bg-amber-50" :
-                               "border-blue-200 bg-blue-50"
-            )}>
+            <div
+              className={cn(
+                "flex items-center justify-between gap-2 px-3 h-11 rounded-xl border transition-all",
+                esUsuarioActual
+                  ? "border-blue-200 bg-blue-50"
+                  : esNuevo
+                    ? "border-amber-300 bg-amber-50"
+                    : "border-blue-200 bg-blue-50",
+              )}>
               <div className="flex items-center gap-2 min-w-0">
-                <div className={cn(
-                  "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-                  esNuevo ? "bg-amber-200 text-amber-700" : "bg-blue-200 text-blue-700"
-                )}>
-                  {nombreSeleccionado ? nombreSeleccionado.charAt(0).toUpperCase() : "?"}
+                <div
+                  className={cn(
+                    "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                    esNuevo
+                      ? "bg-amber-200 text-amber-700"
+                      : "bg-blue-200 text-blue-700",
+                  )}>
+                  {nombreSeleccionado
+                    ? nombreSeleccionado.charAt(0).toUpperCase()
+                    : "?"}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -569,18 +605,27 @@ function SeccionQuienRecibe({
                       {nombreSeleccionado || "Sin seleccionar"}
                     </span>
                     {esUsuarioActual && (
-                      <span className="text-[9px] font-bold bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded-full shrink-0">tú</span>
+                      <span className="text-[9px] font-bold bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded-full shrink-0">
+                        tú
+                      </span>
                     )}
                     {esNuevo && (
-                      <span className="text-[9px] font-bold bg-amber-200 text-amber-700 px-1.5 py-0.5 rounded-full shrink-0">nuevo</span>
+                      <span className="text-[9px] font-bold bg-amber-200 text-amber-700 px-1.5 py-0.5 rounded-full shrink-0">
+                        nuevo
+                      </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-gray-400 truncate">{form.watch("crea_el_pase_email") || "—"}</p>
+                  <p className="text-[11px] text-gray-400 truncate">
+                    {form.watch("crea_el_pase_email") || "—"}
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => { setOpen((v) => !v); setQuery(""); }}
+                onClick={() => {
+                  setOpen((v) => !v);
+                  setQuery("");
+                }}
                 className="shrink-0 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-white border border-blue-200 rounded-lg px-2.5 h-7 transition-all hover:bg-blue-50">
                 Cambiar
               </button>
@@ -607,17 +652,25 @@ function SeccionQuienRecibe({
                   {/* Usuario actual siempre primero si hay nombre */}
                   {userNameSoter && !query.trim() && (
                     <li>
-                      <button type="button" onMouseDown={volverAUsuarioActual}
+                      <button
+                        type="button"
+                        onMouseDown={volverAUsuarioActual}
                         className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 transition-colors text-left bg-blue-50/50">
                         <div className="w-8 h-8 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center text-sm font-semibold shrink-0">
                           {userNameSoter.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <p className="text-sm font-medium text-gray-700 truncate">{userNameSoter}</p>
-                            <span className="text-[9px] font-bold bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded-full shrink-0">tú</span>
+                            <p className="text-sm font-medium text-gray-700 truncate">
+                              {userNameSoter}
+                            </p>
+                            <span className="text-[9px] font-bold bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded-full shrink-0">
+                              tú
+                            </span>
                           </div>
-                          <p className="text-xs text-gray-400 truncate">{userEmailSoter}</p>
+                          <p className="text-xs text-gray-400 truncate">
+                            {userEmailSoter}
+                          </p>
                         </div>
                       </button>
                     </li>
@@ -625,14 +678,23 @@ function SeccionQuienRecibe({
 
                   {filtrados.map((e) => (
                     <li key={e.nombre}>
-                      <button type="button" onMouseDown={() => { seleccionar(e); setUsandoOtro(true); }}
+                      <button
+                        type="button"
+                        onMouseDown={() => {
+                          seleccionar(e);
+                          setUsandoOtro(true);
+                        }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 transition-colors text-left">
                         <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm font-semibold shrink-0">
                           {e.nombre.charAt(0)}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-700 truncate">{e.nombre}</p>
-                          <p className="text-xs text-gray-400 truncate">{e.email}</p>
+                          <p className="text-sm font-medium text-gray-700 truncate">
+                            {e.nombre}
+                          </p>
+                          <p className="text-xs text-gray-400 truncate">
+                            {e.email}
+                          </p>
                         </div>
                       </button>
                     </li>
@@ -640,14 +702,23 @@ function SeccionQuienRecibe({
 
                   {sinResultados && (
                     <li>
-                      <button type="button" onMouseDown={crearNuevo}
+                      <button
+                        type="button"
+                        onMouseDown={crearNuevo}
                         className="w-full flex items-center gap-3 px-3 py-3 hover:bg-amber-50 transition-colors text-left">
                         <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
                           <UserPlus className="w-4 h-4" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-700">Agregar <span className="text-blue-600">&ldquo;{query}&rdquo;</span></p>
-                          <p className="text-xs text-amber-600">Nuevo contacto — no existe en el sistema</p>
+                          <p className="text-sm font-medium text-gray-700">
+                            Agregar{" "}
+                            <span className="text-blue-600">
+                              &ldquo;{query}&rdquo;
+                            </span>
+                          </p>
+                          <p className="text-xs text-amber-600">
+                            Nuevo contacto — no existe en el sistema
+                          </p>
                         </div>
                       </button>
                     </li>
@@ -733,7 +804,12 @@ function SeccionSegundaPersona({
           )}
         </div>
       </div>
-      <PersonaFields form={form} prefix="recibe_el_pase" required defaultCountry={defaultCountry} />
+      <PersonaFields
+        form={form}
+        prefix="recibe_el_pase"
+        required
+        defaultCountry={defaultCountry}
+      />
     </div>
   );
 }
@@ -746,7 +822,6 @@ const TIPOS_DOCUMENTO = [
   "Orden de Compra",
   "Carta Porte",
   "Packing Slip",
-  "Otro",
 ] as const;
 
 function SeccionMaterial({
@@ -766,7 +841,12 @@ function SeccionMaterial({
   onRemoveDoc: (id: string) => void;
   onArchivoDoc: (id: string, file: File) => void;
   onAddDoc: () => void;
-  onChangeDocField: (id: string, field: "tipo" | "no_doc", value: string) => void;
+  onChangeDocField: (
+    id: string,
+    field: "tipo" | "no_doc",
+    value: string,
+    isNuevo?: boolean,
+  ) => void;
   materialItems: MaterialItem[];
   onAddMaterialItem: () => void;
   onRemoveMaterialItem: (id: string) => void;
@@ -780,7 +860,8 @@ function SeccionMaterial({
   return (
     <Section icon={BoxesIcon} title="Material">
       <InfoBox>
-        Sube los documentos del embarque (BL, Salida de Puerto, Factura, etc.) y la IA extraerá los datos automáticamente.
+        Sube los documentos del embarque (BL, Salida de Puerto, Factura, etc.) y
+        la IA extraerá los datos automáticamente.
       </InfoBox>
 
       {/* Tabla de documentos */}
@@ -796,20 +877,31 @@ function SeccionMaterial({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide w-56">Tipo</th>
-                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide w-36">No. Documento</th>
-                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Archivo</th>
+                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide w-56">
+                  Tipo
+                </th>
+                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide w-36">
+                  No. Documento
+                </th>
+                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  Archivo
+                </th>
                 <th className="w-8" />
               </tr>
             </thead>
             <tbody>
               {documentos.map((doc) => (
-                <tr key={doc.id} className="border-b border-gray-100 last:border-0 group">
+                <tr
+                  key={doc.id}
+                  className="border-b border-gray-100 last:border-0 group">
                   {/* Tipo */}
                   <td className="px-3 py-2">
-                    <ComboboxField
+                    <CreatableComboboxField
                       value={doc.tipo ?? ""}
-                      onChange={(v) => onChangeDocField(doc.id, "tipo", v)}
+                      isNuevo={doc.tipo_es_nuevo}
+                      onSelect={(v, isNew) =>
+                        onChangeDocField(doc.id, "tipo", v, isNew)
+                      }
                       options={TIPOS_DOCUMENTO as unknown as string[]}
                       placeholder="Buscar tipo..."
                     />
@@ -818,7 +910,9 @@ function SeccionMaterial({
                   <td className="px-3 py-2">
                     <input
                       value={doc.no_doc ?? ""}
-                      onChange={(e) => onChangeDocField(doc.id, "no_doc", e.target.value)}
+                      onChange={(e) =>
+                        onChangeDocField(doc.id, "no_doc", e.target.value)
+                      }
                       placeholder="Ej. BL-2026-001"
                       className="w-full bg-transparent text-sm text-gray-700 placeholder:text-gray-300 outline-none"
                     />
@@ -833,7 +927,9 @@ function SeccionMaterial({
                     ) : doc.file_url ? (
                       <span className="flex items-center gap-1.5 bg-blue-50 border border-blue-100 rounded-lg px-2 py-1 w-fit max-w-[200px]">
                         <FileText className="w-3 h-3 text-blue-400 shrink-0" />
-                        <span className="text-[11px] text-gray-600 truncate">{doc.file_name}</span>
+                        <span className="text-[11px] text-gray-600 truncate">
+                          {doc.file_name}
+                        </span>
                         <button
                           type="button"
                           onClick={() => onRemoveDoc(doc.id)}
@@ -1224,7 +1320,6 @@ function SeccionLugarRecoleccion({
             />
           </div>
         </div>
-
       </div>
     </div>
   );
@@ -1366,7 +1461,10 @@ function CreatableComboboxField({
         <input
           type="text"
           value={query}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           placeholder={placeholder}
@@ -1380,7 +1478,11 @@ function CreatableComboboxField({
               <li key={o}>
                 <button
                   type="button"
-                  onMouseDown={() => { onSelect(o, false); setQuery(""); setOpen(false); }}
+                  onMouseDown={() => {
+                    onSelect(o, false);
+                    setQuery("");
+                    setOpen(false);
+                  }}
                   className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors truncate">
                   {o}
                 </button>
@@ -1390,7 +1492,11 @@ function CreatableComboboxField({
               <li>
                 <button
                   type="button"
-                  onMouseDown={() => { onSelect(query.trim(), true); setQuery(""); setOpen(false); }}
+                  onMouseDown={() => {
+                    onSelect(query.trim(), true);
+                    setQuery("");
+                    setOpen(false);
+                  }}
                   className="w-full text-left px-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-50 transition-colors flex items-center gap-2">
                   <Plus className="w-3.5 h-3.5 shrink-0" />
                   Agregar &ldquo;{query.trim()}&rdquo;
@@ -1398,7 +1504,9 @@ function CreatableComboboxField({
               </li>
             )}
             {filtrados.length === 0 && !query.trim() && (
-              <li className="px-3 py-2 text-xs text-gray-400 italic">Sin opciones</li>
+              <li className="px-3 py-2 text-xs text-gray-400 italic">
+                Sin opciones
+              </li>
             )}
           </ul>
         </div>
@@ -1916,6 +2024,7 @@ function SeccionGenerarPase({
 // ── Componente principal ───────────────────────────────────────────────────────
 
 const PaseEntradaTransportistaPage = () => {
+  const { userParentId } = useAuthStore();
   const { uploadImageMutation } = useUploadImage();
   const { mutate: crearPase, isPending } = useCreatePaseTransportista();
   const [modalPayload, setModalPayload] = useState<Record<string, any> | null>(
@@ -1930,6 +2039,7 @@ const PaseEntradaTransportistaPage = () => {
   const emptyDoc = (): Documento => ({
     id: crypto.randomUUID(),
     tipo: "",
+    tipo_es_nuevo: false,
     no_doc: "",
     archivo: null,
     file_name: "",
@@ -1938,8 +2048,23 @@ const PaseEntradaTransportistaPage = () => {
   });
   const [documentos, setDocumentos] = useState<Documento[]>([emptyDoc()]);
 
-  const handleChangeDocField = (id: string, field: "tipo" | "no_doc", value: string) =>
-    setDocumentos((p) => p.map((d) => (d.id === id ? { ...d, [field]: value } : d)));
+  const handleChangeDocField = (
+    id: string,
+    field: "tipo" | "no_doc",
+    value: string,
+    isNuevo?: boolean,
+  ) =>
+    setDocumentos((p) =>
+      p.map((d) =>
+        d.id === id
+          ? {
+              ...d,
+              [field]: value,
+              ...(field === "tipo" && { tipo_es_nuevo: isNuevo ?? false }),
+            }
+          : d,
+      ),
+    );
 
   const emptyMaterialItem = (): MaterialItem => ({
     id: crypto.randomUUID(),
@@ -2134,7 +2259,13 @@ const PaseEntradaTransportistaPage = () => {
         })),
       documentos: documentos
         .filter((d) => d.file_url)
-        .map((d) => ({ file_name: d.file_name, file_url: d.file_url })),
+        .map((d) => ({
+          tipo: d.tipo || null,
+          no_doc: d.no_doc || null,
+          tipo_es_nuevo: d.tipo_es_nuevo,
+          file_name: d.file_name,
+          file_url: d.file_url,
+        })),
     },
     lugar_entrega_recepcion: {
       ubicacion: data.ubicacion || null,
@@ -2205,6 +2336,7 @@ const PaseEntradaTransportistaPage = () => {
         onClose={() => setSuccessData(null)}
         id={successData?.id ?? ""}
         folio={successData?.folio ?? ""}
+        accountId={userParentId ?? undefined}
       />
 
       <Form {...form}>
@@ -2230,58 +2362,120 @@ const PaseEntradaTransportistaPage = () => {
                 name="tipo_operacion"
                 render={({ field }) => (
                   <FormItem>
-                    <div className="grid grid-cols-2 gap-2">
-                      {TIPOS_OPERACION.map(
-                        ({ value, label, description, icon: Icon, tags }) => {
-                          const isSelected = field.value === value;
-                          return (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => field.onChange(value)}
-                              className={cn(
-                                "text-left p-4 rounded-xl border-2 transition-all duration-150",
-                                isSelected
-                                  ? "border-teal-500 bg-teal-50/50"
-                                  : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50",
-                              )}>
-                              <div className="flex items-start gap-3">
-                                <Icon
-                                  className={cn(
-                                    "w-5 h-5 mt-0.5 shrink-0",
-                                    isSelected
-                                      ? "text-teal-600"
-                                      : "text-gray-400",
-                                  )}
-                                />
-                                <div className="min-w-0">
-                                  <p
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Columna izquierda — azul */}
+                      <div className="bg-blue-100 rounded-2xl p-2 space-y-2">
+                        {(
+                          [TIPOS_OPERACION[0], TIPOS_OPERACION[1]] as const
+                        ).map(
+                          ({ value, label, description, icon: Icon, tags }) => {
+                            const isSelected = field.value === value;
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => field.onChange(value)}
+                                className={cn(
+                                  "w-full text-left p-4 rounded-xl border-2 transition-all duration-150",
+                                  isSelected
+                                    ? "border-teal-500 bg-teal-50/80"
+                                    : "border-transparent bg-white/70 hover:bg-white hover:border-blue-200",
+                                )}>
+                                <div className="flex items-start gap-3">
+                                  <Icon
                                     className={cn(
-                                      "font-semibold text-sm leading-snug",
+                                      "w-5 h-5 mt-0.5 shrink-0",
                                       isSelected
-                                        ? "text-teal-700"
-                                        : "text-gray-700",
-                                    )}>
-                                    {label}
-                                  </p>
-                                  <p className="text-xs text-gray-400 mt-0.5 leading-snug">
-                                    {description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-1 mt-2">
-                                    {tags.map((tag) => (
-                                      <span
-                                        key={tag}
-                                        className="text-[10px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                                        {tag}
-                                      </span>
-                                    ))}
+                                        ? "text-teal-600"
+                                        : "text-blue-400",
+                                    )}
+                                  />
+                                  <div className="min-w-0">
+                                    <p
+                                      className={cn(
+                                        "font-semibold text-sm leading-snug",
+                                        isSelected
+                                          ? "text-teal-700"
+                                          : "text-gray-700",
+                                      )}>
+                                      {label}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-0.5 leading-snug">
+                                      {description}
+                                    </p>
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {tags.map((tag) => (
+                                        <span
+                                          key={tag}
+                                          className="text-[10px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </button>
-                          );
-                        },
-                      )}
+                              </button>
+                            );
+                          },
+                        )}
+                      </div>
+
+                      {/* Columna derecha — ámbar */}
+                      <div className="bg-amber-100 rounded-2xl p-2 space-y-2">
+                        {(
+                          [TIPOS_OPERACION[2], TIPOS_OPERACION[3]] as const
+                        ).map(
+                          ({ value, label, description, icon: Icon, tags }) => {
+                            const isSelected = field.value === value;
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => field.onChange(value)}
+                                className={cn(
+                                  "w-full text-left p-4 rounded-xl border-2 transition-all duration-150",
+                                  isSelected
+                                    ? "border-teal-500 bg-teal-50/80"
+                                    : "border-transparent bg-white/70 hover:bg-white hover:border-amber-200",
+                                )}>
+                                <div className="flex items-start gap-3">
+                                  <Icon
+                                    className={cn(
+                                      "w-5 h-5 mt-0.5 shrink-0",
+                                      isSelected
+                                        ? "text-teal-600"
+                                        : "text-amber-400",
+                                    )}
+                                  />
+                                  <div className="min-w-0">
+                                    <p
+                                      className={cn(
+                                        "font-semibold text-sm leading-snug",
+                                        isSelected
+                                          ? "text-teal-700"
+                                          : "text-gray-700",
+                                      )}>
+                                      {label}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-0.5 leading-snug">
+                                      {description}
+                                    </p>
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {tags.map((tag) => (
+                                        <span
+                                          key={tag}
+                                          className="text-[10px] font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          },
+                        )}
+                      </div>
                     </div>
                     <FormMessage className="mt-2" />
                   </FormItem>
@@ -2290,10 +2484,18 @@ const PaseEntradaTransportistaPage = () => {
             </div>
 
             {/* Quien recibe */}
-            <SeccionQuienRecibe form={form} empleados={empleados} defaultCountry={defaultCountry} />
+            <SeccionQuienRecibe
+              form={form}
+              empleados={empleados}
+              defaultCountry={defaultCountry}
+            />
 
             {/* Segunda persona */}
-            <SeccionSegundaPersona form={form} tipo={tipoOperacion} defaultCountry={defaultCountry} />
+            <SeccionSegundaPersona
+              form={form}
+              tipo={tipoOperacion}
+              defaultCountry={defaultCountry}
+            />
 
             {/* Material */}
             <SeccionMaterial
@@ -2310,7 +2512,13 @@ const PaseEntradaTransportistaPage = () => {
             />
 
             {/* Lugar de recolección (tipos 2 y 3) */}
-            {tieneRecoleccion && <SeccionLugarRecoleccion form={form} defaultCountry={defaultCountry} proveedores={proveedores} />}
+            {tieneRecoleccion && (
+              <SeccionLugarRecoleccion
+                form={form}
+                defaultCountry={defaultCountry}
+                proveedores={proveedores}
+              />
+            )}
 
             {/* Lugar de entrega / recepción */}
             <SeccionProgramacion {...programacionProps} />

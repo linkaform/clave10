@@ -113,34 +113,38 @@ export const getAndenes = () =>
     option: "get_andenes",
   });
 
-export const getPassTransportista = (record_id: string) =>
+export const getPassTransportista = (record_id: string, account_id?: number | string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "transportistas.py",
     option: "get_pass_transportista",
     record_id,
-  }, {}, true);
+    ...(account_id !== undefined && { account_id }),
+  });
 
-export const getPassTransportistaByToken = (token: string) =>
+export const getPassTransportistaByToken = (token: string, account_id?: number | string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "transportistas.py",
     option: "get_pass_transportista",
     token,
-  }, {}, true);
+    ...(account_id !== undefined && { account_id }),
+  });
 
-export const generateSubmitTokenTransportista = (record_id: string) =>
+export const generateSubmitTokenTransportista = (record_id: string, account_id?: number | string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "transportistas.py",
     option: "generate_submit_token_transportista",
     record_id,
-  }, {}, true);
+    ...(account_id !== undefined && { account_id }),
+  });
 
-export const validateTokenTransportista = (record_id: string, token: string) =>
+export const validateTokenTransportista = (record_id: string, token: string, account_id?: number | string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "transportistas.py",
     option: "validate_token",
     record_id,
     token,
-  }, {}, true);
+    ...(account_id !== undefined && { account_id }),
+  });
 
 export const getLocationData = (location: string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
@@ -160,4 +164,12 @@ export const getProveedoresTransportista = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "transportistas.py",
     option: "get_proveedores_transportista",
+  });
+
+export const updateInformationTransportista = (payload: unknown, account_id?: number | string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "update_information_transportista",
+    payload,
+    ...(account_id !== undefined && { account_id }),
   });
