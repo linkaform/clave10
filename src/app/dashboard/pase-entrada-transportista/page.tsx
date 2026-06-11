@@ -93,6 +93,7 @@ function prefijoToCountry(prefijo?: number): string {
 interface Documento {
   id: string;
   tipo: string;
+  tipo_es_nuevo: boolean;
   no_doc: string;
   archivo: File | null;
   file_name: string;
@@ -766,7 +767,7 @@ function SeccionMaterial({
   onRemoveDoc: (id: string) => void;
   onArchivoDoc: (id: string, file: File) => void;
   onAddDoc: () => void;
-  onChangeDocField: (id: string, field: "tipo" | "no_doc", value: string) => void;
+  onChangeDocField: (id: string, field: "tipo" | "no_doc", value: string, isNuevo?: boolean) => void;
   materialItems: MaterialItem[];
   onAddMaterialItem: () => void;
   onRemoveMaterialItem: (id: string) => void;
@@ -807,9 +808,10 @@ function SeccionMaterial({
                 <tr key={doc.id} className="border-b border-gray-100 last:border-0 group">
                   {/* Tipo */}
                   <td className="px-3 py-2">
-                    <ComboboxField
+                    <CreatableComboboxField
                       value={doc.tipo ?? ""}
-                      onChange={(v) => onChangeDocField(doc.id, "tipo", v)}
+                      isNuevo={doc.tipo_es_nuevo}
+                      onSelect={(v, isNew) => onChangeDocField(doc.id, "tipo", v, isNew)}
                       options={TIPOS_DOCUMENTO as unknown as string[]}
                       placeholder="Buscar tipo..."
                     />
@@ -1930,6 +1932,7 @@ const PaseEntradaTransportistaPage = () => {
   const emptyDoc = (): Documento => ({
     id: crypto.randomUUID(),
     tipo: "",
+    tipo_es_nuevo: false,
     no_doc: "",
     archivo: null,
     file_name: "",
@@ -1938,8 +1941,11 @@ const PaseEntradaTransportistaPage = () => {
   });
   const [documentos, setDocumentos] = useState<Documento[]>([emptyDoc()]);
 
-  const handleChangeDocField = (id: string, field: "tipo" | "no_doc", value: string) =>
-    setDocumentos((p) => p.map((d) => (d.id === id ? { ...d, [field]: value } : d)));
+  const handleChangeDocField = (id: string, field: "tipo" | "no_doc", value: string, isNuevo?: boolean) =>
+    setDocumentos((p) => p.map((d) => d.id === id
+      ? { ...d, [field]: value, ...(field === "tipo" && { tipo_es_nuevo: isNuevo ?? false }) }
+      : d
+    ));
 
   const emptyMaterialItem = (): MaterialItem => ({
     id: crypto.randomUUID(),
@@ -2230,58 +2236,60 @@ const PaseEntradaTransportistaPage = () => {
                 name="tipo_operacion"
                 render={({ field }) => (
                   <FormItem>
-                    <div className="grid grid-cols-2 gap-2">
-                      {TIPOS_OPERACION.map(
-                        ({ value, label, description, icon: Icon, tags }) => {
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Columna izquierda — azul */}
+                      <div className="bg-blue-100 rounded-2xl p-2 space-y-2">
+                        {([TIPOS_OPERACION[0], TIPOS_OPERACION[1]] as const).map(({ value, label, description, icon: Icon, tags }) => {
                           const isSelected = field.value === value;
                           return (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => field.onChange(value)}
+                            <button key={value} type="button" onClick={() => field.onChange(value)}
                               className={cn(
-                                "text-left p-4 rounded-xl border-2 transition-all duration-150",
-                                isSelected
-                                  ? "border-teal-500 bg-teal-50/50"
-                                  : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50",
+                                "w-full text-left p-4 rounded-xl border-2 transition-all duration-150",
+                                isSelected ? "border-teal-500 bg-teal-50/80" : "border-transparent bg-white/70 hover:bg-white hover:border-blue-200",
                               )}>
                               <div className="flex items-start gap-3">
-                                <Icon
-                                  className={cn(
-                                    "w-5 h-5 mt-0.5 shrink-0",
-                                    isSelected
-                                      ? "text-teal-600"
-                                      : "text-gray-400",
-                                  )}
-                                />
+                                <Icon className={cn("w-5 h-5 mt-0.5 shrink-0", isSelected ? "text-teal-600" : "text-blue-400")} />
                                 <div className="min-w-0">
-                                  <p
-                                    className={cn(
-                                      "font-semibold text-sm leading-snug",
-                                      isSelected
-                                        ? "text-teal-700"
-                                        : "text-gray-700",
-                                    )}>
-                                    {label}
-                                  </p>
-                                  <p className="text-xs text-gray-400 mt-0.5 leading-snug">
-                                    {description}
-                                  </p>
+                                  <p className={cn("font-semibold text-sm leading-snug", isSelected ? "text-teal-700" : "text-gray-700")}>{label}</p>
+                                  <p className="text-xs text-gray-400 mt-0.5 leading-snug">{description}</p>
                                   <div className="flex flex-wrap gap-1 mt-2">
                                     {tags.map((tag) => (
-                                      <span
-                                        key={tag}
-                                        className="text-[10px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                                        {tag}
-                                      </span>
+                                      <span key={tag} className="text-[10px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{tag}</span>
                                     ))}
                                   </div>
                                 </div>
                               </div>
                             </button>
                           );
-                        },
-                      )}
+                        })}
+                      </div>
+
+                      {/* Columna derecha — ámbar */}
+                      <div className="bg-amber-100 rounded-2xl p-2 space-y-2">
+                        {([TIPOS_OPERACION[2], TIPOS_OPERACION[3]] as const).map(({ value, label, description, icon: Icon, tags }) => {
+                          const isSelected = field.value === value;
+                          return (
+                            <button key={value} type="button" onClick={() => field.onChange(value)}
+                              className={cn(
+                                "w-full text-left p-4 rounded-xl border-2 transition-all duration-150",
+                                isSelected ? "border-teal-500 bg-teal-50/80" : "border-transparent bg-white/70 hover:bg-white hover:border-amber-200",
+                              )}>
+                              <div className="flex items-start gap-3">
+                                <Icon className={cn("w-5 h-5 mt-0.5 shrink-0", isSelected ? "text-teal-600" : "text-amber-400")} />
+                                <div className="min-w-0">
+                                  <p className={cn("font-semibold text-sm leading-snug", isSelected ? "text-teal-700" : "text-gray-700")}>{label}</p>
+                                  <p className="text-xs text-gray-400 mt-0.5 leading-snug">{description}</p>
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {tags.map((tag) => (
+                                      <span key={tag} className="text-[10px] font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{tag}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                     <FormMessage className="mt-2" />
                   </FormItem>
