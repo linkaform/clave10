@@ -10,14 +10,15 @@ interface Props {
   onClose: () => void;
   id: string;
   folio: string;
+  accountId?: number;
 }
 
-export function PaseTransportistaSuccessModal({ open, onClose, id, folio }: Props) {
+export function PaseTransportistaSuccessModal({ open, onClose, id, folio, accountId }: Props) {
   const [copied, setCopied] = useState(false);
 
   const url = typeof window !== "undefined"
-    ? `${window.location.origin}/transportistas/preview/EDMP/${id}`
-    : `/transportistas/preview/EDMP/${id}`;
+    ? `${window.location.origin}/transportistas/preview/transportista/${id}${accountId ? `?p_id=${accountId}` : ""}`
+    : `/transportistas/preview/transportista/${id}${accountId ? `?p_id=${accountId}` : ""}`;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(url);
