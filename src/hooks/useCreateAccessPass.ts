@@ -56,7 +56,7 @@ export type Access_pass={
     todas_las_areas?:boolean
     habilitar_vehiculo:string
     acompanantes: number | any[];
-    acompanantes_grupo:Miembro[]
+    acompanantes_grupo?:Miembro[]
 }
 
 export const useCreateAccessPase = (location: string, access_pass: Access_pass|null, enviar_pre_sms: enviar_pre_sms|null) => {
