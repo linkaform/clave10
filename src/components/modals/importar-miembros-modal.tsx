@@ -5,13 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { CloudUpload, Download, X } from "lucide-react";
 import * as XLSX from "xlsx";
-
-export interface Miembro {
-  id: string;
-  nombre: string;
-  email: string;
-  telefono: string;
-}
+import { Miembro } from "../miembros-del-pase";
 
 interface ImportarMiembrosModalProps {
   open: boolean;

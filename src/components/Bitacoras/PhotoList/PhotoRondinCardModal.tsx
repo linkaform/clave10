@@ -1115,7 +1115,7 @@ export function PhotoRondinCardModal({
           </div>
             <div className="flex-1 mb-5 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
               <div className="h-full w-full">
-                <MapView map_data={mapData??[]} areas={record?.areas || []}/>
+                {/* <MapView map_data={mapData??[]} areas={record?.areas || []}/> */}
               </div>
             </div>
             {(() => {

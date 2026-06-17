@@ -84,11 +84,11 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
     account_id: userIdSoter,
     isModalOpen: open,
   });
-  console.log('tiposEquiposData=', tiposEquiposData);
   const catTiposEquipos = (Array.isArray(tiposEquiposData) ? tiposEquiposData : tiposEquiposData?.data ?? []).map((tipo: string) => ({
     value: tipo,
     label: tipo,
   }));
+
   const normalizar = (str: string) =>
     str
       .toLowerCase()

@@ -39,6 +39,9 @@ import { useGetListRecorridos } from "@/hooks/Rondines/useGetListRecorridos";
 import { applyRecorridosFilters } from "@/hooks/Rondines/recorridos/useRecorridosFilters ";
 import Swal from "sweetalert2";
 import { CustomSpinner } from "@/components/custom-spinner";
+import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
+import { useBoothStore } from "@/store/useBoothStore";
+import { useAsignarRondin } from "@/hooks/Rondines/rondines/useAsignarRondin";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
@@ -119,6 +122,14 @@ const RecorridosTable: React.FC<ListProps> = ({
   const { editAreasRodindMutation, isLoading: isLoadingEditAreas } = useEditAreasRondin();
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
   const [rondinSeleccionado, setRondinSeleccionado] = useState<Recorrido | null>(null);
+  const {location}= useBoothStore()
+  const { mutate: asignarRondinMutation, isPending: isLoadingAsignar } = useAsignarRondin();
+  const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<string>("");
+  const { data: dataEmpleados, isLoading: loadingEmpleados } = useCatalogoAreaEmpleado(
+  verRondin, 
+  location ?? "", 
+  "Incidencias"
+);
   // const [verRondin, setVerRondin] = useState(false);
 
   // const { location } = useBoothStore();
@@ -145,7 +156,7 @@ const RecorridosTable: React.FC<ListProps> = ({
     () => externalFiltersProp ?? { dynamic: {}, dateFilter: "" },
     [externalFiltersProp]
   );
-  
+
   const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   const { data: rondin, isLoadingRondin } = useGetRondinById(
@@ -269,8 +280,26 @@ const RecorridosTable: React.FC<ListProps> = ({
   useEffect(() => {
     setTotalRegistros(filteredData.length);
   }, [filteredData, setTotalRegistros]);
+  
+  const handleAsignar = () => {
+    const folio = rondinSeleccionado?._id ?? "";
+    const data = tipoAsignado === "guardia" 
+      ? ["responsable_en_turno"] 
+      : [empleadoSeleccionado];
+    asignarRondinMutation({ folio, data });
+  };
 
-
+  useEffect(() => {
+    if (rondin?.asignado_a) {
+      if (rondin.asignado_a === "responsable_en_turno") {
+        setTipoAsignado("guardia");
+        setEmpleadoSeleccionado("responsable_en_turno");
+      } else {
+        setTipoAsignado("persona");
+        setEmpleadoSeleccionado(rondin.asignado_a);
+      }
+    }
+  }, [rondin]);
 
   const [areas, setAreas] = useState(rondin?.areas || []);
 
@@ -336,12 +365,6 @@ const RecorridosTable: React.FC<ListProps> = ({
 
             {(() => {
               const isPaused = rondin?.estatus_rondin !== "Corriendo";
-              const DEMO_PERSONAS = [
-                { id: "1", nombre: "Carlos Méndez" },
-                { id: "2", nombre: "Laura García" },
-                { id: "3", nombre: "Roberto Solis" },
-                { id: "4", nombre: "Ana Torres" },
-              ];
               const inputClass = (enabled: boolean) =>
                 `w-full px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
                   enabled
@@ -475,33 +498,61 @@ const RecorridosTable: React.FC<ListProps> = ({
                       </label>
                       <input type="text" disabled={!isPaused} defaultValue={rondin?.recurrencia || ""} className={inputClass(isPaused)} />
                     </div>
-
                     <div className="flex flex-col gap-1.5 lg:col-span-2">
                       <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
                         <User className="w-3.5 h-3.5" /> Asignado a
                       </label>
                       <div className="flex items-center gap-2 flex-wrap">
                         <button type="button" disabled={!isPaused}
-                          onClick={() => setTipoAsignado("guardia")}
+                          onClick={() => {
+                            setTipoAsignado("guardia");
+                            setEmpleadoSeleccionado("responsable_en_turno");
+                          }}
                           className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap ${
-                            tipoAsignado === "guardia" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                            tipoAsignado === "guardia" 
+                              ? "bg-gray-900 text-white border-gray-900" 
+                              : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
                           } ${!isPaused ? "opacity-50 cursor-not-allowed" : ""}`}>
-                          Guardia en turno
+                          Responsable en turno
                         </button>
                         <button type="button" disabled={!isPaused}
                           onClick={() => setTipoAsignado("persona")}
                           className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap ${
-                            tipoAsignado === "persona" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                            tipoAsignado === "persona" 
+                              ? "bg-gray-900 text-white border-gray-900" 
+                              : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
                           } ${!isPaused ? "opacity-50 cursor-not-allowed" : ""}`}>
                           Persona específica
                         </button>
+
                         {tipoAsignado === "persona" && (
-                          <select disabled={!isPaused} defaultValue={rondin?.asignado_a || ""} className={`${selectClass(isPaused, false)} flex-1 min-w-[180px]`}>
+                          <select
+                            disabled={!isPaused}
+                            value={empleadoSeleccionado}
+                            onChange={(e) => setEmpleadoSeleccionado(e.target.value)}
+                            className={`${selectClass(isPaused, false)} flex-1 min-w-[180px]`}>
                             <option value="">Selecciona una persona</option>
-                            {DEMO_PERSONAS.map((p) => (
-                              <option key={p.id} value={p.nombre}>{p.nombre}</option>
-                            ))}
+                            {loadingEmpleados ? (
+                              <option disabled>Cargando...</option>
+                            ) : (
+                              dataEmpleados?.map((empleado: string, i: number) => (
+                                <option key={i} value={empleado}>{empleado}</option>
+                              ))
+                            )}
                           </select>
+                        )}
+
+                        {/* Botón confirmar */}
+                        {isPaused && (
+                          <button
+                            type="button"
+                            onClick={handleAsignar}
+                            disabled={isLoadingAsignar || (tipoAsignado === "persona" && !empleadoSeleccionado)}
+                            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                            {isLoadingAsignar 
+                              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Asignando...</> 
+                              : "Confirmar asignación"}
+                          </button>
                         )}
                       </div>
                     </div>
