@@ -227,7 +227,7 @@ const PasesEntradaTable: React.FC<ListProps> = ({
       },
       {
         accessorKey: "fecha_desde_visita",
-        header: "Fecha de creación",
+        header: "Fecha de inicio",
         cell: ({ row }: { row: Row<any> }) => {
           const fecha = row.getValue("fecha_desde_visita");
           const fechaSinSegundos =
