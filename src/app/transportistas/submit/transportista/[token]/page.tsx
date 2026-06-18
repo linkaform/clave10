@@ -233,7 +233,9 @@ export default function SubmitTransportistaPage({
   const pId = searchParams.get("p_id");
   const accountId: number | undefined = isAuth
     ? (userParentId ?? undefined)
-    : (pId ? parseInt(pId, 10) : undefined);
+    : pId
+      ? parseInt(pId, 10)
+      : undefined;
 
   // ── Gate: token ──
   const [tokenInput, setTokenInput] = useState("");
@@ -325,7 +327,7 @@ export default function SubmitTransportistaPage({
 
   // ── Contenedores ──
   const [contenedores, setContenedores] = useState([
-    { id: crypto.randomUUID(), numero: "", sello: "", tipo: "" },
+    { id: "contenedor-0", numero: "", sello: "", tipo: "" },
   ]);
   const addContenedor = () =>
     setContenedores((p) => [
@@ -508,12 +510,25 @@ export default function SubmitTransportistaPage({
 
   // ── Copiar URL ──
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const pageUrl = typeof window !== "undefined" ? window.location.href : "";
+  const [pageUrl, setPageUrl] = useState("");
+  useEffect(() => {
+    setPageUrl(window.location.href);
+  }, []);
   const handleCopyUrl = async () => {
     await navigator.clipboard.writeText(pageUrl);
     setCopiedUrl(true);
     setTimeout(() => setCopiedUrl(false), 2500);
   };
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted)
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <span className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+      </div>
+    );
 
   // ── Gate: ingresar token ──
   if (!tokenValidated)
@@ -521,9 +536,6 @@ export default function SubmitTransportistaPage({
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-5">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-              K
-            </div>
             <span className="text-sm text-gray-500">
               Clave10 · Pase de entrada
             </span>
@@ -614,9 +626,6 @@ export default function SubmitTransportistaPage({
       <div className="w-full max-w-4xl mx-auto space-y-5">
         {/* Cabecera */}
         <div className="flex items-center gap-2 px-1">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-            K
-          </div>
           <span className="text-sm text-gray-500">
             Clave10 <span className="text-gray-300">·</span> Datos de transporte
           </span>
