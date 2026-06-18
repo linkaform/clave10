@@ -88,6 +88,7 @@ export type RondinPayload = {
   cron_conf: string;
   accion_recurrencia: string;
   tipo_rondin: string;
+  area:string
 };
 
 const cronRegex =
@@ -128,6 +129,7 @@ const formSchema = z.object({
     .optional()
     .or(z.literal("")),
   tipo_rondin: z.string().optional(),
+  area: z.string().optional(),
 });
 
 function SectionCard({
@@ -170,7 +172,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 
   const { location } = useBoothStore();
   const [areasSeleccionadas, setAreasSeleccionadas] = useState<any[]>([]);
-  const [asignadoA, setAsignadoA] = useState<string>("guardia_en_turno");
+  const [asignadoA, setAsignadoA] = useState<string>("responsable_en_turno");
+  const [personaEspecifica, setPersonaEspecifica] = useState<string>("");
   const { createRondinMutation, isLoading } = useRondines();
   const { editarRondinMutation, isLoading: isLoadingEdit } = useEditarRondin();
   const [date, setDate] = useState<Date | "">("");
@@ -183,8 +186,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   const [mostrarFrecuencia, setMostrarFrecuencia] = useState(false);
   const [noRecurrente, setNoRecurrente] = useState(false);
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location ?? "");
-
-  const { dataLocations: ubicaciones } = useCatalogoPaseAreaLocation(
+  const [mostrarArea, setMostrarArea] = useState(false);
+  const { dataLocations: ubicaciones ,dataAreas: areas} = useCatalogoPaseAreaLocation(
     ubicacionSeleccionada,
     isSuccess,
     location ? true : false,
@@ -208,6 +211,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       nombre_rondin: "",
       duracion_estimada: "",
       ubicacion: "",
+      area:"",
       areas: [],
       grupo_asignado: "",
       fecha_hora_programada: "",
@@ -247,7 +251,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       set_en_que_semana_sucede("");
       set_todas_las_semanas(false);
       set_en_que_mes([]);
-      setAsignadoA("guardia_en_turno");
+      setAsignadoA("responsable_en_turno");
+      setPersonaEspecifica(""); 
+      setMostrarArea(false);
+      form.setValue("area", "");
       reset();
     }
   }, [isSuccess]);
@@ -298,7 +305,11 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       se_repite_cada: values.se_repite_cada,
       cron_conf: "",
       tipo_rondin: values.tipo_rondin,
+      asignado_a: asignadoA === "persona_especifica" 
+      ? personaEspecifica 
+      : asignadoA,
       ...recurrenciaFiltrada,
+      area: values.area ?? "",
     };
 
     if (mode == "edit" && folio) {
@@ -444,7 +455,12 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         setAreasSeleccionadas(cat);
       }
       if (rondinData?.asignado_a) {
-        setAsignadoA(rondinData.asignado_a);
+        if (rondinData.asignado_a === "responsable_en_turno") {
+          setAsignadoA("responsable_en_turno");
+        } else {
+          setAsignadoA("persona_especifica");
+          setPersonaEspecifica(rondinData.asignado_a); 
+        }
       }
       if (rondinData?.que_dias_de_la_semana?.length > 0) {
         set_que_dias_de_la_semana(
@@ -484,6 +500,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         en_que_mes: rondinData.en_que_mes || [],
         sucede_recurrencia: rondinData.sucede_recurrencia || [],
         tipo_rondin: rondinData.tipo_rondin || "",
+        area: rondinData.area || "",
       });
     }
   }, [mode, rondinData, isSuccess, catalogAreasRondin, reset]);
@@ -589,6 +606,43 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                     )}
                   />
 
+                {/* Toggle área */}
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={mostrarArea}
+                    onCheckedChange={(v) => {
+                      setMostrarArea(v);
+                      if (!v) form.setValue("area", "");
+                    }}
+                  />
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Asignar un área
+                  </span>
+                </div>
+
+                {mostrarArea && (
+                  <FormField
+                    control={form.control}
+                    name="area"
+                    render={({ field }: any) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          Área
+                        </FormLabel>
+                        <MultiSelect
+                          placeholder="Área"
+                          className="border border-slate-100 rounded-2xl"
+                          options={formatForMultiselect(areas ?? [])}
+                          onChange={(selectedOption) => {
+                            field.onChange(selectedOption ? selectedOption.value : "");
+                          }}
+                          isClearable
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                   <FormField
                     control={form.control}
                     name="nombre_rondin"
@@ -692,29 +746,49 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5" /> Asignado a
                     </label>
-                    <Select value={asignadoA} onValueChange={setAsignadoA}>
+                    <Select value={asignadoA} onValueChange={(val) => {
+                      setAsignadoA(val);
+                      // Si cambia de persona_especifica, limpiar la selección
+                      if (val !== "persona_especifica") setPersonaEspecifica("");
+                    }}>
                       <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
-                        <SelectValue placeholder="Selecciona una persona" />
+                        <SelectValue placeholder="Selecciona una opción" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="guardia_en_turno">
-                          Guardia en turno
+                        {/* CAMBIO 1: renombrar label */}
+                        <SelectItem value="responsable_en_turno">
+                          Responsable de Turno
                         </SelectItem>
-                        {loadingEmpleados ? (
-                          <SelectItem value="cargando" disabled>
-                            <span className="flex items-center gap-2">
-                              <Loader2 className="w-3 h-3 animate-spin" /> Cargando...
-                            </span>
-                          </SelectItem>
-                        ) : (
-                          dataEmpleados?.map((empleado: string, i: number) => (
-                            <SelectItem key={i} value={empleado}>
-                              {empleado}
-                            </SelectItem>
-                          ))
-                        )}
+                        {/* CAMBIO 2: nueva opción */}
+                        <SelectItem value="persona_especifica">
+                          Persona específica
+                        </SelectItem>
                       </SelectContent>
                     </Select>
+
+                    {/* CAMBIO 3: segundo selector condicional */}
+                    {asignadoA === "persona_especifica" && (
+                      <Select value={personaEspecifica} onValueChange={setPersonaEspecifica}>
+                        <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50 mt-2">
+                          <SelectValue placeholder="Selecciona una persona" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {loadingEmpleados ? (
+                            <SelectItem value="cargando" disabled>
+                              <span className="flex items-center gap-2">
+                                <Loader2 className="w-3 h-3 animate-spin" /> Cargando...
+                              </span>
+                            </SelectItem>
+                          ) : (
+                            dataEmpleados?.map((empleado: string, i: number) => (
+                              <SelectItem key={i} value={empleado}>
+                                {empleado}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
               </SectionCard>

@@ -638,7 +638,7 @@ const PaseUpdate = () => {
         parentUserId={account_id}
       />
       {dataCatalogos?.pass_selected?.estatus == "proceso" ? (
-        <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 pt-0">
+        <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 pt-0">
           <h1 className="font-bold text-2xl text-center text-slate-800">
             Pase De Entrada
           </h1>
@@ -830,13 +830,17 @@ const PaseUpdate = () => {
           </div>
           {dataCatalogos && dataCatalogos.pass_selected && (dataCatalogos.pass_selected?.acompanantes ?? 0) > 0 &&
             <MiembrosPase
-            miembros={miembrosAcompanantes}
-            title={"Acompañantes"}
-            setMiembros={setMiembrosAcompanantes}
-            rowErrors={{}}
-            setRowErrors={() => {}}
-            useIA
-            acompantes={3}
+              miembros={miembrosAcompanantes}
+              setMiembros={setMiembrosAcompanantes}
+              rowErrors={{}}
+              setRowErrors={() => {}}
+              useIA
+              showCreatePass
+              showDownload
+              showShare
+              onCreatePass={(m) => console.log("crear pase", m)}
+              onDownload={(m) => console.log("descargar", m)}
+              onShare={(m) => console.log("compartir", m)}
             />
           }
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />

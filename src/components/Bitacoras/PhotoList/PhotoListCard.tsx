@@ -212,7 +212,7 @@ console.log("gafeteItem:", gafeteItem);
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div style={{ height: "240px", width: "100%" }}>
-                    {/* <MapView map_data={(mapData ?? []).map((item) => ({...item,foto_area: item.foto_area,}))} /> */}
+                    <MapView map_data={(mapData ?? []).map((item) => ({...item,foto_area: item.foto_area,}))} />
                   </div>
                 </div>
               </div>

@@ -1,3 +1,4 @@
+import { Miembro } from "@/components/miembros-del-pase";
 import { createPase } from "@/lib/create-access-pass";
 import { useQuery } from "@tanstack/react-query";
 
@@ -55,6 +56,7 @@ export type Access_pass={
     todas_las_areas?:boolean
     habilitar_vehiculo:string
     acompanantes: number | any[];
+    acompanantes_grupo?:Miembro[]
 }
 
 export const useCreateAccessPase = (location: string, access_pass: Access_pass|null, enviar_pre_sms: enviar_pre_sms|null) => {

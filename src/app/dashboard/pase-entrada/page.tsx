@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { z } from "zod";
 import Multiselect from "multiselect-react-dropdown";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ import { useAssetsByLocations } from "@/hooks/assetsQueries";
 import DateTimePicker from "@/components/dateTimerPicker";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
 
 const formSchema = z
   .object({
@@ -335,6 +336,8 @@ const PaseEntradaPage = () => {
   const [isOpenModal, setOpenModal] = useState(false);
   const [todasAreas, setTodasAreas] = useState(true);
   const today = new Date().toISOString().split("T")[0];
+  const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
+  const [miembrosRowErrors, setMiembrosRowErrors] = useState<Record<string, { email: boolean; telefono: boolean }>>({});
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -497,6 +500,7 @@ const PaseEntradaPage = () => {
       todas_las_areas: todasAreas,
       habilitar_vehiculo: habilitarVehiculo ? "sí" : "no",
       acompanantes: Number(data.acompanantes) || 0,
+      acompanantes_grupo:miembrosAcompanantes|| []
     };
 
     if (tipoVisita == "fecha_fija" && !date) {
@@ -539,6 +543,7 @@ const PaseEntradaPage = () => {
   const handleToggleAdvancedOptions = () => {
     setIsActiveAdvancedOptions(!isActiveAdvancedOptions);
   };
+  const acompanantesValue = useWatch({ control: form.control, name: "acompanantes" });
 
   const handleToggleTipoVisitaPase = (tipo: string) => {
     if (tipo == "fecha_fija") {
@@ -718,11 +723,11 @@ const PaseEntradaPage = () => {
                     className="bg-transparent rounded-none px-4 pb-2 pt-1 text-sm font-medium text-gray-500 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=inactive]:hover:text-gray-700 shadow-none">
                     Datos del visitante
                   </TabsTrigger>
-                  {/* <TabsTrigger
+                  <TabsTrigger
                     value="miembros-grupo"
                     className="bg-transparent rounded-none px-4 pb-2 pt-1 text-sm font-medium text-gray-500 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=inactive]:hover:text-gray-700 shadow-none">
-                    Miembros del pase
-                  </TabsTrigger> */}
+                    Acompañantes
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="datos-visita">
@@ -937,14 +942,17 @@ const PaseEntradaPage = () => {
                   </div>
                 </TabsContent>
 
-                {/* <TabsContent value="miembros-grupo">
+                <TabsContent value="miembros-grupo">
                   <MiembrosPase
-                    miembros={miembros}
-                    setMiembros={setMiembros}
+                    miembros={miembrosAcompanantes}
+                    setMiembros={setMiembrosAcompanantes}
                     rowErrors={miembrosRowErrors}
                     setRowErrors={setMiembrosRowErrors}
+                    title="Acompañantes"
+                    useIA
+                    acompantes={acompanantesValue || 0}
                   />
-                </TabsContent> */}
+                </TabsContent>
               </Tabs>
             </div>
 

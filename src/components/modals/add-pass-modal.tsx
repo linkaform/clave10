@@ -16,7 +16,8 @@ import { usePaseEntrada } from "@/hooks/usePaseEntrada";
 import useAuthStore from "@/store/useAuthStore";
 import { Badge } from "../ui/badge";
 import { capitalizeFirstLetter } from "@/lib/utils";
-
+import { Miembro } from "../miembros-del-pase";
+import Image from "next/image";
 
 export type Visita={
   puesto: string;
@@ -56,6 +57,7 @@ interface EntryPassUpdateModalProps {
 	todas_las_areas:boolean;
 	habilitar_vehiculo:string;
 	acompanantes:number;
+	acompanantes_grupo:Miembro[];
   };
   isSuccess: boolean;
   setIsSuccess: Dispatch<SetStateAction<boolean>>;
@@ -142,7 +144,8 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
       },
 	  todas_las_areas:dataPass.todas_las_areas,
 	  habilitar_vehiculo:dataPass.habilitar_vehiculo,
-	  acompanantes:dataPass.acompanantes
+	  acompanantes:dataPass.acompanantes,
+	  acompanantes_grupo: dataPass.acompanantes_grupo ?? [],
     };
     const enviarPreSms : enviar_pre_sms= {
       from: dataPass.enviar_pre_sms.from,
@@ -319,22 +322,53 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 				</div>
 				{/* Acompañantes */}
 				{(dataPass?.acompanantes ?? 0) > 0 && (
-				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-					<div className="flex items-center justify-between">
-					<div className="flex items-center gap-2">
-						<div className="bg-blue-50 p-1.5 rounded-lg">
-						<UserRound size={16} className="text-blue-600" />
+					<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+						<div className="flex items-center justify-between mb-3">
+						<div className="flex items-center gap-2">
+							<div className="bg-blue-50 p-1.5 rounded-lg">
+							<UserRound size={16} className="text-blue-600" />
+							</div>
+							<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+							Acompañantes
+							</span>
 						</div>
-						<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-						Acompañantes
-						</span>
+						<Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none font-black text-[10px]">
+							{dataPass.acompanantes} {dataPass.acompanantes === 1 ? "persona" : "personas"}
+						</Badge>
+						</div>
+
+						{dataPass?.acompanantes_grupo && dataPass.acompanantes_grupo.filter(m => m.nombre?.trim()).length > 0 && (
+						<div className="space-y-2 pt-3 border-t border-gray-50">
+							{dataPass.acompanantes_grupo
+							.filter((m) => m.nombre?.trim())
+							.map((m, index) => (
+								<div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+								{m.foto?.[0]?.file_url ? (
+									<Image
+									src={m.foto[0].file_url}
+									alt="foto"
+									width={32}
+									height={32}
+									className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+									/>
+								) : (
+									<div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+									<UserRound size={14} className="text-blue-500" />
+									</div>
+								)}
+								<div className="flex-1 min-w-0">
+									<p className="text-sm font-semibold text-gray-700 truncate">{m.nombre}</p>
+									<div className="flex gap-3 mt-0.5">
+									{m.email && <p className="text-[11px] text-gray-400 truncate">{m.email}</p>}
+									{m.telefono && <p className="text-[11px] text-gray-400">{m.telefono}</p>}
+									</div>
+								</div>
+								</div>
+							))}
+						</div>
+						)}
 					</div>
-					<Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none font-black text-[10px]">
-						{dataPass.acompanantes} {dataPass.acompanantes === 1 ? "persona" : "personas"}
-					</Badge>
-					</div>
-				</div>
-				)}
+					)}
 				{(dataPass?.areas.length > 0 || dataPass?.comentarios.length > 0) && (
 					<div className="space-y-3">
 						{dataPass?.areas.length > 0 && (

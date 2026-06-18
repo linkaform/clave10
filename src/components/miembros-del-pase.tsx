@@ -2,14 +2,14 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Users, Upload, Camera, Sparkles, Loader2, X } from "lucide-react";
+import { Users, Upload, Camera, Sparkles, Loader2, X, Download, Share2, UserPlus } from "lucide-react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import ImportarMiembrosModal from "./modals/importar-miembros-modal";
 import { useOcr } from "@/hooks/ocr/useOcr";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
-import LoadImage from "./upload-Image";
+import LoadImage, { Imagen } from "./upload-Image";
 import ViewImage from "./modals/view-image";
 
 export interface Miembro {
@@ -17,7 +17,7 @@ export interface Miembro {
   nombre: string;
   email: string;
   telefono: string;
-  foto?: string;
+  foto?: Imagen[];
   estatus?: string;
   tipo_movimiento?: string;
 }
@@ -29,7 +29,13 @@ interface MiembrosPaseProps {
   setRowErrors: React.Dispatch<React.SetStateAction<Record<string, { email: boolean; telefono: boolean }>>>;
   title?: string;
   useIA?: boolean;
-  acompantes?:number;
+  acompantes?: number;
+  showDownload?: boolean;
+  showCreatePass?: boolean;
+  showShare?: boolean;
+  onDownload?: (miembro: Miembro) => void;
+  onCreatePass?: (miembro: Miembro) => void;
+  onShare?: (miembro: Miembro) => void;
 }
 
 const isValidEmail = (val: string) =>
@@ -54,7 +60,13 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   setRowErrors,
   title = "Miembros del pase",
   useIA = false,
-  acompantes
+  acompantes,
+  showDownload = false,
+  showCreatePass = false,
+  showShare = false,
+  onDownload,
+  onCreatePass,
+  onShare,
 }) => {
   const [openImportar, setOpenImportar] = useState(false);
   const [draftRow, setDraftRow] = useState<Miembro>(EMPTY_ROW());
@@ -142,9 +154,9 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
     const uploaded = await uploadImageMutation.mutateAsync({ img: nuevoArchivo });
     if (!uploaded?.file_url) return null;
     const result = await ocrIdMutation.mutateAsync([uploaded.file_url]);
-    return { data: result?.data ?? null, file_url: uploaded.file_url }; // ← retorna también la url
+    return { data: result?.data ?? null, file_url: uploaded.file_url };
   };
-  
+
   const handleGlobalFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -163,7 +175,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
         }
       }
 
-      console.log('todosExtraidos=', todosExtraidos); 
+      console.log('todosExtraidos=', todosExtraidos);
 
       if (todosExtraidos.length > 0) {
         setMiembros((prev) => {
@@ -175,7 +187,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                 nombre: extraido.nombre || updated[filaIndex].nombre,
                 email: extraido.email || updated[filaIndex].email,
                 telefono: extraido.telefono || updated[filaIndex].telefono,
-                foto: extraido.foto || updated[filaIndex].foto, 
+                foto: extraido.foto ? [{ file_url: extraido.foto, file_name: "foto" }] : updated[filaIndex].foto,
               };
             } else {
               updated.push({
@@ -183,7 +195,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                 nombre: extraido.nombre,
                 email: extraido.email,
                 telefono: extraido.telefono,
-                foto: extraido.foto,
+                foto: extraido.foto ? [{ file_url: extraido.foto, file_name: "foto" }] : undefined,
               });
             }
           });
@@ -200,6 +212,9 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   const inpErr = inp + " text-red-500 placeholder:text-red-300";
   const th = "text-[10px] font-bold text-gray-400 uppercase tracking-wide px-3 py-2 border-r border-gray-100 last:border-r-0";
   const td = "px-3 py-2 border-r border-gray-100 last:border-r-0 align-middle";
+
+  const showActionsCol = showDownload || showCreatePass || showShare;
+  const actionsColWidth = (showCreatePass ? 90 : 0) + ((showDownload?1:0)+(showShare?1:0)+1) * 36 + 16;
 
   return (
     <>
@@ -282,6 +297,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                 <th className={th} style={{ width: "28%" }}>Email</th>
                 <th className={th} style={{ width: "22%" }}>Teléfono</th>
                 {useIA && <th className={th} style={{ width: 80 }}>Identificación</th>}
+                {showActionsCol && <th className={th} style={{ width: actionsColWidth }}>Acciones</th>}
                 <th className={th} style={{ width: 44 }}></th>
               </tr>
             </thead>
@@ -293,17 +309,17 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                     key={m.id}
                     className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${idx % 2 === 0 ? "" : "bg-gray-50/30"}`}
                   >
-                    {useIA && (
-                      <td className={td} style={{ width: 44 }}>
-                        {m.foto ? (
-                          <ViewImage imageUrl={{ file_url: m.foto, file_name: "foto" }} size="sm" />
-                        ) : (
-                          <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
-                            <Users className="w-3.5 h-3.5 text-gray-300" />
-                          </div>
-                        )}
-                      </td>
-                    )}
+                  {useIA && (
+                    <td className={td} style={{ width: 44 }}>
+                      {m.foto && m.foto.length > 0 ? (
+                        <ViewImage imageUrl={{ file_url: m.foto[0].file_url ?? "", file_name: m.foto[0].file_name ?? "foto" }} size="sm" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center">
+                          <Users className="w-4 h-4 text-blue-400" strokeWidth={2.5} />
+                        </div>
+                      )}
+                    </td>
+                  )}
                     <td className={td} style={{ width: "22%" }}>
                       <input
                         className={inp + " text-gray-700"}
@@ -341,13 +357,13 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                           showImage={false}
                           id={`id-miembro-${m.id}`}
                           titulo=""
-                          imgArray={[]} 
-                          setImg={((value: any) => {
+                          imgArray={[]}
+                         setImg={((value: any) => {
                             const arr = typeof value === "function" ? value([]) : value;
                             const url = Array.isArray(arr) ? arr?.[0]?.file_url : null;
                             if (url) {
                               setMiembros((prev) => prev.map((row) =>
-                                row.id === m.id ? { ...row, foto: url } : row
+                                row.id === m.id ? { ...row, foto: [{ file_url: url, file_name: "foto" }] } : row
                               ));
                             }
                           }) as any}
@@ -378,16 +394,52 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                         </div>
                       </td>
                     )}
-                    <td className={td} style={{ width: 44 }}>
-                      <button
-                        type="button"
-                        className="flex items-center justify-center w-6 h-6 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 transition-colors border border-red-100"
-                        onClick={() => handleEliminarDirecto(m)}
-                        title="Eliminar"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
+                 {showActionsCol && (
+                    <td className={td} style={{ width: actionsColWidth }}>
+                      <div className="flex items-center justify-center gap-1.5">
+                        {showCreatePass && (
+                          <button
+                            type="button"
+                            title="Crear pase"
+                            className="flex items-center justify-center gap-1 h-7 px-2.5 rounded-full bg-blue-600 text-white text-[10px] font-bold shadow-sm hover:bg-blue-700 transition-colors whitespace-nowrap"
+                            onClick={() => onCreatePass?.(m)}
+                          >
+                            <UserPlus className="w-3.5 h-3.5" />
+                            <span>Crear pase</span>
+                          </button>
+                        )}
+                        {showDownload && (
+                          <button
+                            type="button"
+                            title="Descargar"
+                            className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-500 text-white shadow-sm hover:bg-amber-600 transition-colors"
+                            onClick={() => onDownload?.(m)}
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {showShare && (
+                          <button
+                            type="button"
+                            title="Compartir"
+                            className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-600 text-white shadow-sm hover:bg-green-700 transition-colors"
+                            onClick={() => onShare?.(m)}
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="flex items-center justify-center w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 transition-colors border border-red-100"
+                          onClick={() => handleEliminarDirecto(m)}
+                          title="Eliminar"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
+                  )}
+                  
                   </tr>
                 );
               })}
@@ -440,6 +492,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                   </div>
                 </td>
                 {useIA && <td className={td} style={{ width: 80 }}></td>}
+                {showActionsCol && <td className={td} style={{ width: actionsColWidth }}></td>}
                 <td className={td + " text-right"} style={{ width: 44 }}>
                   {draftRow.nombre.trim() && (
                     <button
