@@ -42,6 +42,8 @@ import { CustomSpinner } from "@/components/custom-spinner";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useAsignarRondin } from "@/hooks/Rondines/rondines/useAsignarRondin";
+import { useRouter } from "next/navigation";
+import { useRecorridoStore } from "@/store/useRecorridoStore";
 
 const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
@@ -125,6 +127,8 @@ const RecorridosTable: React.FC<ListProps> = ({
   const {location}= useBoothStore()
   const { mutate: asignarRondinMutation, isPending: isLoadingAsignar } = useAsignarRondin();
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<string>("");
+  const router = useRouter();
+
   const { data: dataEmpleados, isLoading: loadingEmpleados } = useCatalogoAreaEmpleado(
   verRondin, 
   location ?? "", 
@@ -168,10 +172,11 @@ const RecorridosTable: React.FC<ListProps> = ({
     setModalEliminarAbierto(true);
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const handleVerRondin = (rondin: Recorrido) => {
-    setRondinSeleccionado(rondin);
-    setVerRondin(true);
+  const { setRecorridoSeleccionado } = useRecorridoStore();
+
+  const handleVerRondin = (recorrido: Recorrido) => {
+    setRecorridoSeleccionado(recorrido);
+    router.push(`/dashboard/ver-recorrido/${recorrido._id}`);
   };
   const [mapKey, setMapKey] = useState(0);
 

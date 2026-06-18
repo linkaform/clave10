@@ -29,7 +29,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { EqipmentLocalPassModal } from "@/components/modals/add-local-equipo";
-import { formatEquipos, formatVehiculos, isVehiculoHabilitado } from "@/lib/utils";
+import { formatEquipos, formatVehiculos, isVehiculoHabilitado, prefijoToCountry } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
@@ -37,6 +37,8 @@ import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
 import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
+import type { CountryCode } from "libphonenumber-js";
+import { useMenuStore } from "@/store/useGetMenuStore";
 const grupoEquipos = z
   .array(
     z.object({
@@ -167,6 +169,27 @@ const PaseUpdate = () => {
   const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
   const [ocrFotoResult, setOcrFotoResult] = useState<any>(null);
   const [ocrIdenResult, setOcrIdenResult] = useState<any>(null);
+  const { grupoRequisitos } = useMenuStore();
+  const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
+
+
+  useEffect(() => {
+    if (!dataCatalogos?.pass_selected?.ubicacion?.length || !grupoRequisitos?.length) return;
+
+    const ubicacionNombre = dataCatalogos.pass_selected.ubicacion[0] ?? "";
+
+    const requisito = grupoRequisitos.find(
+      (r) => r.ubicacion?.toLowerCase() === ubicacionNombre?.toLowerCase()
+    );
+
+    if (requisito?.prefijo_telefonico) {
+      const country = prefijoToCountry[String(requisito.prefijo_telefonico)] ?? "MX";
+      setDefaultCountry(country as CountryCode);
+    } else {
+      setDefaultCountry("MX");
+    }
+  }, [dataCatalogos, grupoRequisitos]);
+
   const handleOcrFotografia = (result: any) => {
     setOcrFotoResult(result?.data ?? null);
   };
@@ -840,7 +863,8 @@ const PaseUpdate = () => {
               showShare
               onCreatePass={(m) => console.log("crear pase", m)}
               onDownload={(m) => console.log("descargar", m)}
-              onShare={(m) => console.log("compartir", m)}
+              onShare={(m) => console.log("compartir", m)} 
+              defaultCountry={defaultCountry}
             />
           }
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />

@@ -951,6 +951,7 @@ const PaseEntradaPage = () => {
                     title="Acompañantes"
                     useIA
                     acompantes={acompanantesValue || 0}
+                    defaultCountry={defaultCountry}
                   />
                 </TabsContent>
               </Tabs>

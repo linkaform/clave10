@@ -11,7 +11,7 @@ import { useUploadImage } from "@/hooks/useUploadImage";
 import { quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
 import LoadImage, { Imagen } from "./upload-Image";
 import ViewImage from "./modals/view-image";
-
+import type { CountryCode } from "libphonenumber-js";
 export interface Miembro {
   id: string;
   nombre: string;
@@ -36,6 +36,7 @@ interface MiembrosPaseProps {
   onDownload?: (miembro: Miembro) => void;
   onCreatePass?: (miembro: Miembro) => void;
   onShare?: (miembro: Miembro) => void;
+  defaultCountry?: CountryCode;
 }
 
 const isValidEmail = (val: string) =>
@@ -67,6 +68,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   onDownload,
   onCreatePass,
   onShare,
+  defaultCountry = "MX",
 }) => {
   const [openImportar, setOpenImportar] = useState(false);
   const [draftRow, setDraftRow] = useState<Miembro>(EMPTY_ROW());
@@ -339,7 +341,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                     </td>
                     <td className={td} style={{ width: "22%" }}>
                       <PhoneInput
-                        defaultCountry="MX"
+                        defaultCountry={defaultCountry}
                         value={m.telefono}
                         onChange={(value) => handleEditCell(m.id, "telefono", value || "")}
                         onBlur={() => handleBlurSaved(m.id, "telefono", m.telefono)}
@@ -477,7 +479,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                     if (e.key === "Enter") { e.preventDefault(); commitDraft(); }
                   }}>
                     <PhoneInput
-                      defaultCountry="MX"
+                      defaultCountry={defaultCountry}
                       value={draftRow.telefono}
                       onChange={(value) => setDraftRow((d) => ({ ...d, telefono: value || "" }))}
                       onBlur={() => handleBlurDraft("telefono")}
