@@ -324,7 +324,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
                 </Button>
               )}
             </div>
-            <button type="button" onClick={() => handleEjecutar(rondin._id)}
+            <button type="button" onClick={() => handleEjecutar(rondin.dag_id)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full text-md font-semibold transition-all border bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100">
               {isLoadingEjecutarRecorrido ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
               Ejecutar Ahora
