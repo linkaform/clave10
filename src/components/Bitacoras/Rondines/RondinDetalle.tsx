@@ -16,7 +16,6 @@ import {
   Tag,
   Layers,
 } from "lucide-react";
-import Swal from "sweetalert2";
 import { useRecorridoStore } from "@/store/useRecorridoStore";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { capitalizeFirstLetter, formatForMultiselect } from "@/lib/utils";
@@ -26,7 +25,8 @@ import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import DateTimePicker from "@/components/dateTimerPicker";
 import { format } from "date-fns";
 import { Switch } from "@radix-ui/react-switch";
-import { Input } from "@/components/ui/input";
+import { useEjecutarRecorrido } from "@/hooks/Rondines/recorridos/useEjecutarRecorrido";
+import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 
 const RondinDetalle = ({ id }: { id: string }) => {
   const { recorridoSeleccionado } = useRecorridoStore();
@@ -44,19 +44,20 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const { editarRondinMutation, isLoading: isLoadingEdit } = useEditarRondin();
   const router = useRouter();
   const { location } = useBoothStore();
-  const { playOrPauseRondinMutation, isLoading: isLoadingPlayOrPause } = usePlayOrPauseRondin();
+  const { playOrPauseRondinMutation } = usePlayOrPauseRondin();
+  const { ejecutarRecorridoMutation, isLoading: isLoadingEjecutarRecorrido } = useEjecutarRecorrido();
   const { editAreasRodindMutation, isLoading: isLoadingEditAreas } = useEditAreasRondin();
   // const { mutate: asignarRondinMutation, isPending: isLoadingAsignar } = useAsignarRondin();
   const { data: dataEmpleados, isLoading: loadingEmpleados } = useCatalogoAreaEmpleado(true, location ?? "", "Incidencias");
 
   const [areas, setAreas] = useState<any[]>([]);
   const [areaSearch, setAreaSearch] = useState("");
-  const [tipoAsignado, setTipoAsignado] = useState<"guardia" | "persona">("guardia");
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState("");
   const [ubicacionesLS, setUbicacionesLS] = useState<string[]>([]);
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(rondin?.ubicacion || "");
-
+  const [tipoAsignado, setTipoAsignado] = useState<"guardia" | "persona" | "grupo">("guardia");
+  const [grupoSeleccionado, setGrupoSeleccionado] = useState("");
   const [recurrenciaSeleccionada, setRecurrenciaSeleccionada] = useState("");
   const [que_dias_de_la_semana, set_que_dias_de_la_semana] = useState<string[]>([]);
   const [en_que_semana_sucede, set_en_que_semana_sucede] = useState<string>("");
@@ -69,10 +70,11 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const [cada_cuantos_meses_se_repite, set_cada_cuantos_meses_se_repite] = useState<number>(0);
   const [que_dia_del_mes, set_que_dia_del_mes] = useState("");
   const [cron_conf, set_cron_conf] = useState("");
-
+  const [isLoadingPause, setIsLoadingPause] = useState(false);
+  const [isLoadingPlay, setIsLoadingPlay] = useState(false);
   const diasSemana = ["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
   const mesesDelAño = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-
+  const { data: dataGrupos, isLoading: loadingGrupos } = useCatalogoGrupos(true); 
   function toggleDia(dia: string) {
     set_que_dias_de_la_semana((prev) =>
       prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia]
@@ -162,24 +164,42 @@ const RondinDetalle = ({ id }: { id: string }) => {
     }
   }, [rondin]);
 
-  const handlePlay = () => playOrPauseRondinMutation.mutate({ record_id: id, paused: false });
-  const handlePause = () => playOrPauseRondinMutation.mutate({ record_id: id, paused: true });
+    const handlePlay = async () => {
+      setIsLoadingPlay(true);
+      try {
+        await playOrPauseRondinMutation.mutateAsync({ record_id: id, paused: false });
+      } finally {
+        setIsLoadingPlay(false);
+      }
+    };
 
-  const handlePlayPause = async (paused: boolean) => {
-    Swal.fire({
-      title: paused ? "Pausando rondín..." : "Ejecutando rondín...",
-      allowOutsideClick: false, allowEscapeKey: false,
-      showConfirmButton: false,
-      didOpen: () => Swal.showLoading(),
-    });
-    try {
-      await playOrPauseRondinMutation.mutateAsync({ record_id: id, paused });
-      Swal.fire({ icon: "success", title: paused ? "Rondín pausado" : "Rondín ejecutado", timer: 1500, showConfirmButton: false });
-    } catch (err) {
-      Swal.fire({ icon: "error", title: "Error", text: `${err}` });
-    }
-  };
+    const handlePause = async () => {
+      setIsLoadingPause(true);
+      try {
+        await playOrPauseRondinMutation.mutateAsync({ record_id: id, paused: true });
+      } finally {
+        setIsLoadingPause(false);
+      }
+    };
 
+  // const handlePlayPause = async (paused: boolean) => {
+  //   Swal.fire({
+  //     title: paused ? "Pausando rondín..." : "Ejecutando rondín...",
+  //     allowOutsideClick: false, allowEscapeKey: false,
+  //     showConfirmButton: false,
+  //     didOpen: () => Swal.showLoading(),
+  //   });
+  //   try {
+  //     await playOrPauseRondinMutation.mutateAsync({ record_id: id, paused });
+  //     Swal.fire({ icon: "success", title: paused ? "Rondín pausado" : "Rondín ejecutado", timer: 1500, showConfirmButton: false });
+  //   } catch (err) {
+  //     Swal.fire({ icon: "error", title: "Error", text: `${err}` });
+  //   }
+  // };
+
+  const handleEjecutar = async (dag_id: string) => {
+    await ejecutarRecorridoMutation.mutateAsync({ dag_id });
+  }
   const handleGuardar = () => {
     editAreasRodindMutation.mutate({ areas, record_id: id, folio: rondin?.folio ?? "" });
   };
@@ -190,7 +210,12 @@ const RondinDetalle = ({ id }: { id: string }) => {
   // };
 
   const handleActualizar = () => {
-    const asignadoA = tipoAsignado === "guardia" ? "responsable_en_turno" : empleadoSeleccionado;
+    const asignadoA = tipoAsignado === "guardia"
+      ? "responsable_en_turno"
+      : tipoAsignado === "grupo"
+      ? [grupoSeleccionado]
+      : [empleadoSeleccionado];
+
     editarRondinMutation.mutate({
       folio: rondin?.folio ?? "",
       rondin_data: {
@@ -198,6 +223,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
         tipo_rondin: tipoRondin,
         se_repite_cada: recurrenciaSeleccionada,
         area: areaSeleccionada,
+        tipo_asignacion: tipoAsignado === "guardia" ? "responsable_en_turno" : tipoAsignado,
         asignado_a: asignadoA,
         fecha_hora_programada: fechaProgramada ? format(fechaProgramada, "yyyy-MM-dd HH:mm:ss") : "",
       } as any,
@@ -220,16 +246,17 @@ const RondinDetalle = ({ id }: { id: string }) => {
   if (!rondin) return <div className="p-8 text-center text-gray-400">Rondín no encontrado</div>;
 
   // const isPaused = rondin.estatus_recorrido !== "Corriendo";
-  const inputClass = (enabled: boolean) =>
-    `w-full px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
-      enabled ? "border-blue-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
-              : "border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
-    }`;
-  const selectClass = (enabled: boolean, full = true) =>
-    `${full ? "w-full" : ""} px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors appearance-none ${
-      enabled ? "border-blue-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
-              : "border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
-    }`;
+  // const inputClass = (enabled: boolean) =>
+  //   `w-full px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+  //     enabled ? "border-blue-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
+  //             : "border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
+  //   }`;
+  // const selectClass = (enabled: boolean, full = true) =>
+  //   `${full ? "w-full" : ""} px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors appearance-none ${
+  //     enabled ? "border-blue-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
+  //             : "border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
+  //   }`;\
+  
   const statusMap: Record<string, string> = {
     corriendo: "bg-green-50 text-green-700 border border-green-200 ring-1 ring-green-300/50",
     pausado:   "bg-yellow-50 text-yellow-700 border border-yellow-200 ring-1 ring-yellow-300/50",
@@ -237,7 +264,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
     cerrado:   "bg-slate-50 text-slate-500 border border-slate-200 ring-1 ring-slate-300/50",
     programado:"bg-purple-50 text-purple-700 border border-purple-200 ring-1 ring-purple-300/50",
   };
-
+  // const estatus = (rondin.estatus_recorrido ?? "").toLowerCase(); 
   return (
     <div className="flex flex-col h-full bg-gray-50 min-h-screen px-4 pt-2">
       {modalEliminarAbierto && (
@@ -283,20 +310,23 @@ const RondinDetalle = ({ id }: { id: string }) => {
               {rondin.estatus_recorrido}
             </span>
             <div className="flex items-center gap-2">
-              <Button onClick={handlePause} size="icon"
-                className="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-none border-0"
-                disabled={rondin.estatus_recorrido !== "Corriendo" || isLoadingPlayOrPause}>
-                {isLoadingPlayOrPause && rondin.estatus_recorrido === "Corriendo" ? <Loader2 size={16} className="animate-spin" /> : <Pause size={16} />}
-              </Button>
-              <Button onClick={handlePlay} size="icon"
-                className="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-none border-0"
-                disabled={rondin.estatus_recorrido === "Corriendo" || isLoadingPlayOrPause}>
-                {isLoadingPlayOrPause && rondin.estatus_recorrido !== "Corriendo" ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-              </Button>
+              {rondin.estatus_recorrido === "Corriendo" ? (
+                <Button onClick={handlePause} size="icon"
+                  className="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-none border-0"
+                  disabled={isLoadingPause}>
+                  {isLoadingPause ? <Loader2 size={16} className="animate-spin" /> : <Pause size={16} />}
+                </Button>
+              ) : (
+                <Button onClick={handlePlay} size="icon"
+                  className="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-none border-0"
+                  disabled={isLoadingPlay}>
+                  {isLoadingPlay ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+                </Button>
+              )}
             </div>
-            <button type="button" onClick={() => handlePlayPause(false)}
+            <button type="button" onClick={() => handleEjecutar(rondin._id)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full text-md font-semibold transition-all border bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100">
-              {isLoadingPlayOrPause ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              {isLoadingEjecutarRecorrido ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
               Ejecutar Ahora
             </button>
             <button onClick={() => setModalEliminarAbierto(true)}
@@ -307,16 +337,15 @@ const RondinDetalle = ({ id }: { id: string }) => {
         </div>
 
         {/* Campos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5" /> Ubicación
+        {/* Ubicación */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+            <MapPin className="w-3 h-3" /> Ubicación
           </label>
-          <select
-            value={ubicacionSeleccionada}
-            onChange={(e) => setUbicacionSeleccionada(e.target.value)}
-            className={selectClass(true)}>
+          <select value={ubicacionSeleccionada} onChange={(e) => setUbicacionSeleccionada(e.target.value)}
+            className="w-full px-2 py-1.5 h-[38px] rounded-lg border border-blue-200 bg-white text-gray-800 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none">
             <option value="">Selecciona ubicación</option>
             {(locations?.length ? locations : ubicacionesLS).map((u: string) => (
               <option key={u} value={u}>{u}</option>
@@ -324,271 +353,303 @@ const RondinDetalle = ({ id }: { id: string }) => {
           </select>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5" /> Área
+        {/* Área */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+            <Layers className="w-3 h-3" /> Área
           </label>
           <MultiSelect
             placeholder="Área"
-            className="text-sm"
+            className="text-xs"
+            styles={{
+              control: (base) => ({ ...base, minHeight: "38px", fontSize: "12px", borderColor: "#bfdbfe", borderRadius: "8px" }),
+              valueContainer: (base) => ({ ...base, padding: "0 8px" }),
+              indicatorsContainer: (base) => ({ ...base, height: "32px" }),
+            }}
             value={areaSeleccionada ? { value: areaSeleccionada, label: areaSeleccionada } : null}
             options={formatForMultiselect(areasStore?.length ? areasStore : dataAreas ?? [])}
             onChange={(opt: any) => setAreaSeleccionada(opt ? opt.value : "")}
             isClearable
           />
         </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
-            <CalendarDays className="w-3.5 h-3.5" /> Fecha programada
+        {/* Duración */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+            <Clock className="w-3 h-3" /> Duración (min)
+          </label>
+          <input type="number" min={1} max={60} value={duracion} 
+            onChange={(e) => setDuracion(e.target.value)}
+            placeholder="Ej: 30"
+            className="w-full px-2 py-1.5 h-[38px]  rounded-lg border border-blue-200 bg-white text-gray-800 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300" />
+        </div>
+        {/* Fecha programada */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+            <CalendarDays className="w-3 h-3" /> Fecha programada
           </label>
           <DateTimePicker
             showTime={true}
             allowPast={true}
-            placeholder="Selecciona fecha y hora"
+            placeholder="Fecha y hora"
             date={fechaProgramada}
             setDate={(d) => setFechaProgramada(d ?? undefined)}
           />
         </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" /> Duración (minutos)
+        {/* Tipo de rondín */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+            <Tag className="w-3 h-3" /> Tipo
           </label>
-          <input
-            type="number"
-            min={1}
-            max={60}
-            value={duracion}
-            onChange={(e) => setDuracion(e.target.value)}
-            className={inputClass(true)}
-            placeholder="Ej: 30"
-          />
+          <select value={tipoRondin} onChange={(e) => setTipoRondin(e.target.value)}
+            className="w-full h-[38px]  px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-gray-800 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none">
+            <option value="">Selecciona tipo</option>
+            <option value="nfc">NFC</option>
+            <option value="qr">QR</option>
+          </select>
         </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
-          <Tag className="w-3.5 h-3.5" /> Tipo de rondín
+        {/* Recurrencia selector */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+            <RefreshCw className="w-3 h-3" /> Recurrencia
+          </label>
+          <select value={recurrenciaSeleccionada}
+            onChange={(e) => {
+              setRecurrenciaSeleccionada(e.target.value);
+              set_en_que_semana_sucede("");
+              set_todas_las_semanas(false);
+              set_en_que_mes([]);
+              if (e.target.value === "diario") set_que_dias_de_la_semana(diasSemana);
+            }}
+            className="w-full h-[38px] px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-gray-800 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none">
+            <option value="">Selecciona recurrencia</option>
+            <option value="diario">Por Día</option>
+            <option value="semana">Semanal</option>
+            <option value="mes">Mensual</option>
+            <option value="configurable">Configurable</option>
+          </select>
+        </div>
+
+        {/* Asignado a */}
+      <div className="flex flex-col gap-1 col-span-2">
+        <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+          <User className="w-3 h-3" /> Asignado a
         </label>
-        <select
-          value={tipoRondin}
-          onChange={(e) => setTipoRondin(e.target.value)}
-          className={selectClass(true)}>
-          <option value="">Selecciona tipo</option>
-          <option value="nfc">NFC</option>
-          <option value="qr">QR</option>
-        </select>
-      </div>
-
-          {/* Recurrencia */}
-      <div className="flex flex-col gap-1.5 lg:col-span-3">
-        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
-          <RefreshCw className="w-3.5 h-3.5" /> Recurrencia
-        </label>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
-        <select
-          value={recurrenciaSeleccionada}
-          onChange={(e) => {
-            setRecurrenciaSeleccionada(e.target.value);
-            set_en_que_semana_sucede("");
-            set_todas_las_semanas(false);
-            set_en_que_mes([]);
-            if (e.target.value === "diario") set_que_dias_de_la_semana(diasSemana);
-          }}
-          className={selectClass(true)}>
-          <option value="">Selecciona recurrencia</option>
-          <option value="diario">Por Día</option>
-          <option value="semana">Semanal</option>
-          <option value="mes">Mensual</option>
-          <option value="configurable">Configurable</option>
-        </select>
-
-        {/* Diario */}
-        {recurrenciaSeleccionada === "diario" && (
-          <div className="mt-2">
-            <div className="flex justify-between">
-              <label className="text-sm font-medium">Días de acceso:</label>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" checked={que_dias_de_la_semana.length === diasSemana.length} onChange={toggleTodos} />
-                <span className="text-sm">Todos los días</span>
-              </div>
-            </div>
-            <div className="flex flex-wrap mt-2">
-              {diasSemana.map((dia) => (
-                <Button key={dia} type="button" onClick={() => toggleDia(dia.toLowerCase())}
-                  className={`m-2 px-4 py-2 rounded-md transition-all duration-300 ${
-                    que_dias_de_la_semana.includes(dia.toLowerCase())
-                      ? "bg-blue-600 text-white hover:bg-blue-700"
-                      : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent"
-                  }`}>
-                  {capitalizeFirstLetter(dia)}
-                </Button>
-              ))}
-            </div>
-            <div className="flex gap-10 mt-3">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium">Frecuencia (horas)</span>
-                <Switch checked={mostrarFrecuencia} onCheckedChange={setMostrarFrecuencia} />
-              </div>
-              {mostrarFrecuencia && (
-                <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium">Cada:</label>
-                  <input type="number" min={1} max={24} value={cada_cuantas_horas_se_repite}
-                    onChange={(e) => set_cada_cuantas_horas_se_repite(Number(e.target.value))}
-                    className="w-24 px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
-                  <span className="text-sm text-gray-600">hora(s)</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Semanal */}
-        {recurrenciaSeleccionada === "semana" && (
-          <div className="mt-2">
-            <div className="flex justify-between">
-              <label className="text-sm font-medium">Semana del mes:</label>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" onChange={(e) => set_todas_las_semanas(e.target.checked)} />
-                <span className="text-sm">Todas las semanas</span>
-              </div>
-            </div>
-            <div className="flex flex-wrap mt-2">
-              {["Primer semana del mes","Segunda semana del mes","Tercer semana del mes","Cuarta semana del mes","Quinta semana del mes"].map((semana) => {
-                const value = semana.toLowerCase().replace(/\s+/g, "_");
-                return (
-                  <Button key={value} type="button" onClick={() => toggleSemana(value)}
-                    className={`m-2 px-4 py-2 rounded-md transition-all duration-300 ${
-                      todas_las_semanas || en_que_semana_sucede === value
-                        ? "bg-blue-600 text-white hover:bg-blue-600"
-                        : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent"
-                    }`}>
-                    {semana}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Mensual */}
-        {recurrenciaSeleccionada === "mes" && (
-          <div className="mt-2 flex flex-col gap-3">
-            <div>
-              <label className="text-sm font-medium">Corriendo cada:</label>
-              <select value={que_dia_del_mes} onChange={(e) => set_que_dia_del_mes(e.target.value)}
-                className={`${selectClass(true)} mt-1`}>
-                <option value="">Selecciona una opción</option>
-                {opciones.map((op, i) => <option key={i} value={op}>{op}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-wrap gap-4">
-              <Button type="button" onClick={() => seleccionar(true)}
-                className={`px-4 py-2 rounded-md transition-all duration-300 ${esRepetirCada === true ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent"}`}>
-                Repetir cada X mes
-              </Button>
-              <Button type="button" onClick={() => seleccionar(false)}
-                className={`px-4 py-2 rounded-md transition-all duration-300 ${esRepetirCada === false ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent"}`}>
-                Seleccionar meses
-              </Button>
-            </div>
-            {esRepetirCada === true && (
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Se repetirá cada:</label>
-                <Input type="number" min={1} max={12} className="w-32"
-                  value={cada_cuantos_meses_se_repite || ""}
-                  onChange={(e) => set_cada_cuantos_meses_se_repite(Number(e.target.value))} />
-                <span className="text-sm text-gray-600">mes(es)</span>
-              </div>
-            )}
-            {esRepetirCada === false && (
-              <div>
-                <div className="flex justify-between">
-                  <label className="text-sm font-medium">Meses de acceso:</label>
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" checked={todas_las_meses}
-                      onChange={(e) => {
-                        set_todas_las_meses(e.target.checked);
-                        set_en_que_mes(e.target.checked ? ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"] : []);
-                      }} />
-                    <span className="text-sm">Todos los meses</span>
-                  </div>
-                </div>
-                <div className="flex flex-wrap mt-2">
-                  {mesesDelAño.map((mes) => {
-                    const mesLower = mes.toLowerCase();
-                    return (
-                      <Button key={mesLower} type="button" onClick={() => toggleMes(mesLower)}
-                        className={`m-2 px-4 py-2 rounded-md transition-all duration-300 ${
-                          en_que_mes.includes(mesLower) ? "bg-blue-600 text-white" : "border-2 border-blue-400 bg-white text-blue-600 hover:bg-transparent"
-                        }`}>
-                        {mes}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Configurable */}
-        {recurrenciaSeleccionada === "configurable" && (
-          <div className="mt-2">
-            <label className="text-sm font-medium">Configuración Cron:</label>
-            <Input placeholder="* * * * *" className="mt-1" value={cron_conf}
-              onChange={(e) => {
-                let v = e.target.value.replace(/\s+/g, " ");
-                if (v.startsWith(" ")) v = v.trimStart();
-                let parts = v.split(" ");
-                if (parts.length > 5) parts = parts.slice(0, 5);
-                set_cron_conf(parts.join(" "));
-              }} />
-            <small className="text-gray-500">Ingresa 5 valores separados por espacios.</small>
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-1.5 lg:col-span-3">
-        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
-          <User className="w-3.5 h-3.5" /> Asignado a
-        </label>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <button type="button"
-            onClick={() => { setTipoAsignado("guardia"); setEmpleadoSeleccionado("responsable_en_turno"); }}
-            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap ${
+            onClick={() => { setTipoAsignado("guardia"); setEmpleadoSeleccionado("responsable_en_turno"); setGrupoSeleccionado(""); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
               tipoAsignado === "guardia" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
             }`}>
             Responsable en turno
           </button>
           <button type="button"
-            onClick={() => setTipoAsignado("persona")}
-            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap ${
+            onClick={() => { setTipoAsignado("persona"); setGrupoSeleccionado(""); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
               tipoAsignado === "persona" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
             }`}>
             Persona específica
           </button>
+          <button type="button"
+            onClick={() => { setTipoAsignado("grupo"); setEmpleadoSeleccionado(""); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
+              tipoAsignado === "grupo" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+            }`}>
+            Grupo
+          </button>
+
           {tipoAsignado === "persona" && (
-            <select value={empleadoSeleccionado}
-              onChange={(e) => setEmpleadoSeleccionado(e.target.value)}
-              className={`${selectClass(true, false)} flex-1 min-w-[180px]`}>
+            <select value={empleadoSeleccionado} onChange={(e) => setEmpleadoSeleccionado(e.target.value)}
+              className="flex-1 h-[38px] min-w-[140px] px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none">
               <option value="">Selecciona una persona</option>
               {loadingEmpleados ? <option disabled>Cargando...</option> : (
                 dataEmpleados?.map((e: string, i: number) => <option key={i} value={e}>{e}</option>)
               )}
             </select>
           )}
-          <button type="button"
-            onClick={handleActualizar}
-            disabled={isLoadingEdit || (tipoAsignado === "persona" && !empleadoSeleccionado)}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap ml-auto">
-            {isLoadingEdit
-              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Actualizando...</>
-              : "Actualizar recorrido"}
-          </button>
+
+          {tipoAsignado === "grupo" && (
+            <select value={grupoSeleccionado} onChange={(e) => setGrupoSeleccionado(e.target.value)}
+              className="flex-1 h-[38px] min-w-[140px] px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none">
+              <option value="">Selecciona un grupo</option>
+              {loadingGrupos ? <option disabled>Cargando...</option> : 
+                dataGrupos?.length > 0 ? (
+                  dataGrupos.map((g: string, i: number) => <option key={i} value={g}>{g}</option>)
+                ) : (
+                  <option disabled>Sin grupos disponibles</option>
+                )
+              }
+            </select>
+          )}
         </div>
       </div>
 
-    </div>
+      
+
+      </div>
+
+      {/* Expansión de recurrencia */}
+      {recurrenciaSeleccionada && (
+        <div className="mt-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+
+          {/* Diario */}
+          {recurrenciaSeleccionada === "diario" && (
+            <div>
+              <div className="flex justify-between mb-2">
+                <span className="text-xs font-medium text-gray-600">Días de acceso:</span>
+                <div className="flex items-center gap-1.5">
+                  <input type="checkbox" checked={que_dias_de_la_semana.length === diasSemana.length} onChange={toggleTodos} />
+                  <span className="text-xs">Todos los días</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {diasSemana.map((dia) => (
+                  <button key={dia} type="button" onClick={() => toggleDia(dia.toLowerCase())}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-all ${
+                      que_dias_de_la_semana.includes(dia.toLowerCase())
+                        ? "bg-blue-600 text-white"
+                        : "border border-blue-400 bg-white text-blue-600"
+                    }`}>
+                    {capitalizeFirstLetter(dia)}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-4 mt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium">Frecuencia (horas)</span>
+                  <Switch checked={mostrarFrecuencia} onCheckedChange={setMostrarFrecuencia} />
+                </div>
+                {mostrarFrecuencia && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">Cada:</span>
+                    <input type="number" min={1} max={24} value={cada_cuantas_horas_se_repite}
+                      onChange={(e) => set_cada_cuantas_horas_se_repite(Number(e.target.value))}
+                      className="w-16 px-2 py-1 border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                    <span className="text-xs text-gray-600">hora(s)</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Semanal */}
+          {recurrenciaSeleccionada === "semana" && (
+            <div>
+              <div className="flex justify-between mb-2">
+                <span className="text-xs font-medium text-gray-600">Semana del mes:</span>
+                <div className="flex items-center gap-1.5">
+                  <input type="checkbox" onChange={(e) => set_todas_las_semanas(e.target.checked)} />
+                  <span className="text-xs">Todas las semanas</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {["Primer semana","Segunda semana","Tercer semana","Cuarta semana","Quinta semana"].map((semana, idx) => {
+                  const value = ["primer_semana_del_mes","segunda_semana_del_mes","tercer_semana_del_mes","cuarta_semana_del_mes","quinta_semana_del_mes"][idx];
+                  return (
+                    <button key={value} type="button" onClick={() => toggleSemana(value)}
+                      className={`px-2.5 py-1 text-xs rounded-md transition-all ${
+                        todas_las_semanas || en_que_semana_sucede === value
+                          ? "bg-blue-600 text-white"
+                          : "border border-blue-400 bg-white text-blue-600"
+                      }`}>
+                      {semana}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Mensual */}
+          {recurrenciaSeleccionada === "mes" && (
+            <div className="flex flex-col gap-2">
+              <div>
+                <span className="text-xs font-medium text-gray-600">Corriendo cada: </span>
+                <select value={que_dia_del_mes} onChange={(e) => set_que_dia_del_mes(e.target.value)}
+                  className="w-1/4 mt-1 h-[38px]  px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none">
+                  <option value="">Selecciona una opción</option>
+                  {opciones.map((op, i) => <option key={i} value={op}>{op}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => seleccionar(true)}
+                  className={`px-2.5 py-1 text-xs rounded-md ${esRepetirCada === true ? "bg-blue-600 text-white" : "border border-blue-400 bg-white text-blue-600"}`}>
+                  Repetir cada X mes
+                </button>
+                <button type="button" onClick={() => seleccionar(false)}
+                  className={`px-2.5 py-1 text-xs rounded-md ${esRepetirCada === false ? "bg-blue-600 text-white" : "border border-blue-400 bg-white text-blue-600"}`}>
+                  Seleccionar meses
+                </button>
+              </div>
+              {esRepetirCada === true && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium">Se repetirá cada:</span>
+                  <input type="number" min={1} max={12} value={cada_cuantos_meses_se_repite || ""}
+                    onChange={(e) => set_cada_cuantos_meses_se_repite(Number(e.target.value))}
+                    className="w-16 px-2 py-1 border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300" />
+                  <span className="text-xs text-gray-600">mes(es)</span>
+                </div>
+              )}
+              {esRepetirCada === false && (
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs font-medium text-gray-600">Meses de acceso:</span>
+                    <div className="flex items-center gap-1.5">
+                      <input type="checkbox" checked={todas_las_meses}
+                        onChange={(e) => {
+                          set_todas_las_meses(e.target.checked);
+                          set_en_que_mes(e.target.checked ? ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"] : []);
+                        }} />
+                      <span className="text-xs">Todos</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {mesesDelAño.map((mes) => {
+                      const mesLower = mes.toLowerCase();
+                      return (
+                        <button key={mesLower} type="button" onClick={() => toggleMes(mesLower)}
+                          className={`px-2.5 py-1 text-xs rounded-md ${
+                            en_que_mes.includes(mesLower) ? "bg-blue-600 text-white" : "border border-blue-400 bg-white text-blue-600"
+                          }`}>
+                          {mes}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Configurable */}
+          {recurrenciaSeleccionada === "configurable" && (
+            <div>
+              <span className="text-xs font-medium text-gray-600">Configuración Cron:</span>
+              <input placeholder="* * * * *" value={cron_conf}
+                onChange={(e) => {
+                  let v = e.target.value.replace(/\s+/g, " ");
+                  if (v.startsWith(" ")) v = v.trimStart();
+                  let parts = v.split(" ");
+                  if (parts.length > 5) parts = parts.slice(0, 5);
+                  set_cron_conf(parts.join(" "));
+                }}
+                className="w-full mt-1 px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300" />
+              <small className="text-gray-400 text-[10px]">Ingresa 5 valores separados por espacios.</small>
+            </div>
+          )}
+
+        </div>
+      )}
+      {/* Botón actualizar */}
+      <div className="flex justify-end mt-3">
+        <button type="button" onClick={handleActualizar}
+          disabled={isLoadingEdit || (tipoAsignado === "persona" && !empleadoSeleccionado)}
+          className="flex items-center gap-1.5 px-6 py-2 rounded-lg text-sm font-semibold transition-all bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
+          {isLoadingEdit
+            ? <><Loader2 className="w-3 h-3 animate-spin" /> Actualizando...</>
+            : "Actualizar recorrido"}
+        </button>
+      </div>
       </div>
 
       {/* Áreas */}

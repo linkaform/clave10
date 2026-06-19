@@ -46,6 +46,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import DateTimePicker from "../dateTimerPicker";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
+import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 
 interface AddRondinModalProps {
   title: string;
@@ -130,6 +131,7 @@ const formSchema = z.object({
     .or(z.literal("")),
   tipo_rondin: z.string().optional(),
   area: z.string().optional(),
+  tipo_asignacion: z.string().optional()
 });
 
 function SectionCard({
@@ -187,6 +189,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   const [noRecurrente, setNoRecurrente] = useState(false);
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location ?? "");
   const [mostrarArea, setMostrarArea] = useState(false);
+  const [grupoSeleccionado, setGrupoSeleccionado] = useState<string>("");
   const { dataLocations: ubicaciones ,dataAreas: areas} = useCatalogoPaseAreaLocation(
     ubicacionSeleccionada,
     isSuccess,
@@ -197,7 +200,9 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 
   const { data: dataEmpleados, isLoading: loadingEmpleados } =
     useCatalogoAreaEmpleado(isSuccess, location??"", "Incidencias");
-
+  const { data: dataGrupos, isLoading: loadingGrupos } =
+    useCatalogoGrupos(isSuccess);
+  console.log("isSuccess:", isSuccess, "loadingGrupos:", loadingGrupos, "dataGrupos:", dataGrupos);
   const [dropdownOffset, setDropdownOffset] = useState({
     distance: 40,
     width: "100%",
@@ -255,6 +260,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       setPersonaEspecifica(""); 
       setMostrarArea(false);
       form.setValue("area", "");
+      setGrupoSeleccionado("");
       reset();
     }
   }, [isSuccess]);
@@ -305,9 +311,12 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       se_repite_cada: values.se_repite_cada,
       cron_conf: "",
       tipo_rondin: values.tipo_rondin,
-      asignado_a: asignadoA === "persona_especifica" 
-      ? personaEspecifica 
-      : asignadoA,
+      tipo_asignacion: asignadoA,
+      asignado_a: asignadoA === "persona_especifica"
+        ? [personaEspecifica]
+        : asignadoA === "grupo"
+        ? [grupoSeleccionado]
+        : asignadoA,
       ...recurrenciaFiltrada,
       area: values.area ?? "",
     };
@@ -501,6 +510,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         sucede_recurrencia: rondinData.sucede_recurrencia || [],
         tipo_rondin: rondinData.tipo_rondin || "",
         area: rondinData.area || "",
+        
       });
     }
   }, [mode, rondinData, isSuccess, catalogAreasRondin, reset]);
@@ -744,25 +754,28 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                   {/* Asignado a */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5" /> Asignado a
+                      <User className="w-3.5 h-3.5" /> Tipo de Asignación
                     </label>
                     <Select value={asignadoA} onValueChange={(val) => {
-                      setAsignadoA(val);
-                      // Si cambia de persona_especifica, limpiar la selección
-                      if (val !== "persona_especifica") setPersonaEspecifica("");
-                    }}>
+                        setAsignadoA(val);
+                        if (val !== "persona_especifica") setPersonaEspecifica("");
+                        if (val !== "grupo") setGrupoSeleccionado("");
+                      }}>
                       <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
                         <SelectValue placeholder="Selecciona una opción" />
                       </SelectTrigger>
                       <SelectContent>
-                        {/* CAMBIO 1: renombrar label */}
+                       <SelectContent>
                         <SelectItem value="responsable_en_turno">
-                          Responsable de Turno
+                          Responsable en Turno
                         </SelectItem>
-                        {/* CAMBIO 2: nueva opción */}
                         <SelectItem value="persona_especifica">
-                          Persona específica
+                          Persona Específica
                         </SelectItem>
+                        <SelectItem value="grupo">
+                          Grupo
+                        </SelectItem>
+                      </SelectContent>
                       </SelectContent>
                     </Select>
 
@@ -789,6 +802,34 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                         </SelectContent>
                       </Select>
                     )}
+
+                   {asignadoA === "grupo" && (
+                    <Select value={grupoSeleccionado} onValueChange={setGrupoSeleccionado}>
+                      <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50 mt-2">
+                        <SelectValue placeholder="Selecciona un grupo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {loadingGrupos ? (
+                          <SelectItem value="cargando" disabled>
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="w-3 h-3 animate-spin" /> Cargando...
+                            </span>
+                          </SelectItem>
+                        ) : dataGrupos?.length > 0 ? (
+                          dataGrupos.map((grupo: string, i: number) => (
+                            <SelectItem key={i} value={grupo}>
+                              {grupo}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-disponible" disabled>
+                            Sin grupos disponibles
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+
                   </div>
                 </div>
               </SectionCard>
