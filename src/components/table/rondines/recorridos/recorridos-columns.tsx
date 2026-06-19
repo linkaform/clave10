@@ -15,6 +15,7 @@
     cada_cuantos_dias_se_repite: string;
     areas: any;
     estatus_recorrido?: string;
+    dag_id:string;
   }
 
   export const getRecorridosColumns = (
