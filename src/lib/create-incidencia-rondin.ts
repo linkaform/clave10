@@ -67,6 +67,27 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
     return data;
   };
     
+  export const ejecutarRecorrido = async (dag_id:string )=> {
+    const payload = {
+        dag_id,
+        option: "run_rondin",
+        script_name: "rondines.py",
+    };
+  
+    const userJwt = localStorage.getItem("access_token"); 
+    const response = await fetch(API_ENDPOINTS.runScript, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${userJwt}`,
+        },
+        body: JSON.stringify(payload),
+    });
+  
+    const res = await response.json();
+    return res;
+  };
+
   export const playOrPauseRondin = async (record_id: string,paused:boolean )=> {
     const payload = {
         record_id,

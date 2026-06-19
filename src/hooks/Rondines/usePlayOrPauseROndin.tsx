@@ -1,4 +1,5 @@
 import { playOrPauseRondin } from "@/lib/create-incidencia-rondin";
+import { errorMsj } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -10,12 +11,13 @@ export const usePlayOrPauseRondin = () => {
       const playOrPauseRondinMutation = useMutation({
         mutationFn: async ({ paused, record_id }: { paused: boolean; record_id: string }) => {
             const response = await playOrPauseRondin( record_id, paused);
-  
-              if(response.response.data.status =="error"){
-                const accion = paused ? "pausar" : "iniciar";
-                  throw new Error(`Error al crear ${accion} rondin, Error: ${response.response.data.message }`);
-              }else{
-                  return response.response?.data
+            const hasError =
+                !response?.success || response?.response?.data?.status_code === 400;
+              if (hasError) {
+                const textMsj = errorMsj(response);
+                throw new Error(`Error al crear seguimiento, Error: ${textMsj?.text}`);
+              } else {
+                return response.response?.data;
               }
           },
           onMutate: () => {
