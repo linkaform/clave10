@@ -29,6 +29,7 @@ import { useEjecutarRecorrido } from "@/hooks/Rondines/recorridos/useEjecutarRec
 import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 import Select from "react-select";
 import { useCatalogoInspeccionesRecorridos } from "@/hooks/Rondines/recorridos/useCatalogoInspecciones";
+import MapView from "@/components/map-v2";
 
 export type RecurrenciaValida = "diario" | "semana" | "mes" | "configurable";
 
@@ -824,7 +825,27 @@ const RondinDetalle = ({ id }: { id: string }) => {
           </div>
         )}
       </div>
-      <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ minHeight: "420px", zIndex: 0 }} />
+      <div
+        className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+        style={{ minHeight: "420px", zIndex: 0 }}
+      >
+        {rondin?.map_data && rondin.map_data.length > 0 ? (
+          <div className="flex flex-col h-full">
+            <div className="px-4 pt-4 pb-2">
+              <h3 className="font-semibold text-gray-800 text-sm">Mapa del rondín</h3>
+              <p className="text-xs text-gray-400">{rondin.map_data.length} puntos en el mapa</p>
+            </div>
+            <div className="flex-1" style={{ minHeight: "360px" }}>
+              <MapView map_data={rondin.map_data} />
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-300">
+            <MapPin className="w-10 h-10" />
+            <p className="text-sm">Sin datos de mapa</p>
+          </div>
+        )}
+      </div>
     </div>
     </div>
   );
