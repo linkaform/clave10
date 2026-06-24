@@ -47,8 +47,9 @@ export const useAreasLocationStore = create(
         }
       },
       fetchLocations: async () => {
-        const { locations } = get();
-        if (!locations.length) {
+        const { areas } = get();
+        if (areas.length) return;
+        if (!areas.length) {
           set({ loading: true });
           try {
             const fetched = await getCatalogoPasesLocation();

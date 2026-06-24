@@ -15,7 +15,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Trash2, Menu, AlertTriangle } from "lucide-react"
+import { Trash2, Menu, AlertTriangle, ClipboardList } from "lucide-react"
 
 export type Area_rondin = {
   rondin_area: string
@@ -34,9 +34,10 @@ interface AreasListProps {
   rondin: any
   areas: Area_rondin[]
   setAreas: Dispatch<SetStateAction<Area_rondin[]>>
+  onAsignarInspeccion?: (areaNombre: string) => void
 }
 
-export const AreasList: React.FC<AreasListProps> = ({ areas, setAreas, rondin }) => {
+export const AreasList: React.FC<AreasListProps> = ({ areas, setAreas, rondin, onAsignarInspeccion }) => {
   useEffect(() => {
     if (rondin?.areas) {
       setAreas(rondin.areas)
@@ -82,6 +83,7 @@ export const AreasList: React.FC<AreasListProps> = ({ areas, setAreas, rondin })
                 id={item.rondin_area}
                 item={item}
                 setAreas={setAreas}
+                onAsignarInspeccion={onAsignarInspeccion}
               />
             ))}
           </div>
@@ -100,10 +102,12 @@ function SortableItem({
   id,
   item,
   setAreas,
+  onAsignarInspeccion,
 }: {
   id: string
   item: Area_rondin
   setAreas: Dispatch<SetStateAction<Area_rondin[]>>
+  onAsignarInspeccion?: (areaNombre: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
 
@@ -127,34 +131,51 @@ function SortableItem({
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={`flex items-center justify-between border rounded p-3 bg-white shadow-sm cursor-grab active:cursor-grabbing transition 
+      {...attributes}                     // ← attributes sí en el div, listeners NO
+      className={`flex items-center justify-between border rounded p-3 bg-white shadow-sm transition 
         ${sinGeo ? "border-red-500 bg-red-50" : "border-gray-200"}
       `}
     >
-      <div>
-        <p className="font-bold">{item.rondin_area}</p>
-        {sinGeo ? (
-          <small className="flex items-center text-red-600 mt-1">
-            <AlertTriangle className="w-4 h-4 mr-1" /> Sin geolocalización
-          </small>
-        ) : (
-          <small className="flex items-center text-gray-500 mt-1">
-            <Menu className="mr-1 h-4 w-4" /> Ordenar
-          </small>
-        )}
+      {/* Handle de drag — solo aquí van los listeners */}
+      <div className="flex items-center gap-2 flex-1 cursor-grab active:cursor-grabbing" {...listeners}>
+        <div>
+          <p className="font-bold">{item.rondin_area}</p>
+          {sinGeo ? (
+            <small className="flex items-center text-red-600 mt-1">
+              <AlertTriangle className="w-4 h-4 mr-1" /> Sin geolocalización
+            </small>
+          ) : (
+            <small className="flex items-center text-gray-500 mt-1">
+              <Menu className="mr-1 h-4 w-4" /> Ordenar
+            </small>
+          )}
+        </div>
       </div>
 
-      <button
-        className="text-red-600 hover:text-red-800"
-        onClick={(e) => {
-          e.stopPropagation()
-          handleDelete()
-        }}
-      >
-        <Trash2 className="w-5 h-5" />
-      </button>
+      {/* Botones — fuera del área de drag */}
+      <div className="flex items-center gap-1">
+        {onAsignarInspeccion && (
+          <button
+            title="Asignar inspección"
+            className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation()
+              onAsignarInspeccion(item.rondin_area)
+            }}
+          >
+            <ClipboardList className="w-4 h-4" />
+          </button>
+        )}
+        <button
+          className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleDelete()
+          }}
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   )
 }
