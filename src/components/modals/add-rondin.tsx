@@ -43,10 +43,10 @@ import {
 import { Switch } from "../ui/switch";
 import { useEditarRondin } from "@/hooks/Rondines/useEditarRondin";
 import { useBoothStore } from "@/store/useBoothStore";
-import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import DateTimePicker from "../dateTimerPicker";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
+import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 
 interface AddRondinModalProps {
   title: string;
@@ -190,11 +190,14 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location ?? "");
   const [mostrarArea, setMostrarArea] = useState(false);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<string>("");
-  const { dataLocations: ubicaciones ,dataAreas: areas} = useCatalogoPaseAreaLocation(
-    ubicacionSeleccionada,
-    isSuccess,
-    location ? true : false,
-  );
+  const { locations: ubicaciones, areas, fetchLocations, fetchAreas } = useAreasLocationStore();
+
+  useEffect(() => {
+    if (isSuccess) {
+      fetchLocations();
+      if (ubicacionSeleccionada) fetchAreas(ubicacionSeleccionada);
+    }
+  }, [isSuccess, ubicacionSeleccionada]);
   const { data: catalogAreasRondin, isLoading: isLoadingAreas } =
     useCatalogAreasRondin(ubicacionSeleccionada ?? "", isSuccess);
 
@@ -497,10 +500,11 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       }
       if (rondinData.cada_cuantos_meses_se_repite) setEsRepetirCada(true);
       else if (rondinData.en_que_mes?.length > 0) setEsRepetirCada(false);
+
+      const recurrenciaValida = ["diario", "semana", "mes", "configurable"];
       reset({
         nombre_rondin: rondinData.nombre_rondin || rondinData.nombre_del_rondin || "",
         duracion_estimada: rondinData.duracion_estimada?.replace(" minutos", "") || "",
-        se_repite_cada: rondinData.se_repite_cada || rondinData.recurrencia || "",
         cada_cuantas_horas_se_repite: rondinData.cada_cuantas_horas_se_repite || "",
         cada_cuantos_meses_se_repite: rondinData.cada_cuantos_meses_se_repite || 0,
         que_dia_del_mes: rondinData.que_dia_del_mes || "",
@@ -510,7 +514,9 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         sucede_recurrencia: rondinData.sucede_recurrencia || [],
         tipo_rondin: rondinData.tipo_rondin || "",
         area: rondinData.area || "",
-        
+        se_repite_cada: recurrenciaValida.includes(rondinData.se_repite_cada)
+        ? rondinData.se_repite_cada
+        : "", // si viene "hora" o "año" deja vacío
       });
     }
   }, [mode, rondinData, isSuccess, catalogAreasRondin, reset]);

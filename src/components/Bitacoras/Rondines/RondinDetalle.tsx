@@ -27,6 +27,17 @@ import { format } from "date-fns";
 import { Switch } from "@radix-ui/react-switch";
 import { useEjecutarRecorrido } from "@/hooks/Rondines/recorridos/useEjecutarRecorrido";
 import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
+import Select from "react-select";
+import { useCatalogoInspeccionesRecorridos } from "@/hooks/Rondines/recorridos/useCatalogoInspecciones";
+
+export type RecurrenciaValida = "diario" | "semana" | "mes" | "configurable";
+
+export const RECURRENCIAS_VALIDAS: RecurrenciaValida[] = ["diario", "semana", "mes", "configurable"];
+
+export function parseRecurrencia(value: string | undefined): RecurrenciaValida | "" {
+  if (!value) return "";
+  return RECURRENCIAS_VALIDAS.includes(value as RecurrenciaValida) ? (value as RecurrenciaValida) : "";
+}
 
 const RondinDetalle = ({ id }: { id: string }) => {
   const { recorridoSeleccionado } = useRecorridoStore();
@@ -49,7 +60,8 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const { editAreasRodindMutation, isLoading: isLoadingEditAreas } = useEditAreasRondin();
   // const { mutate: asignarRondinMutation, isPending: isLoadingAsignar } = useAsignarRondin();
   const { data: dataEmpleados, isLoading: loadingEmpleados } = useCatalogoAreaEmpleado(true, location ?? "", "Incidencias");
-
+  const { data: dataInspecciones, isLoading: loadingInspecciones } = useCatalogoInspeccionesRecorridos();
+  console.log("INSPECCIONES",dataInspecciones)
   const [areas, setAreas] = useState<any[]>([]);
   const [areaSearch, setAreaSearch] = useState("");
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState("");
@@ -75,11 +87,16 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const diasSemana = ["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
   const mesesDelAño = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
   const { data: dataGrupos, isLoading: loadingGrupos } = useCatalogoGrupos(true); 
-  function toggleDia(dia: string) {
-    set_que_dias_de_la_semana((prev) =>
-      prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia]
-    );
-  }
+  const [empleadosSeleccionados, setEmpleadosSeleccionados] = useState<string[]>([]);
+  const [modalInspeccionAbierto, setModalInspeccionAbierto] = useState(false);
+  const [areaInspeccion, setAreaInspeccion] = useState<string | string[]>("");
+  const [inspeccionSeleccionada, setInspeccionSeleccionada] = useState("");
+  const [promptInspeccion, setPromptInspeccion] = useState(""); // NUEVO
+    function toggleDia(dia: string) {
+      set_que_dias_de_la_semana((prev) =>
+        prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia]
+      );
+    }
   const toggleTodos = () => {
     if (que_dias_de_la_semana.length === diasSemana.length) set_que_dias_de_la_semana([]);
     else set_que_dias_de_la_semana(diasSemana.map((d) => d.toLowerCase()));
@@ -92,6 +109,22 @@ const RondinDetalle = ({ id }: { id: string }) => {
   };
   const seleccionar = (valor: boolean) => {
     setEsRepetirCada((prev) => (prev === valor ? null : valor));
+  };
+
+  const handleAsignarInspeccion = () => {
+    editarRondinMutation.mutate({
+      folio: rondin?._id ?? "",
+      rondin_data: {
+        inspeccion: inspeccionSeleccionada,
+        areas: areaInspeccion === "todas"
+          ? ["todas"]
+          : Array.isArray(areaInspeccion)
+          ? areaInspeccion
+          : [areaInspeccion],
+        prompt_inspeccion: promptInspeccion,
+      } as any,
+    });
+    setModalInspeccionAbierto(false);
   };
 
   function opcionesMensuales(fecha: Date): string[] {
@@ -112,8 +145,15 @@ const RondinDetalle = ({ id }: { id: string }) => {
 
   useEffect(() => {
     if (!locations?.length) fetchLocations();
-    if (!areasStore?.length && rondin?.ubicacion) fetchAreas(rondin.ubicacion);
-  }, [areasStore?.length, fetchAreas, fetchLocations, locations?.length, rondin]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (rondin?.ubicacion && !areasStore?.length) {
+      fetchAreas(rondin.ubicacion);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rondin?.ubicacion]);
 
   useEffect(() => {
     try {
@@ -124,45 +164,51 @@ const RondinDetalle = ({ id }: { id: string }) => {
 
   useEffect(() => {
     if (!rondin) return;
-    if (rondin?.areas) setAreas(rondin.areas);
-      setDuracion(rondin.duracion_esperada_rondin?.replace(" minutos", "") || "");
-      setTipoRondin(rondin.tipo_rondin || "");
-      setRecurrenciaSeleccionada(rondin.se_repite_cada || rondin.recurrencia || "");
-      setAreaSeleccionada(rondin.area || "");
-      if (rondin.fecha_inicio_rondin) setFechaProgramada(new Date(rondin.fecha_inicio_rondin));
-      setRecurrenciaSeleccionada(rondin.se_repite_cada || rondin.recurrencia || "");
 
-      if (rondin.que_dias_de_la_semana?.length > 0)
-        set_que_dias_de_la_semana(Array.isArray(rondin.que_dias_de_la_semana) ? rondin.que_dias_de_la_semana : []);
-      if (rondin.en_que_semana_sucede) set_en_que_semana_sucede(rondin.en_que_semana_sucede);
-      if (rondin.en_que_mes?.length > 0) {
-        const meses = Array.isArray(rondin.en_que_mes) ? rondin.en_que_mes : [rondin.en_que_mes];
-        set_en_que_mes(meses);
-        const todosMeses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-        set_todas_las_meses(meses.length === 12 && todosMeses.every((m) => meses.includes(m)));
-      }
+    // Asignación
+    const tipo = rondin.tipo_asignacion;
+    if (!tipo || tipo === "responsable_en_turno") {
+      setTipoAsignado("guardia");
+      setEmpleadosSeleccionados([]);
+      setGrupoSeleccionado("");
+    } else if (tipo === "persona_especifica") {
+      setTipoAsignado("persona");
+      setEmpleadosSeleccionados(Array.isArray(rondin.empleados_asignado) ? rondin.empleados_asignado : []);
+      setGrupoSeleccionado("");
+    } else if (tipo === "grupo") {
+      setTipoAsignado("grupo");
+      setEmpleadosSeleccionados([]);
+      setGrupoSeleccionado(rondin.id_grupo ?? "");
+    }
+
+    // Campos generales
+    setRecurrenciaSeleccionada(parseRecurrencia(rondin.se_repite_cada));
+    setDuracion(rondin.duracion_esperada_rondin?.replace(" minutos", "") || "");
+    setTipoRondin(rondin.tipo_rondin || "");
+    setAreaSeleccionada(rondin.area || "");
+    if (rondin.fecha_inicio_rondin) setFechaProgramada(new Date(rondin.fecha_inicio_rondin));
+    if (rondin.areas) setAreas(rondin.areas);
+    
+    // Área
+    setAreaSeleccionada(rondin.ubicacion_area || rondin.area || "");
+
+    // Días de la semana
+    if (rondin.que_dias_de_la_semana?.length) {
+      set_que_dias_de_la_semana(Array.isArray(rondin.que_dias_de_la_semana) ? rondin.que_dias_de_la_semana : []);
+    }
+    
+    // Ubicación
+    setUbicacionSeleccionada(rondin.ubicacion || "");
+
+      // Frecuencia horas
       if (rondin.cada_cuantas_horas_se_repite) {
         setMostrarFrecuencia(true);
-        set_cada_cuantas_horas_se_repite(rondin.cada_cuantas_horas_se_repite);
-      }
-      if (rondin.cada_cuantos_meses_se_repite) setEsRepetirCada(true);
-      else if (rondin.en_que_mes?.length > 0) setEsRepetirCada(false);
-      if (rondin.que_dia_del_mes) set_que_dia_del_mes(rondin.que_dia_del_mes);
-      if (rondin.cron_conf) set_cron_conf(rondin.cron_conf);
-
-  }, [rondin]);
-
-  useEffect(() => {
-    if (rondin?.asignado_a) {
-      if (rondin.asignado_a === "responsable_en_turno") {
-        setTipoAsignado("guardia");
-        setEmpleadoSeleccionado("responsable_en_turno");
+        set_cada_cuantas_horas_se_repite(Number(rondin.cada_cuantas_horas_se_repite));
       } else {
-        setTipoAsignado("persona");
-        setEmpleadoSeleccionado(rondin.asignado_a);
+        setMostrarFrecuencia(false);
+        set_cada_cuantas_horas_se_repite(1);
       }
-    }
-  }, [rondin]);
+    }, [rondin]);
 
     const handlePlay = async () => {
       setIsLoadingPlay(true);
@@ -172,30 +218,20 @@ const RondinDetalle = ({ id }: { id: string }) => {
         setIsLoadingPlay(false);
       }
     };
-
-    const handlePause = async () => {
-      setIsLoadingPause(true);
-      try {
-        await playOrPauseRondinMutation.mutateAsync({ record_id: id, paused: true });
-      } finally {
-        setIsLoadingPause(false);
-      }
+    const handleAbrirModalInspeccion = (areaNombre?: string) => {
+      setAreaInspeccion(areaNombre ?? "");
+      setInspeccionSeleccionada("");
+      setPromptInspeccion("");
+      setModalInspeccionAbierto(true);
     };
-
-  // const handlePlayPause = async (paused: boolean) => {
-  //   Swal.fire({
-  //     title: paused ? "Pausando rondín..." : "Ejecutando rondín...",
-  //     allowOutsideClick: false, allowEscapeKey: false,
-  //     showConfirmButton: false,
-  //     didOpen: () => Swal.showLoading(),
-  //   });
-  //   try {
-  //     await playOrPauseRondinMutation.mutateAsync({ record_id: id, paused });
-  //     Swal.fire({ icon: "success", title: paused ? "Rondín pausado" : "Rondín ejecutado", timer: 1500, showConfirmButton: false });
-  //   } catch (err) {
-  //     Swal.fire({ icon: "error", title: "Error", text: `${err}` });
-  //   }
-  // };
+  const handlePause = async () => {
+    setIsLoadingPause(true);
+    try {
+      await playOrPauseRondinMutation.mutateAsync({ record_id: id, paused: true });
+    } finally {
+      setIsLoadingPause(false);
+    }
+  };
 
   const handleEjecutar = async (dag_id: string) => {
     await ejecutarRecorridoMutation.mutateAsync({ dag_id });
@@ -204,17 +240,12 @@ const RondinDetalle = ({ id }: { id: string }) => {
     editAreasRodindMutation.mutate({ areas, record_id: id, folio: rondin?.folio ?? "" });
   };
 
-  // const handleAsignar = () => {
-  //   const data = tipoAsignado === "guardia" ? ["responsable_en_turno"] : [empleadoSeleccionado];
-  //   asignarRondinMutation({ folio: id, data });
-  // };
-
   const handleActualizar = () => {
     const asignadoA = tipoAsignado === "guardia"
       ? "responsable_en_turno"
       : tipoAsignado === "grupo"
       ? [grupoSeleccionado]
-      : [empleadoSeleccionado];
+      : empleadoSeleccionado;
 
     editarRondinMutation.mutate({
       folio: rondin?.folio ?? "",
@@ -226,6 +257,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
         tipo_asignacion: tipoAsignado === "guardia" ? "responsable_en_turno" : tipoAsignado,
         asignado_a: asignadoA,
         fecha_hora_programada: fechaProgramada ? format(fechaProgramada, "yyyy-MM-dd HH:mm:ss") : "",
+        cada_cuantas_horas_se_repite: mostrarFrecuencia ? cada_cuantas_horas_se_repite : null,
       } as any,
     });
   };
@@ -245,28 +277,19 @@ const RondinDetalle = ({ id }: { id: string }) => {
 
   if (!rondin) return <div className="p-8 text-center text-gray-400">Rondín no encontrado</div>;
 
-  // const isPaused = rondin.estatus_recorrido !== "Corriendo";
-  // const inputClass = (enabled: boolean) =>
-  //   `w-full px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
-  //     enabled ? "border-blue-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
-  //             : "border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
-  //   }`;
-  // const selectClass = (enabled: boolean, full = true) =>
-  //   `${full ? "w-full" : ""} px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors appearance-none ${
-  //     enabled ? "border-blue-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
-  //             : "border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
-  //   }`;\
-  
   const statusMap: Record<string, string> = {
-    corriendo: "bg-green-50 text-green-700 border border-green-200 ring-1 ring-green-300/50",
-    pausado:   "bg-yellow-50 text-yellow-700 border border-yellow-200 ring-1 ring-yellow-300/50",
-    cancelado: "bg-red-50 text-red-700 border border-red-200 ring-1 ring-red-300/50",
-    cerrado:   "bg-slate-50 text-slate-500 border border-slate-200 ring-1 ring-slate-300/50",
-    programado:"bg-purple-50 text-purple-700 border border-purple-200 ring-1 ring-purple-300/50",
+    Corriendo: "bg-green-50 text-green-700 border border-green-200 ring-1 ring-green-300/50",
+    Pausado:   "bg-yellow-50 text-yellow-700 border border-yellow-200 ring-1 ring-yellow-300/50",
+    Cancelado: "bg-red-50 text-red-700 border border-red-200 ring-1 ring-red-300/50",
+    Cerrado:   "bg-slate-50 text-slate-500 border border-slate-200 ring-1 ring-slate-300/50",
+    Programado:"bg-purple-50 text-purple-700 border border-purple-200 ring-1 ring-purple-300/50",
   };
-  // const estatus = (rondin.estatus_recorrido ?? "").toLowerCase(); 
+
+  console.log("estatus_rondin",rondin.estatus_rondin)
   return (
     <div className="flex flex-col h-full bg-gray-50 min-h-screen px-4 pt-2">
+
+
       {modalEliminarAbierto && (
         <EliminarRondinModal
           title="Eliminar Rondin"
@@ -306,11 +329,11 @@ const RondinDetalle = ({ id }: { id: string }) => {
                 {rondin.folio}
               </span>
             )}
-            <span className={`inline-flex capitalize items-center px-4 py-1.5 rounded-full text-base font-bold ${statusMap[rondin.estatus_recorrido] ?? "bg-slate-50 text-slate-500 border border-slate-200"}`}>
-              {rondin.estatus_recorrido}
+            <span className={`inline-flex capitalize items-center px-4 py-1.5 rounded-full text-base font-bold ${statusMap[rondin.estatus_rondin] ?? "bg-slate-50 text-slate-500 border border-slate-200"}`}>
+              {rondin.estatus_rondin}
             </span>
             <div className="flex items-center gap-2">
-              {rondin.estatus_recorrido === "Corriendo" ? (
+              {rondin.estatus_rondin === "Corriendo" ? (
                 <Button onClick={handlePause} size="icon"
                   className="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-none border-0"
                   disabled={isLoadingPause}>
@@ -458,16 +481,23 @@ const RondinDetalle = ({ id }: { id: string }) => {
             Grupo
           </button>
 
-          {tipoAsignado === "persona" && (
-            <select value={empleadoSeleccionado} onChange={(e) => setEmpleadoSeleccionado(e.target.value)}
-              className="flex-1 h-[38px] min-w-[140px] px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none">
-              <option value="">Selecciona una persona</option>
-              {loadingEmpleados ? <option disabled>Cargando...</option> : (
-                dataEmpleados?.map((e: string, i: number) => <option key={i} value={e}>{e}</option>)
-              )}
-            </select>
-          )}
-
+         {tipoAsignado === "persona" && (
+          <Select
+            isMulti
+            placeholder="Selecciona personas"
+            options={dataEmpleados?.map((e: string) => ({ value: e, label: e })) ?? []}
+            isLoading={loadingEmpleados}
+            loadingMessage={() => "Cargando..."}
+            value={empleadosSeleccionados.map((e) => ({ value: e, label: e }))}
+            onChange={(selected:any) => setEmpleadosSeleccionados(selected.map((s: any) => s.value))}
+            className="flex-1 min-w-[200px] text-xs"
+            styles={{
+              control: (base: any) => ({ ...base, minHeight: "38px", fontSize: "12px", borderColor: "#bfdbfe", borderRadius: "8px" }),
+              valueContainer: (base:any) => ({ ...base, padding: "0 8px" }),
+            }}
+            isClearable
+          />
+        )}
           {tipoAsignado === "grupo" && (
             <select value={grupoSeleccionado} onChange={(e) => setGrupoSeleccionado(e.target.value)}
               className="flex-1 h-[38px] min-w-[140px] px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none">
@@ -651,40 +681,151 @@ const RondinDetalle = ({ id }: { id: string }) => {
         </button>
       </div>
       </div>
-
-      {/* Áreas */}
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 w-full md:w-[380px] shrink-0 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-gray-800 text-sm">Puntos del rondín</h3>
-              <p className="text-xs text-gray-400">{rondin.cantidad_de_puntos} puntos</p>
-            </div>
+    
+    {/*AREAS*/}
+    <div className="flex flex-col md:flex-row gap-4 mb-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 w-full md:w-[380px] shrink-0 flex flex-col">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-gray-800 text-sm">Puntos del rondín</h3>
+            <p className="text-xs text-gray-400">{rondin.cantidad_de_puntos} puntos</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline"
+              className="rounded-lg text-xs border-blue-200 text-blue-600 hover:bg-blue-50"
+              onClick={() => handleAbrirModalInspeccion()}>
+              + Agregar inspección
+            </Button>
             <Button size="sm" className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs"
               onClick={handleGuardar} disabled={isLoadingEditAreas}>
               {isLoadingEditAreas ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : "Guardar"}
             </Button>
           </div>
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-3">
-            <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <input type="text" placeholder="Buscar punto..." value={areaSearch}
-              onChange={(e) => setAreaSearch(e.target.value)}
-              className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-full" />
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            <AreasList rondin={rondin} setAreas={setAreas} areas={filteredAreas} />
-          </div>
-          {areas.filter((a: any) => !a.geolocalizacion_area_ubicacion?.length).length > 0 && (
-            <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-100">
-              <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-              <p className="text-xs text-red-500">
-                {areas.filter((a: any) => !a.geolocalizacion_area_ubicacion?.length).length} áreas sin geolocalización
-              </p>
-            </div>
-          )}
         </div>
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ minHeight: "420px", zIndex: 0 }} />
+
+        {modalInspeccionAbierto && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            onClick={() => setModalInspeccionAbierto(false)}>
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 w-full max-w-sm mx-4"
+              onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-base font-semibold text-gray-800 mb-4">Agregar inspección</h3>
+              <div className="flex flex-col gap-3">
+
+                {/* Área */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Área</label>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-blue-200 bg-white cursor-pointer hover:bg-blue-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={areaInspeccion === "todas"}
+                        onChange={(e) => setAreaInspeccion(e.target.checked ? "todas" : "")}
+                        className="accent-blue-600"
+                      />
+                      <span className="text-xs font-medium text-gray-700">Todas las áreas</span>
+                    </label>
+                    <Select
+                      isMulti
+                      isDisabled={areaInspeccion === "todas"}
+                      placeholder="Selecciona áreas..."
+                      options={(areasStore?.length ? areasStore : dataAreas ?? []).map((a: string) => ({ value: a, label: a }))}
+                      value={
+                        areaInspeccion === "todas" || !areaInspeccion
+                          ? []
+                          : (Array.isArray(areaInspeccion) ? areaInspeccion : [areaInspeccion]).map((a: string) => ({ value: a, label: a }))
+                      }
+                      onChange={(selected: any) => setAreaInspeccion(selected.map((s: any) => s.value))}
+                      className="text-xs"
+                      styles={{
+                        control: (base: any) => ({
+                          ...base,
+                          minHeight: "38px",
+                          fontSize: "12px",
+                          borderColor: "#bfdbfe",
+                          borderRadius: "8px",
+                          opacity: areaInspeccion === "todas" ? 0.5 : 1,
+                        }),
+                        valueContainer: (base: any) => ({ ...base, padding: "0 8px" }),
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Inspección */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Inspección</label>
+                  <select
+                    value={inspeccionSeleccionada}
+                    onChange={(e) => setInspeccionSeleccionada(e.target.value)}
+                    className="w-full h-[38px] px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-gray-800 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none"
+                  >
+                    <option value="">
+                      {loadingInspecciones ? "Cargando..." : "Selecciona una inspección"}
+                    </option>
+                    {Array.isArray(dataInspecciones) && dataInspecciones.map((inspeccion: string, i: number) => (
+                      <option key={i} value={inspeccion}>{inspeccion}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Prompt inspección */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                    Prompt inspección
+                  </label>
+                  <textarea
+                    value={promptInspeccion}
+                    onChange={(e) => setPromptInspeccion(e.target.value)}
+                    rows={3}
+                    placeholder="Escribe tu observación..."
+                    className="w-full px-3 py-2 rounded-lg border border-blue-200 bg-white text-gray-800 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 resize-none"
+                  />
+                  <p className="text-[10px] text-gray-400 leading-tight mt-0.5">
+                    Usa lenguaje natural para mencionarle a nuestro agente de inteligencia artificial
+                    alguna observación que quieras hacer sobre la inspección de esta área.
+                  </p>
+                </div>
+
+              </div>
+              <div className="flex gap-2 mt-5">
+                <button onClick={() => setModalInspeccionAbierto(false)}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={handleAsignarInspeccion}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                  Guardar asignación
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-3">
+          <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <input type="text" placeholder="Buscar punto..." value={areaSearch}
+            onChange={(e) => setAreaSearch(e.target.value)}
+            className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-full" />
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <AreasList
+            rondin={rondin}
+            setAreas={setAreas}
+            areas={filteredAreas}
+            onAsignarInspeccion={handleAbrirModalInspeccion}
+          />
+        </div>
+        {areas.filter((a: any) => !a.geolocalizacion_area_ubicacion?.length).length > 0 && (
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-100">
+            <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+            <p className="text-xs text-red-500">
+              {areas.filter((a: any) => !a.geolocalizacion_area_ubicacion?.length).length} áreas sin geolocalización
+            </p>
+          </div>
+        )}
       </div>
+      <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ minHeight: "420px", zIndex: 0 }} />
+    </div>
     </div>
   );
 };

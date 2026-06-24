@@ -127,18 +127,6 @@ const RondinesContent = () => {
   }, [location]);
 
   useEffect(() => {
-    const tabParam = searchParams.get("tab");
-    const map: Record<string, string> = {
-      recorridos: "recorridos",
-      rondines: "rondines",
-      "check-areas": "check-areas",
-      "incidencias-rondines": "incidencias-rondines",
-    };
-    const matched = tabParam ? map[tabParam.toLowerCase()] : undefined;
-    setSubTab(matched ?? "recorridos");
-  }, [searchParams]);
-
-  useEffect(() => {
     setTotalRegistros(0);
   }, [subTab]);
 
