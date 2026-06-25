@@ -209,6 +209,26 @@ export function formatEquiposToBitacora(arr: Equipo[]): Equipo_bitacora[] {
 }
 
 export function errorMsj(data: any, title = "Error", type = "warning") {
+    // Si data trae directamente un string de error o mensaje
+    if (typeof data === "string") {
+      return { title, text: data, type };
+    }
+
+    // Si data trae directamente la propiedad 'msg' sin anidación
+    if (data?.msg && typeof data.msg === "string") {
+      return { title, text: data.msg, type };
+    }
+
+    // Si data trae directamente la propiedad 'error' como string sin anidación
+    if (data?.error && typeof data.error === "string") {
+      return { title, text: data.error, type };
+    }
+
+    // Si no tiene response, no podemos seguir
+    if (!data?.response) {
+      return { title, text: "Error desconocido", type };
+    }
+    
   if (Array.isArray(data?.response?.data?.json?.msg)) {
     return {
       title: title,
@@ -282,8 +302,8 @@ export function errorMsj(data: any, title = "Error", type = "warning") {
     }
     return { title: title, text: errores.join(", "), type };
   }
-  if (
-    data.response.data.hasOwnProperty("json") &&
+ if (
+    data?.response?.data?.hasOwnProperty("json") &&
     data.response?.status_code !== 202 &&
     data.response?.status_code !== 201
   ) {
