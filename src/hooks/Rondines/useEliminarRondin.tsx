@@ -20,8 +20,9 @@ export const useEliminarRondin = () => {
     },
     onMutate: () => setLoading(true),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["getListRondines"] });
-      queryClient.invalidateQueries({ queryKey: ["getStatsRondines"] });
+      queryClient.invalidateQueries({ queryKey: ["getListRecorridos"] });
+      queryClient.invalidateQueries({ queryKey: ["getRondinById"] });
+      queryClient.invalidateQueries({ queryKey: ["getStatsRecorridos"] });
       toast.success("Rondin eliminado correctamente.");
     },
     onError: (err: any) => {

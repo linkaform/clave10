@@ -1,12 +1,10 @@
 import { playOrPauseRondin } from "@/lib/create-incidencia-rondin";
 import { errorMsj } from "@/lib/utils";
-import { useShiftStore } from "@/store/useShiftStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const usePlayOrPauseRondin = () => {
     const queryClient = useQueryClient();
-    const {isLoading, setLoading} = useShiftStore();
   
       const playOrPauseRondinMutation = useMutation({
         mutationFn: async ({ paused, record_id }: { paused: boolean; record_id: string }) => {
@@ -21,12 +19,12 @@ export const usePlayOrPauseRondin = () => {
               }
           },
           onMutate: () => {
-            setLoading(true);
           },
           onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ["getListRecorridos"] });
             queryClient.invalidateQueries({ queryKey: ["getStatsRondines"] });
             queryClient.invalidateQueries({ queryKey: ["getRondinById"] });
+            queryClient.refetchQueries({ queryKey: ["getRondinById"] });
 
             const accion = variables.paused ? "pausado" : "iniciado";
             toast.success(`Rondín ${accion} correctamente.`);
@@ -36,12 +34,11 @@ export const usePlayOrPauseRondin = () => {
             toast.success(`Error al intentar ${accion} un rondin.`);
           },
           onSettled: () => {
-            setLoading(false);
           },
         });
 
     return{
         playOrPauseRondinMutation,
-        isLoading,
+        isLoading:playOrPauseRondinMutation.isPending,
     }
 }

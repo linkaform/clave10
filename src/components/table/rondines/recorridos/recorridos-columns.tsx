@@ -86,10 +86,10 @@
       enableSorting: true,
     },
     {
-      accessorKey: "estatus_recorrido",
+      accessorKey: "estatus_rondin",
       header: "Estatus",
       cell: ({ row }) => {
-        const estatus = row.getValue("estatus_recorrido") as string;
+        const estatus = row.getValue("estatus_rondin") as string;
         const statusStyles: Record<string, string> = {
           corriendo: "bg-green-100 text-green-700 border border-green-200",
           pausado:   "bg-yellow-50 text-yellow-700 border border-yellow-200",
