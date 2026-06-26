@@ -210,19 +210,18 @@ const puntos = useMemo<Punto[]>(() =>
             eventHandlers={{
               click: (e) => { e.originalEvent.stopPropagation(); },
             }}>
-           <Tooltip
-            permanent
-            direction="right"
-            offset={[8, -22]}
-            className={`myTooltip myTooltip-${instanceId}`}
-            interactive={false}
-          >
-            <div className="tooltip-div" style={{ pointerEvents: "none" }}>
-              <span className="toltip-data text-xs font-medium whitespace-nowrap">
-                {obj.folio}
-              </span>
-            </div>
-          </Tooltip>
+          <Tooltip
+              direction="right"
+              offset={[8, -22]}
+              className={`myTooltip myTooltip-${instanceId}`}
+              interactive={false}
+            >
+              <div className="tooltip-div" style={{ pointerEvents: "none" }}>
+                <span className="toltip-data text-xs font-medium whitespace-nowrap">
+                  {obj.folio}
+                </span>
+              </div>
+            </Tooltip>
           </Marker>
         ))}
       </MapContainer>

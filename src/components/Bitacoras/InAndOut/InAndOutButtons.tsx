@@ -6,6 +6,7 @@ import { EqipmentLocalPassModal } from "@/components/modals/add-local-equipo"
 import { AddBadgeModal } from "@/components/modals/add-badge-modal"
 import { ReturnGafeteModal } from "@/components/modals/return-gafete-modal"
 import { Car, Forward, Hammer, IdCard, Printer } from "lucide-react"
+import useAuthStore from '@/store/useAuthStore'
 
 interface InAndOutButtonsProps {
   bitacora: Bitacora_record
@@ -20,7 +21,7 @@ export const InAndOutButtons = ({
 }: InAndOutButtonsProps) => {
   const [isAddBadgeOpen, setIsAddBadgeOpen] = useState(false);
   const [isReturnGafeteOpen, setIsReturnGafeteOpen] = useState(false);
-
+  const {userIdSoter} = useAuthStore()
   const isSalida = bitacora.status_visita?.toLowerCase() === "salida";
   const isEntrada = bitacora.status_visita?.toLowerCase() === "entrada";
   const isAsignado = bitacora.status_gafete?.toLowerCase() === "asignado";
@@ -81,8 +82,8 @@ export const InAndOutButtons = ({
             </VehicleLocalPassModal>
           ) : null,
           !isSalida ? (
-            <EqipmentLocalPassModal key="hammer" title="Agregar equipo" id={bitacora._id} equipos={[]} setEquipos={() => {}} isAccesos={false}>
-              <div className={iconClass(false)} title="Agregar equipo">
+            <EqipmentLocalPassModal key="hammer" title="Agregar equipo" id={bitacora._id} equipos={[]} setEquipos={() => {}} isAccesos={false} userId={userIdSoter}>
+              <div className={iconClass(false)} title="Agregar equipo" >
                 <Hammer className="w-4 h-4" />
               </div>
             </EqipmentLocalPassModal>

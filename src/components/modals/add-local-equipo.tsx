@@ -43,6 +43,7 @@ interface Props {
   isAccesos: boolean;
   id?: string;
   fetch?: boolean;
+  userId?:number
 }
 
 const formSchema = z.object({
@@ -66,6 +67,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
   isAccesos,
   id = "",
   fetch = false,
+  userId
 }) => {
   const [open, setOpen] = useState(false);
   const [openScan, setOpenScan] = useState(false);
@@ -80,8 +82,8 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
     label: tipo,
   }));
   const { userIdSoter } = useAuthStore();
-  const { data: tiposEquiposData , isLoading: loadingTipos} = useGetTipoEquipos({
-    account_id: userIdSoter,
+  const { data: tiposEquiposData, isLoading: loadingTipos } = useGetTipoEquipos({
+    account_id: Number(userId) || Number(userIdSoter) || 0,
     isModalOpen: open,
   });
   const catTiposEquipos = (Array.isArray(tiposEquiposData) ? tiposEquiposData : tiposEquiposData?.data ?? []).map((tipo: string) => ({

@@ -24,7 +24,6 @@ import MultiSelect from "react-select";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import DateTimePicker from "@/components/dateTimerPicker";
 import { format } from "date-fns";
-import { Switch } from "@radix-ui/react-switch";
 import { useEjecutarRecorrido } from "@/hooks/Rondines/recorridos/useEjecutarRecorrido";
 import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 import Select from "react-select";
@@ -189,6 +188,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
 
       // Frecuencia horas
       if (rondin.cada_cuantas_horas_se_repite) {
+        console.log( "HORAS", rondin.cada_cuantas_horas_se_repite)
         setMostrarFrecuencia(true);
         set_cada_cuantas_horas_se_repite(Number(rondin.cada_cuantas_horas_se_repite));
       } else {
@@ -580,15 +580,29 @@ const handleActualizar = () => {
               </div>
               <div className="flex items-center gap-4 mt-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium">Frecuencia (horas)</span>
-                  <Switch checked={mostrarFrecuencia} onCheckedChange={setMostrarFrecuencia} />
+                  <span className="text-xs font-medium text-gray-600">Frecuencia (horas)</span>
+                  <button
+                    type="button"
+                    onClick={() => setMostrarFrecuencia(!mostrarFrecuencia)}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      mostrarFrecuencia ? "bg-blue-600" : "bg-gray-300"
+                    }`}>
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                      mostrarFrecuencia ? "translate-x-4" : "translate-x-1"
+                    }`} />
+                  </button>
                 </div>
                 {mostrarFrecuencia && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs">Cada:</span>
-                    <input type="number" min={1} max={24} value={cada_cuantas_horas_se_repite}
+                    <span className="text-xs text-gray-600">Cada:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={24}
+                      value={cada_cuantas_horas_se_repite}
                       onChange={(e) => set_cada_cuantas_horas_se_repite(Number(e.target.value))}
-                      className="w-16 px-2 py-1 border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                      className="w-16 px-2 py-1 border border-blue-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    />
                     <span className="text-xs text-gray-600">hora(s)</span>
                   </div>
                 )}
