@@ -7,14 +7,14 @@ import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { useBoothStore } from "@/store/useBoothStore";
 import { EliminarRondinModal } from "@/components/modals/delete-rondin-modal";
-import { AddRondinModal } from "@/components/modals/add-rondin";
 import { AreasList } from "@/components/areas-list-draggable";
 import { Button } from "@/components/ui/button";
 import {
-  Loader2, MoveLeft, Pause, Play, Search, Trash,
+  Loader2, MoveLeft, Pause, Play, Search, Trash2,
   MapPin, Clock, RefreshCw, User, AlertCircle, CalendarDays,
   Tag,
   Layers,
+  FilePenLine,
 } from "lucide-react";
 import { useRecorridoStore } from "@/store/useRecorridoStore";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
@@ -24,11 +24,12 @@ import MultiSelect from "react-select";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import DateTimePicker from "@/components/dateTimerPicker";
 import { format } from "date-fns";
-import { Switch } from "@radix-ui/react-switch";
 import { useEjecutarRecorrido } from "@/hooks/Rondines/recorridos/useEjecutarRecorrido";
 import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 import Select from "react-select";
 import { useCatalogoInspeccionesRecorridos } from "@/hooks/Rondines/recorridos/useCatalogoInspecciones";
+import MapView from "@/components/map-v2";
+import { useActualizarInspeccion } from "@/hooks/Rondines/recorridos/useActualizarInspeccion";
 
 export type RecurrenciaValida = "diario" | "semana" | "mes" | "configurable";
 
@@ -40,11 +41,15 @@ export function parseRecurrencia(value: string | undefined): RecurrenciaValida |
 }
 
 const RondinDetalle = ({ id }: { id: string }) => {
-  const { recorridoSeleccionado } = useRecorridoStore();
-  const needsFetch = recorridoSeleccionado?._id !== id;
+
+  const { recorridoSeleccionado, setRecorridoSeleccionado } = useRecorridoStore();
+  const [forceRefetch, setForceRefetch] = useState(false);
+  const needsFetch = recorridoSeleccionado?._id !== id || forceRefetch;
   const { data: recorridoFetched, isLoadingRondin } = useGetRondinById(needsFetch ? id : "");
   const rondin = needsFetch ? recorridoFetched : recorridoSeleccionado;
+
   const { locations, areas: areasStore, fetchLocations, fetchAreas } = useAreasLocationStore();
+  const {actualizarInspeccionMutation}= useActualizarInspeccion();
   const [duracion, setDuracion] = useState("");
   const [tipoRondin, setTipoRondin] = useState("");
   const [areaSeleccionada, setAreaSeleccionada] = useState("");
@@ -52,19 +57,17 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const { dataAreas } = useCatalogoPaseAreaLocation(
     rondin?.ubicacion ?? "", true, !!rondin?.ubicacion
   );
-  const { editarRondinMutation, isLoading: isLoadingEdit } = useEditarRondin();
+  const { editarRondinMutation } = useEditarRondin();
   const router = useRouter();
   const { location } = useBoothStore();
   const { playOrPauseRondinMutation } = usePlayOrPauseRondin();
-  const { ejecutarRecorridoMutation, isLoading: isLoadingEjecutarRecorrido } = useEjecutarRecorrido();
+  const { ejecutarRecorridoMutation } = useEjecutarRecorrido();
   const { editAreasRodindMutation, isLoading: isLoadingEditAreas } = useEditAreasRondin();
   // const { mutate: asignarRondinMutation, isPending: isLoadingAsignar } = useAsignarRondin();
   const { data: dataEmpleados, isLoading: loadingEmpleados } = useCatalogoAreaEmpleado(true, location ?? "", "Incidencias");
   const { data: dataInspecciones, isLoading: loadingInspecciones } = useCatalogoInspeccionesRecorridos();
-  console.log("INSPECCIONES",dataInspecciones)
   const [areas, setAreas] = useState<any[]>([]);
   const [areaSearch, setAreaSearch] = useState("");
-  const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState("");
   const [ubicacionesLS, setUbicacionesLS] = useState<string[]>([]);
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(rondin?.ubicacion || "");
@@ -91,12 +94,17 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const [modalInspeccionAbierto, setModalInspeccionAbierto] = useState(false);
   const [areaInspeccion, setAreaInspeccion] = useState<string | string[]>("");
   const [inspeccionSeleccionada, setInspeccionSeleccionada] = useState("");
-  const [promptInspeccion, setPromptInspeccion] = useState(""); // NUEVO
-    function toggleDia(dia: string) {
-      set_que_dias_de_la_semana((prev) =>
-        prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia]
-      );
-    }
+  const [promptInspeccion, setPromptInspeccion] = useState(""); 
+  const anyLoading = isLoadingPause || isLoadingPlay || ejecutarRecorridoMutation.isPending;
+  const [fechaProgramada, setFechaProgramada] = useState<Date | undefined>(
+  rondin?.fecha_inicio_rondin ? new Date(rondin.fecha_inicio_rondin) : undefined);
+  const opciones = fechaProgramada ? opcionesMensuales(fechaProgramada) : [];
+
+  function toggleDia(dia: string) {
+    set_que_dias_de_la_semana((prev) =>
+      prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia]
+    );
+  }
   const toggleTodos = () => {
     if (que_dias_de_la_semana.length === diasSemana.length) set_que_dias_de_la_semana([]);
     else set_que_dias_de_la_semana(diasSemana.map((d) => d.toLowerCase()));
@@ -110,23 +118,6 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const seleccionar = (valor: boolean) => {
     setEsRepetirCada((prev) => (prev === valor ? null : valor));
   };
-
-  const handleAsignarInspeccion = () => {
-    editarRondinMutation.mutate({
-      folio: rondin?._id ?? "",
-      rondin_data: {
-        inspeccion: inspeccionSeleccionada,
-        areas: areaInspeccion === "todas"
-          ? ["todas"]
-          : Array.isArray(areaInspeccion)
-          ? areaInspeccion
-          : [areaInspeccion],
-        prompt_inspeccion: promptInspeccion,
-      } as any,
-    });
-    setModalInspeccionAbierto(false);
-  };
-
   function opcionesMensuales(fecha: Date): string[] {
     const diaDelMes = fecha.getDate();
     const op1 = `Mensualmente el día ${diaDelMes}`;
@@ -137,11 +128,6 @@ const RondinDetalle = ({ id }: { id: string }) => {
     const op2 = `Mensualmente el ${ordinales[semanaDelMes]} ${nombreDia} del mes`;
     return [op1, op2];
   }
-
-  const [fechaProgramada, setFechaProgramada] = useState<Date | undefined>(
-  rondin?.fecha_inicio_rondin ? new Date(rondin.fecha_inicio_rondin) : undefined
-);
-  const opciones = fechaProgramada ? opcionesMensuales(fechaProgramada) : [];
 
   useEffect(() => {
     if (!locations?.length) fetchLocations();
@@ -202,50 +188,89 @@ const RondinDetalle = ({ id }: { id: string }) => {
 
       // Frecuencia horas
       if (rondin.cada_cuantas_horas_se_repite) {
+        console.log( "HORAS", rondin.cada_cuantas_horas_se_repite)
         setMostrarFrecuencia(true);
         set_cada_cuantas_horas_se_repite(Number(rondin.cada_cuantas_horas_se_repite));
       } else {
         setMostrarFrecuencia(false);
         set_cada_cuantas_horas_se_repite(1);
       }
-    }, [rondin]);
+  }, [rondin]);
 
-    const handlePlay = async () => {
+  useEffect(() => {
+    if (recorridoFetched) {
+      setRecorridoSeleccionado(recorridoFetched as any);
+      setForceRefetch(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recorridoFetched]);
+
+  const handlePlay = async () => {
       setIsLoadingPlay(true);
       try {
-        await playOrPauseRondinMutation.mutateAsync({ record_id: id, paused: false });
+        await playOrPauseRondinMutation.mutateAsync({ record_id: id, paused: false },
+          { onSuccess: () => setForceRefetch(true) }
+        );
       } finally {
         setIsLoadingPlay(false);
       }
-    };
-    const handleAbrirModalInspeccion = (areaNombre?: string) => {
+  };
+
+  const handleAbrirModalInspeccion = (areaNombre?: string) => {
       setAreaInspeccion(areaNombre ?? "");
       setInspeccionSeleccionada("");
       setPromptInspeccion("");
       setModalInspeccionAbierto(true);
-    };
+  };
+
   const handlePause = async () => {
     setIsLoadingPause(true);
     try {
-      await playOrPauseRondinMutation.mutateAsync({ record_id: id, paused: true });
+      await playOrPauseRondinMutation.mutateAsync({ record_id: id, paused: true },
+        { onSuccess: () => setForceRefetch(true) }
+      );
     } finally {
       setIsLoadingPause(false);
     }
   };
 
+  const handleAsignarInspeccion = () => {
+    actualizarInspeccionMutation.mutate({
+      folio: rondin?._id ?? "",
+      rondin_data: {
+        inspeccion: inspeccionSeleccionada,
+        areas: areaInspeccion === "todas"
+          ? ["todas"]
+          : Array.isArray(areaInspeccion)
+          ? areaInspeccion
+          : [areaInspeccion],
+        prompt_inspeccion: promptInspeccion,
+      },
+    }
+    ,{
+      onSuccess: () => {
+        setModalInspeccionAbierto(false);
+        setForceRefetch(true);
+      }
+    })
+  };
+  
   const handleEjecutar = async (dag_id: string) => {
-    await ejecutarRecorridoMutation.mutateAsync({ dag_id });
+    await ejecutarRecorridoMutation.mutateAsync({ dag_id },{ onSuccess: () => setForceRefetch(true) });
   }
+
   const handleGuardar = () => {
-    editAreasRodindMutation.mutate({ areas, record_id: id, folio: rondin?.folio ?? "" });
+    editAreasRodindMutation.mutate({ areas, record_id: id, folio: rondin?.folio ?? "" },);
   };
 
-  const handleActualizar = () => {
-    const asignadoA = tipoAsignado === "guardia"
-      ? "responsable_en_turno"
-      : tipoAsignado === "grupo"
-      ? [grupoSeleccionado]
-      : empleadoSeleccionado;
+const handleActualizar = () => {
+  const asignadoA = tipoAsignado === "guardia"
+    ? "responsable_en_turno"
+    : tipoAsignado === "grupo"
+    ? [grupoSeleccionado]
+    : empleadosSeleccionados.length > 0
+    ? empleadosSeleccionados
+    : "responsable_en_turno"; 
 
     editarRondinMutation.mutate({
       folio: rondin?.folio ?? "",
@@ -259,8 +284,9 @@ const RondinDetalle = ({ id }: { id: string }) => {
         fecha_hora_programada: fechaProgramada ? format(fechaProgramada, "yyyy-MM-dd HH:mm:ss") : "",
         cada_cuantas_horas_se_repite: mostrarFrecuencia ? cada_cuantas_horas_se_repite : null,
       } as any,
-    });
+    },{ onSuccess: () => setForceRefetch(true) });
   };
+
   const filteredAreas = areas.filter((a: any) =>
     (a.rondin_area || "").toLowerCase().includes(areaSearch.toLowerCase())
   );
@@ -285,11 +311,8 @@ const RondinDetalle = ({ id }: { id: string }) => {
     Programado:"bg-purple-50 text-purple-700 border border-purple-200 ring-1 ring-purple-300/50",
   };
 
-  console.log("estatus_rondin",rondin.estatus_rondin)
   return (
     <div className="flex flex-col h-full bg-gray-50 min-h-screen px-4 pt-2">
-
-
       {modalEliminarAbierto && (
         <EliminarRondinModal
           title="Eliminar Rondin"
@@ -309,52 +332,63 @@ const RondinDetalle = ({ id }: { id: string }) => {
               <MoveLeft className="w-5 h-5" />
             </button>
             <h2 className="text-xl font-bold text-gray-900">{rondin.nombre_del_rondin}</h2>
-            <AddRondinModal
-              title="Editar Rondín"
-              mode="edit"
-              rondinData={rondin}
-              rondinId={id}
-              folio={rondin.folio}>
-              <button className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </button>
-            </AddRondinModal>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Folio badge */}
             {rondin.folio && (
-              <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold tracking-wide border border-blue-100 ">
-                {rondin.folio}
+             <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200 ring-1 ring-blue-300/50">
+                # {rondin.folio}
               </span>
             )}
-            <span className={`inline-flex capitalize items-center px-4 py-1.5 rounded-full text-base font-bold ${statusMap[rondin.estatus_rondin] ?? "bg-slate-50 text-slate-500 border border-slate-200"}`}>
+
+            {/* Estatus badge */}
+            <span className={`inline-flex capitalize items-center px-4 py-1.5 rounded-full text-sm font-semibold ${statusMap[rondin.estatus_rondin] ?? "bg-slate-50 text-slate-500 border border-slate-200"}`}>
+              <span className={`w-2 h-2 rounded-full mr-2 ${
+                rondin.estatus_rondin === "Corriendo" ? "bg-green-500" :
+                rondin.estatus_rondin === "Pausado" ? "bg-yellow-500" :
+                rondin.estatus_rondin === "Cancelado" ? "bg-red-500" :
+                rondin.estatus_rondin === "Programado" ? "bg-purple-500" : "bg-slate-400"
+              }`} />
               {rondin.estatus_rondin}
             </span>
-            <div className="flex items-center gap-2">
-              {rondin.estatus_rondin === "Corriendo" ? (
-                <Button onClick={handlePause} size="icon"
-                  className="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-none border-0"
-                  disabled={isLoadingPause}>
-                  {isLoadingPause ? <Loader2 size={16} className="animate-spin" /> : <Pause size={16} />}
-                </Button>
-              ) : (
-                <Button onClick={handlePlay} size="icon"
-                  className="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-none border-0"
-                  disabled={isLoadingPlay}>
-                  {isLoadingPlay ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                </Button>
-              )}
-            </div>
-            <button type="button" onClick={() => handleEjecutar(rondin.dag_id)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-md font-semibold transition-all border bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100">
-              {isLoadingEjecutarRecorrido ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              Ejecutar Ahora
+
+            {/* Divider */}
+            <div className="w-px h-7 bg-gray-200 mx-1" />
+
+            {rondin.estatus_rondin === "Corriendo" ? (
+              <button
+                onClick={handlePause}
+                disabled={anyLoading}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-yellow-500 text-white hover:bg-yellow-600 transition-all shadow-sm disabled:opacity-50">
+                {isLoadingPause ? <Loader2 size={15} className="animate-spin" /> : <Pause size={15} />}
+                Pausar
+              </button>
+            ) : (
+              <button
+                onClick={handlePlay}
+                disabled={anyLoading}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition-all shadow-sm disabled:opacity-50">
+                {isLoadingPlay ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
+                Reanudar
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => handleEjecutar(rondin.dag_id)}
+              disabled={anyLoading}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-sm disabled:opacity-50">
+              {ejecutarRecorridoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              Ejecutar ahora
             </button>
-            <button onClick={() => setModalEliminarAbierto(true)}
-              className="p-2 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
-              <Trash className="w-4 h-4" />
+
+            <button
+              onClick={() => setModalEliminarAbierto(true)}
+              disabled={anyLoading}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm disabled:opacity-50">
+              <Trash2 className="w-4 h-4" />
+              Eliminar
             </button>
           </div>
         </div>
@@ -460,7 +494,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
         </label>
         <div className="flex items-center gap-1.5 flex-wrap">
           <button type="button"
-            onClick={() => { setTipoAsignado("guardia"); setEmpleadoSeleccionado("responsable_en_turno"); setGrupoSeleccionado(""); }}
+            onClick={() => { setTipoAsignado("guardia"); setGrupoSeleccionado(""); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
               tipoAsignado === "guardia" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
             }`}>
@@ -474,7 +508,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
             Persona específica
           </button>
           <button type="button"
-            onClick={() => { setTipoAsignado("grupo"); setEmpleadoSeleccionado(""); }}
+            onClick={() => { setTipoAsignado("grupo");}}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
               tipoAsignado === "grupo" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
             }`}>
@@ -546,15 +580,29 @@ const RondinDetalle = ({ id }: { id: string }) => {
               </div>
               <div className="flex items-center gap-4 mt-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium">Frecuencia (horas)</span>
-                  <Switch checked={mostrarFrecuencia} onCheckedChange={setMostrarFrecuencia} />
+                  <span className="text-xs font-medium text-gray-600">Frecuencia (horas)</span>
+                  <button
+                    type="button"
+                    onClick={() => setMostrarFrecuencia(!mostrarFrecuencia)}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      mostrarFrecuencia ? "bg-blue-600" : "bg-gray-300"
+                    }`}>
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                      mostrarFrecuencia ? "translate-x-4" : "translate-x-1"
+                    }`} />
+                  </button>
                 </div>
                 {mostrarFrecuencia && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs">Cada:</span>
-                    <input type="number" min={1} max={24} value={cada_cuantas_horas_se_repite}
+                    <span className="text-xs text-gray-600">Cada:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={24}
+                      value={cada_cuantas_horas_se_repite}
                       onChange={(e) => set_cada_cuantas_horas_se_repite(Number(e.target.value))}
-                      className="w-16 px-2 py-1 border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                      className="w-16 px-2 py-1 border border-blue-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    />
                     <span className="text-xs text-gray-600">hora(s)</span>
                   </div>
                 )}
@@ -673,18 +721,21 @@ const RondinDetalle = ({ id }: { id: string }) => {
       {/* Botón actualizar */}
       <div className="flex justify-end mt-3">
         <button type="button" onClick={handleActualizar}
-          disabled={isLoadingEdit || (tipoAsignado === "persona" && !empleadoSeleccionado)}
-          className="flex items-center gap-1.5 px-6 py-2 rounded-lg text-sm font-semibold transition-all bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
-          {isLoadingEdit
-            ? <><Loader2 className="w-3 h-3 animate-spin" /> Actualizando...</>
-            : "Actualizar recorrido"}
+          disabled={editarRondinMutation.isPending }
+          className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold transition-all bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
+          {editarRondinMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <FilePenLine className="w-4 h-4 " />
+          )}
+          {editarRondinMutation.isPending ? "Actualizando..." : "Actualizar Recorrido"}
         </button>
       </div>
       </div>
     
     {/*AREAS*/}
     <div className="flex flex-col md:flex-row gap-4 mb-4">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 w-full md:w-[380px] shrink-0 flex flex-col">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 w-full md:w-[480px] shrink-0 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-semibold text-gray-800 text-sm">Puntos del rondín</h3>
@@ -692,11 +743,11 @@ const RondinDetalle = ({ id }: { id: string }) => {
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline"
-              className="rounded-lg text-xs border-blue-200 text-blue-600 hover:bg-blue-50"
+              className="rounded-lg text-xs bg-blue-600 text-white hover:bg-blue-700 hover:text-white font-bold"
               onClick={() => handleAbrirModalInspeccion()}>
-              + Agregar inspección
+              + Agregar Inspección
             </Button>
-            <Button size="sm" className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs"
+            <Button size="sm" className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold"
               onClick={handleGuardar} disabled={isLoadingEditAreas}>
               {isLoadingEditAreas ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : "Guardar"}
             </Button>
@@ -714,43 +765,50 @@ const RondinDetalle = ({ id }: { id: string }) => {
                 {/* Área */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Área</label>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-blue-200 bg-white cursor-pointer hover:bg-blue-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={areaInspeccion === "todas"}
-                        onChange={(e) => setAreaInspeccion(e.target.checked ? "todas" : "")}
-                        className="accent-blue-600"
+                  {typeof areaInspeccion === "string" && areaInspeccion !== "" && areaInspeccion !== "todas" ? (
+                    // Viene desde el botón de un área específica — solo mostrar el nombre
+                    <div className="px-3 py-2 rounded-lg border border-blue-100 bg-blue-50 text-xs font-medium text-blue-700">
+                      {areaInspeccion}
+                    </div>
+                  ) : (
+                    // Viene desde el botón general — mostrar checkbox + multiselect
+                    <div className="flex flex-col gap-1.5">
+                      <label className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-blue-200 bg-white cursor-pointer hover:bg-blue-50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={areaInspeccion === "todas"}
+                          onChange={(e) => setAreaInspeccion(e.target.checked ? "todas" : "")}
+                          className="accent-blue-600"
+                        />
+                        <span className="text-xs font-medium text-gray-700">Todas las áreas</span>
+                      </label>
+                      <Select
+                        isMulti
+                        isDisabled={areaInspeccion === "todas"}
+                        placeholder="Selecciona áreas..."
+                        options={(areasStore?.length ? areasStore : dataAreas ?? []).map((a: string) => ({ value: a, label: a }))}
+                        value={
+                          areaInspeccion === "todas" || !areaInspeccion
+                            ? []
+                            : (Array.isArray(areaInspeccion) ? areaInspeccion : [areaInspeccion]).map((a: string) => ({ value: a, label: a }))
+                        }
+                        onChange={(selected: any) => setAreaInspeccion(selected.map((s: any) => s.value))}
+                        className="text-xs"
+                        styles={{
+                          control: (base: any) => ({
+                            ...base,
+                            minHeight: "38px",
+                            fontSize: "12px",
+                            borderColor: "#bfdbfe",
+                            borderRadius: "8px",
+                            opacity: areaInspeccion === "todas" ? 0.5 : 1,
+                          }),
+                          valueContainer: (base: any) => ({ ...base, padding: "0 8px" }),
+                        }}
                       />
-                      <span className="text-xs font-medium text-gray-700">Todas las áreas</span>
-                    </label>
-                    <Select
-                      isMulti
-                      isDisabled={areaInspeccion === "todas"}
-                      placeholder="Selecciona áreas..."
-                      options={(areasStore?.length ? areasStore : dataAreas ?? []).map((a: string) => ({ value: a, label: a }))}
-                      value={
-                        areaInspeccion === "todas" || !areaInspeccion
-                          ? []
-                          : (Array.isArray(areaInspeccion) ? areaInspeccion : [areaInspeccion]).map((a: string) => ({ value: a, label: a }))
-                      }
-                      onChange={(selected: any) => setAreaInspeccion(selected.map((s: any) => s.value))}
-                      className="text-xs"
-                      styles={{
-                        control: (base: any) => ({
-                          ...base,
-                          minHeight: "38px",
-                          fontSize: "12px",
-                          borderColor: "#bfdbfe",
-                          borderRadius: "8px",
-                          opacity: areaInspeccion === "todas" ? 0.5 : 1,
-                        }),
-                        valueContainer: (base: any) => ({ ...base, padding: "0 8px" }),
-                      }}
-                    />
-                  </div>
+                    </div>
+                  )}
                 </div>
-
                 {/* Inspección */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Inspección</label>
@@ -824,7 +882,27 @@ const RondinDetalle = ({ id }: { id: string }) => {
           </div>
         )}
       </div>
-      <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ minHeight: "420px", zIndex: 0 }} />
+      <div
+        className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+        style={{ minHeight: "420px", zIndex: 0 }}
+      >
+        {rondin?.map_data && rondin.map_data.length > 0 ? (
+          <div className="flex flex-col h-full">
+            <div className="px-4 pt-4 pb-2">
+              <h3 className="font-semibold text-gray-800 text-sm">Mapa del rondín</h3>
+              <p className="text-xs text-gray-400">{rondin.map_data.length} puntos en el mapa</p>
+            </div>
+            <div className="flex-1" style={{ minHeight: "360px" }}>
+              <MapView map_data={rondin.map_data} />
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-300">
+            <MapPin className="w-10 h-10" />
+            <p className="text-sm">Sin datos de mapa</p>
+          </div>
+        )}
+      </div>
     </div>
     </div>
   );

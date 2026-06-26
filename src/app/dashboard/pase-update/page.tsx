@@ -145,7 +145,7 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
 export type formatData = z.infer<ReturnType<typeof createSchema>>;
 
 const PaseUpdate = () => {
-  const [id, setId] = useState("");
+  const [id, setUserId] = useState("");
   const [showIneIden, setShowIneIden] = useState<string[] | undefined>([]);
   const [account_id, setAccount_id] = useState<number>(0);
   const [enablePdf, setEnablePdf] = useState(false);
@@ -536,8 +536,8 @@ const PaseUpdate = () => {
       const urlParams = new URLSearchParams(valores);
       const docs = urlParams.get("docs") !== null ? urlParams.get("docs") : "";
       setShowIneIden(docs?.split("-"));
-      setId(urlParams.get("id") ?? "");
-
+      const getId= urlParams.get("id") ?? ""
+      setUserId(getId);
       let acc = parseInt(urlParams.get("user") ?? "") || 0;
       if (!acc) {
         acc = Number(window.localStorage.getItem("userId_soter"));
@@ -987,7 +987,8 @@ const PaseUpdate = () => {
                 title="Nuevo Equipo"
                 equipos={equipos}
                 setEquipos={setEquipos}
-                isAccesos={false}>
+                isAccesos={false}
+                userId={account_id}>
                 <button
                   type="button"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors">
@@ -1450,7 +1451,8 @@ const PaseUpdate = () => {
                                   equipos={equipos}
                                   setEquipos={setEquipos}
                                   isAccesos={false}
-                                  fetch={false}>
+                                  fetch={false}
+                                  userId={account_id}>
                                   <button
                                     type="button"
                                     onClick={() =>

@@ -33,6 +33,8 @@ import Swal from "sweetalert2";
 import { RondinActionButtons } from "../rondinActionButtons";
 import { applyRondinesFilters } from "@/hooks/Rondines/rondines/useRondinesFilters";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
+import { toast } from "sonner";
+import { errorMsj } from "@/lib/utils";
 
 export interface BitacoraRondin {
   id: string;
@@ -161,12 +163,25 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
           }, 2000);
         };
       } else {
+        await new Promise(resolve => setTimeout(resolve, 600));
         Swal.close();
-        Swal.fire({ icon: "error", title: "Error", text: "No se encontró el PDF" });
+        const err = errorMsj(result.data)
+        toast.warning(`Error al imprimir: ${err?.text}`, {
+          style: {
+            background: "#f97316",
+            color: "#fff",
+          },
+        });
       }
     } catch (err) {
       Swal.close();
-      Swal.fire({ icon: "error", title: "Error al imprimir", text: `${err}` });
+        const errMsj= errorMsj(err) 
+        toast.warning(`Error al imprimir: ${errMsj}`, {
+          style: {
+            background: "#f97316",
+            color: "#fff",
+          },
+        });
     }
   };
 

@@ -42,7 +42,7 @@ const formSchema = z.object({
 });
 
 export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCatalogos }) => {
-  const { userParentId } = useAuthStore();
+  const { userParentId, userIdSoter } = useAuthStore();
   const [openModal, setOpenModal] = useState(false);
   const [fotografia, setFotografia] = useState<Imagen[]>([]);
   const [identificacion, setIdentificacion] = useState<Imagen[]>([]);
@@ -295,7 +295,7 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
                       {equipos.length}
                     </span>
                   </p>
-                  <EqipmentLocalPassModal title="Nuevo Equipo" equipos={equipos} setEquipos={setEquipos} isAccesos={false}>
+                  <EqipmentLocalPassModal title="Nuevo Equipo" equipos={equipos} setEquipos={setEquipos} isAccesos={false} userId={userIdSoter}>
                     <button type="button" className="flex items-center gap-1.5 text-xs font-medium text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-lg px-3 py-1.5 transition-colors">
                       <Plus className="w-3.5 h-3.5" /> Agregar
                     </button>

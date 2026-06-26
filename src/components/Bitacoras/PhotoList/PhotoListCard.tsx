@@ -227,7 +227,7 @@ console.log("gafeteItem:", gafeteItem);
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div style={{ height: "240px", width: "100%" }}>
-                    <MapView
+                    {/* <MapView
                       map_data={(() => {
                         const rawAreas: any[] = record?.rawData?.areas || record?.areas || [];
                         return (mapData ?? [])
@@ -253,7 +253,7 @@ console.log("gafeteItem:", gafeteItem);
                           })
                           .filter(Boolean) as MapItem[];
                       })()}
-                    />
+                    /> */}
                   </div>
                 </div>
               </div>

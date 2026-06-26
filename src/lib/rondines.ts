@@ -385,3 +385,25 @@ import { API_ENDPOINTS } from "@/config/api";
         const res = await response.json();
         return res;
     };
+
+    export const actualizarInspeccion= async (folio:string, rondin_data:any)=> {
+        const payload = {
+            option: "update_inspeccion",
+            script_name: "rondines.py",
+            rondin_data,
+            folio
+        };
+    
+        const userJwt = localStorage.getItem("access_token"); 
+        const response = await fetch(API_ENDPOINTS.runScript, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${userJwt}`,
+            },
+            body: JSON.stringify(payload),
+        });
+    
+        const res = await response.json();
+        return res;
+    };

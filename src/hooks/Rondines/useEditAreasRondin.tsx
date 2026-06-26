@@ -1,12 +1,10 @@
 import { editarAreasRondin } from "@/lib/rondines";
 import { errorMsj } from "@/lib/utils";
-import { useShiftStore } from "@/store/useShiftStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const useEditAreasRondin = () => {
     const queryClient = useQueryClient();
-    const {isLoading, setLoading} = useShiftStore();
   
       const editAreasRodindMutation = useMutation({
         mutationFn: async ({ areas, record_id, folio }: { areas:any, record_id:string, folio:string}) => {
@@ -20,7 +18,6 @@ export const useEditAreasRondin = () => {
             }
           },
           onMutate: () => {
-            setLoading(true);
           },
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["getListRondines"] });
@@ -35,7 +32,6 @@ export const useEditAreasRondin = () => {
               },
             
             });
-
           },
           onError: () => {
             toast.success(`Error al intentar editar las areas.`,{ style: {
@@ -44,12 +40,11 @@ export const useEditAreasRondin = () => {
             },});
           },
           onSettled: () => {
-            setLoading(false);
           },
         });
 
     return{
         editAreasRodindMutation,
-        isLoading,
+        isLoading:editAreasRodindMutation.isPending,
     }
 }

@@ -15,7 +15,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Trash2, Menu, AlertTriangle, ClipboardList } from "lucide-react"
+import { Trash2, Menu, AlertTriangle, FilePenLine } from "lucide-react"
 
 export type Area_rondin = {
   rondin_area: string
@@ -163,17 +163,18 @@ function SortableItem({
               onAsignarInspeccion(item.rondin_area)
             }}
           >
-            <ClipboardList className="w-4 h-4" />
+            <FilePenLine className="w-5 h-5 text-blue-500" />
           </button>
         )}
         <button
+          title="Borrar área"
           className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
           onClick={(e) => {
             e.stopPropagation()
             handleDelete()
           }}
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-5 h-5" />
         </button>
       </div>
     </div>

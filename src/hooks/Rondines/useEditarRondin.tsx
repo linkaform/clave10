@@ -1,14 +1,11 @@
 import { editarRondin, InputEditarRondinCompleto } from "@/lib/rondines";
 import { errorMsj } from "@/lib/utils";
-import { useShiftStore } from "@/store/useShiftStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const useEditarRondin = () => {
     const queryClient = useQueryClient();
-    const {isLoading, setLoading} = useShiftStore();
-
-     //Crear Rondin
+    
      const editarRondinMutation = useMutation({
         mutationFn: async ({folio, rondin_data} : { folio:string, rondin_data: InputEditarRondinCompleto }) => {
             const response = await editarRondin(folio, rondin_data);
@@ -22,7 +19,6 @@ export const useEditarRondin = () => {
             }
         },
         onMutate: () => {
-          setLoading(true);
         },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["getListRondines"] });
@@ -35,13 +31,12 @@ export const useEditarRondin = () => {
     
         },
         onSettled: () => {
-          setLoading(false);
         },
       });
 
 
     return{
         editarRondinMutation,
-        isLoading,
+        isLoading:editarRondinMutation.isPending,
     }
 }
