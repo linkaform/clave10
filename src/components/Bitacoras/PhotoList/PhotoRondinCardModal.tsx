@@ -401,7 +401,13 @@ function AreaDetailPanel({ area, onBack, onSetImage }: {
 
         {/* Título */}
         <h3 className="text-2xl font-extrabold text-slate-800 leading-tight mb-0.5">{area.nombre}</h3>
-        <p className="text-xs text-slate-400 mb-4">Área inspeccionada</p>
+        <p className="text-xs mb-4">
+          {area.hora ? (
+            <span className="text-slate-400">Área inspeccionada</span>
+          ) : (
+            <span className="text-red-500 font-bold">Sin inspección</span>
+          )}
+        </p>
 
         {/* Tabs */}
         <div className="flex gap-0 border-b border-slate-200">
@@ -1048,7 +1054,7 @@ export function PhotoRondinCardModal({
                       {area.hora ? (
                         <p className="text-[10px] text-slate-500">{area.hora}</p> 
                       ) : (
-                        <p className="text-[10px] text-slate-500">Sin check</p>
+                        <p className="text-[10px] text-red-500 font-bold">Sin Inspección</p>
                       )}
                     </div>
                   </div>
