@@ -741,15 +741,16 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                             Tipo de rondín
                           </FormLabel>
                           <FormControl>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
-                                <SelectValue placeholder="Selecciona tipo" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="NFC">NFC</SelectItem>
-                                <SelectItem value="QR">QR</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <MultiSelect
+                              placeholder="Selecciona tipo"
+                              options={[
+                                { value: "NFC", label: "NFC" },
+                                { value: "QR", label: "QR" },
+                              ]}
+                              value={field.value ? { value: field.value, label: field.value } : null}
+                              onChange={(opt) => field.onChange(opt ? opt.value : "")}
+                              isClearable
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -762,29 +763,21 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5" /> Tipo de Asignación
                     </label>
-                    <Select value={asignadoA} onValueChange={(val) => {
-                        setAsignadoA(val);
-                        if (val !== "persona_especifica") setPersonaEspecifica("");
-                        if (val !== "grupo") setGrupoSeleccionado("");
-                      }}>
-                      <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50">
-                        <SelectValue placeholder="Selecciona una opción" />
-                      </SelectTrigger>
-                      <SelectContent>
-                       <SelectContent>
-                        <SelectItem value="responsable_en_turno">
-                          Responsable en Turno
-                        </SelectItem>
-                        <SelectItem value="persona_especifica">
-                          Persona Específica
-                        </SelectItem>
-                        <SelectItem value="grupo">
-                          Grupo
-                        </SelectItem>
-                      </SelectContent>
-                      </SelectContent>
-                    </Select>
-
+                    <MultiSelect
+                        placeholder="Selecciona una opción"
+                        options={[
+                          { value: "responsable_en_turno", label: "Responsable en Turno" },
+                          { value: "persona_especifica", label: "Persona Específica" },
+                          { value: "grupo", label: "Grupo" },
+                        ]}
+                        value={asignadoA ? { value: asignadoA, label: { responsable_en_turno: "Responsable en Turno", persona_especifica: "Persona Específica", grupo: "Grupo" }[asignadoA] ?? asignadoA } : null}
+                        onChange={(opt) => {
+                          setAsignadoA(opt ? opt.value : "");
+                          if (opt?.value !== "persona_especifica") setPersonaEspecifica("");
+                          if (opt?.value !== "grupo") setGrupoSeleccionado("");
+                        }}
+                        isClearable
+                      />
                     {/* CAMBIO 3: segundo selector condicional */}
                     {asignadoA === "persona_especifica" && (
                       <Select value={personaEspecifica} onValueChange={setPersonaEspecifica}>
@@ -854,22 +847,19 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                       <FormItem>
                         <FormLabel>Recurrencia: *</FormLabel>
                         <FormControl>
-                          <Select
-                            {...field}
-                            className="input"
-                            onValueChange={(value: string) => field.onChange(value)}
-                            value={field.value}
-                            disabled={mode === "create" ? !date : false}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Selecciona una opción" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={"diario"}>Por Día</SelectItem>
-                              <SelectItem value={"semana"}>Semanal</SelectItem>
-                              <SelectItem value={"mes"}>Mensual</SelectItem>
-                              <SelectItem value={"configurable"}>Configurable</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <MultiSelect
+                            placeholder="Selecciona una opción"
+                            options={[
+                              { value: "diario", label: "Por Día" },
+                              { value: "semana", label: "Semanal" },
+                              { value: "mes", label: "Mensual" },
+                              { value: "configurable", label: "Configurable" },
+                            ]}
+                            value={field.value ? { value: field.value, label: { diario: "Por Día", semana: "Semanal", mes: "Mensual", configurable: "Configurable" }[field.value as "diario" | "semana" | "mes" | "configurable"] ?? field.value } : null}
+                            onChange={(opt) => field.onChange(opt ? opt.value : "")}
+                            isDisabled={mode === "create" ? !date : false}
+                            isClearable
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
