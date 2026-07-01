@@ -19,6 +19,7 @@ interface ClockPickerProps {
   minute: number;
   onChange: (value: TimeValue) => void;
   minuteStep?: 1 | 5 | 15;
+  use12Hour?: boolean;
 }
 
 interface DateTimePickerProps {
@@ -29,12 +30,14 @@ interface DateTimePickerProps {
   showTime?: boolean;
   placeholder?: string;
   minuteStep?: 1 | 5 | 15;
+  use12Hour?: boolean;
 }
 
-function ClockPicker({ hour, minute, onChange, minuteStep = 5 }: ClockPickerProps) {
+function ClockPicker({ hour, minute, onChange, minuteStep = 5, use12Hour = false }: ClockPickerProps) {
   const [mode, setMode] = useState<ClockMode>("hour");
   const clockRef = useRef<SVGSVGElement>(null);
   const isDragging = useRef<boolean>(false);
+  const isPM = hour >= 12;
 
   const SIZE = 220;
   const CENTER = SIZE / 2;
@@ -45,7 +48,10 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5 }: ClockPickerProp
   const toAngle = (val: number, max: number): number => (val / max) * 360 - 90;
 
   const getHandAngle = (): number => {
-    if (mode === "hour") return toAngle(hour % 12 === 0 ? 12 : hour % 12, 12);
+    if (mode === "hour") {
+      const h12 = hour % 12 === 0 ? 12 : hour % 12;
+      return toAngle(h12, 12);
+    }
     return toAngle(minute, 60);
   };
 
@@ -74,17 +80,23 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5 }: ClockPickerProp
 
       if (mode === "hour") {
         const segment = Math.round(angle / 30) % 12;
-        const isInner = dist < 58;
-        const val = isInner
-          ? segment === 0 ? 0 : segment + 12
-          : segment === 0 ? 12 : segment;
-        onChange({ hour: val, minute });
+        if (use12Hour) {
+          const h12 = segment === 0 ? 12 : segment;
+          const newHour = isPM ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
+          onChange({ hour: newHour, minute });
+        } else {
+          const isInner = dist < 58;
+          const val = isInner
+            ? segment === 0 ? 0 : segment + 12
+            : segment === 0 ? 12 : segment;
+          onChange({ hour: val, minute });
+        }
       } else {
         const raw = Math.round(angle / 6) % 60;
         onChange({ hour, minute: snapMinute(raw) });
       }
     },
-    [mode, hour, minute, onChange, CENTER, snapMinute]
+    [mode, hour, minute, onChange, CENTER, snapMinute, use12Hour, isPM]
   );
 
   const handlePointer = useCallback(
@@ -116,7 +128,9 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5 }: ClockPickerProp
 
   const handAngle = getHandAngle();
   const handRad = (handAngle * Math.PI) / 180;
-  const r = mode === "hour"
+  const r = use12Hour
+    ? HOUR_R
+    : mode === "hour"
     ? (hour === 0 || hour > 12 ? INNER_HOUR_R : HOUR_R)
     : MINUTE_R;
   const handX = CENTER + r * Math.cos(handRad);
@@ -145,23 +159,52 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5 }: ClockPickerProp
   const isActiveHour = (v: number): boolean => hour === v;
   const isActiveMinute = (v: number): boolean => minute === v;
   const fmt = (n: number): string => String(n).padStart(2, "0");
+  const fmt12 = (h: number): string => {
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return String(h12).padStart(2, "0");
+  };
+
+  const handlePeriodToggle = (period: "AM" | "PM"): void => {
+    const h12 = hour % 12 === 0 ? 12 : hour % 12;
+    const newHour = period === "PM" ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
+    onChange({ hour: newHour, minute });
+  };
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="flex items-center gap-1 text-3xl font-light select-none">
-        <button type="button" onClick={() => setMode("hour")}
-          className={cn("px-2.5 py-0.5 rounded-lg transition-all duration-200",
-            mode === "hour" ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "text-slate-400 hover:text-slate-600"
-          )}>
-          {fmt(hour)}
-        </button>
-        <span className="text-slate-300">:</span>
-        <button type="button" onClick={() => setMode("minute")}
-          className={cn("px-2.5 py-0.5 rounded-lg transition-all duration-200",
-            mode === "minute" ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "text-slate-400 hover:text-slate-600"
-          )}>
-          {fmt(minute)}
-        </button>
+      <div className="flex items-center gap-2 select-none">
+        <div className="flex items-center gap-1 text-3xl font-light">
+          <button type="button" onClick={() => setMode("hour")}
+            className={cn("px-2.5 py-0.5 rounded-lg transition-all duration-200",
+              mode === "hour" ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "text-slate-400 hover:text-slate-600"
+            )}>
+            {use12Hour ? fmt12(hour) : fmt(hour)}
+          </button>
+          <span className="text-slate-300">:</span>
+          <button type="button" onClick={() => setMode("minute")}
+            className={cn("px-2.5 py-0.5 rounded-lg transition-all duration-200",
+              mode === "minute" ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "text-slate-400 hover:text-slate-600"
+            )}>
+            {fmt(minute)}
+          </button>
+        </div>
+
+        {use12Hour && (
+          <div className="flex flex-col gap-0.5 ml-1">
+            <button type="button" onClick={() => handlePeriodToggle("AM")}
+              className={cn("px-2 py-0.5 rounded text-xs font-semibold transition-colors",
+                !isPM ? "bg-blue-100 text-blue-700" : "text-slate-400 hover:text-slate-600"
+              )}>
+              AM
+            </button>
+            <button type="button" onClick={() => handlePeriodToggle("PM")}
+              className={cn("px-2 py-0.5 rounded text-xs font-semibold transition-colors",
+                isPM ? "bg-blue-100 text-blue-700" : "text-slate-400 hover:text-slate-600"
+              )}>
+              PM
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="relative select-none">
@@ -183,7 +226,9 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5 }: ClockPickerProp
             <>
               {hours.map((h: number, i: number) => {
                 const pos = hourPos(i, HOUR_R);
-                const active = isActiveHour(h);
+                const active = use12Hour
+                  ? (hour % 12 === 0 ? 12 : hour % 12) === h
+                  : isActiveHour(h);
                 return (
                   <g key={h}>
                     {active && <circle cx={pos.x} cy={pos.y} r={13} fill="#2563EB" />}
@@ -194,7 +239,7 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5 }: ClockPickerProp
                   </g>
                 );
               })}
-              {hoursInner.map((h: number, i: number) => {
+              {!use12Hour && hoursInner.map((h: number, i: number) => {
                 const pos = hourPos(i, INNER_HOUR_R);
                 const active = isActiveHour(h);
                 return (
@@ -258,6 +303,7 @@ export default function DateTimePicker({
   showTime = true,
   placeholder,
   minuteStep = 5,
+  use12Hour = false,
 }: DateTimePickerProps) {
   const defaultPlaceholder = showTime ? "Selecciona fecha y hora" : "Selecciona una fecha";
 
@@ -322,6 +368,11 @@ export default function DateTimePicker({
   };
 
   const fmt = (n: number): string => String(n).padStart(2, "0");
+  const fmt12Display = (h: number): string => {
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return String(h12).padStart(2, "0");
+  };
+  const periodLabel = (h: number): string => (h >= 12 ? "PM" : "AM");
 
   const dateLabel: string = selected
     ? format(selected, "EEEE d 'de' MMMM", { locale: es })
@@ -330,7 +381,9 @@ export default function DateTimePicker({
   // ── Solo formatear en cliente para evitar mismatch ──
   const triggerLabel: string = mounted && date
     ? showTime
-      ? format(date, "dd / MM / yyyy  -  HH:mm")
+      ? use12Hour
+        ? `${format(date, "dd / MM / yyyy")}  -  ${fmt12Display(date.getHours())}:${fmt(date.getMinutes())} ${periodLabel(date.getHours())}`
+        : format(date, "dd / MM / yyyy  -  HH:mm")
       : format(date, "dd / MM / yyyy")
     : (placeholder ?? defaultPlaceholder);
 
@@ -388,7 +441,7 @@ export default function DateTimePicker({
                 className={cn("text-xl font-light tabular-nums transition-opacity whitespace-nowrap",
                   view === "calendar" ? "opacity-60 hover:opacity-100" : "opacity-100"
                 )}>
-                {fmt(hour)}:{fmt(minute)}
+                {use12Hour ? `${fmt12Display(hour)}:${fmt(minute)} ${periodLabel(hour)}` : `${fmt(hour)}:${fmt(minute)}`}
               </button>
             )}
           </div>
@@ -433,7 +486,7 @@ export default function DateTimePicker({
               }}
             />
           ) : (
-            <ClockPicker hour={hour} minute={minute} onChange={handleTimeChange} minuteStep={minuteStep} />
+            <ClockPicker hour={hour} minute={minute} onChange={handleTimeChange} minuteStep={minuteStep} use12Hour={use12Hour} />
           )}
         </div>
         {view === "clock" && (

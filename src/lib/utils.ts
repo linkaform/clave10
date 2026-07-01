@@ -848,3 +848,16 @@ export const isVehiculoHabilitado = (val: any): boolean => {
   const normalized = String(val).toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return normalized === "si";
 };
+
+export function formatTo12Hour(fechaStr: string): string {
+  if (!fechaStr) return "";
+  const [fecha, hora] = fechaStr.split(" ");
+  if (!hora) return fechaStr;
+
+  const [h, m] = hora.split(":").map(Number);
+  const periodo = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  const horaFormateada = `${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${periodo}`;
+
+  return `${fecha} ${horaFormateada}`;
+}

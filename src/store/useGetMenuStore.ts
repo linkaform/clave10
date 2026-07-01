@@ -15,7 +15,8 @@ export interface GrupoRequisito {
   ubicacion: string;
   envio_por: string[];
   prefijo_telefonico: number;
-  tolerancia_de_entrada: number;
+  tolerancia_de_entrada_previa: number;
+  tolerancia_de_entrada_posterior: number;
 }
 
 interface MenuStore {
