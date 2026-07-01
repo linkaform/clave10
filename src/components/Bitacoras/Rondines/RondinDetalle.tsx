@@ -165,6 +165,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
       setTipoAsignado("grupo");
       setEmpleadosSeleccionados([]);
       setGrupoSeleccionado(rondin.id_grupo ?? "");
+      setGrupoSeleccionado(rondin.grupo_asignado ?? "");
     }
 
     // Campos generales
