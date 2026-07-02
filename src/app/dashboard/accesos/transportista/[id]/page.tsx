@@ -452,11 +452,12 @@ const FILAS_CONTENEDOR = [
   "Piso (interior)",
 ];
 
-type SiNoVal = "si" | "no" | null;
-interface PuntoInsp { value: SiNoVal; comentario: string; }
-type FilaVal = "si" | "no" | null;
-interface FilaCont { suciedad: FilaVal; plagas: FilaVal; fauna: FilaVal; }
+type SiNoVal = "sí" | "no" | null;
 type EvidenciaImg = { file_url: string; file_name?: string };
+interface PuntoInsp { value: SiNoVal; comentario: string; fotos: EvidenciaImg[]; }
+type FilaOpcion = "todos" | "suciedad" | "plagas" | "fauna";
+type FilaCelda = "sí" | "no" | null;
+interface FilaCont { suciedad: FilaCelda; plagas: FilaCelda; fauna: FilaCelda; }
 interface RemolqueInspSection {
   evidencia: EvidenciaImg[];
   altura: string; ancho: string; longitud: string;
@@ -479,25 +480,31 @@ type InspTabDef =
 function InspeccionEntradaModal({
   recordId,
   unidades,
+  inspeccionesDone,
   onClose,
 }: {
   recordId: string;
   unidades: UnidadItem[];
+  inspeccionesDone: { tipo: string; unidad?: number; url?: string }[];
   onClose: () => void;
 }) {
+  const buildTipoKey = (tipo: string, unidad?: number) =>
+    unidad !== undefined ? `${tipo}_${unidad}` : tipo;
+  const isDone = (tipo: string, unidad?: number) =>
+    inspeccionesDone.some((i) => i.tipo === buildTipoKey(tipo, unidad));
   const [activeTab, setActiveTab] = useState(0);
   const [tractorEvidencia, setTractorEvidencia] = useState<EvidenciaImg[]>([]);
   const [uploadingSection, setUploadingSection] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSectionRef = useRef<string | null>(null);
-  const emptyPunto = (): PuntoInsp => ({ value: null, comentario: "" });
+  const emptyPunto = (): PuntoInsp => ({ value: null, comentario: "", fotos: [] });
   const emptyRemolqueSection = (): RemolqueInspSection => ({
     evidencia: [], altura: "", ancho: "", longitud: "",
     puntos: PUNTOS_REMOLQUE.map(emptyPunto),
   });
   const emptyContenedorSection = (): ContenedorInspSection => ({
     evidencia: [], altura: "", ancho: "", longitud: "",
-    filas: FILAS_CONTENEDOR.map(() => ({ suciedad: null as FilaVal, plagas: null as FilaVal, fauna: null as FilaVal })),
+    filas: FILAS_CONTENEDOR.map(() => ({ suciedad: null as FilaCelda, plagas: null as FilaCelda, fauna: null as FilaCelda })),
   });
   const [tractorPuntos, setTractorPuntos] = useState<PuntoInsp[]>(PUNTOS_TRACTOR.map(emptyPunto));
   const [unitsData, setUnitsData] = useState<UnitInspData[]>(() =>
@@ -524,8 +531,6 @@ function InspeccionEntradaModal({
   const remolqueEval = (d: UnitInspData) => d.remolque.puntos.filter((p) => p.value !== null).length;
   const contenedorEval = (d: UnitInspData) =>
     (d.contenedor?.filas ?? []).filter((f) => f.suciedad !== null || f.plagas !== null || f.fauna !== null).length;
-
-  const cycleFilaVal = (v: FilaVal): FilaVal => (v === null ? "si" : v === "si" ? "no" : null);
 
 
   const setTractorPunto = (i: number, val: SiNoVal) =>
@@ -564,15 +569,8 @@ function InspeccionEntradaModal({
   const setRemolqueMeasure = (ui: number, field: "altura" | "ancho" | "longitud", val: string) =>
     setUnitsData((p) => p.map((u, i) => i !== ui ? u : { ...u, remolque: { ...u.remolque, [field]: val } }));
 
-  const setFilaCheck = (ui: number, fi: number, field: keyof FilaCont) =>
-    setUnitsData((p) =>
-      p.map((u, i) => {
-        if (i !== ui || !u.contenedor) return u;
-        return { ...u, contenedor: { ...u.contenedor, filas: u.contenedor.filas.map((f, j) => j !== fi ? f : { ...f, [field]: cycleFilaVal(f[field]) }) } };
-      })
-    );
-
-  const setFilaTodos = (ui: number, fi: number) =>
+  const cycleCelda = (v: FilaCelda): FilaCelda => (v === null ? "sí" : v === "sí" ? "no" : null);
+  const setFilaVal = (ui: number, fi: number, opcion: FilaOpcion) =>
     setUnitsData((p) =>
       p.map((u, i) => {
         if (i !== ui || !u.contenedor) return u;
@@ -582,9 +580,12 @@ function InspeccionEntradaModal({
             ...u.contenedor,
             filas: u.contenedor.filas.map((f, j) => {
               if (j !== fi) return f;
-              const allSi = f.suciedad === "si" && f.plagas === "si" && f.fauna === "si";
-              const next: FilaVal = allSi ? null : "si";
-              return { suciedad: next, plagas: next, fauna: next };
+              if (opcion === "todos") {
+                const allSi = f.suciedad === "sí" && f.plagas === "sí" && f.fauna === "sí";
+                const next: FilaCelda = allSi ? null : "sí";
+                return { suciedad: next, plagas: next, fauna: next };
+              }
+              return { ...f, [opcion]: cycleCelda(f[opcion]) };
             }),
           },
         };
@@ -613,6 +614,7 @@ function InspeccionEntradaModal({
         descripcion,
         resultado: tractorPuntos[i].value,
         comentario: tractorPuntos[i].comentario,
+        fotos: tractorPuntos[i].fotos,
       })),
     });
 
@@ -636,6 +638,7 @@ function InspeccionEntradaModal({
           descripcion,
           resultado: d.remolque.puntos[pi].value,
           comentario: d.remolque.puntos[pi].comentario,
+          fotos: d.remolque.puntos[pi].fotos,
         })),
       });
 
@@ -651,12 +654,13 @@ function InspeccionEntradaModal({
             ancho: sec.ancho,
             longitud: sec.longitud,
           },
-          filas: FILAS_CONTENEDOR.map((punto, fi) => ({
-            punto,
-            suciedad: sec.filas[fi].suciedad,
-            plagas: sec.filas[fi].plagas,
-            fauna: sec.filas[fi].fauna,
-          })),
+          filas: FILAS_CONTENEDOR.map((punto, fi) => {
+            const f = sec.filas[fi];
+            return {
+              punto,
+              valores: (["suciedad", "plagas", "fauna"] as const).filter((col) => f[col] === "sí"),
+            };
+          }),
         });
       }
     });
@@ -677,64 +681,104 @@ function InspeccionEntradaModal({
     }
   };
 
-  const triggerUpload = (sectionId: string) => {
-    pendingSectionRef.current = sectionId;
+  // Upload target keys:
+  //   "ev:tractor"         → evidencia de sección tractor
+  //   "ev:remolque:N"      → evidencia de sección remolque unidad N
+  //   "ev:contenedor:N"    → evidencia de sección contenedor unidad N
+  //   "pt:tractor:I"       → foto del punto I de tractor
+  //   "pt:remolque:N:I"    → foto del punto I del remolque de unidad N
+
+  const triggerUpload = (key: string) => {
+    pendingSectionRef.current = key;
     fileInputRef.current?.click();
   };
 
-  const addEvidencia = (sectionId: string, img: EvidenciaImg) => {
-    if (sectionId === "tractor") {
-      setTractorEvidencia((p) => [...p, img]);
-    } else {
-      const [kind, idxStr] = sectionId.split("_");
-      const ui = parseInt(idxStr);
-      if (kind === "remolque") {
+  const addImg = (key: string, img: EvidenciaImg) => {
+    const parts = key.split(":");
+    if (parts[0] === "ev") {
+      const [, kind, uiStr] = parts;
+      if (kind === "tractor") {
+        setTractorEvidencia((p) => [...p, img]);
+      } else if (kind === "remolque") {
+        const ui = parseInt(uiStr);
         setUnitsData((p) => p.map((u, i) => i !== ui ? u : { ...u, remolque: { ...u.remolque, evidencia: [...u.remolque.evidencia, img] } }));
       } else {
+        const ui = parseInt(uiStr);
         setUnitsData((p) => p.map((u, i) => {
           if (i !== ui || !u.contenedor) return u;
           return { ...u, contenedor: { ...u.contenedor, evidencia: [...u.contenedor.evidencia, img] } };
         }));
       }
+    } else {
+      const [, kind, ...rest] = parts;
+      if (kind === "tractor") {
+        const pi = parseInt(rest[0]);
+        setTractorPuntos((p) => p.map((pt, i) => i !== pi ? pt : { ...pt, fotos: [...pt.fotos, img] }));
+      } else {
+        const ui = parseInt(rest[0]);
+        const pi = parseInt(rest[1]);
+        setUnitsData((p) => p.map((u, i) =>
+          i !== ui ? u : { ...u, remolque: { ...u.remolque, puntos: u.remolque.puntos.map((pt, j) => j !== pi ? pt : { ...pt, fotos: [...pt.fotos, img] }) } }
+        ));
+      }
     }
   };
 
-  const removeEvidencia = (sectionId: string, imgIdx: number) => {
-    if (sectionId === "tractor") {
-      setTractorEvidencia((p) => p.filter((_, i) => i !== imgIdx));
-    } else {
-      const [kind, idxStr] = sectionId.split("_");
-      const ui = parseInt(idxStr);
-      if (kind === "remolque") {
+  const removeImg = (key: string, imgIdx: number) => {
+    const parts = key.split(":");
+    if (parts[0] === "ev") {
+      const [, kind, uiStr] = parts;
+      if (kind === "tractor") {
+        setTractorEvidencia((p) => p.filter((_, i) => i !== imgIdx));
+      } else if (kind === "remolque") {
+        const ui = parseInt(uiStr);
         setUnitsData((p) => p.map((u, i) => i !== ui ? u : { ...u, remolque: { ...u.remolque, evidencia: u.remolque.evidencia.filter((_, j) => j !== imgIdx) } }));
       } else {
+        const ui = parseInt(uiStr);
         setUnitsData((p) => p.map((u, i) => {
           if (i !== ui || !u.contenedor) return u;
           return { ...u, contenedor: { ...u.contenedor, evidencia: u.contenedor.evidencia.filter((_, j) => j !== imgIdx) } };
         }));
+      }
+    } else {
+      const [, kind, ...rest] = parts;
+      if (kind === "tractor") {
+        const pi = parseInt(rest[0]);
+        setTractorPuntos((p) => p.map((pt, i) => i !== pi ? pt : { ...pt, fotos: pt.fotos.filter((_, j) => j !== imgIdx) }));
+      } else {
+        const ui = parseInt(rest[0]);
+        const pi = parseInt(rest[1]);
+        setUnitsData((p) => p.map((u, i) =>
+          i !== ui ? u : { ...u, remolque: { ...u.remolque, puntos: u.remolque.puntos.map((pt, j) => j !== pi ? pt : { ...pt, fotos: pt.fotos.filter((_, k) => k !== imgIdx) }) } }
+        ));
       }
     }
   };
 
   const handleEvidenciaFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    const sectionId = pendingSectionRef.current;
+    const key = pendingSectionRef.current;
     e.target.value = "";
-    if (!file || !sectionId) return;
-    setUploadingSection(sectionId);
+    if (!file || !key) return;
+    setUploadingSection(key);
     try {
       const res = await uploadImage(file);
-      if (res?.file) {
-        addEvidencia(sectionId, { file_url: res.file, file_name: res.file_name });
-      }
+      if (res?.file) addImg(key, { file_url: res.file, file_name: res.file_name });
     } finally {
       setUploadingSection(null);
       pendingSectionRef.current = null;
     }
   };
 
-  const renderEvidence = (sectionLabel: string, sectionId: string, evidencias: EvidenciaImg[]) => {
-    const loading = uploadingSection === sectionId;
+  const Spinner = ({ className }: { className?: string }) => (
+    <svg className={cn("animate-spin", className)} viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+    </svg>
+  );
+
+  const renderEvidence = (sectionLabel: string, evKey: string, evidencias: EvidenciaImg[]) => {
+    const loading = uploadingSection === evKey;
     return (
       <div className="bg-blue-50/60 rounded-xl p-3 space-y-2">
         <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest flex items-center gap-1">
@@ -746,7 +790,7 @@ function InspeccionEntradaModal({
               <img src={img.file_url} className="w-full h-full object-cover" alt="" />
               <button
                 type="button"
-                onClick={() => removeEvidencia(sectionId, i)}
+                onClick={() => removeImg(evKey, i)}
                 className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow"
               >
                 <X className="w-2.5 h-2.5 text-white" />
@@ -755,15 +799,12 @@ function InspeccionEntradaModal({
           ))}
           {loading ? (
             <div className="w-14 h-14 rounded-xl bg-blue-100/60 flex items-center justify-center border-2 border-blue-200 shrink-0">
-              <svg className="w-5 h-5 animate-spin text-blue-400" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
-              </svg>
+              <Spinner className="w-5 h-5 text-blue-400" />
             </div>
           ) : (
             <button
               type="button"
-              onClick={() => triggerUpload(sectionId)}
+              onClick={() => triggerUpload(evKey)}
               className="w-14 h-14 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-400 hover:bg-blue-50 flex items-center justify-center transition-colors shrink-0"
             >
               <Camera className="w-5 h-5 text-blue-300" />
@@ -780,69 +821,140 @@ function InspeccionEntradaModal({
     punto: PuntoInsp,
     onSet: (v: SiNoVal) => void,
     onComentario: (text: string) => void,
-  ) => (
-    <div key={idx} className="border-b border-gray-50 last:border-0">
-      <div className="flex items-center gap-2 py-2.5">
-        <span className="text-[11px] text-gray-400 w-5 text-right shrink-0">{idx + 1}.</span>
-        <span className="text-xs text-gray-700 flex-1 leading-snug">{label}</span>
-        <HelpCircle className="w-3.5 h-3.5 text-gray-200 shrink-0" />
-        <button
-          type="button"
-          onClick={() => onSet("si")}
-          className={cn(
-            "h-7 w-9 rounded-full text-[11px] font-bold transition-colors shrink-0",
-            punto.value === "si" ? "bg-blue-600 text-white" : "border border-gray-200 text-gray-400 hover:border-blue-300"
-          )}
-        >
-          Sí
-        </button>
-        <button
-          type="button"
-          onClick={() => onSet("no")}
-          className={cn(
-            "h-7 w-9 rounded-full text-[11px] font-bold transition-colors shrink-0",
-            punto.value === "no" ? "bg-red-500 text-white border-red-500" : "border border-gray-200 text-gray-400 hover:border-red-300"
-          )}
-        >
-          No
-        </button>
-        <button type="button" className="w-7 h-7 rounded-lg border border-gray-200 hover:border-blue-300 flex items-center justify-center shrink-0 transition-colors">
-          <Camera className="w-3.5 h-3.5 text-gray-300" />
-        </button>
-      </div>
-      {punto.value === "no" && (
-        <div className="pb-2.5 pl-6">
-          <textarea
-            rows={2}
-            placeholder="Añadir comentario u observación…"
-            value={punto.comentario}
-            onChange={(e) => onComentario(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:outline-none focus:border-red-300 resize-none"
-          />
+    ptKey: string,
+  ) => {
+    const uploadingFoto = uploadingSection === ptKey;
+    return (
+      <div key={idx} className="border-b border-gray-50 last:border-0">
+        <div className="flex items-center gap-2 py-2.5">
+          <span className="text-[11px] text-gray-400 w-5 text-right shrink-0">{idx + 1}.</span>
+          <span className="text-xs text-gray-700 flex-1 leading-snug">{label}</span>
+          <HelpCircle className="w-3.5 h-3.5 text-gray-200 shrink-0" />
+          <button
+            type="button"
+            onClick={() => onSet("sí")}
+            className={cn(
+              "h-7 w-9 rounded-full text-[11px] font-bold transition-colors shrink-0",
+              punto.value === "sí" ? "bg-blue-600 text-white" : "border border-gray-200 text-gray-400 hover:border-blue-300"
+            )}
+          >
+            Sí
+          </button>
+          <button
+            type="button"
+            onClick={() => onSet("no")}
+            className={cn(
+              "h-7 w-9 rounded-full text-[11px] font-bold transition-colors shrink-0",
+              punto.value === "no" ? "bg-red-500 text-white border-red-500" : "border border-gray-200 text-gray-400 hover:border-red-300"
+            )}
+          >
+            No
+          </button>
+          <button
+            type="button"
+            onClick={() => triggerUpload(ptKey)}
+            disabled={uploadingFoto}
+            className={cn(
+              "relative w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition-colors",
+              punto.fotos.length > 0
+                ? "border-blue-400 bg-blue-50 text-blue-500"
+                : "border-gray-200 hover:border-blue-300 text-gray-300"
+            )}
+          >
+            {uploadingFoto
+              ? <Spinner className="w-3.5 h-3.5 text-blue-400" />
+              : <Camera className="w-3.5 h-3.5" />
+            }
+            {punto.fotos.length > 0 && !uploadingFoto && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                {punto.fotos.length}
+              </span>
+            )}
+          </button>
         </div>
-      )}
-    </div>
-  );
-
-  const renderTractorTab = () => (
-    <div className="p-5 space-y-4">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
-          Inspección de {PUNTOS_TRACTOR.length} puntos
-          <HelpCircle className="w-3.5 h-3.5 text-gray-300" />
-        </span>
-        <span className="text-[11px] font-bold text-orange-500 bg-orange-50 px-2.5 py-0.5 rounded-full">
-          {tractorEval} / {PUNTOS_TRACTOR.length} evaluados
-        </span>
-      </div>
-      {renderEvidence("EVIDENCIA DEL VEHÍCULO · ENTRADA", "tractor", tractorEvidencia)}
-      <div>
-        {PUNTOS_TRACTOR.map((label, i) =>
-          renderSiNoRow(label, i, tractorPuntos[i], (val) => setTractorPunto(i, val), (text) => setTractorComentario(i, text))
+        {punto.fotos.length > 0 && (
+          <div className="pb-2.5 pl-6 flex gap-2 flex-wrap">
+            {punto.fotos.map((img, fi) => (
+              <div key={fi} className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                <img src={img.file_url} className="w-full h-full object-cover" alt="" />
+                <button
+                  type="button"
+                  onClick={() => removeImg(ptKey, fi)}
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center shadow"
+                >
+                  <X className="w-2.5 h-2.5 text-white" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {punto.value === "no" && (
+          <div className="pb-2.5 pl-6">
+            <textarea
+              rows={2}
+              placeholder="Añadir comentario u observación…"
+              value={punto.comentario}
+              onChange={(e) => onComentario(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:outline-none focus:border-red-300 resize-none"
+            />
+          </div>
         )}
       </div>
-    </div>
-  );
+    );
+  };
+
+  const renderDoneBanner = (tipo: string, unidad?: number) => {
+    const key = buildTipoKey(tipo, unidad);
+    const rec = inspeccionesDone.find((i) => i.tipo === key);
+    if (!rec) return null;
+    return (
+      <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+        <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-green-700">Inspección ya realizada</p>
+          <p className="text-[11px] text-green-600">Esta sección fue inspeccionada anteriormente.</p>
+        </div>
+        {rec.url && (
+          <a
+            href={rec.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] font-semibold text-green-700 hover:text-green-800 underline shrink-0"
+          >
+            Ver registro
+          </a>
+        )}
+      </div>
+    );
+  };
+
+  const renderTractorTab = () => {
+    const done = isDone("tractor");
+    return (
+      <div className="p-5 space-y-4">
+        {renderDoneBanner("tractor")}
+        {!done && (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
+                Inspección de {PUNTOS_TRACTOR.length} puntos
+                <HelpCircle className="w-3.5 h-3.5 text-gray-300" />
+              </span>
+              <span className="text-[11px] font-bold text-orange-500 bg-orange-50 px-2.5 py-0.5 rounded-full">
+                {tractorEval} / {PUNTOS_TRACTOR.length} evaluados
+              </span>
+            </div>
+            {renderEvidence("EVIDENCIA DEL VEHÍCULO · ENTRADA", "ev:tractor", tractorEvidencia)}
+            <div>
+              {PUNTOS_TRACTOR.map((label, i) =>
+                renderSiNoRow(label, i, tractorPuntos[i], (val) => setTractorPunto(i, val), (text) => setTractorComentario(i, text), `pt:tractor:${i}`)
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
 
   const renderMeasures = (
     section: RemolqueInspSection | ContenedorInspSection,
@@ -870,24 +982,30 @@ function InspeccionEntradaModal({
     if (!d) return null;
     const sec = d.remolque;
     const eval_ = remolqueEval(d);
+    const done = isDone("remolque", unitIdx + 1);
     return (
       <div className="p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
-            Unidad {unitIdx + 1} · Remolque
-            <HelpCircle className="w-3.5 h-3.5 text-gray-300" />
-          </span>
-          <span className="text-[11px] font-bold text-orange-500 bg-orange-50 px-2.5 py-0.5 rounded-full">
-            {eval_} / {PUNTOS_REMOLQUE.length} evaluados
-          </span>
-        </div>
-        {renderEvidence("EVIDENCIA DEL REMOLQUE · ENTRADA", `remolque_${unitIdx}`, sec.evidencia)}
-        {renderMeasures(sec, (field, val) => setRemolqueMeasure(unitIdx, field, val))}
-        <div>
-          {PUNTOS_REMOLQUE.map((label, i) =>
-            renderSiNoRow(label, i, sec.puntos[i], (val) => setUnitPunto(unitIdx, i, val), (text) => setUnitComentario(unitIdx, i, text))
-          )}
-        </div>
+        {renderDoneBanner("remolque", unitIdx + 1)}
+        {!done && (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
+                Unidad {unitIdx + 1} · Remolque
+                <HelpCircle className="w-3.5 h-3.5 text-gray-300" />
+              </span>
+              <span className="text-[11px] font-bold text-orange-500 bg-orange-50 px-2.5 py-0.5 rounded-full">
+                {eval_} / {PUNTOS_REMOLQUE.length} evaluados
+              </span>
+            </div>
+            {renderEvidence("EVIDENCIA DEL REMOLQUE · ENTRADA", `ev:remolque:${unitIdx}`, sec.evidencia)}
+            {renderMeasures(sec, (field, val) => setRemolqueMeasure(unitIdx, field, val))}
+            <div>
+              {PUNTOS_REMOLQUE.map((label, i) =>
+                renderSiNoRow(label, i, sec.puntos[i], (val) => setUnitPunto(unitIdx, i, val), (text) => setUnitComentario(unitIdx, i, text), `pt:remolque:${unitIdx}:${i}`)
+              )}
+            </div>
+          </>
+        )}
       </div>
     );
   };
@@ -897,8 +1015,11 @@ function InspeccionEntradaModal({
     const sec = d?.contenedor;
     if (!sec) return null;
     const eval_ = contenedorEval(d);
+    const done = isDone("contenedor", unitIdx + 1);
     return (
       <div className="p-5 space-y-4">
+        {renderDoneBanner("contenedor", unitIdx + 1)}
+        {!done && <>
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
             Unidad {unitIdx + 1} · Contenedor
@@ -908,7 +1029,7 @@ function InspeccionEntradaModal({
             {eval_} / {FILAS_CONTENEDOR.length} evaluados
           </span>
         </div>
-        {renderEvidence("EVIDENCIA DEL CONTENEDOR · ENTRADA", `contenedor_${unitIdx}`, sec.evidencia)}
+        {renderEvidence("EVIDENCIA DEL CONTENEDOR · ENTRADA", `ev:contenedor:${unitIdx}`, sec.evidencia)}
         {renderMeasures(sec, (field, val) => setContenedorMeasure(unitIdx, field, val))}
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse">
@@ -926,40 +1047,39 @@ function InspeccionEntradaModal({
             </thead>
             <tbody>
               {sec.filas.map((fila, fi) => {
-                const vals = [fila.suciedad, fila.plagas, fila.fauna];
-                const allSi = vals.every((v) => v === "si");
-                const anyEval = vals.some((v) => v !== null);
-                const hasNo = vals.some((v) => v === "no");
+                const allSi = fila.suciedad === "sí" && fila.plagas === "sí" && fila.fauna === "sí";
+                const anyEval = fila.suciedad !== null || fila.plagas !== null || fila.fauna !== null;
+                const hasNo = fila.suciedad === "no" || fila.plagas === "no" || fila.fauna === "no";
                 return (
                   <tr key={fi} className={cn("border-t border-gray-50", hasNo && "bg-red-50/30", !hasNo && anyEval && "bg-green-50/30")}>
                     <td className="py-2 pr-3 text-xs text-gray-700 leading-snug">{FILAS_CONTENEDOR[fi]}</td>
                     <td className="py-2 px-1.5 text-center">
                       <button
                         type="button"
-                        onClick={() => setFilaTodos(unitIdx, fi)}
+                        onClick={() => setFilaVal(unitIdx, fi, "todos")}
                         className={cn(
                           "w-5 h-5 rounded border-2 flex items-center justify-center mx-auto transition-colors",
-                          allSi ? "bg-green-500 border-green-500" : anyEval ? "bg-blue-400 border-blue-400" : "border-gray-200 hover:border-blue-300"
+                          allSi ? "bg-green-500 border-green-500" : "border-gray-200 hover:border-green-400"
                         )}
                       >
-                        {(allSi || anyEval) && <Check className="w-3 h-3 text-white" />}
+                        {allSi && <Check className="w-3 h-3 text-white" />}
                       </button>
                     </td>
-                    {(["suciedad", "plagas", "fauna"] as const).map((field) => {
-                      const v = fila[field];
+                    {(["suciedad", "plagas", "fauna"] as const).map((col) => {
+                      const v = fila[col];
                       return (
-                        <td key={field} className="py-2 px-1.5 text-center">
+                        <td key={col} className="py-2 px-1.5 text-center">
                           <button
                             type="button"
-                            onClick={() => setFilaCheck(unitIdx, fi, field)}
+                            onClick={() => setFilaVal(unitIdx, fi, col)}
                             className={cn(
                               "w-5 h-5 rounded border-2 flex items-center justify-center mx-auto transition-colors",
-                              v === "si" ? "bg-green-500 border-green-500" :
+                              v === "sí" ? "bg-green-500 border-green-500" :
                               v === "no" ? "bg-red-500 border-red-500" :
                               "border-gray-200 hover:border-gray-400"
                             )}
                           >
-                            {v === "si" && <Check className="w-3 h-3 text-white" />}
+                            {v === "sí" && <Check className="w-3 h-3 text-white" />}
                             {v === "no" && <X className="w-3 h-3 text-white" />}
                           </button>
                         </td>
@@ -971,6 +1091,7 @@ function InspeccionEntradaModal({
             </tbody>
           </table>
         </div>
+        </>}
       </div>
     );
   };
@@ -997,20 +1118,28 @@ function InspeccionEntradaModal({
         <div className="flex border-b border-gray-100 overflow-x-auto px-5 shrink-0 gap-0">
           {inspTabs.map((tab, i) => {
             const label = tab.kind === "tractor" ? "Tractor / Cabezal" : tab.label;
+            const done = tab.kind === "tractor"
+              ? isDone("tractor")
+              : tab.kind === "remolque"
+              ? isDone("remolque", tab.unitIdx + 1)
+              : isDone("contenedor", tab.unitIdx + 1);
             return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setActiveTab(i)}
-              className={cn(
-                "py-2.5 px-1 mr-5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap shrink-0",
-                activeTab === i
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
-              )}
-            >
-              {label}
-            </button>
+              <button
+                key={i}
+                type="button"
+                onClick={() => setActiveTab(i)}
+                className={cn(
+                  "py-2.5 px-1 mr-5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5",
+                  activeTab === i
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-gray-400 hover:text-gray-600"
+                )}
+              >
+                {label}
+                {done && (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                )}
+              </button>
             );
           })}
         </div>
@@ -2170,45 +2299,66 @@ export default function DetalleTransportistaPage() {
         {/* ── RIGHT SIDEBAR ────────────────────────────────────────────────── */}
         <div className="space-y-3">
           {/* Inspección de entrada */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <ClipboardCheck className="w-4 h-4 text-gray-400" />
-                <span className="text-sm font-bold text-gray-800">
-                  Inspección de entrada
-                </span>
+          {(() => {
+            const inspecsDone = data?.inspecciones ?? [];
+            // Total esperado: 1 tractor + 1 por cada unidad (remolque) + 1 por cada contenedor
+            const totalSecciones = 1 + unidades.length + unidades.filter(u => u.config === "remolque_contenedor").length;
+            const seccionesDone = inspecsDone.length;
+            const hayAlguna = seccionesDone > 0;
+            const todasDone = seccionesDone >= totalSecciones;
+            return (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <ClipboardCheck className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm font-bold text-gray-800">Inspección de entrada</span>
+                  </div>
+                  <span className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                    todasDone ? "bg-green-100 text-green-700" : hayAlguna ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
+                  )}>
+                    {todasDone ? "Completada" : hayAlguna ? "En progreso" : "Pendiente"}
+                  </span>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold text-gray-800">{seccionesDone}</span>
+                    <span className="text-sm text-gray-400">de {totalSecciones} secciones</span>
+                  </div>
+                  {hayAlguna && (
+                    <div className="space-y-1">
+                      {inspecsDone.map((ins, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                          <span className="text-xs text-gray-600 capitalize flex-1">
+                            {ins.tipo === "tractor"
+                              ? "Tractor / Cabezal"
+                              : ins.tipo.startsWith("remolque")
+                              ? `Remolque · Unidad ${ins.tipo.split("_")[1] ?? ""}`
+                              : `Contenedor · Unidad ${ins.tipo.split("_")[1] ?? ""}`}
+                          </span>
+                          {ins.url && (
+                            <a href={ins.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline shrink-0">
+                              Ver
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!todasDone && (
+                    <button
+                      onClick={() => setShowInspeccion(true)}
+                      className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
+                    >
+                      <ClipboardCheck className="w-3.5 h-3.5" />
+                      {hayAlguna ? "Continuar inspección" : "Realizar inspección"}
+                    </button>
+                  )}
+                </div>
               </div>
-              <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                Pendiente
-              </span>
-            </div>
-            <div className="p-4 space-y-3">
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-gray-800">
-                  {inspecciones.entrada.completados}
-                </span>
-                <span className="text-sm text-gray-400">
-                  de {inspecciones.entrada.total}
-                </span>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-700 mb-0.5">
-                  Inspección por realizar
-                </p>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Recorre los {inspecciones.entrada.total} puntos del vehículo.
-                  Cada punto admite foto y la IA evalúa la evidencia.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowInspeccion(true)}
-                className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
-              >
-                <ClipboardCheck className="w-3.5 h-3.5" />
-                Realizar inspección
-              </button>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Inspección de salida */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden opacity-70">
@@ -2291,6 +2441,7 @@ export default function DetalleTransportistaPage() {
         <InspeccionEntradaModal
           recordId={id}
           unidades={unidades}
+          inspeccionesDone={data?.inspecciones ?? []}
           onClose={() => setShowInspeccion(false)}
         />
       )}

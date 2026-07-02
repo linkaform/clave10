@@ -51,7 +51,7 @@ interface RawRecord {
   documentos: RawDocumento[];
   remolques: RawRemolque[];
   materiales: RawMaterial[];
-  inspecciones: unknown[];
+  inspecciones: { tipo: string; unidad?: number; url?: string }[];
 }
 
 function mapRecord(raw: RawRecord): VisitaTransportista {
@@ -113,6 +113,11 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
       proveedor_cliente: raw.proveedor_cliente,
       no_orden_compra:   raw.orden_de_compra,
     },
+    inspecciones: (raw.inspecciones ?? []).map((ins) => ({
+      tipo:   ins.tipo,
+      unidad: ins.unidad,
+      url:    ins.url,
+    })),
   };
 }
 
@@ -172,6 +177,7 @@ export interface VisitaTransportista {
   remolques: RemolqueVisita[];
   materiales: MaterialVisita[];
   documentos_adicionales?: { file_url: string; file_name: string; tipo?: string }[];
+  inspecciones: { tipo: string; unidad?: number; url?: string }[];
 }
 
 export const useGetVisitTransportista = (id: string) => {
