@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Copy, Check, Mail, Link } from "lucide-react";
@@ -16,9 +16,10 @@ interface Props {
 export function PaseTransportistaSuccessModal({ open, onClose, id, folio, accountId }: Props) {
   const [copied, setCopied] = useState(false);
 
-  const url = typeof window !== "undefined"
-    ? `${window.location.origin}/transportistas/preview/transportista/${id}${accountId ? `?p_id=${accountId}` : ""}`
-    : `/transportistas/preview/transportista/${id}${accountId ? `?p_id=${accountId}` : ""}`;
+  const [url, setUrl] = useState(`/transportistas/preview/transportista/${id}${accountId ? `?p_id=${accountId}` : ""}`);
+  useEffect(() => {
+    setUrl(`${window.location.origin}/transportistas/preview/transportista/${id}${accountId ? `?p_id=${accountId}` : ""}`);
+  }, [id, accountId]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(url);

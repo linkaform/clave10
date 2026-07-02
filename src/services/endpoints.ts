@@ -1,6 +1,7 @@
 import { apiPost } from "@/lib/api";
 import { API_ENDPOINTS } from "@/config/api";
 import { ApiResponse } from "@/types/api";
+import useAuthStore from "@/store/useAuthStore";
 
 export const getBitacoraFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
@@ -172,4 +173,51 @@ export const updateInformationTransportista = (payload: unknown, account_id?: nu
     option: "update_information_transportista",
     payload,
     ...(account_id !== undefined && { account_id }),
+  });
+
+export const createVisitTransportista = (payload: unknown) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "create_visit_transportista",
+    account_id: useAuthStore.getState().userParentId,
+    payload,
+  });
+
+export const ocrAccesoTransportista = (image_source: { file_url: string; file_name: string }[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "ocr_docs_2.py",
+    option: "ocr_acceso_transportista",
+    image_source,
+  });
+
+export const saveDataTransportista = (payload: unknown) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "save_data_transportista",
+    account_id: useAuthStore.getState().userParentId,
+    payload,
+  });
+
+export const getBitacoraTransportistaRecord = (record_id: string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_bitac_transportista_record",
+    record_id,
+  });
+
+export const saveBitacoraTransportistaRecord = (record_id: string, seccion: string, payload: unknown) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "save_bitac_transportista_record",
+    record_id,
+    seccion,
+    payload,
+  });
+
+export const saveInspeccionesTransportista = (record_id: string, inspecciones: unknown[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "save_inspecciones",
+    record_id,
+    inspecciones,
   });
