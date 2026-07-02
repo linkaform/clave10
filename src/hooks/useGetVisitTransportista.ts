@@ -59,7 +59,8 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
     raw.documentos?.find((d) => d.tipo.toUpperCase() === tipo.toUpperCase())?.documento?.[0] ?? null;
 
   const documentos_adicionales = (raw.documentos ?? [])
-    .flatMap((d) => d.documento.map((f) => ({ ...f, tipo: d.tipo })));
+    .flatMap((d) => (Array.isArray(d.documento) ? d.documento : d.documento ? [d.documento] : [])
+      .map((f) => ({ ...f, tipo: d.tipo })));
 
   return {
     id: raw._id,

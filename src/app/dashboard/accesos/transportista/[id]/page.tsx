@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -1659,6 +1660,62 @@ export default function DetalleTransportistaPage() {
     });
 
   const [docTab, setDocTab] = useState<"pendientes" | "subidos">("pendientes");
+  const [fotoPicker, setFotoPicker] = useState<"foto_conductor" | "foto_licencia" | null>(null);
+  const [uploadingFotoConductor, setUploadingFotoConductor] = useState(false);
+  const fotoInputRef = useRef<HTMLInputElement>(null);
+
+  const tipoFromField = (field: "foto_conductor" | "foto_licencia") =>
+    field === "foto_conductor" ? "foto_conductor" : "identificacion";
+
+  const saveFotoConductor = async (field: "foto_conductor" | "foto_licencia", file_url: string, file_name: string, index?: number) => {
+    setFotoPicker(null);
+    const tipo = tipoFromField(field);
+    // Si no se pasa index (archivo nuevo), buscar si ya existe uno con ese tipo para actualizarlo
+    const docs = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id])?.documentos_adicionales ?? [];
+    const resolvedIndex = index !== undefined ? index : (docs.findIndex((d) => d.tipo === tipo) >= 0 ? docs.findIndex((d) => d.tipo === tipo) : null);
+    const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
+    // Optimistic update — muestra la imagen de inmediato
+    queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
+      ["visitaTransportista", id],
+      (old) => old ? { ...old, conductor: old.conductor ? { ...old.conductor, [field]: { file_url, file_name } } : old.conductor } : old
+    );
+    try {
+      await saveBitacoraTransportistaRecord(id, "documentos", {
+        documentos_adicionales: { file_url, file_name, tipo, index: resolvedIndex },
+      });
+      queryClient.invalidateQueries({ queryKey: ["visitaTransportista", id] });
+      toast.success("Imagen actualizada");
+    } catch {
+      queryClient.setQueryData(["visitaTransportista", id], previous);
+      toast.error("Error al guardar la imagen");
+    }
+  };
+
+  const handleFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !fotoPicker) return;
+    const field = fotoPicker;
+    e.target.value = "";
+    setFotoPicker(null);
+    setUploadingFotoConductor(true);
+    // Preview local mientras sube
+    const localUrl = URL.createObjectURL(file);
+    const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
+    queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
+      ["visitaTransportista", id],
+      (old) => old ? { ...old, conductor: old.conductor ? { ...old.conductor, [field]: { file_url: localUrl, file_name: file.name } } : old.conductor } : old
+    );
+    try {
+      const res = await uploadImage(file);
+      await saveFotoConductor(field, res.file, res.file_name);
+    } catch {
+      queryClient.setQueryData(["visitaTransportista", id], previous);
+      toast.error("Error al subir la imagen");
+    } finally {
+      setUploadingFotoConductor(false);
+      URL.revokeObjectURL(localUrl);
+    }
+  };
 
   // Etapas — pendiente de conectar con estado real del registro
   const entradaDone = false;
@@ -1766,42 +1823,129 @@ export default function DetalleTransportistaPage() {
 
           {/* Photos + identity */}
           <div className="px-4 pt-4 pb-3 space-y-3">
+            {/* Input oculto para subir nueva foto */}
+            <input ref={fotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
+
             <div className="grid grid-cols-2 gap-2">
-              {/* Foto conductor — desde documentos_adicionales tipo foto_conductor */}
+              {/* Foto conductor */}
               {(() => {
                 const url = data?.conductor?.foto_conductor?.file_url
                   ?? data?.documentos_adicionales?.find((d) => d.tipo === "foto_conductor")?.file_url;
                 return (
-                  <div className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5">
+                  <button type="button" onClick={() => setFotoPicker("foto_conductor")}
+                    className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5 relative group hover:border-blue-300 transition-colors">
                     {url ? (
-                      <img src={url} alt="Conductor" className="w-full h-full object-cover" />
+                      <>
+                        <img src={url} alt="Conductor" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Pencil className="w-4 h-4 text-white" />
+                        </div>
+                      </>
                     ) : (
                       <>
-                        <Camera className="w-5 h-5 text-gray-300" />
+                        <Camera className="w-5 h-5 text-gray-300 group-hover:text-blue-400 transition-colors" />
                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">FOTO</span>
                       </>
                     )}
-                  </div>
+                    <div className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-white shadow flex items-center justify-center">
+                      <Pencil className="w-2.5 h-2.5 text-gray-500" />
+                    </div>
+                  </button>
                 );
               })()}
-              {/* Foto licencia — desde documentos_adicionales tipo licencia_conducir */}
+              {/* Foto licencia */}
               {(() => {
                 const url = data?.conductor?.foto_licencia?.file_url
                   ?? data?.documentos_adicionales?.find((d) => d.tipo === "licencia_conducir")?.file_url;
                 return (
-                  <div className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5">
+                  <button type="button" onClick={() => setFotoPicker("foto_licencia")}
+                    className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5 relative group hover:border-blue-300 transition-colors">
                     {url ? (
-                      <img src={url} alt="Licencia" className="w-full h-full object-cover" />
+                      <>
+                        <img src={url} alt="Licencia" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Pencil className="w-4 h-4 text-white" />
+                        </div>
+                      </>
                     ) : (
                       <>
-                        <FileText className="w-5 h-5 text-gray-300" />
+                        <FileText className="w-5 h-5 text-gray-300 group-hover:text-blue-400 transition-colors" />
                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">IDENTIFICACIÓN</span>
                       </>
                     )}
-                  </div>
+                    <div className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-white shadow flex items-center justify-center">
+                      <Pencil className="w-2.5 h-2.5 text-gray-500" />
+                    </div>
+                  </button>
                 );
               })()}
             </div>
+
+            {/* Picker de foto — renderizado via portal para escapar el stacking context */}
+            {fotoPicker && typeof document !== "undefined" && createPortal(
+              <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setFotoPicker(null)}>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <p className="text-sm font-bold text-gray-800">
+                      {fotoPicker === "foto_conductor" ? "Foto del conductor" : "Identificación"}
+                    </p>
+                    <button type="button" onClick={() => setFotoPicker(null)} className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Opción: subir nueva */}
+                  <button type="button" disabled={uploadingFotoConductor}
+                    onClick={() => fotoInputRef.current?.click()}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                      <Camera className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-semibold text-gray-700">Subir nueva imagen</p>
+                      <p className="text-[10px] text-gray-400">Selecciona un archivo de tu dispositivo</p>
+                    </div>
+                    {uploadingFotoConductor && <div className="ml-auto w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />}
+                  </button>
+
+                  {/* Opción: seleccionar de documentos existentes */}
+                  {(() => {
+                    const docs = data?.documentos_adicionales ?? [];
+                    if (docs.length === 0) return null;
+                    return (
+                      <div className="px-4 py-2">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Del registro</p>
+                        <div className="space-y-1.5">
+                          {docs.map((doc, docIdx) => (
+                            <button key={doc.file_url} type="button"
+                              onClick={() => saveFotoConductor(fotoPicker, doc.file_url, doc.file_name ?? "", docIdx)}
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-blue-50 transition-colors text-left">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
+                                <img src={doc.file_url} alt="" className="w-full h-full object-cover" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-semibold text-gray-700 truncate">
+                                  {doc.tipo ? doc.tipo.replace(/_/g, " ") : doc.file_name}
+                                </p>
+                                <p className="text-[10px] text-gray-400 truncate">{doc.file_name}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <div className="px-4 pb-4 pt-2">
+                    <button type="button" onClick={() => setFotoPicker(null)}
+                      className="w-full py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
             <div className="text-center">
               {isLoading ? (
                 <Skeleton className="h-4 w-40 mx-auto" />

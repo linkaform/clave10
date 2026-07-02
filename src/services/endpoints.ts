@@ -214,6 +214,13 @@ export const saveBitacoraTransportistaRecord = (record_id: string, seccion: stri
     payload,
   });
 
+export const getBitacoraTransportistaRecords = (fecha?: string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_bitac_transportista_records",
+    ...(fecha && { fecha }),
+  });
+
 export const saveInspeccionesTransportista = (record_id: string, inspecciones: unknown[]) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "transportistas.py",
