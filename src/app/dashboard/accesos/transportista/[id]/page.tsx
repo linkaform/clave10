@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   ChevronUp,
@@ -497,6 +498,18 @@ function InspeccionEntradaModal({
   const [uploadingSection, setUploadingSection] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSectionRef = useRef<string | null>(null);
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const checkTabsScroll = () => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  };
+  const scrollTabs = (dir: "left" | "right") => {
+    tabsScrollRef.current?.scrollBy({ left: dir === "left" ? -120 : 120, behavior: "smooth" });
+  };
   const emptyPunto = (): PuntoInsp => ({ value: null, comentario: "", fotos: [] });
   const emptyRemolqueSection = (): RemolqueInspSection => ({
     evidencia: [], altura: "", ancho: "", longitud: "",
@@ -525,6 +538,7 @@ function InspeccionEntradaModal({
       return [remTab];
     }),
   ];
+  useEffect(() => { checkTabsScroll(); }, [inspTabs.length]);
 
   const tractorEval = tractorPuntos.filter((p) => p.value !== null).length;
 
@@ -1098,7 +1112,7 @@ function InspeccionEntradaModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
           <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
@@ -1115,33 +1129,57 @@ function InspeccionEntradaModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-100 overflow-x-auto px-5 shrink-0 gap-0">
-          {inspTabs.map((tab, i) => {
-            const label = tab.kind === "tractor" ? "Tractor / Cabezal" : tab.label;
-            const done = tab.kind === "tractor"
-              ? isDone("tractor")
-              : tab.kind === "remolque"
-              ? isDone("remolque", tab.unitIdx + 1)
-              : isDone("contenedor", tab.unitIdx + 1);
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setActiveTab(i)}
-                className={cn(
-                  "py-2.5 px-1 mr-5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5",
-                  activeTab === i
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-gray-400 hover:text-gray-600"
-                )}
-              >
-                {label}
-                {done && (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                )}
+        {/* Tabs con scroll por flechas */}
+        <div className="relative border-b border-gray-100 shrink-0">
+          {canScrollLeft && (
+            <>
+              <div className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+              <button type="button" onClick={() => scrollTabs("left")}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors">
+                <ChevronLeft className="w-4 h-4" />
               </button>
-            );
-          })}
+            </>
+          )}
+          {canScrollRight && (
+            <>
+              <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
+              <button type="button" onClick={() => scrollTabs("right")}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </>
+          )}
+          <div
+            ref={tabsScrollRef}
+            onScroll={checkTabsScroll}
+            className="flex overflow-x-auto px-5 gap-0"
+            style={{ scrollbarWidth: "none" }}
+          >
+            {inspTabs.map((tab, i) => {
+              const label = tab.kind === "tractor" ? "Tractor / Cabezal" : tab.label;
+              const done = tab.kind === "tractor"
+                ? isDone("tractor")
+                : tab.kind === "remolque"
+                ? isDone("remolque", tab.unitIdx + 1)
+                : isDone("contenedor", tab.unitIdx + 1);
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => { setActiveTab(i); setTimeout(checkTabsScroll, 50); }}
+                  className={cn(
+                    "py-2.5 px-1 mr-5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5",
+                    activeTab === i
+                      ? "border-blue-600 text-blue-600"
+                      : "border-transparent text-gray-400 hover:text-gray-600"
+                  )}
+                >
+                  {label}
+                  {done && <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Content */}
