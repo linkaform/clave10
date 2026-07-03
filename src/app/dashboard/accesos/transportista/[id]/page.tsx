@@ -484,11 +484,13 @@ function InspeccionEntradaModal({
   unidades,
   inspeccionesDone,
   onClose,
+  onSaved,
 }: {
   recordId: string;
   unidades: UnidadItem[];
   inspeccionesDone: { tipo: string; unidad?: number; url?: string }[];
   onClose: () => void;
+  onSaved?: () => void;
 }) {
   const buildTipoKey = (tipo: string, unidad?: number) =>
     unidad !== undefined ? `${tipo}_${unidad}` : tipo;
@@ -688,6 +690,7 @@ function InspeccionEntradaModal({
     try {
       await saveInspeccionesTransportista(recordId, buildPayload());
       toast.success("Inspección guardada");
+      onSaved?.();
       onClose();
     } catch {
       toast.error("Error al guardar la inspección");
@@ -1235,10 +1238,12 @@ function InspeccionEntradaModal({
 // ─── Progress bar ─────────────────────────────────────────────────────────────
 
 function ProgressBar({
+  arriboDone,
   entradaDone,
   cargaDone,
   salidaDone,
 }: {
+  arriboDone: boolean;
   entradaDone: boolean;
   cargaDone: boolean;
   salidaDone: boolean;
@@ -1248,7 +1253,7 @@ function ProgressBar({
   const GRAY = "#E2E8F0";
 
   const defs = [
-    { label: "Arribo", done: true },
+    { label: "Arribo", done: arriboDone },
     { label: "Insp. entrada", done: entradaDone },
     { label: "Carga / Descarga", done: cargaDone },
     { label: "Insp. salida", done: salidaDone },
@@ -1664,6 +1669,61 @@ export default function DetalleTransportistaPage() {
   const [uploadingFotoConductor, setUploadingFotoConductor] = useState(false);
   const fotoInputRef = useRef<HTMLInputElement>(null);
 
+  const [editingDocIdx, setEditingDocIdx] = useState<number | null>(null);
+  const [editingDocDraft, setEditingDocDraft] = useState<{ tipo: string; file_url: string; file_name: string } | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const editDocInputRef = useRef<HTMLInputElement>(null);
+
+  const startEditDoc = (idx: number) => {
+    const doc = data?.documentos_adicionales?.[idx];
+    if (!doc) return;
+    setEditingDocIdx(idx);
+    setEditingDocDraft({ tipo: doc.tipo ?? "", file_url: doc.file_url, file_name: doc.file_name });
+  };
+
+  const cancelEditDoc = () => { setEditingDocIdx(null); setEditingDocDraft(null); };
+
+  const saveEditDoc = async () => {
+    if (editingDocIdx === null || !editingDocDraft) return;
+    const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
+    queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
+      ["visitaTransportista", id],
+      (old) => old ? { ...old, documentos_adicionales: old.documentos_adicionales?.map((d, i) =>
+        i === editingDocIdx ? { ...d, ...editingDocDraft } : d
+      ) } : old
+    );
+    cancelEditDoc();
+    try {
+      await saveBitacoraTransportistaRecord(id, "documentos", {
+        documentos_adicionales: { ...editingDocDraft, index: editingDocIdx },
+      });
+      refetch();
+      toast.success("Documento actualizado");
+    } catch {
+      queryClient.setQueryData(["visitaTransportista", id], previous);
+      toast.error("Error al actualizar el documento");
+    }
+  };
+
+  const handleEditDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingDocDraft) return;
+    e.target.value = "";
+    setUploadingDoc(true);
+    const localUrl = URL.createObjectURL(file);
+    setEditingDocDraft((p) => p ? { ...p, file_url: localUrl, file_name: file.name } : p);
+    try {
+      const res = await uploadImage(file);
+      setEditingDocDraft((p) => p ? { ...p, file_url: res.file, file_name: res.file_name } : p);
+    } catch {
+      setEditingDocDraft((p) => p ? { ...p, file_url: p.file_url === localUrl ? "" : p.file_url } : p);
+      toast.error("Error al subir el archivo");
+    } finally {
+      setUploadingDoc(false);
+      URL.revokeObjectURL(localUrl);
+    }
+  };
+
   const tipoFromField = (field: "foto_conductor" | "foto_licencia") =>
     field === "foto_conductor" ? "foto_conductor" : "identificacion";
 
@@ -1683,11 +1743,27 @@ export default function DetalleTransportistaPage() {
       await saveBitacoraTransportistaRecord(id, "documentos", {
         documentos_adicionales: { file_url, file_name, tipo, index: resolvedIndex },
       });
-      queryClient.invalidateQueries({ queryKey: ["visitaTransportista", id] });
+      refetch();
       toast.success("Imagen actualizada");
     } catch {
       queryClient.setQueryData(["visitaTransportista", id], previous);
       toast.error("Error al guardar la imagen");
+    }
+  };
+
+  const deleteDocumento = async (index: number) => {
+    const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
+    queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
+      ["visitaTransportista", id],
+      (old) => old ? { ...old, documentos_adicionales: old.documentos_adicionales?.filter((_, i) => i !== index) } : old
+    );
+    try {
+      await saveBitacoraTransportistaRecord(id, "documentos", { delete_documentos: [index] });
+      refetch();
+      toast.success("Archivo eliminado");
+    } catch {
+      queryClient.setQueryData(["visitaTransportista", id], previous);
+      toast.error("Error al eliminar el archivo");
     }
   };
 
@@ -1717,10 +1793,14 @@ export default function DetalleTransportistaPage() {
     }
   };
 
-  // Etapas — pendiente de conectar con estado real del registro
-  const entradaDone = false;
-  const cargaDone = false;
-  const salidaDone = false;
+  // Etapas derivadas del estatus real del registro
+  const estatus = data?.estatus ?? "";
+  const ORDEN_ESTATUS = ["arribo", "inspeccion_entrada", "carga_descarga", "inspeccion_salida", "terminado"];
+  const estatusIdx = ORDEN_ESTATUS.indexOf(estatus);
+  const arriboDone  = estatusIdx > 0;
+  const entradaDone = estatusIdx > 1;
+  const cargaDone   = estatusIdx > 2;
+  const salidaDone  = estatusIdx > 3;
 
   // Inspecciones — valores estructurales (no vienen del API aún)
   const inspecciones = {
@@ -1746,6 +1826,71 @@ export default function DetalleTransportistaPage() {
       ? "SALIDA"
       : null;
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Top bar skeleton */}
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm px-4 py-2">
+          <div className="flex items-center gap-2 mb-3">
+            <Skeleton className="h-3 w-48" />
+            <div className="flex-1" />
+            <Skeleton className="h-7 w-28 rounded-lg" />
+          </div>
+          <div className="pb-4">
+            <Skeleton className="h-8 w-full rounded-xl" />
+          </div>
+        </div>
+
+        {/* Body skeleton */}
+        <div className="flex gap-4 p-4 w-full">
+          {/* Sidebar izquierda */}
+          <div className="w-64 shrink-0 flex flex-col gap-3">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-3">
+              <Skeleton className="h-4 w-24" />
+              <div className="grid grid-cols-2 gap-2">
+                <Skeleton className="h-24 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+              </div>
+              {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 rounded-lg" />)}
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-3">
+              <Skeleton className="h-4 w-32" />
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-8 rounded-lg" />)}
+            </div>
+          </div>
+
+          {/* Contenido central */}
+          <div className="flex-1 flex flex-col gap-3 min-w-0">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-3">
+              <Skeleton className="h-4 w-40" />
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 rounded-xl" />)}
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-3">
+              <Skeleton className="h-4 w-32" />
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 rounded-xl" />)}
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-3">
+              <Skeleton className="h-4 w-36" />
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 rounded-xl" />)}
+            </div>
+          </div>
+
+          {/* Panel derecho */}
+          <div className="w-72 shrink-0 flex flex-col gap-3">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-3">
+              <Skeleton className="h-4 w-28" />
+              {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 rounded-xl" />)}
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-3">
+              <Skeleton className="h-4 w-32" />
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 rounded-xl" />)}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ── Sticky top bar ─────────────────────────────────────────────────── */}
@@ -1770,6 +1915,7 @@ export default function DetalleTransportistaPage() {
           {/* Row 3: progress */}
           <div className="pb-4 pt-0.5">
             <ProgressBar
+              arriboDone={arriboDone}
               entradaDone={entradaDone}
               cargaDone={cargaDone}
               salidaDone={salidaDone}
@@ -2119,30 +2265,95 @@ export default function DetalleTransportistaPage() {
                 );
               })}
 
+              {/* Input oculto para reemplazar archivo al editar */}
+              <input ref={editDocInputRef} type="file" className="hidden" onChange={handleEditDocUpload} />
+
               {/* Documentos subidos desde el acceso (documentos_adicionales) */}
-              {docTab === "subidos" && data?.documentos_adicionales?.map((doc) => {
-                const isImg = /\.(jpe?g|png|gif|webp)$/i.test(doc.file_name) || doc.tipo === "foto_conductor" || doc.tipo === "foto_vehiculo" || doc.tipo === "foto_placa";
+              {docTab === "subidos" && data?.documentos_adicionales?.map((doc, docIdx) => {
+                const isEditing = editingDocIdx === docIdx;
+                const draft = isEditing ? editingDocDraft : null;
+                const displayUrl = draft?.file_url ?? doc.file_url;
+                const displayName = draft?.file_name ?? doc.file_name;
+                const isImg = /\.(jpe?g|png|gif|webp)$/i.test(displayName);
                 const tipoLabel = doc.tipo ? doc.tipo.replace(/_/g, " ").toUpperCase() : doc.file_name;
+
+                if (isEditing && draft) {
+                  return (
+                    <div key={doc.file_url} className="rounded-xl border border-blue-200 bg-blue-50/40 p-3 flex flex-col gap-2">
+                      {/* Preview + reemplazar */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0 flex items-center justify-center">
+                          {isImg && displayUrl ? (
+                            <img src={displayUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <FileText className="w-5 h-5 text-gray-300" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] text-gray-400 truncate">{displayName || "Sin archivo"}</p>
+                        </div>
+                        <button type="button" disabled={uploadingDoc}
+                          onClick={() => editDocInputRef.current?.click()}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors shrink-0">
+                          {uploadingDoc
+                            ? <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                            : <Camera className="w-3 h-3" />}
+                          Reemplazar
+                        </button>
+                      </div>
+                      {/* Input tipo */}
+                      <input
+                        type="text"
+                        value={draft.tipo}
+                        onChange={(e) => setEditingDocDraft((p) => p ? { ...p, tipo: e.target.value } : p)}
+                        placeholder="Tipo de documento (ej. identificacion, foto_conductor…)"
+                        className="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-blue-400"
+                      />
+                      {/* Acciones */}
+                      <div className="flex gap-2 justify-end">
+                        <button type="button" onClick={cancelEditDoc}
+                          className="px-3 py-1.5 text-[10px] font-semibold text-gray-500 hover:text-gray-700 transition-colors">
+                          Cancelar
+                        </button>
+                        <button type="button" onClick={saveEditDoc} disabled={uploadingDoc}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-[10px] font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50">
+                          <Save className="w-3 h-3" />
+                          Guardar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
-                  <a
-                    key={doc.file_url}
-                    href={doc.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-gray-100 bg-white hover:bg-gray-50 cursor-pointer transition-colors">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0 flex items-center justify-center">
-                      {isImg ? (
-                        <img src={doc.file_url} alt={tipoLabel} className="w-full h-full object-cover" />
-                      ) : (
-                        <FileText className="w-5 h-5 text-gray-300" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold text-gray-700 truncate">{tipoLabel}</p>
-                      <p className="text-[10px] text-gray-400 truncate mt-0.5">{doc.file_name}</p>
-                    </div>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  </a>
+                  <div key={doc.file_url} className="flex items-center gap-2">
+                    <a
+                      href={doc.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 border border-gray-100 bg-white hover:bg-gray-50 cursor-pointer transition-colors min-w-0">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0 flex items-center justify-center">
+                        {isImg ? (
+                          <img src={doc.file_url} alt={tipoLabel} className="w-full h-full object-cover" />
+                        ) : (
+                          <FileText className="w-5 h-5 text-gray-300" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-bold text-gray-700 truncate">{tipoLabel}</p>
+                        <p className="text-[10px] text-gray-400 truncate mt-0.5">{doc.file_name}</p>
+                      </div>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    </a>
+                    <button type="button" onClick={() => startEditDoc(docIdx)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-blue-400 hover:bg-blue-50 transition-colors shrink-0">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button type="button" onClick={() => deleteDocumento(docIdx)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 );
               })}
 
@@ -2625,6 +2836,7 @@ export default function DetalleTransportistaPage() {
           unidades={unidades}
           inspeccionesDone={data?.inspecciones ?? []}
           onClose={() => setShowInspeccion(false)}
+          onSaved={refetch}
         />
       )}
       {showAgregarUnidad && (
