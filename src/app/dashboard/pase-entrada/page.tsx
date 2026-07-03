@@ -940,6 +940,7 @@ const PaseEntradaPage = () => {
                         />
                       )}
                     </div>
+                  
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <FormField
                         control={form.control}
@@ -953,20 +954,27 @@ const PaseEntradaPage = () => {
                               <Input
                                 placeholder="0"
                                 type="number"
-                                min={0}
                                 step={1}
+                                min={0}
                                 className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
                                 {...field}
-                                value={field.value ?? 0}
-                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                                value={field.value === 0 || field.value === undefined ? "" : field.value}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  field.onChange(val === "" ? 0 : Number(val));
+                                }}
+                                onFocus={(e) => e.target.select()}
                               />
                             </FormControl>
-                            <p className="text-xs text-gray-400 mt-1">Número de personas adicionales que acompañan al visitante.</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              Número de personas adicionales que acompañan al visitante. Ve a la tab{" "}
+                              <span className="font-semibold text-gray-500">Acompañantes</span> para completar sus datos.
+                            </p>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                     </div>
+                    </div>
                   </div>
                 </TabsContent>
 

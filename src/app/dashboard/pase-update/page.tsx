@@ -858,13 +858,14 @@ const PaseUpdate = () => {
               rowErrors={{}}
               setRowErrors={() => {}}
               useIA
-              showCreatePass
-              showDownload
-              showShare
-              onCreatePass={(m) => console.log("crear pase", m)}
-              onDownload={(m) => console.log("descargar", m)}
-              onShare={(m) => console.log("compartir", m)} 
+              // showCreatePass
+              // showDownload
+              // showShare
+              // onCreatePass={(m) => console.log("crear pase", m)}
+              // onDownload={(m) => console.log("descargar", m)}
+              // onShare={(m) => console.log("compartir", m)} 
               defaultCountry={defaultCountry}
+              viewMode
             />
           }
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
