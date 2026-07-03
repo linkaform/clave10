@@ -28,7 +28,7 @@ import { useEjecutarRecorrido } from "@/hooks/Rondines/recorridos/useEjecutarRec
 import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 import Select from "react-select";
 import { useCatalogoInspeccionesRecorridos } from "@/hooks/Rondines/recorridos/useCatalogoInspecciones";
-import MapView from "@/components/map-v2";
+// import MapView from "@/components/map-v2";
 import { useActualizarInspeccion } from "@/hooks/Rondines/recorridos/useActualizarInspeccion";
 
 export type RecurrenciaValida = "diario" | "semana" | "mes" | "configurable";
@@ -150,7 +150,11 @@ const RondinDetalle = ({ id }: { id: string }) => {
 
   useEffect(() => {
     if (!rondin) return;
-
+    console.log("rondin actualizado:", {
+        tipo_asignacion: rondin.tipo_asignacion,
+        grupo_asignado: rondin.grupo_asignado,
+        asignado_a: rondin.asignado_a,
+      });
     // Asignación
     const tipo = rondin.tipo_asignacion;
     if (!tipo || tipo === "responsable_en_turno") {
@@ -164,7 +168,6 @@ const RondinDetalle = ({ id }: { id: string }) => {
     } else if (tipo === "grupo") {
       setTipoAsignado("grupo");
       setEmpleadosSeleccionados([]);
-      setGrupoSeleccionado(rondin.id_grupo ?? "");
       setGrupoSeleccionado(rondin.grupo_asignado ?? "");
     }
 
@@ -175,7 +178,17 @@ const RondinDetalle = ({ id }: { id: string }) => {
     setAreaSeleccionada(rondin.area || "");
     if (rondin.fecha_inicio_rondin) setFechaProgramada(new Date(rondin.fecha_inicio_rondin));
     if (rondin.areas) setAreas(rondin.areas);
-    
+
+    // Semana del mes (recurrencia semanal)
+    if (rondin.se_repite_cada === "semana" && rondin.en_que_semana_sucede) {
+      if (rondin.en_que_semana_sucede === "todas_las_semanas") {
+        set_todas_las_semanas(true);
+        set_en_que_semana_sucede("");
+      } else {
+        set_todas_las_semanas(false);
+        set_en_que_semana_sucede(rondin.en_que_semana_sucede);
+      }
+    }
     // Área
     setAreaSeleccionada(rondin.ubicacion_area || rondin.area || "");
 
@@ -284,6 +297,9 @@ const handleActualizar = () => {
         asignado_a: asignadoA,
         fecha_hora_programada: fechaProgramada ? format(fechaProgramada, "yyyy-MM-dd HH:mm:ss") : "",
         cada_cuantas_horas_se_repite: mostrarFrecuencia ? cada_cuantas_horas_se_repite : null,
+        en_que_semana_sucede: recurrenciaSeleccionada === "semana"
+          ? (todas_las_semanas ? "todas_las_semanas" : en_que_semana_sucede)
+          : undefined,
       } as any,
     },{ onSuccess: () => setForceRefetch(true) });
   };
@@ -612,6 +628,7 @@ const handleActualizar = () => {
           )}
 
           {/* Semanal */}
+          {/* Semanal */}
           {recurrenciaSeleccionada === "semana" && (
             <div>
               <div className="flex justify-between mb-2">
@@ -622,7 +639,7 @@ const handleActualizar = () => {
                 </div>
               </div>
               <div className="flex flex-wrap gap-1">
-                {["Primer semana","Segunda semana","Tercer semana","Cuarta semana","Quinta semana"].map((semana, idx) => {
+                {["Primer semana del mes","Segunda semana del mes","Tercer semana del mes","Cuarta semana del mes","Quinta semana del mes"].map((semana, idx) => {
                   const value = ["primer_semana_del_mes","segunda_semana_del_mes","tercer_semana_del_mes","cuarta_semana_del_mes","quinta_semana_del_mes"][idx];
                   return (
                     <button key={value} type="button" onClick={() => toggleSemana(value)}
@@ -894,7 +911,6 @@ const handleActualizar = () => {
               <p className="text-xs text-gray-400">{rondin.map_data.length} puntos en el mapa</p>
             </div>
             <div className="flex-1" style={{ minHeight: "360px" }}>
-              <MapView map_data={rondin.map_data} />
             </div>
           </div>
         ) : (
