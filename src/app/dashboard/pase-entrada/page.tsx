@@ -187,6 +187,8 @@ const PaseEntradaPage = () => {
   const [modalData, setModalData] = useState<any>(null);
   const [defaultCountry, setDefaultCountry] = useState<any>("MX");
   const [habilitarVehiculo, setHabilitarVehiculo] = useState(true);
+  const [toleranciaEntrada, setToleranciaEntrada] = useState<number>(0);
+
   const {
     locations: ubicacionesStore,
     defaultLocations,
@@ -312,6 +314,17 @@ const PaseEntradaPage = () => {
   }, []);
 
 
+  useEffect(() => {
+    if (!ubicacionesSeleccionadas?.length || !grupoRequisitos?.length) return;
+
+    const ubicacionNombre = ubicacionesSeleccionadas[0]?.name ?? ubicacionesSeleccionadas[0]?.id ?? "";
+
+    const requisito = grupoRequisitos.find(
+      (r) => r.ubicacion?.toLowerCase() === ubicacionNombre?.toLowerCase()
+    );
+
+    setToleranciaEntrada(requisito?.tolerancia_de_entrada_posterior ?? 0);
+  }, [ubicacionesSeleccionadas, grupoRequisitos]);
 
   const ubicacionesSeleccionadasLista = ubicacionesSeleccionadas?.map(
     (u: any) => u.name,
@@ -439,6 +452,17 @@ const PaseEntradaPage = () => {
         message: "Selecciona al menos una ubicación",
       });
     }
+    console.log( tipoVisita === "fecha_fija"
+          ? date
+            ? (() => {
+                const d = new Date(date);
+                d.setMinutes(d.getMinutes() + toleranciaEntrada);
+                return formatDateToString(d);
+              })()
+            : ""
+          : data.fecha_desde_hasta !== ""
+            ? formatFecha(data.fecha_desde_hasta) + ` 23:59:00`
+            : "")
     const formattedData = {
       created_from: "web",
       selected_visita_a: data.selected_visita_a,
@@ -477,7 +501,11 @@ const PaseEntradaPage = () => {
       fecha_desde_hasta:
         tipoVisita === "fecha_fija"
           ? date
-            ? (() => { const d = new Date(date); d.setHours(23, 59, 59, 0); return formatDateToString(d); })()
+            ? (() => {
+                const d = new Date(date);
+                d.setMinutes(d.getMinutes() + toleranciaEntrada);
+                return formatDateToString(d);
+              })()
             : ""
           : data.fecha_desde_hasta !== ""
             ? formatFecha(data.fecha_desde_hasta) + ` 23:59:00`
@@ -912,6 +940,7 @@ const PaseEntradaPage = () => {
                         />
                       )}
                     </div>
+                  
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <FormField
                         control={form.control}
@@ -925,20 +954,27 @@ const PaseEntradaPage = () => {
                               <Input
                                 placeholder="0"
                                 type="number"
-                                min={0}
                                 step={1}
+                                min={0}
                                 className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
                                 {...field}
-                                value={field.value ?? 0}
-                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                                value={field.value === 0 || field.value === undefined ? "" : field.value}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  field.onChange(val === "" ? 0 : Number(val));
+                                }}
+                                onFocus={(e) => e.target.select()}
                               />
                             </FormControl>
-                            <p className="text-xs text-gray-400 mt-1">Número de personas adicionales que acompañan al visitante.</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              Número de personas adicionales que acompañan al visitante. Ve a la tab{" "}
+                              <span className="font-semibold text-gray-500">Acompañantes</span> para completar sus datos.
+                            </p>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                     </div>
+                    </div>
                   </div>
                 </TabsContent>
 
@@ -1010,6 +1046,7 @@ const PaseEntradaPage = () => {
                           date={date}
                           setDate={setDate}
                           allowPast={false}
+                          use12Hour
                         />
                       </FormControl>
                       <FormMessage />

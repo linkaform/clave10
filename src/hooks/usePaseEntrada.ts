@@ -169,7 +169,7 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
           setLoading(true);
         },
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["getListIncidencias"] });
+          queryClient.invalidateQueries({ queryKey: ["getMyPases"] });
           queryClient.invalidateQueries({ queryKey: ["getStatsIncidencias"] });
           toast.success("Pase de entrada actualizado correctamente.");
         },

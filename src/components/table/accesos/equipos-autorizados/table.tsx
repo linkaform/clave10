@@ -83,7 +83,7 @@ export const EquiposAutorizadosTable: React.FC<TableProps> = ({ equipos, setEqui
 				</div>
 
 				<div className="flex items-center gap-2">
-					<EqipmentLocalPassModal title="Nuevo Equipo" equipos={equipos} setEquipos={setEquipos} isAccesos={true}>
+					<EqipmentLocalPassModal title="Nuevo Equipo" equipos={equipos} setEquipos={setEquipos} isAccesos={true} >
 						<Button
 							size="sm"
 							className="h-8 px-2.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white transition-colors"

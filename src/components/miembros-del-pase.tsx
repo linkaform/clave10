@@ -37,6 +37,8 @@ interface MiembrosPaseProps {
   onCreatePass?: (miembro: Miembro) => void;
   onShare?: (miembro: Miembro) => void;
   defaultCountry?: CountryCode;
+  allowAddRow?: boolean;
+  viewMode?: boolean;
 }
 
 const isValidEmail = (val: string) =>
@@ -54,6 +56,21 @@ const EMPTY_ROW = (): Miembro => ({
 const MAX_VISIBLE = 15;
 const ROW_HEIGHT = 52;
 
+const EstatusBadge: React.FC<{ estatus?: string }> = ({ estatus }) => {
+  const map: Record<string, { label: string; className: string }> = {
+    activo: { label: "Activo", className: "bg-green-50 text-green-600 border-green-200" },
+    pendiente: { label: "Pendiente", className: "bg-amber-50 text-amber-600 border-amber-200" },
+    usado: { label: "Usado", className: "bg-gray-100 text-gray-500 border-gray-200" },
+    cancelado: { label: "Cancelado", className: "bg-red-50 text-red-500 border-red-200" },
+  };
+  const info = map[estatus ?? ""] ?? { label: estatus || "Sin estatus", className: "bg-gray-50 text-gray-400 border-gray-200" };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${info.className}`}>
+      {info.label}
+    </span>
+  );
+};
+
 const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   miembros,
   setMiembros,
@@ -69,6 +86,8 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   onCreatePass,
   onShare,
   defaultCountry = "MX",
+  allowAddRow,
+  viewMode = false,
 }) => {
   const [openImportar, setOpenImportar] = useState(false);
   const [draftRow, setDraftRow] = useState<Miembro>(EMPTY_ROW());
@@ -215,7 +234,9 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   const th = "text-[10px] font-bold text-gray-400 uppercase tracking-wide px-3 py-2 border-r border-gray-100 last:border-r-0";
   const td = "px-3 py-2 border-r border-gray-100 last:border-r-0 align-middle";
 
-  const showActionsCol = showDownload || showCreatePass || showShare;
+  const efectivoUseIA = useIA && !viewMode;
+  const efectivoAllowAddRow = allowAddRow && !viewMode;
+  const showActionsCol = (showDownload || showCreatePass || showShare) && !viewMode;
   const actionsColWidth = (showCreatePass ? 90 : 0) + ((showDownload?1:0)+(showShare?1:0)+1) * 36 + 16;
 
   return (
@@ -230,7 +251,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
             <h1 className="font-semibold text-gray-700 text-sm">{title}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {useIA && (
+            {efectivoUseIA && (
               <>
                 <input
                   ref={globalInputRef}
@@ -255,21 +276,23 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                 </Button>
               </>
             )}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50 text-xs h-8"
-              onClick={() => setOpenImportar(true)}
-            >
-              <Upload className="w-3 h-3 mr-1" />
-              Importar
-            </Button>
+            {!viewMode && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50 text-xs h-8"
+                onClick={() => setOpenImportar(true)}
+              >
+                <Upload className="w-3 h-3 mr-1" />
+                Importar
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Banner IA */}
-        {useIA && (
+        {efectivoUseIA && (
           <div className="flex items-start gap-3 rounded-xl bg-blue-50 border border-blue-100 px-3 py-2 mb-3">
             <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5 text-white" />
@@ -294,11 +317,12 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
           <table className="w-full min-w-[500px] text-xs border-collapse">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr className="border-b border-gray-100">
-                {useIA && <th className={th} style={{ width: 44 }}>Foto</th>}
+                {efectivoUseIA && <th className={th} style={{ width: 44 }}>Foto</th>}
                 <th className={th} style={{ width: "22%" }}>Nombre</th>
                 <th className={th} style={{ width: "28%" }}>Email</th>
                 <th className={th} style={{ width: "22%" }}>Teléfono</th>
-                {useIA && <th className={th} style={{ width: 80 }}>Identificación</th>}
+                {viewMode && <th className={th} style={{ width: 110 }}>Estatus</th>}
+                {efectivoUseIA && <th className={th} style={{ width: 80 }}>Identificación</th>}
                 {showActionsCol && <th className={th} style={{ width: actionsColWidth }}>Acciones</th>}
                 <th className={th} style={{ width: 44 }}></th>
               </tr>
@@ -311,7 +335,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                     key={m.id}
                     className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${idx % 2 === 0 ? "" : "bg-gray-50/30"}`}
                   >
-                  {useIA && (
+                  {efectivoUseIA && (
                     <td className={td} style={{ width: 44 }}>
                       {m.foto && m.foto.length > 0 ? (
                         <ViewImage imageUrl={{ file_url: m.foto[0].file_url ?? "", file_name: m.foto[0].file_name ?? "foto" }} size="sm" />
@@ -323,36 +347,53 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                     </td>
                   )}
                     <td className={td} style={{ width: "22%" }}>
-                      <input
-                        className={inp + " text-gray-700"}
-                        value={m.nombre}
-                        placeholder="Nombre"
-                        onChange={(e) => handleEditCell(m.id, "nombre", e.target.value)}
-                      />
+                      {viewMode ? (
+                        <span className="text-gray-700">{m.nombre || "—"}</span>
+                      ) : (
+                        <input
+                          className={inp + " text-gray-700"}
+                          value={m.nombre}
+                          placeholder="Nombre"
+                          onChange={(e) => handleEditCell(m.id, "nombre", e.target.value)}
+                        />
+                      )}
                     </td>
                     <td className={td} style={{ width: "28%" }}>
-                      <input
-                        className={err.email ? inpErr : inp + " text-gray-700"}
-                        value={m.email}
-                        placeholder="Email"
-                        onChange={(e) => handleEditCell(m.id, "email", e.target.value)}
-                        onBlur={(e) => handleBlurSaved(m.id, "email", e.target.value)}
-                      />
+                      {viewMode ? (
+                        <span className="text-gray-700">{m.email || "—"}</span>
+                      ) : (
+                        <input
+                          className={err.email ? inpErr : inp + " text-gray-700"}
+                          value={m.email}
+                          placeholder="Email"
+                          onChange={(e) => handleEditCell(m.id, "email", e.target.value)}
+                          onBlur={(e) => handleBlurSaved(m.id, "email", e.target.value)}
+                        />
+                      )}
                     </td>
                     <td className={td} style={{ width: "22%" }}>
-                      <PhoneInput
-                        defaultCountry={defaultCountry}
-                        value={m.telefono}
-                        onChange={(value) => handleEditCell(m.id, "telefono", value || "")}
-                        onBlur={() => handleBlurSaved(m.id, "telefono", m.telefono)}
-                        containerComponentProps={{ className: "flex w-full bg-transparent" }}
-                        numberInputProps={{
-                          className: "bg-transparent border-none outline-none text-xs w-full focus:ring-0 p-0 " +
-                            (err.telefono ? "text-red-500" : "text-gray-700"),
-                        }}
-                      />
+                      {viewMode ? (
+                        <span className="text-gray-700">{m.telefono || "—"}</span>
+                      ) : (
+                        <PhoneInput
+                          defaultCountry={defaultCountry}
+                          value={m.telefono}
+                          onChange={(value) => handleEditCell(m.id, "telefono", value || "")}
+                          onBlur={() => handleBlurSaved(m.id, "telefono", m.telefono)}
+                          containerComponentProps={{ className: "flex w-full bg-transparent" }}
+                          numberInputProps={{
+                            className: "bg-transparent border-none outline-none text-xs w-full focus:ring-0 p-0 " +
+                              (err.telefono ? "text-red-500" : "text-gray-700"),
+                          }}
+                        />
+                      )}
                     </td>
-                    {useIA && (
+                    {viewMode && (
+                      <td className={td} style={{ width: 110 }}>
+                        <EstatusBadge estatus={m.estatus} />
+                      </td>
+                    )}
+                    {efectivoUseIA && (
                       <td className={td} style={{ width: 80 }}>
                         <div className="flex justify-center">
                           <LoadImage
@@ -447,66 +488,69 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
               })}
 
               {/* Fila draft */}
-              <tr className="bg-blue-50/20 border-t border-blue-100">
-                {useIA && <td className={td} style={{ width: 44 }}></td>}
-                <td className={td} style={{ width: "22%" }}>
-                  <input
-                    id="draft-nombre"
-                    className={inp + " text-gray-700 placeholder:text-gray-400"}
-                    placeholder="Nombre *"
-                    value={draftRow.nombre}
-                    onChange={(e) => setDraftRow((d) => ({ ...d, nombre: e.target.value }))}
-                    onKeyDown={(e) => handleDraftKeyDown(e, "nombre")}
-                  />
-                </td>
-                <td className={td} style={{ width: "28%" }}>
-                  <input
-                    className={draftErrors.email ? inpErr : inp + " text-gray-700 placeholder:text-gray-400"}
-                    placeholder="Email"
-                    type="email"
-                    value={draftRow.email}
-                    onChange={(e) => setDraftRow((d) => ({ ...d, email: e.target.value }))}
-                    onBlur={() => handleBlurDraft("email")}
-                    onKeyDown={(e) => {
-                      if (e.key === "Tab") { e.preventDefault(); document.getElementById("draft-telefono-input")?.focus(); }
-                      if (e.key === "Enter") { e.preventDefault(); commitDraft(); }
-                    }}
-                  />
-                </td>
-                <td className={td} style={{ width: "22%" }}>
-                  <div onKeyDown={(e) => {
-                    if (e.key === "Tab") { e.preventDefault(); commitDraft(); }
-                    if (e.key === "Enter") { e.preventDefault(); commitDraft(); }
-                  }}>
-                    <PhoneInput
-                      defaultCountry={defaultCountry}
-                      value={draftRow.telefono}
-                      onChange={(value) => setDraftRow((d) => ({ ...d, telefono: value || "" }))}
-                      onBlur={() => handleBlurDraft("telefono")}
-                      containerComponentProps={{ className: "flex w-full bg-transparent" }}
-                      numberInputProps={{
-                        id: "draft-telefono-input",
-                        className: "bg-transparent border-none outline-none text-xs w-full focus:ring-0 p-0 " +
-                          (draftErrors.telefono ? "text-red-500" : "text-gray-700 placeholder:text-gray-400"),
-                        placeholder: "Teléfono",
+              {efectivoAllowAddRow && (
+                <tr className="bg-blue-50/20 border-t border-blue-100">
+                  {efectivoUseIA && <td className={td} style={{ width: 44 }}></td>}
+                  <td className={td} style={{ width: "22%" }}>
+                    <input
+                      id="draft-nombre"
+                      className={inp + " text-gray-700 placeholder:text-gray-400"}
+                      placeholder="Nombre *"
+                      value={draftRow.nombre}
+                      onChange={(e) => setDraftRow((d) => ({ ...d, nombre: e.target.value }))}
+                      onKeyDown={(e) => handleDraftKeyDown(e, "nombre")}
+                    />
+                  </td>
+                  <td className={td} style={{ width: "28%" }}>
+                    <input
+                      className={draftErrors.email ? inpErr : inp + " text-gray-700 placeholder:text-gray-400"}
+                      placeholder="Email"
+                      type="email"
+                      value={draftRow.email}
+                      onChange={(e) => setDraftRow((d) => ({ ...d, email: e.target.value }))}
+                      onBlur={() => handleBlurDraft("email")}
+                      onKeyDown={(e) => {
+                        if (e.key === "Tab") { e.preventDefault(); document.getElementById("draft-telefono-input")?.focus(); }
+                        if (e.key === "Enter") { e.preventDefault(); commitDraft(); }
                       }}
                     />
-                  </div>
-                </td>
-                {useIA && <td className={td} style={{ width: 80 }}></td>}
-                {showActionsCol && <td className={td} style={{ width: actionsColWidth }}></td>}
-                <td className={td + " text-right"} style={{ width: 44 }}>
-                  {draftRow.nombre.trim() && (
-                    <button
-                      type="button"
-                      className="text-blue-400 hover:text-blue-600 text-[10px] font-semibold whitespace-nowrap"
-                      onClick={commitDraft}
-                    >
-                      + Add
-                    </button>
-                  )}
-                </td>
-              </tr>
+                  </td>
+                  <td className={td} style={{ width: "22%" }}>
+                    <div onKeyDown={(e) => {
+                      if (e.key === "Tab") { e.preventDefault(); commitDraft(); }
+                      if (e.key === "Enter") { e.preventDefault(); commitDraft(); }
+                    }}>
+                      <PhoneInput
+                        defaultCountry={defaultCountry}
+                        value={draftRow.telefono}
+                        onChange={(value) => setDraftRow((d) => ({ ...d, telefono: value || "" }))}
+                        onBlur={() => handleBlurDraft("telefono")}
+                        containerComponentProps={{ className: "flex w-full bg-transparent" }}
+                        numberInputProps={{
+                          id: "draft-telefono-input",
+                          className: "bg-transparent border-none outline-none text-xs w-full focus:ring-0 p-0 " +
+                            (draftErrors.telefono ? "text-red-500" : "text-gray-700 placeholder:text-gray-400"),
+                          placeholder: "Teléfono",
+                        }}
+                      />
+                    </div>
+                  </td>
+                  {viewMode && <td className={td} style={{ width: 110 }}></td>}
+                  {efectivoUseIA && <td className={td} style={{ width: 80 }}></td>}
+                  {showActionsCol && <td className={td} style={{ width: actionsColWidth }}></td>}
+                  <td className={td + " text-right"} style={{ width: 44 }}>
+                    {draftRow.nombre.trim() && (
+                      <button
+                        type="button"
+                        className="text-blue-400 hover:text-blue-600 text-[10px] font-semibold whitespace-nowrap"
+                        onClick={commitDraft}
+                      >
+                        + Add
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -25,7 +25,7 @@ import UpdateFullPassModal from "@/components/modals/update-full-pass";
 import { useMemo, useState } from "react";
 import { OptionsCell } from "./pases-entrada-columns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { capitalizeFirstLetter } from "@/lib/utils";
+import { capitalizeFirstLetter, formatTo12Hour } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 interface ListProps {
@@ -225,14 +225,13 @@ const PasesEntradaTable: React.FC<ListProps> = ({
         ),
         enableSorting: true,
       },
-      {
+     {
         accessorKey: "fecha_desde_visita",
         header: "Fecha de inicio",
         cell: ({ row }: { row: Row<any> }) => {
           const fecha = row.getValue("fecha_desde_visita");
-          const fechaSinSegundos =
-            typeof fecha === "string" ? fecha.slice(0, -3) : "";
-          return <div>{fechaSinSegundos}</div>;
+          const fechaFormateada = typeof fecha === "string" ? formatTo12Hour(fecha) : "";
+          return <div>{fechaFormateada}</div>;
         },
         enableSorting: true,
       },
@@ -241,9 +240,8 @@ const PasesEntradaTable: React.FC<ListProps> = ({
         header: "Vigencia del Pase",
         cell: ({ row }: { row: Row<any> }) => {
           const fecha = row.getValue("fecha_desde_hasta");
-          const fechaSinSegundos =
-            typeof fecha === "string" ? fecha.slice(0, -3) : "";
-          return <div>{fechaSinSegundos}</div>;
+          const fechaFormateada = typeof fecha === "string" ? formatTo12Hour(fecha) : "";
+          return <div>{fechaFormateada}</div>;
         },
         enableSorting: true,
       },

@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { useEffect, useState } from "react";
-import { Loader2, User, Shield, CalendarClock, Car, Wrench, Image as ImageIcon, Layers, MessageSquare, Copy } from "lucide-react";
+import { Loader2, User, Shield, CalendarClock, Car, Wrench, Image as ImageIcon, Layers, MessageSquare, Copy, Users } from "lucide-react";
 import { Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import CalendarDays from "../calendar-days";
@@ -72,11 +72,40 @@ interface ViewPassModalProps {
     grupo_vehiculos: Vehiculo_custom[];
     grupo_equipos: Equipo[];
     pdf_to_img: Imagen[];
+    acompanantes?: number;
+    acompanantes_grupo?: AcompananteRaw[];
+    habilitar_vehiculo?: string
   };
   isSuccess: boolean;
   children: React.ReactNode;
 }
 
+type AcompananteRaw = Record<string, string | any[]>;
+
+type AcompananteNormalizado = {
+  nombre?: string;
+  email?: string;
+  telefono?: string;
+  foto?: string;
+};
+
+function normalizarAcompanante(raw: AcompananteRaw): AcompananteNormalizado {
+  const result: AcompananteNormalizado = {};
+  for (const value of Object.values(raw)) {
+    if (Array.isArray(value)) {
+      const first = value[0];
+      if (first) {
+        const url = Array.isArray(first.file_url) ? first.file_url[0]?.file_url : first.file_url;
+        if (url) result.foto = url;
+      }
+    } else if (typeof value === "string" && value) {
+      if (value.includes("@")) result.email = value;
+      else if (/^\+?\d[\d\s-]{5,}$/.test(value)) result.telefono = value;
+      else if (!result.nombre) result.nombre = value;
+    }
+  }
+  return result;
+}
 
 function SectionCard({
   icon,
@@ -418,7 +447,38 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
               </div>
             </SectionCard>
           )}
-
+          {(data?.acompanantes_grupo?.length ?? 0) > 0 && (
+            <SectionCard icon={<Users size={15} />} label="Acompañantes">
+              <div className="space-y-2">
+                {data.acompanantes_grupo!.map((raw, index) => {
+                  const a = normalizarAcompanante(raw);
+                  return (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                      {a.foto ? (
+                        <Image
+                          src={a.foto}
+                          alt={a.nombre ?? "Acompañante"}
+                          width={40}
+                          height={40}
+                          className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                          <User size={16} className="text-gray-400" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">{a.nombre || "Sin nombre"}</p>
+                        <p className="text-[11px] text-gray-500 truncate">
+                          {[a.email, a.telefono].filter(Boolean).join(" · ") || "Sin datos de contacto"}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </SectionCard>
+          )}
           {data?.areas?.length > 0 && (
             <SectionCard icon={<Layers size={15} />} label="Áreas autorizadas">
               <div className="space-y-2">
@@ -488,8 +548,20 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
               </div>
             )}
           </SectionCard>
-
           <SectionCard icon={<Car size={15} />} label="Vehículos">
+            {typeof data?.habilitar_vehiculo === "boolean" && (
+              <div className="mb-3">
+                <span
+                  className={`inline-block px-3 py-0.5 rounded-full border text-xs font-semibold ${
+                    data.habilitar_vehiculo
+                      ? "bg-green-100 text-green-700 border-green-200"
+                      : "bg-gray-100 text-gray-500 border-gray-200"
+                  }`}
+                >
+                  {data.habilitar_vehiculo ? "Vehículo habilitado" : "Vehículo no habilitado"}
+                </span>
+              </div>
+            )}
             {data?.grupo_vehiculos?.length > 0 ? (
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="1" className="border-none">
