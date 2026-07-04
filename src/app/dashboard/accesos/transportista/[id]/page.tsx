@@ -27,10 +27,11 @@ import {
   Save,
   HelpCircle,
   Check,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGetVisitTransportista } from "@/hooks/useGetVisitTransportista";
-import { saveBitacoraTransportistaRecord, saveInspeccionesTransportista } from "@/services/endpoints";
+import { saveBitacoraTransportistaRecord, saveInspeccionesTransportista, ocrAccesoTransportista } from "@/services/endpoints";
 import { uploadImage } from "@/lib/get-upload-image";
 import { toast } from "sonner";
 
@@ -840,19 +841,25 @@ function InspeccionEntradaModal({
     onSet: (v: SiNoVal) => void,
     onComentario: (text: string) => void,
     ptKey: string,
+    locked: boolean = false,
   ) => {
     const uploadingFoto = uploadingSection === ptKey;
     return (
-      <div key={idx} className="border-b border-gray-50 last:border-0">
+      <div key={idx} className={cn("border-b border-gray-50 last:border-0", locked && "opacity-40")}>
         <div className="flex items-center gap-2 py-2.5">
           <span className="text-[11px] text-gray-400 w-5 text-right shrink-0">{idx + 1}.</span>
           <span className="text-xs text-gray-700 flex-1 leading-snug">{label}</span>
-          <HelpCircle className="w-3.5 h-3.5 text-gray-200 shrink-0" />
+          {locked
+            ? <Lock className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+            : <HelpCircle className="w-3.5 h-3.5 text-gray-200 shrink-0" />
+          }
           <button
             type="button"
             onClick={() => onSet("sí")}
+            disabled={locked}
             className={cn(
               "h-7 w-9 rounded-full text-[11px] font-bold transition-colors shrink-0",
+              locked && "cursor-not-allowed",
               punto.value === "sí" ? "bg-blue-600 text-white" : "border border-gray-200 text-gray-400 hover:border-blue-300"
             )}
           >
@@ -861,8 +868,10 @@ function InspeccionEntradaModal({
           <button
             type="button"
             onClick={() => onSet("no")}
+            disabled={locked}
             className={cn(
               "h-7 w-9 rounded-full text-[11px] font-bold transition-colors shrink-0",
+              locked && "cursor-not-allowed",
               punto.value === "no" ? "bg-red-500 text-white border-red-500" : "border border-gray-200 text-gray-400 hover:border-red-300"
             )}
           >
@@ -871,9 +880,10 @@ function InspeccionEntradaModal({
           <button
             type="button"
             onClick={() => triggerUpload(ptKey)}
-            disabled={uploadingFoto}
+            disabled={uploadingFoto || locked}
             className={cn(
               "relative w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition-colors",
+              locked && "cursor-not-allowed",
               punto.fotos.length > 0
                 ? "border-blue-400 bg-blue-50 text-blue-500"
                 : "border-gray-200 hover:border-blue-300 text-gray-300"
@@ -910,10 +920,11 @@ function InspeccionEntradaModal({
           <div className="pb-2.5 pl-6">
             <textarea
               rows={2}
+              disabled={locked}
               placeholder="Añadir comentario u observación…"
               value={punto.comentario}
               onChange={(e) => onComentario(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:outline-none focus:border-red-300 resize-none"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:outline-none focus:border-red-300 resize-none disabled:cursor-not-allowed"
             />
           </div>
         )}
@@ -965,7 +976,12 @@ function InspeccionEntradaModal({
             {renderEvidence("EVIDENCIA DEL VEHÍCULO · ENTRADA", "ev:tractor", tractorEvidencia)}
             <div>
               {PUNTOS_TRACTOR.map((label, i) =>
-                renderSiNoRow(label, i, tractorPuntos[i], (val) => setTractorPunto(i, val), (text) => setTractorComentario(i, text), `pt:tractor:${i}`)
+                renderSiNoRow(
+                  label, i, tractorPuntos[i],
+                  (val) => setTractorPunto(i, val), (text) => setTractorComentario(i, text),
+                  `pt:tractor:${i}`,
+                  i > 0 && tractorPuntos[i - 1].value === null,
+                )
               )}
             </div>
           </>
@@ -1019,7 +1035,12 @@ function InspeccionEntradaModal({
             {renderMeasures(sec, (field, val) => setRemolqueMeasure(unitIdx, field, val))}
             <div>
               {PUNTOS_REMOLQUE.map((label, i) =>
-                renderSiNoRow(label, i, sec.puntos[i], (val) => setUnitPunto(unitIdx, i, val), (text) => setUnitComentario(unitIdx, i, text), `pt:remolque:${unitIdx}:${i}`)
+                renderSiNoRow(
+                  label, i, sec.puntos[i],
+                  (val) => setUnitPunto(unitIdx, i, val), (text) => setUnitComentario(unitIdx, i, text),
+                  `pt:remolque:${unitIdx}:${i}`,
+                  i > 0 && sec.puntos[i - 1].value === null,
+                )
               )}
             </div>
           </>
@@ -1727,6 +1748,119 @@ export default function DetalleTransportistaPage() {
   const tipoFromField = (field: "foto_conductor" | "foto_licencia") =>
     field === "foto_conductor" ? "foto_conductor" : "identificacion";
 
+  const [uploadingNewDoc, setUploadingNewDoc] = useState(false);
+  const [analyzingDocs, setAnalyzingDocs] = useState(false);
+  const newDocInputRef = useRef<HTMLInputElement>(null);
+
+  // Documentos subidos en la pestaña "Pendientes" — solo se suben al storage
+  // (para obtener file_url y poder previsualizar/analizar), NO se guardan aún
+  // en la bitácora hasta que exista el flujo de documentos requeridos.
+  type StagedDoc = { id: string; file_url: string; file_name: string; uploading: boolean; preview: string | null; tipo?: string };
+  const [stagedDocs, setStagedDocs] = useState<StagedDoc[]>([]);
+  const stagingUpload = stagedDocs.some((d) => d.uploading);
+
+  const removeStagedDoc = (id: string) =>
+    setStagedDocs((p) => {
+      const doc = p.find((d) => d.id === id);
+      if (doc?.preview) URL.revokeObjectURL(doc.preview);
+      return p.filter((d) => d.id !== id);
+    });
+
+  const stageDocumento = async (file: File) => {
+    const id = Math.random().toString(36).slice(2);
+    setStagedDocs((p) => [...p, { id, file_url: "", file_name: file.name, uploading: true, preview: URL.createObjectURL(file) }]);
+    try {
+      const res = await uploadImage(file);
+      setStagedDocs((p) => p.map((d) => d.id === id ? { ...d, file_url: res?.file ?? "", file_name: res?.file_name ?? file.name, uploading: false } : d));
+    } catch {
+      setStagedDocs((p) => p.filter((d) => d.id !== id));
+      toast.error("Error al subir el documento");
+    }
+  };
+
+  const handleAddDocumento = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (!files.length) return;
+
+    // Pendientes: solo subir a storage, sin llamar al servicio de guardado
+    if (docTab === "pendientes") {
+      files.forEach(stageDocumento);
+      return;
+    }
+
+    // Subidos: sube y guarda de inmediato en la bitácora
+    setUploadingNewDoc(true);
+    try {
+      for (const file of files) {
+        const res = await uploadImage(file);
+        if (!res?.file) continue;
+        await saveBitacoraTransportistaRecord(id, "documentos", {
+          documentos_adicionales: { file_url: res.file, file_name: res.file_name, index: null },
+        });
+      }
+      refetch();
+      toast.success(files.length > 1 ? "Documentos agregados" : "Documento agregado");
+    } catch {
+      toast.error("Error al subir el documento");
+    } finally {
+      setUploadingNewDoc(false);
+    }
+  };
+
+  const handleAnalizarDocumentos = async () => {
+    // En "pendientes" se analizan los documentos recién subidos (aún no guardados);
+    // en "subidos" se analizan los ya persistidos en la bitácora.
+    const usingStaged = docTab === "pendientes";
+    const source = usingStaged
+      ? stagedDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name }))
+      : (data?.documentos_adicionales ?? []).filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name }));
+    if (!source.length) return;
+    setAnalyzingDocs(true);
+    try {
+      const result = await ocrAccesoTransportista(source);
+      const detectados = (result?.response?.data?.data?.documentos_detectados ?? []) as { url: string; tipo: string }[];
+      if (Array.isArray(detectados) && detectados.length) {
+        const byUrl = new Map(detectados.map((dd) => [dd.url, dd.tipo]));
+
+        if (usingStaged) {
+          // Solo actualiza el tipo localmente — sin llamar al servicio de guardado
+          setStagedDocs((p) => p.map((d) => byUrl.has(d.file_url) ? { ...d, tipo: byUrl.get(d.file_url) } : d));
+          toast.success("Documentos analizados");
+        } else {
+          const docs = data?.documentos_adicionales ?? [];
+          const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
+          queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
+            ["visitaTransportista", id],
+            (old) => old ? { ...old, documentos_adicionales: old.documentos_adicionales?.map((d) => byUrl.has(d.file_url) ? { ...d, tipo: byUrl.get(d.file_url) } : d) } : old
+          );
+          try {
+            await Promise.all(
+              docs.map((d, idx) =>
+                byUrl.has(d.file_url)
+                  ? saveBitacoraTransportistaRecord(id, "documentos", {
+                      documentos_adicionales: { file_url: d.file_url, file_name: d.file_name, tipo: byUrl.get(d.file_url), index: idx },
+                    })
+                  : null
+              )
+            );
+            refetch();
+            toast.success("Documentos analizados");
+          } catch {
+            queryClient.setQueryData(["visitaTransportista", id], previous);
+            toast.error("Error al guardar el análisis");
+          }
+        }
+      } else {
+        toast.success("Análisis completado, sin documentos por clasificar");
+      }
+    } catch {
+      toast.error("Error al analizar los documentos");
+    } finally {
+      setAnalyzingDocs(false);
+    }
+  };
+
   const saveFotoConductor = async (field: "foto_conductor" | "foto_licencia", file_url: string, file_name: string, index?: number) => {
     setFotoPicker(null);
     const tipo = tipoFromField(field);
@@ -2357,7 +2491,34 @@ export default function DetalleTransportistaPage() {
                 );
               })}
 
-              {docsVisible.length === 0 && (docTab !== "subidos" || !data?.documentos_adicionales?.length) && (
+              {docTab === "pendientes" && stagedDocs.length > 0 && (
+                <div className="flex flex-wrap gap-2 pb-1">
+                  {stagedDocs.map((doc) => (
+                    <div key={doc.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shrink-0">
+                      {doc.uploading ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      ) : doc.preview ? (
+                        <img src={doc.preview} className="w-full h-full object-cover" alt="" />
+                      ) : null}
+                      {doc.tipo && !doc.uploading && (
+                        <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] font-bold text-center py-0.5 truncate px-1">
+                          {doc.tipo.replace(/_/g, " ")}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeStagedDoc(doc.id)}
+                        className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {docsVisible.length === 0 && stagedDocs.length === 0 && (docTab !== "subidos" || !data?.documentos_adicionales?.length) && (
                 <div className="flex flex-col items-center justify-center py-8 text-gray-300">
                   <FileText className="w-8 h-8 mb-2" />
                   <p className="text-xs">
@@ -2367,10 +2528,54 @@ export default function DetalleTransportistaPage() {
                   </p>
                 </div>
               )}
-              <button className="w-full h-9 mt-1 rounded-xl border border-dashed border-gray-300 hover:border-blue-300 hover:bg-blue-50/40 text-xs font-medium text-gray-400 hover:text-blue-600 transition-all flex items-center justify-center gap-1.5">
-                <Camera className="w-3.5 h-3.5" />
-                Tomar foto a otro documento
+              <input ref={newDocInputRef} type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={handleAddDocumento} />
+              <button
+                type="button"
+                disabled={docTab === "pendientes" ? stagingUpload : uploadingNewDoc}
+                onClick={() => newDocInputRef.current?.click()}
+                className="w-full h-9 mt-1 rounded-xl border border-dashed border-gray-300 hover:border-blue-300 hover:bg-blue-50/40 text-xs font-medium text-gray-400 hover:text-blue-600 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
+                {(docTab === "pendientes" ? stagingUpload : uploadingNewDoc) ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                    Subiendo...
+                  </>
+                ) : (
+                  <>
+                    <Camera className="w-3.5 h-3.5" />
+                    Tomar foto a otro documento
+                  </>
+                )}
               </button>
+              {(() => {
+                const hasAnalyzable = docTab === "pendientes"
+                  ? stagedDocs.some((d) => d.file_url)
+                  : (data?.documentos_adicionales?.some((d) => d.file_url) ?? false);
+                const analyzeDisabled = analyzingDocs || !hasAnalyzable;
+                return (
+                  <button
+                    type="button"
+                    disabled={analyzeDisabled}
+                    onClick={handleAnalizarDocumentos}
+                    className={cn(
+                      "w-full h-9 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 border-2",
+                      analyzeDisabled
+                        ? "border-gray-200 bg-white text-gray-300 cursor-not-allowed"
+                        : "border-violet-300 bg-violet-50 text-violet-600 hover:bg-violet-100 hover:border-violet-400",
+                    )}>
+                    {analyzingDocs ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+                        Analizando documentos...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Analizar con IA
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
             </div>
           </div>
 
