@@ -87,24 +87,26 @@ type AcompananteNormalizado = {
   email?: string;
   telefono?: string;
   foto?: string;
+  estatus?:string;
 };
 
 function normalizarAcompanante(raw: AcompananteRaw): AcompananteNormalizado {
-  const result: AcompananteNormalizado = {};
-  for (const value of Object.values(raw)) {
-    if (Array.isArray(value)) {
-      const first = value[0];
-      if (first) {
-        const url = Array.isArray(first.file_url) ? first.file_url[0]?.file_url : first.file_url;
-        if (url) result.foto = url;
-      }
-    } else if (typeof value === "string" && value) {
-      if (value.includes("@")) result.email = value;
-      else if (/^\+?\d[\d\s-]{5,}$/.test(value)) result.telefono = value;
-      else if (!result.nombre) result.nombre = value;
-    }
+  const nombre = (raw.nombre_acompanante as string) || "";
+  const email = (raw.email_acompanante as string) || "";
+  const telefono = (raw.telefono_acompanante as string) || "";
+  const estatus = (raw.estatus as string) || "";
+
+  let foto: string | undefined;
+  const fotoRaw = raw.foto;
+  const idenRaw = raw.identificacion;
+
+  if (Array.isArray(fotoRaw) && fotoRaw.length > 0 && fotoRaw[0]?.file_url) {
+    foto = fotoRaw[0].file_url;
+  } else if (Array.isArray(idenRaw) && idenRaw.length > 0 && idenRaw[0]?.file_url) {
+    foto = idenRaw[0].file_url;
   }
-  return result;
+
+  return { nombre, email, telefono, foto, estatus };
 }
 
 function SectionCard({
@@ -448,7 +450,7 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
             </SectionCard>
           )}
           {(data?.acompanantes_grupo?.length ?? 0) > 0 && (
-            <SectionCard icon={<Users size={15} />} label="Acompañantes">
+            <SectionCard icon={<Users size={15} />} label={`Acompañantes (${data.acompanantes_grupo!.length})`}>
               <div className="space-y-2">
                 {data.acompanantes_grupo!.map((raw, index) => {
                   const a = normalizarAcompanante(raw);
@@ -467,12 +469,15 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
                           <User size={16} className="text-gray-400" />
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
+                     <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
                         <p className="text-sm font-semibold text-gray-800 truncate">{a.nombre || "Sin nombre"}</p>
-                        <p className="text-[11px] text-gray-500 truncate">
-                          {[a.email, a.telefono].filter(Boolean).join(" · ") || "Sin datos de contacto"}
-                        </p>
+                        {a.estatus && <StatusBadge status={a.estatus} />}
                       </div>
+                      <p className="text-[11px] text-gray-500 truncate">
+                        {[a.email, a.telefono].filter(Boolean).join(" · ") || "Sin datos de contacto"}
+                      </p>
+                    </div>
                     </div>
                   );
                 })}
@@ -481,17 +486,26 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
           )}
           {data?.areas?.length > 0 && (
             <SectionCard icon={<Layers size={15} />} label="Áreas autorizadas">
-              <div className="space-y-2">
-                {data.areas.map((area: Areas, index: number) => (
-                  <div key={index} className="p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-1">
-                    <p className="text-xs font-bold text-gray-800">{area.nombre_area}</p>
-                    {(area as any).incidente_area && (
-                      <p className="text-[11px] text-blue-600 font-medium">{(area as any).incidente_area}</p>
-                    )}
-                    <p className="text-[11px] text-gray-500 italic">{area.commentario_area || "Sin comentarios"}</p>
-                  </div>
-                ))}
-              </div>
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="1" className="border-none">
+                  <AccordionTrigger className="text-sm font-semibold text-gray-700 py-1 hover:no-underline">
+                    {data.areas.length} área{data.areas.length !== 1 ? "s" : ""} autorizada{data.areas.length !== 1 ? "s" : ""}
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-2 pt-1">
+                      {data.areas.map((area: Areas, index: number) => (
+                        <div key={index} className="p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-1">
+                          <p className="text-xs font-bold text-gray-800">{area.nombre_area}</p>
+                          {(area as any).incidente_area && (
+                            <p className="text-[11px] text-blue-600 font-medium">{(area as any).incidente_area}</p>
+                          )}
+                          <p className="text-[11px] text-gray-500 italic">{area.commentario_area || "Sin comentarios"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </SectionCard>
           )}
 

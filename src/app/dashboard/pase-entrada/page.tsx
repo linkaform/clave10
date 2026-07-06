@@ -573,6 +573,28 @@ const PaseEntradaPage = () => {
   };
   const acompanantesValue = useWatch({ control: form.control, name: "acompanantes" });
 
+  useEffect(() => {
+      const target = acompanantesValue || 0;
+
+      setMiembrosAcompanantes((prev) => {
+        if (target === prev.length) return prev;
+
+        if (target > prev.length) {
+          const nuevasFilas: Miembro[] = Array.from(
+            { length: target - prev.length },
+            () => ({
+              id: crypto.randomUUID(),
+              nombre: "",
+              email: "",
+              telefono: "",
+            }),
+          );
+          return [...prev, ...nuevasFilas];
+        }
+        return prev.slice(0, target);
+      });
+  }, [acompanantesValue]);
+
   const handleToggleTipoVisitaPase = (tipo: string) => {
     if (tipo == "fecha_fija") {
       form.setValue("fecha_desde_hasta", "");

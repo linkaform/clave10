@@ -79,7 +79,6 @@ const PasesEntradaTable: React.FC<ListProps> = ({
           })
       : [];
 
-    console.log("visitaALimpia", visitaALimpia);
     const ubicacionLimpia = Array.isArray(pase.ubicacion)
       ? pase.ubicacion.filter(Boolean)
       : [];
