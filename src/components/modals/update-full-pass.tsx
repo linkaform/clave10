@@ -270,7 +270,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 		estatus: a.estatus ?? "",
 		foto: normalizeImageField(a.foto),
 		identificacion: normalizeImageField(a.identificacion),
-		link: a.url_hijo ?? "",
+		link: a.link ?? "",
 	});
 
 	if (dataPass?.acompanantes_grupo?.length) {
