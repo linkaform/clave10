@@ -1498,6 +1498,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                           comentarios: r.comentarios || null,
                         })),
                       materiales: [],
+                      inspecciones: [],
                     };
                     queryClient.setQueryData(
                       ["visitaTransportista", result.id],

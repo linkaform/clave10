@@ -28,8 +28,9 @@ import {
   HelpCircle,
   Check,
   Sparkles,
+  ArrowLeftRight,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, capitalizeOnlyFirstLetter } from "@/lib/utils";
 import { useGetVisitTransportista } from "@/hooks/useGetVisitTransportista";
 import { saveBitacoraTransportistaRecord, saveInspeccionesTransportista, ocrAccesoTransportista } from "@/services/endpoints";
 import { uploadImage } from "@/lib/get-upload-image";
@@ -59,17 +60,6 @@ function formatTimestamp(ts: string | number): string {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} · ${h}:${m}:${s} hrs`;
 }
 
-type DocType = "pdf" | "img" | "xls";
-
-const DOC_TYPE_META: Record<
-  DocType,
-  { ext: string; bg: string; color: string }
-> = {
-  pdf: { ext: "PDF", bg: "#DC2626", color: "#fff" },
-  xls: { ext: "XLS", bg: "#16A34A", color: "#fff" },
-  img: { ext: "IMG", bg: "rgba(47,128,237,.12)", color: "#2F80ED" },
-};
-
 function Field({
   label,
   value,
@@ -93,7 +83,7 @@ function Field({
           !value && "text-gray-300 italic",
         )}>
         {Icon && <Icon className="w-3 h-3 text-gray-400 shrink-0" />}
-        {value ?? "Sin información"}
+        {value || "Sin información"}
       </p>
     </div>
   );
@@ -155,15 +145,6 @@ const emptyRemolqueData = (): RemolqueData => ({
 
 const emptyContenedorData = (): ContenedorData => ({
   tipo: "", noSello: "", noContenedor: "", noCaja: "", color: "", comentarios: "", materiales: [emptyMaterial()],
-});
-
-const emptyUnidad = (): UnidadItem => ({
-  id: Math.random().toString(36).slice(2),
-  config: "solo_remolque",
-  remolqueApiIndex: null,
-  contenedorApiIndex: null,
-  remolque: emptyRemolqueData(),
-  contenedor: emptyContenedorData(),
 });
 
 // ─── Agregar Unidad Modal ─────────────────────────────────────────────────────
@@ -1363,6 +1344,33 @@ function Skeleton({ className }: { className?: string }) {
   );
 }
 
+// ─── Documentos requeridos ──────────────────────────────────────────────────
+// El servicio de guardado normaliza el `tipo` (minúsculas, espacios → guion
+// bajo) antes de persistirlo, ej. "Foto de placa de vehículo" vuelve como
+// "foto_de_placa_de_vehículo". El cruce contra lo ya subido se hace comparando
+// ambos lados normalizados con `tipoSlug`.
+const tipoSlug = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "_");
+
+// Una identificación válida puede ser INE, pasaporte, gafete o licencia de
+// conducir — es un único requisito, no dos. Tanto el botón "Identificación"
+// de la tarjeta del conductor como este renglón de pendientes comparten el
+// mismo tipo (vía tipoSlug) para no duplicar el documento con dos etiquetas.
+const IDENTIFICACION_CHOFER_LABEL = "Identificación del chofer";
+
+const DOCUMENTOS_REQUERIDOS_DESCRIPCION: Record<string, string> = {
+  [IDENTIFICACION_CHOFER_LABEL]: "INE, pasaporte, licencia de conducir o gafete de empresa",
+};
+
+const documentosRequeridosNombres = [
+  IDENTIFICACION_CHOFER_LABEL,
+  "Tarjeta de circulación - Vehículo",
+  "Carta porte",
+  "Factura / Orden de compra",
+  "Foto de placa de vehículo",
+  "Evidencia de carga",
+  "Conocimiento del embarque (BL)",
+];
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DetalleTransportistaPage() {
@@ -1681,7 +1689,11 @@ export default function DetalleTransportistaPage() {
   const toggleUnit = (id: string) =>
     setExpandedUnits((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
 
@@ -1746,15 +1758,72 @@ export default function DetalleTransportistaPage() {
   };
 
   const tipoFromField = (field: "foto_conductor" | "foto_licencia") =>
-    field === "foto_conductor" ? "foto_conductor" : "identificacion";
+    field === "foto_conductor" ? "foto_conductor" : tipoSlug(IDENTIFICACION_CHOFER_LABEL);
+
+  // Subida de un documento requerido específico — se guarda de inmediato
+  // enviando el nombre del documento como `tipo` al servicio de guardado.
+  const [uploadingReqDoc, setUploadingReqDoc] = useState<string | null>(null);
+  const reqDocInputRef = useRef<HTMLInputElement>(null);
+  const reqDocTargetRef = useRef<string | null>(null);
+
+  const triggerReqDocUpload = (nombre: string) => {
+    reqDocTargetRef.current = nombre;
+    reqDocInputRef.current?.click();
+  };
+
+  const handleReqDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const nombre = reqDocTargetRef.current;
+    e.target.value = "";
+    reqDocTargetRef.current = null;
+    if (!file || !nombre) return;
+    setUploadingReqDoc(nombre);
+    try {
+      const res = await uploadImage(file);
+      if (!res?.file) throw new Error("upload failed");
+      await saveBitacoraTransportistaRecord(id, "documentos", {
+        documentos_adicionales: { file_url: res.file, file_name: res.file_name ?? file.name, tipo: tipoSlug(nombre), index: null },
+      });
+      refetch();
+      toast.success("Documento guardado");
+    } catch {
+      toast.error("Error al subir el documento");
+    } finally {
+      setUploadingReqDoc(null);
+    }
+  };
+
+  // Picker para encajar un documento pendiente con algo ya subido — misma
+  // idea que el selector de foto de conductor/identificación.
+  const [docAssignPicker, setDocAssignPicker] = useState<string | null>(null);
+
+  const assignExistingDocToPendiente = async (nombre: string, fileUrl: string, fileName: string, index: number) => {
+    setDocAssignPicker(null);
+    const slug = tipoSlug(nombre);
+    const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
+    queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
+      ["visitaTransportista", id],
+      (old) => old ? { ...old, documentos_adicionales: old.documentos_adicionales?.map((d, i) => i === index ? { ...d, tipo: slug } : d) } : old
+    );
+    try {
+      await saveBitacoraTransportistaRecord(id, "documentos", {
+        documentos_adicionales: { file_url: fileUrl, file_name: fileName, tipo: slug, index },
+      });
+      refetch();
+      toast.success("Documento asignado");
+    } catch {
+      queryClient.setQueryData(["visitaTransportista", id], previous);
+      toast.error("Error al asignar el documento");
+    }
+  };
 
   const [uploadingNewDoc, setUploadingNewDoc] = useState(false);
   const [analyzingDocs, setAnalyzingDocs] = useState(false);
   const newDocInputRef = useRef<HTMLInputElement>(null);
 
-  // Documentos subidos en la pestaña "Pendientes" — solo se suben al storage
-  // (para obtener file_url y poder previsualizar/analizar), NO se guardan aún
-  // en la bitácora hasta que exista el flujo de documentos requeridos.
+  // Documentos fuera de la lista de requeridos, subidos desde "Pendientes" —
+  // solo se suben al storage (para previsualizar/analizar), no se guardan en
+  // la bitácora hasta clasificarlos con IA (pendiente de actualizar ese servicio).
   type StagedDoc = { id: string; file_url: string; file_name: string; uploading: boolean; preview: string | null; tipo?: string };
   const [stagedDocs, setStagedDocs] = useState<StagedDoc[]>([]);
   const stagingUpload = stagedDocs.some((d) => d.uploading);
@@ -1775,6 +1844,27 @@ export default function DetalleTransportistaPage() {
     } catch {
       setStagedDocs((p) => p.filter((d) => d.id !== id));
       toast.error("Error al subir el documento");
+    }
+  };
+
+  // Encajar manualmente un documento ya subido (staged) en un documento
+  // pendiente — para cuando la IA no lo clasificó o lo clasificó mal.
+  const [assigningStagedId, setAssigningStagedId] = useState<string | null>(null);
+  const assignStagedDoc = async (stagedId: string, nombre: string) => {
+    const doc = stagedDocs.find((d) => d.id === stagedId);
+    if (!doc || !doc.file_url || doc.uploading) return;
+    setAssigningStagedId(stagedId);
+    try {
+      await saveBitacoraTransportistaRecord(id, "documentos", {
+        documentos_adicionales: { file_url: doc.file_url, file_name: doc.file_name, tipo: tipoSlug(nombre), index: null },
+      });
+      removeStagedDoc(stagedId);
+      refetch();
+      toast.success("Documento asignado");
+    } catch {
+      toast.error("Error al asignar el documento");
+    } finally {
+      setAssigningStagedId(null);
     }
   };
 
@@ -1943,16 +2033,13 @@ export default function DetalleTransportistaPage() {
     sello: { completados: 0, total: 4 },
   };
 
-  const documentos: {
-    id: number;
-    nombre: string;
-    type: string;
-    status: string;
-    sub: string;
-  }[] = [];
-  const docsPendientes = documentos.filter((x) => x.status !== "validado");
-  const docsCargados = documentos.filter((x) => x.status === "validado");
-  const docsVisible = docTab === "pendientes" ? docsPendientes : docsCargados;
+  const tiposSubidos = new Set(
+    (data?.documentos_adicionales ?? [])
+      .map((d) => d.tipo)
+      .filter((t): t is string => !!t)
+      .map(tipoSlug),
+  );
+  const docsPendientesReq = documentosRequeridosNombres.filter((nombre) => !tiposSubidos.has(tipoSlug(nombre)));
 
   const tipo_accion = data?.tipo_operacion?.toLowerCase().includes("entrega")
     ? "ENTRADA"
@@ -2136,7 +2223,7 @@ export default function DetalleTransportistaPage() {
               {/* Foto licencia */}
               {(() => {
                 const url = data?.conductor?.foto_licencia?.file_url
-                  ?? data?.documentos_adicionales?.find((d) => d.tipo === "licencia_conducir")?.file_url;
+                  ?? data?.documentos_adicionales?.find((d) => d.tipo === tipoSlug(IDENTIFICACION_CHOFER_LABEL))?.file_url;
                 return (
                   <button type="button" onClick={() => setFotoPicker("foto_licencia")}
                     className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5 relative group hover:border-blue-300 transition-colors">
@@ -2261,7 +2348,7 @@ export default function DetalleTransportistaPage() {
                   label="Empresa Transportista"
                   value={data?.vehiculo?.transportista}
                 />
-                <Field label="Tipo de Operación" value={data?.tipo_operacion} />
+                <Field label="Tipo de Operación" value={capitalizeOnlyFirstLetter(data?.tipo_operacion)} />
                 <Field
                   label="No. de Licencia"
                   value={data?.conductor?.no_licencia}
@@ -2291,7 +2378,6 @@ export default function DetalleTransportistaPage() {
                 <Field label="Proveedor / Cliente" value={data?.embarque?.proveedor_cliente} />
                 <Field label="Orden de Compra" value={data?.embarque?.no_orden_compra} mono />
                 <Field label="Procedencia" value={data?.vehiculo?.procedencia} />
-                <Field label="Material de Carga / Carga" value={data?.vehiculo?.material} />
               </>
             )}
           </div>
@@ -2339,7 +2425,7 @@ export default function DetalleTransportistaPage() {
                         ? "bg-red-100 text-red-600"
                         : "bg-gray-200 text-gray-400",
                     )}>
-                    {docsPendientes.length}
+                    {docsPendientesReq.length}
                   </span>
                 </button>
                 <button
@@ -2358,49 +2444,135 @@ export default function DetalleTransportistaPage() {
                         ? "bg-emerald-100 text-emerald-600"
                         : "bg-gray-200 text-gray-400",
                     )}>
-                    {docsCargados.length + (data?.documentos_adicionales?.length ?? 0)}
+                    {data?.documentos_adicionales?.length ?? 0}
                   </span>
                 </button>
               </div>
             </div>
             <div className="p-4 space-y-2">
-              {docsVisible.map((doc) => {
-                const meta =
-                  DOC_TYPE_META[doc.type as DocType] ?? DOC_TYPE_META.pdf;
-                const isPendiente = doc.status !== "validado";
+              {docTab === "pendientes" && docsPendientesReq.map((nombre) => {
+                const isUploading = uploadingReqDoc === nombre;
                 return (
                   <div
-                    key={doc.id}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 border cursor-pointer transition-colors",
-                      isPendiente
-                        ? "border-red-100 bg-red-50/30 hover:bg-red-50/60"
-                        : "border-gray-100 bg-white hover:bg-gray-50",
-                    )}>
-                    <div
-                      className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-[10px] font-extrabold"
-                      style={{ background: meta.bg, color: meta.color }}>
-                      {meta.ext}
+                    key={nombre}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-red-100 bg-red-50/30 hover:bg-red-50/60 transition-colors">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-red-100 text-red-500">
+                      <FileText className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-800 truncate">{doc.nombre}</p>
-                      <p className={cn("text-[11px] truncate mt-0.5", isPendiente ? "text-red-500" : "text-emerald-600")}>
-                        {doc.sub}
+                      <p className="text-xs font-semibold text-gray-800 truncate">{nombre}</p>
+                      <p className="text-[11px] truncate mt-0.5 text-red-500">
+                        {DOCUMENTOS_REQUERIDOS_DESCRIPCION[nombre] ?? "Pendiente de subir"}
                       </p>
                     </div>
-                    {isPendiente ? (
-                      <button className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors">
-                        <Camera className="w-3.5 h-3.5 text-white" />
-                      </button>
-                    ) : (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    )}
+                    <button
+                      type="button"
+                      disabled={isUploading}
+                      onClick={() => triggerReqDocUpload(nombre)}
+                      title="Tomar / subir nueva foto"
+                      className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors disabled:opacity-60">
+                      {isUploading
+                        ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        : <Camera className="w-3.5 h-3.5 text-white" />}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isUploading}
+                      onClick={() => setDocAssignPicker(nombre)}
+                      title="Asignar documento ya subido"
+                      className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 flex items-center justify-center shrink-0 transition-colors disabled:opacity-60">
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-gray-500" />
+                    </button>
                   </div>
                 );
               })}
+              <input ref={reqDocInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleReqDocUpload} />
+
+              {/* Picker para encajar un documento pendiente — subir nuevo o elegir uno ya subido */}
+              {docAssignPicker && typeof document !== "undefined" && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setDocAssignPicker(null)}>
+                  <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
+                      <p className="text-sm font-bold text-gray-800">{docAssignPicker}</p>
+                      <button type="button" onClick={() => setDocAssignPicker(null)} className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Opción: recién subidos (aún sin guardar) */}
+                    {stagedDocs.filter((d) => d.file_url && !d.uploading).length > 0 && (
+                      <div className="px-4 py-2 border-b border-gray-50">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Recién subidos</p>
+                        <div className="space-y-1.5">
+                          {stagedDocs.filter((d) => d.file_url && !d.uploading).map((doc) => (
+                            <button key={doc.id} type="button"
+                              disabled={assigningStagedId === doc.id}
+                              onClick={() => { const nombre = docAssignPicker; setDocAssignPicker(null); assignStagedDoc(doc.id, nombre); }}
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-blue-50 transition-colors text-left disabled:opacity-50">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
+                                {doc.preview && <img src={doc.preview} alt="" className="w-full h-full object-cover" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-semibold text-gray-700 truncate">{doc.file_name}</p>
+                                {doc.tipo && <p className="text-[10px] text-violet-500 truncate">Sugerido por IA: {doc.tipo}</p>}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Opción: seleccionar de documentos existentes */}
+                    {(() => {
+                      const docs = data?.documentos_adicionales ?? [];
+                      if (docs.length === 0) return null;
+                      return (
+                        <div className="px-4 py-2">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Del registro</p>
+                          <div className="space-y-1.5">
+                            {docs.map((doc, docIdx) => (
+                              <button key={doc.file_url} type="button"
+                                onClick={() => assignExistingDocToPendiente(docAssignPicker, doc.file_url, doc.file_name ?? "", docIdx)}
+                                className="w-full flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-blue-50 transition-colors text-left">
+                                <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
+                                  <img src={doc.file_url} alt="" className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] font-semibold text-gray-700 truncate">
+                                    {doc.tipo ? doc.tipo.replace(/_/g, " ") : doc.file_name}
+                                  </p>
+                                  <p className="text-[10px] text-gray-400 truncate">{doc.file_name}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {stagedDocs.filter((d) => d.file_url && !d.uploading).length === 0
+                      && (data?.documentos_adicionales?.length ?? 0) === 0 && (
+                      <p className="px-4 py-6 text-center text-xs text-gray-400">
+                        Aún no hay documentos subidos para asignar.
+                      </p>
+                    )}
+
+                    <div className="px-4 pb-4 pt-2">
+                      <button type="button" onClick={() => setDocAssignPicker(null)}
+                        className="w-full py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>,
+                document.body
+              )}
 
               {/* Input oculto para reemplazar archivo al editar */}
               <input ref={editDocInputRef} type="file" className="hidden" onChange={handleEditDocUpload} />
+              <datalist id="documentos-requeridos-list">
+                {documentosRequeridosNombres.map((nombre) => <option key={nombre} value={nombre} />)}
+              </datalist>
 
               {/* Documentos subidos desde el acceso (documentos_adicionales) */}
               {docTab === "subidos" && data?.documentos_adicionales?.map((doc, docIdx) => {
@@ -2435,9 +2607,10 @@ export default function DetalleTransportistaPage() {
                           Reemplazar
                         </button>
                       </div>
-                      {/* Input tipo */}
+                      {/* Input tipo — sugiere los documentos requeridos, permite texto libre */}
                       <input
                         type="text"
+                        list="documentos-requeridos-list"
                         value={draft.tipo}
                         onChange={(e) => setEditingDocDraft((p) => p ? { ...p, tipo: e.target.value } : p)}
                         placeholder="Tipo de documento (ej. identificacion, foto_conductor…)"
@@ -2518,7 +2691,7 @@ export default function DetalleTransportistaPage() {
                 </div>
               )}
 
-              {docsVisible.length === 0 && stagedDocs.length === 0 && (docTab !== "subidos" || !data?.documentos_adicionales?.length) && (
+              {stagedDocs.length === 0 && (docTab === "pendientes" ? docsPendientesReq.length === 0 : !data?.documentos_adicionales?.length) && (
                 <div className="flex flex-col items-center justify-center py-8 text-gray-300">
                   <FileText className="w-8 h-8 mb-2" />
                   <p className="text-xs">
@@ -2679,6 +2852,12 @@ export default function DetalleTransportistaPage() {
               <span className="text-[11px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
                 {unidades.length}
               </span>
+              {savingUnidades && (
+                <span className="text-[11px] font-semibold text-blue-500 flex items-center gap-1.5 ml-auto">
+                  <span className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                  Guardando…
+                </span>
+              )}
             </div>
             <div className="p-4 space-y-5">
               {/* Datos del vehículo */}
@@ -2781,16 +2960,16 @@ export default function DetalleTransportistaPage() {
                           </span>
                         </button>
                         <div className="flex items-center gap-2 shrink-0">
-                          <button type="button" onClick={() => setEditingUnit(u)}
-                            className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                          <button type="button" disabled={savingUnidades} onClick={() => setEditingUnit(u)}
+                            className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <Pencil className="w-3 h-3" />
                           </button>
-                          <button type="button" onClick={() => {
+                          <button type="button" disabled={savingUnidades} onClick={() => {
                             const next = unidades.filter((x) => x.id !== u.id);
                             setUnidades(next);
                             persistUnidades(next, deletionsFromUnit(u));
                           }}
-                            className="w-6 h-6 rounded-md hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors">
+                            className="w-6 h-6 rounded-md hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <Trash2 className="w-3 h-3" />
                           </button>
                           <button type="button" onClick={() => toggleUnit(u.id)} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -2884,8 +3063,8 @@ export default function DetalleTransportistaPage() {
                     </div>
                     );
                   })}
-                  <button type="button" onClick={() => setShowAgregarUnidad(true)}
-                    className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
+                  <button type="button" disabled={savingUnidades} onClick={() => setShowAgregarUnidad(true)}
+                    className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <Plus className="w-4 h-4" /> Agregar remolque
                   </button>
                 </div>
