@@ -67,7 +67,6 @@ const ListaPasesContent = () => {
   });
   const { records, actual_page, records_on_page, total_pages, total_records } =
     data || {};
-
   const handlePageChange = (newSkip: number, newLimit: number) => {
     setSkip(newSkip);
     setLimit(newLimit);

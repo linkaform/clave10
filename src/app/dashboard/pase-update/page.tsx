@@ -16,8 +16,8 @@ import { toast } from "sonner";
 import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
-import LoadImage from "@/components/upload-Image";
-import { Car, Laptop, Loader2, X } from "lucide-react";
+import LoadImage, { Imagen } from "@/components/upload-Image";
+import { Car, Check, Clock, Laptop, Loader2, Share2, X } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import Image from "next/image";
@@ -171,7 +171,23 @@ const PaseUpdate = () => {
   const [ocrIdenResult, setOcrIdenResult] = useState<any>(null);
   const { grupoRequisitos } = useMenuStore();
   const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
+  const [copiedPadre, setCopiedPadre] = useState(false);
 
+  const handleCopyPadre = async () => {
+    const url = dataCatalogos?.pass_selected?.link_padre;
+    if (!url) {
+      toast.error("No hay link de pase padre disponible");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedPadre(true);
+      toast.success("Link copiado");
+      setTimeout(() => setCopiedPadre(false), 1500);
+    } catch {
+      toast.error("No se pudo copiar el link");
+    }
+  };
 
   useEffect(() => {
     if (!dataCatalogos?.pass_selected?.ubicacion?.length || !grupoRequisitos?.length) return;
@@ -263,6 +279,40 @@ const PaseUpdate = () => {
       toast.success("¡Pase descargado correctamente!");
     } catch (error) {
       toast.error("Error al descargar la imagen: " + error);
+    }
+  };
+
+  const handleDescargarAcompanante = async (m: Miembro) => {
+    const record_id = m.id; // viene de a.qr_code en el mapeo de acompanantes_grupo
+    if (!record_id) {
+      toast.error("No hay pase disponible para este acompañante", {
+        style: { background: "#dc2626", color: "#fff", border: "none" },
+      });
+      return;
+    }
+    try {
+      // setLoadingImgAcompananteId(m.id);
+      toast.loading("Obteniendo pase del acompañante...", {
+        style: { background: "#fff", color: "#000", border: "1px solid #e5e7eb" },
+      });
+      const data = await getImgPassUrl(account_id, record_id);
+      const url = data?.response?.data || "";
+      if (url) {
+        await onDescargarPNG(url);
+      } else {
+        toast.error("No hay pase disponible", {
+          style: { background: "#dc2626", color: "#fff", border: "none" },
+        });
+      }
+      toast.dismiss();
+    } catch (error) {
+      console.log(error);
+      toast.error("Error al obtener el pase del acompañante", {
+        style: { background: "#dc2626", color: "#fff", border: "none" },
+      });
+      toast.dismiss();
+    } finally {
+      // setLoadingImgAcompananteId(null);
     }
   };
 
@@ -394,90 +444,14 @@ const PaseUpdate = () => {
     }
   };
 
-
-
-  useEffect(() => {
-    if (dataCatalogos?.pass_selected) {
-      const acompanantes = dataCatalogos.pass_selected.acompanantes?? 0;
-      // Genera filas vacías según el número de acompañantes
-      const rows = Array.from({ length: acompanantes }, () => ({
-        id: crypto.randomUUID(),
-        nombre: "",
-        email: "",
-        telefono: "",
-      }));
-      setMiembrosAcompanantes(rows);
+  const normalizeImageField = (value: unknown): Imagen[] | undefined => {
+    if (!value) return undefined;
+    if (Array.isArray(value)) return value.length > 0 ? value : undefined;
+    if (typeof value === "string" && value.trim() !== "") {
+      return [{ file_url: value, file_name: "foto" }];
     }
-  }, [dataCatalogos]);
-  // const handleClickAppleButton = async () => {
-  // 	const record_id = dataCatalogos?.pass_selected?._id;
-  // 	const userJwt = localStorage.getItem("access_token");
-
-  // 	toast.info("En mantenimiento...", {
-  // 		style: {
-  // 			background: "#000",
-  // 			color: "#fff",
-  // 			border: 'none'
-  // 		},
-  // 	});
-  // 	toast.dismiss();
-  // 	return;
-
-  // 	toast.loading("Obteniendo tu pase...", {
-  // 		style: {
-  // 			background: "#000",
-  // 			color: "#fff",
-  // 			border: 'none'
-  // 		},
-  // 	});
-
-  // 	try {
-  // 		const response = await fetch(API_ENDPOINTS.runScript, {
-  // 			method: 'POST',
-  // 			body: JSON.stringify({
-  // 				script_name: 'create_pass_apple_wallet.py',
-  // 				record_id
-  // 			}),
-  // 			headers: {
-  // 				'Content-Type': 'application/json',
-  // 				'Authorization': 'Bearer ' + userJwt
-  // 			},
-  // 		});
-  // 		const data = await response.json();
-  // 		const file_url = data?.response?.file_url;
-
-  // 		toast.dismiss();
-  // 		toast.success("Pase obtenido correctamente.", {
-  // 			style: {
-  // 				background: "#000",
-  // 				color: "#fff",
-  // 				border: 'none'
-  // 			},
-  // 		});
-
-  // 		const fileResponse = await fetch(file_url);
-  // 		const blob = await fileResponse.blob();
-  // 		const pkpassBlob = new Blob([blob], { type: 'application/vnd.apple.pkpass' });
-  // 		const url = window.URL.createObjectURL(pkpassBlob);
-
-  // 		const a = document.createElement('a');
-  // 		a.href = url;
-  // 		a.download = 'pass.pkpass';
-  // 		document.body.appendChild(a);
-  // 		a.click();
-  // 		a.remove();
-  // 		window.URL.revokeObjectURL(url);
-  // 	} catch (error) {
-  // 		toast.dismiss();
-  // 		toast.error(`${error}` || "Hubo un error al obtener su pase.", {
-  // 			style: {
-  // 				background: "#000",
-  // 				color: "#fff",
-  // 				border: 'none'
-  // 			},
-  // 		});
-  // 	}
-  // }
+    return undefined;
+  };
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     const formattedData = {
@@ -494,7 +468,8 @@ const PaseUpdate = () => {
       telefono: dataCatalogos?.pass_selected?.telefono || "",
       acepto_aviso_privacidad: data.acepto_aviso_privacidad,
       conservar_datos_por: radioSelected,
-      acompanantes: miembrosAcompanantes.map((m) => ({
+      acompanantes:dataCatalogos?.pass_selected?.acompanantes,
+      acompanantes_grupo: miembrosAcompanantes.map((m) => ({
         nombre: m.nombre,
         email: m.email,
         telefono: m.telefono,
@@ -552,6 +527,26 @@ const PaseUpdate = () => {
       setEnableInfo(false);
     }
   }, [id, account_id, enableInfo]);
+
+  useEffect(() => {
+    if (dataCatalogos?.pass_selected) {
+      const grupo = dataCatalogos?.pass_selected?.acompanantes_grupo ?? [];
+
+      const rows: Miembro[] = grupo.map((a) => ({
+        id: a.qr_code || crypto.randomUUID(),
+        nombre: a.nombre_acompanante ?? "",
+        email: a.email_acompanante ?? "",
+        telefono: a.telefono_acompanante ?? "",
+        estatus: a.estatus ?? "",
+        foto: normalizeImageField(a.foto),
+        identificacion: normalizeImageField(a.identificacion),
+        link: a.link ?? "",
+        url_hijo: a.url_hijo ?? "",
+      }));
+
+      setMiembrosAcompanantes(rows);
+    }
+  }, [dataCatalogos]);
 
   useEffect(() => {
     if (isActualizarOpen && dataCatalogos?.pass_selected?.grupo_equipos) {
@@ -851,6 +846,57 @@ const PaseUpdate = () => {
               />
             )}
           </div>
+        {dataCatalogos?.pass_selected?.link_padre && (
+          <div className={`relative overflow-hidden rounded-2xl border px-4 py-3.5 ${
+            dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo"
+              ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200"
+              : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="font-bold text-slate-800 text-sm">Pase padre</p>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white ${
+                    dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo"
+                      ? "bg-green-600"
+                      : "bg-blue-600"
+                  }`}>
+                    {dataCatalogos.pass_selected.estatus_pase_padre || "—"}
+                  </span>
+                </div>
+
+                {dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? (
+                  <p className="text-green-700 text-xs font-medium">
+                    El pase padre ya está activo. Comparte el link para que lo puedan ver.
+                  </p>
+                ) : (
+                  <p className="text-blue-700 text-xs font-medium">
+                    El pase padre aún está en proceso — el link estará disponible cuando se active.
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="button"
+                title={dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? "Compartir link" : "Pase en proceso"}
+                className={`shrink-0 flex items-center gap-1.5 px-3 h-9 rounded-xl text-white text-xs font-semibold shadow-sm transition-all ${
+                  dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo"
+                    ? "bg-green-600 hover:bg-green-700 hover:scale-105 active:scale-95 cursor-pointer"
+                    : "bg-blue-300 cursor-not-allowed"
+                }`}
+                onClick={dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? handleCopyPadre : undefined}
+                disabled={dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() !== "activo"}
+              >
+                {dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? (
+                  copiedPadre ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />
+                ) : (
+                  <Clock className="w-4 h-4" />
+                )}
+                <span>Compartir link</span>
+              </button>
+            </div>
+          </div>
+        )}
           {dataCatalogos && dataCatalogos.pass_selected && (dataCatalogos.pass_selected?.acompanantes ?? 0) > 0 &&
             <MiembrosPase
               miembros={miembrosAcompanantes}
@@ -862,7 +908,7 @@ const PaseUpdate = () => {
               // showDownload
               // showShare
               // onCreatePass={(m) => console.log("crear pase", m)}
-              // onDownload={(m) => console.log("descargar", m)}
+              onDownload={(m) => handleDescargarAcompanante(m)}
               // onShare={(m) => console.log("compartir", m)} 
               defaultCountry={defaultCountry}
               viewMode
@@ -1222,6 +1268,8 @@ const PaseUpdate = () => {
                   )}
                 </div>
 
+               
+
                 <div className="flex flex-row gap-3 items-center">
                   <button type="button" onClick={handleClickGoogleButton}>
                     <Image
@@ -1232,10 +1280,7 @@ const PaseUpdate = () => {
                     />
                   </button>
 
-                  {/* <button type="button" onClick={handleClickAppleButton}>
-							<Image src="/ESMX_Add_to_Apple_Wallet_RGB_101821.svg" alt="Add to Apple Wallet" width={150} height={150} className="mt-2" />
-						</button> */}
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 mb-4">
                     <Button
                       className="w-40 m-0 bg-yellow-400 hover:bg-yellow-600 text-black font-bold rounded-2xl"
                       type="button"
@@ -1266,7 +1311,28 @@ const PaseUpdate = () => {
                     </Button>
                   </div>
                 </div>
-
+                {dataCatalogos && dataCatalogos.pass_selected && (dataCatalogos.pass_selected?.acompanantes ?? 0) > 0 && (
+                  <div className="w-full max-w-2xl">
+                    <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 mb-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-green-600 text-white">
+                        Activo
+                      </span>
+                      <p className="text-green-700 text-xs font-medium">
+                        Este es un pase padre activo — a continuación los miembros de su grupo.
+                      </p>
+                    </div>
+                    <MiembrosPase
+                      miembros={miembrosAcompanantes}
+                      setMiembros={setMiembrosAcompanantes}
+                      rowErrors={{}}
+                      setRowErrors={() => {}}
+                      useIA
+                      onDownload={(m) => handleDescargarAcompanante(m)}
+                      defaultCountry={defaultCountry}
+                      viewMode
+                    />
+                  </div>
+                )}
                 {loadingDataCatalogos ? (
                   <div className="flex justify-center items-center h-screen">
                     <div className="w-24 h-24 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
@@ -1279,18 +1345,15 @@ const PaseUpdate = () => {
                           <div className="flex flex-col sm:flex-row gap-2 ">
                             <div className="flex flex-col">
                               <p>Fotografia actual: </p>
-                              <Image
-                                width={180}
-                                height={180}
-                                src={
-                                  dataCatalogos?.pass_selected?.foto
-                                    ? (dataCatalogos?.pass_selected?.foto[0]
-                                        ?.file_url ?? "/nouser.svg")
-                                    : "/nouser.svg"
-                                }
-                                alt="Imagen"
-                                className="w-42 h-42 object-cover bg-gray-200 rounded-lg"
-                              />
+                             <Image
+                              width={180}
+                              height={180}
+                              src={
+                                dataCatalogos?.pass_selected?.foto?.[0]?.file_url || "/nouser.svg"
+                              }
+                              alt="Imagen"
+                              className="w-42 h-42 object-cover bg-gray-200 rounded-lg"
+                            />
                             </div>
                             <div>
                               <p>Identificacion actual: </p>

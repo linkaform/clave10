@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Users, Upload, Camera, Sparkles, Loader2, X, Download, Share2, UserPlus } from "lucide-react";
+import { Users, Upload, Camera, Sparkles, Loader2, X, Download, Share2, UserPlus, Check } from "lucide-react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import ImportarMiembrosModal from "./modals/importar-miembros-modal";
@@ -12,6 +12,7 @@ import { quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
 import LoadImage, { Imagen } from "./upload-Image";
 import ViewImage from "./modals/view-image";
 import type { CountryCode } from "libphonenumber-js";
+import { toast } from "sonner";
 export interface Miembro {
   id: string;
   nombre: string;
@@ -20,6 +21,14 @@ export interface Miembro {
   foto?: Imagen[];
   estatus?: string;
   tipo_movimiento?: string;
+  link?: string; 
+
+  url_hijo?: string;
+  nombre_acompanante?: string;
+  telefono_acompanante?: string;
+  qr_code?: string;
+  email_acompanante?: string;
+  identificacion?: Imagen[];
 }
 
 interface MiembrosPaseProps {
@@ -39,6 +48,9 @@ interface MiembrosPaseProps {
   defaultCountry?: CountryCode;
   allowAddRow?: boolean;
   viewMode?: boolean;
+  acompanantes_grupo?: Miembro[];
+  acompanantesActivos?: Miembro[];
+  nonDeletableIds?: string[];
 }
 
 const isValidEmail = (val: string) =>
@@ -58,19 +70,22 @@ const ROW_HEIGHT = 52;
 
 const EstatusBadge: React.FC<{ estatus?: string }> = ({ estatus }) => {
   const map: Record<string, { label: string; className: string }> = {
-    activo: { label: "Activo", className: "bg-green-50 text-green-600 border-green-200" },
-    pendiente: { label: "Pendiente", className: "bg-amber-50 text-amber-600 border-amber-200" },
-    usado: { label: "Usado", className: "bg-gray-100 text-gray-500 border-gray-200" },
-    cancelado: { label: "Cancelado", className: "bg-red-50 text-red-500 border-red-200" },
+    proceso: { label: "Proceso", className: "bg-blue-600 text-white" },
+    activo: { label: "Activo", className: "bg-green-500 text-white" },
+    pendiente: { label: "Pendiente", className: "bg-amber-500 text-white" },
+    usado: { label: "Usado", className: "bg-gray-400 text-white" },
+    cancelado: { label: "Cancelado", className: "bg-red-500 text-white" },
   };
-  const info = map[estatus ?? ""] ?? { label: estatus || "Sin estatus", className: "bg-gray-50 text-gray-400 border-gray-200" };
+  const info = map[estatus?.toLowerCase() ?? ""] ?? {
+    label: estatus || "Sin estatus",
+    className: "bg-gray-200 text-gray-500",
+  };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${info.className}`}>
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold shadow-sm w-fit ${info.className}`}>
       {info.label}
     </span>
   );
 };
-
 const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   miembros,
   setMiembros,
@@ -88,16 +103,61 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   defaultCountry = "MX",
   allowAddRow,
   viewMode = false,
+  acompanantesActivos = [],
+  nonDeletableIds = [],
 }) => {
-  const [openImportar, setOpenImportar] = useState(false);
   const [draftRow, setDraftRow] = useState<Miembro>(EMPTY_ROW());
   const [draftErrors, setDraftErrors] = useState({ email: false, telefono: false });
   const [analizandoGlobal, setAnalizandoGlobal] = useState(false);
   const globalInputRef = useRef<HTMLInputElement>(null);
+  const [copiedActivoId, setCopiedActivoId] = useState<string | null>(null);
+   const ESTATUS_NO_EDITABLES = ["proceso", "activo"];
 
+  const esNoEditable = (m: Miembro) =>
+    !!m.estatus && ESTATUS_NO_EDITABLES.includes(m.estatus.toLowerCase())
+  
+  const gruposExistentes = [
+    ...acompanantesActivos,
+    ...miembros.filter(esNoEditable),
+  ];
+
+  const miembrosEditables = miembros.filter((m) => !esNoEditable(m));
+
+  const [openImportar, setOpenImportar] = useState(false);
+  const handleCopyLinkActivo = async (m: Miembro) => {
+    if (!m.link) {
+      toast?.error?.("Este miembro no tiene link disponible");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(m.link);
+      setCopiedActivoId(m.id);
+      toast?.success?.("Link copiado");
+      setTimeout(() => setCopiedActivoId(null), 1500);
+    } catch {
+      toast?.error?.("No se pudo copiar el link");
+    }
+  };
   const { ocrIdMutation } = useOcr();
   const { uploadImageMutation } = useUploadImage();
 
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyLink = async (m: Miembro) => {
+    if (!m.link) {
+      toast?.error?.("Este miembro no tiene link disponible");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(m.link);
+      setCopiedId(m.id);
+      toast?.success?.("Link copiado");
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch {
+      toast?.error?.("No se pudo copiar el link");
+    }
+  };
+  
   const hasAnyError =
     Object.values(rowErrors).some((e) => e.email || e.telefono) ||
     draftErrors.email || draftErrors.telefono;
@@ -156,6 +216,16 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   const handleDraftKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, field: string) => {
     if (e.key === "Enter") { e.preventDefault(); commitDraft(); }
     if (e.key === "Tab" && field === "telefono") { e.preventDefault(); commitDraft(); }
+  };
+
+  const getFotoDisplay = (m: Miembro): string | undefined => {
+    if (m.foto && m.foto.length > 0 && m.foto[0].file_url) {
+      return m.foto[0].file_url;
+    }
+    if (m.identificacion && m.identificacion.length > 0 && m.identificacion[0].file_url) {
+      return m.identificacion[0].file_url;
+    }
+    return undefined;
   };
 
   const extraerDatosOcr = (item: any) => {
@@ -236,7 +306,9 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
 
   const efectivoUseIA = useIA && !viewMode;
   const efectivoAllowAddRow = allowAddRow && !viewMode;
-  const showActionsCol = (showDownload || showCreatePass || showShare) && !viewMode;
+ const showActionsCol = viewMode
+  ? true 
+  : (showDownload || showCreatePass || showShare);
   const actionsColWidth = (showCreatePass ? 90 : 0) + ((showDownload?1:0)+(showShare?1:0)+1) * 36 + 16;
 
   return (
@@ -251,7 +323,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
             <h1 className="font-semibold text-gray-700 text-sm">{title}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {efectivoUseIA && (
+            {efectivoUseIA &&  miembrosEditables.length>0 && (
               <>
                 <input
                   ref={globalInputRef}
@@ -276,7 +348,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                 </Button>
               </>
             )}
-            {!viewMode && (
+            {!viewMode &&  miembrosEditables.length>0 &&(
               <Button
                 type="button"
                 variant="outline"
@@ -308,8 +380,45 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
             </div>
           </div>
         )}
+        {gruposExistentes.length > 0 && (
+          <div className="mb-3 space-y-1.5">
+            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
+              Ya registrados ({gruposExistentes.length}) — no editables
+            </p>
+            {gruposExistentes.map((a) => {
+              const fotoUrl = getFotoDisplay(a);
+              return (
+                <div key={a.id} className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-xl border border-gray-100">
+                  {fotoUrl ? (
+                    <ViewImage imageUrl={{ file_url: fotoUrl, file_name: "foto" }} size="sm" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-[11px] font-bold shrink-0">
+                      {a.nombre?.[0]?.toUpperCase() || "?"}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-800 truncate">{a.nombre || "Sin nombre"}</p>
+                    <p className="text-[10px] text-gray-500 truncate">
+                      {[a.email, a.telefono].filter(Boolean).join(" · ") || "Sin datos de contacto"}
+                    </p>
+                  </div>
+                  <EstatusBadge estatus={a.estatus} />
+                  {a.link && (
+                    <button
+                      type="button"
+                      title="Copiar link"
+                      className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors shrink-0"
+                      onClick={() => handleCopyLinkActivo(a)}
+                    >
+                      {copiedActivoId === a.id ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-        {/* Tabla unificada */}
         <div
           className="rounded-xl border border-gray-100 overflow-hidden overflow-x-auto"
           style={{ maxHeight: `${ROW_HEIGHT * MAX_VISIBLE + 40}px` }}
@@ -317,35 +426,36 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
           <table className="w-full min-w-[500px] text-xs border-collapse">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr className="border-b border-gray-100">
-                {efectivoUseIA && <th className={th} style={{ width: 44 }}>Foto</th>}
+                <th className={th} style={{ width: 44 }}>Foto</th>
                 <th className={th} style={{ width: "22%" }}>Nombre</th>
                 <th className={th} style={{ width: "28%" }}>Email</th>
                 <th className={th} style={{ width: "22%" }}>Teléfono</th>
                 {viewMode && <th className={th} style={{ width: 110 }}>Estatus</th>}
                 {efectivoUseIA && <th className={th} style={{ width: 80 }}>Identificación</th>}
-                {showActionsCol && <th className={th} style={{ width: actionsColWidth }}>Acciones</th>}
+                {showActionsCol && <th className={th} style={{ width: viewMode ? 60 : actionsColWidth }}>Acciones</th>}
                 <th className={th} style={{ width: 44 }}></th>
               </tr>
             </thead>
             <tbody className="overflow-y-auto">
-              {miembros.map((m, idx) => {
+              {miembrosEditables.map((m, idx) => {
                 const err = rowErrors[m.id] || { email: false, telefono: false };
                 return (
                   <tr
                     key={m.id}
                     className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${idx % 2 === 0 ? "" : "bg-gray-50/30"}`}
                   >
-                  {efectivoUseIA && (
                     <td className={td} style={{ width: 44 }}>
-                      {m.foto && m.foto.length > 0 ? (
-                        <ViewImage imageUrl={{ file_url: m.foto[0].file_url ?? "", file_name: m.foto[0].file_name ?? "foto" }} size="sm" />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center">
-                          <Users className="w-4 h-4 text-blue-400" strokeWidth={2.5} />
-                        </div>
-                      )}
+                      {(() => {
+                        const fotoUrl = getFotoDisplay(m);
+                        return fotoUrl ? (
+                          <ViewImage imageUrl={{ file_url: fotoUrl, file_name: "foto" }} size="sm" />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+                            <Users className="w-4 h-4 text-gray-400" strokeWidth={2.5} />
+                          </div>
+                        );
+                      })()}
                     </td>
-                  )}
                     <td className={td} style={{ width: "22%" }}>
                       {viewMode ? (
                         <span className="text-gray-700">{m.nombre || "—"}</span>
@@ -437,57 +547,87 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                         </div>
                       </td>
                     )}
-                 {showActionsCol && (
-                    <td className={td} style={{ width: actionsColWidth }}>
-                      <div className="flex items-center justify-center gap-1.5">
-                        {showCreatePass && (
-                          <button
-                            type="button"
-                            title="Crear pase"
-                            className="flex items-center justify-center gap-1 h-7 px-2.5 rounded-full bg-blue-600 text-white text-[10px] font-bold shadow-sm hover:bg-blue-700 transition-colors whitespace-nowrap"
-                            onClick={() => onCreatePass?.(m)}
-                          >
-                            <UserPlus className="w-3.5 h-3.5" />
-                            <span>Crear pase</span>
-                          </button>
-                        )}
-                        {showDownload && (
-                          <button
-                            type="button"
-                            title="Descargar"
-                            className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-500 text-white shadow-sm hover:bg-amber-600 transition-colors"
-                            onClick={() => onDownload?.(m)}
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        {showShare && (
-                          <button
-                            type="button"
-                            title="Compartir"
-                            className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-600 text-white shadow-sm hover:bg-green-700 transition-colors"
-                            onClick={() => onShare?.(m)}
-                          >
-                            <Share2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="flex items-center justify-center w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 transition-colors border border-red-100"
-                          onClick={() => handleEliminarDirecto(m)}
-                          title="Eliminar"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                  
+                    {showActionsCol && (
+                      <td className={td} style={{ width: viewMode ? 60 : actionsColWidth }}>
+                        <div className="flex items-center justify-start gap-1.5">
+                          {viewMode ? (
+                            <>
+
+                            {(m.estatus?.toLowerCase() === "proceso" || m.estatus?.toLowerCase() === "activo") && (
+                                <button
+                                  type="button"
+                                  title="Copiar link"
+                                  className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors"
+                                  onClick={() => handleCopyLink(m)}
+                                >
+                                  {copiedId === m.id ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+                                </button>
+                              )}
+
+                              {m.estatus?.toLowerCase() === "activo" && (
+                                <button
+                                  type="button"
+                                  title="Descargar"
+                                  className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-500 text-white shadow-sm hover:bg-amber-600 transition-colors"
+                                  onClick={() => onDownload?.(m)}
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            
+                            </>
+                          ) : (
+                            <>
+                              {showCreatePass && (
+                                <button
+                                  type="button"
+                                  title="Crear pase"
+                                  className="flex items-center justify-center gap-1 h-7 px-2.5 rounded-full bg-blue-600 text-white text-[10px] font-bold shadow-sm hover:bg-blue-700 transition-colors whitespace-nowrap"
+                                  onClick={() => onCreatePass?.(m)}
+                                >
+                                  <UserPlus className="w-3.5 h-3.5" />
+                                  <span>Crear pase</span>
+                                </button>
+                              )}
+                              {showDownload && (
+                                <button
+                                  type="button"
+                                  title="Descargar"
+                                  className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-500 text-white shadow-sm hover:bg-amber-600 transition-colors"
+                                  onClick={() => onDownload?.(m)}
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              {showShare && (
+                                <button
+                                  type="button"
+                                  title="Compartir"
+                                  className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-600 text-white shadow-sm hover:bg-green-700 transition-colors"
+                                  onClick={() => onShare?.(m)}
+                                >
+                                  <Share2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            <button
+                              type="button"
+                              className="flex items-center justify-center w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 transition-colors border border-red-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-red-50"
+                              onClick={() => handleEliminarDirecto(m)}
+                              disabled={nonDeletableIds.includes(m.id)}
+                              title={nonDeletableIds.includes(m.id) ? "No se puede eliminar — el pase ya está activo" : "Eliminar"}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                    
                   </tr>
                 );
               })}
 
-              {/* Fila draft */}
               {efectivoAllowAddRow && (
                 <tr className="bg-blue-50/20 border-t border-blue-100">
                   {efectivoUseIA && <td className={td} style={{ width: 44 }}></td>}
@@ -553,6 +693,11 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
               )}
             </tbody>
           </table>
+           {miembrosEditables.length === 0 && (
+              <p className="text-xs text-gray-400 text-center py-4">
+                Actualiza el número de acompañantes para agregar nuevos registros.
+              </p>
+            )}
         </div>
 
         <div className="flex items-center justify-between mt-2 text-[11px] text-gray-400">

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Miembro } from "@/components/miembros-del-pase";
 import { getCatalogosPaseNoJwt } from "@/lib/get-catalogos_pase_no_jwt";
 import { errorMsj } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -44,7 +45,11 @@ export interface PassSelected {
     longitude: number;
   }[];
   habilitar_vehiculo?:boolean 
-  acompanantes?:number
+  acompanantes?:number;
+  acompanantes_grupo:Miembro[]
+  url_padre?:string;
+  link_padre?:string;
+  estatus_pase_padre?:string;
 }
 
 export interface VisitaA {
