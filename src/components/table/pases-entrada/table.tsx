@@ -53,13 +53,24 @@ const PasesEntradaTable: React.FC<ListProps> = ({
     const telefonoLimpio = (() => {
       if (!pase.telefono) return "";
 
-      const soloNumeros = pase.telefono.replace(/\D/g, "");
+      const original = pase.telefono.trim();
+      // Si ya viene con +, se respeta tal cual — puede ser cualquier país
+      if (original.startsWith("+")) return original;
 
-      if (soloNumeros.startsWith("52")) {
+      const soloNumeros = original.replace(/\D/g, "");
+      if (!soloNumeros) return "";
+
+      // Si ya trae 11+ dígitos, asumimos que ya incluye código de país (no forzar +52)
+      if (soloNumeros.length >= 11) {
         return `+${soloNumeros}`;
       }
 
-      return `+52${soloNumeros}`;
+      // Solo si parece número nacional (10 dígitos, típico de México) se asume +52
+      if (soloNumeros.length === 10) {
+        return `+52${soloNumeros}`;
+      }
+
+      return `+${soloNumeros}`;
     })();
 
     const visitaALimpia = Array.isArray(pase.visita_a)
@@ -88,6 +99,7 @@ const PasesEntradaTable: React.FC<ListProps> = ({
       telefono: telefonoLimpio,
       visita_a: visitaALimpia,
       ubicacion: ubicacionLimpia,
+      url_padre:pase.url_padre
     };
 
     setPaseSeleccionado(paseLimpio);

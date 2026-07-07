@@ -17,7 +17,7 @@ import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
 import LoadImage, { Imagen } from "@/components/upload-Image";
-import { Car, Check, Copy, Laptop, Loader2, X } from "lucide-react";
+import { Car, Check, Clock, Laptop, Loader2, Share2, X } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import Image from "next/image";
@@ -174,7 +174,7 @@ const PaseUpdate = () => {
   const [copiedPadre, setCopiedPadre] = useState(false);
 
   const handleCopyPadre = async () => {
-    const url = dataCatalogos?.pass_selected?.url_padre;
+    const url = dataCatalogos?.pass_selected?.link_padre;
     if (!url) {
       toast.error("No hay link de pase padre disponible");
       return;
@@ -540,7 +540,8 @@ const PaseUpdate = () => {
         estatus: a.estatus ?? "",
         foto: normalizeImageField(a.foto),
         identificacion: normalizeImageField(a.identificacion),
-        link: a.url_hijo ?? "",
+        link: a.link ?? "",
+        url_hijo: a.url_hijo ?? "",
       }));
 
       setMiembrosAcompanantes(rows);
@@ -845,30 +846,57 @@ const PaseUpdate = () => {
               />
             )}
           </div>
-          {dataCatalogos?.pass_selected?.url_padre && (
-            <>
-            <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
-              <p className="font-bold text-slate-800 whitespace-nowrap text-sm">Pase padre:</p>
-              <a
-                href={dataCatalogos.pass_selected.url_padre}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline text-sm truncate"
-              >
-                {dataCatalogos.pass_selected.url_padre}
-              </a>
+        {dataCatalogos?.pass_selected?.link_padre && (
+          <div className={`relative overflow-hidden rounded-2xl border px-4 py-3.5 ${
+            dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo"
+              ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200"
+              : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="font-bold text-slate-800 text-sm">Pase padre</p>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white ${
+                    dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo"
+                      ? "bg-green-600"
+                      : "bg-blue-600"
+                  }`}>
+                    {dataCatalogos.pass_selected.estatus_pase_padre || "—"}
+                  </span>
+                </div>
+
+                {dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? (
+                  <p className="text-green-700 text-xs font-medium">
+                    El pase padre ya está activo. Comparte el link para que lo puedan ver.
+                  </p>
+                ) : (
+                  <p className="text-blue-700 text-xs font-medium">
+                    El pase padre aún está en proceso — el link estará disponible cuando se active.
+                  </p>
+                )}
+              </div>
+
               <button
                 type="button"
-                title="Copiar link"
-                className="ml-auto flex items-center justify-center w-7 h-7 rounded-lg bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors shrink-0"
-                onClick={handleCopyPadre}
+                title={dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? "Compartir link" : "Pase en proceso"}
+                className={`shrink-0 flex items-center gap-1.5 px-3 h-9 rounded-xl text-white text-xs font-semibold shadow-sm transition-all ${
+                  dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo"
+                    ? "bg-green-600 hover:bg-green-700 hover:scale-105 active:scale-95 cursor-pointer"
+                    : "bg-blue-300 cursor-not-allowed"
+                }`}
+                onClick={dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? handleCopyPadre : undefined}
+                disabled={dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() !== "activo"}
               >
-                {copiedPadre ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? (
+                  copiedPadre ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />
+                ) : (
+                  <Clock className="w-4 h-4" />
+                )}
+                <span>Compartir link</span>
               </button>
             </div>
-            </>
-          )}
-
+          </div>
+        )}
           {dataCatalogos && dataCatalogos.pass_selected && (dataCatalogos.pass_selected?.acompanantes ?? 0) > 0 &&
             <MiembrosPase
               miembros={miembrosAcompanantes}
@@ -1240,6 +1268,8 @@ const PaseUpdate = () => {
                   )}
                 </div>
 
+               
+
                 <div className="flex flex-row gap-3 items-center">
                   <button type="button" onClick={handleClickGoogleButton}>
                     <Image
@@ -1250,33 +1280,7 @@ const PaseUpdate = () => {
                     />
                   </button>
 
-                  {dataCatalogos?.pass_selected?.url_padre && (
-                    <>
-                    <div className="w-full flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 max-w-md">
-                          <p className="font-bold text-slate-800 whitespace-nowrap text-sm">Pase padre:</p>
-                          <a
-                          href={dataCatalogos.pass_selected.url_padre}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 underline text-sm truncate flex-1"
-                          >
-                          {dataCatalogos.pass_selected.url_padre}
-                        </a><button
-                          type="button"
-                          title="Copiar link"
-                          className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors shrink-0"
-                          onClick={handleCopyPadre}
-                        >
-                            {copiedPadre ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
-                    </div>
-                    </>
-                  )}
-
-                  {/* <button type="button" onClick={handleClickAppleButton}>
-							<Image src="/ESMX_Add_to_Apple_Wallet_RGB_101821.svg" alt="Add to Apple Wallet" width={150} height={150} className="mt-2" />
-						</button> */}
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 mb-4">
                     <Button
                       className="w-40 m-0 bg-yellow-400 hover:bg-yellow-600 text-black font-bold rounded-2xl"
                       type="button"
@@ -1307,7 +1311,28 @@ const PaseUpdate = () => {
                     </Button>
                   </div>
                 </div>
-
+                {dataCatalogos && dataCatalogos.pass_selected && (dataCatalogos.pass_selected?.acompanantes ?? 0) > 0 && (
+                  <div className="w-full max-w-2xl">
+                    <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 mb-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-green-600 text-white">
+                        Activo
+                      </span>
+                      <p className="text-green-700 text-xs font-medium">
+                        Este es un pase padre activo — a continuación los miembros de su grupo.
+                      </p>
+                    </div>
+                    <MiembrosPase
+                      miembros={miembrosAcompanantes}
+                      setMiembros={setMiembrosAcompanantes}
+                      rowErrors={{}}
+                      setRowErrors={() => {}}
+                      useIA
+                      onDownload={(m) => handleDescargarAcompanante(m)}
+                      defaultCountry={defaultCountry}
+                      viewMode
+                    />
+                  </div>
+                )}
                 {loadingDataCatalogos ? (
                   <div className="flex justify-center items-center h-screen">
                     <div className="w-24 h-24 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>

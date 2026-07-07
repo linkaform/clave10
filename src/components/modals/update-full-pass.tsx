@@ -193,7 +193,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	);
 	console.log(visitas,fechaDesde)
 	const { grupoRequisitos } = useMenuStore();
-	const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
+	const [defaultCountry, setDefaultCountry] = useState<CountryCode  | undefined>(undefined);
 
 	const normalizeImageField = (value: unknown): Imagen[] | undefined => {
 		if (!value) return undefined;
@@ -216,10 +216,10 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	);
 
 	if (requisito?.prefijo_telefonico) {
-		const country = prefijoToCountry[String(requisito.prefijo_telefonico)] ?? "MX";
-		setDefaultCountry(country as CountryCode);
+	const country = prefijoToCountry[String(requisito.prefijo_telefonico)];
+		setDefaultCountry(country as CountryCode | undefined);
 	} else {
-		setDefaultCountry("MX");
+		setDefaultCountry(undefined);
 	}
 	}, [ubicacionesSeleccionadas, grupoRequisitos]);
 	// Estados para áreas dinámicas
@@ -509,7 +509,18 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			setIsSuccess(true);
 		}
 	};
+	const normalizarTelefono = (value: string | undefined): string => {
+	if (!value) return "";
+	if (value.startsWith("+")) return value;
 
+	const soloDigitos = value.replace(/\D/g, "");
+	if (soloDigitos.length >= 10) {
+		return `+${soloDigitos}`;
+	}
+	return value;
+	};
+
+	console.log("URL",dataPass.url_padre)
 	return (
 		<Dialog open={modalEditarAbierto} onOpenChange={setModalEditarAbierto} modal>
 			<DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0 rounded-3xl overflow-hidden border-none">
@@ -678,23 +689,24 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 													name="telefono"
 													render={({ field }: any) => (
 														<FormItem>
-															<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teléfono</FormLabel>
-															<FormControl>
-																<PhoneInput
-																	{...field}
-																	onChange={(value: string) => form.setValue("telefono", value || "")}
-																	placeholder="Teléfono"
-																	defaultCountry={defaultCountry}
-																	containerComponentProps={{
-																		className: "flex h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-3 py-0 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-																	}}
-																	numberInputProps={{ className: "pl-3 bg-transparent" }}
-																/>
-															</FormControl>
-															<FormMessage />
+														<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teléfono</FormLabel>
+														<FormControl>
+															<PhoneInput
+															{...field}
+															value={normalizarTelefono(field.value)}
+															onChange={(value: string) => form.setValue("telefono", value || "")}
+															placeholder="Teléfono"
+															defaultCountry={defaultCountry}
+															containerComponentProps={{
+																className: "flex h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-3 py-0 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+															}}
+															numberInputProps={{ className: "pl-3 bg-transparent" }}
+															/>
+														</FormControl>
+														<FormMessage />
 														</FormItem>
 													)}
-												/>
+													/>
 
 												{/* Perfil / tipo de visita */}
 												{assetsLoading ? (
@@ -735,23 +747,27 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 													name="acompanantes"
 													render={({ field }: any) => (
 													<FormItem>
-														<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Acompañantes</FormLabel>
-														<FormControl>
-														<Input
-															placeholder="0"
-															type="number"
-															min={acompanantesActivos.length + existingIds.size}
-															step={1}
-															className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
-															{...field}
-															value={field.value ?? 0}
-															onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
-														/>
-														</FormControl>
-														<p className="text-xs text-gray-400 mt-1">
-														Total: {Number(field.value) || 0} · Activos: {acompanantesActivos.length} (no editables) · En proceso: {miembrosAcompanantes.length} (editables). Al aumentar este número se agregará un nuevo acompañante en proceso.
-														</p>
-														<FormMessage />
+													<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Acompañantes</FormLabel>
+													<FormControl>
+													<Input
+														placeholder="0"
+														type="number"
+														max={10}
+														min={acompanantesActivos.length + existingIds.size}
+														step={1}
+														className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed"
+														{...field}
+														value={field.value ?? 0}
+														onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+														disabled={!!dataPass?.url_padre}
+													/>
+													</FormControl>
+													<p className="text-xs text-gray-400 mt-1">
+													{dataPass?.url_padre
+														? "Este pase es un acompañante de otro pase — no puede tener sus propios acompañantes."
+														: `Total: ${Number(field.value) || 0} · Activos: ${acompanantesActivos.length} (no editables) · En proceso: ${miembrosAcompanantes.length} (editables). Al aumentar este número se agregará un nuevo acompañante en proceso.`}
+													</p>
+													<FormMessage />
 													</FormItem>
 													)}
 												/>

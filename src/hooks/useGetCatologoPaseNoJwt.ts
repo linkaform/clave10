@@ -48,6 +48,8 @@ export interface PassSelected {
   acompanantes?:number;
   acompanantes_grupo:Miembro[]
   url_padre?:string;
+  link_padre?:string;
+  estatus_pase_padre?:string;
 }
 
 export interface VisitaA {
