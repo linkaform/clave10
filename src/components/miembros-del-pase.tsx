@@ -313,9 +313,9 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
 
   return (
     <>
-      <div className="bg-white rounded-2xl">
+      <div className="bg-white rounded-2xl p-2">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3 ">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-blue-50 rounded-xl">
               <Users className="w-4 h-4 text-blue-600" />
