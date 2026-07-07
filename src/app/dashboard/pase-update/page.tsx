@@ -39,6 +39,7 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
 import type { CountryCode } from "libphonenumber-js";
 import { useMenuStore } from "@/store/useGetMenuStore";
+import { MapPin, CalendarDays, User, Users, QrCode, Download } from "lucide-react";
 const grupoEquipos = z
   .array(
     z.object({
@@ -644,6 +645,67 @@ const PaseUpdate = () => {
     );
   }
 
+const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
+  const activo = dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo";
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border px-4 py-3.5 shadow-sm ${
+      activo
+        ? "border-green-200 bg-gradient-to-r from-green-50 to-emerald-50"
+        : "border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50"
+    }`}>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-900 text-white">
+              <Users size={12} className={activo ? "text-green-400" : "text-blue-400"} />
+              Pase de acompañante
+            </span>
+          </div>
+          <p className="text-slate-800 text-sm font-semibold mb-1">
+            Este pase pertenece a un grupo con pase padre
+          </p>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-slate-700 text-xs font-semibold">Estatus del pase padre:</span>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white ${
+              activo ? "bg-green-600" : "bg-blue-600"
+            }`}>
+              {dataCatalogos.pass_selected.estatus_pase_padre || "—"}
+            </span>
+          </div>
+          {activo ? (
+            <p className="text-green-700 text-xs font-medium">
+              El pase padre ya está activo. Comparte el link para que lo puedan ver.
+            </p>
+          ) : (
+            <p className="text-blue-700 text-xs font-medium">
+              El pase padre aún está en proceso — el link estará disponible cuando se active.
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          title={activo ? "Compartir link" : "Pase en proceso"}
+          className={`shrink-0 flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold shadow-sm transition-all ${
+            activo
+              ? "bg-green-600 hover:bg-green-700 text-white hover:scale-105 active:scale-95 cursor-pointer"
+              : "bg-blue-200 text-blue-500 cursor-not-allowed"
+          }`}
+          onClick={activo ? handleCopyPadre : undefined}
+          disabled={!activo}
+        >
+          {activo ? (
+            copiedPadre ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />
+          ) : (
+            <Clock className="w-4 h-4" />
+          )}
+          <span>Compartir link</span>
+        </button>
+      </div>
+    </div>
+  );
+})();
+
   return (
     <div className="p-8">
       <EntryPassModal2
@@ -846,74 +908,45 @@ const PaseUpdate = () => {
               />
             )}
           </div>
-        {dataCatalogos?.pass_selected?.link_padre && (
-          <div className={`relative overflow-hidden rounded-2xl border px-4 py-3.5 ${
-            dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo"
-              ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200"
-              : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <p className="font-bold text-slate-800 text-sm">Pase padre</p>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white ${
-                    dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo"
-                      ? "bg-green-600"
-                      : "bg-blue-600"
-                  }`}>
-                    {dataCatalogos.pass_selected.estatus_pase_padre || "—"}
-                  </span>
+      
+          {pasePadreBadge}
+
+          {(dataCatalogos?.pass_selected?.acompanantes_grupo?.length ?? 0) > 0 && (() => {
+            const activo = dataCatalogos?.pass_selected?.estatus?.toLowerCase() === "activo";
+
+            return (
+              <div className={`relative overflow-hidden rounded-2xl border px-4 py-3.5 shadow-sm ${
+                activo
+                  ? "border-green-200 bg-gradient-to-r from-green-50 to-emerald-50"
+                  : "border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50"
+              }`}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-900 text-white">
+                        <Users size={12} className={activo ? "text-green-400" : "text-blue-400"} />
+                        Pase padre
+                      </span>
+                    </div>
+                    <p className={`text-xs font-medium ${activo ? "text-green-700" : "text-blue-700"}`}>
+                      Este pase es un pase padre, aquí están los miembros de su grupo
+                    </p>
+                  </div>
                 </div>
 
-                {dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? (
-                  <p className="text-green-700 text-xs font-medium">
-                    El pase padre ya está activo. Comparte el link para que lo puedan ver.
-                  </p>
-                ) : (
-                  <p className="text-blue-700 text-xs font-medium">
-                    El pase padre aún está en proceso — el link estará disponible cuando se active.
-                  </p>
-                )}
+                <MiembrosPase
+                  miembros={miembrosAcompanantes}
+                  setMiembros={setMiembrosAcompanantes}
+                  rowErrors={{}}
+                  setRowErrors={() => {}}
+                  useIA
+                  onDownload={(m) => handleDescargarAcompanante(m)}
+                  defaultCountry={defaultCountry}
+                  viewMode
+                />
               </div>
-
-              <button
-                type="button"
-                title={dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? "Compartir link" : "Pase en proceso"}
-                className={`shrink-0 flex items-center gap-1.5 px-3 h-9 rounded-xl text-white text-xs font-semibold shadow-sm transition-all ${
-                  dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo"
-                    ? "bg-green-600 hover:bg-green-700 hover:scale-105 active:scale-95 cursor-pointer"
-                    : "bg-blue-300 cursor-not-allowed"
-                }`}
-                onClick={dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? handleCopyPadre : undefined}
-                disabled={dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() !== "activo"}
-              >
-                {dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo" ? (
-                  copiedPadre ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />
-                ) : (
-                  <Clock className="w-4 h-4" />
-                )}
-                <span>Compartir link</span>
-              </button>
-            </div>
-          </div>
-        )}
-          {dataCatalogos && dataCatalogos.pass_selected && (dataCatalogos.pass_selected?.acompanantes ?? 0) > 0 &&
-            <MiembrosPase
-              miembros={miembrosAcompanantes}
-              setMiembros={setMiembrosAcompanantes}
-              rowErrors={{}}
-              setRowErrors={() => {}}
-              useIA
-              // showCreatePass
-              // showDownload
-              // showShare
-              // onCreatePass={(m) => console.log("crear pase", m)}
-              onDownload={(m) => handleDescargarAcompanante(m)}
-              // onShare={(m) => console.log("compartir", m)} 
-              defaultCountry={defaultCountry}
-              viewMode
-            />
-          }
+            );
+          })()}
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
           <div className="space-y-2">
@@ -1185,154 +1218,209 @@ const PaseUpdate = () => {
         </div>
       ) : (
         <>
-          {dataCatalogos?.pass_selected?.estatus == "activo" ||
+         {dataCatalogos?.pass_selected?.estatus == "activo" ||
           dataCatalogos?.pass_selected?.estatus == "vencido" ? (
             <>
-              <div className="flex flex-col items-center justify-start  space-y-3 max-w-2xl mx-auto h-screen">
-                <span className="font-bold text-3xl text-slate-800">
-                  {dataCatalogos?.pass_selected?.nombre}
-                </span>
-                <div>
-                  <p className="font-bold whitespace-nowrap">Visita General </p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <div className="w-full flex sm:flex-row gap-2">
-                    <p className="font-bold whitespace-nowrap">Visita a: </p>
-                    <p className="w-full break-words">
-                      {dataCatalogos?.pass_selected?.visita_a[0]
-                        ? dataCatalogos?.pass_selected?.visita_a[0]?.nombre
-                        : ""}
-                    </p>
-                  </div>
+              <div className="flex flex-col items-center justify-start gap-3 max-w-2xl mx-auto pb-10">
 
-                  <div className="w-full flex gap-2">
-                    <p className="font-bold whitespace-nowrap">Ubicación:</p>
-                    <div className="relative group w-full break-words">
-                      {dataCatalogos?.pass_selected?.ubicacion[0]}
-                      {dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
-                        <span className="text-blue-600 cursor-pointer ml-1 underline relative">
-                          +{dataCatalogos?.pass_selected?.ubicacion.length - 1}
-                          {/* Tooltip container */}
-                          <div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
-                            {Array.isArray(
-                              dataCatalogos?.pass_selected?.ubicacion,
-                            ) &&
-                              dataCatalogos?.pass_selected?.ubicacion.length >
-                                1 &&
-                              dataCatalogos?.pass_selected?.ubicacion
-                                .slice(1)
-                                .map((ubic: string, idx: number) => (
-                                  <div key={idx}>{ubic}</div>
-                                ))}
-                          </div>
+                {/* HERO: solo nombre */}
+                <div className="w-full text-center ">
+                  <h1 className="font-extrabold text-3xl text-slate-900 tracking-tight">
+                    {dataCatalogos?.pass_selected?.nombre}
+                  </h1>
+                  <p className="text-slate-400 text-sm mt-1">Pase de entrada · Visita General</p>
+                </div>
+
+                {/* CARD: info de visita en grid 2 columnas */}
+                <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                        <Check size={15} className="text-blue-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wide">Estatus</p>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide text-white ${
+                          dataCatalogos?.pass_selected?.estatus === "activo"
+                            ? "bg-green-600"
+                            : "bg-gray-500"
+                        }`}>
+                          {dataCatalogos?.pass_selected?.estatus === "activo" ? "Activo" : "Vencido"}
                         </span>
-                      )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="w-full flex  gap-2">
-                    <p className="font-bold whitespace-nowrap">Fecha : </p>
-                    <p className="text-sm">
-                      {dataCatalogos?.pass_selected?.fecha_de_expedicion}
-                    </p>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                        <User size={15} className="text-blue-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wide">Visita a</p>
+                        <p className="text-sm text-slate-800 font-medium break-words">
+                          {dataCatalogos?.pass_selected?.visita_a?.[0]?.nombre || "—"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                        <MapPin size={15} className="text-blue-600" />
+                      </div>
+                      <div className="relative group min-w-0">
+                        <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wide">Ubicación</p>
+                        <p className="text-sm text-slate-800 font-medium break-words">
+                          {dataCatalogos?.pass_selected?.ubicacion[0]}
+                          {dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
+                            <span className="text-blue-600 cursor-pointer ml-1.5 underline text-xs font-semibold">
+                              +{dataCatalogos?.pass_selected?.ubicacion.length - 1} más
+                              <div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-lg group-hover:block">
+                                {dataCatalogos?.pass_selected?.ubicacion
+                                  .slice(1)
+                                  .map((ubic: string, idx: number) => (
+                                    <div key={idx} className="py-0.5">{ubic}</div>
+                                  ))}
+                              </div>
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                        <CalendarDays size={15} className="text-blue-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wide">Fecha de expedición</p>
+                        <p className="text-sm text-slate-800 font-medium">
+                          {dataCatalogos?.pass_selected?.fecha_de_expedicion}
+                        </p>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
-                <div className="w-full flex-col">
-                  {dataCatalogos?.pass_selected?.qr_pase[0]?.file_url ? (
-                    <>
-                      <div className="w-full flex justify-center">
-                        <Image
-                          width={280}
-                          height={280}
-                          src={
-                            dataCatalogos?.pass_selected?.qr_pase[0]
-                              ?.file_url ?? "/nouser.svg"
-                          }
-                          alt="Imagen"
-                          className="w-42 h-42 object-contain bg-gray-200 rounded-lg"
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-full flex justify-center">
-                        <Image
-                          width={280}
-                          height={280}
-                          src={"/nouser.svg"}
-                          alt="Imagen"
-                          className="w-42 h-42 object-contain bg-gray-200 rounded-lg"
-                        />
-                      </div>
-                    </>
-                  )}
+
+                {/* TICKET: QR con estilo boleto (bordes con muescas simuladas) */}
+                <div className="w-full relative">
+                  <div className="bg-white border border-slate-200 rounded-2xl shadow-md px-6 py-8 flex flex-col items-center relative overflow-hidden">
+                    {/* muescas laterales simulando ticket */}
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-slate-50 border border-slate-200" />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-6 h-6 rounded-full bg-slate-50 border border-slate-200" />
+
+                    <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold uppercase tracking-wide mb-4">
+                      <QrCode size={14} />
+                      <span>Código de acceso</span>
+                    </div>
+
+                    <div className="p-3 bg-white rounded-xl border-2 border-slate-100">
+                      <Image
+                        width={220}
+                        height={220}
+                        src={dataCatalogos?.pass_selected?.qr_pase?.[0]?.file_url ?? "/nouser.svg"}
+                        alt="Código QR del pase"
+                        className="w-52 h-52 object-contain rounded-lg"
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 mt-3">Muestra este código en el acceso</p>
+                  </div>
                 </div>
 
-               
-
-                <div className="flex flex-row gap-3 items-center">
-                  <button type="button" onClick={handleClickGoogleButton}>
+                {/* ACCIONES: wallet + descargar */}
+                <div className="w-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={handleClickGoogleButton}
+                    className="flex items-center justify-center rounded-xl overflow-hidden hover:opacity-90 transition-opacity">
                     <Image
                       src="/esES_add_to_google_wallet_add-wallet-badge.png"
                       alt="Add to Google Wallet"
-                      width={150}
-                      height={150}
+                      width={160}
+                      height={44}
+                      className="h-11 w-auto"
                     />
                   </button>
 
-                  <div className="flex flex-col gap-2 mb-4">
-                    <Button
-                      className="w-40 m-0 bg-yellow-400 hover:bg-yellow-600 text-black font-bold rounded-2xl"
-                      type="button"
-                      onClick={() => handleClickImgButton()}
-                      disabled={loadingImgPass}>
-                      {!loadingImgPass ? (
-                        "Descargar Pase"
-                      ) : (
-                        <>
-                          <Loader2 className="animate-spin" />
-                          Descargando...
-                        </>
-                      )}
-                    </Button>
+                  <Button
+                    className="h-11 px-6 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-sm flex items-center gap-2"
+                    type="button"
+                    onClick={() => handleClickImgButton()}
+                    disabled={loadingImgPass}>
+                    {!loadingImgPass ? (
+                      <>
+                        <Download size={16} />
+                        Descargar Pase
+                      </>
+                    ) : (
+                      <>
+                        <Loader2 className="animate-spin" size={16} />
+                        Descargando...
+                      </>
+                    )}
+                  </Button>
 
-                    <Button
-                      className={`hidden w-40 m-0 ${
-                        isActualizarOpen
-                          ? "bg-red-500 hover:bg-red-600"
-                          : "bg-blue-500 hover:bg-blue-600"
-                      }`}
-                      type="button"
-                      onClick={() => {
-                        setIsActualizarOpen(!isActualizarOpen);
-                      }}
-                      disabled={loadingDataCatalogos}>
-                      {isActualizarOpen ? "Cerrar" : "Actualizar información"}
-                    </Button>
-                  </div>
+                  <Button
+                    className={`hidden h-11 px-6 font-semibold rounded-xl ${
+                      isActualizarOpen
+                        ? "bg-red-500 hover:bg-red-600"
+                        : "bg-blue-500 hover:bg-blue-600"
+                    }`}
+                    type="button"
+                    onClick={() => setIsActualizarOpen(!isActualizarOpen)}
+                    disabled={loadingDataCatalogos}>
+                    {isActualizarOpen ? "Cerrar" : "Actualizar información"}
+                  </Button>
                 </div>
-                {dataCatalogos && dataCatalogos.pass_selected && (dataCatalogos.pass_selected?.acompanantes ?? 0) > 0 && (
-                  <div className="w-full max-w-2xl">
-                    <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 mb-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-green-600 text-white">
-                        Activo
-                      </span>
-                      <p className="text-green-700 text-xs font-medium">
-                        Este es un pase padre activo — a continuación los miembros de su grupo.
-                      </p>
+
+                {/* BADGE: pase hijo vinculado a un padre */}
+                <div className="w-full">
+                  {pasePadreBadge}
+                </div>
+                {/* BLOQUE: este ES el pase padre, mostrar acompañantes */}
+                {(dataCatalogos?.pass_selected?.acompanantes_grupo?.length ?? 0) > 0 && (() => {
+                  const activo = dataCatalogos?.pass_selected?.estatus?.toLowerCase() === "activo";
+                  return (
+                    <div className="w-full">
+                      <div className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-3 shadow-sm border-2 ${
+                        activo
+                          ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-300"
+                          : "bg-gradient-to-r from-blue-50 to-sky-50 border-blue-300"
+                      }`}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-800 text-white">
+                              <Users size={11} className={activo ? "text-green-400" : "text-blue-400"} />
+                              Pase padre
+                            </span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white ${
+                              activo ? "bg-green-600" : "bg-blue-600"
+                            }`}>
+                              {dataCatalogos?.pass_selected?.estatus || "—"}
+                            </span>
+                          </div>
+                          <p className={`text-xs font-medium ${activo ? "text-green-700" : "text-blue-700"}`}>
+                            {activo
+                              ? "Este es un pase padre activo — a continuación los miembros de su grupo."
+                              : "Este pase padre está en proceso — a continuación los miembros de su grupo."}
+                          </p>
+                        </div>
+                      </div>
+                      <MiembrosPase
+                        miembros={miembrosAcompanantes}
+                        setMiembros={setMiembrosAcompanantes}
+                        rowErrors={{}}
+                        setRowErrors={() => {}}
+                        useIA
+                        onDownload={(m) => handleDescargarAcompanante(m)}
+                        defaultCountry={defaultCountry}
+                        viewMode
+                      />
                     </div>
-                    <MiembrosPase
-                      miembros={miembrosAcompanantes}
-                      setMiembros={setMiembrosAcompanantes}
-                      rowErrors={{}}
-                      setRowErrors={() => {}}
-                      useIA
-                      onDownload={(m) => handleDescargarAcompanante(m)}
-                      defaultCountry={defaultCountry}
-                      viewMode
-                    />
-                  </div>
-                )}
+                  );
+                })()}
+
                 {loadingDataCatalogos ? (
                   <div className="flex justify-center items-center h-screen">
                     <div className="w-24 h-24 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
@@ -1340,320 +1428,200 @@ const PaseUpdate = () => {
                 ) : (
                   <>
                     {isActualizarOpen == true ? (
-                      <>
-                        <div className="flex flex-col items-center justify-start gap-5">
-                          <div className="flex flex-col sm:flex-row gap-2 ">
-                            <div className="flex flex-col">
-                              <p>Fotografia actual: </p>
-                             <Image
-                              width={180}
-                              height={180}
+                      <div className="w-full flex flex-col items-center justify-start gap-6">
+
+                        {/* fotos actuales en cards */}
+                        <div className="w-full flex flex-col sm:flex-row gap-3">
+                          <div className="flex-1 bg-white border border-slate-200 rounded-2xl p-3 flex flex-col items-center">
+                            <p className="text-xs font-semibold text-slate-500 mb-2">Fotografía actual</p>
+                            <Image
+                              width={160}
+                              height={160}
+                              src={dataCatalogos?.pass_selected?.foto?.[0]?.file_url || "/nouser.svg"}
+                              alt="Imagen"
+                              className="w-40 h-40 object-cover bg-gray-100 rounded-xl"
+                            />
+                          </div>
+                          <div className="flex-1 bg-white border border-slate-200 rounded-2xl p-3 flex flex-col items-center">
+                            <p className="text-xs font-semibold text-slate-500 mb-2">Identificación actual</p>
+                            <Image
+                              width={160}
+                              height={160}
                               src={
-                                dataCatalogos?.pass_selected?.foto?.[0]?.file_url || "/nouser.svg"
+                                dataCatalogos?.pass_selected?.identificacion
+                                  ? dataCatalogos?.pass_selected?.identificacion[0]?.file_url
+                                  : "/nouser.svg"
                               }
                               alt="Imagen"
-                              className="w-42 h-42 object-cover bg-gray-200 rounded-lg"
+                              className="w-40 h-40 object-cover bg-gray-100 rounded-xl"
                             />
-                            </div>
-                            <div>
-                              <p>Identificacion actual: </p>
-                              <Image
-                                width={180}
-                                height={180}
-                                src={
-                                  dataCatalogos?.pass_selected?.identificacion
-                                    ? dataCatalogos?.pass_selected
-                                        ?.identificacion[0]?.file_url
-                                    : "/nouser.svg"
-                                }
-                                alt="Imagen"
-                                className="w-42 h-42  object-cover bg-gray-200 rounded-lg mb-2"
-                              />
-                            </div>
                           </div>
-
-                          <div className="flex flex-col gap-y-6">
-                            <div>
-                              <div className="flex items-center gap-x-10">
-                                <span className="font-bold text-xl">
-                                  Lista de Vehículos
-                                </span>
-                                <VehicleLocalPassModal
-                                  title="Nuevo Vehiculo"
-                                  vehicles={vehicles}
-                                  setVehiculos={setVehiculos}
-                                  isAccesos={false}
-                                  fetch={false}>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleCheckboxChange("agregar-vehiculos")
-                                    }
-                                    className="px-4 py-2 rounded-md transition-all duration-300 border-2 border-blue-400 bg-transparent hover:bg-slate-100">
-                                    <div className="flex items-center gap-2">
-                                      <div className="text-blue-600 sm:hidden text-xl font-bold">
-                                        +
-                                      </div>
-                                      <Car className="text-blue-600" />
-                                      <div className="text-blue-600 hidden sm:block">
-                                        Agregar Vehículos
-                                      </div>
-                                    </div>
-                                  </button>
-                                </VehicleLocalPassModal>
-                              </div>
-                              <div className="mt-2 text-gray-600">
-                                <Accordion type="multiple" className="w-full">
-                                  {vehicles.map((vehiculo, index) => (
-                                    <AccordionItem
-                                      key={index}
-                                      value={`vehiculo-${index}`}>
-                                      <AccordionTrigger>
-                                        {vehiculo.tipo}
-                                      </AccordionTrigger>
-                                      <AccordionContent>
-                                        <div className="p-4 text-sm">
-                                          {(vehiculo.foto_vehiculo?.length ?? 0) > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                              <div className="space-y-1">
-                                                <p>
-                                                  <strong>Tipo:</strong>{" "}
-                                                  {vehiculo.tipo}
-                                                </p>
-                                                <p>
-                                                  <strong>Marca:</strong>{" "}
-                                                  {vehiculo.marca}
-                                                </p>
-                                                <p>
-                                                  <strong>Modelo:</strong>{" "}
-                                                  {vehiculo.modelo}
-                                                </p>
-                                                <p>
-                                                  <strong>Placas:</strong>{" "}
-                                                  {vehiculo.placas}
-                                                </p>
-                                                <p>
-                                                  <strong>Estado:</strong>{" "}
-                                                  {vehiculo.estado}
-                                                </p>
-                                                <p>
-                                                  <strong>Color:</strong>{" "}
-                                                  {vehiculo.color}
-                                                </p>
-                                              </div>
-                                              <div className="flex flex-col items-center justify-center border rounded-md p-2 bg-gray-50">
-                                                <p className="text-xs font-bold mb-2">
-                                                  Foto del Vehículo
-                                                </p>
-                                                <Image
-                                                  src={
-                                                    vehiculo.foto_vehiculo?.[0]
-                                                      ?.file_url || "/nouser.svg"
-                                                  }
-                                                  alt="Foto vehículo"
-                                                  width={150}
-                                                  height={150}
-                                                  className="rounded-md object-cover w-full max-h-[150px]"
-                                                />
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                              <p>
-                                                <strong>Tipo:</strong>{" "}
-                                                {vehiculo.tipo}
-                                              </p>
-                                              <p>
-                                                <strong>Marca:</strong>{" "}
-                                                {vehiculo.marca}
-                                              </p>
-                                              <p>
-                                                <strong>Modelo:</strong>{" "}
-                                                {vehiculo.modelo}
-                                              </p>
-                                              <p>
-                                                <strong>Placas:</strong>{" "}
-                                                {vehiculo.placas}
-                                              </p>
-                                              <p>
-                                                <strong>Estado:</strong>{" "}
-                                                {vehiculo.estado}
-                                              </p>
-                                              <p>
-                                                <strong>Color:</strong>{" "}
-                                                {vehiculo.color}
-                                              </p>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        <div className="flex justify-end px-4 pb-4">
-                                          <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() => handleRemove(index)}>
-                                            Eliminar
-                                          </Button>
-                                        </div>
-                                      </AccordionContent>
-                                    </AccordionItem>
-                                  ))}
-                                  {vehicles.length == 0 ? (
-                                    <div>No se han agregado vehiculos.</div>
-                                  ) : null}
-                                </Accordion>
-                              </div>
-                            </div>
-
-                            <div>
-                              <div className="flex items-center gap-x-10">
-                                <span className="font-bold text-xl">
-                                  Lista de Equipos
-                                </span>
-                                <EqipmentLocalPassModal
-                                  title="Nuevo Equipo"
-                                  equipos={equipos}
-                                  setEquipos={setEquipos}
-                                  isAccesos={false}
-                                  fetch={false}
-                                  userId={account_id}>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleCheckboxChange("agregar-equipos")
-                                    }
-                                    className="px-4 py-2 rounded-md transition-all duration-300 border-2 border-blue-400 bg-transparent hover:bg-slate-100">
-                                    <div className="flex items-center gap-2">
-                                      <div className="text-blue-600 sm:hidden text-xl font-bold">
-                                        +
-                                      </div>
-                                      <Laptop className="text-blue-600" />
-                                      <div className="text-blue-600 hidden sm:block">
-                                        Agregar Equipos
-                                      </div>
-                                    </div>
-                                  </button>
-                                </EqipmentLocalPassModal>
-                              </div>
-                              <div className="mt-2 text-gray-600">
-                                <Accordion type="multiple" className="w-full">
-                                  {equipos.map((equipo, index) => (
-                                    <AccordionItem
-                                      key={index}
-                                      value={`equipo-${index}`}>
-                                      <AccordionTrigger>
-                                        {equipo.tipo}
-                                      </AccordionTrigger>
-                                      <AccordionContent>
-                                        <div className="p-4 text-sm">
-                                          {equipo.foto_equipo &&
-                                          equipo.foto_equipo.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                              <div className="space-y-1">
-                                                <p>
-                                                  <strong>Tipo:</strong>{" "}
-                                                  {equipo.tipo}
-                                                </p>
-                                                <p>
-                                                  <strong>Nombre:</strong>{" "}
-                                                  {equipo.nombre}
-                                                </p>
-                                                <p>
-                                                  <strong>Marca:</strong>{" "}
-                                                  {equipo.marca}
-                                                </p>
-                                                <p>
-                                                  <strong>Modelo:</strong>{" "}
-                                                  {equipo.modelo}
-                                                </p>
-                                                <p>
-                                                  <strong>No. Serie:</strong>{" "}
-                                                  {equipo.serie}
-                                                </p>
-                                                <p>
-                                                  <strong>Color:</strong>{" "}
-                                                  {equipo.color}
-                                                </p>
-                                              </div>
-                                              <div className="flex flex-col items-center justify-center border rounded-md p-2 bg-gray-50">
-                                                <p className="text-xs font-bold mb-2">
-                                                  Foto del Equipo
-                                                </p>
-                                                <Image
-                                                  src={
-                                                    equipo.foto_equipo[0]
-                                                      .file_url || "/nouser.svg"
-                                                  }
-                                                  alt="Foto equipo"
-                                                  width={150}
-                                                  height={150}
-                                                  className="rounded-md object-cover w-full max-h-[150px]"
-                                                />
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                              <p>
-                                                <strong>Tipo:</strong>{" "}
-                                                {equipo.tipo}
-                                              </p>
-                                              <p>
-                                                <strong>Nombre:</strong>{" "}
-                                                {equipo.nombre}
-                                              </p>
-                                              <p>
-                                                <strong>Marca:</strong>{" "}
-                                                {equipo.marca}
-                                              </p>
-                                              <p>
-                                                <strong>Modelo:</strong>{" "}
-                                                {equipo.modelo}
-                                              </p>
-                                              <p>
-                                                <strong>No. Serie:</strong>{" "}
-                                                {equipo.serie}
-                                              </p>
-                                              <p>
-                                                <strong>Color:</strong>{" "}
-                                                {equipo.color}
-                                              </p>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        <div className="flex justify-end px-4 pb-4">
-                                          <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() =>
-                                              handleRemoveEq(index)
-                                            }>
-                                            Eliminar
-                                          </Button>
-                                        </div>
-                                      </AccordionContent>
-                                    </AccordionItem>
-                                  ))}
-                                  {equipos.length == 0 ? (
-                                    <div>No se han agregado equipos.</div>
-                                  ) : null}
-                                </Accordion>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* <Button className="w-1/2  bg-blue-500 hover:bg-blue-600 my-2" type="submit" onClick={SendUpdate} disabled={isLoading}>
-								{!isLoading ? ("Actualizar"):(<><Loader2 className="animate-spin"/>Actualizando...</>)}
-								</Button> */}
-
-                          <Button
-                            className="w-1/2  bg-blue-500 hover:bg-blue-600 my-2"
-                            type="submit"
-                            onClick={updateInfoActivePass}>
-                            Actualizar
-                          </Button>
                         </div>
-                      </>
+
+                        <div className="w-full flex flex-col gap-6">
+                          {/* Vehículos */}
+                          <div className="bg-white border border-slate-200 rounded-2xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                <Car size={18} className="text-blue-500" />
+                                Vehículos
+                              </span>
+                              <VehicleLocalPassModal
+                                title="Nuevo Vehiculo"
+                                vehicles={vehicles}
+                                setVehiculos={setVehiculos}
+                                isAccesos={false}
+                                fetch={false}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCheckboxChange("agregar-vehiculos")}
+                                  className="px-3 py-1.5 rounded-lg text-sm font-semibold border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-1.5">
+                                  <span className="text-base leading-none">+</span>
+                                  <span className="hidden sm:inline">Agregar</span>
+                                </button>
+                              </VehicleLocalPassModal>
+                            </div>
+
+                            <Accordion type="multiple" className="w-full">
+                              {vehicles.map((vehiculo, index) => (
+                                <AccordionItem key={index} value={`vehiculo-${index}`} className="border-slate-100">
+                                  <AccordionTrigger className="text-sm font-medium text-slate-700 hover:no-underline">
+                                    {vehiculo.tipo}
+                                  </AccordionTrigger>
+                                  <AccordionContent>
+                                    <div className="p-3 text-sm bg-slate-50 rounded-xl">
+                                      {(vehiculo.foto_vehiculo?.length ?? 0) > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          <div className="space-y-1">
+                                            <p><strong>Tipo:</strong> {vehiculo.tipo}</p>
+                                            <p><strong>Marca:</strong> {vehiculo.marca}</p>
+                                            <p><strong>Modelo:</strong> {vehiculo.modelo}</p>
+                                            <p><strong>Placas:</strong> {vehiculo.placas}</p>
+                                            <p><strong>Estado:</strong> {vehiculo.estado}</p>
+                                            <p><strong>Color:</strong> {vehiculo.color}</p>
+                                          </div>
+                                          <div className="flex flex-col items-center justify-center border rounded-lg p-2 bg-white">
+                                            <p className="text-xs font-bold mb-2">Foto del Vehículo</p>
+                                            <Image
+                                              src={vehiculo.foto_vehiculo?.[0]?.file_url || "/nouser.svg"}
+                                              alt="Foto vehículo"
+                                              width={150}
+                                              height={150}
+                                              className="rounded-lg object-cover w-full max-h-[150px]"
+                                            />
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                          <p><strong>Tipo:</strong> {vehiculo.tipo}</p>
+                                          <p><strong>Marca:</strong> {vehiculo.marca}</p>
+                                          <p><strong>Modelo:</strong> {vehiculo.modelo}</p>
+                                          <p><strong>Placas:</strong> {vehiculo.placas}</p>
+                                          <p><strong>Estado:</strong> {vehiculo.estado}</p>
+                                          <p><strong>Color:</strong> {vehiculo.color}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex justify-end pt-3">
+                                      <Button variant="destructive" size="sm" onClick={() => handleRemove(index)}>
+                                        Eliminar
+                                      </Button>
+                                    </div>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              ))}
+                              {vehicles.length == 0 && (
+                                <p className="text-sm text-slate-400 py-2">No se han agregado vehículos.</p>
+                              )}
+                            </Accordion>
+                          </div>
+
+                          {/* Equipos */}
+                          <div className="bg-white border border-slate-200 rounded-2xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                <Laptop size={18} className="text-blue-500" />
+                                Equipos
+                              </span>
+                              <EqipmentLocalPassModal
+                                title="Nuevo Equipo"
+                                equipos={equipos}
+                                setEquipos={setEquipos}
+                                isAccesos={false}
+                                fetch={false}
+                                userId={account_id}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCheckboxChange("agregar-equipos")}
+                                  className="px-3 py-1.5 rounded-lg text-sm font-semibold border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-1.5">
+                                  <span className="text-base leading-none">+</span>
+                                  <span className="hidden sm:inline">Agregar</span>
+                                </button>
+                              </EqipmentLocalPassModal>
+                            </div>
+
+                            <Accordion type="multiple" className="w-full">
+                              {equipos.map((equipo, index) => (
+                                <AccordionItem key={index} value={`equipo-${index}`} className="border-slate-100">
+                                  <AccordionTrigger className="text-sm font-medium text-slate-700 hover:no-underline">
+                                    {equipo.tipo}
+                                  </AccordionTrigger>
+                                  <AccordionContent>
+                                    <div className="p-3 text-sm bg-slate-50 rounded-xl">
+                                      {equipo.foto_equipo && equipo.foto_equipo.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          <div className="space-y-1">
+                                            <p><strong>Tipo:</strong> {equipo.tipo}</p>
+                                            <p><strong>Nombre:</strong> {equipo.nombre}</p>
+                                            <p><strong>Marca:</strong> {equipo.marca}</p>
+                                            <p><strong>Modelo:</strong> {equipo.modelo}</p>
+                                            <p><strong>No. Serie:</strong> {equipo.serie}</p>
+                                            <p><strong>Color:</strong> {equipo.color}</p>
+                                          </div>
+                                          <div className="flex flex-col items-center justify-center border rounded-lg p-2 bg-white">
+                                            <p className="text-xs font-bold mb-2">Foto del Equipo</p>
+                                            <Image
+                                              src={equipo.foto_equipo[0].file_url || "/nouser.svg"}
+                                              alt="Foto equipo"
+                                              width={150}
+                                              height={150}
+                                              className="rounded-lg object-cover w-full max-h-[150px]"
+                                            />
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                          <p><strong>Tipo:</strong> {equipo.tipo}</p>
+                                          <p><strong>Nombre:</strong> {equipo.nombre}</p>
+                                          <p><strong>Marca:</strong> {equipo.marca}</p>
+                                          <p><strong>Modelo:</strong> {equipo.modelo}</p>
+                                          <p><strong>No. Serie:</strong> {equipo.serie}</p>
+                                          <p><strong>Color:</strong> {equipo.color}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex justify-end pt-3">
+                                      <Button variant="destructive" size="sm" onClick={() => handleRemoveEq(index)}>
+                                        Eliminar
+                                      </Button>
+                                    </div>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              ))}
+                              {equipos.length == 0 && (
+                                <p className="text-sm text-slate-400 py-2">No se han agregado equipos.</p>
+                              )}
+                            </Accordion>
+                          </div>
+                        </div>
+
+                        <Button
+                          className="w-full sm:w-1/2 h-11 bg-slate-900 hover:bg-slate-800 rounded-xl font-semibold"
+                          type="submit"
+                          onClick={updateInfoActivePass}>
+                          Actualizar
+                        </Button>
+                      </div>
                     ) : null}
                   </>
                 )}
