@@ -28,6 +28,7 @@ import { getImgPassUrl } from "@/lib/endpoints";
 import { useUpdateAccessPass } from "@/hooks/useUpdatePass";
 import { useConfirmModal } from "@/hooks/useConfirmModal";
 import { ConfirmModal } from "../confirm-modal";
+import { useMenuStore } from "@/store/useGetMenuStore";
 
 type Vehiculo_custom = {
   tipo_vehiculo: string;
@@ -182,11 +183,18 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
   const [openAddPhone, setOpenAddPhone] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const cancelModal = useConfirmModal();
+  const { grupoRequisitos } = useMenuStore();
   const ubicaciones: string[] = Array.isArray(data?.ubicacion)
     ? data.ubicacion
     : typeof data?.ubicacion === "string" && data.ubicacion
     ? [data.ubicacion]
     : [];
+  const requisitoUbicacion = grupoRequisitos?.find(
+    (r) => r.ubicacion?.toLowerCase() === ubicaciones[0]?.toLowerCase()
+  );
+
+  const toleranciaPrevia = requisitoUbicacion?.tolerancia_de_entrada_previa ?? 0;
+  const toleranciaPosterior = requisitoUbicacion?.tolerancia_de_entrada_posterior ?? 0;
 
   function onEnviarCorreo() {
     if (data?.status_pase?.toLowerCase() != "vencido") {
@@ -411,6 +419,31 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
                 <p className="text-sm font-semibold text-gray-800">{data?.fecha_desde_hasta || "—"}</p>
               </div>
             </div>
+
+            {(toleranciaPrevia > 0 || toleranciaPosterior > 0) && (
+              <div className="flex flex-wrap gap-3 mt-4">
+                {toleranciaPrevia > 0 && (
+                  <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-blue-600">
+                      Tolerancia previa
+                    </span>
+                    <span className="text-sm font-semibold text-slate-800">
+                      {toleranciaPrevia} min antes
+                    </span>
+                  </div>
+                )}
+                {toleranciaPosterior > 0 && (
+                  <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-blue-600">
+                      Tolerancia posterior
+                    </span>
+                    <span className="text-sm font-semibold text-slate-800">
+                      {toleranciaPosterior} min después
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {data?.limitado_a_dias !== undefined && data?.limitado_a_dias.length > 0 && (
               <div className="mt-4">
