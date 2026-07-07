@@ -418,7 +418,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
             })}
           </div>
         )}
-
+        {!(viewMode && miembrosEditables.length === 0) && (
         <div
           className="rounded-xl border border-gray-100 overflow-hidden overflow-x-auto"
           style={{ maxHeight: `${ROW_HEIGHT * MAX_VISIBLE + 40}px` }}
@@ -699,11 +699,13 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
               </p>
             )}
         </div>
-
-        <div className="flex items-center justify-between mt-2 text-[11px] text-gray-400">
-          <span>{miembros.length} registro{miembros.length !== 1 ? "s" : ""}</span>
-          {hasAnyError && <p className="text-red-500">Campos en rojo requieren corrección.</p>}
-        </div>
+        )}
+        {!(viewMode && miembrosEditables.length === 0) && (
+          <div className="flex items-center justify-between mt-2 text-[11px] text-gray-400">
+            <span>{miembros.length} registro{miembros.length !== 1 ? "s" : ""}</span>
+            {hasAnyError && <p className="text-red-500">Campos en rojo requieren corrección.</p>}
+          </div>
+        )}
       </div>
 
       <ImportarMiembrosModal
