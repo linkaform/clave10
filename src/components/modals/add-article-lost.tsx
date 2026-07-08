@@ -42,6 +42,7 @@ import { Input } from "../ui/input";
 import { useCatalogoArticulos } from "@/hooks/useCatalogoArticulos";
 import { useGetLockers } from "@/hooks/useGetLockers";
 import { useBoothStore } from "@/store/useBoothStore";
+import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 
 interface AddFallaModalProps {
   title: string;
@@ -87,6 +88,7 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
   const { location } = useBoothStore();
   // const [catalagoSub, setCatalogoSub] = useState<string[]>([]);
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState("");
+  const { defaultLocations, getDefaultLocation, getDefaultAreaForLocation } = useAreasLocationStore();
   const {
     dataAreas: areas,
     dataLocations: ubicaciones,
@@ -151,16 +153,49 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
   const { reset } = form;
 
   useEffect(() => {
-    if (location) {
-      setUbicacionSeleccionada(location);
+    const ubicacionDefault = location || getDefaultLocation();
+    if (ubicacionDefault) {
+      setUbicacionSeleccionada(ubicacionDefault);
+      form.setValue("ubicacion_perdido", ubicacionDefault);
     }
-  }, []);
+  }, [location, defaultLocations]);
+
+  useEffect(() => {
+    if (!ubicacionSeleccionada) return;
+    if (!areas || areas.length === 0) return;
+    if (form.getValues("area_perdido")) return; 
+
+    const areaDefault = getDefaultAreaForLocation(ubicacionSeleccionada);
+
+    if (areaDefault && areas.includes(areaDefault)) {
+      form.setValue("area_perdido", areaDefault);
+    }
+  }, [areas, ubicacionSeleccionada]);
 
   useEffect(() => {
     if (isSuccess) {
-      reset();
+      const ubicacionDefault = location || getDefaultLocation();
+
+      reset({
+        area_perdido: "",
+        articulo_perdido: "",
+        articulo_seleccion: "",
+        color_perdido: "",
+        comentario_perdido: "",
+        date_hallazgo_perdido: "",
+        descripcion: "",
+        estatus_perdido: "",
+        foto_perdido: [],
+        locker_perdido: "",
+        quien_entrega: "",
+        quien_entrega_externo: "",
+        quien_entrega_interno: "",
+        tipo_articulo_perdido: "",
+        ubicacion_perdido: ubicacionDefault, // 👈 aquí se preserva
+      });
       setDate(new Date());
       setEvidencia([]);
+      setUbicacionSeleccionada(ubicacionDefault); // 👈 dispara useCatalogoPaseAreaLocation
       refetchAreaEmpleado();
     }
   }, [isSuccess]);
