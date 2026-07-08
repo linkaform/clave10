@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import DateTimePicker from "../dateTimerPicker";
 import { SearchSelect } from "../custom-search-select";
+import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 
 interface ArticuloData {
   ubicacion_concesion?: string;
@@ -117,15 +118,14 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   const { location, area } = useBoothStore();
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location ?? "");
   const [equipos, setEquipos] = useState<any[]>([]);
-  const { dataAreas: areas, dataLocations: ubicaciones, isLoadingAreas: loadingAreas, isLoadingLocations: loadingUbicaciones } =
-    useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, ubicacionSeleccionada ? true : false);
+  const { dataAreas: areas, dataLocations: ubicaciones, isLoadingAreas: loadingAreas, isLoadingLocations: loadingUbicaciones } = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, ubicacionSeleccionada ? true : false);
   const [loadingIdentificacion, setLoadingIdentificacion] = useState(false);
-  const { data: dataAreaEmpleadoApoyoArray, isLoading: loadingAreaEmpleadoApoyo } =
-    useCatalogoAreaEmpleadoApoyo(isSuccess);
-    const dataAreaEmpleadoApoyo = dataAreaEmpleadoApoyoArray?.filter(Boolean);
-  const { createArticulosConMutation, editarArticulosConMutation, isLoading } =
-    useArticulosConcesionados(ubicacionSeleccionada, area ?? "", "", false, "", "", "");
+  const { data: dataAreaEmpleadoApoyoArray, isLoading: loadingAreaEmpleadoApoyo } = useCatalogoAreaEmpleadoApoyo(isSuccess);
+  const dataAreaEmpleadoApoyo = dataAreaEmpleadoApoyoArray?.filter(Boolean);
+  const { createArticulosConMutation, editarArticulosConMutation, isLoading } = useArticulosConcesionados(ubicacionSeleccionada, area ?? "", "", false, "", "", "");
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const { getDefaultLocation, getDefaultAreaForLocation } = useAreasLocationStore();
+  const didInitRef = useRef(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -152,6 +152,13 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   const { reset } = form;
 
   useEffect(() => {
+    if (!isSuccess) {
+      didInitRef.current = false; // se resetea cuando el modal se cierra
+      return;
+    }
+    if (didInitRef.current) return; // ya se inicializó esta apertura, no repetir
+    didInitRef.current = true;
+
     if (isSuccess) {
       if (mode === "edit" && initialData) {
         reset({
@@ -175,8 +182,10 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
         if (initialData.ubicacion_concesion) setUbicacionSeleccionada(initialData.ubicacion_concesion);
         if (initialData.fecha_concesion) setDate(new Date(initialData.fecha_concesion));
       } else {
+        const ubicacionDefault = location || getDefaultLocation();
+
         reset({
-          ubicacion_concesion: "",
+          ubicacion_concesion: ubicacionDefault,
           area_concesion: "",
           caseta_concesion: "",
           status_concesion: "",
@@ -195,7 +204,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
         });
         setDate(new Date());
         setEquipos([]);
-        setUbicacionSeleccionada(location ?? "");
+        setUbicacionSeleccionada(ubicacionDefault);
         setTextoFirma("");
         setVistaPrevia("");
       }
@@ -296,6 +305,39 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
     }
   }, [response]);
 
+  // Setea el área default una vez que useCatalogoPaseAreaLocation trae las áreas de esa ubicación
+  useEffect(() => {
+    if (mode !== "create") return;
+    if (!isSuccess) return;
+    if (!ubicacionSeleccionada) return;
+    if (!areas || areas.length === 0) return;
+
+    const valorActual = form.getValues("area_concesion");
+    console.log("[área default] valor actual en form:", valorActual);
+    if (valorActual) return;
+
+    const areaDefault = getDefaultAreaForLocation(ubicacionSeleccionada);
+    console.log("[área default] ubicacionSeleccionada:", ubicacionSeleccionada);
+    console.log("[área default] areaDefault calculado:", areaDefault);
+    console.log("[área default] areas disponibles:", areas);
+
+    if (!areaDefault) {
+      console.log("[área default] no hay área default para esta ubicación");
+      return;
+    }
+
+    // match normalizado (evita fallos por espacios/mayúsculas)
+    const match = areas.find(
+      (a: string) => a.trim().toLowerCase() === areaDefault.trim().toLowerCase()
+    );
+
+    console.log("[área default] match encontrado:", match);
+
+    if (match) {
+      form.setValue("area_concesion", match, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [areas, ubicacionSeleccionada, mode, isSuccess]);
+
   return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
       <DialogTrigger>{children}</DialogTrigger>
@@ -337,7 +379,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                             value={field.value}
                             onChange={(val) => { field.onChange(val); setUbicacionSeleccionada(val); }}
                             isLoading={loadingUbicaciones}
-                            placeholder="Selecciona una ubicación"
+                            placeholder={isLoading ? "Cargando áreas..." : "Selecciona un área"}
                             noOptionsMessage="Sin ubicaciones disponibles"
                           />
                         </FormControl>
