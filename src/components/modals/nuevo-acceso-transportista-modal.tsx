@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import {
   ArrowLeftRight,
   Camera,
-  Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -249,161 +248,6 @@ function SectionDivider({
 }
 
 
-function SignaturePad({
-  onChange,
-  onSave,
-  saveState = "idle",
-  onReset,
-}: {
-  onChange: (data: string | null) => void;
-  onSave?: () => void;
-  saveState?: "idle" | "uploading" | "done";
-  onReset?: () => void;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const isDrawing = useRef(false);
-  const hasContent = useRef(false);
-  const onChangeCb = useCallback(onChange, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const getPos = (e: MouseEvent | TouchEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-      const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-      return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY,
-      };
-    };
-
-    const startDraw = (e: MouseEvent | TouchEvent) => {
-      e.preventDefault();
-      isDrawing.current = true;
-      const pos = getPos(e);
-      ctx.beginPath();
-      ctx.moveTo(pos.x, pos.y);
-    };
-
-    const draw = (e: MouseEvent | TouchEvent) => {
-      e.preventDefault();
-      if (!isDrawing.current) return;
-      const pos = getPos(e);
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.strokeStyle = "#1e293b";
-      ctx.lineTo(pos.x, pos.y);
-      ctx.stroke();
-      hasContent.current = true;
-    };
-
-    const stopDraw = () => {
-      if (isDrawing.current) {
-        isDrawing.current = false;
-        if (hasContent.current) onChangeCb(canvas.toDataURL());
-      }
-    };
-
-    canvas.addEventListener("mousedown", startDraw);
-    canvas.addEventListener("mousemove", draw);
-    canvas.addEventListener("mouseup", stopDraw);
-    canvas.addEventListener("mouseleave", stopDraw);
-    canvas.addEventListener("touchstart", startDraw, { passive: false });
-    canvas.addEventListener("touchmove", draw, { passive: false });
-    canvas.addEventListener("touchend", stopDraw);
-    return () => {
-      canvas.removeEventListener("mousedown", startDraw);
-      canvas.removeEventListener("mousemove", draw);
-      canvas.removeEventListener("mouseup", stopDraw);
-      canvas.removeEventListener("mouseleave", stopDraw);
-      canvas.removeEventListener("touchstart", startDraw);
-      canvas.removeEventListener("touchmove", draw);
-      canvas.removeEventListener("touchend", stopDraw);
-    };
-  }, [onChangeCb]);
-
-  const clear = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
-    hasContent.current = false;
-    onChangeCb(null);
-    onReset?.();
-  };
-
-  return (
-    <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden">
-      <div className="relative">
-        <canvas
-          ref={canvasRef}
-          width={600}
-          height={120}
-          className="w-full touch-none cursor-crosshair bg-white"
-          style={{ display: "block" }}
-        />
-        {/* guide line */}
-        <div className="absolute bottom-5 left-6 right-6 h-px bg-gray-200 pointer-events-none" />
-        <span className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] text-gray-300 pointer-events-none select-none">
-          Firma aquí
-        </span>
-      </div>
-      <div className="flex justify-between items-center px-4 py-2 border-t border-gray-100 bg-gray-50">
-        <span className="text-[11px] text-gray-400">
-          Dibuja tu firma con el mouse o con el dedo
-        </span>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={clear}
-            className="text-[11px] font-semibold text-gray-400 hover:text-red-500 transition-colors">
-            Limpiar
-          </button>
-          {onSave && (
-            <button
-              type="button"
-              disabled={
-                !hasContent.current ||
-                saveState === "uploading" ||
-                saveState === "done"
-              }
-              onClick={onSave}
-              className={cn(
-                "flex items-center gap-1.5 text-[11px] font-semibold transition-colors",
-                saveState === "done"
-                  ? "text-green-600 cursor-default"
-                  : hasContent.current && saveState === "idle"
-                    ? "text-blue-600 hover:text-blue-700"
-                    : "text-gray-300 cursor-not-allowed",
-              )}>
-              {saveState === "uploading" ? (
-                <>
-                  <span className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                  Guardando...
-                </>
-              ) : saveState === "done" ? (
-                <>
-                  <Check className="w-3 h-3" /> Guardada
-                </>
-              ) : (
-                <>
-                  <Check className="w-3 h-3" /> Guardar firma
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
 type Tab = "vehiculo" | "materiales" | "remolques";
@@ -418,13 +262,6 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "remolques",  label: "Remolques"  },
   { key: "materiales", label: "Materiales" },
 ];
-
-type PhotoState = { file_name: string; file_url: string; uploading: boolean };
-const emptyPhoto = (): PhotoState => ({
-  file_name: "",
-  file_url: "",
-  uploading: false,
-});
 
 export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   const [tab, setTab] = useState<Tab>("vehiculo");
@@ -451,11 +288,13 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   const [rfcConductor, setRfcConductor] = useState("");
   const [acompanante, setAcompanante] = useState("");
   const [documentosDetectados, setDocumentosDetectados] = useState<string[]>([]);
+  // Placa leída en la tarjeta de circulación del vehículo — sin campo visual
+  // en este modal todavía, pero se manda al crear el registro para usarla
+  // más adelante (verificación de placas en la inspección de entrada).
+  const [placaTarjetaVehiculo, setPlacaTarjetaVehiculo] = useState<string | null>(null);
 
-  // Fotos y firma
+  // Fotos
   const [documentos, setDocumentos] = useState<DocItem[]>([]);
-  const [firma, setFirma] = useState<PhotoState>(emptyPhoto());
-  const [pendingSignature, setPendingSignature] = useState<string | null>(null);
 
   // IA
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
@@ -538,25 +377,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   };
   const removeDocumento = (id: string) => setDocumentos((p) => p.filter((d) => d.id !== id));
 
-  const uploadSignature = async (base64: string) => {
-    setFirma((p) => ({ ...p, uploading: true }));
-    try {
-      const res = await fetch(base64);
-      const blob = await res.blob();
-      const file = new File([blob], "firma_conductor.png", {
-        type: "image/png",
-      });
-      const result = await uploadImageMutation.mutateAsync({ img: file });
-      setFirma({
-        file_name: result?.file_name ?? "firma_conductor.png",
-        file_url: result?.file_url ?? "",
-        uploading: false,
-      });
-    } catch {
-      setFirma((p) => ({ ...p, uploading: false }));
-    }
-  };
-
   const analyzePhotosWithAI = async () => {
     setAiAnalyzing(true);
     try {
@@ -577,6 +397,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
         contenedores: { tipo?: string; no_caja?: string; no_sello?: string; placas?: string; color?: string; comentarios?: string }[];
         materiales: { producto?: string; lote?: string; cant_esperada?: string; peso?: string; volumen?: string }[];
         embarque: Partial<{ proveedor_cliente: string; no_orden_compra: string }>;
+        placas_tarjetas: Partial<{ vehiculo: string; remolque: string }>;
       }>;
 
       const filled = new Set<string>();
@@ -680,6 +501,10 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       // Embarque
       if (d.embarque?.proveedor_cliente) { setProveedorCliente(d.embarque.proveedor_cliente); filled.add("proveedorCliente"); }
       if (d.embarque?.no_orden_compra)   { setOrdenCompra(d.embarque.no_orden_compra);        filled.add("ordenCompra"); }
+
+      // Placa de la tarjeta de circulación del vehículo — sin campo visual,
+      // se guarda para mandarla al crear el registro.
+      if (d.placas_tarjetas?.vehiculo) setPlacaTarjetaVehiculo(d.placas_tarjetas.vehiculo);
 
       setAiFilledFields(filled);
     } finally {
@@ -1169,27 +994,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                   </div>
                 </div>
               </div>
-
-              <div>
-                <FieldLabel required>Firma del conductor</FieldLabel>
-                <SignaturePad
-                  onChange={(data) => setPendingSignature(data)}
-                  onSave={() => {
-                    if (pendingSignature) uploadSignature(pendingSignature);
-                  }}
-                  saveState={
-                    firma.uploading
-                      ? "uploading"
-                      : firma.file_url
-                        ? "done"
-                        : "idle"
-                  }
-                  onReset={() => {
-                    setFirma(emptyPhoto());
-                    setPendingSignature(null);
-                  }}
-                />
-              </div>
             </>
           )}
 
@@ -1474,6 +1278,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                   marca: marcaVehiculo || null,
                   modelo: modeloVehiculo || null,
                   color: colorVehiculo || null,
+                  placa_tarjeta_circulacion: placaTarjetaVehiculo || null,
                 },
                 conductor: {
                   nombre: conductor || null,
@@ -1481,9 +1286,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                   vigencia_licencia: vigenciaLicencia || null,
                   rfc: rfcConductor || null,
                   acompanante: acompanante || null,
-                  firma: firma.file_url
-                    ? { file_name: firma.file_name, file_url: firma.file_url }
-                    : null,
                 },
                 embarque: {
                   proveedor_cliente: proveedorCliente || null,
@@ -1525,7 +1327,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                         acompanante: acompanante || null,
                         foto_conductor: null,
                         foto_licencia: null,
-                        firma: firma.file_url ? { file_url: firma.file_url } : null,
+                        firma: null,
                       },
                       embarque: {
                         proveedor_cliente: proveedorCliente || null,

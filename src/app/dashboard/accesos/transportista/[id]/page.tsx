@@ -176,12 +176,16 @@ function InspeccionEntradaModal({
   recordId,
   unidades,
   inspeccionesDone,
+  placaVehiculo,
+  documentosAdicionales,
   onClose,
   onSaved,
 }: {
   recordId: string;
   unidades: UnidadItem[];
   inspeccionesDone: { tipo: string; unidad?: number; url?: string }[];
+  placaVehiculo?: string | null;
+  documentosAdicionales?: { file_url: string; file_name: string; tipo?: string }[];
   onClose: () => void;
   onSaved?: () => void;
 }) {
@@ -191,8 +195,45 @@ function InspeccionEntradaModal({
     inspeccionesDone.some((i) => i.tipo === buildTipoKey(tipo, unidad));
   const [activeTab, setActiveTab] = useState(0);
   const [tractorEvidencia, setTractorEvidencia] = useState<EvidenciaImg[]>([]);
+  // Placa leída de la tarjeta de circulación — por ahora sin fuente de datos;
+  // quedará poblada por el análisis de IA que compare ambas fotos de placa.
+  const [placaTarjetaCirculacion] = useState<string | null>(null);
   const [uploadingSection, setUploadingSection] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Subida directa de un documento ligado (ej. foto de placa / tarjeta de
+  // circulación) desde esta misma pantalla — se guarda igual que desde el
+  // panel de Documentos, así que aparece de inmediato en ambos lugares.
+  const [uploadingPlacaDoc, setUploadingPlacaDoc] = useState<string | null>(null);
+  const placaDocInputRef = useRef<HTMLInputElement>(null);
+  const pendingPlacaSlugRef = useRef<string | null>(null);
+
+  const triggerPlacaDocUpload = (slug: string) => {
+    pendingPlacaSlugRef.current = slug;
+    placaDocInputRef.current?.click();
+  };
+
+  const handlePlacaDocFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const slug = pendingPlacaSlugRef.current;
+    e.target.value = "";
+    pendingPlacaSlugRef.current = null;
+    if (!file || !slug) return;
+    setUploadingPlacaDoc(slug);
+    try {
+      const res = await uploadImage(file);
+      if (!res?.file) throw new Error("upload failed");
+      await saveBitacoraTransportistaRecord(recordId, "documentos", {
+        documentos_adicionales: { file_url: res.file, file_name: res.file_name ?? file.name, tipo: slug, index: null },
+      });
+      onSaved?.();
+      toast.success("Documento guardado");
+    } catch {
+      toast.error("Error al subir el documento");
+    } finally {
+      setUploadingPlacaDoc(null);
+    }
+  };
   const pendingSectionRef = useRef<string | null>(null);
   const tabsScrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -656,6 +697,58 @@ function InspeccionEntradaModal({
         {renderDoneBanner("tractor")}
         {!done && (
           <>
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Verificación de placas</p>
+              <div className="grid grid-cols-2 gap-3">
+                {(() => {
+                  const fotoPlacaDoc = documentosAdicionales?.find(
+                    (dd) => dd.tipo === DOCUMENTOS_REQUERIDOS_SLUGS["Foto de placa de vehículo"]
+                  );
+                  const tarjetaDoc = documentosAdicionales?.find(
+                    (dd) => dd.tipo === DOCUMENTOS_REQUERIDOS_SLUGS["Tarjeta de circulación - Vehículo"]
+                  );
+                  const campo = (
+                    titulo: string,
+                    valor: string | null,
+                    valorTag: string,
+                    doc: { file_url: string; file_name: string } | undefined,
+                    slug: string,
+                  ) => {
+                    const uploading = uploadingPlacaDoc === slug;
+                    return (
+                      <div className="space-y-1.5">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{titulo}</p>
+                        <div className="h-9 rounded-lg border border-gray-200 bg-gray-50 px-2.5 flex items-center gap-1.5 text-xs text-gray-700">
+                          <Lock className="w-3 h-3 text-gray-400 shrink-0" />
+                          <span className="flex-1 truncate font-mono uppercase">{valor || "Sin información"}</span>
+                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest shrink-0">{valorTag}</span>
+                        </div>
+                        {doc ? (
+                          <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
+                            className="block relative w-full h-20 rounded-lg overflow-hidden border border-gray-200">
+                            <img src={doc.file_url} alt="" className="w-full h-full object-cover" />
+                          </a>
+                        ) : (
+                          <button type="button" disabled={uploading} onClick={() => triggerPlacaDocUpload(slug)}
+                            className="w-full h-20 flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-red-200 bg-red-50/40 hover:border-red-300 hover:bg-red-50 px-2.5 text-[11px] text-red-500 transition-colors disabled:opacity-60">
+                            {uploading
+                              ? <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                              : <Camera className="w-4 h-4" />}
+                            <span className="text-center leading-snug">{uploading ? "Subiendo..." : "Documento pendiente · subir ahora"}</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  };
+                  return (
+                    <>
+                      {campo("Placas del vehículo físicas", placaVehiculo ?? null, "Sistema", fotoPlacaDoc, DOCUMENTOS_REQUERIDOS_SLUGS["Foto de placa de vehículo"])}
+                      {campo("Placas en tarjeta de circulación", placaTarjetaCirculacion, "IA", tarjetaDoc, DOCUMENTOS_REQUERIDOS_SLUGS["Tarjeta de circulación - Vehículo"])}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
                 Inspección de {PUNTOS_TRACTOR.length} puntos
@@ -665,7 +758,6 @@ function InspeccionEntradaModal({
                 {tractorEval} / {PUNTOS_TRACTOR.length} evaluados
               </span>
             </div>
-            {renderEvidence("EVIDENCIA DEL VEHÍCULO · ENTRADA", "ev:tractor", tractorEvidencia)}
             <div>
               {PUNTOS_TRACTOR.map((label, i) =>
                 renderSiNoRow(
@@ -917,6 +1009,13 @@ function InspeccionEntradaModal({
           accept="image/jpeg,image/jpg,image/png"
           className="hidden"
           onChange={handleEvidenciaFileChange}
+        />
+        <input
+          ref={placaDocInputRef}
+          type="file"
+          accept="image/*,application/pdf"
+          className="hidden"
+          onChange={handlePlacaDocFileChange}
         />
 
         {/* Footer */}
@@ -3413,6 +3512,8 @@ export default function DetalleTransportistaPage() {
           recordId={id}
           unidades={unidades}
           inspeccionesDone={data?.inspecciones ?? []}
+          placaVehiculo={data?.vehiculo?.placa}
+          documentosAdicionales={data?.documentos_adicionales}
           onClose={() => setShowInspeccion(false)}
           onSaved={refetch}
         />
