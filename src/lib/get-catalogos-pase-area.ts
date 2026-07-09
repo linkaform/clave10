@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from "@/config/api";
 
-export const getCatalogoPasesAreaNoApi = async (location = "Caseta Principal") => {
+export const getCatalogoPasesAreaNoApi = async (location = "") => {
     const payload = {
         location,
         option: "catalogos_pase_area",

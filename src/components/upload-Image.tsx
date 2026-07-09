@@ -137,7 +137,6 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     if (nuevos.length > 0) {
       const updatedImgs = [...(imgArray ?? []), ...nuevos];
       setImg(updatedImgs);
-      // Auto-analizar si tiene onOcrResult
       if (onOcrResult) {
         const urls = updatedImgs
           .map((i: Imagen) => i.file_url)
@@ -158,6 +157,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     setHideWebcam(true);
     setHideButtonWebcam(false);
     setWebcamReady(false);
+    onOcrResult?.(null); 
   }
 
   function removeImage(indexToRemove: number) {

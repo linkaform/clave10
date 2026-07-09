@@ -7,7 +7,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import Image from "next/image";
 import {
   Carousel,
   CarouselContent,
@@ -16,7 +15,8 @@ import {
   CarouselPrevious,
 } from "../ui/carousel";
 import { Dispatch, SetStateAction } from "react";
-import { Box, Calendar, ImageOff, MessageCircleCodeIcon, Package, User } from "lucide-react";
+import { Box, Calendar, IdCard, ImageIcon, MessageCircleCodeIcon, Package, User } from "lucide-react";
+import ViewImage from "./view-image";
 
 export interface DevolucionItem {
   id_movimiento_devolucion: string;
@@ -78,8 +78,7 @@ interface HistorialDevolucionesModalProps {
                 <p className="text-sm">Sin datos</p>
               </div>
             ) : (
-              <div className="rounded-xl  overflow-hidden">
-  
+             <div className="rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between ">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Estado de la devolución
@@ -88,7 +87,7 @@ interface HistorialDevolucionesModalProps {
                     {devolucion.estatus_equipo}
                   </span>
                 </div>
-  
+
                 <div className="px-4 py-3 grid grid-cols-2 gap-x-6 gap-y-3">
                   <div className="flex items-start gap-2">
                     <Calendar className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
@@ -97,7 +96,7 @@ interface HistorialDevolucionesModalProps {
                       <p className="text-sm font-medium text-gray-700">{devolucion?.fecha_devolucion_concesion || "—"}</p>
                     </div>
                   </div>
-  
+
                   <div className="flex items-start gap-2">
                     <Box className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                     <div>
@@ -105,7 +104,7 @@ interface HistorialDevolucionesModalProps {
                       <p className="text-sm font-medium text-gray-700">{Number(devolucion?.cantidad_devolucion)} </p>
                     </div>
                   </div>
-  
+
                   <div className="flex items-start gap-2 col-span-2">
                     <User className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
                     <div>
@@ -113,71 +112,61 @@ interface HistorialDevolucionesModalProps {
                       <p className="text-sm font-medium text-gray-700">{devolucion?.quien_entrega}</p>
                     </div>
                   </div>
-                <div className="flex items-start gap-2 col-span-2">
-                <MessageCircleCodeIcon className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-xs text-gray-400 mb-0.5">Comentario</p>
-                  <p className="text-sm text-gray-600">{devolucion.comentario_entrega || "—"}</p>
-                </div>
-                </div>
-                 
-                </div>
-  
-                {devolucion?.evidencia_entrega?.length > 0 ? (
-                  <div className="px-4 pb-4">
-                     <p className="text-xs text-gray-400 mb-0.5">Evidencia de la entrega</p>
-                    {/* <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Evidencia</p> */}
-                    <div className="flex justify-center">
-                      <Carousel className="w-44">
-                        <CarouselContent>
-                          {devolucion.evidencia_entrega.map((img, i) => (
-                            <CarouselItem key={i}>
-                              <div className="rounded-xl overflow-hidden border bg-gray-50 aspect-square flex items-center justify-center">
-                                <Image
-                                  width={200}
-                                  height={200}
-                                  src={img.file_url || "/nouser.svg"}
-                                  alt={img.file_name}
-                                  className="w-full h-full object-contain"
-                                  unoptimized
-                                />
-                              </div>
-                            </CarouselItem>
-                          ))}
-                        </CarouselContent>
-                        {devolucion.evidencia_entrega.length > 1 && (
-                          <>
-                            <CarouselPrevious type="button" />
-                            <CarouselNext type="button" />
-                          </>
-                        )}
-                      </Carousel>
+
+                  <div className="flex items-start gap-2 col-span-2">
+                    <MessageCircleCodeIcon className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Comentario</p>
+                      <p className="text-sm text-gray-600">{devolucion.comentario_entrega || "—"}</p>
                     </div>
                   </div>
-                ) : (
-                  <div className="px-4 pb-4 flex items-center gap-2 text-gray-300">
-                    <ImageOff size={16} />
-                    <p className="text-xs">Sin evidencia</p>
-                  </div>
-                )}
 
+                  <div className="flex items-start gap-2 col-span-2">
+                    <ImageIcon className="w-4 h-4 text-teal-500 mt-0.5 flex-shrink-0" />
+                   <div className="w-full">
+                        <p className="text-xs text-gray-400 mb-2">Evidencia de devolución</p>
+                        {devolucion?.evidencia_entrega?.length > 0 ? (
+                          <div className="flex justify-center">
+                            <Carousel >
+                              <CarouselContent>
+                                {devolucion.evidencia_entrega.map((img, i) => (
+                                  <CarouselItem key={i}>
+                                    <div className="rounded-xl overflow-hidden border bg-gray-50 aspect-square flex items-center justify-center">
+                                      <ViewImage imageUrl={img} size="lg" />
+                                    </div>
+                                  </CarouselItem>
+                                ))}
+                              </CarouselContent>
+                              {devolucion.evidencia_entrega.length > 1 && (
+                                <>
+                                  <CarouselPrevious type="button" />
+                                  <CarouselNext type="button" />
+                                </>
+                              )}
+                            </Carousel>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-red-400">
+                            <p className="text-xs">Sin evidencia de devolución disponible</p>
+                          </div>
+                        )}
+                      </div>
+                  </div>
+                </div>
+
+               <div className="mx-4 mb-4 p-4 rounded-xl border-2 border-blue-100 bg-blue-50/50">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <IdCard className="w-4 h-4 text-blue-500" />
+                    <p className="text-sm font-bold text-blue-600">Identificación de quien realiza la devolución</p>
+                  </div>
                   {devolucion?.identificacion_entrega?.length > 0 ? (
-                  <div className="px-4 pb-4">
-                     <p className="text-xs text-gray-400 mb-0.5">Identificación de quien entrega</p>
                     <div className="flex justify-center">
-                      <Carousel className="w-44">
+                      <Carousel>
                         <CarouselContent>
                           {devolucion.identificacion_entrega.map((img, i) => (
                             <CarouselItem key={i}>
-                              <div className="rounded-xl overflow-hidden border bg-gray-50 aspect-square flex items-center justify-center">
-                                <Image
-                                  width={200}
-                                  height={200}
-                                  src={img.file_url || "/nouser.svg"}
-                                  alt={img.file_name}
-                                  className="w-full h-full object-contain"
-                                  unoptimized
-                                />
+                              <div className="rounded-xl overflow-hidden border-2 border-blue-200 bg-white aspect-square flex items-center justify-center">
+                                <ViewImage imageUrl={img} size="lg" />
                               </div>
                             </CarouselItem>
                           ))}
@@ -190,14 +179,12 @@ interface HistorialDevolucionesModalProps {
                         )}
                       </Carousel>
                     </div>
-                  </div>
-                ) : (
-                  <div className="px-4 pb-4 flex items-center gap-2 text-gray-300">
-                    <ImageOff size={16} />
-                    <p className="text-xs">Sin evidencia</p>
-                  </div>
-                )}
-  
+                  ) : (
+                    <div className="flex items-center gap-2 text-red-400">
+                      <p className="text-xs">Sin identificación disponible</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

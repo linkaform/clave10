@@ -1,8 +1,9 @@
 import { API_ENDPOINTS } from "@/config/api";
 
-export const runOcrId = async (imageUrls: string[]) => {
+export const runOcrId = async (imageUrls: string[],) => {
     const payload = {
       option: "ocr_id",
+      is_employee:true,
       image_source: imageUrls,
       script_name: "ocr_docs.py",
     };

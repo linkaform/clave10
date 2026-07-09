@@ -62,6 +62,12 @@ export function applyArticulosConcesionadosFilters(data: any[], filters: Articul
       const filter = Array.isArray(dynamic.area_paqueteria) ? dynamic.area_paqueteria : [dynamic.area_paqueteria];
       if (!filter.some((f: string) => normalize(f) === normalize(item.caseta_concesion || ""))) return false;
     }
+
+    if (dynamic.created_by) {
+      const filter = Array.isArray(dynamic.created_by) ? dynamic.created_by : [dynamic.created_by];
+      if (!filter.some((f: string) => normalize(f) === normalize(item.created_by || ""))) return false;
+    }
+
     if (dateFilter && dateFilter !== "" && dateFilter !== "all_records") {
       const rawFecha = item.fecha_concesion;
       if (!rawFecha) return false;
