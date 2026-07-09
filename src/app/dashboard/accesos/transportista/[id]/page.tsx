@@ -29,12 +29,23 @@ import {
   Check,
   Sparkles,
   ArrowLeftRight,
+  IdCard,
 } from "lucide-react";
 import { cn, capitalizeOnlyFirstLetter } from "@/lib/utils";
 import { useGetVisitTransportista } from "@/hooks/useGetVisitTransportista";
-import { saveBitacoraTransportistaRecord, saveInspeccionesTransportista, ocrAccesoTransportista } from "@/services/endpoints";
+import { saveBitacoraTransportistaRecord, saveInspeccionesTransportista, saveInspeccionesSelloTransportista, ocrAccesoTransportista } from "@/services/endpoints";
 import { uploadImage } from "@/lib/get-upload-image";
 import { toast } from "sonner";
+import {
+  type UnidadConfig,
+  type MaterialCarga,
+  type UnidadItem,
+  emptyMaterial,
+  emptyContenedorData,
+  resolveColorSwatch,
+  AgregarUnidadModal,
+  serializeUnidades,
+} from "@/components/transportista/agregar-unidad-modal";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -89,306 +100,6 @@ function Field({
   );
 }
 
-// ─── Unidades types & helpers ────────────────────────────────────────────────
-
-type UnidadConfig = "solo_remolque" | "remolque_contenedor";
-
-interface MaterialCarga {
-  id: string;
-  apiIndex: number | null; // null = nuevo, 0+ = existente
-  producto: string;
-  lote: string;
-  cantEsperada: string;
-  cantFisica: string;
-  peso: string;
-  volumen: string;
-}
-
-interface RemolqueData {
-  tipo: string;
-  noSello: string;
-  noCaja: string;
-  placas: string;
-  color: string;
-  comentarios: string;
-  materiales: MaterialCarga[];
-}
-
-interface ContenedorData {
-  tipo: string;
-  noSello: string;
-  noContenedor: string;
-  noCaja: string;
-  color: string;
-  comentarios: string;
-  materiales: MaterialCarga[];
-}
-
-interface UnidadItem {
-  id: string;
-  config: UnidadConfig;
-  remolqueApiIndex: number | null;   // null = nuevo, 0+ = posición real en grupo combinado
-  contenedorApiIndex: number | null; // null = nuevo, 0+ = posición real en grupo combinado
-  remolque: RemolqueData;
-  contenedor: ContenedorData;
-}
-
-const emptyMaterial = (): MaterialCarga => ({
-  id: Math.random().toString(36).slice(2),
-  apiIndex: null,
-  producto: "", lote: "", cantEsperada: "", cantFisica: "", peso: "", volumen: "",
-});
-
-const emptyRemolqueData = (): RemolqueData => ({
-  tipo: "", noSello: "", noCaja: "", placas: "", color: "", comentarios: "", materiales: [emptyMaterial()],
-});
-
-const emptyContenedorData = (): ContenedorData => ({
-  tipo: "", noSello: "", noContenedor: "", noCaja: "", color: "", comentarios: "", materiales: [emptyMaterial()],
-});
-
-// ─── Agregar Unidad Modal ─────────────────────────────────────────────────────
-
-const COLORES = [
-  { label: "Blanco",   hex: "#F3F4F6" },
-  { label: "Rojo",     hex: "#EF4444" },
-  { label: "Azul",     hex: "#3B82F6" },
-  { label: "Verde",    hex: "#22C55E" },
-  { label: "Naranja",  hex: "#F97316" },
-  { label: "Negro",    hex: "#1F2937" },
-];
-
-const TIPOS_REMOLQUE = ["Caja seca", "Plataforma", "Caja refrigerada", "Ganadero", "Basculante", "Portavehículos", "Caravana"];
-const TIPOS_CONTENEDOR = ["20' Standard (20GP)", "40' Standard (40GP)", "40' High Cube (40HC)", "20' Reefer (20RF)", "40' Reefer (40RF)", "40' HC Reefer (40HR)", "20' Open Top (20OT)", "40' Open Top (40OT)", "20' Flat Rack (20FR)", "40' Flat Rack (40FR)", "ISO Tank", "20' Ventilado (20VH)", "Open Side"];
-
-function AgregarUnidadModal({
-  onClose,
-  onSave,
-  initialData,
-}: {
-  onClose: () => void;
-  onSave: (unidad: UnidadItem) => void;
-  initialData?: UnidadItem;
-}) {
-  const [config, setConfig] = useState<UnidadConfig>(initialData?.config ?? "solo_remolque");
-  const [activeTab, setActiveTab] = useState<"remolque" | "contenedor">("remolque");
-  const [remolque, setRemolque] = useState<RemolqueData>(initialData?.remolque ?? emptyRemolqueData());
-  const [contenedor, setContenedor] = useState<ContenedorData>(initialData?.contenedor ?? emptyContenedorData());
-
-  const updateR = (field: keyof RemolqueData, value: string) =>
-    setRemolque((p) => ({ ...p, [field]: value }));
-  const updateC = (field: keyof ContenedorData, value: string) =>
-    setContenedor((p) => ({ ...p, [field]: value }));
-
-  const addMaterialR = () => setRemolque((p) => ({ ...p, materiales: [...p.materiales, emptyMaterial()] }));
-  const removeMaterialR = (id: string) => setRemolque((p) => ({ ...p, materiales: p.materiales.filter((m) => m.id !== id) }));
-  const updateMaterialR = (id: string, field: keyof MaterialCarga, value: string) =>
-    setRemolque((p) => ({ ...p, materiales: p.materiales.map((m) => m.id === id ? { ...m, [field]: value } : m) }));
-
-  const addMaterialC = () => setContenedor((p) => ({ ...p, materiales: [...p.materiales, emptyMaterial()] }));
-  const removeMaterialC = (id: string) => setContenedor((p) => ({ ...p, materiales: p.materiales.filter((m) => m.id !== id) }));
-  const updateMaterialC = (id: string, field: keyof MaterialCarga, value: string) =>
-    setContenedor((p) => ({ ...p, materiales: p.materiales.map((m) => m.id === id ? { ...m, [field]: value } : m) }));
-
-  const handleSave = () => {
-    onSave({
-      id:                 initialData?.id                 ?? Math.random().toString(36).slice(2),
-      config,
-      remolqueApiIndex:   initialData?.remolqueApiIndex   ?? null,
-      contenedorApiIndex: initialData?.contenedorApiIndex ?? null,
-      remolque,
-      contenedor,
-    });
-    onClose();
-  };
-
-  const renderMateriales = (
-    materiales: MaterialCarga[],
-    onAdd: () => void,
-    onRemove: (id: string) => void,
-    onUpdate: (id: string, field: keyof MaterialCarga, value: string) => void,
-  ) => (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Material de carga</p>
-        <button type="button" onClick={onAdd} className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-          <Plus className="w-3 h-3" /> Agregar material
-        </button>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs border-collapse" style={{ minWidth: 480 }}>
-          <thead>
-            <tr>
-              {["Producto", "Lote", "Cant. esperada", "Cant. física", "Peso", "Volumen", ""].map((h) => (
-                <th key={h} className="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-left pb-1.5 pr-2">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="space-y-1">
-            {materiales.map((m) => (
-              <tr key={m.id}>
-                <td className="pr-2 pb-1.5"><input className="w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="Nombre del producto" value={m.producto} onChange={(e) => onUpdate(m.id, "producto", e.target.value)} /></td>
-                <td className="pr-2 pb-1.5"><input className="w-24 h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="L-4471" value={m.lote} onChange={(e) => onUpdate(m.id, "lote", e.target.value)} /></td>
-                <td className="pr-2 pb-1.5"><input className="w-24 h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="12 ton" value={m.cantEsperada} onChange={(e) => onUpdate(m.id, "cantEsperada", e.target.value)} /></td>
-                <td className="pr-2 pb-1.5"><input className="w-24 h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="—" value={m.cantFisica} onChange={(e) => onUpdate(m.id, "cantFisica", e.target.value)} /></td>
-                <td className="pr-2 pb-1.5"><input className="w-24 h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="2.5 ton" value={m.peso} onChange={(e) => onUpdate(m.id, "peso", e.target.value)} /></td>
-                <td className="pr-2 pb-1.5"><input className="w-24 h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="44.6 m³" value={m.volumen} onChange={(e) => onUpdate(m.id, "volumen", e.target.value)} /></td>
-                <td className="pb-1.5"><button type="button" onClick={() => onRemove(m.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-            <Truck className="w-4.5 h-4.5 text-blue-600" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-gray-800">{initialData ? "Editar unidad" : "Agregar unidad"}</p>
-            <p className="text-xs text-gray-400">Completa los datos del remolque o contenedor</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Config toggle */}
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-100 bg-gray-50/60">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Configuración:</span>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => { setConfig("solo_remolque"); setActiveTab("remolque"); }}
-              className={cn("h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all",
-                config === "solo_remolque" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300")}>
-              <Truck className="w-3.5 h-3.5" /> Solo remolque
-            </button>
-            <button type="button" onClick={() => setConfig("remolque_contenedor")}
-              className={cn("h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all",
-                config === "remolque_contenedor" ? "bg-violet-600 text-white border-violet-600" : "bg-white text-gray-600 border-gray-200 hover:border-violet-300")}>
-              <Package className="w-3.5 h-3.5" /> Remolque + Contenedor
-            </button>
-          </div>
-        </div>
-
-        {/* Tabs (solo cuando config === remolque_contenedor) */}
-        {config === "remolque_contenedor" && (
-          <div className="flex border-b border-gray-100 px-6">
-            {(["remolque", "contenedor"] as const).map((tab) => (
-              <button key={tab} type="button" onClick={() => setActiveTab(tab)}
-                className={cn("py-2.5 px-1 mr-5 text-xs font-semibold border-b-2 transition-colors capitalize",
-                  activeTab === tab ? "border-blue-600 text-blue-600" : "border-transparent text-gray-400 hover:text-gray-600")}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          {(config === "solo_remolque" || activeTab === "remolque") ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-1">
-                <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center shrink-0">1</div>
-                <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">Remolque</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tipo de remolque <span className="text-red-400">*</span></p>
-                  <select className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400 bg-white" value={remolque.tipo} onChange={(e) => updateR("tipo", e.target.value)}>
-                    <option value="">Seleccionar tipo...</option>
-                    {TIPOS_REMOLQUE.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">No. de sello</p>
-                  <input className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="Ej. S-987654" value={remolque.noSello} onChange={(e) => updateR("noSello", e.target.value)} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">No. de caja <span className="text-red-400">*</span></p>
-                  <input className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs font-mono uppercase focus:outline-none focus:border-blue-400" placeholder="Ej. CAJA-001" value={remolque.noCaja} onChange={(e) => updateR("noCaja", e.target.value)} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Placas de caja <span className="text-red-400">*</span></p>
-                  <input className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs font-mono uppercase focus:outline-none focus:border-blue-400" placeholder="Ej. 123-AB-4" value={remolque.placas} onChange={(e) => updateR("placas", e.target.value)} />
-                </div>
-              </div>
-              <div>
-                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Color</p>
-                <div className="flex gap-2">
-                  {COLORES.map((c) => (
-                    <button key={c.hex} type="button" onClick={() => updateR("color", c.hex)}
-                      className={cn("w-7 h-7 rounded-full border-2 transition-all", remolque.color === c.hex ? "border-blue-500 scale-110" : "border-transparent hover:border-gray-300")}
-                      style={{ background: c.hex }} title={c.label} />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Comentarios</p>
-                <textarea className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-xs focus:outline-none focus:border-blue-400 resize-none" rows={2} placeholder="Escribe cualquier comentario adicional" value={remolque.comentarios} onChange={(e) => updateR("comentarios", e.target.value)} />
-              </div>
-              {config === "solo_remolque" && renderMateriales(remolque.materiales, addMaterialR, removeMaterialR, updateMaterialR)}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-1">
-                <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center shrink-0">2</div>
-                <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">Contenedor</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tipo de contenedor <span className="text-red-400">*</span></p>
-                  <select className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400 bg-white" value={contenedor.tipo} onChange={(e) => updateC("tipo", e.target.value)}>
-                    <option value="">Seleccionar tipo...</option>
-                    {TIPOS_CONTENEDOR.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">No. de sello</p>
-                  <input className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="Ej. S-987655" value={contenedor.noSello} onChange={(e) => updateC("noSello", e.target.value)} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">No. de contenedor <span className="text-red-400">*</span></p>
-                  <input className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs font-mono uppercase focus:outline-none focus:border-blue-400" placeholder="Ej. CNTR-5512" value={contenedor.noContenedor} onChange={(e) => updateC("noContenedor", e.target.value)} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">No. de caja <span className="text-red-400">*</span></p>
-                  <input className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs font-mono uppercase focus:outline-none focus:border-blue-400" placeholder="Ej. CT-101" value={contenedor.noCaja} onChange={(e) => updateC("noCaja", e.target.value)} />
-                </div>
-              </div>
-              <div>
-                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Color</p>
-                <div className="flex gap-2">
-                  {COLORES.map((c) => (
-                    <button key={c.hex} type="button" onClick={() => updateC("color", c.hex)}
-                      className={cn("w-7 h-7 rounded-full border-2 transition-all", contenedor.color === c.hex ? "border-blue-500 scale-110" : "border-transparent hover:border-gray-300")}
-                      style={{ background: c.hex }} title={c.label} />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Comentarios</p>
-                <textarea className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-xs focus:outline-none focus:border-blue-400 resize-none" rows={2} placeholder="Escribe cualquier comentario adicional" value={contenedor.comentarios} onChange={(e) => updateC("comentarios", e.target.value)} />
-              </div>
-              {renderMateriales(contenedor.materiales, addMaterialC, removeMaterialC, updateMaterialC)}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/60">
-          <button type="button" onClick={onClose} className="h-9 px-4 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors">Cancelar</button>
-          <button type="button" onClick={handleSave} className="flex-1 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors">Guardar</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Inspección de Entrada Modal ──────────────────────────────────────────────
 
@@ -1237,6 +948,364 @@ function InspeccionEntradaModal({
   );
 }
 
+// ─── Inspección de Sello ──────────────────────────────────────────────────────
+
+interface SelloVVTT { view: boolean; verify: boolean; tug: boolean; twist: boolean; }
+type SelloClasificacion = "I" | "S" | "H";
+interface SelloUnitData {
+  noSelloRevisado: string;
+  clasificacion: SelloClasificacion | null;
+  vvtt: SelloVVTT;
+  evidencias: Record<string, EvidenciaImg | null>;
+  comentario: string;
+}
+
+const VVTT_PUNTOS: { key: keyof SelloVVTT; sigla: string; label: string; descripcion: string }[] = [
+  { key: "view",   sigla: "V", label: "View",   descripcion: "Verificar visualmente el sello" },
+  { key: "verify", sigla: "V", label: "Verify",  descripcion: "Confirmar que el número coincide con documentos y sistemas" },
+  { key: "tug",    sigla: "T", label: "Tug",     descripcion: "Jalar el sello para confirmar que está asegurado" },
+  { key: "twist",  sigla: "T", label: "Twist",   descripcion: "Girar para detectar manipulación" },
+];
+
+const SELLO_CLASIFICACIONES: { value: SelloClasificacion; sigla: string; label: string }[] = [
+  { value: "I", sigla: "I", label: "Indicative" },
+  { value: "S", sigla: "S", label: "Security" },
+  { value: "H", sigla: "H", label: "High Security" },
+];
+
+const SELLO_EVIDENCIA_SLOTS: { key: string; label: string; icon: React.ElementType }[] = [
+  { key: "foto_sello",              label: "Foto del sello",                 icon: Lock },
+  { key: "sello_puertas",           label: "Sello colocado en las puertas",  icon: FileText },
+  { key: "puertas_completas",       label: "Puertas completas del remolque", icon: FileText },
+  { key: "placas_economico",        label: "Placas o económico",             icon: Truck },
+  { key: "identificacion_operador", label: "Identificación del operador",    icon: IdCard },
+];
+
+function InspeccionSelloModal({
+  recordId,
+  unidades,
+  inspeccionesDone,
+  onClose,
+  onSaved,
+}: {
+  recordId: string;
+  unidades: UnidadItem[];
+  inspeccionesDone: { tipo: string; unidad?: number; url?: string }[];
+  onClose: () => void;
+  onSaved?: () => void;
+}) {
+  const getDone = (unidad: number) => inspeccionesDone.find((i) => i.tipo === `sello_${unidad}`);
+  const isDone = (unidad: number) => !!getDone(unidad);
+
+  const emptySelloUnit = (): SelloUnitData => ({
+    noSelloRevisado: "",
+    clasificacion: null,
+    vvtt: { view: false, verify: false, tug: false, twist: false },
+    evidencias: Object.fromEntries(SELLO_EVIDENCIA_SLOTS.map((s) => [s.key, null])),
+    comentario: "",
+  });
+
+  const [activeTab, setActiveTab] = useState(0);
+  const [unitsData, setUnitsData] = useState<SelloUnitData[]>(() => unidades.map(emptySelloUnit));
+  const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingSlotRef = useRef<string | null>(null);
+
+  const refUnidad = (u: UnidadItem) =>
+    u.config === "remolque_contenedor"
+      ? { noCaja: u.contenedor.noContenedor || u.contenedor.noCaja, noSello: u.contenedor.noSello }
+      : { noCaja: u.remolque.noCaja, noSello: u.remolque.noSello };
+
+  const updateUnit = (ui: number, patch: Partial<SelloUnitData>) =>
+    setUnitsData((p) => p.map((d, i) => i !== ui ? d : { ...d, ...patch }));
+
+  const toggleVVTT = (ui: number, key: keyof SelloVVTT) =>
+    setUnitsData((p) => p.map((d, i) => i !== ui ? d : { ...d, vvtt: { ...d.vvtt, [key]: !d.vvtt[key] } }));
+
+  const triggerSlotUpload = (ui: number, slotKey: string) => {
+    pendingSlotRef.current = `${ui}:${slotKey}`;
+    fileInputRef.current?.click();
+  };
+
+  const handleSlotFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const target = pendingSlotRef.current;
+    e.target.value = "";
+    if (!file || !target) return;
+    const [uiStr, slotKey] = target.split(":");
+    const ui = parseInt(uiStr);
+    setUploadingSlot(target);
+    try {
+      const res = await uploadImage(file);
+      if (res?.file) {
+        setUnitsData((p) => p.map((d, i) => i !== ui ? d : {
+          ...d,
+          evidencias: { ...d.evidencias, [slotKey]: { file_url: res.file, file_name: res.file_name } },
+        }));
+      }
+    } finally {
+      setUploadingSlot(null);
+      pendingSlotRef.current = null;
+    }
+  };
+
+  const removeSlotFoto = (ui: number, slotKey: string) =>
+    setUnitsData((p) => p.map((d, i) => i !== ui ? d : { ...d, evidencias: { ...d.evidencias, [slotKey]: null } }));
+
+  const buildPayload = () =>
+    unidades.map((u, i) => {
+      const d = unitsData[i];
+      const { noCaja, noSello } = refUnidad(u);
+      return {
+        tipo: "sello",
+        unidad: i + 1,
+        no_caja: noCaja,
+        no_sello_sistema: noSello,
+        no_sello_revisado: d.noSelloRevisado,
+        clasificacion_iso: d.clasificacion,
+        vvtt: VVTT_PUNTOS.map((v) => ({ punto: v.label, verificado: d.vvtt[v.key] })),
+        evidencias: SELLO_EVIDENCIA_SLOTS
+          .filter((s) => d.evidencias[s.key])
+          .map((s) => ({ slot: s.key, ...(d.evidencias[s.key] as EvidenciaImg) })),
+        comentario: d.comentario,
+      };
+    });
+
+  const handleGuardar = async () => {
+    setSaving(true);
+    try {
+      await saveInspeccionesSelloTransportista(recordId, buildPayload());
+      toast.success("Inspección de sello guardada");
+      onSaved?.();
+      onClose();
+    } catch {
+      toast.error("Error al guardar la inspección");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const d = unitsData[activeTab];
+  const u = unidades[activeTab];
+  if (!d || !u) return null;
+  const { noCaja, noSello } = refUnidad(u);
+  const vvttCompletos = VVTT_PUNTOS.filter((v) => d.vvtt[v.key]).length;
+  const todasUnidadesDone = unidades.every((_, i) => isDone(i + 1));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+            <Shield className="w-4.5 h-4.5 text-teal-600" />
+          </div>
+          <p className="text-sm font-bold text-gray-800 flex-1">Inspección Del Sello</p>
+          <button type="button" onClick={onClose}
+            className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        {unidades.length > 1 && (
+          <div className="flex border-b border-gray-100 px-5 shrink-0 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            {unidades.map((_, i) => {
+              const done = isDone(i + 1);
+              return (
+                <button key={i} type="button" onClick={() => setActiveTab(i)}
+                  className={cn("py-2.5 px-1 mr-5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5",
+                    activeTab === i ? "border-teal-600 text-teal-600" : "border-transparent text-gray-400 hover:text-gray-600")}>
+                  {i === 0 ? "Remolque principal" : `Remolque #${i + 1}`}
+                  {done && <CheckCircle2 className="w-3 h-3 text-green-500" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          <div className="rounded-lg bg-gray-50 px-3 py-2">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+              {activeTab === 0 ? "Remolque principal" : `Remolque #${activeTab + 1}`}
+              {noCaja ? ` · ${noCaja}` : ""}
+            </p>
+          </div>
+
+          {isDone(activeTab + 1) ? (
+            <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-green-700">Inspección ya realizada</p>
+                <p className="text-[11px] text-green-600">Esta unidad ya fue inspeccionada.</p>
+              </div>
+              {getDone(activeTab + 1)?.url && (
+                <a
+                  href={getDone(activeTab + 1)?.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-semibold text-green-700 hover:text-green-800 underline shrink-0"
+                >
+                  Ver registro
+                </a>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Número de sello */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 leading-tight min-h-[1.9em] flex items-end">Número de sello físico</p>
+                  <div className="h-9 rounded-lg border border-gray-200 bg-gray-50 px-2.5 flex items-center gap-1.5 text-xs text-gray-700">
+                    <Lock className="w-3 h-3 text-gray-400 shrink-0" />
+                    <span className="flex-1 truncate">{noSello || "Sin información"}</span>
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest shrink-0">Sistema</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 leading-tight min-h-[1.9em] flex items-end">Número de sello esperado (revisado)</p>
+                  <input
+                    className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-teal-400"
+                    placeholder="Escribe el número revisado"
+                    value={d.noSelloRevisado}
+                    onChange={(e) => updateUnit(activeTab, { noSelloRevisado: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Clasificación ISO */}
+              <div>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Tipo de sello (clasificación ISO 17712)</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {SELLO_CLASIFICACIONES.map((c) => (
+                    <button key={c.value} type="button"
+                      onClick={() => updateUnit(activeTab, { clasificacion: d.clasificacion === c.value ? null : c.value })}
+                      className={cn(
+                        "h-9 rounded-lg border-2 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors",
+                        d.clasificacion === c.value
+                          ? "border-teal-400 bg-teal-50 text-teal-700"
+                          : "border-gray-200 text-gray-500 hover:border-teal-200",
+                      )}>
+                      <span className={cn(
+                        "w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold shrink-0",
+                        d.clasificacion === c.value ? "bg-teal-600 text-white" : "bg-gray-100 text-gray-400",
+                      )}>{c.sigla}</span>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Matriz VVTT */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Matriz VVTT — marca cada acción verificada</p>
+                  <span className="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">{vvttCompletos} / 4</span>
+                </div>
+                <div className="space-y-1.5">
+                  {VVTT_PUNTOS.map((v) => {
+                    const checked = d.vvtt[v.key];
+                    return (
+                      <button key={v.key} type="button" onClick={() => toggleVVTT(activeTab, v.key)}
+                        className={cn(
+                          "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors text-left",
+                          checked ? "bg-teal-50 border-teal-200" : "bg-white border-gray-100 hover:border-gray-200",
+                        )}>
+                        <span className={cn(
+                          "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0",
+                          checked ? "bg-teal-600 text-white" : "bg-gray-100 text-gray-400",
+                        )}>{v.sigla}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-800">{v.label}</p>
+                          <p className="text-[11px] text-gray-400 leading-snug">{v.descripcion}</p>
+                        </div>
+                        <span className={cn(
+                          "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
+                          checked ? "bg-teal-600 border-teal-600" : "border-gray-300",
+                        )}>
+                          {checked && <Check className="w-3 h-3 text-white" />}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Evidencia fotográfica */}
+              <div>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Evidencia fotográfica</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {SELLO_EVIDENCIA_SLOTS.map((slot, si) => {
+                    const foto = d.evidencias[slot.key];
+                    const slotId = `${activeTab}:${slot.key}`;
+                    const loading = uploadingSlot === slotId;
+                    const Icon = slot.icon;
+                    return (
+                      <div key={slot.key} className="rounded-xl border border-gray-100 p-2.5 space-y-1.5">
+                        <p className="text-[10px] font-semibold text-gray-600 flex items-center gap-1.5 leading-snug">
+                          <Icon className="w-3 h-3 text-gray-400 shrink-0" />
+                          {si + 1}. {slot.label}
+                        </p>
+                        {foto ? (
+                          <div className="relative w-full h-16 rounded-lg overflow-hidden border border-gray-200">
+                            <img src={foto.file_url} className="w-full h-full object-cover" alt="" />
+                            <button type="button" onClick={() => removeSlotFoto(activeTab, slot.key)}
+                              className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors">
+                              <X className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button type="button" disabled={loading} onClick={() => triggerSlotUpload(activeTab, slot.key)}
+                            className="w-full h-16 rounded-lg border-2 border-dashed border-gray-200 hover:border-teal-300 hover:bg-teal-50/40 flex items-center justify-center transition-colors">
+                            {loading
+                              ? <span className="w-4 h-4 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+                              : <Camera className="w-4 h-4 text-gray-300" />}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Comentarios */}
+              <div>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Comentarios</p>
+                <textarea
+                  rows={3}
+                  placeholder="Observaciones de la inspección del sello…"
+                  value={d.comentario}
+                  onChange={(e) => updateUnit(activeTab, { comentario: e.target.value })}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:outline-none focus:border-teal-400 resize-none"
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleSlotFileChange} />
+
+        {/* Footer */}
+        <div className="flex items-center gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50/60 shrink-0">
+          <button type="button" onClick={onClose}
+            className="h-9 px-4 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors">
+            Cancelar
+          </button>
+          <button type="button" onClick={handleGuardar} disabled={saving || todasUnidadesDone}
+            title={todasUnidadesDone ? "Todas las unidades ya fueron inspeccionadas" : undefined}
+            className="flex-1 h-9 rounded-xl bg-teal-700 hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-semibold transition-colors flex items-center justify-center gap-2">
+            {saving && (
+              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            )}
+            {saving ? "Guardando…" : "Guardar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Progress bar ─────────────────────────────────────────────────────────────
 
 function ProgressBar({
@@ -1357,12 +1426,16 @@ const tipoSlug = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "_");
 // mismo tipo (vía tipoSlug) para no duplicar el documento con dos etiquetas.
 const IDENTIFICACION_CHOFER_LABEL = "Identificación del chofer";
 
+const FOTO_CONDUCTOR_LABEL = "Foto del conductor";
+
 const DOCUMENTOS_REQUERIDOS_DESCRIPCION: Record<string, string> = {
   [IDENTIFICACION_CHOFER_LABEL]: "INE, pasaporte, licencia de conducir o gafete de empresa",
+  [FOTO_CONDUCTOR_LABEL]: "Fotografía reciente del rostro del conductor",
 };
 
 const documentosRequeridosNombres = [
   IDENTIFICACION_CHOFER_LABEL,
+  FOTO_CONDUCTOR_LABEL,
   "Tarjeta de circulación - Vehículo",
   "Carta porte",
   "Factura / Orden de compra",
@@ -1370,6 +1443,22 @@ const documentosRequeridosNombres = [
   "Evidencia de carga",
   "Conocimiento del embarque (BL)",
 ];
+
+// Slugs fijos acordados con el back para el servicio de OCR — no se derivan
+// del label (acentos, "/", "()" no son seguros como identificador que debe
+// generar un servicio de texto libre). tipoRequeridoSlug cae a tipoSlug(nombre)
+// solo como red de seguridad si algún día se agrega un requerido sin slug fijo.
+const DOCUMENTOS_REQUERIDOS_SLUGS: Record<string, string> = {
+  [IDENTIFICACION_CHOFER_LABEL]: "identificacion_chofer",
+  [FOTO_CONDUCTOR_LABEL]: "foto_conductor",
+  "Tarjeta de circulación - Vehículo": "tarjeta_circulacion_vehiculo",
+  "Carta porte": "carta_porte",
+  "Factura / Orden de compra": "factura_orden_compra",
+  "Foto de placa de vehículo": "foto_placa_vehiculo",
+  "Evidencia de carga": "evidencia_carga",
+  "Conocimiento del embarque (BL)": "conocimiento_embarque_bl",
+};
+const tipoRequeridoSlug = (nombre: string) => DOCUMENTOS_REQUERIDOS_SLUGS[nombre] ?? tipoSlug(nombre);
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -1466,6 +1555,7 @@ export default function DetalleTransportistaPage() {
   const [showAgregarUnidad, setShowAgregarUnidad] = useState(false);
   const [editingUnit, setEditingUnit] = useState<UnidadItem | null>(null);
   const [showInspeccion, setShowInspeccion] = useState(false);
+  const [showInspeccionSello, setShowInspeccionSello] = useState(false);
   const [vehicleExpanded, setVehicleExpanded] = useState(true);
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
 
@@ -1574,67 +1664,6 @@ export default function DetalleTransportistaPage() {
   };
 
   const [savingUnidades, setSavingUnidades] = useState(false);
-
-  const serializeMaterial = (m: MaterialCarga) => ({
-    producto:      m.producto,
-    lote:          m.lote,
-    cant_esperada: m.cantEsperada,
-    cant_fisica:   m.cantFisica,
-    peso:          m.peso,
-    volumen:       m.volumen,
-  });
-
-  const serializeUnidades = (list: UnidadItem[]) => {
-    let remolqueIdx = 0;
-    let contenedorIdx = 0;
-
-    const remolques: object[] = [];
-    const contenedores: object[] = [];
-    const materiales: object[] = [];
-
-    list.forEach((u) => {
-      remolqueIdx++;
-      const remolqueRef = `remolque_${remolqueIdx}`;
-
-      remolques.push({
-        index:       u.remolqueApiIndex ?? null,
-        ref:         remolqueRef,
-        tipo:        u.remolque.tipo,
-        no_sello:    u.remolque.noSello,
-        no_caja:     u.remolque.noCaja,
-        placas:      u.remolque.placas,
-        color:       u.remolque.color,
-        comentarios: u.remolque.comentarios,
-      });
-
-      if (u.config === "remolque_contenedor") {
-        contenedorIdx++;
-        const contenedorRef = `contenedor_${contenedorIdx}`;
-
-        contenedores.push({
-          index:         u.contenedorApiIndex ?? null,
-          ref:           contenedorRef,
-          ref_remolque:  remolqueRef,
-          tipo:          u.contenedor.tipo,
-          no_sello:      u.contenedor.noSello,
-          no_contenedor: u.contenedor.noContenedor,
-          no_caja:       u.contenedor.noCaja,
-          color:         u.contenedor.color,
-          comentarios:   u.contenedor.comentarios,
-        });
-
-        u.contenedor.materiales
-          .filter((m) => m.producto)
-          .forEach((m) => materiales.push({ index: m.apiIndex, ref: contenedorRef, ...serializeMaterial(m) }));
-      } else {
-        u.remolque.materiales
-          .filter((m) => m.producto)
-          .forEach((m) => materiales.push({ index: m.apiIndex, ref: remolqueRef, ...serializeMaterial(m) }));
-      }
-    });
-
-    return { remolques, contenedores, materiales };
-  };
 
   interface Deletions {
     delete_remolques:    number[];
@@ -1758,7 +1787,7 @@ export default function DetalleTransportistaPage() {
   };
 
   const tipoFromField = (field: "foto_conductor" | "foto_licencia") =>
-    field === "foto_conductor" ? "foto_conductor" : tipoSlug(IDENTIFICACION_CHOFER_LABEL);
+    field === "foto_conductor" ? "foto_conductor" : tipoRequeridoSlug(IDENTIFICACION_CHOFER_LABEL);
 
   // Subida de un documento requerido específico — se guarda de inmediato
   // enviando el nombre del documento como `tipo` al servicio de guardado.
@@ -1782,7 +1811,7 @@ export default function DetalleTransportistaPage() {
       const res = await uploadImage(file);
       if (!res?.file) throw new Error("upload failed");
       await saveBitacoraTransportistaRecord(id, "documentos", {
-        documentos_adicionales: { file_url: res.file, file_name: res.file_name ?? file.name, tipo: tipoSlug(nombre), index: null },
+        documentos_adicionales: { file_url: res.file, file_name: res.file_name ?? file.name, tipo: tipoRequeridoSlug(nombre), index: null },
       });
       refetch();
       toast.success("Documento guardado");
@@ -1799,7 +1828,7 @@ export default function DetalleTransportistaPage() {
 
   const assignExistingDocToPendiente = async (nombre: string, fileUrl: string, fileName: string, index: number) => {
     setDocAssignPicker(null);
-    const slug = tipoSlug(nombre);
+    const slug = tipoRequeridoSlug(nombre);
     const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
     queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
       ["visitaTransportista", id],
@@ -1821,10 +1850,11 @@ export default function DetalleTransportistaPage() {
   const [analyzingDocs, setAnalyzingDocs] = useState(false);
   const newDocInputRef = useRef<HTMLInputElement>(null);
 
-  // Documentos fuera de la lista de requeridos, subidos desde "Pendientes" —
-  // solo se suben al storage (para previsualizar/analizar), no se guardan en
-  // la bitácora hasta clasificarlos con IA (pendiente de actualizar ese servicio).
-  type StagedDoc = { id: string; file_url: string; file_name: string; uploading: boolean; preview: string | null; tipo?: string };
+  // Documentos subidos en bloque desde "Pendientes" — solo se suben al storage
+  // (para previsualizar/analizar), no se guardan en la bitácora hasta que el
+  // usuario confirme con "Guardar documentos". `asignadoA` es el nombre del
+  // documento pendiente al que quedó ligado (manual o por IA), en espera de guardar.
+  type StagedDoc = { id: string; file_url: string; file_name: string; uploading: boolean; preview: string | null; tipo?: string; asignadoA?: string };
   const [stagedDocs, setStagedDocs] = useState<StagedDoc[]>([]);
   const stagingUpload = stagedDocs.some((d) => d.uploading);
 
@@ -1847,24 +1877,45 @@ export default function DetalleTransportistaPage() {
     }
   };
 
-  // Encajar manualmente un documento ya subido (staged) en un documento
-  // pendiente — para cuando la IA no lo clasificó o lo clasificó mal.
-  const [assigningStagedId, setAssigningStagedId] = useState<string | null>(null);
-  const assignStagedDoc = async (stagedId: string, nombre: string) => {
-    const doc = stagedDocs.find((d) => d.id === stagedId);
-    if (!doc || !doc.file_url || doc.uploading) return;
-    setAssigningStagedId(stagedId);
+  // Ligar (o quitar) un documento recién subido a un pendiente — no guarda
+  // nada todavía, solo lo marca para que "Guardar documentos" lo persista.
+  const marcarAsignacionStaged = (stagedId: string, nombre: string) =>
+    setStagedDocs((p) => p.map((d) => d.id === stagedId ? { ...d, asignadoA: nombre } : d));
+
+  const desasignarStaged = (stagedId: string) =>
+    setStagedDocs((p) => p.map((d) => d.id === stagedId ? { ...d, asignadoA: undefined } : d));
+
+  const [savingStagedDocs, setSavingStagedDocs] = useState(false);
+  const guardarDocumentosPendientes = async () => {
+    const asignados = stagedDocs.filter((d) => d.asignadoA && d.file_url && !d.uploading);
+    if (!asignados.length) return;
+    setSavingStagedDocs(true);
     try {
-      await saveBitacoraTransportistaRecord(id, "documentos", {
-        documentos_adicionales: { file_url: doc.file_url, file_name: doc.file_name, tipo: tipoSlug(nombre), index: null },
-      });
-      removeStagedDoc(stagedId);
+      await Promise.all(asignados.map((d) =>
+        saveBitacoraTransportistaRecord(id, "documentos", {
+          documentos_adicionales: { file_url: d.file_url, file_name: d.file_name, tipo: tipoRequeridoSlug(d.asignadoA as string), index: null },
+        })
+      ));
+      // Optimista: ya sabemos que se guardaron bien, así que se marcan como
+      // subidos de inmediato (para que la fila de pendientes no "parpadee" de
+      // vuelta a rojo mientras el refetch trae la confirmación del servidor).
+      queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
+        ["visitaTransportista", id],
+        (old) => old ? {
+          ...old,
+          documentos_adicionales: [
+            ...(old.documentos_adicionales ?? []),
+            ...asignados.map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo: tipoRequeridoSlug(d.asignadoA as string) })),
+          ],
+        } : old
+      );
+      setStagedDocs((p) => p.filter((d) => !asignados.includes(d)));
       refetch();
-      toast.success("Documento asignado");
+      toast.success(asignados.length > 1 ? "Documentos guardados" : "Documento guardado");
     } catch {
-      toast.error("Error al asignar el documento");
+      toast.error("Error al guardar los documentos");
     } finally {
-      setAssigningStagedId(null);
+      setSavingStagedDocs(false);
     }
   };
 
@@ -1914,9 +1965,38 @@ export default function DetalleTransportistaPage() {
         const byUrl = new Map(detectados.map((dd) => [dd.url, dd.tipo]));
 
         if (usingStaged) {
-          // Solo actualiza el tipo localmente — sin llamar al servicio de guardado
-          setStagedDocs((p) => p.map((d) => byUrl.has(d.file_url) ? { ...d, tipo: byUrl.get(d.file_url) } : d));
-          toast.success("Documentos analizados");
+          // Solo actualiza tipo/asignación localmente — sin llamar al servicio
+          // de guardado. Si el tipo detectado coincide con un pendiente que
+          // sigue sin resolver, se coloca ahí automáticamente (sin duplicar
+          // el mismo pendiente entre dos documentos de este lote).
+          // El updater debe ser puro (React lo invoca 2 veces en modo estricto
+          // de desarrollo para detectar efectos secundarios): todo el cálculo
+          // de "quién queda asignado a quién" vive dentro de la propia función,
+          // sin mutar nada externo entre invocaciones.
+          let autoColocados = 0;
+          setStagedDocs((prev) => {
+            const yaAsignados = new Set(prev.filter((d) => d.asignadoA).map((d) => d.asignadoA));
+            let colocadosEnEstaPasada = 0;
+            const next = prev.map((d) => {
+              if (!byUrl.has(d.file_url)) return d;
+              const detectedTipo = byUrl.get(d.file_url);
+              let asignadoA = d.asignadoA;
+              if (!asignadoA) {
+                const nombreMatch = documentosRequeridosNombres.find((n) =>
+                  tipoRequeridoSlug(n) === detectedTipo && docsPendientesReq.includes(n) && !yaAsignados.has(n)
+                );
+                if (nombreMatch) { asignadoA = nombreMatch; yaAsignados.add(nombreMatch); colocadosEnEstaPasada++; }
+              }
+              return { ...d, tipo: detectedTipo, asignadoA };
+            });
+            autoColocados = colocadosEnEstaPasada;
+            return next;
+          });
+          toast.success(
+            autoColocados > 0
+              ? `Documentos analizados — ${autoColocados} colocado${autoColocados > 1 ? "s" : ""} automáticamente`
+              : "Documentos analizados — ninguno coincidió con un pendiente, revisa las sugerencias",
+          );
         } else {
           const docs = data?.documentos_adicionales ?? [];
           const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
@@ -2030,7 +2110,10 @@ export default function DetalleTransportistaPage() {
   const inspecciones = {
     entrada: { completados: 0, total: 17 },
     salida: { completados: 0, total: 17 },
-    sello: { completados: 0, total: 4 },
+    sello: {
+      completados: (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("sello_")).length,
+      total: unidades.length,
+    },
   };
 
   const tiposSubidos = new Set(
@@ -2039,7 +2122,7 @@ export default function DetalleTransportistaPage() {
       .filter((t): t is string => !!t)
       .map(tipoSlug),
   );
-  const docsPendientesReq = documentosRequeridosNombres.filter((nombre) => !tiposSubidos.has(tipoSlug(nombre)));
+  const docsPendientesReq = documentosRequeridosNombres.filter((nombre) => !tiposSubidos.has(tipoRequeridoSlug(nombre)));
 
   const tipo_accion = data?.tipo_operacion?.toLowerCase().includes("entrega")
     ? "ENTRADA"
@@ -2223,7 +2306,7 @@ export default function DetalleTransportistaPage() {
               {/* Foto licencia */}
               {(() => {
                 const url = data?.conductor?.foto_licencia?.file_url
-                  ?? data?.documentos_adicionales?.find((d) => d.tipo === tipoSlug(IDENTIFICACION_CHOFER_LABEL))?.file_url;
+                  ?? data?.documentos_adicionales?.find((d) => d.tipo === tipoRequeridoSlug(IDENTIFICACION_CHOFER_LABEL))?.file_url;
                 return (
                   <button type="button" onClick={() => setFotoPicker("foto_licencia")}
                     className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5 relative group hover:border-blue-300 transition-colors">
@@ -2452,6 +2535,34 @@ export default function DetalleTransportistaPage() {
             <div className="p-4 space-y-2">
               {docTab === "pendientes" && docsPendientesReq.map((nombre) => {
                 const isUploading = uploadingReqDoc === nombre;
+                const staged = stagedDocs.find((d) => d.asignadoA === nombre);
+
+                if (staged) {
+                  return (
+                    <div key={nombre}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-violet-200 bg-violet-50/40">
+                      <div className="w-9 h-9 rounded-lg overflow-hidden border border-violet-100 bg-white shrink-0 flex items-center justify-center">
+                        {staged.preview
+                          ? <img src={staged.preview} alt="" className="w-full h-full object-cover" />
+                          : <FileText className="w-4 h-4 text-violet-300" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-gray-800 truncate">{nombre}</p>
+                        <p className="text-[11px] truncate mt-0.5 text-violet-600 flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" /> Listo para guardar — {staged.file_name}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => desasignarStaged(staged.id)}
+                        title="Quitar asignación"
+                        className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:border-red-300 hover:bg-red-50 flex items-center justify-center shrink-0 transition-colors text-gray-400 hover:text-red-500">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={nombre}
@@ -2506,15 +2617,15 @@ export default function DetalleTransportistaPage() {
                         <div className="space-y-1.5">
                           {stagedDocs.filter((d) => d.file_url && !d.uploading).map((doc) => (
                             <button key={doc.id} type="button"
-                              disabled={assigningStagedId === doc.id}
-                              onClick={() => { const nombre = docAssignPicker; setDocAssignPicker(null); assignStagedDoc(doc.id, nombre); }}
+                              onClick={() => { const nombre = docAssignPicker; setDocAssignPicker(null); marcarAsignacionStaged(doc.id, nombre); }}
                               className="w-full flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-blue-50 transition-colors text-left disabled:opacity-50">
                               <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
                                 {doc.preview && <img src={doc.preview} alt="" className="w-full h-full object-cover" />}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-[11px] font-semibold text-gray-700 truncate">{doc.file_name}</p>
-                                {doc.tipo && <p className="text-[10px] text-violet-500 truncate">Sugerido por IA: {doc.tipo}</p>}
+                                {doc.asignadoA && <p className="text-[10px] text-gray-400 truncate">Actualmente: {doc.asignadoA}</p>}
+                                {doc.tipo && !doc.asignadoA && <p className="text-[10px] text-violet-500 truncate">Sugerido por IA: {doc.tipo}</p>}
                               </div>
                             </button>
                           ))}
@@ -2570,9 +2681,6 @@ export default function DetalleTransportistaPage() {
 
               {/* Input oculto para reemplazar archivo al editar */}
               <input ref={editDocInputRef} type="file" className="hidden" onChange={handleEditDocUpload} />
-              <datalist id="documentos-requeridos-list">
-                {documentosRequeridosNombres.map((nombre) => <option key={nombre} value={nombre} />)}
-              </datalist>
 
               {/* Documentos subidos desde el acceso (documentos_adicionales) */}
               {docTab === "subidos" && data?.documentos_adicionales?.map((doc, docIdx) => {
@@ -2584,11 +2692,16 @@ export default function DetalleTransportistaPage() {
                 const tipoLabel = doc.tipo ? doc.tipo.replace(/_/g, " ").toUpperCase() : doc.file_name;
 
                 if (isEditing && draft) {
+                  // Opciones del select: los documentos aún pendientes + el que ya
+                  // trae este archivo (para que se muestre seleccionado aunque ya
+                  // esté cubierto por otro lado).
+                  const tipoOptions = documentosRequeridosNombres.filter(
+                    (nombre) => !tiposSubidos.has(tipoRequeridoSlug(nombre)) || tipoRequeridoSlug(nombre) === draft.tipo,
+                  );
                   return (
-                    <div key={doc.file_url} className="rounded-xl border border-blue-200 bg-blue-50/40 p-3 flex flex-col gap-2">
-                      {/* Preview + reemplazar */}
+                    <div key={doc.file_url} className="rounded-xl border-2 border-blue-200 bg-blue-50/30 p-3.5 space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0 flex items-center justify-center">
+                        <div className="w-14 h-14 rounded-lg overflow-hidden border border-white shadow-sm bg-white shrink-0 flex items-center justify-center">
                           {isImg && displayUrl ? (
                             <img src={displayUrl} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -2596,7 +2709,8 @@ export default function DetalleTransportistaPage() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] text-gray-400 truncate">{displayName || "Sin archivo"}</p>
+                          <p className="text-xs font-semibold text-gray-700 truncate">{displayName || "Sin archivo"}</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Editando documento</p>
                         </div>
                         <button type="button" disabled={uploadingDoc}
                           onClick={() => editDocInputRef.current?.click()}
@@ -2607,17 +2721,21 @@ export default function DetalleTransportistaPage() {
                           Reemplazar
                         </button>
                       </div>
-                      {/* Input tipo — sugiere los documentos requeridos, permite texto libre */}
-                      <input
-                        type="text"
-                        list="documentos-requeridos-list"
-                        value={draft.tipo}
-                        onChange={(e) => setEditingDocDraft((p) => p ? { ...p, tipo: e.target.value } : p)}
-                        placeholder="Tipo de documento (ej. identificacion, foto_conductor…)"
-                        className="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-blue-400"
-                      />
-                      {/* Acciones */}
-                      <div className="flex gap-2 justify-end">
+
+                      <div>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tipo de documento</p>
+                        <select
+                          value={draft.tipo}
+                          onChange={(e) => setEditingDocDraft((p) => p ? { ...p, tipo: e.target.value } : p)}
+                          className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs bg-white focus:outline-none focus:border-blue-400">
+                          <option value="">Sin asignar</option>
+                          {tipoOptions.map((nombre) => (
+                            <option key={nombre} value={tipoRequeridoSlug(nombre)}>{nombre}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex gap-2 justify-end pt-1 border-t border-blue-100">
                         <button type="button" onClick={cancelEditDoc}
                           className="px-3 py-1.5 text-[10px] font-semibold text-gray-500 hover:text-gray-700 transition-colors">
                           Cancelar
@@ -2664,30 +2782,33 @@ export default function DetalleTransportistaPage() {
                 );
               })}
 
-              {docTab === "pendientes" && stagedDocs.length > 0 && (
-                <div className="flex flex-wrap gap-2 pb-1">
-                  {stagedDocs.map((doc) => (
-                    <div key={doc.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shrink-0">
-                      {doc.uploading ? (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                        </div>
-                      ) : doc.preview ? (
-                        <img src={doc.preview} className="w-full h-full object-cover" alt="" />
-                      ) : null}
-                      {doc.tipo && !doc.uploading && (
-                        <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] font-bold text-center py-0.5 truncate px-1">
-                          {doc.tipo.replace(/_/g, " ")}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => removeStagedDoc(doc.id)}
-                        className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-                        <X className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
-                  ))}
+              {docTab === "pendientes" && stagedDocs.some((d) => !d.asignadoA) && (
+                <div className="space-y-1.5 pb-1">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Sin asignar</p>
+                  <div className="flex flex-wrap gap-2">
+                    {stagedDocs.filter((d) => !d.asignadoA).map((doc) => (
+                      <div key={doc.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shrink-0">
+                        {doc.uploading ? (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        ) : doc.preview ? (
+                          <img src={doc.preview} className="w-full h-full object-cover" alt="" />
+                        ) : null}
+                        {doc.tipo && !doc.uploading && (
+                          <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] font-bold text-center py-0.5 truncate px-1">
+                            {doc.tipo.replace(/_/g, " ")}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeStagedDoc(doc.id)}
+                          className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -2702,23 +2823,44 @@ export default function DetalleTransportistaPage() {
                 </div>
               )}
               <input ref={newDocInputRef} type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={handleAddDocumento} />
-              <button
-                type="button"
-                disabled={docTab === "pendientes" ? stagingUpload : uploadingNewDoc}
-                onClick={() => newDocInputRef.current?.click()}
-                className="w-full h-9 mt-1 rounded-xl border border-dashed border-gray-300 hover:border-blue-300 hover:bg-blue-50/40 text-xs font-medium text-gray-400 hover:text-blue-600 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
-                {(docTab === "pendientes" ? stagingUpload : uploadingNewDoc) ? (
-                  <>
-                    <span className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                    Subiendo...
-                  </>
-                ) : (
-                  <>
-                    <Camera className="w-3.5 h-3.5" />
-                    Tomar foto a otro documento
-                  </>
-                )}
-              </button>
+              {docTab === "pendientes" && stagedDocs.length === 0 ? (
+                <button
+                  type="button"
+                  disabled={stagingUpload}
+                  onClick={() => newDocInputRef.current?.click()}
+                  className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/40 hover:border-blue-300 hover:bg-blue-50/40 transition-all flex flex-col items-center justify-center gap-1.5 py-5 disabled:opacity-60 disabled:cursor-not-allowed">
+                  {stagingUpload ? (
+                    <>
+                      <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm text-gray-400 font-medium">Subiendo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-5 h-5 text-gray-300" />
+                      <span className="text-sm text-gray-400 font-medium">Subir imágenes o archivos</span>
+                      <span className="text-[11px] text-gray-300">Puedes seleccionar múltiples archivos</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={docTab === "pendientes" ? stagingUpload : uploadingNewDoc}
+                  onClick={() => newDocInputRef.current?.click()}
+                  className="w-full h-9 mt-1 rounded-xl border border-dashed border-gray-300 hover:border-blue-300 hover:bg-blue-50/40 text-xs font-medium text-gray-400 hover:text-blue-600 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
+                  {(docTab === "pendientes" ? stagingUpload : uploadingNewDoc) ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      Subiendo...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-3.5 h-3.5" />
+                      {docTab === "pendientes" ? "Agregar más documentos" : "Tomar foto a otro documento"}
+                    </>
+                  )}
+                </button>
+              )}
               {(() => {
                 const hasAnalyzable = docTab === "pendientes"
                   ? stagedDocs.some((d) => d.file_url)
@@ -2744,6 +2886,34 @@ export default function DetalleTransportistaPage() {
                       <>
                         <Sparkles className="w-3.5 h-3.5" />
                         Analizar con IA
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
+              {docTab === "pendientes" && (() => {
+                const asignados = stagedDocs.filter((d) => d.asignadoA);
+                const guardarDisabled = savingStagedDocs || asignados.length === 0;
+                return (
+                  <button
+                    type="button"
+                    disabled={guardarDisabled}
+                    onClick={guardarDocumentosPendientes}
+                    className={cn(
+                      "w-full h-9 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                      guardarDisabled
+                        ? "bg-gray-100 text-gray-300 cursor-not-allowed"
+                        : "bg-emerald-600 hover:bg-emerald-700 text-white",
+                    )}>
+                    {savingStagedDocs ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3.5 h-3.5" />
+                        Guardar documentos{asignados.length > 0 ? ` (${asignados.length})` : ""}
                       </>
                     )}
                   </button>
@@ -2993,8 +3163,8 @@ export default function DetalleTransportistaPage() {
                               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Color</p>
                               {u.remolque.color ? (
                                 <div className="flex items-center gap-1.5">
-                                  <div className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ background: u.remolque.color }} />
-                                  <span className="text-xs text-gray-600">{COLORES.find((c) => c.hex === u.remolque.color)?.label ?? "—"}</span>
+                                  <div className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ background: resolveColorSwatch(u.remolque.color)?.hex ?? "transparent" }} />
+                                  <span className="text-xs text-gray-600">{resolveColorSwatch(u.remolque.color)?.label}</span>
                                 </div>
                               ) : <p className="text-xs text-gray-300 italic">Sin información</p>}
                             </div>
@@ -3033,8 +3203,8 @@ export default function DetalleTransportistaPage() {
                                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Color</p>
                                 {u.contenedor.color ? (
                                   <div className="flex items-center gap-1.5">
-                                    <div className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ background: u.contenedor.color }} />
-                                    <span className="text-xs text-gray-600">{COLORES.find((c) => c.hex === u.contenedor.color)?.label ?? "—"}</span>
+                                    <div className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ background: resolveColorSwatch(u.contenedor.color)?.hex ?? "transparent" }} />
+                                    <span className="text-xs text-gray-600">{resolveColorSwatch(u.contenedor.color)?.label}</span>
                                   </div>
                                 ) : <p className="text-xs text-gray-300 italic">Sin información</p>}
                               </div>
@@ -3077,7 +3247,11 @@ export default function DetalleTransportistaPage() {
         <div className="space-y-3">
           {/* Inspección de entrada */}
           {(() => {
-            const inspecsDone = data?.inspecciones ?? [];
+            // Solo tractor/remolque/contenedor pertenecen a esta inspección —
+            // excluye otros tipos que compartan el mismo arreglo (ej. "sello_N").
+            const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
+              i.tipo === "tractor" || i.tipo.startsWith("remolque_") || i.tipo.startsWith("contenedor_")
+            );
             // Total esperado: 1 tractor + 1 por cada unidad (remolque) + 1 por cada contenedor
             const totalSecciones = 1 + unidades.length + unidades.filter(u => u.config === "remolque_contenedor").length;
             const seccionesDone = inspecsDone.length;
@@ -3137,6 +3311,67 @@ export default function DetalleTransportistaPage() {
             );
           })()}
 
+          {/* Inspección de sello */}
+          {(() => {
+            const selloTodasDone = inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total;
+            const sinUnidades = unidades.length === 0;
+            return (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-teal-500" />
+                    <span className="text-sm font-bold text-gray-800">
+                      Inspección de sello
+                    </span>
+                  </div>
+                  <span className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                    selloTodasDone ? "bg-green-100 text-green-700" : "bg-teal-100 text-teal-700",
+                  )}>
+                    {selloTodasDone ? "Completa" : "Pendiente"}
+                  </span>
+                </div>
+                <div className="p-4 space-y-3">
+                  <p className="text-[11px] text-gray-400">
+                    ISO 17712 · Método VVTT
+                  </p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold text-gray-800">
+                      {inspecciones.sello.completados}
+                    </span>
+                    <span className="text-sm text-gray-400">
+                      de {inspecciones.sello.total}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-700 mb-0.5">
+                      {sinUnidades
+                        ? "Agrega un remolque para poder inspeccionar el sello"
+                        : selloTodasDone
+                          ? "Inspección de sello completa"
+                          : "Inspección de sello pendiente"}
+                    </p>
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Método VVTT (View · Verify · Tug · Twist) sobre el sello clase
+                      H.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={sinUnidades}
+                    onClick={() => setShowInspeccionSello(true)}
+                    className={cn(
+                      "w-full h-9 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
+                      selloTodasDone ? "bg-white border border-teal-200 text-teal-700 hover:bg-teal-50" : "bg-teal-900 hover:bg-teal-800 text-white",
+                    )}>
+                    <Shield className="w-3.5 h-3.5" />
+                    {selloTodasDone ? "Ver inspección de sello" : "Realizar inspección de sello"}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Inspección de salida */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden opacity-70">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -3171,47 +3406,6 @@ export default function DetalleTransportistaPage() {
               </button>
             </div>
           </div>
-
-          {/* Inspección de sello */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-teal-500" />
-                <span className="text-sm font-bold text-gray-800">
-                  Inspección de sello
-                </span>
-              </div>
-              <span className="text-[10px] font-bold bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                Pendiente
-              </span>
-            </div>
-            <div className="p-4 space-y-3">
-              <p className="text-[11px] text-gray-400">
-                ISO 17712 · Método VVTT
-              </p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-gray-800">
-                  {inspecciones.sello.completados}
-                </span>
-                <span className="text-sm text-gray-400">
-                  de {inspecciones.sello.total}
-                </span>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-700 mb-0.5">
-                  Inspección de sello pendiente
-                </p>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Método VVTT (View · Verify · Tug · Twist) sobre el sello clase
-                  H.
-                </p>
-              </div>
-              <button className="w-full h-9 rounded-xl text-xs font-semibold bg-teal-900 hover:bg-teal-800 text-white transition-colors flex items-center justify-center gap-2">
-                <Shield className="w-3.5 h-3.5" />
-                Realizar inspección de sello
-              </button>
-            </div>
-          </div>
         </div>
       </div>
       {showInspeccion && (
@@ -3220,6 +3414,15 @@ export default function DetalleTransportistaPage() {
           unidades={unidades}
           inspeccionesDone={data?.inspecciones ?? []}
           onClose={() => setShowInspeccion(false)}
+          onSaved={refetch}
+        />
+      )}
+      {showInspeccionSello && (
+        <InspeccionSelloModal
+          recordId={id}
+          unidades={unidades}
+          inspeccionesDone={data?.inspecciones ?? []}
+          onClose={() => setShowInspeccionSello(false)}
           onSaved={refetch}
         />
       )}

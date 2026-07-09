@@ -9,12 +9,19 @@ import {
   ArrowLeftRight,
   Camera,
   Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
+  Link2,
   Package,
+  Pencil,
   Plus,
   Search,
   Sparkles,
   Trash2,
   Truck,
+  Unlink,
   X,
 } from "lucide-react";
 import { cn, reemplazarGuionMinuscula } from "@/lib/utils";
@@ -23,6 +30,16 @@ import { useCreateVisitTransportista } from "@/hooks/useCreateVisitTransportista
 import { useQueryClient } from "@tanstack/react-query";
 import { ocrAccesoTransportista } from "@/services/endpoints";
 import type { VisitaTransportista } from "@/hooks/useGetVisitTransportista";
+import {
+  type UnidadItem,
+  type ContenedorData,
+  emptyUnidad,
+  emptyMaterial,
+  emptyContenedorData,
+  resolveColorSwatch,
+  UnidadEditorCard,
+  serializeUnidades,
+} from "@/components/transportista/agregar-unidad-modal";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -42,17 +59,6 @@ const TIPOS_OPERACION = [
     icon: ArrowLeftRight,
   },
 ] as const;
-
-interface Remolque {
-  id: string;
-  categoria: "remolque" | "contenedor";
-  tipoRemolque: string;
-  noSello: string;
-  noCaja: string;
-  placasCaja: string;
-  color: string;
-  comentarios: string;
-}
 
 // ─── Document upload types ────────────────────────────────────────────────────
 
@@ -198,6 +204,25 @@ function ComboboxSelect({
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+function MiniField({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value?: string | null;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{label}</p>
+      <p className={cn("text-xs text-gray-700 leading-snug", mono && "font-mono", !value && "text-gray-300 italic")}>
+        {value || "Sin información"}
+      </p>
     </div>
   );
 }
@@ -388,37 +413,11 @@ interface Props {
   onClose: () => void;
 }
 
-const emptyRemolque = (): Remolque => ({
-  id: Math.random().toString(36).slice(2),
-  categoria: "remolque",
-  tipoRemolque: "",
-  noSello: "",
-  noCaja: "",
-  placasCaja: "",
-  color: "",
-  comentarios: "",
-});
-
 const TABS: { key: Tab; label: string }[] = [
   { key: "vehiculo",   label: "Vehículo"   },
   { key: "remolques",  label: "Remolques"  },
   { key: "materiales", label: "Materiales" },
 ];
-
-interface MaterialItem {
-  id: string;
-  contenedor: string;
-  sello: string;
-  tipo: string;
-  cantidad: string;
-  peso: string;
-  volumen: string;
-}
-
-const emptyMaterial = (): MaterialItem => ({
-  id: Math.random().toString(36).slice(2),
-  contenedor: "", sello: "", tipo: "", cantidad: "", peso: "", volumen: "",
-});
 
 type PhotoState = { file_name: string; file_url: string; uploading: boolean };
 const emptyPhoto = (): PhotoState => ({
@@ -469,14 +468,55 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       return next;
     });
 
-  // Materiales
+  // Materiales (embarque)
   const [proveedorCliente, setProveedorCliente] = useState("");
   const [ordenCompra, setOrdenCompra] = useState("");
-  const [materialItems, setMaterialItems] = useState<MaterialItem[]>([emptyMaterial()]);
 
-  // Remolques
-  const [remolques, setRemolques] = useState<Remolque[]>([emptyRemolque()]);
-  const [showRemolquePicker, setShowRemolquePicker] = useState(false);
+  // Remolques / contenedores — mismo modelo de unidades que el detalle de transportista
+  const [unidades, setUnidades] = useState<UnidadItem[]>([]);
+  const [showAgregarUnidad, setShowAgregarUnidad] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<UnidadItem | null>(null);
+  const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
+
+  const toggleUnit = (id: string) =>
+    setExpandedUnits((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+
+  // Contenedores detectados por IA que no se pudieron ligar automáticamente
+  // a un remolque (más de un remolque y/o contenedor detectados) — se ligan
+  // arrastrándolos sobre la tarjeta del remolque correspondiente.
+  const [contenedoresSueltos, setContenedoresSueltos] = useState<(ContenedorData & { id: string })[]>([]);
+  const [dragOverUnidadId, setDragOverUnidadId] = useState<string | null>(null);
+
+  const linkContenedorSuelto = (unidadId: string, contenedorId: string) => {
+    const suelto = contenedoresSueltos.find((c) => c.id === contenedorId);
+    if (!suelto) return;
+    const contenedorData: ContenedorData = {
+      tipo: suelto.tipo, noSello: suelto.noSello, noContenedor: suelto.noContenedor,
+      noCaja: suelto.noCaja, color: suelto.color, comentarios: suelto.comentarios, materiales: suelto.materiales,
+    };
+    setUnidades((prev) => prev.map((u) => u.id === unidadId
+      ? { ...u, config: "remolque_contenedor", contenedor: contenedorData }
+      : u));
+    setContenedoresSueltos((prev) => prev.filter((c) => c.id !== contenedorId));
+    setExpandedUnits((prev) => new Set(prev).add(unidadId));
+  };
+
+  const unlinkContenedor = (unidadId: string) => {
+    const u = unidades.find((x) => x.id === unidadId);
+    if (!u || u.config !== "remolque_contenedor") return;
+    setContenedoresSueltos((prev) => [...prev, { id: Math.random().toString(36).slice(2), ...u.contenedor }]);
+    setUnidades((prev) => prev.map((x) => x.id === unidadId
+      ? { ...x, config: "solo_remolque", contenedor: emptyContenedorData() }
+      : x));
+  };
 
   // ── Upload helpers ────────────────────────────────────────────────────────────
 
@@ -528,14 +568,15 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       const d = (result?.response?.data?.data ?? {}) as Partial<{
         vehiculo: Partial<{
           transportista: string; tipo_vehiculo: string; placa: string;
-          estado_placa: string; no_economico: string;
+          procedencia: string; no_economico: string;
           marca: string; modelo: string; color: string;
         }>;
-        conductor: Partial<{ nombre: string; no_licencia: string; vigencia_licencia: string; rfc: string }>;
+        conductor: Partial<{ nombre: string; no_licencia: string; vigencia_licencia: string; rfc: string; acompanante: string }>;
         documentos_detectados: { url: string; fuente: string; tipo: string }[];
-        remolques: { tipo_remolque?: string; placa_caja?: string; no_economico?: string; no_sello?: string }[];
-        carga: { no_contenedor?: string; no_sello?: string; tipo_contenedor?: string; descripcion?: string; cantidad?: string; peso_bruto?: string; volumen?: string }[];
-        embarque: Partial<{ proveedor: string; cliente: string; no_orden_compra: string }>;
+        remolques: { tipo?: string; no_caja?: string; no_sello?: string; placas?: string; color?: string; comentarios?: string }[];
+        contenedores: { tipo?: string; no_caja?: string; no_sello?: string; placas?: string; color?: string; comentarios?: string }[];
+        materiales: { producto?: string; lote?: string; cant_esperada?: string; peso?: string; volumen?: string }[];
+        embarque: Partial<{ proveedor_cliente: string; no_orden_compra: string }>;
       }>;
 
       const filled = new Set<string>();
@@ -544,7 +585,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       if (d.vehiculo?.transportista)  { setTransportista(d.vehiculo.transportista);    filled.add("transportista"); }
       if (d.vehiculo?.tipo_vehiculo)  { setTipoVehiculo(d.vehiculo.tipo_vehiculo);      filled.add("tipoVehiculo"); }
       if (d.vehiculo?.placa)          { setPlaca(d.vehiculo.placa);                     filled.add("placa"); }
-      if (d.vehiculo?.estado_placa)   { setProcedencia(d.vehiculo.estado_placa);        filled.add("procedencia"); }
+      if (d.vehiculo?.procedencia)    { setProcedencia(d.vehiculo.procedencia);         filled.add("procedencia"); }
       if (d.vehiculo?.no_economico)   { setNoEconomico(d.vehiculo.no_economico);        filled.add("noEconomico"); }
       if (d.vehiculo?.marca)           { setMarcaVehiculo(d.vehiculo.marca);            filled.add("marcaVehiculo"); }
       if (d.vehiculo?.modelo)          { setModeloVehiculo(d.vehiculo.modelo);           filled.add("modeloVehiculo"); }
@@ -555,6 +596,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       if (d.conductor?.no_licencia)   { setNoLicencia(d.conductor.no_licencia);         filled.add("noLicencia"); }
       if (d.conductor?.vigencia_licencia) { setVigenciaLicencia(d.conductor.vigencia_licencia); filled.add("vigenciaLicencia"); }
       if (d.conductor?.rfc)            { setRfcConductor(d.conductor.rfc);                filled.add("rfcConductor"); }
+      if (d.conductor?.acompanante)    { setAcompanante(d.conductor.acompanante);         filled.add("acompanante"); }
 
       // Documentos detectados — asigna tipo a cada DocItem por URL
       if (Array.isArray(d.documentos_detectados) && d.documentos_detectados.length) {
@@ -562,42 +604,82 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
         setDocumentos((prev) =>
           prev.map((doc) => byUrl.has(doc.file_url) ? { ...doc, tipo: byUrl.get(doc.file_url) } : doc),
         );
-        setDocumentosDetectados(d.documentos_detectados.map((dd) => dd.tipo));
+        setDocumentosDetectados([...new Set(d.documentos_detectados.map((dd) => dd.tipo))]);
       }
 
-      // Remolques
-      if (d.remolques?.length) {
-        setRemolques(d.remolques.map((r) => ({
-          id: Math.random().toString(36).slice(2),
-          categoria: "remolque" as const,
-          tipoRemolque: r.tipo_remolque ?? "",
-          noSello:      r.no_sello      ?? "",
-          noCaja:       r.no_economico  ?? "",
-          placasCaja:   r.placa_caja    ?? "",
-          color:        "",
-          comentarios:  "",
-        })));
-        filled.add("remolques");
+      // Remolques y contenedores llegan en arreglos separados — la IA no
+      // sabe qué contenedor va sobre qué remolque. Si hay exactamente uno de
+      // cada uno se ligan automáticamente (caso simple); si hay más de uno,
+      // se crea una unidad por remolque y los contenedores quedan "sueltos"
+      // para que el usuario los ligue arrastrándolos sobre el remolque.
+      const remolquesAI = d.remolques ?? [];
+      const contenedoresAI = d.contenedores ?? [];
+      const unidadesFromAI: UnidadItem[] = remolquesAI.map((r) => {
+        const u = emptyUnidad();
+        u.remolque = {
+          ...u.remolque,
+          tipo:        r.tipo        ?? "",
+          noSello:     r.no_sello    ?? "",
+          noCaja:      r.no_caja     ?? "",
+          placas:      r.placas      ?? "",
+          color:       r.color       ?? "",
+          comentarios: r.comentarios ?? "",
+        };
+        return u;
+      });
+
+      const contenedoresParaLigar: (ContenedorData & { id: string })[] = contenedoresAI.map((c) => ({
+        id: Math.random().toString(36).slice(2),
+        ...emptyContenedorData(),
+        tipo:         c.tipo        ?? "",
+        noSello:      c.no_sello    ?? "",
+        noContenedor: c.no_caja     ?? "",
+        color:        c.color       ?? "",
+        comentarios:  c.comentarios ?? "",
+      }));
+
+      if (remolquesAI.length === 1 && contenedoresParaLigar.length === 1) {
+        // Caso simple — se liga solo, sin pasar por el pool de sueltos
+        const { tipo, noSello, noContenedor, noCaja, color, comentarios, materiales } = contenedoresParaLigar[0];
+        unidadesFromAI[0] = {
+          ...unidadesFromAI[0],
+          config: "remolque_contenedor",
+          contenedor: { tipo, noSello, noContenedor, noCaja, color, comentarios, materiales },
+        };
+      } else if (contenedoresParaLigar.length) {
+        setContenedoresSueltos(contenedoresParaLigar);
       }
 
-      // Materiales / carga
-      if (d.carga?.length) {
-        setMaterialItems(d.carga.map((c) => ({
-          id:         Math.random().toString(36).slice(2),
-          contenedor: c.no_contenedor  ?? "",
-          sello:      c.no_sello       ?? "",
-          tipo:       c.tipo_contenedor ?? "",
-          cantidad:   c.cantidad        ?? "",
-          peso:       c.peso_bruto      ?? "",
-          volumen:    c.volumen         ?? "",
-        })));
+      // Materiales — el servicio aún no indica a qué remolque/contenedor
+      // pertenece cada uno, así que se anexan a la primera unidad con
+      // contenedor (o a la primera unidad si ninguna tiene contenedor).
+      if (d.materiales?.length) {
+        if (!unidadesFromAI.length) unidadesFromAI.push(emptyUnidad());
+        const targetIdx = Math.max(unidadesFromAI.findIndex((u) => u.config === "remolque_contenedor"), 0);
+        const materialesCarga = d.materiales.map((m) => ({
+          ...emptyMaterial(),
+          producto:     m.producto      ?? "",
+          lote:         m.lote          ?? "",
+          cantEsperada: m.cant_esperada ?? "",
+          peso:         m.peso          ?? "",
+          volumen:      m.volumen       ?? "",
+        }));
+        const target = unidadesFromAI[targetIdx];
+        unidadesFromAI[targetIdx] = target.config === "remolque_contenedor"
+          ? { ...target, contenedor: { ...target.contenedor, materiales: materialesCarga } }
+          : { ...target, remolque: { ...target.remolque, materiales: materialesCarga } };
         filled.add("carga");
       }
 
+      if (unidadesFromAI.length) {
+        setUnidades(unidadesFromAI);
+        setExpandedUnits(new Set(unidadesFromAI.map((u) => u.id)));
+        filled.add("remolques");
+      }
+
       // Embarque
-      const prov = d.embarque?.proveedor || d.embarque?.cliente || "";
-      if (prov)                        { setProveedorCliente(prov);                     filled.add("proveedorCliente"); }
-      if (d.embarque?.no_orden_compra) { setOrdenCompra(d.embarque.no_orden_compra);    filled.add("ordenCompra"); }
+      if (d.embarque?.proveedor_cliente) { setProveedorCliente(d.embarque.proveedor_cliente); filled.add("proveedorCliente"); }
+      if (d.embarque?.no_orden_compra)   { setOrdenCompra(d.embarque.no_orden_compra);        filled.add("ordenCompra"); }
 
       setAiFilledFields(filled);
     } finally {
@@ -607,28 +689,13 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
 
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const addRemolque = (categoria: "remolque" | "contenedor") => {
-    setRemolques((p) => [...p, { ...emptyRemolque(), categoria }]);
-    setShowRemolquePicker(false);
-  };
-  const removeRemolque = (id: string) =>
-    setRemolques((p) => p.filter((r) => r.id !== id));
-  const updateRemolque = (
-    id: string,
-    field: keyof Omit<Remolque, "id">,
-    value: Remolque[keyof Remolque],
-  ) =>
-    setRemolques((p) =>
-      p.map((r) => (r.id === id ? { ...r, [field]: value } : r)),
-    );
-
   return (
     <Dialog
       open={open}
       onOpenChange={(v) => {
         if (!v) onClose();
       }}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
+      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
         <DialogTitle className="sr-only">
           Nuevo acceso de transportista
         </DialogTitle>
@@ -891,7 +958,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                 icon={<Truck className="w-3 h-3" />}
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <FieldLabel>Tipo de vehículo</FieldLabel>
                   <div className="relative">
@@ -939,6 +1006,18 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                     )}
                   </div>
                 </div>
+                <div>
+                  <FieldLabel>No. Económico / No. Rótulo</FieldLabel>
+                  <div className="relative">
+                    <Input
+                      className={cn("text-sm", aiFilledFields.has("noEconomico") && "border-violet-200 bg-violet-50/40")}
+                      placeholder="Ej. ECO-001"
+                      value={noEconomico}
+                      onChange={(e) => { setNoEconomico(e.target.value); clearAiField("noEconomico"); }}
+                    />
+                    {aiFilledFields.has("noEconomico") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -977,19 +1056,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                     />
                     {aiFilledFields.has("colorVehiculo") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
                   </div>
-                </div>
-              </div>
-
-              <div>
-                <FieldLabel>No. Económico / No. Rótulo</FieldLabel>
-                <div className="relative">
-                  <Input
-                    className={cn("text-sm", aiFilledFields.has("noEconomico") && "border-violet-200 bg-violet-50/40")}
-                    placeholder="Ej. ECO-001"
-                    value={noEconomico}
-                    onChange={(e) => { setNoEconomico(e.target.value); clearAiField("noEconomico"); }}
-                  />
-                  {aiFilledFields.has("noEconomico") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
                 </div>
               </div>
 
@@ -1047,7 +1113,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <FieldLabel>Vigencia de licencia</FieldLabel>
                   <div className="relative">
@@ -1090,16 +1156,18 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                     {aiFilledFields.has("rfcConductor") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
                   </div>
                 </div>
-              </div>
-
-              <div>
-                <FieldLabel>Acompañante</FieldLabel>
-                <Input
-                  className="text-sm"
-                  placeholder="Nombre del acompañante (opcional)"
-                  value={acompanante}
-                  onChange={(e) => setAcompanante(e.target.value)}
-                />
+                <div>
+                  <FieldLabel>Acompañante</FieldLabel>
+                  <div className="relative">
+                    <Input
+                      className={cn("text-sm", aiFilledFields.has("acompanante") && "border-violet-200 bg-violet-50/40")}
+                      placeholder="Nombre (opcional)"
+                      value={acompanante}
+                      onChange={(e) => { setAcompanante(e.target.value); clearAiField("acompanante"); }}
+                    />
+                    {aiFilledFields.has("acompanante") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -1150,236 +1218,224 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                 </div>
               </div>
 
-              <SectionDivider label="Contenedores / Materiales" />
-              <div className="rounded-xl border border-gray-200 overflow-x-auto">
-                <table className="w-full text-sm min-w-[480px]">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      {(["Contenedor", "Sello", "Tipo", "Cantidad", "Peso", "Volumen"] as const).map((h) => (
-                        <th key={h} className="text-left px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide whitespace-nowrap">
-                          {h}
-                        </th>
-                      ))}
-                      <th className="w-8" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {materialItems.map((item) => (
-                      <tr key={item.id} className="border-b border-gray-100 last:border-0 group">
-                        {([
-                          { field: "contenedor" as const, placeholder: "CRLU1357272" },
-                          { field: "sello"      as const, placeholder: "1905481"     },
-                          { field: "tipo"       as const, placeholder: "40HR"        },
-                          { field: "cantidad"   as const, placeholder: "1,980 pzas"  },
-                          { field: "peso"       as const, placeholder: "25,140 kg"   },
-                          { field: "volumen"    as const, placeholder: "44.65 m³"    },
-                        ]).map(({ field, placeholder }) => (
-                          <td key={field} className="px-3 py-2">
-                            <input
-                              value={item[field]}
-                              onChange={(e) =>
-                                setMaterialItems((p) =>
-                                  p.map((i) => i.id === item.id ? { ...i, [field]: e.target.value } : i)
-                                )
-                              }
-                              placeholder={placeholder}
-                              className="w-full bg-transparent text-xs text-gray-700 placeholder:text-gray-300 outline-none min-w-[60px]"
-                            />
-                          </td>
-                        ))}
-                        <td className="px-2 py-2">
-                          {materialItems.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setMaterialItems((p) => p.filter((i) => i.id !== item.id))}
-                              className="flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100">
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-3 flex items-start gap-2.5">
+                <Package className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  El material de carga se captura por cada remolque o contenedor —
+                  agrégalo en la pestaña <span className="font-semibold text-gray-600">Remolques</span>.
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setMaterialItems((p) => [...p, emptyMaterial()])}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-gray-200 text-xs font-medium text-gray-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50 transition-all">
-                <Plus className="w-3.5 h-3.5" />
-                Agregar fila
-              </button>
+
+              {unidades.some((u) => {
+                const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
+                return mats.some((m) => m.producto);
+              }) && (
+                <div className="space-y-2 pt-1 border-t border-gray-50">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por contenedor</p>
+                  {unidades.map((u, idx) => {
+                    const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
+                    const ref = u.config === "remolque_contenedor" ? u.contenedor.noContenedor : u.remolque.noCaja;
+                    const withProduct = mats.filter((m) => m.producto);
+                    if (!withProduct.length) return null;
+                    return (
+                      <div key={u.id} className="flex flex-wrap items-center gap-1.5">
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-violet-600 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5 shrink-0">
+                          <Package className="w-2.5 h-2.5" />
+                          Unidad {idx + 1}{ref ? ` · ${ref}` : ""}
+                        </span>
+                        {withProduct.map((m) => (
+                          <span key={m.id} className="flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-100 rounded-full px-2 py-0.5">
+                            <CheckCircle2 className="w-2.5 h-2.5" /> {m.producto}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
 
           {/* ══ TAB: REMOLQUES ═══════════════════════ */}
           {tab === "remolques" && (
             <div className="space-y-3">
-              {remolques.map((r, idx) => (
-                <div
-                  key={r.id}
-                  className="rounded-xl border border-gray-200 overflow-hidden">
-                  {/* card header */}
-                  <div
+              {unidades.map((u, idx) => {
+                if (editingUnit?.id === u.id) return null; // se edita inline debajo de la lista
+                const isUnitExpanded = expandedUnits.has(u.id);
+                const isDropTarget = dragOverUnidadId === u.id;
+                return (
+                  <div key={u.id}
+                    onDragOver={(e) => { e.preventDefault(); if (dragOverUnidadId !== u.id) setDragOverUnidadId(u.id); }}
+                    onDragLeave={() => setDragOverUnidadId((prev) => prev === u.id ? null : prev)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOverUnidadId(null);
+                      const contenedorId = e.dataTransfer.getData("text/plain");
+                      if (contenedorId) linkContenedorSuelto(u.id, contenedorId);
+                    }}
                     className={cn(
-                      "flex items-center justify-between px-4 py-2.5",
-                      idx === 0
-                        ? "bg-blue-50 border-b border-blue-100"
-                        : "bg-gray-50 border-b border-gray-100",
+                      "rounded-xl border overflow-hidden transition-colors",
+                      isDropTarget ? "border-violet-400 ring-2 ring-violet-100 bg-violet-50/30" : "border-gray-200",
                     )}>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0",
-                          idx === 0
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-400 text-white",
-                        )}>
-                        {idx + 1}
-                      </span>
-                      {/* categoria toggle */}
-                      <div className="flex rounded-lg border border-gray-200 overflow-hidden bg-white text-[11px] font-semibold">
-                        <button
-                          type="button"
-                          onClick={() => updateRemolque(r.id, "categoria", "remolque")}
-                          className={cn(
-                            "px-2.5 py-1 transition-colors",
-                            r.categoria === "remolque"
-                              ? "bg-blue-600 text-white"
-                              : "text-gray-500 hover:bg-gray-50",
-                          )}>
-                          Remolque
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updateRemolque(r.id, "categoria", "contenedor")}
-                          className={cn(
-                            "px-2.5 py-1 transition-colors",
-                            r.categoria === "contenedor"
-                              ? "bg-blue-600 text-white"
-                              : "text-gray-500 hover:bg-gray-50",
-                          )}>
-                          Contenedor
-                        </button>
-                      </div>
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                        {idx === 0 ? "Principal" : `#${idx + 1}`}
-                      </span>
-                    </div>
-                    {idx > 0 && (
+                    {/* card header */}
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
                       <button
                         type="button"
-                        onClick={() => removeRemolque(r.id)}
-                        className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1 transition-colors font-medium">
-                        <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                        onClick={() => toggleUnit(u.id)}
+                        className="flex items-center gap-2 flex-1 text-left">
+                        <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                          {u.config === "remolque_contenedor" ? "Remolque + Contenedor" : "Solo remolque"}
+                        </span>
                       </button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button type="button" onClick={() => setEditingUnit(u)}
+                          className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button type="button" onClick={() => setUnidades((p) => p.filter((x) => x.id !== u.id))}
+                          className="w-6 h-6 rounded-md hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                        <button type="button" onClick={() => toggleUnit(u.id)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                          {isUnitExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                    {/* card body */}
+                    {isUnitExpanded && (
+                      <div className="p-4 space-y-3 bg-white divide-y divide-gray-50">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5">
+                            <Truck className="w-3 h-3 text-blue-500" />
+                            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Remolque</span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-3">
+                            <MiniField label="Tipo" value={u.remolque.tipo} />
+                            <MiniField label="No. Remolque" value={u.remolque.noCaja} mono />
+                            <MiniField label="Placas" value={u.remolque.placas} mono />
+                            <div>
+                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Color</p>
+                              {u.remolque.color ? (
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ background: resolveColorSwatch(u.remolque.color)?.hex ?? "transparent" }} />
+                                  <span className="text-xs text-gray-600">{resolveColorSwatch(u.remolque.color)?.label}</span>
+                                </div>
+                              ) : <p className="text-xs text-gray-300 italic">Sin información</p>}
+                            </div>
+                          </div>
+                          {u.remolque.materiales.some((m) => m.producto) && (
+                            <div className="pt-1">
+                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
+                              <div className="flex flex-wrap gap-1">
+                                {u.remolque.materiales.filter((m) => m.producto).map((m) => (
+                                  <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {u.config === "remolque_contenedor" && (
+                          <div className="pt-3 space-y-2">
+                            <div className="flex items-center gap-1.5 justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <Package className="w-3 h-3 text-violet-500" />
+                                <span className="text-[10px] font-bold text-violet-600 uppercase tracking-widest">Contenedor</span>
+                              </div>
+                              <button type="button" onClick={() => unlinkContenedor(u.id)}
+                                className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 hover:text-red-500 transition-colors">
+                                <Unlink className="w-3 h-3" /> Desligar
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-4 gap-3">
+                              <MiniField label="Tipo contenedor" value={u.contenedor.tipo} />
+                              <MiniField label="No. Contenedor" value={u.contenedor.noContenedor} mono />
+                              <MiniField label="No. de Caja" value={u.contenedor.noCaja} mono />
+                              <div>
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Color</p>
+                                {u.contenedor.color ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ background: resolveColorSwatch(u.contenedor.color)?.hex ?? "transparent" }} />
+                                    <span className="text-xs text-gray-600">{resolveColorSwatch(u.contenedor.color)?.label}</span>
+                                  </div>
+                                ) : <p className="text-xs text-gray-300 italic">Sin información</p>}
+                              </div>
+                            </div>
+                            {u.contenedor.materiales.some((m) => m.producto) && (
+                              <div className="pt-1">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {u.contenedor.materiales.filter((m) => m.producto).map((m) => (
+                                    <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
+                                      <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
-                  {/* card body */}
-                  <div className="p-4 space-y-3 bg-white">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <FieldLabel>Tipo de remolque</FieldLabel>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                          <Input
-                            className="pl-9 text-sm"
-                            placeholder="Seleccionar tipo..."
-                            value={r.tipoRemolque}
-                            onChange={(e) =>
-                              updateRemolque(
-                                r.id,
-                                "tipoRemolque",
-                                e.target.value,
-                              )
-                            }
-                          />
+                );
+              })}
+
+              {contenedoresSueltos.length > 0 && (
+                <div className="rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-3.5 space-y-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <Link2 className="w-3.5 h-3.5 text-violet-500" />
+                    <p className="text-[11px] font-bold text-violet-700">Contenedores por ligar</p>
+                  </div>
+                  <p className="text-[11px] text-violet-500/80 leading-relaxed">
+                    La IA detectó más de un remolque y/o contenedor y no pudo saber cuál va con cuál.
+                    Arrastra cada contenedor sobre el remolque que lo carga.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {contenedoresSueltos.map((c) => (
+                      <div key={c.id}
+                        draggable
+                        onDragStart={(e) => { e.dataTransfer.setData("text/plain", c.id); e.dataTransfer.effectAllowed = "move"; }}
+                        onDragEnd={() => setDragOverUnidadId(null)}
+                        className="flex items-center gap-2 rounded-lg border border-violet-200 bg-white pl-2 pr-3 py-2 cursor-grab active:cursor-grabbing shadow-sm">
+                        <GripVertical className="w-3.5 h-3.5 text-violet-300 shrink-0" />
+                        <Package className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold text-gray-700 truncate">{c.noContenedor || c.tipo || "Contenedor"}</p>
+                          <p className="text-[10px] text-gray-400 truncate">{[c.tipo, c.noSello && `Sello ${c.noSello}`].filter(Boolean).join(" · ") || "Sin datos"}</p>
                         </div>
                       </div>
-                      <div>
-                        <FieldLabel>No. de sello</FieldLabel>
-                        <Input
-                          className="text-sm"
-                          placeholder="Ej. S-987654"
-                          value={r.noSello}
-                          onChange={(e) =>
-                            updateRemolque(r.id, "noSello", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <FieldLabel>
-                          No. de caja / contenedor
-                        </FieldLabel>
-                        <Input
-                          className="text-sm font-mono uppercase"
-                          placeholder="CAJA-001"
-                          value={r.noCaja}
-                          onChange={(e) =>
-                            updateRemolque(r.id, "noCaja", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <FieldLabel>Placas de caja</FieldLabel>
-                        <Input
-                          className="text-sm font-mono uppercase"
-                          placeholder="123-AB-4"
-                          value={r.placasCaja}
-                          onChange={(e) =>
-                            updateRemolque(r.id, "placasCaja", e.target.value)
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <FieldLabel>Comentarios</FieldLabel>
-                      <Input
-                        className="text-sm"
-                        placeholder="Escribe cualquier comentario adicional"
-                        value={r.comentarios}
-                        onChange={(e) =>
-                          updateRemolque(r.id, "comentarios", e.target.value)
-                        }
-                      />
-                    </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
 
-              {showRemolquePicker ? (
-                <div className="rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/60 p-4 space-y-2">
-                  <p className="text-xs font-semibold text-gray-500 text-center">¿Qué deseas agregar?</p>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => addRemolque("remolque")}
-                      className="flex-1 rounded-xl border border-blue-200 bg-white hover:bg-blue-50 hover:border-blue-400 transition-all py-3 flex flex-col items-center gap-1 group">
-                      <span className="text-xl">🚛</span>
-                      <span className="text-xs font-semibold text-blue-600">Remolque</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => addRemolque("contenedor")}
-                      className="flex-1 rounded-xl border border-blue-200 bg-white hover:bg-blue-50 hover:border-blue-400 transition-all py-3 flex flex-col items-center gap-1 group">
-                      <span className="text-xl">📦</span>
-                      <span className="text-xs font-semibold text-blue-600">Contenedor</span>
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowRemolquePicker(false)}
-                    className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors pt-1">
-                    Cancelar
-                  </button>
-                </div>
+              {showAgregarUnidad || editingUnit ? (
+                <UnidadEditorCard
+                  initialData={editingUnit ?? undefined}
+                  onCancel={() => { setShowAgregarUnidad(false); setEditingUnit(null); }}
+                  onSave={(u) => {
+                    if (editingUnit) {
+                      setUnidades((p) => p.map((x) => x.id === u.id ? u : x));
+                    } else {
+                      setUnidades((p) => [...p, u]);
+                      setExpandedUnits((prev) => new Set(prev).add(u.id));
+                    }
+                    setShowAgregarUnidad(false);
+                    setEditingUnit(null);
+                  }}
+                />
               ) : (
                 <button
                   type="button"
-                  onClick={() => setShowRemolquePicker(true)}
+                  onClick={() => setShowAgregarUnidad(true)}
                   className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
                   <Plus className="w-4 h-4" />
-                  Agregar remolque o contenedor
+                  Agregar remolque
                 </button>
               )}
             </div>
@@ -1387,7 +1443,14 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
         </div>
 
         {/* ── Footer ────────────────────────────────── */}
-        <div className="flex items-center gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/80">
+        <div className="flex flex-col gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/80">
+          {contenedoresSueltos.length > 0 && (
+            <p className="text-[11px] font-medium text-violet-600 flex items-center gap-1.5">
+              <Link2 className="w-3 h-3" />
+              Liga {contenedoresSueltos.length === 1 ? "el contenedor pendiente" : "los contenedores pendientes"} en la pestaña Remolques antes de registrar.
+            </p>
+          )}
+          <div className="flex items-center gap-3">
           <Button
             variant="outline"
             onClick={onClose}
@@ -1395,9 +1458,10 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
             Cancelar
           </Button>
           <Button
-            disabled={isPending}
+            disabled={isPending || contenedoresSueltos.length > 0}
             className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-2"
             onClick={() => {
+              const { remolques, contenedores, materiales } = serializeUnidades(unidades);
               const payload = {
                 creado_desde: "acceso_web",
                 tipo_operacion: tipoOperacion,
@@ -1425,29 +1489,12 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                   proveedor_cliente: proveedorCliente || null,
                   no_orden_compra: ordenCompra || null,
                 },
-                materiales: materialItems
-                  .filter((m) => m.contenedor || m.tipo || m.cantidad || m.peso || m.volumen)
-                  .map((m) => ({
-                    contenedor: m.contenedor || null,
-                    sello: m.sello || null,
-                    tipo: m.tipo || null,
-                    cantidad: m.cantidad || null,
-                    peso: m.peso || null,
-                    volumen: m.volumen ? (parseFloat(m.volumen) || null) : null,
-                  })),
                 documentos_adicionales: documentos
                   .filter((d) => d.file_url)
                   .map((d) => ({ file_url: d.file_url, file_name: d.file_name, ...(d.tipo ? { tipo: d.tipo } : {}) })),
-                remolques: remolques
-                  .filter((r) => r.noCaja || r.placasCaja)
-                  .map((r) => ({
-                    categoria: r.categoria,
-                    tipo_remolque: r.tipoRemolque || null,
-                    no_sello: r.noSello || null,
-                    no_caja: r.noCaja || null,
-                    placas_caja: r.placasCaja || null,
-                    comentarios: r.comentarios || null,
-                  })),
+                remolques,
+                contenedores,
+                materiales,
               };
               createVisit(payload, {
                 onSuccess: (result) => {
@@ -1487,16 +1534,11 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                       documentos_adicionales: documentos
                         .filter((d) => d.file_url)
                         .map((d) => ({ file_url: d.file_url, file_name: d.file_name, ...(d.tipo ? { tipo: d.tipo } : {}) })),
-                      remolques: remolques
-                        .filter((r) => r.noCaja || r.placasCaja)
-                        .map((r) => ({
-                          tipo_remolque: r.tipoRemolque || null,
-                          no_sello: r.noSello || null,
-                          no_caja: r.noCaja || null,
-                          placas_caja: r.placasCaja || null,
-                          color: r.color || null,
-                          comentarios: r.comentarios || null,
-                        })),
+                      // Los remolques/contenedores/materiales quedan vacíos aquí:
+                      // el backend los agrupa (remolque + contenedor + refs de
+                      // material) al guardar, así que se dejan para que la
+                      // siguiente carga real los traiga ya vinculados.
+                      remolques: [],
                       materiales: [],
                       inspecciones: [],
                     };
@@ -1504,6 +1546,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                       ["visitaTransportista", result.id],
                       cacheData,
                     );
+                    queryClient.invalidateQueries({ queryKey: ["visitaTransportista", result.id] });
                     onClose();
                     router.push(
                       `/dashboard/accesos/transportista/${result.id}`,
@@ -1526,6 +1569,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
               </>
             )}
           </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
