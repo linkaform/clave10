@@ -31,6 +31,7 @@ interface CalendarDaysProps {
   tipoOcr?: "id" | "paquete" | "truck" | "vehiculo"  | "equipo" | "persona";
   showPlaceholder?: boolean;
   ocrResultChildren?: React.ReactNode;
+  onClear?: () => void;
 }
 
 const LoadImage: React.FC<CalendarDaysProps> = ({
@@ -46,7 +47,8 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   tipoOcr = "id",
   showPlaceholder=false,
   ocrResultChildren,
-  showImage=true
+  showImage=true,
+  onClear,
 }) => {
 
   const [loadingWebcam, setLoadingWebcam] = useState(false);
@@ -137,6 +139,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     if (nuevos.length > 0) {
       const updatedImgs = [...(imgArray ?? []), ...nuevos];
       setImg(updatedImgs);
+      // Auto-analizar si tiene onOcrResult
       if (onOcrResult) {
         const urls = updatedImgs
           .map((i: Imagen) => i.file_url)
@@ -157,13 +160,14 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     setHideWebcam(true);
     setHideButtonWebcam(false);
     setWebcamReady(false);
-    onOcrResult?.(null); 
+    onClear?.();
   }
 
   function removeImage(indexToRemove: number) {
     const newArray = imgArray.filter((_: any, index: number) => index !== indexToRemove);
     setImg(newArray);
     if (newArray.length === 0) cleanPhoto();
+    else onClear?.();
   }
 
   function handleOpenCamera() {

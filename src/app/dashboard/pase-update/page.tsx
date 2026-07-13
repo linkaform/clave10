@@ -177,7 +177,7 @@ const PaseUpdate = () => {
   const handleCopyPadre = async () => {
     const url = dataCatalogos?.pass_selected?.link_padre;
     if (!url) {
-      toast.error("No hay link de pase padre disponible");
+      toast.error("No hay link de pase con acompañantes disponible");
       return;
     }
     try {
@@ -208,11 +208,12 @@ const PaseUpdate = () => {
   }, [dataCatalogos, grupoRequisitos]);
 
   const handleOcrFotografia = (result: any) => {
-    setOcrFotoResult(result?.data ?? null);
+    setOcrFotoResult(result ?? null);
   };
   const handleOcrIdentificacion = (result: any) => {
-    setOcrIdenResult(result?.data ?? null);
+    setOcrIdenResult(result ?? null);
   };
+
   const [errorFotografia, setErrorFotografia] = useState("");
   const [errorIdentificacion, setErrorIdentificacion] = useState("");
 
@@ -718,7 +719,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
         parentUserId={account_id}
       />
       {dataCatalogos?.pass_selected?.estatus == "proceso" ? (
-        <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 pt-0">
+        <div className="max-w-5xl mx-auto px-4 py-6 space-y-6 pt-0">
           <h1 className="font-bold text-2xl text-center text-slate-800">
             Pase De Entrada
           </h1>
@@ -803,21 +804,21 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                         setImg={field.onChange}
                         facingMode="user"
                         tipoOcr="persona"
-                        limit={1}
+                        onClear={() => setOcrFotoResult(null)}
                         onOcrResult={handleOcrFotografia}
                         ocrResultChildren={
                           ocrFotoResult ? (
                             <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
                               ocrFotoResult.es_persona
                                 ? "bg-green-50 border-green-200 text-green-700"
-                                : "bg-red-50 border-red-200 text-red-600"
+                                : "bg-amber-50 border-amber-200 text-amber-700"
                             }`}>
                               {ocrFotoResult.es_persona ? (
                                 <><span className="text-green-500 text-base">✓</span>
                                 <span>Se detectó una persona en la foto</span></>
                               ) : (
-                                <><span className="text-red-500 text-base">✗</span>
-                                <span>No se detectó una persona — sube una foto del rostro</span></>
+                                <><span className="text-amber-500 text-base">⚠</span>
+                                <span>No detectamos claramente un rostro — puedes continuar, pero verifica que la foto se vea bien</span></>
                               )}
                             </div>
                           ) : null
@@ -851,7 +852,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                         showWebcamOption={true}
                         facingMode="environment"
                         tipoOcr="id"
-                        limit={1}
+                        onClear={() => setOcrIdenResult(null)}
                         onOcrResult={handleOcrIdentificacion}
                         ocrResultChildren={
                         ocrIdenResult ? (() => {
@@ -868,15 +869,15 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                           ["ine", "licencia"].includes(iden.tipo_documento.toLowerCase().trim());
                           return (
                             <div className="flex flex-col gap-1">
-                              <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
-                                esId ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-600"
+                             <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
+                                esId ? "bg-green-50 border-green-200 text-green-700" : "bg-amber-50 border-amber-200 text-amber-700"
                               }`}>
                                 {esId ? (
                                   <><span className="text-green-500 text-base">✓</span>
                                   <span>Identificación detectada — <strong>{ocrIdenResult.tipo_documento ?? "ID"}</strong></span></>
                                 ) : (
-                                  <><span className="text-red-500 text-base">✗</span>
-                                  <span>No se detectó una identificación válida</span></>
+                                  <><span className="text-amber-500 text-base">⚠</span>
+                                  <span>No pudimos confirmar el tipo de documento — puedes continuar, pero revisa que la imagen sea legible</span></>
                                 )}
                               </div>
                               {ocrIdenResult.nombre && (
@@ -925,14 +926,18 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-900 text-white">
                         <Users size={12} className={activo ? "text-green-400" : "text-blue-400"} />
-                        Pase padre
+                        Pase con acompañantes
                       </span>
                     </div>
                     <p className={`text-xs font-medium ${activo ? "text-green-700" : "text-blue-700"}`}>
-                      Este pase es un pase padre, aquí están los miembros de su grupo
+                      Este pase es un pase con acompañantes, a continuación puedes editar la información de cada uno
                     </p>
                   </div>
                 </div>
+
+                <p className="text-xs text-slate-500 mb-3 italic">
+                  Completa la información de los acompañantes en caso de tener los datos disponibles.
+                </p>
 
                 <MiembrosPase
                   miembros={miembrosAcompanantes}
@@ -942,7 +947,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                   useIA
                   onDownload={(m) => handleDescargarAcompanante(m)}
                   defaultCountry={defaultCountry}
-                  viewMode
+                  modo="completar"
                 />
               </div>
             );
@@ -1392,7 +1397,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-800 text-white">
                               <Users size={11} className={activo ? "text-green-400" : "text-blue-400"} />
-                              Pase padre
+                              Pase con Acompañantes
                             </span>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white ${
                               activo ? "bg-green-600" : "bg-blue-600"
@@ -1402,8 +1407,8 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                           </div>
                           <p className={`text-xs font-medium ${activo ? "text-green-700" : "text-blue-700"}`}>
                             {activo
-                              ? "Este es un pase padre activo — a continuación los miembros de su grupo."
-                              : "Este pase padre está en proceso — a continuación los miembros de su grupo."}
+                              ? "Este es un pase con acompañantes activo — a continuación los miembros de su grupo."
+                              : "Este pase con acompañantes está en proceso — a continuación los miembros de su grupo."}
                           </p>
                         </div>
                       </div>
@@ -1415,7 +1420,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                         useIA
                         onDownload={(m) => handleDescargarAcompanante(m)}
                         defaultCountry={defaultCountry}
-                        viewMode
+                        modo="ver"
                       />
                     </div>
                   );
