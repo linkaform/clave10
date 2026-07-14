@@ -1,3 +1,4 @@
+import { MainLayout } from "@/components/Layout/MainLayout";
 import { Metadata } from "next"
 import React from "react"
 
@@ -12,8 +13,8 @@ export default function ConfiguracionLayout({ children }: { children: React.Reac
       <link rel="icon" href="/configuracion.svg" type="image/svg+xml" />
       
       {/* Layout principal */}
-      {/* <MainLayout>{children}</MainLayout> */}
-      {children}
+      <MainLayout>{children}</MainLayout>
+      {/* {children} */}
     </>
   );
 }
