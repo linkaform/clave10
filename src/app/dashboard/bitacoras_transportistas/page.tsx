@@ -86,6 +86,9 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
   const tiempo = record.fecha_hora_ingreso ? tiempoLabel(mins) : null;
   const queryClient = useQueryClient();
 
+  const LOCKED_ESTATUS = ["inspeccion_salida", "terminado"];
+  const andenLocked = LOCKED_ESTATUS.includes(record.estatus);
+
   const [localAnden, setLocalAnden] = useState<string | null>(record.anden_asignado ?? null);
   const [showAndenModal, setShowAndenModal] = useState(false);
   const [savingAnden, setSavingAnden] = useState(false);
@@ -160,12 +163,14 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
                   : null}
                 Andén {localAnden}
               </span>
-              <button
-                type="button"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowAndenModal(true); }}
-                className="w-5 h-5 rounded flex items-center justify-center text-gray-300 hover:text-blue-500 transition-colors">
-                <Pencil className="w-3 h-3" />
-              </button>
+              {!andenLocked && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowAndenModal(true); }}
+                  className="w-5 h-5 rounded flex items-center justify-center text-gray-300 hover:text-blue-500 transition-colors">
+                  <Pencil className="w-3 h-3" />
+                </button>
+              )}
             </div>
           )}
         </div>

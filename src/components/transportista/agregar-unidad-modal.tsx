@@ -235,7 +235,7 @@ export function UnidadEditorCard({
         <table className="w-full text-xs border-collapse" style={{ minWidth: 480 }}>
           <thead>
             <tr>
-              {["Producto", "Lote", "Cant. esperada", "Cant. física", "Peso", "Volumen", ""].map((h) => (
+              {["Producto", "Lote", "Cantidad", "Peso", "Volumen", ""].map((h) => (
                 <th key={h} className="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-left pb-1.5 pr-2">{h}</th>
               ))}
             </tr>
@@ -246,7 +246,6 @@ export function UnidadEditorCard({
                 <td className="pr-2 pb-1.5"><input className="w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="Nombre del producto" value={m.producto} onChange={(e) => onUpdate(m.id, "producto", e.target.value)} /></td>
                 <td className="pr-2 pb-1.5"><input className="w-24 h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="L-4471" value={m.lote} onChange={(e) => onUpdate(m.id, "lote", e.target.value)} /></td>
                 <td className="pr-2 pb-1.5"><input className="w-24 h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="12 ton" value={m.cantEsperada} onChange={(e) => onUpdate(m.id, "cantEsperada", e.target.value)} /></td>
-                <td className="pr-2 pb-1.5"><input className="w-24 h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="—" value={m.cantFisica} onChange={(e) => onUpdate(m.id, "cantFisica", e.target.value)} /></td>
                 <td className="pr-2 pb-1.5"><input className="w-24 h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="2.5 ton" value={m.peso} onChange={(e) => onUpdate(m.id, "peso", e.target.value)} /></td>
                 <td className="pr-2 pb-1.5"><input className="w-24 h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400" placeholder="44.6 m³" value={m.volumen} onChange={(e) => onUpdate(m.id, "volumen", e.target.value)} /></td>
                 <td className="pb-1.5"><button type="button" onClick={() => onRemove(m.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button></td>

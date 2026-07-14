@@ -533,40 +533,56 @@ function InspeccionEntradaModal({
     </svg>
   );
 
-  const renderEvidence = (sectionLabel: string, evKey: string, evidencias: EvidenciaImg[]) => {
+  const renderEvidence = (sectionLabel: string, evKey: string, evidencias: EvidenciaImg[], sugeridas?: string) => {
     const loading = uploadingSection === evKey;
+    const hasImgs = evidencias.length > 0;
     return (
-      <div className="bg-blue-50/60 rounded-xl p-3 space-y-2">
-        <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest flex items-center gap-1">
-          <Camera className="w-3 h-3" /> {sectionLabel}
+      <div className="space-y-2">
+        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+          <Camera className="w-3.5 h-3.5" /> {sectionLabel}
         </p>
-        <div className="flex gap-2 flex-wrap">
-          {evidencias.map((img, i) => (
-            <div key={i} className="relative w-14 h-14 rounded-lg overflow-hidden border border-blue-100 shrink-0">
-              <img src={img.file_url} className="w-full h-full object-cover" alt="" />
-              <button
-                type="button"
-                onClick={() => removeImg(evKey, i)}
-                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow"
-              >
-                <X className="w-2.5 h-2.5 text-white" />
-              </button>
-            </div>
-          ))}
-          {loading ? (
-            <div className="w-14 h-14 rounded-xl bg-blue-100/60 flex items-center justify-center border-2 border-blue-200 shrink-0">
-              <Spinner className="w-5 h-5 text-blue-400" />
-            </div>
-          ) : (
+        {!hasImgs ? (
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => triggerUpload(evKey)}
+            className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/40 hover:border-blue-300 hover:bg-blue-50/40 transition-all flex flex-col items-center justify-center gap-1.5 py-6 disabled:opacity-60">
+            {loading
+              ? <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+              : <Camera className="w-5 h-5 text-gray-300" />}
+            <span className="text-sm text-gray-400 font-medium">Subir fotografías</span>
+            <span className="text-[11px] text-gray-300">Puedes seleccionar múltiples fotos</span>
+          </button>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {evidencias.map((img, i) => (
+              <div key={i} className="relative w-16 h-16 shrink-0">
+                <img src={img.file_url} className="w-full h-full object-cover rounded-lg border border-gray-200" alt="" />
+                <button
+                  type="button"
+                  onClick={() => removeImg(evKey, i)}
+                  className="absolute -top-1 -right-1 z-10 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow">
+                  <X className="w-2.5 h-2.5 text-white" />
+                </button>
+              </div>
+            ))}
             <button
               type="button"
+              disabled={loading}
               onClick={() => triggerUpload(evKey)}
-              className="w-14 h-14 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-400 hover:bg-blue-50 flex items-center justify-center transition-colors shrink-0"
-            >
-              <Camera className="w-5 h-5 text-blue-300" />
+              className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 hover:border-blue-300 hover:bg-blue-50/40 transition-all flex flex-col items-center justify-center gap-1 text-gray-300 disabled:opacity-60 shrink-0">
+              {loading
+                ? <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                : <Camera className="w-4 h-4" />}
+              {!loading && <span className="text-[10px]">Agregar</span>}
             </button>
-          )}
-        </div>
+          </div>
+        )}
+        {sugeridas && (
+          <p className="text-[11px] text-gray-500 leading-relaxed">
+            <span className="font-semibold">Fotos sugeridas:</span> {sugeridas}
+          </p>
+        )}
       </div>
     );
   };
@@ -701,102 +717,7 @@ function InspeccionEntradaModal({
         {renderDoneBanner("tractor")}
         {!done && (
           <>
-            <div>
-              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Verificación de placas</p>
-              <div className="grid grid-cols-2 gap-3">
-                {(() => {
-                  const fotoPlacaDoc = documentosAdicionales?.find(
-                    (dd) => dd.tipo === DOCUMENTOS_REQUERIDOS_SLUGS["Foto de placa de vehículo"]
-                  );
-                  const tarjetaDoc = documentosAdicionales?.find(
-                    (dd) => dd.tipo === DOCUMENTOS_REQUERIDOS_SLUGS["Tarjeta de circulación - Vehículo"]
-                  );
-                  const campo = (
-                    titulo: string,
-                    valor: string | null,
-                    valorTag: string,
-                    doc: { file_url: string; file_name: string } | undefined,
-                    slug: string,
-                  ) => {
-                    const uploading = uploadingPlacaDoc === slug;
-                    return (
-                      <div className="space-y-1.5">
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{titulo}</p>
-                        <div className="h-9 rounded-lg border border-gray-200 bg-gray-50 px-2.5 flex items-center gap-1.5 text-xs text-gray-700">
-                          <Lock className="w-3 h-3 text-gray-400 shrink-0" />
-                          <span className="flex-1 truncate font-mono uppercase">{valor || "Sin información"}</span>
-                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest shrink-0">{valorTag}</span>
-                        </div>
-                        {doc ? (
-                          <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
-                            className="block relative w-full h-20 rounded-lg overflow-hidden border border-gray-200">
-                            <img src={doc.file_url} alt="" className="w-full h-full object-cover" />
-                          </a>
-                        ) : (
-                          <button type="button" disabled={uploading} onClick={() => triggerPlacaDocUpload(slug)}
-                            className="w-full h-20 flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-red-200 bg-red-50/40 hover:border-red-300 hover:bg-red-50 px-2.5 text-[11px] text-red-500 transition-colors disabled:opacity-60">
-                            {uploading
-                              ? <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                              : <Camera className="w-4 h-4" />}
-                            <span className="text-center leading-snug">{uploading ? "Subiendo..." : "Documento pendiente · subir ahora"}</span>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  };
-                  const placaA = placaVehiculo?.trim().toUpperCase() ?? null;
-                  const placaB = placaTarjetaCirculacion?.trim().toUpperCase() ?? null;
-                  const ambas = placaA && placaB;
-                  const coinciden = ambas && placaA === placaB;
-                  const noCoinciden = ambas && placaA !== placaB;
-                  const tarjetaSlug = DOCUMENTOS_REQUERIDOS_SLUGS["Tarjeta de circulación - Vehículo"];
-
-                  return (
-                    <>
-                      {campo("Placas del vehículo físicas", placaVehiculo ?? null, "Sistema", fotoPlacaDoc, DOCUMENTOS_REQUERIDOS_SLUGS["Foto de placa de vehículo"])}
-                      {campo("Placas en tarjeta de circulación", placaTarjetaCirculacion ?? null, "IA", tarjetaDoc, tarjetaSlug)}
-
-                      {/* Resultado de comparación — ocupa las 2 columnas */}
-                      <div className="col-span-2">
-                        {coinciden && (
-                          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                            <p className="text-xs font-semibold text-emerald-700">Las placas coinciden</p>
-                          </div>
-                        )}
-                        {noCoinciden && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200">
-                              <X className="w-4 h-4 text-red-500 shrink-0" />
-                              <p className="text-xs font-semibold text-red-700 flex-1">Las placas no coinciden</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <button type="button"
-                                onClick={() => triggerPlacaDocUpload(tarjetaSlug)}
-                                disabled={uploadingPlacaDoc === tarjetaSlug}
-                                className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors disabled:opacity-50">
-                                {uploadingPlacaDoc === tarjetaSlug
-                                  ? <span className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                                  : <Camera className="w-3.5 h-3.5" />}
-                                Reemplazar foto
-                              </button>
-                              <button type="button" disabled
-                                className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg border border-violet-200 bg-violet-50 text-xs font-semibold text-violet-400 cursor-not-allowed opacity-60">
-                                <HelpCircle className="w-3.5 h-3.5" />
-                                Analizar con IA
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        {!ambas && (
-                          <p className="text-[10px] text-gray-400 text-center">Sube ambos documentos para comparar las placas</p>
-                        )}
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
+            {renderEvidence("Fotografías", "ev:tractor", tractorEvidencia, "Placa del vehículo · Tarjeta de circulación · Vista frontal · Vista lateral · Vista trasera")}
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
                 Inspección de {PUNTOS_TRACTOR.length} puntos
@@ -1132,23 +1053,34 @@ function InspeccionSelloModal({
   recordId,
   unidades,
   inspeccionesDone,
+  documentosAdicionales,
   onClose,
   onSaved,
 }: {
   recordId: string;
   unidades: UnidadItem[];
   inspeccionesDone: { tipo: string; unidad?: number; url?: string }[];
+  documentosAdicionales?: { file_url: string; file_name: string; tipo?: string }[];
   onClose: () => void;
   onSaved?: () => void;
 }) {
   const getDone = (unidad: number) => inspeccionesDone.find((i) => i.tipo === `sello_${unidad}`);
   const isDone = (unidad: number) => !!getDone(unidad);
 
+  const fotoPlaca = documentosAdicionales?.find((d) => d.tipo === "foto_placa_vehiculo" || d.tipo === "FOTO PLACA");
+  const fotoIdentificacion = documentosAdicionales?.find((d) => d.tipo === "identificacion" || d.tipo === "identificacion_chofer" || d.tipo === "LICENCIA CONDUCIR");
+
   const emptySelloUnit = (): SelloUnitData => ({
     noSelloRevisado: "",
     clasificacion: null,
     vvtt: { view: false, verify: false, tug: false, twist: false },
-    evidencias: Object.fromEntries(SELLO_EVIDENCIA_SLOTS.map((s) => [s.key, null])),
+    evidencias: Object.fromEntries(SELLO_EVIDENCIA_SLOTS.map((s) => {
+      if (s.key === "placas_economico" && fotoPlaca)
+        return [s.key, { file_url: fotoPlaca.file_url, file_name: fotoPlaca.file_name }];
+      if (s.key === "identificacion_operador" && fotoIdentificacion)
+        return [s.key, { file_url: fotoIdentificacion.file_url, file_name: fotoIdentificacion.file_name }];
+      return [s.key, null];
+    })),
     comentario: "",
   });
 
@@ -1553,6 +1485,204 @@ function ProgressBar({
 }
 
 
+// ─── Inspección de la carga ────────────────────────────────────────────────────
+
+interface FilaCarga {
+  producto: string;
+  lote: string;
+  cantidad_esperada: string;
+  no_referencia: string;
+  cantidad_fisica: string;
+  check: boolean | null; // null=sin revisar, true=correcto, false=diferencia
+}
+
+function InspeccionCargaModal({
+  materiales,
+  recordId,
+  readOnly,
+  onClose,
+  onSaved,
+}: {
+  materiales: import("@/hooks/useGetVisitTransportista").MaterialVisita[];
+  recordId: string;
+  readOnly?: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [filas, setFilas] = useState<FilaCarga[]>(() =>
+    materiales.map((m) => ({
+      producto:          m.producto ?? "",
+      lote:              m.lote ?? "",
+      cantidad_esperada: m.cantidad ?? "",
+      no_referencia:     m.no_referencia ?? "",
+      cantidad_fisica:   m.cantidad_fisica ?? "",
+      check:             null,
+    }))
+  );
+  const [saving, setSaving] = useState(false);
+
+  const setFila = (i: number, patch: Partial<FilaCarga>) =>
+    setFilas((p) => p.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
+
+  const handleCheck = (i: number) => {
+    const cur = filas[i].check;
+    // null → true → false → null
+    const next = cur === null ? true : cur === true ? false : null;
+    setFila(i, { check: next });
+  };
+
+  const handleGuardar = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        materiales: filas.map((f, i) => ({
+          index:         i,
+          ref:           materiales[i]?.no_referencia ?? null,
+          producto:      f.producto,
+          lote:          f.lote,
+          cant_esperada: f.cantidad_esperada,
+          cant_fisica:   f.cantidad_fisica,
+          peso:          materiales[i]?.peso ?? null,
+          volumen:       materiales[i]?.volumen ?? null,
+          resultado:     f.check === null ? "pendiente" : f.check ? "correcto" : "diferencia",
+        })),
+      };
+      await saveBitacoraTransportistaRecord(recordId, "remolques", payload);
+      toast.success("Inspección de material guardada");
+      onSaved();
+      onClose();
+    } catch {
+      toast.error("Error al guardar la inspección");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+              </svg>
+            </div>
+            <p className="text-sm font-bold text-gray-900">Inspección De Material</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-gray-300 hover:text-gray-500 transition-colors">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Instructivo */}
+        <div className="mx-6 mt-4 shrink-0 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-amber-700">
+          <span className="text-amber-500 shrink-0">ⓘ Instructivo:</span>
+          <span className="flex items-center gap-1.5 text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1">
+            <svg className="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+            1 clic = Producto correcto
+          </span>
+          <span className="flex items-center gap-1.5 text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1">
+            <svg className="w-3.5 h-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            Doble clic = Diferencia / hallazgo
+          </span>
+        </div>
+
+        {/* Tabla */}
+        <div className="flex-1 overflow-y-auto px-6 pb-4 mt-4">
+          <table className="w-full text-xs border-collapse" style={{ borderSpacing: 0 }}>
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-3">Producto</th>
+                <th className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-3">Lote</th>
+                <th className="text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-3">Cant. esperada</th>
+                <th className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-3">Cant. física</th>
+                <th className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-3">Check</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filas.length === 0 && (
+                <tr><td colSpan={5} className="py-8 text-center text-gray-300 text-xs">Sin materiales registrados</td></tr>
+              )}
+              {filas.map((f, i) => (
+                <tr key={i} className="group">
+                  <td className="py-3">
+                    <p className="font-semibold text-gray-800">{f.producto || "—"}</p>
+                    {f.no_referencia && <p className="text-[10px] text-gray-400 mt-0.5">{f.no_referencia}</p>}
+                  </td>
+                  <td className="py-3 font-bold text-gray-700">{f.lote || "—"}</td>
+                  <td className="py-3 text-right font-semibold text-orange-600">{f.cantidad_esperada || "—"}</td>
+                  <td className="py-3 px-4">
+                    {readOnly ? (
+                      <span className="block text-center text-xs font-semibold text-gray-700">{f.cantidad_fisica || "—"}</span>
+                    ) : (
+                      <input
+                        type="text"
+                        value={f.cantidad_fisica}
+                        onChange={(e) => setFila(i, { cantidad_fisica: e.target.value })}
+                        placeholder="—"
+                        className="w-full text-center text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-300 bg-gray-50"
+                      />
+                    )}
+                  </td>
+                  <td className="py-3 text-center">
+                    <button
+                      type="button"
+                      disabled={readOnly}
+                      onClick={() => !readOnly && handleCheck(i)}
+                      onDoubleClick={(e) => { if (readOnly) return; e.preventDefault(); setFila(i, { check: false }); }}
+                      className={cn(
+                        "w-7 h-7 rounded-lg border-2 flex items-center justify-center mx-auto transition-all",
+                        readOnly ? "cursor-default" : "",
+                        f.check === null  ? "border-gray-200 bg-white" + (readOnly ? "" : " hover:border-gray-300")
+                        : f.check === true ? "border-blue-500 bg-blue-500"
+                        : "border-red-500 bg-red-500"
+                      )}>
+                      {f.check === true && (
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                      )}
+                      {f.check === false && (
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      )}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+          {readOnly ? (
+            <button type="button" onClick={onClose}
+              className="flex-1 h-11 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+              Cerrar
+            </button>
+          ) : (
+            <>
+              <button type="button" onClick={onClose}
+                className="flex-1 h-11 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
+              <button type="button" onClick={handleGuardar} disabled={saving}
+                className="flex-1 h-11 rounded-xl text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                {saving ? "Guardando..." : "Guardar"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
 function Skeleton({ className }: { className?: string }) {
@@ -1704,6 +1834,7 @@ export default function DetalleTransportistaPage() {
   const [editingUnit, setEditingUnit] = useState<UnidadItem | null>(null);
   const [showInspeccion, setShowInspeccion] = useState(false);
   const [showInspeccionSalida, setShowInspeccionSalida] = useState(false);
+  const [showInspeccionCarga, setShowInspeccionCarga] = useState<false | "edit" | "readonly">(false);
   const [showInspeccionSello, setShowInspeccionSello] = useState(false);
   const [showAndenModal, setShowAndenModal] = useState(false);
   const [vehicleExpanded, setVehicleExpanded] = useState(true);
@@ -1877,6 +2008,14 @@ export default function DetalleTransportistaPage() {
     });
 
   const [docTab, setDocTab] = useState<"pendientes" | "subidos">("pendientes");
+  const ESTATUS_CON_DOCS_COLAPSADOS = ["carga_/_descarga", "inspeccion_salida", "terminado"];
+  const [docsExpanded, setDocsExpanded] = useState(true);
+  const docsExpandedInitialized = useRef(false);
+  useEffect(() => {
+    if (!data || docsExpandedInitialized.current) return;
+    docsExpandedInitialized.current = true;
+    if (ESTATUS_CON_DOCS_COLAPSADOS.includes(data.estatus ?? "")) setDocsExpanded(false);
+  }, [data]);
   const [fotoPicker, setFotoPicker] = useState<"foto_conductor" | "foto_licencia" | null>(null);
   const [uploadingFotoConductor, setUploadingFotoConductor] = useState(false);
   const fotoInputRef = useRef<HTMLInputElement>(null);
@@ -2673,51 +2812,54 @@ export default function DetalleTransportistaPage() {
           {/* Documentos */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
-              <FileText className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-bold text-gray-800 flex-1">
-                Documentos
-              </span>
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+              <button
+                type="button"
+                onClick={() => setDocsExpanded((p) => !p)}
+                className="flex items-center gap-3 flex-1 text-left hover:opacity-70 transition-opacity">
+                <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                <span className="text-sm font-bold text-gray-800">Documentos</span>
+                <svg
+                  className={cn("w-4 h-4 text-gray-400 shrink-0 transition-transform", docsExpanded ? "rotate-180" : "")}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5 shrink-0">
                 <button
-                  onClick={() => setDocTab("pendientes")}
+                  onClick={() => { setDocTab("pendientes"); setDocsExpanded(true); }}
                   className={cn(
                     "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all",
-                    docTab === "pendientes"
+                    docTab === "pendientes" && docsExpanded
                       ? "bg-white text-gray-900 shadow-sm"
                       : "text-gray-500 hover:text-gray-700",
                   )}>
                   Pendientes
-                  <span
-                    className={cn(
-                      "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                      docTab === "pendientes"
-                        ? "bg-red-100 text-red-600"
-                        : "bg-gray-200 text-gray-400",
-                    )}>
+                  <span className={cn(
+                    "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                    docTab === "pendientes" && docsExpanded ? "bg-red-100 text-red-600" : "bg-gray-200 text-gray-400",
+                  )}>
                     {docsPendientesReq.length}
                   </span>
                 </button>
                 <button
-                  onClick={() => setDocTab("subidos")}
+                  onClick={() => { setDocTab("subidos"); setDocsExpanded(true); }}
                   className={cn(
                     "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all",
-                    docTab === "subidos"
+                    docTab === "subidos" && docsExpanded
                       ? "bg-white text-gray-900 shadow-sm"
                       : "text-gray-500 hover:text-gray-700",
                   )}>
                   Subidos
-                  <span
-                    className={cn(
-                      "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                      docTab === "subidos"
-                        ? "bg-emerald-100 text-emerald-600"
-                        : "bg-gray-200 text-gray-400",
-                    )}>
+                  <span className={cn(
+                    "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                    docTab === "subidos" && docsExpanded ? "bg-emerald-100 text-emerald-600" : "bg-gray-200 text-gray-400",
+                  )}>
                     {data?.documentos_adicionales?.length ?? 0}
                   </span>
                 </button>
               </div>
             </div>
+            {docsExpanded && <>
             <div className="p-4 space-y-2">
               {docTab === "pendientes" && docsPendientesReq.map((nombre) => {
                 const isUploading = uploadingReqDoc === nombre;
@@ -3110,6 +3252,7 @@ export default function DetalleTransportistaPage() {
                 );
               })()}
             </div>
+            </>}
           </div>
 
           {/* Material Carga / Descarga */}
@@ -3437,6 +3580,41 @@ export default function DetalleTransportistaPage() {
 
         {/* ── RIGHT SIDEBAR ────────────────────────────────────────────────── */}
         <div className="space-y-3">
+          {/* Terminar proceso — visible cuando inspección de salida está completa */}
+          {estatus === "inspeccion_salida" && (() => {
+            const inspecsSalida = (data?.inspecciones ?? []).filter((i) =>
+              i.tipo === "salida_tractor" || i.tipo.startsWith("salida_remolque_") || i.tipo.startsWith("salida_contenedor_")
+            );
+            const totalSecciones = 1 + unidades.length + unidades.filter(u => u.config === "remolque_contenedor").length;
+            if (inspecsSalida.length < totalSecciones) return null;
+            return (
+              <div className="rounded-xl overflow-hidden shadow-md" style={{ background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)" }}>
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-white" />
+                    <span className="text-sm font-bold text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.25)" }}>Listo para salir</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wide">Inspección completa</span>
+                </div>
+                <div className="px-4 pb-4 space-y-3">
+                  <p className="text-xs text-white/90 leading-relaxed" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.25)" }}>
+                    Todas las inspecciones han sido completadas. Confirma la salida del transporte para cerrar el proceso.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={savingEstatus}
+                    onClick={() => cambiarEstatus("terminado")}
+                    className="w-full h-11 rounded-xl text-xs font-semibold bg-white hover:bg-green-50 text-green-700 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
+                    {savingEstatus
+                      ? <span className="w-3.5 h-3.5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+                      : <ArrowRight className="w-3.5 h-3.5" style={{ animation: "slide-right 0.7s ease-in-out infinite alternate" }} />}
+                    Terminar proceso · Dar salida
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Pasar a Carga / Descarga — visible solo cuando ambas inspecciones están completas */}
           {estatus === "inspeccion_entrada" && (() => {
             const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
@@ -3461,41 +3639,48 @@ export default function DetalleTransportistaPage() {
           })()}
 
           {/* Carga / Descarga en curso */}
-          {estatus === "carga_/_descarga" && (
-            <div className="rounded-xl overflow-hidden shadow-md" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)" }}>
-              <div className="px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                  <span className="text-sm font-bold text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.25)" }}>Carga / Descarga</span>
+          {estatus === "carga_/_descarga" && (() => {
+            const mats = data?.materiales ?? [];
+            const inspeccionCargaDone = mats.length > 0 && mats.every((m) => m.cantidad_fisica && m.cantidad_fisica.trim() !== "");
+            const finalizarDisabled = savingEstatus || !inspeccionCargaDone;
+            return (
+              <div className="rounded-xl overflow-hidden shadow-md" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)" }}>
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    <span className="text-sm font-bold text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.25)" }}>Carga / Descarga</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wide">En curso</span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wide">En curso</span>
+                <div className="px-4 pb-4 space-y-3">
+                  <p className="text-xs text-white/90 leading-relaxed" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.25)" }}>
+                    La unidad se encuentra en proceso de carga o descarga. Una vez finalizada, realiza la inspección de salida.
+                  </p>
+                  {!inspeccionCargaDone && (
+                    <p className="text-[10px] text-white/70 leading-relaxed">
+                      Completa la inspección de la carga antes de continuar.
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    disabled={finalizarDisabled}
+                    onClick={() => cambiarEstatus("inspeccion_salida")}
+                    className="w-full h-10 rounded-xl text-xs font-semibold bg-white hover:bg-amber-50 text-amber-700 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                    {savingEstatus
+                      ? <span className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                      : <ArrowRight className="w-3.5 h-3.5" style={{ animation: inspeccionCargaDone ? "slide-right 0.7s ease-in-out infinite alternate" : undefined }} />}
+                    Finalizar · Pasar a Inspección de salida
+                  </button>
+                </div>
               </div>
-              <div className="px-4 pb-4 space-y-3">
-                <p className="text-xs text-white/90 leading-relaxed" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.25)" }}>
-                  La unidad se encuentra en proceso de carga o descarga. Una vez finalizada, realiza la inspección de salida.
-                </p>
-                <button
-                  type="button"
-                  disabled={savingEstatus}
-                  onClick={() => cambiarEstatus("inspeccion_salida")}
-                  className="w-full h-10 rounded-xl text-xs font-semibold bg-white hover:bg-amber-50 text-amber-700 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60">
-                  {savingEstatus
-                    ? <span className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                    : <ArrowRight className="w-3.5 h-3.5" style={{ animation: "slide-right 0.7s ease-in-out infinite alternate" }} />}
-                  Finalizar · Pasar a Inspección de salida
-                </button>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Inspección de entrada */}
           {(() => {
-            // Solo tractor/remolque/contenedor pertenecen a esta inspección —
-            // excluye otros tipos que compartan el mismo arreglo (ej. "sello_N").
             const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
               i.tipo === "tractor" || i.tipo.startsWith("remolque_") || i.tipo.startsWith("contenedor_")
             );
-            // Total esperado: 1 tractor + 1 por cada unidad (remolque) + 1 por cada contenedor
             const totalSecciones = 1 + unidades.length + unidades.filter(u => u.config === "remolque_contenedor").length;
             const seccionesDone = inspecsDone.length;
             const hayAlguna = seccionesDone > 0;
@@ -3532,9 +3717,7 @@ export default function DetalleTransportistaPage() {
                               : `Contenedor · Unidad ${ins.tipo.split("_")[1] ?? ""}`}
                           </span>
                           {ins.url && (
-                            <a href={ins.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline shrink-0">
-                              Ver
-                            </a>
+                            <a href={ins.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</a>
                           )}
                         </div>
                       ))}
@@ -3563,9 +3746,7 @@ export default function DetalleTransportistaPage() {
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                   <div className="flex items-center gap-2">
                     <Shield className="w-4 h-4 text-teal-500" />
-                    <span className="text-sm font-bold text-gray-800">
-                      Inspección de sello
-                    </span>
+                    <span className="text-sm font-bold text-gray-800">Inspección de sello</span>
                   </div>
                   <span className={cn(
                     "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
@@ -3575,29 +3756,16 @@ export default function DetalleTransportistaPage() {
                   </span>
                 </div>
                 <div className="p-4 space-y-3">
-                  <p className="text-[11px] text-gray-400">
-                    ISO 17712 · Método VVTT
-                  </p>
+                  <p className="text-[11px] text-gray-400">ISO 17712 · Método VVTT</p>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-gray-800">
-                      {inspecciones.sello.completados}
-                    </span>
-                    <span className="text-sm text-gray-400">
-                      de {inspecciones.sello.total}
-                    </span>
+                    <span className="text-3xl font-extrabold text-gray-800">{inspecciones.sello.completados}</span>
+                    <span className="text-sm text-gray-400">de {inspecciones.sello.total}</span>
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-700 mb-0.5">
-                      {sinUnidades
-                        ? "Agrega un remolque para poder inspeccionar el sello"
-                        : selloTodasDone
-                          ? "Inspección de sello completa"
-                          : "Inspección de sello pendiente"}
+                      {sinUnidades ? "Agrega un remolque para poder inspeccionar el sello" : selloTodasDone ? "Inspección de sello completa" : "Inspección de sello pendiente"}
                     </p>
-                    <p className="text-xs text-gray-500 leading-relaxed">
-                      Método VVTT (View · Verify · Tug · Twist) sobre el sello clase
-                      H.
-                    </p>
+                    <p className="text-xs text-gray-500 leading-relaxed">Método VVTT (View · Verify · Tug · Twist) sobre el sello clase H.</p>
                   </div>
                   <button
                     type="button"
@@ -3609,6 +3777,50 @@ export default function DetalleTransportistaPage() {
                     )}>
                     <Shield className="w-3.5 h-3.5" />
                     {selloTodasDone ? "Ver inspección de sello" : "Realizar inspección de sello"}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Inspección de materiales */}
+          {estatusIdx >= ORDEN_ESTATUS.indexOf("carga_/_descarga") && (() => {
+            const mats = data?.materiales ?? [];
+            const totalMats = mats.length;
+            const matsConFisica = mats.filter((m) => m.cantidad_fisica && m.cantidad_fisica.trim() !== "").length;
+            const todasDone = totalMats > 0 && matsConFisica >= totalMats;
+            const hayAlguna = matsConFisica > 0;
+            return (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                    </svg>
+                    <span className="text-sm font-bold text-gray-800">Inspección de materiales</span>
+                  </div>
+                  <span className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                    todasDone ? "bg-green-100 text-green-700" : hayAlguna ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"
+                  )}>
+                    {todasDone ? "Completada" : hayAlguna ? "En progreso" : "Pendiente"}
+                  </span>
+                </div>
+                <div className="p-4 space-y-3">
+                  {totalMats > 0 ? (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-extrabold text-gray-800">{matsConFisica}</span>
+                      <span className="text-sm text-gray-400">de {totalMats} materiales</span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400">Sin materiales registrados</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowInspeccionCarga("readonly")}
+                    className="w-full h-10 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 bg-white border border-orange-200 text-orange-600 hover:bg-orange-50">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Ver inspección de materiales
                   </button>
                 </div>
               </div>
@@ -3699,6 +3911,15 @@ export default function DetalleTransportistaPage() {
           })()}
         </div>
       </div>
+      {showInspeccionCarga && (
+        <InspeccionCargaModal
+          materiales={data?.materiales ?? []}
+          recordId={id}
+          readOnly={showInspeccionCarga === "readonly"}
+          onClose={() => setShowInspeccionCarga(false)}
+          onSaved={refetch}
+        />
+      )}
       {showAndenModal && (
         <SeleccionAndenModal
           folio={data?.folio}
@@ -3742,6 +3963,7 @@ export default function DetalleTransportistaPage() {
           recordId={id}
           unidades={unidades}
           inspeccionesDone={data?.inspecciones ?? []}
+          documentosAdicionales={data?.documentos_adicionales}
           onClose={() => setShowInspeccionSello(false)}
           onSaved={refetch}
         />
