@@ -45,6 +45,8 @@ export const CustomMultiSelect = ({
       styles={{
         menuPortal: (base) => ({ ...base, zIndex: 9999 }),
       }}
+      menuPlacement="auto"
+      menuPosition="fixed"
     />
   );
 };

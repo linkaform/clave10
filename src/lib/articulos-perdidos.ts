@@ -1,5 +1,6 @@
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export interface InputArticuloPerdido {
     area_perdido:string,
@@ -39,7 +40,7 @@ export const getListArticulosPerdidos = async (
         script_name: "articulos_perdidos.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
   
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
@@ -61,7 +62,7 @@ export const getTipoArticulo = async (tipo:string) => {
         script_name: "articulos_perdidos.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
   
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
@@ -83,7 +84,7 @@ export const crearArticuloPerdido = async (data_article: InputArticuloPerdido | 
         script_name: "articulos_perdidos.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -105,7 +106,7 @@ export const editarArticuloPerdido = async (data_article_update: InputArticuloPe
         folio: folio
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -127,7 +128,7 @@ export const editarArticuloPerdido = async (data_article_update: InputArticuloPe
 //         script_name: "fallas.py",
 //     };
   
-//     const userJwt = localStorage.getItem("access_token"); 
+//     const userJwt = await getValidToken();
 //     const response = await fetch(API_ENDPOINTS.runScript, {
 //         method: "POST",
 //         headers: {

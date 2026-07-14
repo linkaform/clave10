@@ -29,6 +29,7 @@ import { capitalizeFirstLetter } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 
 import { Tooltip } from "@/components/ui/tooltip";
+import MembersCarousel from "@/components/carrousel-miembros";
 
 interface Props {
 	searchPass: SearchAccessPass | undefined;
@@ -323,6 +324,8 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 										<CalendarDays diasDisponibles={searchPass?.limitado_a_dias} />
 									</div>
 								)}
+
+								<MembersCarousel searchPass={searchPass} />
 							</div>
 						)}
 					</div>

@@ -1,4 +1,3 @@
-import { MainLayout } from "@/components/Layout/MainLayout"
 import { Metadata } from "next"
 import React from "react"
 
@@ -10,7 +9,8 @@ export default function ArticulosLayout({ children }: { children: React.ReactNod
   return (
     <>
       <link rel="icon" href="/articulos.svg" type="image/svg+xml" />
-      <MainLayout>{children}</MainLayout>
+      {children}
+      {/* <MainLayout>{children}</MainLayout> */}
     </>
   );
 }

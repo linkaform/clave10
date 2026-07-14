@@ -1,3 +1,4 @@
+import { Miembro } from "@/components/miembros-del-pase";
 import { Imagen } from "@/components/upload-Image";
 import { createPase } from "@/lib/create-access-pass";
 import { getConfSeguridad } from "@/lib/get-configuracion-seguridad";
@@ -99,6 +100,8 @@ export type Update_full_pass = {
       walkin_identificacion:Imagen[],
       enviar_correo: string[],
       acompanantes:number | any[];
+      grupo_acompanates?:Miembro[];
+      acompanates_grupo?:Miembro[]
 }
 
 export const usePaseEntrada = (locationConfSeguridad:string[]) => {

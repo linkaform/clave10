@@ -23,7 +23,7 @@ import { Textarea } from "../ui/textarea";
 import { Dispatch, ReactNode, SetStateAction, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
-import { Loader2, Package, ClipboardList } from "lucide-react";
+import { Loader2, Package, ClipboardList, ScanLine, Sparkles } from "lucide-react";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { useArticulosConcesionados } from "@/hooks/useArticulosConcesionados";
 import { Input } from "../ui/input";
@@ -105,7 +105,7 @@ const formSchema = z.object({
     message: "La firma es obligatoria, por favor escribe tu nombre en el campo de firma",
   }),
   solicita_concesion: z.string().min(2, { message: "Este campo es requerido." }),
-  
+
 })
 
 export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
@@ -126,6 +126,9 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
   const [date, setDate] = useState<Date | undefined>(undefined);
   const { getDefaultLocation, getDefaultAreaForLocation } = useAreasLocationStore();
   const didInitRef = useRef(false);
+
+  // 👇 nuevo estado para el resultado/feedback del OCR
+  const [ocrDetectado, setOcrDetectado] = useState<null | { esEmpleado: boolean; nombre: string }>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -207,6 +210,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
         setUbicacionSeleccionada(ubicacionDefault);
         setTextoFirma("");
         setVistaPrevia("");
+        setOcrDetectado(null);
       }
     }
   }, [isSuccess, mode, initialData, reset, location]);
@@ -313,30 +317,49 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
     if (!areas || areas.length === 0) return;
 
     const valorActual = form.getValues("area_concesion");
-    console.log("[área default] valor actual en form:", valorActual);
     if (valorActual) return;
 
     const areaDefault = getDefaultAreaForLocation(ubicacionSeleccionada);
-    console.log("[área default] ubicacionSeleccionada:", ubicacionSeleccionada);
-    console.log("[área default] areaDefault calculado:", areaDefault);
-    console.log("[área default] areas disponibles:", areas);
 
-    if (!areaDefault) {
-      console.log("[área default] no hay área default para esta ubicación");
-      return;
-    }
+    if (!areaDefault) return;
 
-    // match normalizado (evita fallos por espacios/mayúsculas)
     const match = areas.find(
       (a: string) => a.trim().toLowerCase() === areaDefault.trim().toLowerCase()
     );
 
-    console.log("[área default] match encontrado:", match);
-
     if (match) {
-      form.setValue("area_concesion", match, { shouldValidate: true, shouldDirty: true });
+        form.setValue("area_concesion", match, { shouldValidate: true, shouldDirty: true });
+      }
+    }, [areas, ubicacionSeleccionada, mode, isSuccess]);
+
+  const handleOcrResult = (result: any) => {
+    console.log("OCR result:", result);
+    const data = result?.[0];
+    if (!data) return;
+
+    if (!result) {
+      setOcrDetectado(null);
+      form.setValue("persona_nombre_concesion", "");
+      form.setValue("persona_nombre_otro", "");
+      return;
     }
-  }, [areas, ubicacionSeleccionada, mode, isSuccess]);
+
+    const esEmpleado: boolean = Boolean(data?.es_empleado);
+    const workerName: string = data?.datos_empleado?.worker_name || "";
+    const nombreCompleto: string = data?.nombre_completo || "";
+    console.log("QUE POASAAAA",nombreCompleto, workerName)
+    if (esEmpleado && workerName) {
+      form.setValue("solicita_concesion", "empleado", { shouldValidate: true, shouldDirty: true });
+      form.setValue("persona_nombre_concesion", workerName, { shouldValidate: true, shouldDirty: true });
+      form.setValue("persona_nombre_otro", "");
+      setOcrDetectado({ esEmpleado: true, nombre: workerName });
+    } else if (nombreCompleto) {
+      form.setValue("solicita_concesion", "otro", { shouldValidate: true, shouldDirty: true });
+      form.setValue("persona_nombre_otro", nombreCompleto, { shouldValidate: true, shouldDirty: true });
+      form.setValue("persona_nombre_concesion", "");
+      setOcrDetectado({ esEmpleado: false, nombre: nombreCompleto });
+    }
+  };
 
   return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
@@ -357,7 +380,62 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
 
-              <div className="p-5 py-0 space-y-4">
+              {/* 👇 IDENTIFICACIÓN AL INICIO, DESTACADA CON IA/OCR */}
+              <div className="p-5 pb-0">
+                <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 shadow-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="bg-blue-600 p-1.5 rounded-lg">
+                      <ScanLine className="w-4 h-4 text-white" />
+                    </div>
+                    <h3 className="font-bold text-blue-700">Escanea la identificación</h3>
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-blue-500 bg-blue-100 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                      <Sparkles className="w-3 h-3" /> IA
+                    </span>
+                  </div>
+                  <p className="text-xs text-blue-600/80 mb-3">
+                    Sube o toma una foto de la identificación y el sistema detectará automáticamente el nombre de la persona y si es un empleado registrado.
+                  </p>
+
+                  <Controller
+                    control={form.control}
+                    name="persona_identificacion_otro"
+                    render={({ field, fieldState }) => (
+                      <div className="flex flex-col">
+                        <LoadImage
+                          id="identificacion"
+                          titulo={"Identificación"}
+                          imgArray={field.value || []}
+                          setImg={(imgs) => field.onChange(imgs)}
+                          showWebcamOption={true}
+                          facingMode="environment"
+                          limit={20}
+                          tipoOcr={"id"}
+                          onLoadingChange={setLoadingIdentificacion}
+                          onOcrResult={handleOcrResult}
+                        />
+                        {fieldState.error && (
+                          <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>
+                        )}
+                      </div>
+                    )}
+                  />
+
+                  {ocrDetectado && (
+                    <div className={`mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
+                      ocrDetectado.esEmpleado
+                        ? "bg-green-100 text-green-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}>
+                      <Sparkles className="w-4 h-4 shrink-0" />
+                      {ocrDetectado.esEmpleado
+                        ? `Empleado detectado: ${ocrDetectado.nombre}`
+                        : `Persona no registrada como empleado: ${ocrDetectado.nombre}. Se llenó como "Otro".`}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-5 space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <ClipboardList className="text-blue-500 w-5 h-5" />
                   <h3 className="font-semibold text-gray-700">Información general</h3>
@@ -517,33 +595,6 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                       )}
                     />
                   )}
-
-                  <div className="mb-2">
-                    <Controller
-                      control={form.control}
-                      name="persona_identificacion_otro"
-                      render={({ field, fieldState }) => (
-                        <div className="flex flex-col">
-                          <LoadImage
-                            id="identificacion"
-                            titulo={"Identificación"}
-                            imgArray={field.value || []}
-                            setImg={(imgs) => field.onChange(imgs)}
-                            showWebcamOption={true}
-                            facingMode="environment"
-                            limit={20}
-                            onLoadingChange={setLoadingIdentificacion}
-                            onOcrResult={(result) => {
-                              console.log("OCR result:", result);
-                            }}
-                          />
-                          {fieldState.error && (
-                            <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>
-                          )}
-                        </div>
-                      )}
-                    />
-                  </div>
                 </div>
               </div>
 

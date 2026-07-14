@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { Imagen } from "../upload-Image";
 import { Building2, Calendar, CircleDot, ClipboardList, IdCard, PenLine, User } from "lucide-react";
 import TabSeguimientos from "../concesionados-tab-seguimientos";
-import Image from "next/image";
+import ViewImage from "./view-image";
 
 export type Concesion = {
   _id: string;
@@ -114,7 +114,7 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                   <Building2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Área</p>
-                    <p className="text-sm text-gray-700">{ data.caseta_concesion || "—"}</p>
+                    <p className="text-sm text-gray-700">{data.caseta_concesion || "—"}</p>
                   </div>
                 </div>
 
@@ -143,21 +143,17 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                     </span>
                   </div>
                 </div>
+              </div>
 
+              {/* Firma e Identificación, en su propio grid debajo */}
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 mt-4">
                 <div className="flex items-start gap-2.5">
                   <PenLine className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Firma</p>
                     {firma?.file_url ? (
                       <div className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 inline-flex">
-                        <Image
-                          src={firma.file_url}
-                          alt="Firma"
-                          width={160}
-                          height={40}
-                          className="h-9 w-auto"
-                          unoptimized
-                        />
+                        <ViewImage imageUrl={firma} size="lg" />
                       </div>
                     ) : (
                       <div className="border border-dashed border-gray-300 rounded-lg px-4 py-3 bg-gray-50 flex flex-col items-center justify-center gap-1 w-44">
@@ -173,25 +169,17 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Identificación</p>
                     {identificacion?.file_url ? (
-                      <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 w-48 h-28">
-                        <Image
-                          src={identificacion.file_url}
-                          alt="Identificación"
-                          width={192}
-                          height={112}
-                          className="w-full h-full object-cover"
-                          unoptimized
-                        />
+                      <div className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 inline-flex">
+                        <ViewImage imageUrl={identificacion} size="lg" />
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 w-48 h-28 flex flex-col items-center justify-center gap-1">
+                      <div className="border border-dashed border-gray-300 rounded-lg px-4 py-3 bg-gray-50 flex flex-col items-center justify-center gap-1 w-44">
                         <IdCard className="w-6 h-6 text-gray-300" />
                         <p className="text-xs text-gray-400">No disponible</p>
                       </div>
                     )}
                   </div>
                 </div>
-
               </div>
             </div>
 

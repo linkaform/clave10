@@ -50,9 +50,10 @@ interface AppSelectProps {
   isLoading?: boolean;
   isDisabled?: boolean;
   noOptionsMessage?: string;
+  isClearable?:boolean;
 }
 
-export const SearchSelect = ({ options,noOptionsMessage = "Sin opciones", value, onChange, ...props }: AppSelectProps) => {
+export const SearchSelect = ({ isClearable = true, options,noOptionsMessage = "Sin opciones", value, onChange, ...props}: AppSelectProps) => {
   const formatted = options.map((o) =>
     typeof o === "string" ? { value: o, label: o } : o
   );
@@ -65,6 +66,7 @@ export const SearchSelect = ({ options,noOptionsMessage = "Sin opciones", value,
       styles={selectStyles} 
       menuPlacement="auto"
       noOptionsMessage={() => noOptionsMessage} 
+      isClearable={isClearable}
       {...props}
     />
   );

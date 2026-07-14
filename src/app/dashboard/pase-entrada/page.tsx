@@ -1020,7 +1020,7 @@ const PaseEntradaPage = () => {
                 <div className="p-2 bg-blue-50 rounded-xl">
                   <CalendarDays className="w-4 h-4 text-blue-600" />
                 </div>
-                <h1 className="font-semibold text-gray-700">Vigencia</h1>
+                <h1 className="font-semibold text-gray-700">Vigencia de Ingreso</h1>
               </div>
               <p className="text-xs text-gray-400 mb-5 mt-1">
                 Selecciona si el pase es para un día específico o define un

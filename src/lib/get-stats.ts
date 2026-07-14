@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export const getStats = async (
     location: string | string[], area: string, page: string, month?: number, year?: number) => {
@@ -12,7 +13,7 @@ export const getStats = async (
         script_name: "get_stats.py",
     };
 
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
 
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",

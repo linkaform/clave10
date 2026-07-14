@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
     export interface InputCrearRondin {
         fecha_hora_programada_rondin: string,
@@ -85,7 +86,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
     
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
@@ -109,7 +110,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
 
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
 
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
@@ -131,7 +132,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -153,7 +154,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -174,7 +175,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -195,7 +196,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -216,7 +217,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -242,7 +243,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
 
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
 
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
@@ -267,7 +268,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -289,7 +290,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -310,7 +311,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -332,7 +333,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -352,7 +353,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -372,7 +373,7 @@ import { API_ENDPOINTS } from "@/config/api";
             script_name: "rondines.py",
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -394,7 +395,7 @@ import { API_ENDPOINTS } from "@/config/api";
             folio
         };
     
-        const userJwt = localStorage.getItem("access_token"); 
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {

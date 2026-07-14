@@ -2,6 +2,7 @@ import { Equipo_bitacora, Vehiculo_bitacora } from "@/components/table/bitacoras
 import { Imagen } from "@/components/upload-Image";
 import { Equipo, Vehiculo } from "./update-pass";
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export type Access_pass_update_full = {
     equipo: Vehiculo_bitacora[],
@@ -45,7 +46,7 @@ export type Access_pass_update_full = {
       payload.vehiculo= vehiculo
     }
     
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",

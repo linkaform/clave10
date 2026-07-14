@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { errorMsj } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "@/lib/login/get-valid-token";
 
 export interface DataMsjInterface {
     email_from: string;
@@ -21,7 +22,7 @@ export const enviarMensaje = async (data_msj: DataMsjInterface | null) => {
         script_name: "script_turnos.py",
     };
 
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {

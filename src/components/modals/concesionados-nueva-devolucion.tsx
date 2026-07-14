@@ -166,7 +166,6 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
   
   const handleClose = () => setIsSuccess(false);
   const tipoCon = form.watch("entrega_tipo");
-  console.log("PENDIENTE ",equipoSelecionado?.cantidad_equipo_pendiente )
   return (
     <Dialog onOpenChange={setIsSuccess} open={isSuccess} modal>
       <DialogTrigger>{children}</DialogTrigger>

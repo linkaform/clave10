@@ -58,8 +58,8 @@ const ViewImage = ({ imageUrl, size = "sm" }: { imageUrl: Imagen | Imagen[], siz
       <button
         onClick={() => { setCurrent(0); setOpen(true); resetZoom(); }}
         className="relative flex items-center group">
-        <div className={`relative ${sizeClass} ${borderRadius} overflow-hidden ring-1 ring-slate-200 shadow-sm hover:ring-blue-400 transition-all`}>
-          <Image src={images[0]?.file_url ?? "/nouser.svg"} alt="foto" fill className="object-cover" />
+        <div className={`relative ${sizeClass} ${borderRadius} overflow-hidden transition-all`}>
+          <Image src={images[0]?.file_url ?? "/nouser.svg"} alt="foto" fill className="object-contain" />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
             <ZoomIn className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>

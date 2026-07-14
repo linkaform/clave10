@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api"
+import { getValidToken } from "./login/get-valid-token";
 
 
 export interface InputNote {
@@ -49,7 +50,7 @@ export const getNotes = async (area: string, location: string, limit: number = 1
     status
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: 'POST',
@@ -73,7 +74,7 @@ export const crearNota = async (location: string, area: string, data_notes: Inpu
     area
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
@@ -99,7 +100,7 @@ export const editarNota = async (update_note: UpdateNote | null) => {
     script_name: "notes.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
@@ -126,7 +127,7 @@ export const cerrarNota = async (close_note: CloseNote | null) => {
     script_name: "notes.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
@@ -159,7 +160,7 @@ export const sendSmsOrEmail = async (folio: string, envio: string[], account_id?
       account_id
     };
 
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
