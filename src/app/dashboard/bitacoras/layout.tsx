@@ -1,3 +1,4 @@
+import { MainLayout } from "@/components/Layout/MainLayout";
 import { Metadata } from "next"
 import React from "react"
 
@@ -12,8 +13,8 @@ export default function BitacorasLayout({ children }: { children: React.ReactNod
       <link rel="icon" href="/bitacoras.svg" type="image/svg+xml" />
       
       {/* Layout principal */}
-      {/* <MainLayout>{children}</MainLayout> */}
-      {children}
+      <MainLayout>{children}</MainLayout>
+      {/* {children} */}
     </>
   );
 }
