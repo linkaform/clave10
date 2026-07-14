@@ -44,7 +44,6 @@ const AreasList: React.FC<AreasListProps> = ({
   existingAreas,
 }) => {
   const [collapsedIndex, setCollapsedIndex] = useState<number | null>(null);
-  console.log("LISTADO DE AREAS", areas, catAreas);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { nombre_area: "", commentario_area: "" },

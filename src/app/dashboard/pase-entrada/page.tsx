@@ -196,10 +196,12 @@ const PaseEntradaPage = () => {
     fetchLocations,
     fetchAreas,
     loading: loadingUbicaciones,
+    locationDetails,
   } = useAreasLocationStore();
   console.log("----------------------------areas", areasStore);
   const pickerRef = useRef<any>(null);
 
+  
   // Formatear ubicaciones del store como { id, name }
   const ubicacionesFormatteadoStore = ubicacionesStore
     .filter((u: string) => u !== null && u !== undefined)
@@ -352,6 +354,30 @@ const PaseEntradaPage = () => {
   const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
   const [miembrosRowErrors, setMiembrosRowErrors] = useState<Record<string, { email: boolean; telefono: boolean }>>({});
 
+
+    // Áreas que pertenecen a las ubicaciones seleccionadas, sin duplicados
+  const areasDisponiblesPorUbicacion = React.useMemo(() => {
+    if (!locationDetails?.length || !ubicacionesSeleccionadas?.length) return [];
+
+    const nombresSeleccionados = ubicacionesSeleccionadas
+      .map((u: any) => String(u?.name ?? u?.id ?? "").toLowerCase())
+      .filter(Boolean);
+
+    const detallesFiltrados = locationDetails.filter((ld: any) =>
+      nombresSeleccionados.includes(String(ld?.ubicacion ?? "").toLowerCase()),
+    );
+
+    const nombresSet = new Set<string>();
+    detallesFiltrados.forEach((ld: any) => {
+      (ld?.areas ?? []).forEach((area: any) => {
+        const nombre = area?.nombre_area?.trim();
+        if (nombre) nombresSet.add(nombre);
+      });
+    });
+
+    return Array.from(nombresSet); 
+  }, [locationDetails, ubicacionesSeleccionadas]);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -1324,7 +1350,7 @@ const PaseEntradaPage = () => {
                       <AreasList
                         areas={areasList}
                         setAreas={setAreasList}
-                        catAreas={areasStore}
+                        catAreas={areasDisponiblesPorUbicacion}
                         loadingCatAreas={loadingUbicaciones}
                         existingAreas={false}
                       />
