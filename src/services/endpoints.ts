@@ -236,3 +236,11 @@ export const saveInspeccionesSelloTransportista = (record_id: string, inspeccion
     record_id,
     inspecciones,
   });
+
+export const getInspeccionRecord = (record_id: string, tipo: string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_inspeccion_record",
+    record_id,
+    tipo,
+  });

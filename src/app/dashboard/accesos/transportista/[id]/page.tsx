@@ -48,6 +48,7 @@ import {
   serializeUnidades,
 } from "@/components/transportista/agregar-unidad-modal";
 import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
+import { InspeccionRecordModal } from "@/components/transportista/InspeccionRecordModal";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -184,6 +185,7 @@ function InspeccionEntradaModal({
   tipoPrefix,
   onClose,
   onSaved,
+  onViewRecord,
 }: {
   recordId: string;
   unidades: UnidadItem[];
@@ -194,6 +196,7 @@ function InspeccionEntradaModal({
   tipoPrefix?: string;
   onClose: () => void;
   onSaved?: () => void;
+  onViewRecord?: (url: string, tipo: string) => void;
 }) {
   const withPrefix = (tipo: string) => tipoPrefix ? `${tipoPrefix}_${tipo}` : tipo;
   const buildTipoKey = (tipo: string, unidad?: number) =>
@@ -697,14 +700,16 @@ function InspeccionEntradaModal({
           <p className="text-[11px] text-green-600">Esta sección fue inspeccionada anteriormente.</p>
         </div>
         {rec.url && (
-          <a
-            href={rec.url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onViewRecord?.(rec.url!, buildTipoKey(tipo, unidad));
+            }}
             className="text-[11px] font-semibold text-green-700 hover:text-green-800 underline shrink-0"
           >
             Ver registro
-          </a>
+          </button>
         )}
       </div>
     );
@@ -1056,6 +1061,7 @@ function InspeccionSelloModal({
   documentosAdicionales,
   onClose,
   onSaved,
+  onViewRecord,
 }: {
   recordId: string;
   unidades: UnidadItem[];
@@ -1063,6 +1069,7 @@ function InspeccionSelloModal({
   documentosAdicionales?: { file_url: string; file_name: string; tipo?: string }[];
   onClose: () => void;
   onSaved?: () => void;
+  onViewRecord?: (url: string, tipo: string) => void;
 }) {
   const getDone = (unidad: number) => inspeccionesDone.find((i) => i.tipo === `sello_${unidad}`);
   const isDone = (unidad: number) => !!getDone(unidad);
@@ -1220,14 +1227,19 @@ function InspeccionSelloModal({
                 <p className="text-[11px] text-green-600">Esta unidad ya fue inspeccionada.</p>
               </div>
               {getDone(activeTab + 1)?.url && (
-                <a
-                  href={getDone(activeTab + 1)?.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => {
+                    const done = getDone(activeTab + 1);
+                    if (done?.url) {
+                      onClose();
+                      onViewRecord?.(done.url, `sello_${activeTab + 1}`);
+                    }
+                  }}
                   className="text-[11px] font-semibold text-green-700 hover:text-green-800 underline shrink-0"
                 >
                   Ver registro
-                </a>
+                </button>
               )}
             </div>
           ) : (
@@ -1835,6 +1847,7 @@ export default function DetalleTransportistaPage() {
   const [showInspeccion, setShowInspeccion] = useState(false);
   const [showInspeccionSalida, setShowInspeccionSalida] = useState(false);
   const [showInspeccionCarga, setShowInspeccionCarga] = useState<false | "edit" | "readonly">(false);
+  const [viewingInspeccion, setViewingInspeccion] = useState<{ url: string; tipo: string } | null>(null);
   const [showInspeccionSello, setShowInspeccionSello] = useState(false);
   const [showAndenModal, setShowAndenModal] = useState(false);
   const [vehicleExpanded, setVehicleExpanded] = useState(true);
@@ -3717,7 +3730,7 @@ export default function DetalleTransportistaPage() {
                               : `Contenedor · Unidad ${ins.tipo.split("_")[1] ?? ""}`}
                           </span>
                           {ins.url && (
-                            <a href={ins.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</a>
+                            <button type="button" onClick={() => ins.url && setViewingInspeccion({ url: ins.url, tipo: ins.tipo })} className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</button>
                           )}
                         </div>
                       ))}
@@ -3770,7 +3783,18 @@ export default function DetalleTransportistaPage() {
                   <button
                     type="button"
                     disabled={sinUnidades || (!selloTodasDone && isLocked)}
-                    onClick={() => setShowInspeccionSello(true)}
+                    onClick={() => {
+                      if (selloTodasDone) {
+                        const sellosDone = (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("sello_"));
+                        if (sellosDone.length === 1 && sellosDone[0].url) {
+                          setViewingInspeccion({ url: sellosDone[0].url, tipo: sellosDone[0].tipo });
+                        } else {
+                          setShowInspeccionSello(true);
+                        }
+                      } else {
+                        setShowInspeccionSello(true);
+                      }
+                    }}
                     className={cn(
                       "w-full h-9 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
                       selloTodasDone ? "bg-white border border-teal-200 text-teal-700 hover:bg-teal-50" : "bg-teal-900 hover:bg-teal-800 text-white",
@@ -3888,9 +3912,7 @@ export default function DetalleTransportistaPage() {
                               : `Contenedor · Unidad ${ins.tipo.replace("salida_contenedor_", "")}`}
                           </span>
                           {ins.url && (
-                            <a href={ins.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline shrink-0">
-                              Ver
-                            </a>
+                            <button type="button" onClick={() => ins.url && setViewingInspeccion({ url: ins.url, tipo: ins.tipo })} className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</button>
                           )}
                         </div>
                       ))}
@@ -3943,6 +3965,7 @@ export default function DetalleTransportistaPage() {
           documentosAdicionales={data?.documentos_adicionales}
           onClose={() => setShowInspeccion(false)}
           onSaved={refetch}
+          onViewRecord={(url, tipo) => setViewingInspeccion({ url, tipo })}
         />
       )}
       {showInspeccionSalida && (
@@ -3956,6 +3979,7 @@ export default function DetalleTransportistaPage() {
           tipoPrefix="salida"
           onClose={() => setShowInspeccionSalida(false)}
           onSaved={refetch}
+          onViewRecord={(url, tipo) => setViewingInspeccion({ url, tipo })}
         />
       )}
       {showInspeccionSello && (
@@ -3966,6 +3990,7 @@ export default function DetalleTransportistaPage() {
           documentosAdicionales={data?.documentos_adicionales}
           onClose={() => setShowInspeccionSello(false)}
           onSaved={refetch}
+          onViewRecord={(url, tipo) => setViewingInspeccion({ url, tipo })}
         />
       )}
       {showAgregarUnidad && (
@@ -3977,6 +4002,13 @@ export default function DetalleTransportistaPage() {
             setExpandedUnits((prev) => new Set(prev).add(u.id));
             persistUnidades(next);
           }}
+        />
+      )}
+      {viewingInspeccion && (
+        <InspeccionRecordModal
+          url={viewingInspeccion.url}
+          tipo={viewingInspeccion.tipo}
+          onClose={() => setViewingInspeccion(null)}
         />
       )}
       {editingUnit && (
