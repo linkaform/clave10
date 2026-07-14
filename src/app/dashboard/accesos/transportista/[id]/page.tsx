@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowRight,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -46,6 +47,7 @@ import {
   AgregarUnidadModal,
   serializeUnidades,
 } from "@/components/transportista/agregar-unidad-modal";
+import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -177,7 +179,9 @@ function InspeccionEntradaModal({
   unidades,
   inspeccionesDone,
   placaVehiculo,
+  placaTarjetaCirculacion,
   documentosAdicionales,
+  tipoPrefix,
   onClose,
   onSaved,
 }: {
@@ -185,19 +189,19 @@ function InspeccionEntradaModal({
   unidades: UnidadItem[];
   inspeccionesDone: { tipo: string; unidad?: number; url?: string }[];
   placaVehiculo?: string | null;
+  placaTarjetaCirculacion?: string | null;
   documentosAdicionales?: { file_url: string; file_name: string; tipo?: string }[];
+  tipoPrefix?: string;
   onClose: () => void;
   onSaved?: () => void;
 }) {
+  const withPrefix = (tipo: string) => tipoPrefix ? `${tipoPrefix}_${tipo}` : tipo;
   const buildTipoKey = (tipo: string, unidad?: number) =>
-    unidad !== undefined ? `${tipo}_${unidad}` : tipo;
+    unidad !== undefined ? `${withPrefix(tipo)}_${unidad}` : withPrefix(tipo);
   const isDone = (tipo: string, unidad?: number) =>
     inspeccionesDone.some((i) => i.tipo === buildTipoKey(tipo, unidad));
   const [activeTab, setActiveTab] = useState(0);
   const [tractorEvidencia, setTractorEvidencia] = useState<EvidenciaImg[]>([]);
-  // Placa leída de la tarjeta de circulación — por ahora sin fuente de datos;
-  // quedará poblada por el análisis de IA que compare ambas fotos de placa.
-  const [placaTarjetaCirculacion] = useState<string | null>(null);
   const [uploadingSection, setUploadingSection] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -358,7 +362,7 @@ function InspeccionEntradaModal({
 
     // Tractor
     inspecciones.push({
-      tipo: "tractor",
+      tipo: withPrefix("tractor"),
       evidencias: tractorEvidencia,
       puntos: PUNTOS_TRACTOR.map((descripcion, i) => ({
         numero: i + 1,
@@ -376,7 +380,7 @@ function InspeccionEntradaModal({
 
       // Remolque
       inspecciones.push({
-        tipo: "remolque",
+        tipo: withPrefix("remolque"),
         unidad: i + 1,
         evidencias: d.remolque.evidencia,
         medidas: {
@@ -397,7 +401,7 @@ function InspeccionEntradaModal({
       if (u.config === "remolque_contenedor" && d.contenedor) {
         const sec = d.contenedor;
         inspecciones.push({
-          tipo: "contenedor",
+          tipo: withPrefix("contenedor"),
           unidad: i + 1,
           evidencias: sec.evidencia,
           medidas: {
@@ -740,10 +744,54 @@ function InspeccionEntradaModal({
                       </div>
                     );
                   };
+                  const placaA = placaVehiculo?.trim().toUpperCase() ?? null;
+                  const placaB = placaTarjetaCirculacion?.trim().toUpperCase() ?? null;
+                  const ambas = placaA && placaB;
+                  const coinciden = ambas && placaA === placaB;
+                  const noCoinciden = ambas && placaA !== placaB;
+                  const tarjetaSlug = DOCUMENTOS_REQUERIDOS_SLUGS["Tarjeta de circulación - Vehículo"];
+
                   return (
                     <>
                       {campo("Placas del vehículo físicas", placaVehiculo ?? null, "Sistema", fotoPlacaDoc, DOCUMENTOS_REQUERIDOS_SLUGS["Foto de placa de vehículo"])}
-                      {campo("Placas en tarjeta de circulación", placaTarjetaCirculacion, "IA", tarjetaDoc, DOCUMENTOS_REQUERIDOS_SLUGS["Tarjeta de circulación - Vehículo"])}
+                      {campo("Placas en tarjeta de circulación", placaTarjetaCirculacion ?? null, "IA", tarjetaDoc, tarjetaSlug)}
+
+                      {/* Resultado de comparación — ocupa las 2 columnas */}
+                      <div className="col-span-2">
+                        {coinciden && (
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                            <p className="text-xs font-semibold text-emerald-700">Las placas coinciden</p>
+                          </div>
+                        )}
+                        {noCoinciden && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200">
+                              <X className="w-4 h-4 text-red-500 shrink-0" />
+                              <p className="text-xs font-semibold text-red-700 flex-1">Las placas no coinciden</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button type="button"
+                                onClick={() => triggerPlacaDocUpload(tarjetaSlug)}
+                                disabled={uploadingPlacaDoc === tarjetaSlug}
+                                className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors disabled:opacity-50">
+                                {uploadingPlacaDoc === tarjetaSlug
+                                  ? <span className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                                  : <Camera className="w-3.5 h-3.5" />}
+                                Reemplazar foto
+                              </button>
+                              <button type="button" disabled
+                                className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg border border-violet-200 bg-violet-50 text-xs font-semibold text-violet-400 cursor-not-allowed opacity-60">
+                                <HelpCircle className="w-3.5 h-3.5" />
+                                Analizar con IA
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {!ambas && (
+                          <p className="text-[10px] text-gray-400 text-center">Sube ambos documentos para comparar las placas</p>
+                        )}
+                      </div>
                     </>
                   );
                 })()}
@@ -1504,6 +1552,7 @@ function ProgressBar({
   );
 }
 
+
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
 function Skeleton({ className }: { className?: string }) {
@@ -1654,7 +1703,9 @@ export default function DetalleTransportistaPage() {
   const [showAgregarUnidad, setShowAgregarUnidad] = useState(false);
   const [editingUnit, setEditingUnit] = useState<UnidadItem | null>(null);
   const [showInspeccion, setShowInspeccion] = useState(false);
+  const [showInspeccionSalida, setShowInspeccionSalida] = useState(false);
   const [showInspeccionSello, setShowInspeccionSello] = useState(false);
+  const [showAndenModal, setShowAndenModal] = useState(false);
   const [vehicleExpanded, setVehicleExpanded] = useState(true);
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
 
@@ -2154,6 +2205,30 @@ export default function DetalleTransportistaPage() {
     }
   };
 
+  const [savingEstatus, setSavingEstatus] = useState(false);
+  const cambiarEstatus = async (nuevoEstatus: string, anden?: string | null) => {
+    setSavingEstatus(true);
+    queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
+      ["visitaTransportista", id],
+      (old) => old ? { ...old, estatus: nuevoEstatus } : old
+    );
+    try {
+      const payload: Record<string, unknown> = { estatus: nuevoEstatus };
+      if (anden !== undefined) payload.anden = anden ?? "";
+      await saveBitacoraTransportistaRecord(id, "estatus", payload);
+      refetch();
+      toast.success("Estatus actualizado");
+    } catch {
+      queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
+        ["visitaTransportista", id],
+        (old) => old ? { ...old, estatus: estatus } : old
+      );
+      toast.error("Error al actualizar el estatus");
+    } finally {
+      setSavingEstatus(false);
+    }
+  };
+
   const deleteDocumento = async (index: number) => {
     const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
     queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
@@ -2198,8 +2273,9 @@ export default function DetalleTransportistaPage() {
 
   // Etapas derivadas del estatus real del registro
   const estatus = data?.estatus ?? "";
-  const ORDEN_ESTATUS = ["arribo", "inspeccion_entrada", "carga_descarga", "inspeccion_salida", "terminado"];
+  const ORDEN_ESTATUS = ["arribo", "inspeccion_entrada", "carga_/_descarga", "inspeccion_salida", "terminado"];
   const estatusIdx = ORDEN_ESTATUS.indexOf(estatus);
+  const isLocked = estatusIdx >= ORDEN_ESTATUS.indexOf("carga_/_descarga");
   const arriboDone  = estatusIdx > 0;
   const entradaDone = estatusIdx > 1;
   const cargaDone   = estatusIdx > 2;
@@ -2222,6 +2298,11 @@ export default function DetalleTransportistaPage() {
       .map(tipoSlug),
   );
   const docsPendientesReq = documentosRequeridosNombres.filter((nombre) => !tiposSubidos.has(tipoRequeridoSlug(nombre)));
+
+  // Selecciona "subidos" automáticamente cuando no quedan pendientes
+  useEffect(() => {
+    if (docsPendientesReq.length === 0) setDocTab("subidos");
+  }, [docsPendientesReq.length]);
 
   const tipo_accion = data?.tipo_operacion?.toLowerCase().includes("entrega")
     ? "ENTRADA"
@@ -2381,8 +2462,8 @@ export default function DetalleTransportistaPage() {
                 const url = data?.conductor?.foto_conductor?.file_url
                   ?? data?.documentos_adicionales?.find((d) => d.tipo === "foto_conductor")?.file_url;
                 return (
-                  <button type="button" onClick={() => setFotoPicker("foto_conductor")}
-                    className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5 relative group hover:border-blue-300 transition-colors">
+                  <button type="button" onClick={() => !isLocked && setFotoPicker("foto_conductor")} disabled={isLocked}
+                    className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5 relative group hover:border-blue-300 transition-colors disabled:cursor-not-allowed disabled:opacity-70">
                     {url ? (
                       <>
                         <img src={url} alt="Conductor" className="w-full h-full object-cover" />
@@ -2407,8 +2488,8 @@ export default function DetalleTransportistaPage() {
                 const url = data?.conductor?.foto_licencia?.file_url
                   ?? data?.documentos_adicionales?.find((d) => d.tipo === tipoRequeridoSlug(IDENTIFICACION_CHOFER_LABEL))?.file_url;
                 return (
-                  <button type="button" onClick={() => setFotoPicker("foto_licencia")}
-                    className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5 relative group hover:border-blue-300 transition-colors">
+                  <button type="button" onClick={() => !isLocked && setFotoPicker("foto_licencia")} disabled={isLocked}
+                    className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5 relative group hover:border-blue-300 transition-colors disabled:cursor-not-allowed disabled:opacity-70">
                     {url ? (
                       <>
                         <img src={url} alt="Licencia" className="w-full h-full object-cover" />
@@ -2575,7 +2656,13 @@ export default function DetalleTransportistaPage() {
               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">
                 Andén
               </p>
-              <p className="text-xs text-gray-300 italic">Sin información</p>
+              {data?.embarque?.anden_asignado ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-xs font-bold text-blue-700">
+                  {data.embarque.anden_asignado}
+                </span>
+              ) : (
+                <p className="text-xs text-gray-300 italic">Sin información</p>
+              )}
             </div>
             <Field label="Fecha y Hora de Descarga" value={null} />
           </div>
@@ -2869,14 +2956,18 @@ export default function DetalleTransportistaPage() {
                       </div>
                       <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                     </a>
-                    <button type="button" onClick={() => startEditDoc(docIdx)}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-blue-400 hover:bg-blue-50 transition-colors shrink-0">
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button type="button" onClick={() => deleteDocumento(docIdx)}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {!isLocked && (
+                      <button type="button" onClick={() => startEditDoc(docIdx)}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-blue-400 hover:bg-blue-50 transition-colors shrink-0">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {!isLocked && (
+                      <button type="button" onClick={() => deleteDocumento(docIdx)}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -2925,7 +3016,7 @@ export default function DetalleTransportistaPage() {
               {docTab === "pendientes" && stagedDocs.length === 0 ? (
                 <button
                   type="button"
-                  disabled={stagingUpload}
+                  disabled={stagingUpload || isLocked}
                   onClick={() => newDocInputRef.current?.click()}
                   className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/40 hover:border-blue-300 hover:bg-blue-50/40 transition-all flex flex-col items-center justify-center gap-1.5 py-5 disabled:opacity-60 disabled:cursor-not-allowed">
                   {stagingUpload ? (
@@ -2944,7 +3035,7 @@ export default function DetalleTransportistaPage() {
               ) : (
                 <button
                   type="button"
-                  disabled={docTab === "pendientes" ? stagingUpload : uploadingNewDoc}
+                  disabled={(docTab === "pendientes" ? stagingUpload : uploadingNewDoc) || isLocked}
                   onClick={() => newDocInputRef.current?.click()}
                   className="w-full h-9 mt-1 rounded-xl border border-dashed border-gray-300 hover:border-blue-300 hover:bg-blue-50/40 text-xs font-medium text-gray-400 hover:text-blue-600 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
                   {(docTab === "pendientes" ? stagingUpload : uploadingNewDoc) ? (
@@ -2964,7 +3055,7 @@ export default function DetalleTransportistaPage() {
                 const hasAnalyzable = docTab === "pendientes"
                   ? stagedDocs.some((d) => d.file_url)
                   : (data?.documentos_adicionales?.some((d) => d.file_url) ?? false);
-                const analyzeDisabled = analyzingDocs || !hasAnalyzable;
+                const analyzeDisabled = analyzingDocs || !hasAnalyzable || isLocked;
                 return (
                   <button
                     type="button"
@@ -2990,7 +3081,7 @@ export default function DetalleTransportistaPage() {
                   </button>
                 );
               })()}
-              {docTab === "pendientes" && (() => {
+              {!isLocked && docTab === "pendientes" && (() => {
                 const asignados = stagedDocs.filter((d) => d.asignadoA);
                 const guardarDisabled = savingStagedDocs || asignados.length === 0;
                 return (
@@ -3034,7 +3125,7 @@ export default function DetalleTransportistaPage() {
                     {data.tipo_operacion} de material
                   </span>
                 )}
-                {!materialEditMode && (
+                {!materialEditMode && !isLocked && (
                   <button type="button" onClick={startMaterialEdit}
                     className="w-6 h-6 rounded-md hover:bg-orange-50 flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors">
                     <Pencil className="w-3 h-3" />
@@ -3143,7 +3234,7 @@ export default function DetalleTransportistaPage() {
                       ? <ChevronUp className="w-3.5 h-3.5 text-indigo-400" />
                       : <ChevronDown className="w-3.5 h-3.5 text-indigo-400" />)}
                   </button>
-                  {!vehicleEditMode && (
+                  {!vehicleEditMode && !isLocked && (
                     <button
                       type="button"
                       onClick={startVehicleEdit}
@@ -3229,18 +3320,20 @@ export default function DetalleTransportistaPage() {
                           </span>
                         </button>
                         <div className="flex items-center gap-2 shrink-0">
-                          <button type="button" disabled={savingUnidades} onClick={() => setEditingUnit(u)}
+                          <button type="button" disabled={savingUnidades || isLocked} onClick={() => setEditingUnit(u)}
                             className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <Pencil className="w-3 h-3" />
                           </button>
-                          <button type="button" disabled={savingUnidades} onClick={() => {
-                            const next = unidades.filter((x) => x.id !== u.id);
-                            setUnidades(next);
-                            persistUnidades(next, deletionsFromUnit(u));
-                          }}
-                            className="w-6 h-6 rounded-md hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          {!isLocked && (
+                            <button type="button" disabled={savingUnidades} onClick={() => {
+                              const next = unidades.filter((x) => x.id !== u.id);
+                              setUnidades(next);
+                              persistUnidades(next, deletionsFromUnit(u));
+                            }}
+                              className="w-6 h-6 rounded-md hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
                           <button type="button" onClick={() => toggleUnit(u.id)} className="text-gray-400 hover:text-gray-600 transition-colors">
                             {isUnitExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                           </button>
@@ -3332,7 +3425,7 @@ export default function DetalleTransportistaPage() {
                     </div>
                     );
                   })}
-                  <button type="button" disabled={savingUnidades} onClick={() => setShowAgregarUnidad(true)}
+                  <button type="button" disabled={savingUnidades || isLocked} onClick={() => setShowAgregarUnidad(true)}
                     className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <Plus className="w-4 h-4" /> Agregar remolque
                   </button>
@@ -3344,6 +3437,57 @@ export default function DetalleTransportistaPage() {
 
         {/* ── RIGHT SIDEBAR ────────────────────────────────────────────────── */}
         <div className="space-y-3">
+          {/* Pasar a Carga / Descarga — visible solo cuando ambas inspecciones están completas */}
+          {estatus === "inspeccion_entrada" && (() => {
+            const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
+              i.tipo === "tractor" || i.tipo.startsWith("remolque_") || i.tipo.startsWith("contenedor_")
+            );
+            const totalSecciones = 1 + unidades.length + unidades.filter(u => u.config === "remolque_contenedor").length;
+            const entradaCompleta = inspecsDone.length >= totalSecciones;
+            const selloCompleto = inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total;
+            if (!entradaCompleta || !selloCompleto) return null;
+            return (
+              <button
+                type="button"
+                disabled={savingEstatus}
+                onClick={() => setShowAndenModal(true)}
+                className="relative w-full h-11 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2 shadow-md overflow-hidden disabled:opacity-60">
+                {savingEstatus
+                  ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <ArrowRight className="w-3.5 h-3.5" style={{ animation: "slide-right 0.7s ease-in-out infinite alternate" }} />}
+                Pasar a etapa · Carga / Descarga
+              </button>
+            );
+          })()}
+
+          {/* Carga / Descarga en curso */}
+          {estatus === "carga_/_descarga" && (
+            <div className="rounded-xl overflow-hidden shadow-md" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)" }}>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  <span className="text-sm font-bold text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.25)" }}>Carga / Descarga</span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wide">En curso</span>
+              </div>
+              <div className="px-4 pb-4 space-y-3">
+                <p className="text-xs text-white/90 leading-relaxed" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.25)" }}>
+                  La unidad se encuentra en proceso de carga o descarga. Una vez finalizada, realiza la inspección de salida.
+                </p>
+                <button
+                  type="button"
+                  disabled={savingEstatus}
+                  onClick={() => cambiarEstatus("inspeccion_salida")}
+                  className="w-full h-10 rounded-xl text-xs font-semibold bg-white hover:bg-amber-50 text-amber-700 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60">
+                  {savingEstatus
+                    ? <span className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                    : <ArrowRight className="w-3.5 h-3.5" style={{ animation: "slide-right 0.7s ease-in-out infinite alternate" }} />}
+                  Finalizar · Pasar a Inspección de salida
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Inspección de entrada */}
           {(() => {
             // Solo tractor/remolque/contenedor pertenecen a esta inspección —
@@ -3396,7 +3540,7 @@ export default function DetalleTransportistaPage() {
                       ))}
                     </div>
                   )}
-                  {!todasDone && (
+                  {!todasDone && !isLocked && (
                     <button
                       onClick={() => setShowInspeccion(true)}
                       className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
@@ -3457,7 +3601,7 @@ export default function DetalleTransportistaPage() {
                   </div>
                   <button
                     type="button"
-                    disabled={sinUnidades}
+                    disabled={sinUnidades || (!selloTodasDone && isLocked)}
                     onClick={() => setShowInspeccionSello(true)}
                     className={cn(
                       "w-full h-9 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
@@ -3472,49 +3616,124 @@ export default function DetalleTransportistaPage() {
           })()}
 
           {/* Inspección de salida */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden opacity-70">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <ClipboardCheck className="w-4 h-4 text-gray-300" />
-                <span className="text-sm font-bold text-gray-400">
-                  Inspección de salida
-                </span>
+          {(() => {
+            const salidaHabilitada = estatusIdx >= ORDEN_ESTATUS.indexOf("inspeccion_salida");
+            const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
+              i.tipo === "salida_tractor" || i.tipo.startsWith("salida_remolque_") || i.tipo.startsWith("salida_contenedor_")
+            );
+            const totalSecciones = 1 + unidades.length + unidades.filter(u => u.config === "remolque_contenedor").length;
+            const seccionesDone = inspecsDone.length;
+            const hayAlguna = seccionesDone > 0;
+            const todasDone = seccionesDone >= totalSecciones;
+
+            if (!salidaHabilitada) return (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden opacity-60">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <ClipboardCheck className="w-4 h-4 text-gray-300" />
+                    <span className="text-sm font-bold text-gray-400">Inspección de salida</span>
+                  </div>
+                  <span className="text-[10px] font-bold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5" />
+                    Bloqueada
+                  </span>
+                </div>
+                <div className="p-4">
+                  <p className="text-xs text-gray-400 leading-relaxed">Disponible al completar la etapa de carga / descarga.</p>
+                </div>
               </div>
-              <span className="text-[10px] font-bold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-                <Lock className="w-2.5 h-2.5" />
-                Bloqueada
-              </span>
-            </div>
-            <div className="p-4 space-y-3">
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-gray-300">
-                  {inspecciones.salida.completados}
-                </span>
-                <span className="text-sm text-gray-300">
-                  de {inspecciones.salida.total}
-                </span>
+            );
+
+            return (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <ClipboardCheck className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm font-bold text-gray-800">Inspección de salida</span>
+                  </div>
+                  <span className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                    todasDone ? "bg-green-100 text-green-700" : hayAlguna ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
+                  )}>
+                    {todasDone ? "Completada" : hayAlguna ? "En progreso" : "Pendiente"}
+                  </span>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold text-gray-800">{seccionesDone}</span>
+                    <span className="text-sm text-gray-400">de {totalSecciones} secciones</span>
+                  </div>
+                  {hayAlguna && (
+                    <div className="space-y-1">
+                      {inspecsDone.map((ins, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                          <span className="text-xs text-gray-600 capitalize flex-1">
+                            {ins.tipo === "salida_tractor"
+                              ? "Tractor / Cabezal"
+                              : ins.tipo.startsWith("salida_remolque")
+                              ? `Remolque · Unidad ${ins.tipo.replace("salida_remolque_", "")}`
+                              : `Contenedor · Unidad ${ins.tipo.replace("salida_contenedor_", "")}`}
+                          </span>
+                          {ins.url && (
+                            <a href={ins.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline shrink-0">
+                              Ver
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!todasDone && (
+                    <button
+                      onClick={() => setShowInspeccionSalida(true)}
+                      className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
+                    >
+                      <ClipboardCheck className="w-3.5 h-3.5" />
+                      {hayAlguna ? "Continuar inspección" : "Realizar inspección"}
+                    </button>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                Disponible al registrar el ingreso del transportista.
-              </p>
-              <button
-                disabled
-                className="w-full h-9 rounded-xl text-xs font-medium bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-100 flex items-center justify-center gap-1.5">
-                <Lock className="w-3 h-3" />
-                Completa la etapa anterior
-              </button>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       </div>
+      {showAndenModal && (
+        <SeleccionAndenModal
+          folio={data?.folio}
+          placa={data?.vehiculo?.placa}
+          confirmLabel="Confirmar y pasar a Carga / Descarga"
+          saving={savingEstatus}
+          onClose={() => setShowAndenModal(false)}
+          onConfirm={(anden) => {
+            setShowAndenModal(false);
+            cambiarEstatus("carga_/_descarga", anden);
+          }}
+        />
+      )}
       {showInspeccion && (
         <InspeccionEntradaModal
           recordId={id}
           unidades={unidades}
           inspeccionesDone={data?.inspecciones ?? []}
           placaVehiculo={data?.vehiculo?.placa}
+          placaTarjetaCirculacion={data?.vehiculo?.placa_tarjeta_circulacion}
           documentosAdicionales={data?.documentos_adicionales}
           onClose={() => setShowInspeccion(false)}
+          onSaved={refetch}
+        />
+      )}
+      {showInspeccionSalida && (
+        <InspeccionEntradaModal
+          recordId={id}
+          unidades={unidades}
+          inspeccionesDone={data?.inspecciones ?? []}
+          placaVehiculo={data?.vehiculo?.placa}
+          placaTarjetaCirculacion={data?.vehiculo?.placa_tarjeta_circulacion}
+          documentosAdicionales={data?.documentos_adicionales}
+          tipoPrefix="salida"
+          onClose={() => setShowInspeccionSalida(false)}
           onSaved={refetch}
         />
       )}

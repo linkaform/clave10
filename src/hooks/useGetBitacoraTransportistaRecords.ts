@@ -12,6 +12,7 @@ export interface BitacoraTransportistaRecord {
   estatus: string;
   fecha_hora_ingreso: string | null;
   material: string | null;
+  anden_asignado: string | null;
 }
 
 function extractRecords(res: unknown): BitacoraTransportistaRecord[] {

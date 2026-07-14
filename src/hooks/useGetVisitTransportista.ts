@@ -38,6 +38,8 @@ interface RawRecord {
   procedencia: string | null;
   tipo_de_vehiculo: string | null;
   placas_de_vehiculo: string | null;
+  placas_de_vehiculo_tarjeta_circulacion: string | null;
+  anden_asignado: string | null;
   num_eco_num_rotulo: string | null;
   marca_vehiculo: string | null;
   year_vehiculo: string | null;
@@ -73,6 +75,7 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
       procedencia: raw.procedencia,
       tipo_vehiculo: raw.tipo_de_vehiculo,
       placa: raw.placas_de_vehiculo,
+      placa_tarjeta_circulacion: raw.placas_de_vehiculo_tarjeta_circulacion,
       no_economico: raw.num_eco_num_rotulo,
       marca: raw.marca_vehiculo,
       modelo: raw.year_vehiculo ? `${raw.year_vehiculo}` : null,
@@ -113,6 +116,7 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
     embarque: {
       proveedor_cliente: raw.proveedor_cliente,
       no_orden_compra:   raw.orden_de_compra,
+      anden_asignado:    raw.anden_asignado,
     },
     inspecciones: (raw.inspecciones ?? []).map((ins) => ({
       tipo:   ins.tipo,
@@ -154,6 +158,7 @@ export interface VisitaTransportista {
     procedencia: string | null;
     tipo_vehiculo: string | null;
     placa: string | null;
+    placa_tarjeta_circulacion: string | null;
     material: string | null;
     no_economico: string | null;
     marca: string | null;
@@ -174,6 +179,7 @@ export interface VisitaTransportista {
   embarque?: {
     proveedor_cliente: string | null;
     no_orden_compra: string | null;
+    anden_asignado: string | null;
   } | null;
   remolques: RemolqueVisita[];
   materiales: MaterialVisita[];

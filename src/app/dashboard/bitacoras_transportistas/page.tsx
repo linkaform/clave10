@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { NuevoAccesoTransportistaModal } from "@/components/modals/nuevo-acceso-transportista-modal";
 import {
   Plus,
@@ -17,13 +18,17 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGetBitacoraTransportistaRecords, BitacoraTransportistaRecord } from "@/hooks/useGetBitacoraTransportistaRecords";
+import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
+import { saveBitacoraTransportistaRecord } from "@/services/endpoints";
+import { toast } from "sonner";
+import { Pencil } from "lucide-react";
 
 // ─── Columnas del kanban ────────────────────────────────────────────────────
 
 const COLUMNAS = [
   { key: "arribo",             label: "Arribo",             color: "bg-blue-500",    light: "bg-blue-50",    border: "border-blue-200",    text: "text-blue-700"    },
   { key: "inspeccion_entrada", label: "Inspección entrada", color: "bg-violet-500",  light: "bg-violet-50",  border: "border-violet-200",  text: "text-violet-700"  },
-  { key: "carga_descarga",     label: "Carga / Descarga",   color: "bg-emerald-500", light: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
+  { key: "carga_/_descarga",   label: "Carga / Descarga",   color: "bg-emerald-500", light: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
   { key: "inspeccion_salida",  label: "Inspección salida",  color: "bg-orange-500",  light: "bg-orange-50",  border: "border-orange-200",  text: "text-orange-700"  },
   { key: "terminado",          label: "Terminado",          color: "bg-green-500",   light: "bg-green-50",   border: "border-green-200",   text: "text-green-700"   },
 ] as const;
@@ -79,53 +84,103 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
   const sinPase = !record.num_de_pase;
   const mins = minutosTranscurridos(record.fecha_hora_ingreso, now);
   const tiempo = record.fecha_hora_ingreso ? tiempoLabel(mins) : null;
+  const queryClient = useQueryClient();
+
+  const [localAnden, setLocalAnden] = useState<string | null>(record.anden_asignado ?? null);
+  const [showAndenModal, setShowAndenModal] = useState(false);
+  const [savingAnden, setSavingAnden] = useState(false);
+
+  const handleAndenConfirm = async (anden: string | null) => {
+    setShowAndenModal(false);
+    const prev = localAnden;
+    setLocalAnden(anden);
+    setSavingAnden(true);
+    try {
+      await saveBitacoraTransportistaRecord(record._id, "estatus", { anden: anden ?? "" });
+      queryClient.invalidateQueries({ queryKey: ["bitacoraTransportistaRecords"] });
+      toast.success("Andén actualizado");
+    } catch {
+      setLocalAnden(prev);
+      toast.error("Error al actualizar el andén");
+    } finally {
+      setSavingAnden(false);
+    }
+  };
 
   return (
-    <Link href={`/dashboard/accesos/transportista/${record._id}`} className="block bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 space-y-2.5 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer">
-      <div className="flex items-start justify-between gap-2">
-        {sinPase
-          ? <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">SIN PASE</span>
-          : <span className="text-[10px] font-bold text-gray-400 tracking-wide">{record.folio}</span>
-        }
-        {tiempo && (
-          <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1", tiempo.color)}>
-            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", tiempo.dot)} />
-            {tiempo.label}
-          </span>
-        )}
-      </div>
-      <p className="text-sm font-bold text-gray-800 leading-tight">{record.placas ?? "—"}</p>
-      {sinPase && <p className="text-[10px] text-gray-400 -mt-1">{record.folio}</p>}
-      {record.proveedor_cliente && (
-        <div className="flex items-center gap-1.5">
-          <div className={cn("w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold text-white shrink-0", avatarColor(record.proveedor_cliente))}>
-            {initials(record.proveedor_cliente)}
+    <>
+      <Link href={`/dashboard/accesos/transportista/${record._id}`} className="block bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 space-y-2.5 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer">
+        <div className="flex items-start justify-between gap-2">
+          {sinPase
+            ? <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">SIN PASE</span>
+            : <span className="text-[10px] font-bold text-gray-400 tracking-wide">{record.folio}</span>
+          }
+          {tiempo && (
+            <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1", tiempo.color)}>
+              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", tiempo.dot)} />
+              {tiempo.label}
+            </span>
+          )}
+        </div>
+        <p className="text-sm font-bold text-gray-800 leading-tight">{record.placas ?? "—"}</p>
+        {sinPase && <p className="text-[10px] text-gray-400 -mt-1">{record.folio}</p>}
+        {record.proveedor_cliente && (
+          <div className="flex items-center gap-1.5">
+            <div className={cn("w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold text-white shrink-0", avatarColor(record.proveedor_cliente))}>
+              {initials(record.proveedor_cliente)}
+            </div>
+            <span className="text-xs text-gray-600 truncate">{record.proveedor_cliente}</span>
           </div>
-          <span className="text-xs text-gray-600 truncate">{record.proveedor_cliente}</span>
+        )}
+        {record.conductor && (
+          <div className="flex items-center gap-1.5 text-gray-500">
+            <User className="w-3 h-3 shrink-0" />
+            <span className="text-xs truncate">{record.conductor}</span>
+          </div>
+        )}
+        {record.material && (
+          <div className="flex items-center gap-1.5 text-gray-500">
+            <Package className="w-3 h-3 shrink-0" />
+            <span className="text-xs truncate">{record.material}</span>
+          </div>
+        )}
+        <div className="flex items-center gap-2 pt-0.5 flex-wrap">
+          <span className={cn(
+            "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full",
+            isEntrega ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
+          )}>
+            {isEntrega ? <ArrowDownToLine className="w-3 h-3" /> : <ArrowUpFromLine className="w-3 h-3" />}
+            {isEntrega ? "Entrega" : "Recolección"}
+          </span>
+          {localAnden && (
+            <div className="flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-[10px] font-bold text-blue-700">
+                {savingAnden
+                  ? <span className="w-2.5 h-2.5 border border-blue-400 border-t-transparent rounded-full animate-spin" />
+                  : null}
+                Andén {localAnden}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowAndenModal(true); }}
+                className="w-5 h-5 rounded flex items-center justify-center text-gray-300 hover:text-blue-500 transition-colors">
+                <Pencil className="w-3 h-3" />
+              </button>
+            </div>
+          )}
         </div>
+      </Link>
+      {showAndenModal && (
+        <SeleccionAndenModal
+          folio={record.folio}
+          placa={record.placas}
+          confirmLabel="Confirmar andén"
+          saving={savingAnden}
+          onClose={() => setShowAndenModal(false)}
+          onConfirm={handleAndenConfirm}
+        />
       )}
-      {record.conductor && (
-        <div className="flex items-center gap-1.5 text-gray-500">
-          <User className="w-3 h-3 shrink-0" />
-          <span className="text-xs truncate">{record.conductor}</span>
-        </div>
-      )}
-      {record.material && (
-        <div className="flex items-center gap-1.5 text-gray-500">
-          <Package className="w-3 h-3 shrink-0" />
-          <span className="text-xs truncate">{record.material}</span>
-        </div>
-      )}
-      <div className="pt-0.5">
-        <span className={cn(
-          "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full",
-          isEntrega ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
-        )}>
-          {isEntrega ? <ArrowDownToLine className="w-3 h-3" /> : <ArrowUpFromLine className="w-3 h-3" />}
-          {isEntrega ? "Entrega" : "Recolección"}
-        </span>
-      </div>
-    </Link>
+    </>
   );
 }
 
@@ -140,7 +195,7 @@ function ProgramadosColumn({
   onChangeDay: (delta: number) => void;
 }) {
   return (
-    <div className="flex flex-col flex-1 min-w-[200px] h-full">
+    <div className="flex flex-col flex-1 min-w-0 h-full">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5 rounded-t-xl bg-gray-100 border border-gray-200">
         <span className="w-2 h-2 rounded-full bg-gray-400 shrink-0" />
@@ -187,7 +242,7 @@ function KanbanColumn({
   now: number;
 }) {
   return (
-    <div className="flex flex-col flex-1 min-w-[200px] h-full">
+    <div className="flex flex-col flex-1 min-w-0 h-full">
       {/* Header */}
       <div className={cn("flex items-center gap-2 px-3 py-2.5 rounded-t-xl border", col.border, col.light)}>
         <span className={cn("w-2 h-2 rounded-full shrink-0", col.color)} />
@@ -292,13 +347,13 @@ export default function BitacorasTransportistasPage() {
       </div>
 
       {/* ── Kanban ── */}
-      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-400">
             Cargando registros...
           </div>
         ) : (
-          <div className="flex gap-4 p-6 h-full w-full min-w-max">
+          <div className="flex gap-3 p-4 h-full w-full">
             <ProgramadosColumn
               records={byEstatus("programado")}
               fecha={fecha}
