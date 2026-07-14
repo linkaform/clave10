@@ -1,4 +1,5 @@
 // import { MainLayout } from "@/components/Layout/MainLayout";
+import { MainLayout } from "@/components/Layout/MainLayout";
 import { Metadata } from "next";
 import React from "react";
 
@@ -14,7 +15,7 @@ export default function ReportsListPageLayout({ children }: { children: React.Re
 
       {/* Layout principal */}
       <MainLayout>{children}</MainLayout>
-      {children}
+      {/* {children} */}
     </>
   );
 }
