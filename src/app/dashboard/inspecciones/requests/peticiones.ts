@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "@/lib/login/get-valid-token";
 
 export const getStates = async () => {
     toast.loading("Obteniendo ubicaciones...", {
@@ -16,7 +17,7 @@ export const getStates = async () => {
             script_name: "report_inspecciones.py",
         };
 
-        const userJwt = localStorage.getItem("access_token");
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -69,7 +70,7 @@ export const getReportAuditorias = async (year: number, states: string[]) => {
             states
         };
 
-        const userJwt = localStorage.getItem("access_token");
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -122,7 +123,7 @@ export const getAuditorias = async (fallas: string[], states: string[]) => {
             states: states
         };
 
-        const userJwt = localStorage.getItem("access_token");
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -174,7 +175,7 @@ export const getAuditoriaById = async (id: string) => {
             record_id: id
         };
 
-        const userJwt = localStorage.getItem("access_token");
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -226,7 +227,7 @@ export const getInspeccionPDF = async ({ recordId }: { recordId: string }) => {
             record_id: recordId,
         };
 
-        const userJwt = localStorage.getItem("access_token");
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -277,7 +278,7 @@ export const getPieChart = async (states: string[]) => {
             states: states
         };
 
-        const userJwt = localStorage.getItem("access_token");
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {

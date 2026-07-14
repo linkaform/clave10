@@ -472,6 +472,7 @@ const PaseUpdate = () => {
       conservar_datos_por: radioSelected,
       acompanantes:dataCatalogos?.pass_selected?.acompanantes,
       acompanantes_grupo: miembrosAcompanantes.map((m) => ({
+        qr_code:m.id,
         nombre: m.nombre,
         email: m.email,
         telefono: m.telefono,

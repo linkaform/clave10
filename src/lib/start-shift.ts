@@ -1,5 +1,6 @@
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 interface GetShiftParams {
   area?: string;
@@ -30,7 +31,7 @@ interface GetShiftParams {
       checkin_id
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
   
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
@@ -53,7 +54,7 @@ interface GetShiftParams {
         script_name: "script_turnos.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {

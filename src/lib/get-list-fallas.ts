@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export const getListFallas = async (
     location:string, area:string,status:string,  dateFrom:string, dateTo:string, filterDate:string) => {
@@ -13,7 +14,7 @@ export const getListFallas = async (
         script_name: "fallas.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
   
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",

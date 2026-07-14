@@ -1,4 +1,3 @@
-import { MainLayout } from "@/components/Layout/MainLayout";
 import { Metadata } from "next";
 import React from "react";
 
@@ -13,7 +12,8 @@ export default function ReportsListPageLayout({ children }: { children: React.Re
       <link rel="icon" href="/accesos.svg" type="image/svg+xml" />
 
       {/* Layout principal */}
-      <MainLayout>{children}</MainLayout>
+      {/* <MainLayout>{children}</MainLayout> */}
+      {children}
     </>
   );
 }

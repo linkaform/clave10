@@ -1,7 +1,8 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export const getAreasByLocations = async (locations: string[]) => {
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
@@ -19,7 +20,7 @@ export const getAreasByLocations = async (locations: string[]) => {
 };
 
 export const forceQuitAllPersons = async (location: string | string[]) => {
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
@@ -40,7 +41,7 @@ export const getGoogleWalletPassUrl = async (
   account_id: number,
   qr_code: string,
 ) => {
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
@@ -58,7 +59,7 @@ export const getGoogleWalletPassUrl = async (
 };
 
 export const getImgPassUrl = async (account_id: number, qr_code: string) => {
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {

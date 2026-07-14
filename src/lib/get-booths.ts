@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export const getBooths = async () => {
     const payload = {
@@ -6,7 +7,7 @@ export const getBooths = async () => {
       option: "get_user_booths",   
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
   
       const response = await fetch(API_ENDPOINTS.runScript, {
         method: 'POST',

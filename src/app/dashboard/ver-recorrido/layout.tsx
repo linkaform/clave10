@@ -1,4 +1,3 @@
-import { MainLayout } from "@/components/Layout/MainLayout"
 import { Metadata } from "next"
 import React from "react"
 
@@ -10,7 +9,8 @@ export default function VerRecorridoLayout({ children }: { children: React.React
   return (
     <>
       <link rel="icon" href="/rondines.svg" type="image/svg+xml" />
-      <MainLayout>{children}</MainLayout>
+      {/* <MainLayout>{children}</MainLayout>*/}
+      {children}
     </>
   );
 }

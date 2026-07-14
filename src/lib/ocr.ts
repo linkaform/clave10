@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export const runOcrId = async (imageUrls: string[],) => {
     const payload = {
@@ -8,7 +9,7 @@ export const runOcrId = async (imageUrls: string[],) => {
       script_name: "ocr_docs.py",
     };
   
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
@@ -29,7 +30,7 @@ export const runOcrId = async (imageUrls: string[],) => {
       script_name: "ocr_docs.py",
     };
   
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
@@ -50,7 +51,7 @@ export const runOcrId = async (imageUrls: string[],) => {
       script_name: "ocr_docs.py",
     };
   
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
@@ -73,7 +74,7 @@ export const runOcrId = async (imageUrls: string[],) => {
 
     console.log("payload", JSON.stringify(payload));
 
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
@@ -96,7 +97,7 @@ export const runOcrId = async (imageUrls: string[],) => {
 
     console.log("payload", JSON.stringify(payload));
 
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
@@ -119,7 +120,7 @@ export const runOcrId = async (imageUrls: string[],) => {
 
     console.log("payload", JSON.stringify(payload));
 
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {

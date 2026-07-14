@@ -1,5 +1,6 @@
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api"
+import { getValidToken } from "./login/get-valid-token";
 
 export interface InputArticuloCon {
     status_concesion:string,
@@ -31,7 +32,7 @@ export const getListArticulosCon = async (location:string, area:string,status:st
         script_name: "articulos_consecionados.py",
     };
 
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
   
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
@@ -54,7 +55,7 @@ export const getTipoConcesion = async (location:string, tipo:string) => {
         script_name: "articulos_consecionados.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
   
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
@@ -76,7 +77,7 @@ export const crearArticuloCon = async (data_article: InputArticuloCon | null)=> 
         script_name: "articulos_consecionados.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -98,7 +99,7 @@ export const editarArticuloCon = async (data_article_update: InputArticuloCon | 
         folio: folio
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {

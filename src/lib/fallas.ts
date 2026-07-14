@@ -1,5 +1,6 @@
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export interface InputFalla {
     falla?:string,
@@ -26,7 +27,7 @@ export const getListFallas = async (
         script_name: "fallas.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
   
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
@@ -48,7 +49,7 @@ export const crearFalla = async (data_failure: InputFalla | null)=> {
         script_name: "fallas.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -70,7 +71,7 @@ export const updateFalla = async (data_failure_update: InputFalla | null, folio:
         folio: folio
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -91,7 +92,7 @@ export const updateFalla = async (data_failure_update: InputFalla | null, folio:
         script_name: "fallas.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -124,7 +125,7 @@ export const crearSeguimientoFalla = async (falla_grupo_seguimiento: inputSeguim
         script_name: "fallas.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -144,7 +145,7 @@ export const crearSeguimientoFalla = async (falla_grupo_seguimiento: inputSeguim
         option: "catalogo_fallas",
         script_name: "fallas.py",
     };
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {

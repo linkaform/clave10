@@ -44,7 +44,7 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
   const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
   const [responseformated, setResponseFormated] = useState<data_correo | null>(null);
   const { updatePassMutation, isLoadingUpdate } = useUpdateAccessPass();
-
+  console.log("data?.acompanantes_grupo", data)
   const onSubmit = async () => {
     updatePassMutation.mutate(
       {
@@ -57,6 +57,7 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
           acepto_aviso_privacidad: data?.acepto_aviso_privacidad ? "sí" : "no",
           conservar_datos_por: data?.conservar_datos_por,
           acompanantes: data?.acompanantes ?? [],
+          grupo_acompanantes:data?.acompanantes_grupo ?? [],
         },
         id: data.folio,
         account_id: data.account_id,

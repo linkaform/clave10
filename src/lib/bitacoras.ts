@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export const getListBitacora = async (
   location: string | string[],
@@ -25,7 +26,7 @@ export const getListBitacora = async (
     script_name: "script_turnos.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
@@ -55,7 +56,7 @@ export const doOut = async (
     script_name: "script_turnos.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
@@ -92,7 +93,7 @@ export const asignarGafete = async (
     script_name: "script_turnos.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",

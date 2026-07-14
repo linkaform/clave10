@@ -1,6 +1,7 @@
 // import { Imagen } from "./update-pass";
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export const getListIncidencias = async (
   location: string,
@@ -23,7 +24,7 @@ export const getListIncidencias = async (
     estatus: estatus,
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
@@ -49,7 +50,7 @@ export const getCatIncidencias = async (
     script_name: "incidencias.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
@@ -179,7 +180,7 @@ export const crearIncidencia = async (
     script_name: "incidencias.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
@@ -204,7 +205,7 @@ export const editarIncidencia = async (
     script_name: "incidencias.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
@@ -225,7 +226,7 @@ export const deleteIncidencias = async (folio: string[]) => {
     script_name: "incidencias.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {
@@ -252,7 +253,7 @@ export const crearSeguimientoIncidencia = async (
     script_name: "incidencias.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
     headers: {

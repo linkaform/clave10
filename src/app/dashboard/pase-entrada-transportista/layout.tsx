@@ -1,4 +1,3 @@
-import { MainLayout } from "@/components/Layout/MainLayout"
 import { Metadata } from "next"
 import React from "react"
 
@@ -13,7 +12,8 @@ export default function PaseEntradaLayout({ children }: { children: React.ReactN
       <link rel="icon" href="/pases.svg" type="image/svg+xml" />
       
       {/* Layout principal */}
-      <MainLayout>{children}</MainLayout>
+      {/* <MainLayout>{children}</MainLayout> */}
+      {children}
     </>
   );
 }

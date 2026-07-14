@@ -1,5 +1,6 @@
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export interface InputPaqueteria {
     ubicacion_paqueteria:string,
@@ -34,7 +35,7 @@ export const getListPaqueteria  = async (
         script_name: "paqueteria.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
   
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
@@ -55,7 +56,7 @@ export const getListPaqueteria  = async (
         script_name: "paqueteria.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
   
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
@@ -77,7 +78,7 @@ export const crearPaqueteria  = async (data_paquete: InputPaqueteria  | null)=> 
         script_name: "paqueteria.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -99,7 +100,7 @@ export const editarPaqueteria  = async (data_paquete_actualizar: InputPaqueteria
         folio: folio
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {

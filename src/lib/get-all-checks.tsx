@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export const getListCheckUbicaciones = async (
     ubicacion?: string,
@@ -11,7 +12,7 @@ export const getListCheckUbicaciones = async (
       script_name: "rondines.py",
     };
   
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
