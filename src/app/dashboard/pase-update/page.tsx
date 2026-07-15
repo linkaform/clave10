@@ -10,7 +10,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
@@ -826,10 +825,10 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                         }
                       />
 
-                      {fieldState.error && (
-                        <span className="text-red-500 text-xs mt-1 block">
-                          {fieldState.error.message}
-                        </span>
+                      {fieldState.error && form.formState.isSubmitted && (
+                          <span className="text-red-500 text-xs mt-1 block">
+                            {fieldState.error.message}
+                          </span>
                       )}
                     </div>
                   </div>
@@ -899,7 +898,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                         })() : null
                       }
                       />
-                      {fieldState.error && (
+                      {fieldState.error && form.formState.isSubmitted && (
                         <span className="text-red-500 text-xs mt-1 block">
                           {fieldState.error.message}
                         </span>
@@ -1183,7 +1182,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
               <FormField
                 control={form.control}
                 name="acepto_aviso_privacidad"
-                render={({ field }) => (
+                render={({ field , fieldState}) => (
                   <FormItem>
                     <FormControl>
                       <div className="flex items-center gap-2">
@@ -1206,7 +1205,11 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                         </Label>
                       </div>
                     </FormControl>
-                    <FormMessage />
+                    {fieldState.error && form.formState.isSubmitted && (
+                      <span className="text-red-500 text-xs mt-1 block">
+                        {fieldState.error.message}
+                      </span>
+                    )}
                   </FormItem>
                 )}
               />
