@@ -32,6 +32,7 @@ interface CalendarDaysProps {
   showPlaceholder?: boolean;
   ocrResultChildren?: React.ReactNode;
   onClear?: () => void;
+  accountId?: number;
 }
 
 const LoadImage: React.FC<CalendarDaysProps> = ({
@@ -49,6 +50,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   ocrResultChildren,
   showImage=true,
   onClear,
+  accountId,
 }) => {
 
   const [loadingWebcam, setLoadingWebcam] = useState(false);
@@ -62,7 +64,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   const reachedLimit = (imgArray?.length ?? 0) >= limit;
   const [activeIndex, setActiveIndex] = useState(0);
   const [carouselApi, setCarouselApi] = useState<any>(null);
-  const { ocrIdMutation, ocrPaqueteMutation, ocrTruckMutation , ocrVehiculoMutation, ocrEquipoMutation, ocrPersonaMutation} = useOcr();
+  const { ocrIdMutation, ocrPaqueteMutation, ocrTruckMutation , ocrVehiculoMutation, ocrEquipoMutation, ocrPersonaMutation} = useOcr(accountId);
 
   const ocrMutation = tipoOcr === "paquete"
     ? ocrPaqueteMutation

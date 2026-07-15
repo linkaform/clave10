@@ -535,7 +535,7 @@ const PaseUpdate = () => {
       const grupo = dataCatalogos?.pass_selected?.acompanantes_grupo ?? [];
 
       const rows: Miembro[] = grupo.map((a) => ({
-        id: a.qr_code || crypto.randomUUID(),
+        id: a.qr_code || (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`),
         nombre: a.nombre_acompanante ?? "",
         email: a.email_acompanante ?? "",
         telefono: a.telefono_acompanante ?? "",
@@ -804,6 +804,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                         setImg={field.onChange}
                         facingMode="user"
                         tipoOcr="persona"
+                        accountId={account_id || undefined}
                         onClear={() => setOcrFotoResult(null)}
                         onOcrResult={handleOcrFotografia}
                         ocrResultChildren={
@@ -852,6 +853,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                         showWebcamOption={true}
                         facingMode="environment"
                         tipoOcr="id"
+                        accountId={account_id || undefined}
                         onClear={() => setOcrIdenResult(null)}
                         onOcrResult={handleOcrIdentificacion}
                         ocrResultChildren={

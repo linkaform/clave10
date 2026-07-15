@@ -1,12 +1,13 @@
 import { API_ENDPOINTS } from "@/config/api";
 import { getValidToken } from "./login/get-valid-token";
 
-export const runOcrId = async (imageUrls: string[],) => {
+export const runOcrId = async (imageUrls: string[], accountId?: number) => {
     const payload = {
       option: "ocr_id",
       is_employee:true,
       image_source: imageUrls,
-      script_name: "ocr_docs.py",
+      script_name: "pase_de_acceso_use_api.py",
+      ...(accountId ? { account_id: accountId } : {}),
     };
   
     const userJwt = await getValidToken();
@@ -111,11 +112,12 @@ export const runOcrId = async (imageUrls: string[],) => {
     return data;
   };
 
-    export const runOcrPersona = async (imageUrls: string[]) => {
+    export const runOcrPersona = async (imageUrls: string[], accountId?: number) => {
     const payload = {
-      script_name: "ocr_docs.py",
+      script_name: "pase_de_acceso_use_api.py",
       image_source: imageUrls,
       option: "ocr_persona",
+      ...(accountId ? { account_id: accountId } : {}),
     };
 
     console.log("payload", JSON.stringify(payload));
