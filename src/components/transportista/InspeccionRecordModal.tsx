@@ -1,6 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import { useGetInspeccionRecord, InspeccionSection, FieldValue, EvidenciaFile } from "@/hooks/useGetInspeccionRecord";
 import { cn } from "@/lib/utils";
 
@@ -139,8 +140,8 @@ function PhotoCard({ label, value }: { label: string; value: FieldValue }) {
   return (
     <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
       {files.length > 0 ? (
-        <a href={files[0].file_url} target="_blank" rel="noopener noreferrer" className="block hover:opacity-90 transition-opacity">
-          <img src={files[0].file_url} alt={label} className="w-full h-36 object-cover" />
+        <a href={files[0].file_url} target="_blank" rel="noopener noreferrer" className="block hover:opacity-90 transition-opacity relative w-full h-36">
+          <Image src={files[0].file_url} alt={label} fill className="object-cover" unoptimized />
         </a>
       ) : (
         <div className="w-full h-36 flex items-center justify-center bg-gray-100">
@@ -167,14 +168,14 @@ function FieldRow({ label, value }: { label: string; value: FieldValue }) {
       {hasExtra && (
         <div className="pl-1 space-y-1.5">
           {comment && (
-            <p className="text-[11px] text-gray-500 italic leading-relaxed">"{comment}"</p>
+            <p className="text-[11px] text-gray-500 italic leading-relaxed">&ldquo;{comment}&rdquo;</p>
           )}
           {evidencia && evidencia.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {evidencia.map((f: EvidenciaFile, i: number) => (
                 <a key={i} href={f.file_url} target="_blank" rel="noopener noreferrer"
-                  className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 shrink-0 block hover:opacity-80 transition-opacity">
-                  <img src={f.file_url} alt={f.file_name} className="w-full h-full object-cover" />
+                  className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 shrink-0 block hover:opacity-80 transition-opacity">
+                  <Image src={f.file_url} alt={f.file_name} fill className="object-cover" unoptimized />
                 </a>
               ))}
             </div>

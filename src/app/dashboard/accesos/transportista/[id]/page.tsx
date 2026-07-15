@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -179,9 +180,6 @@ function InspeccionEntradaModal({
   recordId,
   unidades,
   inspeccionesDone,
-  placaVehiculo,
-  placaTarjetaCirculacion,
-  documentosAdicionales,
   tipoPrefix,
   onClose,
   onSaved,
@@ -211,14 +209,9 @@ function InspeccionEntradaModal({
   // Subida directa de un documento ligado (ej. foto de placa / tarjeta de
   // circulación) desde esta misma pantalla — se guarda igual que desde el
   // panel de Documentos, así que aparece de inmediato en ambos lugares.
-  const [uploadingPlacaDoc, setUploadingPlacaDoc] = useState<string | null>(null);
+  const [, setUploadingPlacaDoc] = useState<string | null>(null);
   const placaDocInputRef = useRef<HTMLInputElement>(null);
   const pendingPlacaSlugRef = useRef<string | null>(null);
-
-  const triggerPlacaDocUpload = (slug: string) => {
-    pendingPlacaSlugRef.current = slug;
-    placaDocInputRef.current?.click();
-  };
 
   const handlePlacaDocFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -560,7 +553,7 @@ function InspeccionEntradaModal({
           <div className="flex flex-wrap gap-2">
             {evidencias.map((img, i) => (
               <div key={i} className="relative w-16 h-16 shrink-0">
-                <img src={img.file_url} className="w-full h-full object-cover rounded-lg border border-gray-200" alt="" />
+                <Image src={img.file_url} fill className="object-cover rounded-lg border border-gray-200" alt="" unoptimized />
                 <button
                   type="button"
                   onClick={() => removeImg(evKey, i)}
@@ -660,7 +653,7 @@ function InspeccionEntradaModal({
           <div className="pb-2.5 pl-6 flex gap-2 flex-wrap">
             {punto.fotos.map((img, fi) => (
               <div key={fi} className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-200 shrink-0">
-                <img src={img.file_url} className="w-full h-full object-cover" alt="" />
+                <Image src={img.file_url} fill className="object-cover" alt="" unoptimized />
                 <button
                   type="button"
                   onClick={() => removeImg(ptKey, fi)}
@@ -1340,7 +1333,7 @@ function InspeccionSelloModal({
                         </p>
                         {foto ? (
                           <div className="relative w-full h-16 rounded-lg overflow-hidden border border-gray-200">
-                            <img src={foto.file_url} className="w-full h-full object-cover" alt="" />
+                            <Image src={foto.file_url} fill className="object-cover" alt="" unoptimized />
                             <button type="button" onClick={() => removeSlotFoto(activeTab, slot.key)}
                               className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 transition-colors">
                               <X className="w-3 h-3 text-white" />
@@ -1750,6 +1743,8 @@ const DOCUMENTOS_REQUERIDOS_SLUGS: Record<string, string> = {
 };
 const tipoRequeridoSlug = (nombre: string) => DOCUMENTOS_REQUERIDOS_SLUGS[nombre] ?? tipoSlug(nombre);
 
+const ESTATUS_CON_DOCS_COLAPSADOS = ["carga_/_descarga", "inspeccion_salida", "terminado"];
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DetalleTransportistaPage() {
@@ -2021,7 +2016,6 @@ export default function DetalleTransportistaPage() {
     });
 
   const [docTab, setDocTab] = useState<"pendientes" | "subidos">("pendientes");
-  const ESTATUS_CON_DOCS_COLAPSADOS = ["carga_/_descarga", "inspeccion_salida", "terminado"];
   const [docsExpanded, setDocsExpanded] = useState(true);
   const docsExpandedInitialized = useRef(false);
   useEffect(() => {
@@ -2618,7 +2612,7 @@ export default function DetalleTransportistaPage() {
                     className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5 relative group hover:border-blue-300 transition-colors disabled:cursor-not-allowed disabled:opacity-70">
                     {url ? (
                       <>
-                        <img src={url} alt="Conductor" className="w-full h-full object-cover" />
+                        <Image src={url} fill className="object-cover" alt="Conductor" unoptimized />
                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <Pencil className="w-4 h-4 text-white" />
                         </div>
@@ -2644,7 +2638,7 @@ export default function DetalleTransportistaPage() {
                     className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5 relative group hover:border-blue-300 transition-colors disabled:cursor-not-allowed disabled:opacity-70">
                     {url ? (
                       <>
-                        <img src={url} alt="Licencia" className="w-full h-full object-cover" />
+                        <Image src={url} fill className="object-cover" alt="Licencia" unoptimized />
                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <Pencil className="w-4 h-4 text-white" />
                         </div>
@@ -2702,8 +2696,8 @@ export default function DetalleTransportistaPage() {
                             <button key={doc.file_url} type="button"
                               onClick={() => saveFotoConductor(fotoPicker, doc.file_url, doc.file_name ?? "", docIdx)}
                               className="w-full flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-blue-50 transition-colors text-left">
-                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
-                                <img src={doc.file_url} alt="" className="w-full h-full object-cover" />
+                              <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
+                                <Image src={doc.file_url} fill className="object-cover" alt="" unoptimized />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-[11px] font-semibold text-gray-700 truncate">
@@ -2882,9 +2876,9 @@ export default function DetalleTransportistaPage() {
                   return (
                     <div key={nombre}
                       className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-violet-200 bg-violet-50/40">
-                      <div className="w-9 h-9 rounded-lg overflow-hidden border border-violet-100 bg-white shrink-0 flex items-center justify-center">
+                      <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-violet-100 bg-white shrink-0 flex items-center justify-center">
                         {staged.preview
-                          ? <img src={staged.preview} alt="" className="w-full h-full object-cover" />
+                          ? <Image src={staged.preview} fill className="object-cover" alt="" unoptimized />
                           : <FileText className="w-4 h-4 text-violet-300" />}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -2960,8 +2954,8 @@ export default function DetalleTransportistaPage() {
                             <button key={doc.id} type="button"
                               onClick={() => { const nombre = docAssignPicker; setDocAssignPicker(null); marcarAsignacionStaged(doc.id, nombre); }}
                               className="w-full flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-blue-50 transition-colors text-left disabled:opacity-50">
-                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
-                                {doc.preview && <img src={doc.preview} alt="" className="w-full h-full object-cover" />}
+                              <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
+                                {doc.preview && <Image src={doc.preview} fill className="object-cover" alt="" unoptimized />}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-[11px] font-semibold text-gray-700 truncate">{doc.file_name}</p>
@@ -2986,8 +2980,8 @@ export default function DetalleTransportistaPage() {
                               <button key={doc.file_url} type="button"
                                 onClick={() => assignExistingDocToPendiente(docAssignPicker, doc.file_url, doc.file_name ?? "", docIdx)}
                                 className="w-full flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-blue-50 transition-colors text-left">
-                                <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
-                                  <img src={doc.file_url} alt="" className="w-full h-full object-cover" />
+                                <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
+                                  <Image src={doc.file_url} fill className="object-cover" alt="" unoptimized />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-[11px] font-semibold text-gray-700 truncate">
@@ -3042,9 +3036,9 @@ export default function DetalleTransportistaPage() {
                   return (
                     <div key={doc.file_url} className="rounded-xl border-2 border-blue-200 bg-blue-50/30 p-3.5 space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 rounded-lg overflow-hidden border border-white shadow-sm bg-white shrink-0 flex items-center justify-center">
+                        <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-white shadow-sm bg-white shrink-0 flex items-center justify-center">
                           {isImg && displayUrl ? (
-                            <img src={displayUrl} alt="" className="w-full h-full object-cover" />
+                            <Image src={displayUrl} fill className="object-cover" alt="" unoptimized />
                           ) : (
                             <FileText className="w-5 h-5 text-gray-300" />
                           )}
@@ -3098,9 +3092,9 @@ export default function DetalleTransportistaPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 border border-gray-100 bg-white hover:bg-gray-50 cursor-pointer transition-colors min-w-0">
-                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0 flex items-center justify-center">
+                      <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0 flex items-center justify-center">
                         {isImg ? (
-                          <img src={doc.file_url} alt={tipoLabel} className="w-full h-full object-cover" />
+                          <Image src={doc.file_url} fill className="object-cover" alt={tipoLabel} unoptimized />
                         ) : (
                           <FileText className="w-5 h-5 text-gray-300" />
                         )}
@@ -3138,7 +3132,7 @@ export default function DetalleTransportistaPage() {
                             <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                           </div>
                         ) : doc.preview ? (
-                          <img src={doc.preview} className="w-full h-full object-cover" alt="" />
+                          <Image src={doc.preview} fill className="object-cover" alt="" unoptimized />
                         ) : null}
                         {doc.tipo && !doc.uploading && (
                           <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] font-bold text-center py-0.5 truncate px-1">

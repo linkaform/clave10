@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -653,7 +654,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                                 <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                               </div>
                             ) : doc.preview ? (
-                              <img src={doc.preview} className="w-full h-full object-cover" alt="" />
+                              <Image src={doc.preview} fill className="object-cover" alt="" unoptimized />
                             ) : null}
                             <button
                               type="button"
@@ -1312,6 +1313,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                         procedencia: procedencia || null,
                         tipo_vehiculo: tipoVehiculo || null,
                         placa: placa || null,
+                        placa_tarjeta_circulacion: null,
                         no_economico: noEconomico || null,
                         marca: marcaVehiculo || null,
                         modelo: modeloVehiculo || null,
@@ -1332,6 +1334,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                       embarque: {
                         proveedor_cliente: proveedorCliente || null,
                         no_orden_compra: ordenCompra || null,
+                        anden_asignado: null,
                       },
                       documentos_adicionales: documentos
                         .filter((d) => d.file_url)
