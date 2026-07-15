@@ -3835,10 +3835,15 @@ export default function DetalleTransportistaPage() {
                   )}
                   <button
                     type="button"
-                    onClick={() => setShowInspeccionCarga("readonly")}
-                    className="w-full h-10 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 bg-white border border-orange-200 text-orange-600 hover:bg-orange-50">
+                    onClick={() => setShowInspeccionCarga(todasDone ? "readonly" : "edit")}
+                    className={cn(
+                      "w-full h-10 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2",
+                      todasDone
+                        ? "bg-white border border-orange-200 text-orange-600 hover:bg-orange-50"
+                        : "bg-orange-500 hover:bg-orange-600 text-white",
+                    )}>
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Ver inspección de materiales
+                    {todasDone ? "Ver inspección de materiales" : hayAlguna ? "Continuar inspección de materiales" : "Realizar inspección de materiales"}
                   </button>
                 </div>
               </div>
@@ -3856,23 +3861,7 @@ export default function DetalleTransportistaPage() {
             const hayAlguna = seccionesDone > 0;
             const todasDone = seccionesDone >= totalSecciones;
 
-            if (!salidaHabilitada) return (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden opacity-60">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <ClipboardCheck className="w-4 h-4 text-gray-300" />
-                    <span className="text-sm font-bold text-gray-400">Inspección de salida</span>
-                  </div>
-                  <span className="text-[10px] font-bold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-                    <Lock className="w-2.5 h-2.5" />
-                    Bloqueada
-                  </span>
-                </div>
-                <div className="p-4">
-                  <p className="text-xs text-gray-400 leading-relaxed">Disponible al completar la etapa de carga / descarga.</p>
-                </div>
-              </div>
-            );
+            if (!salidaHabilitada) return null;
 
             return (
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
