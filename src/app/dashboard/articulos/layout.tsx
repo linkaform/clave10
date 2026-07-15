@@ -10,7 +10,6 @@ export default function ArticulosLayout({ children }: { children: React.ReactNod
   return (
     <>
       <link rel="icon" href="/articulos.svg" type="image/svg+xml" />
-      {children}
       <MainLayout>{children}</MainLayout>
     </>
   );
