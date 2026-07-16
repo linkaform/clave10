@@ -894,7 +894,7 @@ function InspeccionEntradaModal({
           <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
             <ClipboardCheck className="w-4.5 h-4.5 text-blue-600" />
           </div>
-          <p className="text-sm font-bold text-gray-800 flex-1">Inspección De Entrada</p>
+          <p className="text-sm font-bold text-gray-800 flex-1">{tipoPrefix === "salida" ? "Inspección De Salida" : "Inspección De Entrada"}</p>
           <button
             type="button"
             onClick={onClose}
@@ -2187,11 +2187,14 @@ export default function DetalleTransportistaPage() {
     if (!asignados.length) return;
     setSavingStagedDocs(true);
     try {
-      await Promise.all(asignados.map((d) =>
-        saveBitacoraTransportistaRecord(id, "documentos", {
-          documentos_adicionales: { file_url: d.file_url, file_name: d.file_name, tipo: tipoRequeridoSlug(d.asignadoA as string), index: null },
-        })
-      ));
+      await saveBitacoraTransportistaRecord(id, "documentos", {
+        documentos_adicionales: asignados.map((d) => ({
+          file_url: d.file_url,
+          file_name: d.file_name,
+          tipo: tipoRequeridoSlug(d.asignadoA as string),
+          index: null,
+        })),
+      });
       // Optimista: ya sabemos que se guardaron bien, así que se marcan como
       // subidos de inmediato (para que la fila de pendientes no "parpadee" de
       // vuelta a rojo mientras el refetch trae la confirmación del servidor).
@@ -2249,9 +2252,16 @@ export default function DetalleTransportistaPage() {
     // En "pendientes" se analizan los documentos recién subidos (aún no guardados);
     // en "subidos" se analizan los ya persistidos en la bitácora.
     const usingStaged = docTab === "pendientes";
+    // Para "subidos" leer directo del caché de React Query — más fresco que
+    // la variable `data` del hook, que puede estar un render atrás.
+    const subidosDocs = usingStaged
+      ? []
+      : (queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id])?.documentos_adicionales
+         ?? data?.documentos_adicionales
+         ?? []);
     const source = usingStaged
       ? stagedDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name }))
-      : (data?.documentos_adicionales ?? []).filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name }));
+      : subidosDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name }));
     if (!source.length) return;
     setAnalyzingDocs(true);
     try {
@@ -2294,7 +2304,7 @@ export default function DetalleTransportistaPage() {
               : "Documentos analizados — ninguno coincidió con un pendiente, revisa las sugerencias",
           );
         } else {
-          const docs = data?.documentos_adicionales ?? [];
+          const docs = subidosDocs;
           const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
           queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
             ["visitaTransportista", id],
@@ -2319,6 +2329,124 @@ export default function DetalleTransportistaPage() {
         }
       } else {
         toast.success("Análisis completado, sin documentos por clasificar");
+      }
+
+      // ── Auto-fill form fields from AI structured data ────────────────────────
+      type AiField<T> = T | null | undefined;
+      const aiData = result?.response?.data?.data as {
+        vehiculo?: { placa?: AiField<string>; no_economico?: AiField<string>; color?: AiField<string>; marca?: AiField<string>; procedencia?: AiField<string>; modelo?: AiField<string>; tipo_vehiculo?: AiField<string>; transportista?: AiField<string> };
+        conductor?: { nombre?: AiField<string>; no_licencia?: AiField<string> };
+        embarque?: { proveedor_cliente?: AiField<string>; no_orden_compra?: AiField<string> };
+        remolques?: { no_caja?: AiField<string>; tipo?: AiField<string>; color?: AiField<string>; placas?: AiField<string>; no_sello?: AiField<string>; comentarios?: AiField<string> }[];
+        contenedores?: { no_caja?: AiField<string>; tipo?: AiField<string>; color?: AiField<string>; placas?: AiField<string>; no_sello?: AiField<string>; comentarios?: AiField<string> }[];
+        materiales?: { producto?: AiField<string>; lote?: AiField<string>; cant_esperada?: AiField<string>; peso?: AiField<string>; volumen?: AiField<string> }[];
+      } | undefined;
+
+      if (aiData) {
+        const aiSaves: Promise<unknown>[] = [];
+        let camposLlenados = 0;
+
+        // Lee el caché fresco en el momento exacto del autofill — más confiable
+        // que la variable `data` del hook, que puede estar un render atrás.
+        const fresh = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
+
+        // Vehículo
+        const veh = aiData.vehiculo;
+        const vehPayload: Record<string, string> = {};
+        if (veh?.tipo_vehiculo && !fresh?.vehiculo?.tipo_vehiculo) { vehPayload.tipo_de_vehiculo = veh.tipo_vehiculo; camposLlenados++; }
+        if (veh?.placa && !fresh?.vehiculo?.placa) { vehPayload.placas_de_vehiculo = veh.placa; camposLlenados++; }
+        if (veh?.no_economico && !fresh?.vehiculo?.no_economico) { vehPayload.num_eco_num_rotulo = veh.no_economico; camposLlenados++; }
+        if (veh?.marca && !fresh?.vehiculo?.marca) { vehPayload.marca = veh.marca; camposLlenados++; }
+        if (veh?.modelo && !fresh?.vehiculo?.modelo) { vehPayload.modelo = veh.modelo; camposLlenados++; }
+        if (veh?.color && !fresh?.vehiculo?.color) { vehPayload.color = veh.color; camposLlenados++; }
+        if (veh?.transportista && !fresh?.vehiculo?.transportista) { vehPayload.empresa_transportista = veh.transportista; camposLlenados++; }
+        if (Object.keys(vehPayload).length > 0) {
+          aiSaves.push(saveBitacoraTransportistaRecord(id, "vehiculo", { vehiculo: vehPayload }));
+        }
+
+        // Embarque + Procedencia
+        const emb = aiData.embarque;
+        const embPayload: Record<string, string> = {};
+        if (emb?.proveedor_cliente && !fresh?.embarque?.proveedor_cliente) { embPayload.proveedor_cliente = emb.proveedor_cliente; camposLlenados++; }
+        if (emb?.no_orden_compra && !fresh?.embarque?.no_orden_compra) { embPayload.no_orden_compra = emb.no_orden_compra; camposLlenados++; }
+        if (veh?.procedencia && !fresh?.vehiculo?.procedencia) { embPayload.procedencia = veh.procedencia; camposLlenados++; }
+        if (Object.keys(embPayload).length > 0) {
+          aiSaves.push(saveBitacoraTransportistaRecord(id, "embarque", { embarque: embPayload }));
+        }
+
+        // Conductor
+        const cond = aiData.conductor;
+        const condPayload: Record<string, string> = {};
+        if (cond?.nombre && !fresh?.conductor?.nombre) { condPayload.nombre = cond.nombre; camposLlenados++; }
+        if (cond?.no_licencia && !fresh?.conductor?.no_licencia) { condPayload.no_licencia = cond.no_licencia; camposLlenados++; }
+        if (Object.keys(condPayload).length > 0) {
+          aiSaves.push(saveBitacoraTransportistaRecord(id, "conductor", { conductor: condPayload }));
+        }
+
+        // Remolques / Contenedores + Materiales
+        // Doble protección: local state Y el servidor deben estar vacíos para crear.
+        const aiRems = aiData.remolques ?? [];
+        const aiCons = aiData.contenedores ?? [];
+        const aiMats = aiData.materiales ?? [];
+        const serverHasUnidades = (fresh?.remolques?.length ?? 0) > 0;
+        if (unidades.length === 0 && !serverHasUnidades && (aiRems.length > 0 || aiCons.length > 0)) {
+          const newUnidades: UnidadItem[] = [];
+          const count = Math.max(aiRems.length, aiCons.length);
+          for (let i = 0; i < count; i++) {
+            const r = aiRems[i];
+            const con = aiCons[i];
+            const isRC = !!con;
+            const mats: MaterialCarga[] = i === 0 && aiMats.length > 0
+              ? aiMats.map((m) => ({
+                  id: Math.random().toString(36).slice(2),
+                  apiIndex: null as null,
+                  producto: m.producto ?? "",
+                  lote: m.lote ?? "",
+                  cantEsperada: m.cant_esperada ?? "",
+                  cantFisica: "",
+                  peso: m.peso ?? "",
+                  volumen: m.volumen ?? "",
+                }))
+              : [emptyMaterial()];
+            newUnidades.push({
+              id: Math.random().toString(36).slice(2),
+              config: isRC ? "remolque_contenedor" : "solo_remolque",
+              remolqueApiIndex: null,
+              contenedorApiIndex: null,
+              remolque: {
+                tipo: r?.tipo ?? "",
+                noSello: r?.no_sello ?? "",
+                noCaja: r?.no_caja ?? "",
+                placas: r?.placas ?? "",
+                color: r?.color ?? "",
+                comentarios: r?.comentarios ?? "",
+                materiales: isRC ? [emptyMaterial()] : mats,
+              },
+              contenedor: {
+                tipo: con?.tipo ?? "",
+                noSello: con?.no_sello ?? "",
+                noContenedor: con?.no_caja ?? "",
+                noCaja: con?.no_caja ?? "",
+                color: con?.color ?? "",
+                comentarios: con?.comentarios ?? "",
+                materiales: isRC ? mats : [emptyMaterial()],
+              },
+            });
+          }
+          setUnidades(newUnidades);
+          aiSaves.push(
+            saveBitacoraTransportistaRecord(id, "remolques", serializeUnidades(newUnidades)).then(() => {
+              unidadesInitialized.current = false;
+            })
+          );
+          camposLlenados += count;
+        }
+
+        if (aiSaves.length > 0) {
+          await Promise.all(aiSaves);
+          refetch();
+          toast.success(`IA llenó ${camposLlenados} campo${camposLlenados !== 1 ? "s" : ""} del formulario automáticamente`, { id: "ai-autofill" });
+        }
       }
     } catch {
       toast.error("Error al analizar los documentos");
@@ -3683,236 +3811,241 @@ export default function DetalleTransportistaPage() {
             );
           })()}
 
-          {/* Inspección de entrada */}
           {(() => {
-            const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
-              i.tipo === "tractor" || i.tipo.startsWith("remolque_") || i.tipo.startsWith("contenedor_")
-            );
-            const totalSecciones = 1 + unidades.length + unidades.filter(u => u.config === "remolque_contenedor").length;
-            const seccionesDone = inspecsDone.length;
-            const hayAlguna = seccionesDone > 0;
-            const todasDone = seccionesDone >= totalSecciones;
-            return (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <ClipboardCheck className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-bold text-gray-800">Inspección de entrada</span>
-                  </div>
-                  <span className={cn(
-                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                    todasDone ? "bg-green-100 text-green-700" : hayAlguna ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
-                  )}>
-                    {todasDone ? "Completada" : hayAlguna ? "En progreso" : "Pendiente"}
-                  </span>
-                </div>
-                <div className="p-4 space-y-3">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-gray-800">{seccionesDone}</span>
-                    <span className="text-sm text-gray-400">de {totalSecciones} secciones</span>
-                  </div>
-                  {hayAlguna && (
-                    <div className="space-y-1">
-                      {inspecsDone.map((ins, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                          <span className="text-xs text-gray-600 capitalize flex-1">
-                            {ins.tipo === "tractor"
-                              ? "Tractor / Cabezal"
-                              : ins.tipo.startsWith("remolque")
-                              ? `Remolque · Unidad ${ins.tipo.split("_")[1] ?? ""}`
-                              : `Contenedor · Unidad ${ins.tipo.split("_")[1] ?? ""}`}
-                          </span>
-                          {ins.url && (
-                            <button type="button" onClick={() => ins.url && setViewingInspeccion({ url: ins.url, tipo: ins.tipo })} className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</button>
-                          )}
-                        </div>
-                      ))}
+            const cardEntrada = (() => {
+              const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
+                i.tipo === "tractor" || i.tipo.startsWith("remolque_") || i.tipo.startsWith("contenedor_")
+              );
+              const totalSecciones = 1 + unidades.length + unidades.filter(u => u.config === "remolque_contenedor").length;
+              const seccionesDone = inspecsDone.length;
+              const hayAlguna = seccionesDone > 0;
+              const todasDone = seccionesDone >= totalSecciones;
+              return (
+                <div key="entrada" className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <ClipboardCheck className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm font-bold text-gray-800">Inspección de entrada</span>
                     </div>
-                  )}
-                  {!todasDone && !isLocked && (
-                    <button
-                      onClick={() => setShowInspeccion(true)}
-                      className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
-                    >
-                      <ClipboardCheck className="w-3.5 h-3.5" />
-                      {hayAlguna ? "Continuar inspección" : "Realizar inspección"}
-                    </button>
-                  )}
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                      todasDone ? "bg-green-100 text-green-700" : hayAlguna ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
+                    )}>
+                      {todasDone ? "Completada" : hayAlguna ? "En progreso" : "Pendiente"}
+                    </span>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-extrabold text-gray-800">{seccionesDone}</span>
+                      <span className="text-sm text-gray-400">de {totalSecciones} secciones</span>
+                    </div>
+                    {hayAlguna && (
+                      <div className="space-y-1">
+                        {inspecsDone.map((ins, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                            <span className="text-xs text-gray-600 capitalize flex-1">
+                              {ins.tipo === "tractor"
+                                ? "Tractor / Cabezal"
+                                : ins.tipo.startsWith("remolque")
+                                ? `Remolque · Unidad ${ins.tipo.split("_")[1] ?? ""}`
+                                : `Contenedor · Unidad ${ins.tipo.split("_")[1] ?? ""}`}
+                            </span>
+                            {ins.url && (
+                              <button type="button" onClick={() => ins.url && setViewingInspeccion({ url: ins.url, tipo: ins.tipo })} className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!todasDone && !isLocked && (
+                      <button
+                        onClick={() => setShowInspeccion(true)}
+                        className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
+                      >
+                        <ClipboardCheck className="w-3.5 h-3.5" />
+                        {hayAlguna ? "Continuar inspección" : "Realizar inspección"}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })();
 
-          {/* Inspección de sello */}
-          {(() => {
-            const selloTodasDone = inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total;
-            const sinUnidades = unidades.length === 0;
-            return (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-teal-500" />
-                    <span className="text-sm font-bold text-gray-800">Inspección de sello</span>
+            const cardSello = (() => {
+              const selloTodasDone = inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total;
+              const sinUnidades = unidades.length === 0;
+              return (
+                <div key="sello" className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-teal-500" />
+                      <span className="text-sm font-bold text-gray-800">Inspección de sello</span>
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                      selloTodasDone ? "bg-green-100 text-green-700" : "bg-teal-100 text-teal-700",
+                    )}>
+                      {selloTodasDone ? "Completa" : "Pendiente"}
+                    </span>
                   </div>
-                  <span className={cn(
-                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                    selloTodasDone ? "bg-green-100 text-green-700" : "bg-teal-100 text-teal-700",
-                  )}>
-                    {selloTodasDone ? "Completa" : "Pendiente"}
-                  </span>
-                </div>
-                <div className="p-4 space-y-3">
-                  <p className="text-[11px] text-gray-400">ISO 17712 · Método VVTT</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-gray-800">{inspecciones.sello.completados}</span>
-                    <span className="text-sm text-gray-400">de {inspecciones.sello.total}</span>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-700 mb-0.5">
-                      {sinUnidades ? "Agrega un remolque para poder inspeccionar el sello" : selloTodasDone ? "Inspección de sello completa" : "Inspección de sello pendiente"}
-                    </p>
-                    <p className="text-xs text-gray-500 leading-relaxed">Método VVTT (View · Verify · Tug · Twist) sobre el sello clase H.</p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={sinUnidades || (!selloTodasDone && isLocked)}
-                    onClick={() => {
-                      if (selloTodasDone) {
-                        const sellosDone = (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("sello_"));
-                        if (sellosDone.length === 1 && sellosDone[0].url) {
-                          setViewingInspeccion({ url: sellosDone[0].url, tipo: sellosDone[0].tipo });
+                  <div className="p-4 space-y-3">
+                    <p className="text-[11px] text-gray-400">ISO 17712 · Método VVTT</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-extrabold text-gray-800">{inspecciones.sello.completados}</span>
+                      <span className="text-sm text-gray-400">de {inspecciones.sello.total}</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700 mb-0.5">
+                        {sinUnidades ? "Agrega un remolque para poder inspeccionar el sello" : selloTodasDone ? "Inspección de sello completa" : "Inspección de sello pendiente"}
+                      </p>
+                      <p className="text-xs text-gray-500 leading-relaxed">Método VVTT (View · Verify · Tug · Twist) sobre el sello clase H.</p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={sinUnidades || (!selloTodasDone && isLocked)}
+                      onClick={() => {
+                        if (selloTodasDone) {
+                          const sellosDone = (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("sello_"));
+                          if (sellosDone.length === 1 && sellosDone[0].url) {
+                            setViewingInspeccion({ url: sellosDone[0].url, tipo: sellosDone[0].tipo });
+                          } else {
+                            setShowInspeccionSello(true);
+                          }
                         } else {
                           setShowInspeccionSello(true);
                         }
-                      } else {
-                        setShowInspeccionSello(true);
-                      }
-                    }}
-                    className={cn(
-                      "w-full h-9 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
-                      selloTodasDone ? "bg-white border border-teal-200 text-teal-700 hover:bg-teal-50" : "bg-teal-900 hover:bg-teal-800 text-white",
-                    )}>
-                    <Shield className="w-3.5 h-3.5" />
-                    {selloTodasDone ? "Ver inspección de sello" : "Realizar inspección de sello"}
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Inspección de materiales */}
-          {estatusIdx >= ORDEN_ESTATUS.indexOf("carga_/_descarga") && (() => {
-            const mats = data?.materiales ?? [];
-            const totalMats = mats.length;
-            const matsConFisica = mats.filter((m) => m.cantidad_fisica && m.cantidad_fisica.trim() !== "").length;
-            const todasDone = totalMats > 0 && matsConFisica >= totalMats;
-            const hayAlguna = matsConFisica > 0;
-            return (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-                    </svg>
-                    <span className="text-sm font-bold text-gray-800">Inspección de materiales</span>
-                  </div>
-                  <span className={cn(
-                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                    todasDone ? "bg-green-100 text-green-700" : hayAlguna ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"
-                  )}>
-                    {todasDone ? "Completada" : hayAlguna ? "En progreso" : "Pendiente"}
-                  </span>
-                </div>
-                <div className="p-4 space-y-3">
-                  {totalMats > 0 ? (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-extrabold text-gray-800">{matsConFisica}</span>
-                      <span className="text-sm text-gray-400">de {totalMats} materiales</span>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400">Sin materiales registrados</p>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setShowInspeccionCarga(todasDone ? "readonly" : "edit")}
-                    className={cn(
-                      "w-full h-10 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2",
-                      todasDone
-                        ? "bg-white border border-orange-200 text-orange-600 hover:bg-orange-50"
-                        : "bg-orange-500 hover:bg-orange-600 text-white",
-                    )}>
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    {todasDone ? "Ver inspección de materiales" : hayAlguna ? "Continuar inspección de materiales" : "Realizar inspección de materiales"}
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Inspección de salida */}
-          {(() => {
-            const salidaHabilitada = estatusIdx >= ORDEN_ESTATUS.indexOf("inspeccion_salida");
-            const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
-              i.tipo === "salida_tractor" || i.tipo.startsWith("salida_remolque_") || i.tipo.startsWith("salida_contenedor_")
-            );
-            const totalSecciones = 1 + unidades.length + unidades.filter(u => u.config === "remolque_contenedor").length;
-            const seccionesDone = inspecsDone.length;
-            const hayAlguna = seccionesDone > 0;
-            const todasDone = seccionesDone >= totalSecciones;
-
-            if (!salidaHabilitada) return null;
-
-            return (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <ClipboardCheck className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-bold text-gray-800">Inspección de salida</span>
-                  </div>
-                  <span className={cn(
-                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                    todasDone ? "bg-green-100 text-green-700" : hayAlguna ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
-                  )}>
-                    {todasDone ? "Completada" : hayAlguna ? "En progreso" : "Pendiente"}
-                  </span>
-                </div>
-                <div className="p-4 space-y-3">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-gray-800">{seccionesDone}</span>
-                    <span className="text-sm text-gray-400">de {totalSecciones} secciones</span>
-                  </div>
-                  {hayAlguna && (
-                    <div className="space-y-1">
-                      {inspecsDone.map((ins, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                          <span className="text-xs text-gray-600 capitalize flex-1">
-                            {ins.tipo === "salida_tractor"
-                              ? "Tractor / Cabezal"
-                              : ins.tipo.startsWith("salida_remolque")
-                              ? `Remolque · Unidad ${ins.tipo.replace("salida_remolque_", "")}`
-                              : `Contenedor · Unidad ${ins.tipo.replace("salida_contenedor_", "")}`}
-                          </span>
-                          {ins.url && (
-                            <button type="button" onClick={() => ins.url && setViewingInspeccion({ url: ins.url, tipo: ins.tipo })} className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {!todasDone && (
-                    <button
-                      onClick={() => setShowInspeccionSalida(true)}
-                      className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
-                    >
-                      <ClipboardCheck className="w-3.5 h-3.5" />
-                      {hayAlguna ? "Continuar inspección" : "Realizar inspección"}
+                      }}
+                      className={cn(
+                        "w-full h-9 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
+                        selloTodasDone ? "bg-white border border-teal-200 text-teal-700 hover:bg-teal-50" : "bg-teal-900 hover:bg-teal-800 text-white",
+                      )}>
+                      <Shield className="w-3.5 h-3.5" />
+                      {selloTodasDone ? "Ver inspección de sello" : "Realizar inspección de sello"}
                     </button>
-                  )}
+                  </div>
                 </div>
-              </div>
-            );
+              );
+            })();
+
+            const cardMateriales = estatusIdx >= ORDEN_ESTATUS.indexOf("carga_/_descarga") ? (() => {
+              const mats = data?.materiales ?? [];
+              const totalMats = mats.length;
+              const matsConFisica = mats.filter((m) => m.cantidad_fisica && m.cantidad_fisica.trim() !== "").length;
+              const todasDone = totalMats > 0 && matsConFisica >= totalMats;
+              const hayAlguna = matsConFisica > 0;
+              return (
+                <div key="materiales" className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                      </svg>
+                      <span className="text-sm font-bold text-gray-800">Inspección de materiales</span>
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                      todasDone ? "bg-green-100 text-green-700" : hayAlguna ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"
+                    )}>
+                      {todasDone ? "Completada" : hayAlguna ? "En progreso" : "Pendiente"}
+                    </span>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {totalMats > 0 ? (
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-extrabold text-gray-800">{matsConFisica}</span>
+                        <span className="text-sm text-gray-400">de {totalMats} materiales</span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400">Sin materiales registrados</p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowInspeccionCarga(todasDone ? "readonly" : "edit")}
+                      className={cn(
+                        "w-full h-10 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2",
+                        todasDone
+                          ? "bg-white border border-orange-200 text-orange-600 hover:bg-orange-50"
+                          : "bg-orange-500 hover:bg-orange-600 text-white",
+                      )}>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {todasDone ? "Ver inspección de materiales" : hayAlguna ? "Continuar inspección de materiales" : "Realizar inspección de materiales"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })() : null;
+
+            const cardSalida = (() => {
+              const salidaHabilitada = estatusIdx >= ORDEN_ESTATUS.indexOf("inspeccion_salida");
+              const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
+                i.tipo === "salida_tractor" || i.tipo.startsWith("salida_remolque_") || i.tipo.startsWith("salida_contenedor_")
+              );
+              const totalSecciones = 1 + unidades.length + unidades.filter(u => u.config === "remolque_contenedor").length;
+              const seccionesDone = inspecsDone.length;
+              const hayAlguna = seccionesDone > 0;
+              const todasDone = seccionesDone >= totalSecciones;
+              if (!salidaHabilitada) return null;
+              return (
+                <div key="salida" className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <ClipboardCheck className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm font-bold text-gray-800">Inspección de salida</span>
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                      todasDone ? "bg-green-100 text-green-700" : hayAlguna ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
+                    )}>
+                      {todasDone ? "Completada" : hayAlguna ? "En progreso" : "Pendiente"}
+                    </span>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-extrabold text-gray-800">{seccionesDone}</span>
+                      <span className="text-sm text-gray-400">de {totalSecciones} secciones</span>
+                    </div>
+                    {hayAlguna && (
+                      <div className="space-y-1">
+                        {inspecsDone.map((ins, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                            <span className="text-xs text-gray-600 capitalize flex-1">
+                              {ins.tipo === "salida_tractor"
+                                ? "Tractor / Cabezal"
+                                : ins.tipo.startsWith("salida_remolque")
+                                ? `Remolque · Unidad ${ins.tipo.replace("salida_remolque_", "")}`
+                                : `Contenedor · Unidad ${ins.tipo.replace("salida_contenedor_", "")}`}
+                            </span>
+                            {ins.url && (
+                              <button type="button" onClick={() => ins.url && setViewingInspeccion({ url: ins.url, tipo: ins.tipo })} className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!todasDone && (
+                      <button
+                        onClick={() => setShowInspeccionSalida(true)}
+                        className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
+                      >
+                        <ClipboardCheck className="w-3.5 h-3.5" />
+                        {hayAlguna ? "Continuar inspección" : "Realizar inspección"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })();
+
+            const ordered =
+              estatus === "carga_/_descarga"
+                ? [cardMateriales, cardEntrada, cardSello, cardSalida]
+                : estatus === "inspeccion_salida" || estatus === "terminado"
+                ? [cardSalida, cardEntrada, cardSello, cardMateriales]
+                : [cardEntrada, cardSello, cardMateriales, cardSalida];
+
+            return <>{ordered}</>;
           })()}
         </div>
       </div>
