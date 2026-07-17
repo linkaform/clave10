@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "@/config/api";
 export const logClientError = async (error: {
   name: string;
   message: string;
+  stack?: string;
   digest?: string;
   url?: string;
   context?: string;
@@ -19,6 +20,7 @@ export const logClientError = async (error: {
         account_id,
         error_name: error.name,
         error_message: error.message,
+        error_stack: error.stack ?? null,
         error_digest: error.digest ?? null,
         url: error.url ?? null,
         context: error.context ?? null,

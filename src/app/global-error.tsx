@@ -20,6 +20,7 @@ export default function GlobalError({
     logClientError({
       name: error.name,
       message: error.message,
+      stack: error.stack,
       digest: error.digest,
       url: typeof window !== 'undefined' ? window.location.href : undefined,
     });
