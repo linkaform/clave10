@@ -14,12 +14,14 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const errorInfo = error.digest ?? error.message ?? null;
+
   return (
     <html lang="es">
       <body className="min-h-screen bg-background font-sans antialiased">
         <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
           <div className="relative flex h-[500px] w-[350px] items-center justify-center overflow-hidden rounded-xl">
-            <Image 
+            <Image
               src="/errors-images/error-inesperado.jpg"
               alt="Error inesperado"
               fill
@@ -27,35 +29,35 @@ export default function GlobalError({
               priority
             />
           </div>
-          
+
           <h1 className="mb-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             ¡Oops! Algo salió mal
           </h1>
 
-          {error.digest && (
-            <p className="mt-12 text-xs text-muted-foreground font-mono">
-              ID del error: {error.digest}
-            </p>
-          )}
-          
           <p className="mb-8 max-w-md text-lg text-muted-foreground">
             Lamentamos los inconvenientes. Ha ocurrido un error inesperado en la aplicación, si el problema persiste contacte a soporte.
           </p>
 
+          {errorInfo && (
+            <p className="mb-6 text-xs text-muted-foreground font-mono bg-muted px-3 py-1.5 rounded-md max-w-sm truncate">
+              {error.digest ? `ID: ${error.digest}` : errorInfo}
+            </p>
+          )}
+
           <div className="flex flex-col gap-4 sm:flex-row">
-            <Button 
-              onClick={() => reset()} 
-              variant="default" 
+            <Button
+              onClick={() => reset()}
+              variant="default"
               size="lg"
               className="gap-2"
             >
               <RefreshCcw className="h-4 w-4" />
               Reintentar
             </Button>
-            
-            <Button 
+
+            <Button
               asChild
-              variant="outline" 
+              variant="outline"
               size="lg"
               className="gap-2"
             >
