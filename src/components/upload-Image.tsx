@@ -6,6 +6,7 @@ import { Input } from "./ui/input";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { Camera, Trash2, UploadCloud } from "lucide-react";
 import Webcam from "react-webcam";
+import { WebcamErrorBoundary } from "./webcam-error-boundary";
 import { base64ToFile, quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
 import Image from "next/image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
@@ -372,18 +373,26 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
               )}
 
               <div className={loadingWebcam ? "hidden" : "block"}>
-                <Webcam
-                  ref={webcamRef}
-                  audio={false}
-                  height={180}
-                  width={192}
-                  className="w-48 h-36 object-cover rounded-xl"
-                  screenshotFormat="image/jpeg"
-                  mirrored={facingMode === "user"}
-                  videoConstraints={videoConstraints}
-                  onUserMediaError={handleUserMedia}
-                  onUserMedia={handleUserMedia}
-                />
+                <WebcamErrorBoundary onError={() => {
+                  stopWebcamStream();
+                  setHideWebcam(true);
+                  setHideButtonWebcam(false);
+                  setWebcamReady(false);
+                  setLoadingWebcam(false);
+                }}>
+                  <Webcam
+                    ref={webcamRef}
+                    audio={false}
+                    height={180}
+                    width={192}
+                    className="w-48 h-36 object-cover rounded-xl"
+                    screenshotFormat="image/jpeg"
+                    mirrored={facingMode === "user"}
+                    videoConstraints={videoConstraints}
+                    onUserMediaError={handleUserMedia}
+                    onUserMedia={handleUserMedia}
+                  />
+                </WebcamErrorBoundary>
               </div>
             </div>
           )}
