@@ -5,6 +5,7 @@ export const logClientError = async (error: {
   message: string;
   digest?: string;
   url?: string;
+  context?: string;
 }) => {
   try {
     const params = error.url ? new URL(error.url).searchParams : null;
@@ -20,6 +21,7 @@ export const logClientError = async (error: {
         error_message: error.message,
         error_digest: error.digest ?? null,
         url: error.url ?? null,
+        context: error.context ?? null,
       }),
     });
   } catch {

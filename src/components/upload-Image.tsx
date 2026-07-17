@@ -60,6 +60,24 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   const { uploadImageMutation, isLoading } = useUploadImage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const webcamRef = useRef<Webcam | null>(null);
+
+  function stopWebcamStream() {
+    try {
+      const video = webcamRef.current?.video;
+      if (video?.srcObject) {
+        (video.srcObject as MediaStream).getTracks().forEach((t) => t.stop());
+        video.srcObject = null;
+      }
+    } catch {
+      // ignorar errores de limpieza
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      stopWebcamStream();
+    };
+  }, []);
   const videoConstraints = { width: 320, height: 240, facingMode };
   const reachedLimit = (imgArray?.length ?? 0) >= limit;
   const [activeIndex, setActiveIndex] = useState(0);
@@ -141,23 +159,26 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     if (nuevos.length > 0) {
       const updatedImgs = [...(imgArray ?? []), ...nuevos];
       setImg(updatedImgs);
-      // Auto-analizar si tiene onOcrResult
       if (onOcrResult) {
-        const urls = updatedImgs
-          .map((i: Imagen) => i.file_url)
-          .filter((url): url is string => Boolean(url));
-          console.log('updatedImgs=', JSON.stringify(updatedImgs));
-          console.log('urls=', JSON.stringify(urls));
-        const result = await ocrMutation.mutateAsync(urls);
-        onOcrResult?.(result);
+        try {
+          const urls = updatedImgs
+            .map((i: Imagen) => i.file_url)
+            .filter((url): url is string => Boolean(url));
+          const result = await ocrMutation.mutateAsync(urls);
+          onOcrResult?.(result);
+        } catch {
+          onOcrResult?.({});
+        }
       }
     }
+    stopWebcamStream();
     setHideWebcam(true);
     setHideButtonWebcam(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function cleanPhoto() {
+    stopWebcamStream();
     setImg([]);
     setHideWebcam(true);
     setHideButtonWebcam(false);
@@ -208,10 +229,11 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
           const result = await ocrMutation.mutateAsync(urls);
           onOcrResult?.(result);
         } catch {
-          onOcrResult?.({}); 
+          onOcrResult?.({});
         }
       }
     }
+    stopWebcamStream();
     setHideWebcam(true);
     setHideButtonWebcam(false);
     setWebcamReady(false);
