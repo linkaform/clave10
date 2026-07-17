@@ -625,10 +625,12 @@ const PaseEntradaPage = () => {
     if (tipo == "fecha_fija") {
       form.setValue("fecha_desde_hasta", "");
       form.setValue("fecha_desde_visita", "");
+      setDate(new Date());
       setIsActiveFechaFija(true);
       setIsActiveRangoFecha(false);
     } else {
       form.setValue("fechaFija", "");
+      form.setValue("fecha_desde_visita", formatDateToLocalISO(new Date())); 
       setDate(undefined);
       setIsActiveFechaFija(false);
       setIsActiveRangoFecha(true);
@@ -1036,6 +1038,7 @@ const PaseEntradaPage = () => {
                     useIA
                     acompantes={acompanantesValue || 0}
                     defaultCountry={defaultCountry}
+                    showFotoColumn={false}
                   />
                 </TabsContent>
               </Tabs>

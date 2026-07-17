@@ -16,7 +16,7 @@ import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
 import LoadImage, { Imagen } from "@/components/upload-Image";
-import { Car, Check, Clock, Laptop, Loader2, Share2, X } from "lucide-react";
+import { Car, Check, Clock, Laptop, Loader2, Share2, X, ArrowLeft, Construction } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import Image from "next/image";
@@ -37,6 +37,8 @@ import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
 import type { CountryCode } from "libphonenumber-js";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { MapPin, CalendarDays, User, Users, QrCode, Download } from "lucide-react";
 const grupoEquipos = z
@@ -101,6 +103,9 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
       acepto_aviso_privacidad: z.boolean().refine((val) => val === true, {
         message: "Debes aceptar el aviso de privacidad",
       }),
+      acepto_reglas_acceso: z.boolean().refine((val) => val === true, {
+        message: "Debes aceptar las reglas de acceso",
+      }),
     })
     .superRefine((data, ctx) => {
       if (
@@ -126,22 +131,6 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
       }
     });
 
-// export type formatData = {
-// 	grupo_equipos:Equipo[],
-// 	grupo_vehiculos:Vehiculo[],
-// 	walkin_fotografia: Imagen[] ,
-// 	walkin_identificacion: Imagen[] ,
-// 	status_pase: string ,
-// 	folio: string,
-// 	account_id: number,
-// 	nombre:string,
-// 	ubicacion:string,
-// 	email:string,
-// 	telefono:string,
-// 	acepto_aviso_privacidad:boolean
-// 	acepto_aviso_datos_personales:boolean
-// 	conservar_datos_por:string
-// }
 export type formatData = z.infer<ReturnType<typeof createSchema>>;
 
 const PaseUpdate = () => {
@@ -172,6 +161,21 @@ const PaseUpdate = () => {
   const { grupoRequisitos } = useMenuStore();
   const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
   const [copiedPadre, setCopiedPadre] = useState(false);
+
+  // Estos tres solo se editan cuando el pase está "en proceso" Y es un pase
+  // vinculado (pertenece a un pase padre, o sea trae link_padre). En cualquier
+  // otro caso se sigue mostrando el texto normal, sin tocar nada más.
+  const [nombrePaseEdit, setNombrePaseEdit] = useState("");
+  const [emailPaseEdit, setEmailPaseEdit] = useState("");
+  const [telefonoPaseEdit, setTelefonoPaseEdit] = useState("");
+
+  useEffect(() => {
+    if (dataCatalogos?.pass_selected) {
+      setNombrePaseEdit(dataCatalogos.pass_selected.nombre || "");
+      setEmailPaseEdit(dataCatalogos.pass_selected.email || "");
+      setTelefonoPaseEdit(dataCatalogos.pass_selected.telefono || "");
+    }
+  }, [dataCatalogos]);
 
   const handleCopyPadre = async () => {
     const url = dataCatalogos?.pass_selected?.link_padre;
@@ -223,6 +227,7 @@ const PaseUpdate = () => {
   const [vehicles, setVehiculos] = useState<Vehiculo[]>([]);
 
   const [mostrarAviso, setMostrarAviso] = useState(false);
+  const [mostrarReglasAcceso, setMostrarReglasAcceso] = useState(false);
   const [radioSelected, setRadioSelected] = useState("3 meses");
 
   const formSchema = useMemo(
@@ -254,6 +259,7 @@ const PaseUpdate = () => {
       email: "",
       telefono: "",
       acepto_aviso_privacidad: false,
+      acepto_reglas_acceso: false,
       acompanantes:[]
     },
   });
@@ -463,11 +469,15 @@ const PaseUpdate = () => {
       walkin_identificacion: data.walkin_identificacion ?? [],
       folio: id,
       account_id: account_id,
-      nombre: dataCatalogos?.pass_selected?.nombre || "",
+      nombre: nombrePaseEdit || dataCatalogos?.pass_selected?.nombre || "",
       ubicacion: dataCatalogos?.pass_selected?.ubicacion || [],
-      email: dataCatalogos?.pass_selected?.email || "",
-      telefono: dataCatalogos?.pass_selected?.telefono || "",
+      email: emailPaseEdit || dataCatalogos?.pass_selected?.email || "",
+      // "telefono" es para que el modal de confirmación lo pueda mostrar;
+      // "telefono_pase" es la key que espera el backend en el submit.
+      telefono: telefonoPaseEdit || dataCatalogos?.pass_selected?.telefono || "",
+      telefono_pase: telefonoPaseEdit || dataCatalogos?.pass_selected?.telefono || "",
       acepto_aviso_privacidad: data.acepto_aviso_privacidad,
+      acepto_reglas_acceso: data.acepto_reglas_acceso,
       conservar_datos_por: radioSelected,
       acompanantes:dataCatalogos?.pass_selected?.acompanantes,
       acompanantes_grupo: miembrosAcompanantes.map((m) => ({
@@ -646,6 +656,41 @@ const PaseUpdate = () => {
     );
   }
 
+  if (mostrarReglasAcceso) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        <button
+          type="button"
+          onClick={() => setMostrarReglasAcceso(false)}
+          className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 mb-4 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Volver
+        </button>
+        <h1 className="font-bold text-2xl text-slate-800 mb-4">Reglas de acceso</h1>
+        <div className="w-full h-[75vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex items-center justify-center">
+          {/* TODO: reemplazar por la URL real del PDF de reglas de acceso */}
+          {/* <iframe
+            src="asfda"
+            className="w-full h-full"
+            title="Reglas de acceso"
+          /> */}
+          <div className="flex flex-col items-center gap-3 text-center px-6">
+            <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center">
+              <Construction className="w-7 h-7 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-slate-700 font-semibold text-sm">En construcción</p>
+              <p className="text-slate-400 text-xs mt-1">
+                Estamos preparando este contenido, vuelve a intentarlo más tarde.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
   const activo = dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo";
 
@@ -729,28 +774,58 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
               <p className="font-bold text-slate-800 whitespace-nowrap">
                 Nombre:
               </p>
-              <p className="text-slate-800">
-                {dataCatalogos?.pass_selected?.nombre}
-              </p>
+              {dataCatalogos?.pass_selected?.link_padre ? (
+                <input
+                  type="text"
+                  value={nombrePaseEdit}
+                  onChange={(e) => setNombrePaseEdit(e.target.value)}
+                  className="text-slate-800 bg-white border border-gray-200 rounded-lg px-2 py-1 text-sm w-full max-w-xs outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                />
+              ) : (
+                <p className="text-slate-800">
+                  {dataCatalogos?.pass_selected?.nombre}
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2">
               <p className="font-bold text-slate-800 whitespace-nowrap">
                 Email:
               </p>
-              <p className="text-slate-800 break-words">
-                {dataCatalogos?.pass_selected?.email}
-              </p>
+              {dataCatalogos?.pass_selected?.link_padre ? (
+                <input
+                  type="email"
+                  value={emailPaseEdit}
+                  onChange={(e) => setEmailPaseEdit(e.target.value)}
+                  className="text-slate-800 bg-white border border-gray-200 rounded-lg px-2 py-1 text-sm w-full max-w-xs outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                />
+              ) : (
+                <p className="text-slate-800 break-words">
+                  {dataCatalogos?.pass_selected?.email}
+                </p>
+              )}
             </div>
 
-            {dataCatalogos?.pass_selected?.telefono && (
+            {(dataCatalogos?.pass_selected?.telefono || dataCatalogos?.pass_selected?.link_padre) && (
               <div className="flex gap-2">
                 <p className="font-bold text-slate-800 whitespace-nowrap">
                   Teléfono:
                 </p>
-                <p className="text-slate-800">
-                  {dataCatalogos?.pass_selected?.telefono}
-                </p>
+                {dataCatalogos?.pass_selected?.link_padre ? (
+                  <div className="w-full max-w-xs bg-white border border-gray-200 rounded-lg px-2 py-1 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400">
+                    <PhoneInput
+                      defaultCountry={defaultCountry}
+                      international
+                      value={telefonoPaseEdit}
+                      onChange={(value) => setTelefonoPaseEdit(value || "")}
+                      className="w-full [&_.PhoneInputInput]:bg-transparent [&_.PhoneInputInput]:border-none [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:text-sm [&_.PhoneInputInput]:text-slate-800 [&_.PhoneInputInput]:w-full"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-slate-800">
+                    {dataCatalogos?.pass_selected?.telefono}
+                  </p>
+                )}
               </div>
             )}
 
@@ -1214,6 +1289,41 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="acepto_reglas_acceso"
+                render={({ field , fieldState}) => (
+                  <FormItem>
+                    <FormControl>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          id="reglas-acceso"
+                        />
+                        <Label
+                          htmlFor="reglas-acceso"
+                          className="text-sm text-slate-500">
+                          <span className="text-red-500 mr-1">*</span>
+                          Estoy de acuerdo con las{" "}
+                          <button
+                            type="button"
+                            onClick={() => setMostrarReglasAcceso(true)}
+                            className="text-blue-600 underline hover:text-blue-800">
+                            reglas de acceso
+                          </button>
+                        </Label>
+                      </div>
+                    </FormControl>
+                    {fieldState.error && form.formState.isSubmitted && (
+                      <span className="text-red-500 text-xs mt-1 block">
+                        {fieldState.error.message}
+                      </span>
+                    )}
+                  </FormItem>
+                )}
+              />
+
               <div className="flex justify-center">
                 <Button
                   className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-1/2"
@@ -1425,6 +1535,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                         onDownload={(m) => handleDescargarAcompanante(m)}
                         defaultCountry={defaultCountry}
                         modo="ver"
+                        showArrow ={true} 
                       />
                     </div>
                   );
