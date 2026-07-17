@@ -53,6 +53,8 @@ interface MiembrosPaseProps {
   allowAddRow?: boolean;
   /** @deprecated usa `modo="ver"` en su lugar. Se mantiene por compatibilidad. */
   viewMode?: boolean;
+  showArrow?: boolean;
+  showFotoColumn?: boolean;
   /**
    * Comportamiento de la tabla:
    * - 'crear': todo editable, se pueden agregar filas nuevas (pantalla de creación del pase padre).
@@ -85,7 +87,7 @@ const ROW_HEIGHT = 52;
 const EstatusBadge: React.FC<{ estatus?: string }> = ({ estatus }) => {
   const map: Record<string, { label: string; className: string }> = {
     proceso: { label: "Proceso", className: "bg-blue-600 text-white" },
-    activo: { label: "Activo", className: "bg-green-500 text-white" },
+    activo: { label: "Activo", className: "bg-green-600 text-white" },
     pendiente: { label: "Pendiente", className: "bg-amber-500 text-white" },
     usado: { label: "Usado", className: "bg-gray-400 text-white" },
     cancelado: { label: "Cancelado", className: "bg-red-500 text-white" },
@@ -112,6 +114,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   showDownload = false,
   showCreatePass = false,
   showShare = false,
+  showArrow = false,
   onDownload,
   onCreatePass,
   onShare,
@@ -121,6 +124,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   modo,
   acompanantesActivos = [],
   nonDeletableIds = [],
+  showFotoColumn=true
 }) => {
   const [draftRow, setDraftRow] = useState<Miembro>(EMPTY_ROW());
   const [draftErrors, setDraftErrors] = useState({ email: false, telefono: false });
@@ -345,8 +349,8 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   // aunque en "completar" no se muestran crear-pase/eliminar.
   const showActionsCol = (esVista || esCompletar)
     ? true
-    : (showDownload || showCreatePass || showShare);
-  const actionsColWidth = (showCreatePass ? 90 : 0) + ((showDownload?1:0)+(showShare?1:0)+1) * 36 + 16;
+    : (showDownload || showCreatePass || showShare || showArrow);
+  const actionsColWidth = (showCreatePass ? 90 : 0) + ((showDownload?1:0)+(showShare?1:0)+(showArrow?1:0)+1) * 36 + 16;
 
   const AvatarCarousel: React.FC<{
     items: { url: string; label: string; onDelete: () => void }[];
@@ -541,6 +545,16 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                       {copiedActivoId === a.id ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
                     </button>
                   )}
+                  {showArrow && a.link && (
+                    <button
+                      type="button"
+                      title="Abrir link"
+                      className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition-colors shrink-0"
+                      onClick={() => window.open(a.link, "_blank", "noopener,noreferrer")}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -555,11 +569,11 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
           <table className="w-full min-w-[500px] text-xs border-collapse">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr className="border-b border-gray-100">
-                <th className={th} style={{ width: 44 }}>Foto</th>
+                <th className={th} style={{ width: 44 }}>Identificación</th>
                 <th className={th} style={{ width: "22%" }}>Nombre</th>
                 <th className={th} style={{ width: "28%" }}>Email</th>
                 <th className={th} style={{ width: "22%" }}>Teléfono</th>
-                {!esVista && !esCompletar  && <th className={th} style={{ width: 70 }}>Foto</th>}
+                {!esVista && !esCompletar && showFotoColumn && <th className={th} style={{ width: 70 }}>Foto</th>}
                 {(esVista || esCompletar) && <th className={th} style={{ width: 110 }}>Estatus</th>}
                 {efectivoUseIA && <th className={th} style={{ width: 80 }}>Identificación</th>}
                 {showActionsCol && <th className={th} style={{ width: (esVista || esCompletar) ? 60 : actionsColWidth }}>Acciones</th>}
@@ -643,7 +657,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                         />
                       )}
                     </td>
-                    {!esVista && !esCompletar && (
+                    {!esVista && !esCompletar && showFotoColumn && (
                       <td className={td} style={{ width: 70 }}>
                         <div className="flex justify-center">
                           <LoadImage
@@ -804,6 +818,17 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                                   <Share2 className="w-3.5 h-3.5" />
                                 </button>
                               )}
+
+                             {showArrow && m.link && (
+                                <button
+                                  type="button"
+                                  title="Abrir link"
+                                  className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition-colors"
+                                  onClick={() => window.open(m.link, "_blank", "noopener,noreferrer")}
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             <button
                               type="button"
                               className="flex items-center justify-center w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 transition-colors border border-red-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-red-50"
@@ -870,7 +895,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                       />
                     </div>
                   </td>
-                  {!esVista && <td className={td} style={{ width: 70 }}></td>}
+                  {!esVista && !esCompletar && showFotoColumn && <td className={td} style={{ width: 70 }}></td>}
                   {(esVista || esCompletar) && <td className={td} style={{ width: 110 }}></td>}
                   {efectivoUseIA && <td className={td} style={{ width: 80 }}></td>}
                   {showActionsCol && <td className={td} style={{ width: actionsColWidth }}></td>}

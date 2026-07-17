@@ -7,6 +7,9 @@ import { Imagen } from "@/components/upload-Image";
 import { Miembro } from "@/components/miembros-del-pase";
 
 export type Update_pass = {
+  nombre?:string,
+  email?:string,
+  acepto_reglas_acceso?:string
   nombre_pase?: string,
   email_pase?: string,
   telefono_pase?: string,
