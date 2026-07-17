@@ -59,7 +59,9 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   const [webcamReady, setWebcamReady] = useState(false);
   const { uploadImageMutation, isLoading } = useUploadImage();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const webcamRef = useRef<Webcam | null>(null);
+  const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   function stopWebcamStream() {
     try {
@@ -194,6 +196,10 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   }
 
   function handleOpenCamera() {
+    if (isMobile) {
+      cameraInputRef.current?.click();
+      return;
+    }
     setWebcamReady(false);
     setLoadingWebcam(true);
     setHideWebcam(false);
@@ -269,7 +275,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
             <Trash2 size={13} />
           </button>
 
-          {showWebcamOption && !hideButtonWebcam && !reachedLimit && (
+          {showWebcamOption && !hideButtonWebcam && !reachedLimit && !isLoading && !ocrMutation.isPending && (
             <>
               {hideWebcam && (
                 <button
@@ -310,6 +316,14 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
             onChange={handleFileChange}
             className="hidden"
             multiple
+          />
+          <input
+            type="file"
+            accept="image/jpeg,image/jpg,image/png"
+            capture={facingMode === "user" ? "user" : "environment"}
+            ref={cameraInputRef}
+            onChange={handleFileChange}
+            className="hidden"
           />
 
           <button
