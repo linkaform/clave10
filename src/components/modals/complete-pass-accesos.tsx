@@ -8,6 +8,9 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import Multiselect from 'multiselect-react-dropdown';
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+import type { CountryCode } from "libphonenumber-js";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useEffect, useState } from "react";
@@ -21,8 +24,9 @@ import { VehicleLocalPassModal } from "./add-local-vehicule";
 import { EqipmentLocalPassModal } from "./add-local-equipo";
 import { toast } from "sonner";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
-import { isVehiculoHabilitado, uniqueArray } from "@/lib/utils";
+import { isVehiculoHabilitado, uniqueArray, prefijoToCountry } from "@/lib/utils";
 import { useSearchPass } from "@/hooks/useSearchPass";
+import { useMenuStore } from "@/store/useGetMenuStore";
 import { DialogTitle } from "../ui/dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
@@ -53,6 +57,47 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
   const [errorFotografia, setErrorFotografia] = useState("");
   const [errorIdentificacion, setErrorIdentificacion] = useState("");
 
+  // Estos tres campos siempre son editables, tengan dato o no, para poder
+  // corregirlos aunque el pase ya venga con información.
+  const [nombre, setNombre] = useState(dataCatalogos?.nombre || "");
+  const [email, setEmail] = useState(dataCatalogos?.email || "");
+  const [telefono, setTelefono] = useState(dataCatalogos?.telefono || "");
+  const [errorNombre, setErrorNombre] = useState("");
+  const [errorEmail, setErrorEmail] = useState("");
+  const [errorTelefono, setErrorTelefono] = useState("");
+
+  const isValidEmail = (val: string) =>
+    !val || /^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/.test(val);
+
+  // El país del input de teléfono no se hereda por props: la ubicación del
+  // booth vive en localStorage ("booth-storage" -> state.location), y con
+  // ella buscamos su prefijo telefónico dentro de grupoRequisitos (menu-store)
+  // para mapearlo a un CountryCode.
+  const { grupoRequisitos } = useMenuStore();
+  const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("booth-storage");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const ubicacionNombre: string = parsed?.state?.location ?? "";
+      if (!ubicacionNombre || !grupoRequisitos?.length) return;
+
+      const requisito = grupoRequisitos.find(
+        (r) => r.ubicacion?.toLowerCase() === ubicacionNombre.toLowerCase()
+      );
+
+      if (requisito?.prefijo_telefonico) {
+        const country = prefijoToCountry[String(requisito.prefijo_telefonico)] ?? "MX";
+        setDefaultCountry(country as CountryCode);
+      }
+    } catch {
+      // si el JSON de booth-storage no es válido, nos quedamos con "MX"
+    }
+  }, [grupoRequisitos]);
+
   const { assets } = useSearchPass(true);
   const assetsUnique = uniqueArray(assets?.Visita_a);
   assetsUnique.unshift("Usuario Actual");
@@ -82,6 +127,9 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
   useEffect(() => {
     setErrorFotografia("");
     setErrorIdentificacion("");
+    setErrorNombre("");
+    setErrorEmail("");
+    setErrorTelefono("");
   }, []);
 
   function onSubmit(data: z.infer<typeof formSchema>) {
@@ -96,6 +144,32 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
     if (JSON.stringify(originalIds) !== JSON.stringify(currentIds)) access_pass.visita_a = currentIds;
 
     let hasError = false;
+
+    if (!nombre.trim()) {
+      setErrorNombre("Este campo es requerido.");
+      hasError = true;
+    } else {
+      setErrorNombre("");
+      access_pass.nombre = nombre.trim();
+    }
+
+    if (!email.trim()) {
+      setErrorEmail("Este campo es requerido.");
+      hasError = true;
+    } else if (!isValidEmail(email.trim())) {
+      setErrorEmail("Email inválido.");
+      hasError = true;
+    } else {
+      setErrorEmail("");
+      access_pass.email = email.trim();
+    }
+
+    // Teléfono es opcional: si lo capturan, se manda; si lo dejan vacío, no truena.
+    setErrorTelefono("");
+    if (telefono.trim()) {
+      access_pass.telefono_pase = telefono.trim();
+    }
+
     if (showIneIden?.includes("foto")) {
       const empty = (!dataCatalogos?.walkin_fotografia || dataCatalogos.walkin_fotografia.length === 0) && fotografia.length === 0;
       if (empty) { setErrorFotografia("Este campo es requerido."); hasError = true; }
@@ -126,33 +200,68 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
   return (
     <Dialog open={openModal} onOpenChange={setOpenModal} modal>
       <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent className="max-w-xl w-full rounded-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-3xl w-full h-[90vh] max-h-[90vh] rounded-2xl p-0 overflow-hidden flex flex-col">
             <VisuallyHidden.Root>
                 <DialogTitle>{title}</DialogTitle>
             </VisuallyHidden.Root>
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+        <div className="px-6 pt-6 pb-4 border-b border-gray-100 shrink-0">
           <h2 className="text-xl font-bold text-gray-800">{title}</h2>
           <p className="text-sm text-gray-400 mt-0.5">Completa la información del visitante</p>
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <div className="px-6 py-4 space-y-5 overflow-y-auto max-h-[70vh]">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+            <div className="px-6 py-4 space-y-5 overflow-y-auto flex-1 min-h-0">
 
               {/* Info visitante */}
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5">Nombre</p>
-                  <p className="font-medium text-gray-800">{dataCatalogos?.nombre}</p>
+                  <p className="text-xs text-gray-400 mb-0.5">
+                    Nombre <span className="text-red-500">*</span>
+                  </p>
+                  <input
+                    type="text"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    placeholder="Nombre completo"
+                    className={`w-full h-9 text-sm font-medium text-gray-800 placeholder:text-gray-400 bg-white border rounded-lg px-3 outline-none transition-colors focus:ring-2 focus:ring-blue-100 focus:border-blue-400 ${
+                      errorNombre ? "border-red-400" : "border-gray-200"
+                    }`}
+                  />
+                  {errorNombre && <p className="text-red-500 text-xs mt-1">{errorNombre}</p>}
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5">Email</p>
-                  <p className="font-medium text-gray-800 break-words">{dataCatalogos?.email}</p>
+                  <p className="text-xs text-gray-400 mb-0.5">
+                    Email <span className="text-red-500">*</span>
+                  </p>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="correo@ejemplo.com"
+                    className={`w-full h-9 text-sm font-medium text-gray-800 placeholder:text-gray-400 bg-white border rounded-lg px-3 outline-none transition-colors focus:ring-2 focus:ring-blue-100 focus:border-blue-400 ${
+                      errorEmail ? "border-red-400" : "border-gray-200"
+                    }`}
+                  />
+                  {errorEmail && <p className="text-red-500 text-xs mt-1">{errorEmail}</p>}
                 </div>
                 <div>
                   <p className="text-xs text-gray-400 mb-0.5">Teléfono</p>
-                  <p className="font-medium text-gray-800">{dataCatalogos?.telefono || "—"}</p>
+                  <div
+                    className={`w-full h-9 flex items-center border rounded-lg px-3 bg-white transition-colors focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400 ${
+                      errorTelefono ? "border-red-400" : "border-gray-200"
+                    }`}
+                  >
+                    <PhoneInput
+                      defaultCountry={defaultCountry}
+                      international
+                      value={telefono}
+                      onChange={(value) => setTelefono(value || "")}
+                      className="w-full [&_.PhoneInputInput]:bg-transparent [&_.PhoneInputInput]:border-none [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:text-sm [&_.PhoneInputInput]:font-medium [&_.PhoneInputInput]:text-gray-800 [&_.PhoneInputInput]:w-full [&_.PhoneInputInput]:focus:ring-0"
+                    />
+                  </div>
+                  {errorTelefono && <p className="text-red-500 text-xs mt-1">{errorTelefono}</p>}
                 </div>
                 <div>
                   <p className="text-xs text-gray-400 mb-0.5">Ubicación</p>
@@ -177,7 +286,7 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
                 control={form.control}
                 name="visita_a"
                 render={() => (
-                  <FormItem>
+                  <FormItem className="w-1/2 pr-3">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Visita a</p>
                     <Multiselect
                       options={visitaAFormatted ?? []}
@@ -334,13 +443,13 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 shrink-0">
               <DialogClose asChild>
                 <Button type="button" variant="outline" className="flex-1 rounded-xl border-gray-200 text-gray-600" onClick={() => form.reset()}>
                   Cancelar
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isLoadingUpdate} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
+              <Button type="submit" disabled={isLoadingUpdate} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
                 {isLoadingUpdate
                   ? <><Loader2 className="animate-spin w-4 h-4 mr-2" />Actualizando...</>
                   : "Actualizar pase"
