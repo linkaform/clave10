@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { RefreshCcw, Home } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useEffect } from 'react'
+import { logClientError } from '@/lib/log-error'
 
 export default function GlobalError({
   error,
@@ -14,7 +16,14 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  const errorInfo = error.digest ?? error.message ?? null;
+  useEffect(() => {
+    logClientError({
+      name: error.name,
+      message: error.message,
+      digest: error.digest,
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+    });
+  }, [error]);
 
   return (
     <html lang="es">
@@ -38,11 +47,9 @@ export default function GlobalError({
             Lamentamos los inconvenientes. Ha ocurrido un error inesperado en la aplicación, si el problema persiste contacte a soporte.
           </p>
 
-          {errorInfo && (
-            <p className="mb-6 text-xs text-muted-foreground font-mono bg-muted px-3 py-1.5 rounded-md max-w-sm truncate">
-              {error.digest ? `ID: ${error.digest}` : errorInfo}
-            </p>
-          )}
+          <pre className="mb-6 text-left text-xs text-muted-foreground font-mono bg-muted px-3 py-2 rounded-md max-w-sm overflow-auto">
+            {JSON.stringify({ name: error.name, message: error.message, digest: error.digest }, null, 2)}
+          </pre>
 
           <div className="flex flex-col gap-4 sm:flex-row">
             <Button

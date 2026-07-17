@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { RefreshCcw, Home } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useEffect } from 'react'
+import { logClientError } from '@/lib/log-error'
 
 export default function Error({
   error,
@@ -13,6 +15,15 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    logClientError({
+      name: error.name,
+      message: error.message,
+      digest: error.digest,
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+    });
+  }, [error]);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
       <div className="relative flex h-[450px] w-[450px] items-center justify-center overflow-hidden rounded-xl">
