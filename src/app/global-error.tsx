@@ -31,6 +31,12 @@ export default function GlobalError({
           <h1 className="mb-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             ¡Oops! Algo salió mal
           </h1>
+
+          {error.digest && (
+            <p className="mt-12 text-xs text-muted-foreground font-mono">
+              ID del error: {error.digest}
+            </p>
+          )}
           
           <p className="mb-8 max-w-md text-lg text-muted-foreground">
             Lamentamos los inconvenientes. Ha ocurrido un error inesperado en la aplicación, si el problema persiste contacte a soporte.
@@ -60,11 +66,6 @@ export default function GlobalError({
             </Button>
           </div>
 
-          {error.digest && (
-            <p className="mt-12 text-xs text-muted-foreground font-mono">
-              ID del error: {error.digest}
-            </p>
-          )}
         </div>
       </body>
     </html>
