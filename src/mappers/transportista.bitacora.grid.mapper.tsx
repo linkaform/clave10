@@ -1,5 +1,15 @@
 import { CalendarDays, MapPin, Package, Truck, User } from "lucide-react";
 
+const IMAGE_EXTENSION_REGEX = /\.(jpg|jpeg|png|gif|webp)$/i;
+
+function getDocumentImages(documentos: any[]): string[] {
+  if (!Array.isArray(documentos)) return [];
+  return documentos
+    .map((doc) => doc?.file_url)
+    .filter((url): url is string => !!url && IMAGE_EXTENSION_REGEX.test(url))
+    .map((url) => url.replace(IMAGE_EXTENSION_REGEX, ".thumbnail"));
+}
+
 const ESTATUS_LABELS: Record<string, string> = {
   programado:         "Programado",
   arribo:             "Arribo",
@@ -30,7 +40,7 @@ export function mapTransportistaBitacoraGrid(raw: any, base: any) {
     visit_type: raw?.tipo_de_operacion || "",
     title: raw?.placas || "Sin placas",
     description: raw?.proveedor_cliente || "Sin transportista",
-    images: [],
+    images: getDocumentImages(raw?.documentos),
     status: estatusToStatus(raw?.estatus || ""),
     statusLabel: ESTATUS_LABELS[raw?.estatus] || raw?.estatus || "",
     detailsList: details,

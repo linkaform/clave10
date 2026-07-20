@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   LayoutList,
   LayoutGrid,
+  Sheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -30,6 +31,8 @@ import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { formatPhotoRecord, formatListRecord } from "@/utils/formatRecords";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
+import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
+import TransportistasTable from "@/components/table/transportistas/table";
 import {
   useTransportistaFilters,
   applyTransportistaFilters,
@@ -286,12 +289,15 @@ export default function BitacorasTransportistasPage() {
   const [search, setSearch] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const [modalNuevoOpen, setModalNuevoOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"kanban" | "list" | "table">("kanban");
+  const [viewMode, setViewMode] = useState<"kanban" | "list" | "grid" | "table">("kanban");
 
   const {
     externalFilters,
     onExternalFiltersChange,
     filtersConfig,
+    activeFiltersCount,
+    isSidebarOpen,
+    setIsSidebarOpen,
   } = useTransportistaFilters();
 
   // Actualiza el reloj cada minuto para refrescar los tiempos en etapa
@@ -375,9 +381,14 @@ export default function BitacorasTransportistasPage() {
               <LayoutList size={16} />
             </Button>
             <Button variant="ghost" size="icon"
+              className={cn("h-full w-9 rounded-none hover:bg-slate-200/50", viewMode === "grid" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500")}
+              onClick={() => setViewMode("grid")}>
+              <LayoutGrid size={16} />
+            </Button>
+            <Button variant="ghost" size="icon"
               className={cn("h-full w-9 rounded-none hover:bg-slate-200/50", viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500")}
               onClick={() => setViewMode("table")}>
-              <LayoutGrid size={16} />
+              <Sheet size={16} />
             </Button>
           </div>
         </PageHeader>
@@ -397,6 +408,25 @@ export default function BitacorasTransportistasPage() {
             ))}
           </div>
         </div>
+      ) : viewMode === "table" ? (
+        <>
+          <FloatingFiltersDrawer
+            isOpen={isSidebarOpen}
+            onOpenChange={setIsSidebarOpen}
+            activeFiltersCount={activeFiltersCount}
+            filters={externalFilters}
+            onFiltersChange={onExternalFiltersChange}
+            filtersConfig={filtersConfig}
+            filtroUbicacion={false}
+          />
+          <div className="p-4">
+            <TransportistasTable
+              data={filtered}
+              isLoading={isLoading}
+              globalSearch={search ? [search] : []}
+            />
+          </div>
+        </>
       ) : (
         <div className="flex gap-4 items-start p-4">
           <aside className="w-72 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[72px] shadow-sm max-h-[calc(100vh-100px)] overflow-y-auto">
