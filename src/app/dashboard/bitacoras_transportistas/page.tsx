@@ -6,7 +6,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { NuevoAccesoTransportistaModal } from "@/components/modals/nuevo-acceso-transportista-modal";
 import {
   Plus,
-  Search,
   Calendar,
   User,
   Package,
@@ -15,13 +14,26 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
+  LayoutDashboard,
+  LayoutList,
+  LayoutGrid,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/common/PageHeader";
 import { cn } from "@/lib/utils";
 import { useGetBitacoraTransportistaRecords, BitacoraTransportistaRecord } from "@/hooks/useGetBitacoraTransportistaRecords";
 import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
 import { saveBitacoraTransportistaRecord } from "@/services/endpoints";
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
+import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
+import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
+import { formatPhotoRecord, formatListRecord } from "@/utils/formatRecords";
+import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
+import {
+  useTransportistaFilters,
+  applyTransportistaFilters,
+} from "@/hooks/transportistas/useTransportistaFilters";
 
 // ─── Columnas del kanban ────────────────────────────────────────────────────
 
@@ -274,6 +286,13 @@ export default function BitacorasTransportistasPage() {
   const [search, setSearch] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const [modalNuevoOpen, setModalNuevoOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"kanban" | "list" | "table">("kanban");
+
+  const {
+    externalFilters,
+    onExternalFiltersChange,
+    filtersConfig,
+  } = useTransportistaFilters();
 
   // Actualiza el reloj cada minuto para refrescar los tiempos en etapa
   useEffect(() => {
@@ -281,16 +300,17 @@ export default function BitacorasTransportistasPage() {
     return () => clearInterval(id);
   }, []);
 
-  // Bloquea el scroll global mientras esta página está montada
+  // Bloquea el scroll global solo en vista kanban
   useEffect(() => {
+    if (viewMode !== "kanban") return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, []);
+  }, [viewMode]);
 
   const { data: records, isLoading } = useGetBitacoraTransportistaRecords(fecha);
 
-  const filtered = records.filter((r) => {
+  const searchFiltered = records.filter((r) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -301,7 +321,12 @@ export default function BitacorasTransportistasPage() {
     );
   });
 
+  const filtered = applyTransportistaFilters(searchFiltered, externalFilters);
+
   const byEstatus = (key: string) => filtered.filter((r) => r.estatus === key);
+
+  const gridRecords = filtered.map((r) => formatPhotoRecord(r, "bitacora_transportista"));
+  const listRecords = filtered.map((r) => formatListRecord(r, "bitacora_transportista"));
 
   const changeDay = (delta: number) => {
     const d = new Date(fecha + "T12:00:00");
@@ -310,67 +335,122 @@ export default function BitacorasTransportistasPage() {
   };
 
   return (
-    <div className="flex flex-col bg-gray-50 overflow-hidden" style={{ height: "calc(100vh - 57px)" }}>
-      {/* ── Top bar ── */}
-      <div className="flex items-center gap-4 px-6 py-4 bg-white border-b border-gray-100 shrink-0">
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] text-gray-400 mb-0.5">
-            <span className="hover:underline cursor-pointer">Accesos</span>
-            <span className="mx-1">›</span>
-            <span className="font-semibold text-gray-500">Transportistas</span>
-          </p>
-          <h1 className="text-xl font-bold text-gray-900">Bitácoras Transportistas</h1>
-        </div>
+    <div className={cn("flex flex-col", viewMode === "kanban" ? "overflow-hidden" : "overflow-y-auto")} style={{ height: "calc(100vh - 57px)" }}>
+      <div className="px-6 border-b border-gray-100 shrink-0">
+        <PageHeader
+          title="Bitácoras Transportistas"
+          totalRecords={records.length}
+          onSearch={(val) => setSearch(val)}
+          searchPlaceholder="Buscar folio, placas, chofer..."
+        >
+          {/* Leyenda tiempo en etapa — solo en kanban */}
+          {viewMode === "kanban" && (
+            <div className="hidden md:flex items-center gap-3 text-xs text-gray-500 border border-gray-200 rounded-full px-4 py-1.5 bg-white shrink-0">
+              <span className="text-gray-400">Tiempo En Etapa</span>
+              <span className="w-px h-3 bg-gray-200" />
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />A tiempo</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500" />Empieza a demorarse</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" />Demora</span>
+            </div>
+          )}
 
-        {/* Leyenda tiempo en etapa */}
-        <div className="hidden md:flex items-center gap-3 text-xs text-gray-500 border border-gray-200 rounded-full px-4 py-1.5 bg-white">
-          <span className="text-gray-400">Tiempo En Etapa</span>
-          <span className="w-px h-3 bg-gray-200" />
-          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />A tiempo</span>
-          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500" />Empieza a demorarse</span>
-          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" />Demora</span>
-        </div>
+          <Button
+            onClick={() => setModalNuevoOpen(true)}
+            className="bg-green-600 hover:bg-green-700 text-white gap-2 shrink-0"
+          >
+            <Plus size={16} />
+            Nuevo Acceso Transportista
+          </Button>
 
-        {/* Búsqueda */}
-        <div className="relative w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar folio, placas, chofer..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-300 transition-colors shadow-sm"
-          />
-        </div>
-
-        {/* Botón nuevo */}
-        <button type="button"
-          onClick={() => setModalNuevoOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-sm">
-          <Plus className="w-3.5 h-3.5" />
-          Nuevo Acceso Transportista
-        </button>
+          {/* Switcher de vistas */}
+          <div className="flex items-center bg-slate-100/50 h-9 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm shrink-0">
+            <Button variant="ghost" size="icon"
+              className={cn("h-full w-9 rounded-none hover:bg-slate-200/50", viewMode === "kanban" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500")}
+              onClick={() => setViewMode("kanban")}>
+              <LayoutDashboard size={16} />
+            </Button>
+            <Button variant="ghost" size="icon"
+              className={cn("h-full w-9 rounded-none hover:bg-slate-200/50", viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500")}
+              onClick={() => setViewMode("list")}>
+              <LayoutList size={16} />
+            </Button>
+            <Button variant="ghost" size="icon"
+              className={cn("h-full w-9 rounded-none hover:bg-slate-200/50", viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500")}
+              onClick={() => setViewMode("table")}>
+              <LayoutGrid size={16} />
+            </Button>
+          </div>
+        </PageHeader>
       </div>
 
-      {/* ── Kanban ── */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full text-sm text-gray-400">
-            Cargando registros...
-          </div>
-        ) : (
+      {/* ── Contenido ── */}
+      {isLoading ? (
+        <div className="flex items-center justify-center flex-1 text-sm text-gray-400">
+          Cargando registros...
+        </div>
+      ) : viewMode === "kanban" ? (
+        <div className="flex-1 min-h-0 overflow-hidden">
           <div className="flex gap-3 p-4 h-full w-full">
-            <ProgramadosColumn
-              records={byEstatus("programado")}
-              fecha={fecha}
-              now={now}
-              onChangeDay={changeDay}
-            />
+            <ProgramadosColumn records={byEstatus("programado")} fecha={fecha} now={now} onChangeDay={changeDay} />
             {COLUMNAS.map((col) => (
               <KanbanColumn key={col.key} col={col} records={byEstatus(col.key)} now={now} />
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="flex gap-4 items-start p-4">
+          <aside className="w-72 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[72px] shadow-sm max-h-[calc(100vh-100px)] overflow-y-auto">
+            <FiltersPanel
+              filters={externalFilters}
+              onFiltersChange={onExternalFiltersChange}
+              filtersConfig={filtersConfig}
+              filtroUbicacion={false}
+            />
+          </aside>
+
+          <div className="flex-1 min-w-0">
+            {viewMode === "list" ? (
+              <PhotoListView
+                isLoading={isLoading}
+                records={listRecords as any}
+                globalSearch={search ? [search] : []}
+                externalFilters={externalFilters}
+                onExternalFiltersChange={onExternalFiltersChange}
+                modalActions={(record) => {
+                  if (!record) return null;
+                  return (
+                    <Link
+                      href={`/dashboard/accesos/transportista/${record.id}`}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors"
+                    >
+                      Ver detalle
+                    </Link>
+                  );
+                }}
+              />
+            ) : (
+              <PhotoGridView
+                isLoading={isLoading}
+                records={gridRecords}
+                globalSearch={search ? [search] : []}
+                externalFilters={externalFilters}
+                onExternalFiltersChange={onExternalFiltersChange}
+                modalActions={(record) => {
+                  if (!record) return null;
+                  return (
+                    <Link
+                      href={`/dashboard/accesos/transportista/${record.id}`}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors"
+                    >
+                      Ver detalle
+                    </Link>
+                  );
+                }}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       <NuevoAccesoTransportistaModal
         open={modalNuevoOpen}

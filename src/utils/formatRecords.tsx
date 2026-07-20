@@ -31,6 +31,8 @@ import { mapArticuloConcesionadoList } from "@/mappers/concesionados.list.mapper
 import { mapArticuloPerdidoList } from "@/mappers/perdidos.list.mapper";
 import { mapNotaList } from "@/mappers/notas.list.mapper";
 import { mapNotaGrid } from "@/mappers/notas.grid.mapper";
+import { mapTransportistaBitacoraGrid } from "@/mappers/transportista.bitacora.grid.mapper";
+import { mapTransportistaBitacoraList } from "@/mappers/transportista.bitacora.list.mapper";
 
 const mappers_list: Record<string, (raw: any, base: any) => ListRecord> = {
   bitacora: mapBitacoraList,
@@ -45,7 +47,8 @@ const mappers_list: Record<string, (raw: any, base: any) => ListRecord> = {
   paqueteria: mapPaqueteriaList,
   concesionados: mapArticuloConcesionadoList,
   perdidos: mapArticuloPerdidoList,
-  notas: mapNotaList
+  notas: mapNotaList,
+  bitacora_transportista: mapTransportistaBitacoraList,
 };
 
 const mappers_grid: Record<string, (raw: any, base: any) => PhotoRecord> = {
@@ -62,7 +65,8 @@ const mappers_grid: Record<string, (raw: any, base: any) => PhotoRecord> = {
   paqueteria: mapPaqueteriaGrid,
   concesionados: mapArticuloConcesionadoGrid,
   perdidos: mapArticuloPerdidoGrid,
-  notas: mapNotaGrid
+  notas: mapNotaGrid,
+  bitacora_transportista: mapTransportistaBitacoraGrid,
 };
 
 export type RegistryType =
@@ -81,7 +85,8 @@ export type RegistryType =
   | "paqueteria"
   | "concesionados"
   | "perdidos"
-  | "notas"; 
+  | "notas"
+  | "bitacora_transportista";
 
 
 

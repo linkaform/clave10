@@ -94,6 +94,13 @@ export const getNotasFilters = () =>
     public_script: true,
   });
 
+export const getTransportistaFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "transportistas_bitacora",
+    public_script: true,
+  });
+
 export const createPaseTransportista = (payload: unknown) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "transportistas.py",
