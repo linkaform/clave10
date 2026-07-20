@@ -1,7 +1,7 @@
 ####################################
 # Image for develop                #
 ####################################
-FROM node:22-bullseye-slim as develop
+FROM node:24-bullseye-slim as develop
 
 RUN apt-get update && \
     apt-get -y install \
@@ -12,8 +12,8 @@ RUN npm install -g next
 
 RUN mkdir -p /srv
 RUN chown 1000:1000 -R /srv/
-COPY ../*.json /srv/
-COPY ../*.config.* /srv/
+COPY *.json /srv/
+COPY *.config.* /srv/
 WORKDIR /srv/
 RUN yarn
 
