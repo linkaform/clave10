@@ -1,6 +1,16 @@
 import { CalendarDays, MapPin, Package, Truck, User } from "lucide-react";
 
-const ESTATUS_LABELS: Record<string, string> = {
+const IMAGE_EXTENSION_REGEX = /\.(jpg|jpeg|png|gif|webp)$/i;
+
+function getDocumentImages(documentos: any[]): string[] {
+  if (!Array.isArray(documentos)) return [];
+  return documentos
+    .map((doc) => doc?.file_url)
+    .filter((url): url is string => !!url && IMAGE_EXTENSION_REGEX.test(url))
+    .map((url) => url.replace(IMAGE_EXTENSION_REGEX, ".thumbnail"));
+}
+
+export const ESTATUS_LABELS: Record<string, string> = {
   programado:         "Programado",
   arribo:             "Arribo",
   inspeccion_entrada: "Insp. Entrada",
@@ -9,7 +19,7 @@ const ESTATUS_LABELS: Record<string, string> = {
   terminado:          "Terminado",
 };
 
-const ESTATUS_BADGE: Record<string, string> = {
+export const ESTATUS_BADGE: Record<string, string> = {
   programado:         "bg-gray-100 text-gray-600",
   arribo:             "bg-blue-100 text-blue-700",
   inspeccion_entrada: "bg-violet-100 text-violet-700",
@@ -31,7 +41,7 @@ export function mapTransportistaBitacoraList(raw: any, base: any) {
     visit_type: raw?.tipo_de_operacion || "",
     title: raw?.placas || "Sin placas",
     description: raw?.proveedor_cliente || "Sin transportista",
-    images: [],
+    images: getDocumentImages(raw?.documentos),
     status: estatusToStatus(raw?.estatus || ""),
     statusLabel: ESTATUS_LABELS[raw?.estatus] || raw?.estatus || "",
     badgesList: [
