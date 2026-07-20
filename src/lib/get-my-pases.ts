@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 interface GetMyPasesParams {
   tab?: string;
@@ -47,7 +48,7 @@ export const getMyPases = async ({
     script_name: "pase_de_acceso.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",

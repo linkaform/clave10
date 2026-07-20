@@ -1,11 +1,12 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./get-valid-token";
 
   export const getMenu = async () => {
     const payload = {
       option: "get_user_menu",
       script_name: "script_turnos.py",
     };
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {

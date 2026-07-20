@@ -166,7 +166,6 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 
 	// const handleClickAppleButton = async () => {
 	// 	const record_id = passData?.pass_selected?._id;
-	// 	const userJwt = localStorage.getItem("access_token");
 
 	// 	toast.info("En mantenimiento...", {
 	// 		style: {

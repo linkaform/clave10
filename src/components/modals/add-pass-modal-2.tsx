@@ -44,19 +44,24 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
   const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
   const [responseformated, setResponseFormated] = useState<data_correo | null>(null);
   const { updatePassMutation, isLoadingUpdate } = useUpdateAccessPass();
-
+  console.log("data?.acompanantes_grupo", data)
   const onSubmit = async () => {
     updatePassMutation.mutate(
       {
         access_pass: {
+          nombre: data?.nombre,
+          email: data?.email,
+          telefono_pase: data?.telefono_pase,
           grupo_vehiculos: data.grupo_vehiculos,
           grupo_equipos: data.grupo_equipos,
           status_pase: data.status_pase,
           walkin_fotografia: data?.walkin_fotografia,
           walkin_identificacion: data?.walkin_identificacion,
           acepto_aviso_privacidad: data?.acepto_aviso_privacidad ? "sí" : "no",
+          acepto_reglas_acceso: data?.acepto_reglas_acceso ? "sí" : "no",
           conservar_datos_por: data?.conservar_datos_por,
           acompanantes: data?.acompanantes ?? [],
+          grupo_acompanantes:data?.acompanantes_grupo ?? [],
         },
         id: data.folio,
         account_id: data.account_id,
@@ -187,11 +192,11 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
           </div>
 
           {/* Acompañantes */}
-          {data?.acompanantes?.some((m: any) => m.nombre) && (
+          {data?.acompanantes_grupo?.some((m: any) => m.nombre) && (
             <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-              <SectionHeader icon={<Users size={16} className="text-blue-600" />} label={`Acompañantes (${data.acompanantes.filter((m: any) => m.nombre).length})`} />
+              <SectionHeader icon={<Users size={16} className="text-blue-600" />} label={`Acompañantes (${data.acompanantes_grupo.filter((m: any) => m.nombre).length})`} />
               <div className="space-y-3">
-                {data.acompanantes.filter((m: any) => m.nombre).map((m: any, index: number) => (
+                {data.acompanantes_grupo.filter((m: any) => m.nombre).map((m: any, index: number) => (
                   <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                    {m.foto?.[0]?.file_url ? (
                       <Image

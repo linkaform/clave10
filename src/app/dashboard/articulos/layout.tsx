@@ -1,4 +1,4 @@
-import { MainLayout } from "@/components/Layout/MainLayout"
+import { MainLayout } from "@/components/Layout/MainLayout";
 import { Metadata } from "next"
 import React from "react"
 

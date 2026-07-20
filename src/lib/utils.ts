@@ -861,3 +861,35 @@ export function formatTo12Hour(fechaStr: string): string {
 
   return `${fecha} ${horaFormateada}`;
 }
+export const normalizarTelefono = (value: string | undefined): string => {
+  if (!value) return "";
+  if (value.startsWith("+")) return value;
+
+  const soloDigitos = value.replace(/\D/g, "");
+  if (soloDigitos.length >= 10) {
+    return `+${soloDigitos}`;
+  }
+  return value;
+};
+
+// Códigos de área NANP (+1) por país — agrega más países/códigos según necesites
+export const NANP_AREA_CODES: Record<string, string[]> = {
+  DO: ["809", "829", "849"], // República Dominicana
+  PR: ["787", "939"],        // Puerto Rico
+  JM: ["876", "658"],        // Jamaica
+  // US y CA comparten cientos de códigos; si los necesitas, se pueden agregar,
+  // pero usualmente se dejan como "no determinado" salvo que sean tu mercado principal
+};
+
+/**
+ * Dado un número que empieza con código de país "1" (NANP),
+ * regresa el país detectado según el código de área, o undefined si no coincide con ninguno.
+ */
+export function detectarPaisNANP(soloDigitos: string): string | undefined {
+  if (!soloDigitos.startsWith("1") || soloDigitos.length < 4) return undefined;
+  const areaCode = soloDigitos.slice(1, 4);
+  for (const [country, codes] of Object.entries(NANP_AREA_CODES)) {
+    if (codes.includes(areaCode)) return country;
+  }
+  return undefined;
+}

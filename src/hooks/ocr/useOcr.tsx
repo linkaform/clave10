@@ -3,11 +3,11 @@ import { errorMsj } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export const useOcr = () => {
+export const useOcr = (accountId?: number) => {
 
   const ocrIdMutation = useMutation({
     mutationFn: async (imageUrls: string[]) => {
-      const response = await runOcrId(imageUrls);
+      const response = await runOcrId(imageUrls, accountId);
       const hasError = (!response?.success) || (response?.response?.data?.status_code === 400);
       if (hasError) {
         const textMsj = errorMsj(response);
@@ -82,7 +82,7 @@ export const useOcr = () => {
 
     const ocrPersonaMutation = useMutation({
     mutationFn: async (imageUrls: string[]) => {
-      const response = await runOcrPersona(imageUrls);
+      const response = await runOcrPersona(imageUrls, accountId);
       const hasError = (!response?.success) || (response?.response?.data?.status_code === 400);
       if (hasError) {
         const textMsj = errorMsj(response);

@@ -72,3 +72,24 @@ export const getLogin = async (email: string, password: string, bypass_username?
   };
 
 
+  export const renewJwt = async (token: string): Promise<{ success: boolean; jwt?: string }> => {
+    try {
+      const response = await fetch(`https://app.linkaform.com/api/infosync/user_admin/renew_jwt/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `jwt ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        return { success: false };
+      }
+
+      const data = await response.json();
+      return { success: true, jwt: data.new_jwt };
+    } catch (error) {
+      console.log("Error al renovar JWT:", error);
+      return { success: false };
+    }
+  };

@@ -14,6 +14,7 @@ export default function AccesosLayout({ children }: { children: React.ReactNode 
       
       {/* Layout principal */}
       <MainLayout >{children}</MainLayout>
+      {/* {children} */}
     </>
   );
 }

@@ -139,7 +139,11 @@ const RondinesContent = () => {
     setDate2("");
     setDateFilter("");
   };
-
+  useEffect(() => {
+    if (subTab === "rondines") {
+      setViewMode("table");
+    }
+  }, [subTab]);
   return (
     <div className="w-full relative">
       {viewMode === "table" && subTab === "recorridos" && verRondin===false &&(
@@ -227,19 +231,19 @@ const RondinesContent = () => {
               }`;
             return (
               <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
-                {(subTab === "incidencias-rondines" || subTab === "check-areas") && (
-                  <Button variant="ghost" size="icon" className={btnClass("photos")} onClick={() => {setViewMode("photos");setTitulo("Rondines");}}>
-                    <LayoutGrid size={18} />
-                  </Button>
-                )}
+                <Button variant="ghost" size="icon" className={btnClass("table")} onClick={() => { setViewMode("table"); setTitulo("Rondines"); }}>
+                  <Sheet size={18} />
+                </Button>
                 {subTab === "rondines" && (
-                  <Button variant="ghost" size="icon" className={btnClass("list")} onClick={() => {setViewMode("list"); setTitulo("Rondines");}}>
+                  <Button variant="ghost" size="icon" className={btnClass("list")} onClick={() => { setViewMode("list"); setTitulo("Rondines"); }}>
                     <LayoutList size={18} />
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" className={btnClass("table")} onClick={() => {setViewMode("table");setTitulo("Rondines");}}>
-                  <Sheet size={18} />
-                </Button>
+                {(subTab === "incidencias-rondines" || subTab === "check-areas") && (
+                  <Button variant="ghost" size="icon" className={btnClass("photos")} onClick={() => { setViewMode("photos"); setTitulo("Rondines"); }}>
+                    <LayoutGrid size={18} />
+                  </Button>
+                )}
               </div>
             );
           })()}

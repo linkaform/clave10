@@ -2,6 +2,7 @@ import { Update_full_pass } from "@/hooks/usePaseEntrada"
 import { Imagen } from "@/components/upload-Image";
 import { Equipo, Vehiculo } from "./update-pass";
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export type Access_pass_update = {
     grupo_vehiculos: Vehiculo[],
@@ -44,7 +45,7 @@ export type Access_pass_update = {
     // }else{
     //   delete access_pass.walkin_identificacion
     // }
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {

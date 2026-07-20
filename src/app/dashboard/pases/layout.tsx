@@ -1,4 +1,4 @@
-import { MainLayout } from "@/components/Layout/MainLayout"
+import { MainLayout } from "@/components/Layout/MainLayout";
 import { Metadata } from "next"
 import React from "react"
 
@@ -11,6 +11,7 @@ export default function MisPasesEntradaLayout({ children }: { children: React.Re
     <>
       <link rel="icon" href="/history.svg" type="image/svg+xml" />
       <MainLayout>{children}</MainLayout>
+      {/* {children} */}
     </>
   );
 }

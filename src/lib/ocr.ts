@@ -1,13 +1,16 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
-export const runOcrId = async (imageUrls: string[]) => {
+export const runOcrId = async (imageUrls: string[], accountId?: number) => {
     const payload = {
       option: "ocr_id",
+      is_employee:true,
       image_source: imageUrls,
-      script_name: "ocr_docs.py",
+      script_name: "pase_de_acceso_use_api.py",
+      ...(accountId ? { account_id: accountId } : {}),
     };
   
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
@@ -28,7 +31,7 @@ export const runOcrId = async (imageUrls: string[]) => {
       script_name: "ocr_docs.py",
     };
   
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
@@ -49,7 +52,7 @@ export const runOcrId = async (imageUrls: string[]) => {
       script_name: "ocr_docs.py",
     };
   
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
@@ -72,7 +75,7 @@ export const runOcrId = async (imageUrls: string[]) => {
 
     console.log("payload", JSON.stringify(payload));
 
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
@@ -95,7 +98,7 @@ export const runOcrId = async (imageUrls: string[]) => {
 
     console.log("payload", JSON.stringify(payload));
 
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
@@ -109,16 +112,17 @@ export const runOcrId = async (imageUrls: string[]) => {
     return data;
   };
 
-    export const runOcrPersona = async (imageUrls: string[]) => {
+    export const runOcrPersona = async (imageUrls: string[], accountId?: number) => {
     const payload = {
-      script_name: "ocr_docs.py",
+      script_name: "pase_de_acceso_use_api.py",
       image_source: imageUrls,
       option: "ocr_persona",
+      ...(accountId ? { account_id: accountId } : {}),
     };
 
     console.log("payload", JSON.stringify(payload));
 
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {

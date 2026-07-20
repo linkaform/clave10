@@ -1,3 +1,4 @@
+import { getValidToken } from "@/lib/login/get-valid-token";
 import { asistenciasReport } from "../types/report";
 import { API_ENDPOINTS } from "@/config/api";
 
@@ -13,7 +14,7 @@ export const getReportAsistencias = async ({ dateRange, locations, groupBy, mont
             year
         };
 
-        const userJwt = localStorage.getItem("access_token");
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -40,7 +41,7 @@ export const getReportLocations = async () => {
             script_name: "asistencia_report.py",
         };
 
-        const userJwt = localStorage.getItem("access_token");
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -70,7 +71,7 @@ export const getAttendanceDetail = async (userIds: number[], selectedDay: number
             location
         };
 
-        const userJwt = localStorage.getItem("access_token");
+        const userJwt = await getValidToken();
         const response = await fetch(API_ENDPOINTS.runScript, {
             method: "POST",
             headers: {
@@ -107,7 +108,7 @@ export const getAttendanceData = async ({
         limit,
         offset,
       };
-      const userJwt = localStorage.getItem("access_token");
+      const userJwt = await getValidToken();
       const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {

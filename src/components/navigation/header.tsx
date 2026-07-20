@@ -57,13 +57,16 @@ export function Header({
   onLogout,
 }: HeaderProps) {
   const { locations, fetchLocations } = useAreasLocationStore();
-
   const { selectedLocations, toggleLocation } = useSelectedLocationsStore();
+
+  useEffect(() => {
+    useAreasLocationStore.persist.rehydrate();
+  }, []);
 
   useEffect(() => {
     fetchLocations();
   }, [fetchLocations]);
-
+  
   const handleToggleLocation = (loc: string) => {
     toggleLocation(loc);
   };

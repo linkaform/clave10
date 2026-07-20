@@ -18,7 +18,7 @@ export const useBoothStore = create<BoothState>()(
       setBooth: (area, location) => {
         set({ area, location });
         const { selectedLocations, setSelectedLocations } = useSelectedLocationsStore.getState();
-        if (selectedLocations.length === 0) {
+        if (selectedLocations.length === 0 && location) {
           setSelectedLocations([location]);
         }
       },

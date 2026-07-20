@@ -15,7 +15,7 @@ interface AuthState {
   userPhoto:string| null;
   userParentId:number | null;
   isAuth: boolean;
-  
+  setToken: (token: string) => void;
   setAuth: (token: string, userId: string, userNameSoter: string, userEmailSoter: string, userIdSoter: number, userPhoto:string, userParentId:number) => void;
   setUserPhoto: (photoUrl: string) => void;
   logout: (queryClient?: any) => void;
@@ -62,6 +62,10 @@ const useAuthStore = create<AuthState>((set) => {
     setUserPhoto: (photoUrl: string) => {
       localStorage.setItem("userPhoto_soter", photoUrl);
       set({ userPhoto: photoUrl });
+    },
+    setToken: (token: string) => {
+        localStorage.setItem("access_token", token);
+        set({ token, isAuth: true });
     },
 
     logout: (queryClient?: any) => {

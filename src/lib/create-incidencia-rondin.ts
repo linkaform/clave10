@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export const crearIncidenciaRondin = async (rondin_data: any)=> {
     const payload = {
@@ -7,7 +8,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
         script_name: "rondines.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -29,7 +30,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
         script_name: "rondines.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -53,7 +54,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
         month
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -74,7 +75,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
         script_name: "rondines.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -96,7 +97,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
         script_name: "rondines.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {
@@ -116,7 +117,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
         script_name: "rondines.py",
     };
   
-    const userJwt = localStorage.getItem("access_token"); 
+    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: "POST",
         headers: {

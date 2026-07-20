@@ -58,10 +58,10 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
           <p className="text-center text-sm text-gray-400">Detalle del equipo concesionado</p>
         </DialogHeader>
 
-        <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
+        <div className="flex-grow overflow-y-auto px-6 py-4 space-y-1">
 
           <div className=" p-5 py-0">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 pb-2">
               <Package className="text-blue-500 w-5 h-5" />
               <h3 className="font-semibold text-gray-700">Información del equipo</h3>
             </div>
@@ -107,7 +107,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
           </div>
 
           <div className=" p-5">
-            <h3 className="font-semibold text-gray-700 mb-3">Evidencia</h3>
+            <h3 className="font-semibold text-gray-700 mb-3">Imagen del equipo concesionado</h3>
 
             {data?.imagen_equipo_concesion && data?.imagen_equipo_concesion.length > 0 ? (
               <div className="flex justify-center">
@@ -141,7 +141,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
             ) : (
               <div className="flex flex-col items-center justify-center py-6 gap-2 text-gray-400">
                 <ImageOff size={28} className="text-gray-300" />
-                <p className="text-sm">No hay evidencias disponibles</p>
+                <p className="text-sm">No hay imagen disponible</p>
               </div>
             )}
           </div>

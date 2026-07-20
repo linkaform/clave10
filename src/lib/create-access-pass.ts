@@ -1,5 +1,6 @@
 import { Access_pass, enviar_pre_sms } from "@/hooks/useCreateAccessPass";
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
   
   interface CreatePase {
     access_pass : Access_pass|null,
@@ -46,7 +47,7 @@ import { API_ENDPOINTS } from "@/config/api";
         delete access_pass.enviar_correo_pre_registro
       }
   
-      const userJwt = localStorage.getItem("access_token"); 
+      const userJwt = await getValidToken();
     
       const response = await fetch(API_ENDPOINTS.runScript, {
           method: "POST",

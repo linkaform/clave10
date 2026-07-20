@@ -69,8 +69,8 @@ export const OptionsCell: React.FC<{ row: any,onEditarClick: (pase: any) => void
       creado_por_id: rowData.visita_a.lenght>0 ? rowData.visita_a[0].user_id:null,
       creado_por_email:rowData.visita_a.lenght>0  ? rowData.visita_a[0].email:null
     },
-    qr_pase	:rowData.qr_pase,
-    limitado_a_dias	: rowData.limitado_a_dias	,
+    qr_pase :rowData.qr_pase,
+    limitado_a_dias : rowData.limitado_a_dias ,
     foto:rowData.foto || [],
     identificacion:rowData.identificacion || [],
     enviar_correo_pre_registro: rowData.enviar_correo_pre_registro||[],
@@ -91,6 +91,10 @@ export const OptionsCell: React.FC<{ row: any,onEditarClick: (pase: any) => void
     grupo_equipos: rowData.grupo_equipos||[],
     grupo_vehiculos: rowData.grupo_vehiculos||[],
     pdf_to_img: rowData.pdf_to_img || [],
+    acompanantes: rowData.acompanantes ?? 0,
+    acompanantes_grupo: rowData.acompanantes_grupo || [],
+    habilitar_vehiculo: rowData.habilitar_vehiculo,
+    url_padre: rowData.url_padre || "",  
   }
   return (
     <div className="flex space-x-2">

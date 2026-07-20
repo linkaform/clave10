@@ -1,5 +1,6 @@
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export const searchAccessPass = async (
   area: string,
@@ -14,7 +15,7 @@ export const searchAccessPass = async (
     qr_code,
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(
     API_ENDPOINTS.runScript,
@@ -45,7 +46,7 @@ export const fetchTemporalPasses = async ({
     script_name: "script_turnos.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(
     API_ENDPOINTS.runScript,
@@ -71,7 +72,7 @@ export const fetchPasesActivos = async ({
     script_name: "script_turnos.py",
   };
   
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(
     API_ENDPOINTS.runScript,
     {
@@ -115,7 +116,7 @@ export const registerIncoming = async (props: RegisterIncomingProps) => {
     script_name: "script_turnos.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const response = await fetch(
     API_ENDPOINTS.runScript,    {
     method: "POST",
@@ -146,7 +147,7 @@ export const exitRegister = async (
     script_name: "script_turnos.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(
     API_ENDPOINTS.runScript,
@@ -173,7 +174,7 @@ export const getAccessAssets = async (location: string, cat?:string) => {
     script_name: "script_turnos.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(
     API_ENDPOINTS.runScript,
@@ -244,7 +245,7 @@ export const addNewVisit = async (
     script_name: "pase_de_acceso.py",
   };
 
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
 
   const response = await fetch(
     API_ENDPOINTS.runScript,

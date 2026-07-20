@@ -14,6 +14,7 @@ export default function ReportsListPageLayout({ children }: { children: React.Re
 
       {/* Layout principal */}
       <MainLayout>{children}</MainLayout>
+      {/* {children} */}
     </>
   );
 }

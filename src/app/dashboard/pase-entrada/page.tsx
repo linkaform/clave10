@@ -196,10 +196,12 @@ const PaseEntradaPage = () => {
     fetchLocations,
     fetchAreas,
     loading: loadingUbicaciones,
+    locationDetails,
   } = useAreasLocationStore();
   console.log("----------------------------areas", areasStore);
   const pickerRef = useRef<any>(null);
 
+  
   // Formatear ubicaciones del store como { id, name }
   const ubicacionesFormatteadoStore = ubicacionesStore
     .filter((u: string) => u !== null && u !== undefined)
@@ -352,6 +354,30 @@ const PaseEntradaPage = () => {
   const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
   const [miembrosRowErrors, setMiembrosRowErrors] = useState<Record<string, { email: boolean; telefono: boolean }>>({});
 
+
+    // Áreas que pertenecen a las ubicaciones seleccionadas, sin duplicados
+  const areasDisponiblesPorUbicacion = React.useMemo(() => {
+    if (!locationDetails?.length || !ubicacionesSeleccionadas?.length) return [];
+
+    const nombresSeleccionados = ubicacionesSeleccionadas
+      .map((u: any) => String(u?.name ?? u?.id ?? "").toLowerCase())
+      .filter(Boolean);
+
+    const detallesFiltrados = locationDetails.filter((ld: any) =>
+      nombresSeleccionados.includes(String(ld?.ubicacion ?? "").toLowerCase()),
+    );
+
+    const nombresSet = new Set<string>();
+    detallesFiltrados.forEach((ld: any) => {
+      (ld?.areas ?? []).forEach((area: any) => {
+        const nombre = area?.nombre_area?.trim();
+        if (nombre) nombresSet.add(nombre);
+      });
+    });
+
+    return Array.from(nombresSet); 
+  }, [locationDetails, ubicacionesSeleccionadas]);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -573,14 +599,38 @@ const PaseEntradaPage = () => {
   };
   const acompanantesValue = useWatch({ control: form.control, name: "acompanantes" });
 
+  useEffect(() => {
+      const target = acompanantesValue || 0;
+
+      setMiembrosAcompanantes((prev) => {
+        if (target === prev.length) return prev;
+
+        if (target > prev.length) {
+          const nuevasFilas: Miembro[] = Array.from(
+            { length: target - prev.length },
+            () => ({
+              id: crypto.randomUUID(),
+              nombre: "",
+              email: "",
+              telefono: "",
+            }),
+          );
+          return [...prev, ...nuevasFilas];
+        }
+        return prev.slice(0, target);
+      });
+  }, [acompanantesValue]);
+
   const handleToggleTipoVisitaPase = (tipo: string) => {
     if (tipo == "fecha_fija") {
       form.setValue("fecha_desde_hasta", "");
       form.setValue("fecha_desde_visita", "");
+      setDate(new Date());
       setIsActiveFechaFija(true);
       setIsActiveRangoFecha(false);
     } else {
       form.setValue("fechaFija", "");
+      form.setValue("fecha_desde_visita", formatDateToLocalISO(new Date())); 
       setDate(undefined);
       setIsActiveFechaFija(false);
       setIsActiveRangoFecha(true);
@@ -988,6 +1038,7 @@ const PaseEntradaPage = () => {
                     useIA
                     acompantes={acompanantesValue || 0}
                     defaultCountry={defaultCountry}
+                    showFotoColumn={false}
                   />
                 </TabsContent>
               </Tabs>
@@ -998,7 +1049,7 @@ const PaseEntradaPage = () => {
                 <div className="p-2 bg-blue-50 rounded-xl">
                   <CalendarDays className="w-4 h-4 text-blue-600" />
                 </div>
-                <h1 className="font-semibold text-gray-700">Vigencia</h1>
+                <h1 className="font-semibold text-gray-700">Vigencia de Ingreso</h1>
               </div>
               <p className="text-xs text-gray-400 mb-5 mt-1">
                 Selecciona si el pase es para un día específico o define un
@@ -1302,7 +1353,7 @@ const PaseEntradaPage = () => {
                       <AreasList
                         areas={areasList}
                         setAreas={setAreasList}
-                        catAreas={areasStore}
+                        catAreas={areasDisponiblesPorUbicacion}
                         loadingCatAreas={loadingUbicaciones}
                         existingAreas={false}
                       />

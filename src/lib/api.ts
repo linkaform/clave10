@@ -1,6 +1,7 @@
 // lib/api.ts
 import useAuthStore from "@/store/useAuthStore";
 import { toast } from "sonner";
+import { getValidToken } from "./login/get-valid-token";
 
 interface ApiPostOptions {
   messages?: {
@@ -17,7 +18,7 @@ export async function apiPost<TData>(
   options: ApiPostOptions = {},
 ): Promise<TData> {
   const { messages, showToast = false } = options;
-  const userJwt = localStorage.getItem("access_token");
+  const userJwt = await getValidToken();
   const { userParentId } = useAuthStore.getState();
   if (body.public_script) {
     body.account_id = userParentId;

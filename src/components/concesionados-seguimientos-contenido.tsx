@@ -10,13 +10,6 @@ import {
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
 import { useDevolucionEquipo } from "@/hooks/Concesionados/useDevolverConcesionado";
 import { useUploadImage } from "@/hooks/useUploadImage";
@@ -32,7 +25,7 @@ import { NuevaDevolucionMiniEquipoModal } from "./modals/concesionados-nueva-dev
 import { NuevaDevolucionEquipoModal } from "./modals/concesionados-nueva-devolucion";
 import { ConfirmacionDevolucionModal } from "./modals/concesionados-confirmacion-devolucion";
 import { Concesion } from "./modals/concesionados-detalle-de-la-concesion";
-
+import { SearchSelect } from "./custom-search-select";
 
 const formSchema = z.object({
   entrega_tipo: z.string().optional(),
@@ -327,39 +320,39 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
                     <div className="col-span-1 flex flex-col gap-3">
 
                       {tipoCon === "empleado" && (
-                        <FormField
-                          control={form.control}
-                          name="entrega_concesion"
-                          render={({ field }: any) => (
-                            <FormItem>
-                              <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                Persona
-                              </FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                          <FormField
+                            control={form.control}
+                            name="entrega_concesion"
+                            render={({ field }: any) => (
+                              <FormItem>
+                                <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                  Nombre de la persona que devuelve
+                                </FormLabel>
                                 <FormControl>
-                                  <SelectTrigger className={`bg-white transition-colors ${intentoEnvio && errores.persona ? "border-red-400 ring-1 ring-red-300" : "border-gray-200"}`}>
-                                    <SelectValue placeholder={
-                                      loadingAreaEmpleadoApoyo ? "Cargando empleados..." :
-                                      dataAreaEmpleadoApoyo?.length > 0 ? "Selecciona una opción..." :
-                                      "Sin opciones disponibles"
-                                    } />
-                                  </SelectTrigger>
+                                  <SearchSelect
+                                    options={Array.from(new Set(dataAreaEmpleadoApoyo ?? [])).map((item: any) =>
+                                      typeof item === "string" ? item : item?.label ?? item?.value ?? ""
+                                    )}
+                                    value={field.value ?? null}
+                                    onChange={(val: any) => field.onChange(val)}
+                                    isLoading={loadingAreaEmpleadoApoyo}
+                                    placeholder={
+                                      loadingAreaEmpleadoApoyo
+                                        ? "Cargando empleados..."
+                                        : dataAreaEmpleadoApoyo?.length > 0
+                                        ? "Selecciona una opción..."
+                                        : "Sin opciones disponibles"
+                                    }
+                                    noOptionsMessage="Sin opciones disponibles"
+                                    isClearable
+                                  />
                                 </FormControl>
-                                <SelectContent>
-                                  {dataAreaEmpleadoApoyo?.length > 0
-                                    ? dataAreaEmpleadoApoyo.map((item: string, i: number) => (
-                                      <SelectItem key={i} value={item}>{item}</SelectItem>
-                                    ))
-                                    : <SelectItem disabled value="no opciones">No hay opciones disponibles</SelectItem>
-                                  }
-                                </SelectContent>
-                              </Select>
-                              {intentoEnvio && errores.persona && (
-                                <p className="text-xs text-red-500 mt-1">Selecciona la persona que entrega</p>
-                              )}
-                            </FormItem>
-                          )}
-                        />
+                                {intentoEnvio && errores.persona && (
+                                  <p className="text-xs text-red-500 mt-1">Selecciona la persona que entrega</p>
+                                )}
+                              </FormItem>
+                            )}
+                          />
                       )}
 
                       {tipoCon === "otro" && (

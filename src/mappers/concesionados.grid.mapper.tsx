@@ -16,13 +16,23 @@ const getStatusConfig = (status: string) => {
 
 export function mapArticuloConcesionadoGrid(raw: any, base: any) {
   const equipos: any[] = raw?.grupo_equipos || [];
-  const firstEquipo = equipos[0];
-  const images = firstEquipo?.imagen_equipo_concesion?.length > 0
-  ? firstEquipo.imagen_equipo_concesion
-      .map((i: any) => i.file_url)
-      .filter((url: string) => Boolean(url) && isValidImageUrl(url))
-  : [];
+
+  // 1. Imágenes de imagen_equipo_concesion (de TODOS los equipos)
+  const imagenesEquipo = equipos
+    .flatMap((e: any) => e?.imagen_equipo_concesion || [])
+    .map((i: any) => i?.file_url)
+    .filter((url: string) => Boolean(url) && isValidImageUrl(url));
+
+  // 2. Imágenes de evidencia_entrega (de TODOS los equipos)
+  const imagenesEvidencia = equipos
+    .flatMap((e: any) => e?.evidencia_entrega || [])
+    .map((i: any) => i?.file_url)
+    .filter((url: string) => Boolean(url) && isValidImageUrl(url));
+
+  // Primero imagen_equipo_concesion, luego evidencia_entrega
+  const images = [...imagenesEquipo, ...imagenesEvidencia];
   const finalImages = images.length > 0 ? images : ["/sin_imagen_rondines.png"];
+
   const statusConfig = getStatusConfig(raw?.status_concesion);
   const persona = raw?.persona_nombre_concesion || raw?.persona_nombre_otro || "Sin nombre";
   const equipoNames = equipos.map((e: any) => e.nombre_equipo).filter(Boolean);
@@ -30,19 +40,19 @@ export function mapArticuloConcesionadoGrid(raw: any, base: any) {
   const equiposText = equipoNames.join(", ");
   const truncate = (text: string, max = 33) =>
     text.length > max ? text.slice(0, max) + "..." : text;
-
   const totalUnidades = equipos.reduce((acc: number, e: any) => acc + Number(e.cantidad_equipo_concesion ?? 0), 0);
   const totalDevueltas = equipos.reduce((acc: number, e: any) => acc + Number(e.cantidad_equipo_devuelto ?? 0), 0);
+  const createdBy = raw?.created_by || "-";
+
   return {
     ...base,
     id: raw?._id || "no-id",
     folio: raw?.folio || "S/F",
-    visit_type: raw?.caseta_concesion || "No disponible",
-      // title: persona,
-    title: equiposText.length > maxLength 
-      ? equiposText.slice(0, maxLength) + "..." 
+    visit_type: `Creado por: ${createdBy}` || "No disponible",
+    title: equiposText.length > maxLength
+      ? equiposText.slice(0, maxLength) + "..."
       : equiposText || "Sin equipos",
-    images:finalImages,
+    images: finalImages,
     status: raw?.status_concesion?.toLowerCase() || "abierto",
     statusLabel: statusConfig.label,
     detailsList: [
@@ -71,7 +81,7 @@ export function mapArticuloConcesionadoGrid(raw: any, base: any) {
         label: "DEVUELTAS",
         value: `Devueltas: ${totalDevueltas} / ${totalUnidades}`,
       },
-
+      
     ],
     modalDetailsList: [
       { icon: <User className="h-3 w-3" />, label: "Persona", value: persona },
@@ -84,6 +94,11 @@ export function mapArticuloConcesionadoGrid(raw: any, base: any) {
         icon: <Package className="h-3 w-3" />,
         label: "Equipos",
         value: equipoNames,
+      },
+      {
+        icon: <User className="h-3 w-3" />,
+        label: "Creado por",
+        value: createdBy,
       },
     ],
     rawData: raw,

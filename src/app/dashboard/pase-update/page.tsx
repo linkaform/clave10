@@ -10,14 +10,13 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
-import LoadImage from "@/components/upload-Image";
-import { Car, Laptop, Loader2, X } from "lucide-react";
+import LoadImage, { Imagen } from "@/components/upload-Image";
+import { Car, Check, Clock, Laptop, Loader2, Share2, X, ArrowLeft, Construction } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import Image from "next/image";
@@ -38,7 +37,10 @@ import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
 import type { CountryCode } from "libphonenumber-js";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 import { useMenuStore } from "@/store/useGetMenuStore";
+import { MapPin, CalendarDays, User, Users, QrCode, Download } from "lucide-react";
 const grupoEquipos = z
   .array(
     z.object({
@@ -101,6 +103,9 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
       acepto_aviso_privacidad: z.boolean().refine((val) => val === true, {
         message: "Debes aceptar el aviso de privacidad",
       }),
+      acepto_reglas_acceso: z.boolean().refine((val) => val === true, {
+        message: "Debes aceptar las reglas de acceso",
+      }),
     })
     .superRefine((data, ctx) => {
       if (
@@ -126,22 +131,6 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
       }
     });
 
-// export type formatData = {
-// 	grupo_equipos:Equipo[],
-// 	grupo_vehiculos:Vehiculo[],
-// 	walkin_fotografia: Imagen[] ,
-// 	walkin_identificacion: Imagen[] ,
-// 	status_pase: string ,
-// 	folio: string,
-// 	account_id: number,
-// 	nombre:string,
-// 	ubicacion:string,
-// 	email:string,
-// 	telefono:string,
-// 	acepto_aviso_privacidad:boolean
-// 	acepto_aviso_datos_personales:boolean
-// 	conservar_datos_por:string
-// }
 export type formatData = z.infer<ReturnType<typeof createSchema>>;
 
 const PaseUpdate = () => {
@@ -171,7 +160,38 @@ const PaseUpdate = () => {
   const [ocrIdenResult, setOcrIdenResult] = useState<any>(null);
   const { grupoRequisitos } = useMenuStore();
   const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
+  const [copiedPadre, setCopiedPadre] = useState(false);
 
+  // Estos tres solo se editan cuando el pase está "en proceso" Y es un pase
+  // vinculado (pertenece a un pase padre, o sea trae link_padre). En cualquier
+  // otro caso se sigue mostrando el texto normal, sin tocar nada más.
+  const [nombrePaseEdit, setNombrePaseEdit] = useState("");
+  const [emailPaseEdit, setEmailPaseEdit] = useState("");
+  const [telefonoPaseEdit, setTelefonoPaseEdit] = useState("");
+
+  useEffect(() => {
+    if (dataCatalogos?.pass_selected) {
+      setNombrePaseEdit(dataCatalogos.pass_selected.nombre || "");
+      setEmailPaseEdit(dataCatalogos.pass_selected.email || "");
+      setTelefonoPaseEdit(dataCatalogos.pass_selected.telefono || "");
+    }
+  }, [dataCatalogos]);
+
+  const handleCopyPadre = async () => {
+    const url = dataCatalogos?.pass_selected?.link_padre;
+    if (!url) {
+      toast.error("No hay link de pase con acompañantes disponible");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedPadre(true);
+      toast.success("Link copiado");
+      setTimeout(() => setCopiedPadre(false), 1500);
+    } catch {
+      toast.error("No se pudo copiar el link");
+    }
+  };
 
   useEffect(() => {
     if (!dataCatalogos?.pass_selected?.ubicacion?.length || !grupoRequisitos?.length) return;
@@ -191,11 +211,12 @@ const PaseUpdate = () => {
   }, [dataCatalogos, grupoRequisitos]);
 
   const handleOcrFotografia = (result: any) => {
-    setOcrFotoResult(result?.data ?? null);
+    setOcrFotoResult(result ?? null);
   };
   const handleOcrIdentificacion = (result: any) => {
-    setOcrIdenResult(result?.data ?? null);
+    setOcrIdenResult(result ?? null);
   };
+
   const [errorFotografia, setErrorFotografia] = useState("");
   const [errorIdentificacion, setErrorIdentificacion] = useState("");
 
@@ -206,6 +227,7 @@ const PaseUpdate = () => {
   const [vehicles, setVehiculos] = useState<Vehiculo[]>([]);
 
   const [mostrarAviso, setMostrarAviso] = useState(false);
+  const [mostrarReglasAcceso, setMostrarReglasAcceso] = useState(false);
   const [radioSelected, setRadioSelected] = useState("3 meses");
 
   const formSchema = useMemo(
@@ -237,6 +259,7 @@ const PaseUpdate = () => {
       email: "",
       telefono: "",
       acepto_aviso_privacidad: false,
+      acepto_reglas_acceso: false,
       acompanantes:[]
     },
   });
@@ -263,6 +286,40 @@ const PaseUpdate = () => {
       toast.success("¡Pase descargado correctamente!");
     } catch (error) {
       toast.error("Error al descargar la imagen: " + error);
+    }
+  };
+
+  const handleDescargarAcompanante = async (m: Miembro) => {
+    const record_id = m.id; // viene de a.qr_code en el mapeo de acompanantes_grupo
+    if (!record_id) {
+      toast.error("No hay pase disponible para este acompañante", {
+        style: { background: "#dc2626", color: "#fff", border: "none" },
+      });
+      return;
+    }
+    try {
+      // setLoadingImgAcompananteId(m.id);
+      toast.loading("Obteniendo pase del acompañante...", {
+        style: { background: "#fff", color: "#000", border: "1px solid #e5e7eb" },
+      });
+      const data = await getImgPassUrl(account_id, record_id);
+      const url = data?.response?.data || "";
+      if (url) {
+        await onDescargarPNG(url);
+      } else {
+        toast.error("No hay pase disponible", {
+          style: { background: "#dc2626", color: "#fff", border: "none" },
+        });
+      }
+      toast.dismiss();
+    } catch (error) {
+      console.log(error);
+      toast.error("Error al obtener el pase del acompañante", {
+        style: { background: "#dc2626", color: "#fff", border: "none" },
+      });
+      toast.dismiss();
+    } finally {
+      // setLoadingImgAcompananteId(null);
     }
   };
 
@@ -394,90 +451,14 @@ const PaseUpdate = () => {
     }
   };
 
-
-
-  useEffect(() => {
-    if (dataCatalogos?.pass_selected) {
-      const acompanantes = dataCatalogos.pass_selected.acompanantes?? 0;
-      // Genera filas vacías según el número de acompañantes
-      const rows = Array.from({ length: acompanantes }, () => ({
-        id: crypto.randomUUID(),
-        nombre: "",
-        email: "",
-        telefono: "",
-      }));
-      setMiembrosAcompanantes(rows);
+  const normalizeImageField = (value: unknown): Imagen[] | undefined => {
+    if (!value) return undefined;
+    if (Array.isArray(value)) return value.length > 0 ? value : undefined;
+    if (typeof value === "string" && value.trim() !== "") {
+      return [{ file_url: value, file_name: "foto" }];
     }
-  }, [dataCatalogos]);
-  // const handleClickAppleButton = async () => {
-  // 	const record_id = dataCatalogos?.pass_selected?._id;
-  // 	const userJwt = localStorage.getItem("access_token");
-
-  // 	toast.info("En mantenimiento...", {
-  // 		style: {
-  // 			background: "#000",
-  // 			color: "#fff",
-  // 			border: 'none'
-  // 		},
-  // 	});
-  // 	toast.dismiss();
-  // 	return;
-
-  // 	toast.loading("Obteniendo tu pase...", {
-  // 		style: {
-  // 			background: "#000",
-  // 			color: "#fff",
-  // 			border: 'none'
-  // 		},
-  // 	});
-
-  // 	try {
-  // 		const response = await fetch(API_ENDPOINTS.runScript, {
-  // 			method: 'POST',
-  // 			body: JSON.stringify({
-  // 				script_name: 'create_pass_apple_wallet.py',
-  // 				record_id
-  // 			}),
-  // 			headers: {
-  // 				'Content-Type': 'application/json',
-  // 				'Authorization': 'Bearer ' + userJwt
-  // 			},
-  // 		});
-  // 		const data = await response.json();
-  // 		const file_url = data?.response?.file_url;
-
-  // 		toast.dismiss();
-  // 		toast.success("Pase obtenido correctamente.", {
-  // 			style: {
-  // 				background: "#000",
-  // 				color: "#fff",
-  // 				border: 'none'
-  // 			},
-  // 		});
-
-  // 		const fileResponse = await fetch(file_url);
-  // 		const blob = await fileResponse.blob();
-  // 		const pkpassBlob = new Blob([blob], { type: 'application/vnd.apple.pkpass' });
-  // 		const url = window.URL.createObjectURL(pkpassBlob);
-
-  // 		const a = document.createElement('a');
-  // 		a.href = url;
-  // 		a.download = 'pass.pkpass';
-  // 		document.body.appendChild(a);
-  // 		a.click();
-  // 		a.remove();
-  // 		window.URL.revokeObjectURL(url);
-  // 	} catch (error) {
-  // 		toast.dismiss();
-  // 		toast.error(`${error}` || "Hubo un error al obtener su pase.", {
-  // 			style: {
-  // 				background: "#000",
-  // 				color: "#fff",
-  // 				border: 'none'
-  // 			},
-  // 		});
-  // 	}
-  // }
+    return undefined;
+  };
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     const formattedData = {
@@ -488,13 +469,19 @@ const PaseUpdate = () => {
       walkin_identificacion: data.walkin_identificacion ?? [],
       folio: id,
       account_id: account_id,
-      nombre: dataCatalogos?.pass_selected?.nombre || "",
+      nombre: nombrePaseEdit || dataCatalogos?.pass_selected?.nombre || "",
       ubicacion: dataCatalogos?.pass_selected?.ubicacion || [],
-      email: dataCatalogos?.pass_selected?.email || "",
-      telefono: dataCatalogos?.pass_selected?.telefono || "",
+      email: emailPaseEdit || dataCatalogos?.pass_selected?.email || "",
+      // "telefono" es para que el modal de confirmación lo pueda mostrar;
+      // "telefono_pase" es la key que espera el backend en el submit.
+      telefono: telefonoPaseEdit || dataCatalogos?.pass_selected?.telefono || "",
+      telefono_pase: telefonoPaseEdit || dataCatalogos?.pass_selected?.telefono || "",
       acepto_aviso_privacidad: data.acepto_aviso_privacidad,
+      acepto_reglas_acceso: data.acepto_reglas_acceso,
       conservar_datos_por: radioSelected,
-      acompanantes: miembrosAcompanantes.map((m) => ({
+      acompanantes:dataCatalogos?.pass_selected?.acompanantes,
+      acompanantes_grupo: miembrosAcompanantes.map((m) => ({
+        qr_code:m.id,
         nombre: m.nombre,
         email: m.email,
         telefono: m.telefono,
@@ -552,6 +539,26 @@ const PaseUpdate = () => {
       setEnableInfo(false);
     }
   }, [id, account_id, enableInfo]);
+
+  useEffect(() => {
+    if (dataCatalogos?.pass_selected) {
+      const grupo = dataCatalogos?.pass_selected?.acompanantes_grupo ?? [];
+
+      const rows: Miembro[] = grupo.map((a) => ({
+        id: a.qr_code || (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`),
+        nombre: a.nombre_acompanante ?? "",
+        email: a.email_acompanante ?? "",
+        telefono: a.telefono_acompanante ?? "",
+        estatus: a.estatus ?? "",
+        foto: normalizeImageField(a.foto),
+        identificacion: normalizeImageField(a.identificacion),
+        link: a.link ?? "",
+        url_hijo: a.url_hijo ?? "",
+      }));
+
+      setMiembrosAcompanantes(rows);
+    }
+  }, [dataCatalogos]);
 
   useEffect(() => {
     if (isActualizarOpen && dataCatalogos?.pass_selected?.grupo_equipos) {
@@ -649,6 +656,102 @@ const PaseUpdate = () => {
     );
   }
 
+  if (mostrarReglasAcceso) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        <button
+          type="button"
+          onClick={() => setMostrarReglasAcceso(false)}
+          className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 mb-4 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Volver
+        </button>
+        <h1 className="font-bold text-2xl text-slate-800 mb-4">Reglas de acceso</h1>
+        <div className="w-full h-[75vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex items-center justify-center">
+          {/* TODO: reemplazar por la URL real del PDF de reglas de acceso */}
+          {/* <iframe
+            src="asfda"
+            className="w-full h-full"
+            title="Reglas de acceso"
+          /> */}
+          <div className="flex flex-col items-center gap-3 text-center px-6">
+            <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center">
+              <Construction className="w-7 h-7 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-slate-700 font-semibold text-sm">En construcción</p>
+              <p className="text-slate-400 text-xs mt-1">
+                Estamos preparando este contenido, vuelve a intentarlo más tarde.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
+  const activo = dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo";
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border px-4 py-3.5 shadow-sm ${
+      activo
+        ? "border-green-200 bg-gradient-to-r from-green-50 to-emerald-50"
+        : "border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50"
+    }`}>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-900 text-white">
+              <Users size={12} className={activo ? "text-green-400" : "text-blue-400"} />
+              Pase de acompañante
+            </span>
+          </div>
+          <p className="text-slate-800 text-sm font-semibold mb-1">
+            Este pase pertenece a un grupo con pase padre
+          </p>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-slate-700 text-xs font-semibold">Estatus del pase padre:</span>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white ${
+              activo ? "bg-green-600" : "bg-blue-600"
+            }`}>
+              {dataCatalogos.pass_selected.estatus_pase_padre || "—"}
+            </span>
+          </div>
+          {activo ? (
+            <p className="text-green-700 text-xs font-medium">
+              El pase padre ya está activo. Comparte el link para que lo puedan ver.
+            </p>
+          ) : (
+            <p className="text-blue-700 text-xs font-medium">
+              El pase padre aún está en proceso — el link estará disponible cuando se active.
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          title={activo ? "Compartir link" : "Pase en proceso"}
+          className={`shrink-0 flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold shadow-sm transition-all ${
+            activo
+              ? "bg-green-600 hover:bg-green-700 text-white hover:scale-105 active:scale-95 cursor-pointer"
+              : "bg-blue-200 text-blue-500 cursor-not-allowed"
+          }`}
+          onClick={activo ? handleCopyPadre : undefined}
+          disabled={!activo}
+        >
+          {activo ? (
+            copiedPadre ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />
+          ) : (
+            <Clock className="w-4 h-4" />
+          )}
+          <span>Compartir link</span>
+        </button>
+      </div>
+    </div>
+  );
+})();
+
   return (
     <div className="p-8">
       <EntryPassModal2
@@ -661,7 +764,7 @@ const PaseUpdate = () => {
         parentUserId={account_id}
       />
       {dataCatalogos?.pass_selected?.estatus == "proceso" ? (
-        <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 pt-0">
+        <div className="max-w-5xl mx-auto px-4 py-6 space-y-6 pt-0">
           <h1 className="font-bold text-2xl text-center text-slate-800">
             Pase De Entrada
           </h1>
@@ -671,28 +774,58 @@ const PaseUpdate = () => {
               <p className="font-bold text-slate-800 whitespace-nowrap">
                 Nombre:
               </p>
-              <p className="text-slate-800">
-                {dataCatalogos?.pass_selected?.nombre}
-              </p>
+              {dataCatalogos?.pass_selected?.link_padre ? (
+                <input
+                  type="text"
+                  value={nombrePaseEdit}
+                  onChange={(e) => setNombrePaseEdit(e.target.value)}
+                  className="text-slate-800 bg-white border border-gray-200 rounded-lg px-2 py-1 text-sm w-full max-w-xs outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                />
+              ) : (
+                <p className="text-slate-800">
+                  {dataCatalogos?.pass_selected?.nombre}
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2">
               <p className="font-bold text-slate-800 whitespace-nowrap">
                 Email:
               </p>
-              <p className="text-slate-800 break-words">
-                {dataCatalogos?.pass_selected?.email}
-              </p>
+              {dataCatalogos?.pass_selected?.link_padre ? (
+                <input
+                  type="email"
+                  value={emailPaseEdit}
+                  onChange={(e) => setEmailPaseEdit(e.target.value)}
+                  className="text-slate-800 bg-white border border-gray-200 rounded-lg px-2 py-1 text-sm w-full max-w-xs outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                />
+              ) : (
+                <p className="text-slate-800 break-words">
+                  {dataCatalogos?.pass_selected?.email}
+                </p>
+              )}
             </div>
 
-            {dataCatalogos?.pass_selected?.telefono && (
+            {(dataCatalogos?.pass_selected?.telefono || dataCatalogos?.pass_selected?.link_padre) && (
               <div className="flex gap-2">
                 <p className="font-bold text-slate-800 whitespace-nowrap">
                   Teléfono:
                 </p>
-                <p className="text-slate-800">
-                  {dataCatalogos?.pass_selected?.telefono}
-                </p>
+                {dataCatalogos?.pass_selected?.link_padre ? (
+                  <div className="w-full max-w-xs bg-white border border-gray-200 rounded-lg px-2 py-1 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400">
+                    <PhoneInput
+                      defaultCountry={defaultCountry}
+                      international
+                      value={telefonoPaseEdit}
+                      onChange={(value) => setTelefonoPaseEdit(value || "")}
+                      className="w-full [&_.PhoneInputInput]:bg-transparent [&_.PhoneInputInput]:border-none [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:text-sm [&_.PhoneInputInput]:text-slate-800 [&_.PhoneInputInput]:w-full"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-slate-800">
+                    {dataCatalogos?.pass_selected?.telefono}
+                  </p>
+                )}
               </div>
             )}
 
@@ -746,31 +879,32 @@ const PaseUpdate = () => {
                         setImg={field.onChange}
                         facingMode="user"
                         tipoOcr="persona"
-                        limit={1}
+                        accountId={account_id || undefined}
+                        onClear={() => setOcrFotoResult(null)}
                         onOcrResult={handleOcrFotografia}
                         ocrResultChildren={
                           ocrFotoResult ? (
                             <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
                               ocrFotoResult.es_persona
                                 ? "bg-green-50 border-green-200 text-green-700"
-                                : "bg-red-50 border-red-200 text-red-600"
+                                : "bg-amber-50 border-amber-200 text-amber-700"
                             }`}>
                               {ocrFotoResult.es_persona ? (
                                 <><span className="text-green-500 text-base">✓</span>
                                 <span>Se detectó una persona en la foto</span></>
                               ) : (
-                                <><span className="text-red-500 text-base">✗</span>
-                                <span>No se detectó una persona — sube una foto del rostro</span></>
+                                <><span className="text-amber-500 text-base">⚠</span>
+                                <span>No detectamos claramente un rostro — puedes continuar, pero verifica que la foto se vea bien</span></>
                               )}
                             </div>
                           ) : null
                         }
                       />
 
-                      {fieldState.error && (
-                        <span className="text-red-500 text-xs mt-1 block">
-                          {fieldState.error.message}
-                        </span>
+                      {fieldState.error && form.formState.isSubmitted && (
+                          <span className="text-red-500 text-xs mt-1 block">
+                            {fieldState.error.message}
+                          </span>
                       )}
                     </div>
                   </div>
@@ -794,7 +928,8 @@ const PaseUpdate = () => {
                         showWebcamOption={true}
                         facingMode="environment"
                         tipoOcr="id"
-                        limit={1}
+                        accountId={account_id || undefined}
+                        onClear={() => setOcrIdenResult(null)}
                         onOcrResult={handleOcrIdentificacion}
                         ocrResultChildren={
                         ocrIdenResult ? (() => {
@@ -811,15 +946,15 @@ const PaseUpdate = () => {
                           ["ine", "licencia"].includes(iden.tipo_documento.toLowerCase().trim());
                           return (
                             <div className="flex flex-col gap-1">
-                              <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
-                                esId ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-600"
+                             <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
+                                esId ? "bg-green-50 border-green-200 text-green-700" : "bg-amber-50 border-amber-200 text-amber-700"
                               }`}>
                                 {esId ? (
                                   <><span className="text-green-500 text-base">✓</span>
                                   <span>Identificación detectada — <strong>{ocrIdenResult.tipo_documento ?? "ID"}</strong></span></>
                                 ) : (
-                                  <><span className="text-red-500 text-base">✗</span>
-                                  <span>No se detectó una identificación válida</span></>
+                                  <><span className="text-amber-500 text-base">⚠</span>
+                                  <span>No pudimos confirmar el tipo de documento — puedes continuar, pero revisa que la imagen sea legible</span></>
                                 )}
                               </div>
                               {ocrIdenResult.nombre && (
@@ -840,7 +975,7 @@ const PaseUpdate = () => {
                         })() : null
                       }
                       />
-                      {fieldState.error && (
+                      {fieldState.error && form.formState.isSubmitted && (
                         <span className="text-red-500 text-xs mt-1 block">
                           {fieldState.error.message}
                         </span>
@@ -851,23 +986,49 @@ const PaseUpdate = () => {
               />
             )}
           </div>
-          {dataCatalogos && dataCatalogos.pass_selected && (dataCatalogos.pass_selected?.acompanantes ?? 0) > 0 &&
-            <MiembrosPase
-              miembros={miembrosAcompanantes}
-              setMiembros={setMiembrosAcompanantes}
-              rowErrors={{}}
-              setRowErrors={() => {}}
-              useIA
-              // showCreatePass
-              // showDownload
-              // showShare
-              // onCreatePass={(m) => console.log("crear pase", m)}
-              // onDownload={(m) => console.log("descargar", m)}
-              // onShare={(m) => console.log("compartir", m)} 
-              defaultCountry={defaultCountry}
-              viewMode
-            />
-          }
+      
+          {pasePadreBadge}
+
+          {(dataCatalogos?.pass_selected?.acompanantes_grupo?.length ?? 0) > 0 && (() => {
+            const activo = dataCatalogos?.pass_selected?.estatus?.toLowerCase() === "activo";
+
+            return (
+              <div className={`relative overflow-hidden rounded-2xl border px-4 py-3.5 shadow-sm ${
+                activo
+                  ? "border-green-200 bg-gradient-to-r from-green-50 to-emerald-50"
+                  : "border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50"
+              }`}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-900 text-white">
+                        <Users size={12} className={activo ? "text-green-400" : "text-blue-400"} />
+                        Pase con acompañantes
+                      </span>
+                    </div>
+                    <p className={`text-xs font-medium ${activo ? "text-green-700" : "text-blue-700"}`}>
+                      Este pase es un pase con acompañantes, a continuación puedes editar la información de cada uno
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500 mb-3 italic">
+                  Completa la información de los acompañantes en caso de tener los datos disponibles.
+                </p>
+
+                <MiembrosPase
+                  miembros={miembrosAcompanantes}
+                  setMiembros={setMiembrosAcompanantes}
+                  rowErrors={{}}
+                  setRowErrors={() => {}}
+                  useIA
+                  onDownload={(m) => handleDescargarAcompanante(m)}
+                  defaultCountry={defaultCountry}
+                  modo="completar"
+                />
+              </div>
+            );
+          })()}
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
           <div className="space-y-2">
@@ -1098,7 +1259,7 @@ const PaseUpdate = () => {
               <FormField
                 control={form.control}
                 name="acepto_aviso_privacidad"
-                render={({ field }) => (
+                render={({ field , fieldState}) => (
                   <FormItem>
                     <FormControl>
                       <div className="flex items-center gap-2">
@@ -1121,7 +1282,46 @@ const PaseUpdate = () => {
                         </Label>
                       </div>
                     </FormControl>
-                    <FormMessage />
+                    {fieldState.error && form.formState.isSubmitted && (
+                      <span className="text-red-500 text-xs mt-1 block">
+                        {fieldState.error.message}
+                      </span>
+                    )}
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="acepto_reglas_acceso"
+                render={({ field , fieldState}) => (
+                  <FormItem>
+                    <FormControl>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          id="reglas-acceso"
+                        />
+                        <Label
+                          htmlFor="reglas-acceso"
+                          className="text-sm text-slate-500">
+                          <span className="text-red-500 mr-1">*</span>
+                          Estoy de acuerdo con las{" "}
+                          <button
+                            type="button"
+                            onClick={() => setMostrarReglasAcceso(true)}
+                            className="text-blue-600 underline hover:text-blue-800">
+                            reglas de acceso
+                          </button>
+                        </Label>
+                      </div>
+                    </FormControl>
+                    {fieldState.error && form.formState.isSubmitted && (
+                      <span className="text-red-500 text-xs mt-1 block">
+                        {fieldState.error.message}
+                      </span>
+                    )}
                   </FormItem>
                 )}
               />
@@ -1139,133 +1339,209 @@ const PaseUpdate = () => {
         </div>
       ) : (
         <>
-          {dataCatalogos?.pass_selected?.estatus == "activo" ||
+         {dataCatalogos?.pass_selected?.estatus == "activo" ||
           dataCatalogos?.pass_selected?.estatus == "vencido" ? (
             <>
-              <div className="flex flex-col items-center justify-start  space-y-3 max-w-2xl mx-auto h-screen">
-                <span className="font-bold text-3xl text-slate-800">
-                  {dataCatalogos?.pass_selected?.nombre}
-                </span>
-                <div>
-                  <p className="font-bold whitespace-nowrap">Visita General </p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <div className="w-full flex sm:flex-row gap-2">
-                    <p className="font-bold whitespace-nowrap">Visita a: </p>
-                    <p className="w-full break-words">
-                      {dataCatalogos?.pass_selected?.visita_a[0]
-                        ? dataCatalogos?.pass_selected?.visita_a[0]?.nombre
-                        : ""}
-                    </p>
-                  </div>
+              <div className="flex flex-col items-center justify-start gap-3 max-w-2xl mx-auto pb-10">
 
-                  <div className="w-full flex gap-2">
-                    <p className="font-bold whitespace-nowrap">Ubicación:</p>
-                    <div className="relative group w-full break-words">
-                      {dataCatalogos?.pass_selected?.ubicacion[0]}
-                      {dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
-                        <span className="text-blue-600 cursor-pointer ml-1 underline relative">
-                          +{dataCatalogos?.pass_selected?.ubicacion.length - 1}
-                          {/* Tooltip container */}
-                          <div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
-                            {Array.isArray(
-                              dataCatalogos?.pass_selected?.ubicacion,
-                            ) &&
-                              dataCatalogos?.pass_selected?.ubicacion.length >
-                                1 &&
-                              dataCatalogos?.pass_selected?.ubicacion
-                                .slice(1)
-                                .map((ubic: string, idx: number) => (
-                                  <div key={idx}>{ubic}</div>
-                                ))}
-                          </div>
+                {/* HERO: solo nombre */}
+                <div className="w-full text-center ">
+                  <h1 className="font-extrabold text-3xl text-slate-900 tracking-tight">
+                    {dataCatalogos?.pass_selected?.nombre}
+                  </h1>
+                  <p className="text-slate-400 text-sm mt-1">Pase de entrada · Visita General</p>
+                </div>
+
+                {/* CARD: info de visita en grid 2 columnas */}
+                <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                        <Check size={15} className="text-blue-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wide">Estatus</p>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide text-white ${
+                          dataCatalogos?.pass_selected?.estatus === "activo"
+                            ? "bg-green-600"
+                            : "bg-gray-500"
+                        }`}>
+                          {dataCatalogos?.pass_selected?.estatus === "activo" ? "Activo" : "Vencido"}
                         </span>
-                      )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="w-full flex  gap-2">
-                    <p className="font-bold whitespace-nowrap">Fecha : </p>
-                    <p className="text-sm">
-                      {dataCatalogos?.pass_selected?.fecha_de_expedicion}
-                    </p>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                        <User size={15} className="text-blue-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wide">Visita a</p>
+                        <p className="text-sm text-slate-800 font-medium break-words">
+                          {dataCatalogos?.pass_selected?.visita_a?.[0]?.nombre || "—"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                        <MapPin size={15} className="text-blue-600" />
+                      </div>
+                      <div className="relative group min-w-0">
+                        <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wide">Ubicación</p>
+                        <p className="text-sm text-slate-800 font-medium break-words">
+                          {dataCatalogos?.pass_selected?.ubicacion[0]}
+                          {dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
+                            <span className="text-blue-600 cursor-pointer ml-1.5 underline text-xs font-semibold">
+                              +{dataCatalogos?.pass_selected?.ubicacion.length - 1} más
+                              <div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-lg group-hover:block">
+                                {dataCatalogos?.pass_selected?.ubicacion
+                                  .slice(1)
+                                  .map((ubic: string, idx: number) => (
+                                    <div key={idx} className="py-0.5">{ubic}</div>
+                                  ))}
+                              </div>
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                        <CalendarDays size={15} className="text-blue-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wide">Fecha de expedición</p>
+                        <p className="text-sm text-slate-800 font-medium">
+                          {dataCatalogos?.pass_selected?.fecha_de_expedicion}
+                        </p>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
-                <div className="w-full flex-col">
-                  {dataCatalogos?.pass_selected?.qr_pase[0]?.file_url ? (
-                    <>
-                      <div className="w-full flex justify-center">
-                        <Image
-                          width={280}
-                          height={280}
-                          src={
-                            dataCatalogos?.pass_selected?.qr_pase[0]
-                              ?.file_url ?? "/nouser.svg"
-                          }
-                          alt="Imagen"
-                          className="w-42 h-42 object-contain bg-gray-200 rounded-lg"
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-full flex justify-center">
-                        <Image
-                          width={280}
-                          height={280}
-                          src={"/nouser.svg"}
-                          alt="Imagen"
-                          className="w-42 h-42 object-contain bg-gray-200 rounded-lg"
-                        />
-                      </div>
-                    </>
-                  )}
+
+                {/* TICKET: QR con estilo boleto (bordes con muescas simuladas) */}
+                <div className="w-full relative">
+                  <div className="bg-white border border-slate-200 rounded-2xl shadow-md px-6 py-8 flex flex-col items-center relative overflow-hidden">
+                    {/* muescas laterales simulando ticket */}
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-slate-50 border border-slate-200" />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-6 h-6 rounded-full bg-slate-50 border border-slate-200" />
+
+                    <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold uppercase tracking-wide mb-4">
+                      <QrCode size={14} />
+                      <span>Código de acceso</span>
+                    </div>
+
+                    <div className="p-3 bg-white rounded-xl border-2 border-slate-100">
+                      <Image
+                        width={220}
+                        height={220}
+                        src={dataCatalogos?.pass_selected?.qr_pase?.[0]?.file_url ?? "/nouser.svg"}
+                        alt="Código QR del pase"
+                        className="w-52 h-52 object-contain rounded-lg"
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 mt-3">Muestra este código en el acceso</p>
+                  </div>
                 </div>
 
-                <div className="flex flex-row gap-3 items-center">
-                  <button type="button" onClick={handleClickGoogleButton}>
+                {/* ACCIONES: wallet + descargar */}
+                <div className="w-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={handleClickGoogleButton}
+                    className="flex items-center justify-center rounded-xl overflow-hidden hover:opacity-90 transition-opacity">
                     <Image
                       src="/esES_add_to_google_wallet_add-wallet-badge.png"
                       alt="Add to Google Wallet"
-                      width={150}
-                      height={150}
+                      width={160}
+                      height={44}
+                      className="h-11 w-auto"
                     />
                   </button>
 
-                  {/* <button type="button" onClick={handleClickAppleButton}>
-							<Image src="/ESMX_Add_to_Apple_Wallet_RGB_101821.svg" alt="Add to Apple Wallet" width={150} height={150} className="mt-2" />
-						</button> */}
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      className="w-40 m-0 bg-yellow-400 hover:bg-yellow-600 text-black font-bold rounded-2xl"
-                      type="button"
-                      onClick={() => handleClickImgButton()}
-                      disabled={loadingImgPass}>
-                      {!loadingImgPass ? (
-                        "Descargar Pase"
-                      ) : (
-                        <>
-                          <Loader2 className="animate-spin" />
-                          Descargando...
-                        </>
-                      )}
-                    </Button>
+                  <Button
+                    className="h-11 px-6 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-sm flex items-center gap-2"
+                    type="button"
+                    onClick={() => handleClickImgButton()}
+                    disabled={loadingImgPass}>
+                    {!loadingImgPass ? (
+                      <>
+                        <Download size={16} />
+                        Descargar Pase
+                      </>
+                    ) : (
+                      <>
+                        <Loader2 className="animate-spin" size={16} />
+                        Descargando...
+                      </>
+                    )}
+                  </Button>
 
-                    <Button
-                      className={`hidden w-40 m-0 ${
-                        isActualizarOpen
-                          ? "bg-red-500 hover:bg-red-600"
-                          : "bg-blue-500 hover:bg-blue-600"
-                      }`}
-                      type="button"
-                      onClick={() => {
-                        setIsActualizarOpen(!isActualizarOpen);
-                      }}
-                      disabled={loadingDataCatalogos}>
-                      {isActualizarOpen ? "Cerrar" : "Actualizar información"}
-                    </Button>
-                  </div>
+                  <Button
+                    className={`hidden h-11 px-6 font-semibold rounded-xl ${
+                      isActualizarOpen
+                        ? "bg-red-500 hover:bg-red-600"
+                        : "bg-blue-500 hover:bg-blue-600"
+                    }`}
+                    type="button"
+                    onClick={() => setIsActualizarOpen(!isActualizarOpen)}
+                    disabled={loadingDataCatalogos}>
+                    {isActualizarOpen ? "Cerrar" : "Actualizar información"}
+                  </Button>
                 </div>
+
+                {/* BADGE: pase hijo vinculado a un padre */}
+                <div className="w-full">
+                  {pasePadreBadge}
+                </div>
+                {/* BLOQUE: este ES el pase padre, mostrar acompañantes */}
+                {(dataCatalogos?.pass_selected?.acompanantes_grupo?.length ?? 0) > 0 && (() => {
+                  const activo = dataCatalogos?.pass_selected?.estatus?.toLowerCase() === "activo";
+                  return (
+                    <div className="w-full">
+                      <div className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-3 shadow-sm border-2 ${
+                        activo
+                          ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-300"
+                          : "bg-gradient-to-r from-blue-50 to-sky-50 border-blue-300"
+                      }`}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-800 text-white">
+                              <Users size={11} className={activo ? "text-green-400" : "text-blue-400"} />
+                              Pase con Acompañantes
+                            </span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white ${
+                              activo ? "bg-green-600" : "bg-blue-600"
+                            }`}>
+                              {dataCatalogos?.pass_selected?.estatus || "—"}
+                            </span>
+                          </div>
+                          <p className={`text-xs font-medium ${activo ? "text-green-700" : "text-blue-700"}`}>
+                            {activo
+                              ? "Este es un pase con acompañantes activo — a continuación los miembros de su grupo."
+                              : "Este pase con acompañantes está en proceso — a continuación los miembros de su grupo."}
+                          </p>
+                        </div>
+                      </div>
+                      <MiembrosPase
+                        miembros={miembrosAcompanantes}
+                        setMiembros={setMiembrosAcompanantes}
+                        rowErrors={{}}
+                        setRowErrors={() => {}}
+                        useIA
+                        onDownload={(m) => handleDescargarAcompanante(m)}
+                        defaultCountry={defaultCountry}
+                        modo="ver"
+                        showArrow ={true} 
+                      />
+                    </div>
+                  );
+                })()}
 
                 {loadingDataCatalogos ? (
                   <div className="flex justify-center items-center h-screen">
@@ -1274,323 +1550,200 @@ const PaseUpdate = () => {
                 ) : (
                   <>
                     {isActualizarOpen == true ? (
-                      <>
-                        <div className="flex flex-col items-center justify-start gap-5">
-                          <div className="flex flex-col sm:flex-row gap-2 ">
-                            <div className="flex flex-col">
-                              <p>Fotografia actual: </p>
-                              <Image
-                                width={180}
-                                height={180}
-                                src={
-                                  dataCatalogos?.pass_selected?.foto
-                                    ? (dataCatalogos?.pass_selected?.foto[0]
-                                        ?.file_url ?? "/nouser.svg")
-                                    : "/nouser.svg"
-                                }
-                                alt="Imagen"
-                                className="w-42 h-42 object-cover bg-gray-200 rounded-lg"
-                              />
-                            </div>
-                            <div>
-                              <p>Identificacion actual: </p>
-                              <Image
-                                width={180}
-                                height={180}
-                                src={
-                                  dataCatalogos?.pass_selected?.identificacion
-                                    ? dataCatalogos?.pass_selected
-                                        ?.identificacion[0]?.file_url
-                                    : "/nouser.svg"
-                                }
-                                alt="Imagen"
-                                className="w-42 h-42  object-cover bg-gray-200 rounded-lg mb-2"
-                              />
-                            </div>
+                      <div className="w-full flex flex-col items-center justify-start gap-6">
+
+                        {/* fotos actuales en cards */}
+                        <div className="w-full flex flex-col sm:flex-row gap-3">
+                          <div className="flex-1 bg-white border border-slate-200 rounded-2xl p-3 flex flex-col items-center">
+                            <p className="text-xs font-semibold text-slate-500 mb-2">Fotografía actual</p>
+                            <Image
+                              width={160}
+                              height={160}
+                              src={dataCatalogos?.pass_selected?.foto?.[0]?.file_url || "/nouser.svg"}
+                              alt="Imagen"
+                              className="w-40 h-40 object-cover bg-gray-100 rounded-xl"
+                            />
                           </div>
-
-                          <div className="flex flex-col gap-y-6">
-                            <div>
-                              <div className="flex items-center gap-x-10">
-                                <span className="font-bold text-xl">
-                                  Lista de Vehículos
-                                </span>
-                                <VehicleLocalPassModal
-                                  title="Nuevo Vehiculo"
-                                  vehicles={vehicles}
-                                  setVehiculos={setVehiculos}
-                                  isAccesos={false}
-                                  fetch={false}>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleCheckboxChange("agregar-vehiculos")
-                                    }
-                                    className="px-4 py-2 rounded-md transition-all duration-300 border-2 border-blue-400 bg-transparent hover:bg-slate-100">
-                                    <div className="flex items-center gap-2">
-                                      <div className="text-blue-600 sm:hidden text-xl font-bold">
-                                        +
-                                      </div>
-                                      <Car className="text-blue-600" />
-                                      <div className="text-blue-600 hidden sm:block">
-                                        Agregar Vehículos
-                                      </div>
-                                    </div>
-                                  </button>
-                                </VehicleLocalPassModal>
-                              </div>
-                              <div className="mt-2 text-gray-600">
-                                <Accordion type="multiple" className="w-full">
-                                  {vehicles.map((vehiculo, index) => (
-                                    <AccordionItem
-                                      key={index}
-                                      value={`vehiculo-${index}`}>
-                                      <AccordionTrigger>
-                                        {vehiculo.tipo}
-                                      </AccordionTrigger>
-                                      <AccordionContent>
-                                        <div className="p-4 text-sm">
-                                          {(vehiculo.foto_vehiculo?.length ?? 0) > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                              <div className="space-y-1">
-                                                <p>
-                                                  <strong>Tipo:</strong>{" "}
-                                                  {vehiculo.tipo}
-                                                </p>
-                                                <p>
-                                                  <strong>Marca:</strong>{" "}
-                                                  {vehiculo.marca}
-                                                </p>
-                                                <p>
-                                                  <strong>Modelo:</strong>{" "}
-                                                  {vehiculo.modelo}
-                                                </p>
-                                                <p>
-                                                  <strong>Placas:</strong>{" "}
-                                                  {vehiculo.placas}
-                                                </p>
-                                                <p>
-                                                  <strong>Estado:</strong>{" "}
-                                                  {vehiculo.estado}
-                                                </p>
-                                                <p>
-                                                  <strong>Color:</strong>{" "}
-                                                  {vehiculo.color}
-                                                </p>
-                                              </div>
-                                              <div className="flex flex-col items-center justify-center border rounded-md p-2 bg-gray-50">
-                                                <p className="text-xs font-bold mb-2">
-                                                  Foto del Vehículo
-                                                </p>
-                                                <Image
-                                                  src={
-                                                    vehiculo.foto_vehiculo?.[0]
-                                                      ?.file_url || "/nouser.svg"
-                                                  }
-                                                  alt="Foto vehículo"
-                                                  width={150}
-                                                  height={150}
-                                                  className="rounded-md object-cover w-full max-h-[150px]"
-                                                />
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                              <p>
-                                                <strong>Tipo:</strong>{" "}
-                                                {vehiculo.tipo}
-                                              </p>
-                                              <p>
-                                                <strong>Marca:</strong>{" "}
-                                                {vehiculo.marca}
-                                              </p>
-                                              <p>
-                                                <strong>Modelo:</strong>{" "}
-                                                {vehiculo.modelo}
-                                              </p>
-                                              <p>
-                                                <strong>Placas:</strong>{" "}
-                                                {vehiculo.placas}
-                                              </p>
-                                              <p>
-                                                <strong>Estado:</strong>{" "}
-                                                {vehiculo.estado}
-                                              </p>
-                                              <p>
-                                                <strong>Color:</strong>{" "}
-                                                {vehiculo.color}
-                                              </p>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        <div className="flex justify-end px-4 pb-4">
-                                          <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() => handleRemove(index)}>
-                                            Eliminar
-                                          </Button>
-                                        </div>
-                                      </AccordionContent>
-                                    </AccordionItem>
-                                  ))}
-                                  {vehicles.length == 0 ? (
-                                    <div>No se han agregado vehiculos.</div>
-                                  ) : null}
-                                </Accordion>
-                              </div>
-                            </div>
-
-                            <div>
-                              <div className="flex items-center gap-x-10">
-                                <span className="font-bold text-xl">
-                                  Lista de Equipos
-                                </span>
-                                <EqipmentLocalPassModal
-                                  title="Nuevo Equipo"
-                                  equipos={equipos}
-                                  setEquipos={setEquipos}
-                                  isAccesos={false}
-                                  fetch={false}
-                                  userId={account_id}>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleCheckboxChange("agregar-equipos")
-                                    }
-                                    className="px-4 py-2 rounded-md transition-all duration-300 border-2 border-blue-400 bg-transparent hover:bg-slate-100">
-                                    <div className="flex items-center gap-2">
-                                      <div className="text-blue-600 sm:hidden text-xl font-bold">
-                                        +
-                                      </div>
-                                      <Laptop className="text-blue-600" />
-                                      <div className="text-blue-600 hidden sm:block">
-                                        Agregar Equipos
-                                      </div>
-                                    </div>
-                                  </button>
-                                </EqipmentLocalPassModal>
-                              </div>
-                              <div className="mt-2 text-gray-600">
-                                <Accordion type="multiple" className="w-full">
-                                  {equipos.map((equipo, index) => (
-                                    <AccordionItem
-                                      key={index}
-                                      value={`equipo-${index}`}>
-                                      <AccordionTrigger>
-                                        {equipo.tipo}
-                                      </AccordionTrigger>
-                                      <AccordionContent>
-                                        <div className="p-4 text-sm">
-                                          {equipo.foto_equipo &&
-                                          equipo.foto_equipo.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                              <div className="space-y-1">
-                                                <p>
-                                                  <strong>Tipo:</strong>{" "}
-                                                  {equipo.tipo}
-                                                </p>
-                                                <p>
-                                                  <strong>Nombre:</strong>{" "}
-                                                  {equipo.nombre}
-                                                </p>
-                                                <p>
-                                                  <strong>Marca:</strong>{" "}
-                                                  {equipo.marca}
-                                                </p>
-                                                <p>
-                                                  <strong>Modelo:</strong>{" "}
-                                                  {equipo.modelo}
-                                                </p>
-                                                <p>
-                                                  <strong>No. Serie:</strong>{" "}
-                                                  {equipo.serie}
-                                                </p>
-                                                <p>
-                                                  <strong>Color:</strong>{" "}
-                                                  {equipo.color}
-                                                </p>
-                                              </div>
-                                              <div className="flex flex-col items-center justify-center border rounded-md p-2 bg-gray-50">
-                                                <p className="text-xs font-bold mb-2">
-                                                  Foto del Equipo
-                                                </p>
-                                                <Image
-                                                  src={
-                                                    equipo.foto_equipo[0]
-                                                      .file_url || "/nouser.svg"
-                                                  }
-                                                  alt="Foto equipo"
-                                                  width={150}
-                                                  height={150}
-                                                  className="rounded-md object-cover w-full max-h-[150px]"
-                                                />
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                              <p>
-                                                <strong>Tipo:</strong>{" "}
-                                                {equipo.tipo}
-                                              </p>
-                                              <p>
-                                                <strong>Nombre:</strong>{" "}
-                                                {equipo.nombre}
-                                              </p>
-                                              <p>
-                                                <strong>Marca:</strong>{" "}
-                                                {equipo.marca}
-                                              </p>
-                                              <p>
-                                                <strong>Modelo:</strong>{" "}
-                                                {equipo.modelo}
-                                              </p>
-                                              <p>
-                                                <strong>No. Serie:</strong>{" "}
-                                                {equipo.serie}
-                                              </p>
-                                              <p>
-                                                <strong>Color:</strong>{" "}
-                                                {equipo.color}
-                                              </p>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        <div className="flex justify-end px-4 pb-4">
-                                          <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() =>
-                                              handleRemoveEq(index)
-                                            }>
-                                            Eliminar
-                                          </Button>
-                                        </div>
-                                      </AccordionContent>
-                                    </AccordionItem>
-                                  ))}
-                                  {equipos.length == 0 ? (
-                                    <div>No se han agregado equipos.</div>
-                                  ) : null}
-                                </Accordion>
-                              </div>
-                            </div>
+                          <div className="flex-1 bg-white border border-slate-200 rounded-2xl p-3 flex flex-col items-center">
+                            <p className="text-xs font-semibold text-slate-500 mb-2">Identificación actual</p>
+                            <Image
+                              width={160}
+                              height={160}
+                              src={
+                                dataCatalogos?.pass_selected?.identificacion
+                                  ? dataCatalogos?.pass_selected?.identificacion[0]?.file_url
+                                  : "/nouser.svg"
+                              }
+                              alt="Imagen"
+                              className="w-40 h-40 object-cover bg-gray-100 rounded-xl"
+                            />
                           </div>
-
-                          {/* <Button className="w-1/2  bg-blue-500 hover:bg-blue-600 my-2" type="submit" onClick={SendUpdate} disabled={isLoading}>
-								{!isLoading ? ("Actualizar"):(<><Loader2 className="animate-spin"/>Actualizando...</>)}
-								</Button> */}
-
-                          <Button
-                            className="w-1/2  bg-blue-500 hover:bg-blue-600 my-2"
-                            type="submit"
-                            onClick={updateInfoActivePass}>
-                            Actualizar
-                          </Button>
                         </div>
-                      </>
+
+                        <div className="w-full flex flex-col gap-6">
+                          {/* Vehículos */}
+                          <div className="bg-white border border-slate-200 rounded-2xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                <Car size={18} className="text-blue-500" />
+                                Vehículos
+                              </span>
+                              <VehicleLocalPassModal
+                                title="Nuevo Vehiculo"
+                                vehicles={vehicles}
+                                setVehiculos={setVehiculos}
+                                isAccesos={false}
+                                fetch={false}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCheckboxChange("agregar-vehiculos")}
+                                  className="px-3 py-1.5 rounded-lg text-sm font-semibold border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-1.5">
+                                  <span className="text-base leading-none">+</span>
+                                  <span className="hidden sm:inline">Agregar</span>
+                                </button>
+                              </VehicleLocalPassModal>
+                            </div>
+
+                            <Accordion type="multiple" className="w-full">
+                              {vehicles.map((vehiculo, index) => (
+                                <AccordionItem key={index} value={`vehiculo-${index}`} className="border-slate-100">
+                                  <AccordionTrigger className="text-sm font-medium text-slate-700 hover:no-underline">
+                                    {vehiculo.tipo}
+                                  </AccordionTrigger>
+                                  <AccordionContent>
+                                    <div className="p-3 text-sm bg-slate-50 rounded-xl">
+                                      {(vehiculo.foto_vehiculo?.length ?? 0) > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          <div className="space-y-1">
+                                            <p><strong>Tipo:</strong> {vehiculo.tipo}</p>
+                                            <p><strong>Marca:</strong> {vehiculo.marca}</p>
+                                            <p><strong>Modelo:</strong> {vehiculo.modelo}</p>
+                                            <p><strong>Placas:</strong> {vehiculo.placas}</p>
+                                            <p><strong>Estado:</strong> {vehiculo.estado}</p>
+                                            <p><strong>Color:</strong> {vehiculo.color}</p>
+                                          </div>
+                                          <div className="flex flex-col items-center justify-center border rounded-lg p-2 bg-white">
+                                            <p className="text-xs font-bold mb-2">Foto del Vehículo</p>
+                                            <Image
+                                              src={vehiculo.foto_vehiculo?.[0]?.file_url || "/nouser.svg"}
+                                              alt="Foto vehículo"
+                                              width={150}
+                                              height={150}
+                                              className="rounded-lg object-cover w-full max-h-[150px]"
+                                            />
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                          <p><strong>Tipo:</strong> {vehiculo.tipo}</p>
+                                          <p><strong>Marca:</strong> {vehiculo.marca}</p>
+                                          <p><strong>Modelo:</strong> {vehiculo.modelo}</p>
+                                          <p><strong>Placas:</strong> {vehiculo.placas}</p>
+                                          <p><strong>Estado:</strong> {vehiculo.estado}</p>
+                                          <p><strong>Color:</strong> {vehiculo.color}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex justify-end pt-3">
+                                      <Button variant="destructive" size="sm" onClick={() => handleRemove(index)}>
+                                        Eliminar
+                                      </Button>
+                                    </div>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              ))}
+                              {vehicles.length == 0 && (
+                                <p className="text-sm text-slate-400 py-2">No se han agregado vehículos.</p>
+                              )}
+                            </Accordion>
+                          </div>
+
+                          {/* Equipos */}
+                          <div className="bg-white border border-slate-200 rounded-2xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                <Laptop size={18} className="text-blue-500" />
+                                Equipos
+                              </span>
+                              <EqipmentLocalPassModal
+                                title="Nuevo Equipo"
+                                equipos={equipos}
+                                setEquipos={setEquipos}
+                                isAccesos={false}
+                                fetch={false}
+                                userId={account_id}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCheckboxChange("agregar-equipos")}
+                                  className="px-3 py-1.5 rounded-lg text-sm font-semibold border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-1.5">
+                                  <span className="text-base leading-none">+</span>
+                                  <span className="hidden sm:inline">Agregar</span>
+                                </button>
+                              </EqipmentLocalPassModal>
+                            </div>
+
+                            <Accordion type="multiple" className="w-full">
+                              {equipos.map((equipo, index) => (
+                                <AccordionItem key={index} value={`equipo-${index}`} className="border-slate-100">
+                                  <AccordionTrigger className="text-sm font-medium text-slate-700 hover:no-underline">
+                                    {equipo.tipo}
+                                  </AccordionTrigger>
+                                  <AccordionContent>
+                                    <div className="p-3 text-sm bg-slate-50 rounded-xl">
+                                      {equipo.foto_equipo && equipo.foto_equipo.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          <div className="space-y-1">
+                                            <p><strong>Tipo:</strong> {equipo.tipo}</p>
+                                            <p><strong>Nombre:</strong> {equipo.nombre}</p>
+                                            <p><strong>Marca:</strong> {equipo.marca}</p>
+                                            <p><strong>Modelo:</strong> {equipo.modelo}</p>
+                                            <p><strong>No. Serie:</strong> {equipo.serie}</p>
+                                            <p><strong>Color:</strong> {equipo.color}</p>
+                                          </div>
+                                          <div className="flex flex-col items-center justify-center border rounded-lg p-2 bg-white">
+                                            <p className="text-xs font-bold mb-2">Foto del Equipo</p>
+                                            <Image
+                                              src={equipo.foto_equipo[0].file_url || "/nouser.svg"}
+                                              alt="Foto equipo"
+                                              width={150}
+                                              height={150}
+                                              className="rounded-lg object-cover w-full max-h-[150px]"
+                                            />
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                          <p><strong>Tipo:</strong> {equipo.tipo}</p>
+                                          <p><strong>Nombre:</strong> {equipo.nombre}</p>
+                                          <p><strong>Marca:</strong> {equipo.marca}</p>
+                                          <p><strong>Modelo:</strong> {equipo.modelo}</p>
+                                          <p><strong>No. Serie:</strong> {equipo.serie}</p>
+                                          <p><strong>Color:</strong> {equipo.color}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex justify-end pt-3">
+                                      <Button variant="destructive" size="sm" onClick={() => handleRemoveEq(index)}>
+                                        Eliminar
+                                      </Button>
+                                    </div>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              ))}
+                              {equipos.length == 0 && (
+                                <p className="text-sm text-slate-400 py-2">No se han agregado equipos.</p>
+                              )}
+                            </Accordion>
+                          </div>
+                        </div>
+
+                        <Button
+                          className="w-full sm:w-1/2 h-11 bg-slate-900 hover:bg-slate-800 rounded-xl font-semibold"
+                          type="submit"
+                          onClick={updateInfoActivePass}>
+                          Actualizar
+                        </Button>
+                      </div>
                     ) : null}
                   </>
                 )}

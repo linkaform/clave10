@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { getValidToken } from "./login/get-valid-token";
 
 export const changeUserPhoto = async (userId:number, file:File) => {            
     const urlChangeImage= `https://app.linkaform.com/api/infosync/user_admin/${userId}/profile_picture/`
@@ -6,7 +7,7 @@ export const changeUserPhoto = async (userId:number, file:File) => {
     formData.append('name', 'profile_picture');
     formData.append('profile_picture', file);
     
-    const userJwt = localStorage.getItem("access_token");
+    const userJwt = await getValidToken();
     const response= await fetch(urlChangeImage, {
         method: 'POST',
         body: formData,

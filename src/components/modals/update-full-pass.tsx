@@ -47,6 +47,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { useAssetsByLocations } from "@/hooks/assetsQueries";
+import { Imagen } from "../upload-Image";
 
 const enviarPreSmsSchema = z.object({
 	from: z.string().min(1, { message: "El campo 'from' no puede estar vacío." }),
@@ -103,6 +104,7 @@ const formSchema = z
 		todas_las_areas: z.boolean().optional(),
 		habilitar_vehiculo: z.string().optional(),
 		acompanantes: z.number().min(0).optional(),
+		acompanantes_grupo:z.array(z.any())
 	})
 	.refine((data) => {
 		if (data.tipo_visita_pase === 'rango_de_fechas') {
@@ -160,7 +162,8 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	const [habilitarVehiculo, setHabilitarVehiculo] = useState(dataPass.habilitar_vehiculo === "sí" || dataPass.habilitar_vehiculo === true);
 	const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
 	const [miembrosRowErrors, setMiembrosRowErrors] = useState<Record<string, { email: boolean; telefono: boolean }>>({});
-
+	const [acompanantesActivos, setAcompanantesActivos] = useState<Miembro[]>([]);
+	const [existingIds, setExistingIds] = useState<Set<string>>(new Set());
 	const areasFormateadas = dataPass?.areas?.map(({ incidente_area, commentario_area }: AreaAcceso) => ({
 		nombre_area: incidente_area,
 		commentario_area,
@@ -190,7 +193,18 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	);
 	console.log(visitas,fechaDesde)
 	const { grupoRequisitos } = useMenuStore();
-	const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
+	const [defaultCountry, setDefaultCountry] = useState<CountryCode  | undefined>(undefined);
+
+	const normalizeImageField = (value: unknown): Imagen[] | undefined => {
+		if (!value) return undefined;
+		if (Array.isArray(value)) {
+			return value.length > 0 ? value : undefined;
+		}
+		if (typeof value === "string" && value.trim() !== "") {
+			return [{ file_url: value, file_name: "foto" }];
+		}
+		return undefined;
+	};
 
 	useEffect(() => {
 	if (!ubicacionesSeleccionadas?.length || !grupoRequisitos?.length) return;
@@ -202,10 +216,10 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	);
 
 	if (requisito?.prefijo_telefonico) {
-		const country = prefijoToCountry[String(requisito.prefijo_telefonico)] ?? "MX";
-		setDefaultCountry(country as CountryCode);
+	const country = prefijoToCountry[String(requisito.prefijo_telefonico)];
+		setDefaultCountry(country as CountryCode | undefined);
 	} else {
-		setDefaultCountry("MX");
+		setDefaultCountry(undefined);
 	}
 	}, [ubicacionesSeleccionadas, grupoRequisitos]);
 	// Estados para áreas dinámicas
@@ -246,20 +260,50 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	}, [areasTodas]);
 
 	// Acompañantes: generar filas vacías si viene un número
+	// Acompañantes: mapear datos reales del back, o generar filas vacías si solo viene el número
 	useEffect(() => {
-		const numAcompanantes = Number(dataPass?.acompanantes) || 0;
-		if (numAcompanantes > 0) {
-			const rows = Array.from({ length: numAcompanantes }, () => ({
-				id: crypto.randomUUID(),
-				nombre: "",
-				email: "",
-				telefono: "",
-			}));
-			setMiembrosAcompanantes(rows);
-		}
-		if (dataPass?.acompanantes_grupo?.length) {
-			setMiembrosAcompanantes(dataPass.acompanantes_grupo);
-		}
+	const mapAcompanante = (a: any): Miembro => ({
+		id: a.qr_code || crypto.randomUUID(),
+		nombre: a.nombre_acompanante ?? "",
+		email: a.email_acompanante ?? "",
+		telefono: a.telefono_acompanante ?? "",
+		estatus: a.estatus ?? "",
+		foto: normalizeImageField(a.foto),
+		identificacion: normalizeImageField(a.identificacion),
+		link: a.link ?? "",
+	});
+
+	if (dataPass?.acompanantes_grupo?.length) {
+		const grupo = dataPass.acompanantes_grupo as any[];
+
+		const activos = grupo
+		.filter((a) => a.estatus?.toLowerCase() === "activo")
+		.map(mapAcompanante);
+
+		const proceso = grupo
+		.filter((a) => a.estatus?.toLowerCase() === "proceso")
+		.map(mapAcompanante);
+
+		setAcompanantesActivos(activos);
+		setMiembrosAcompanantes(proceso);
+		setExistingIds(new Set(proceso.map((p) => p.id)));
+		return;
+	}
+
+	const numAcompanantes = Number(dataPass?.acompanantes) || 0;
+	if (numAcompanantes > 0) {
+		const rows = Array.from({ length: numAcompanantes }, () => ({
+		id: crypto.randomUUID(),
+		nombre: "",
+		email: "",
+		telefono: "",
+		}));
+		setMiembrosAcompanantes(rows);
+	} else {
+		setMiembrosAcompanantes([]);
+	}
+	setAcompanantesActivos([]);
+	setExistingIds(new Set());
 	}, [dataPass]);
 
 	const form = useForm<z.infer<typeof formSchema>>({
@@ -295,10 +339,46 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			todas_las_areas: todasAreas,
 			habilitar_vehiculo: dataPass.habilitar_vehiculo || "sí",
 			acompanantes: Number(dataPass.acompanantes) || 0,
+			acompanantes_grupo: dataPass.acompanantes_grupo || [],
 		},
 	});
 
 	const acompanantesValue = useWatch({ control: form.control, name: "acompanantes" });
+
+	useEffect(() => {
+		const total = Number(acompanantesValue) || 0;
+		const activosCount = acompanantesActivos.length;
+		const existentesCount = existingIds.size;
+		const minTotal = activosCount + existentesCount;
+		const totalClamped = Math.max(total, minTotal);
+
+		if (totalClamped !== total) {
+			form.setValue("acompanantes", totalClamped);
+		}
+
+		const procesoTarget = totalClamped - activosCount;
+
+		setMiembrosAcompanantes((prev) => {
+			if (prev.length === procesoTarget) return prev;
+
+			if (prev.length < procesoTarget) {
+			const faltantes = procesoTarget - prev.length;
+			const nuevas = Array.from({ length: faltantes }, () => ({
+				id: crypto.randomUUID(),
+				nombre: "",
+				email: "",
+				telefono: "",
+			}));
+			return [...prev, ...nuevas];
+			}
+
+			// Al reducir, solo se quitan filas nuevas (borrador); las existentes nunca se tocan aquí
+			const existentes = prev.filter((m) => existingIds.has(m.id));
+			const nuevos = prev.filter((m) => !existingIds.has(m.id));
+			const nuevosRecortados = nuevos.slice(0, Math.max(procesoTarget - existentes.length, 0));
+			return [...existentes, ...nuevosRecortados];
+		});
+	}, [acompanantesValue, acompanantesActivos, existingIds]);
 
 	useEffect(() => {
 		if (dataPass) {
@@ -429,7 +509,18 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			setIsSuccess(true);
 		}
 	};
+	const normalizarTelefono = (value: string | undefined): string => {
+	if (!value) return "";
+	if (value.startsWith("+")) return value;
 
+	const soloDigitos = value.replace(/\D/g, "");
+	if (soloDigitos.length >= 10) {
+		return `+${soloDigitos}`;
+	}
+	return value;
+	};
+
+	console.log("URL",dataPass.url_padre)
 	return (
 		<Dialog open={modalEditarAbierto} onOpenChange={setModalEditarAbierto} modal>
 			<DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0 rounded-3xl overflow-hidden border-none">
@@ -598,23 +689,24 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 													name="telefono"
 													render={({ field }: any) => (
 														<FormItem>
-															<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teléfono</FormLabel>
-															<FormControl>
-																<PhoneInput
-																	{...field}
-																	onChange={(value: string) => form.setValue("telefono", value || "")}
-																	placeholder="Teléfono"
-																	defaultCountry={defaultCountry}
-																	containerComponentProps={{
-																		className: "flex h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-3 py-0 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-																	}}
-																	numberInputProps={{ className: "pl-3 bg-transparent" }}
-																/>
-															</FormControl>
-															<FormMessage />
+														<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teléfono</FormLabel>
+														<FormControl>
+															<PhoneInput
+															{...field}
+															value={normalizarTelefono(field.value)}
+															onChange={(value: string) => form.setValue("telefono", value || "")}
+															placeholder="Teléfono"
+															defaultCountry={defaultCountry}
+															containerComponentProps={{
+																className: "flex h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-3 py-0 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+															}}
+															numberInputProps={{ className: "pl-3 bg-transparent" }}
+															/>
+														</FormControl>
+														<FormMessage />
 														</FormItem>
 													)}
-												/>
+													/>
 
 												{/* Perfil / tipo de visita */}
 												{assetsLoading ? (
@@ -655,21 +747,27 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 													name="acompanantes"
 													render={({ field }: any) => (
 													<FormItem>
-														<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Acompañantes</FormLabel>
-														<FormControl>
-														<Input
-															placeholder="0"
-															type="number"
-															min={0}
-															step={1}
-															className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
-															{...field}
-															value={field.value ?? 0}
-															onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
-														/>
-														</FormControl>
-														<p className="text-xs text-gray-400 mt-1">Número de personas adicionales que acompañan al visitante.</p>
-														<FormMessage />
+													<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Acompañantes</FormLabel>
+													<FormControl>
+													<Input
+														placeholder="0"
+														type="number"
+														max={10}
+														min={acompanantesActivos.length + existingIds.size}
+														step={1}
+														className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed"
+														{...field}
+														value={field.value ?? 0}
+														onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+														disabled={!!dataPass?.url_padre}
+													/>
+													</FormControl>
+													<p className="text-xs text-gray-400 mt-1">
+													{dataPass?.url_padre
+														? "Este pase es un acompañante de otro pase — no puede tener sus propios acompañantes."
+														: `Total: ${Number(field.value) || 0} · Activos: ${acompanantesActivos.length} (no editables) · En proceso: ${miembrosAcompanantes.length} (editables). Al aumentar este número se agregará un nuevo acompañante en proceso.`}
+													</p>
+													<FormMessage />
 													</FormItem>
 													)}
 												/>
@@ -685,9 +783,14 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 											setRowErrors={setMiembrosRowErrors}
 											title="Acompañantes"
 											useIA
-											acompantes={acompanantesValue || 0}
+											acompanantesActivos={acompanantesActivos}
+											nonDeletableIds={
+												(dataPass?.status_pase || dataPass?.estatus)?.toLowerCase() === "activo"
+												? Array.from(existingIds)
+												: []
+											}
 											defaultCountry={defaultCountry}
-										/>
+											/>
 									</TabsContent>
 								</Tabs>
 							</div>

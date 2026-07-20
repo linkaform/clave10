@@ -59,7 +59,7 @@ import {
 		  {isLoading ? (
 			<div className="flex flex-col justify-center items-center min-h-[50vh]">
 				<div className="mb-3 font-semibold text-gray-500">
-				Canrgando información...
+				Cargando información...
 				</div>
 			  <div className="w-16 h-16 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
 			</div>

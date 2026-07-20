@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import { getValidToken } from "./login/get-valid-token";
 
 export const getEntryPasses = async (tabStatus='Todos') => {
     const payload = {
@@ -7,7 +8,7 @@ export const getEntryPasses = async (tabStatus='Todos') => {
       tab_status:tabStatus   
      };
   
-     const userJwt = localStorage.getItem("access_token");
+     const userJwt = await getValidToken();
   
       const response = await fetch(API_ENDPOINTS.runScript, {
         method: 'POST',
