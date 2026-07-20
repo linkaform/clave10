@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -296,6 +296,8 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
 
   // Fotos
   const [documentos, setDocumentos] = useState<DocItem[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
 
   // IA
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
@@ -356,6 +358,39 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
     setUnidades((prev) => prev.map((x) => x.id === unidadId
       ? { ...x, config: "solo_remolque", contenedor: emptyContenedorData() }
       : x));
+  };
+
+  const resetForm = () => {
+    setTab("vehiculo");
+    setTipoOperacion(null);
+    setTransportista("");
+    setProcedencia("");
+    setTipoVehiculo("");
+    setPlaca("");
+    setNoEconomico("");
+    setMarcaVehiculo("");
+    setModeloVehiculo("");
+    setColorVehiculo("");
+    setConductor("");
+    setNoLicencia("");
+    setVigenciaLicencia("");
+    setRfcConductor("");
+    setAcompanante("");
+    setDocumentosDetectados([]);
+    setPlacaTarjetaVehiculo(null);
+    setDocumentos([]);
+    setIsDragging(false);
+    dragCounter.current = 0;
+    setAiAnalyzing(false);
+    setAiFilledFields(new Set());
+    setProveedorCliente("");
+    setOrdenCompra("");
+    setUnidades([]);
+    setShowAgregarUnidad(false);
+    setEditingUnit(null);
+    setExpandedUnits(new Set());
+    setContenedoresSueltos([]);
+    setDragOverUnidadId(null);
   };
 
   // ── Upload helpers ────────────────────────────────────────────────────────────
@@ -519,7 +554,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        if (!v) onClose();
+        if (!v) { resetForm(); onClose(); }
       }}>
       <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
         <DialogTitle className="sr-only">
@@ -625,7 +660,18 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                 const anyUploading = documentos.some((d) => d.uploading);
                 const canAnalyze = documentos.some((d) => d.file_url) && !anyUploading;
                 return (
-                  <div className="rounded-xl border border-gray-200 bg-gray-50/40 p-4 space-y-3">
+                  <div
+                    className="rounded-xl border border-gray-200 bg-gray-50/40 p-4 space-y-3"
+                    onDragEnter={(e) => { e.preventDefault(); dragCounter.current++; setIsDragging(true); }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDragLeave={() => { dragCounter.current--; if (dragCounter.current === 0) setIsDragging(false); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      dragCounter.current = 0;
+                      setIsDragging(false);
+                      Array.from(e.dataTransfer.files).forEach(uploadDocumento);
+                    }}
+                  >
                     {/* Upload zone — large when empty, small thumbnail at end when files exist */}
                     {documentos.length === 0 ? (
                       <label className="block cursor-pointer">
@@ -639,9 +685,9 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                             e.target.value = "";
                           }}
                         />
-                        <div className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40 transition-all flex flex-col items-center justify-center gap-1.5 py-5">
-                          <Camera className="w-5 h-5 text-gray-300" />
-                          <span className="text-sm text-gray-400 font-medium">Subir imágenes o archivos</span>
+                        <div className={`w-full rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-1.5 py-5 ${isDragging ? "border-blue-400 bg-blue-50/60" : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"}`}>
+                          <Camera className={`w-5 h-5 ${isDragging ? "text-blue-400" : "text-gray-300"}`} />
+                          <span className="text-sm text-gray-400 font-medium">{isDragging ? "Suelta aquí" : "Subir imágenes o archivos"}</span>
                           <span className="text-[11px] text-gray-300">Puedes seleccionar múltiples archivos</span>
                         </div>
                       </label>
@@ -675,9 +721,9 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                               e.target.value = "";
                             }}
                           />
-                          <div className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40 transition-all flex flex-col items-center justify-center gap-0.5">
-                            <Camera className="w-4 h-4 text-gray-300" />
-                            <span className="text-[9px] text-gray-300 font-medium leading-tight text-center px-1">Agregar</span>
+                          <div className={`w-16 h-16 rounded-lg border-2 border-dashed transition-all flex flex-col items-center justify-center gap-0.5 ${isDragging ? "border-blue-400 bg-blue-50/60" : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"}`}>
+                            <Camera className={`w-4 h-4 ${isDragging ? "text-blue-400" : "text-gray-300"}`} />
+                            <span className="text-[9px] text-gray-300 font-medium leading-tight text-center px-1">{isDragging ? "Suelta" : "Agregar"}</span>
                           </div>
                         </label>
                       </div>
@@ -1258,7 +1304,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
           <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            onClick={onClose}
+            onClick={() => { resetForm(); onClose(); }}
             className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-100">
             Cancelar
           </Button>
@@ -1352,11 +1398,13 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                       cacheData,
                     );
                     queryClient.invalidateQueries({ queryKey: ["visitaTransportista", result.id] });
+                    resetForm();
                     onClose();
                     router.push(
                       `/dashboard/accesos/transportista/${result.id}`,
                     );
                   } else {
+                    resetForm();
                     onClose();
                   }
                 },
