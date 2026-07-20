@@ -2,18 +2,9 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-
-export const ANDENES = [
-  { id: "A-01", ocupado: false },
-  { id: "A-03", ocupado: false },
-  { id: "B-02", ocupado: false },
-  { id: "B-05", ocupado: true  },
-  { id: "C-08", ocupado: true  },
-  { id: "C-12", ocupado: true  },
-  { id: "D-04", ocupado: false },
-  { id: "D-07", ocupado: false },
-];
+import { getAndenes } from "@/services/endpoints";
 
 const SENTINEL = Symbol("unset");
 
@@ -34,6 +25,14 @@ export function SeleccionAndenModal({
 }) {
   const [selected, setSelected] = useState<string | null | typeof SENTINEL>(SENTINEL);
   const confirmed = selected !== SENTINEL;
+
+  const { data: andenesData, isLoading: isLoadingAndenes } = useQuery({
+    queryKey: ["getAndenes"],
+    queryFn: getAndenes,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 30,
+  });
+  const andenes: string[] = andenesData?.response?.data ?? [];
 
   const toggle = (id: string) => setSelected((p) => (p === id ? SENTINEL : id));
   const toggleNone = () => setSelected((p) => (p === null ? SENTINEL : null));
@@ -63,32 +62,38 @@ export function SeleccionAndenModal({
         </div>
 
         {/* Grid de andenes */}
-        <div className="grid grid-cols-3 gap-2">
-          {ANDENES.map((a) => {
-            const isSelected = selected === a.id;
-            return (
-              <button
-                key={a.id}
-                type="button"
-                disabled={a.ocupado}
-                onClick={() => toggle(a.id)}
-                className={cn(
-                  "rounded-xl border-2 py-3 flex flex-col items-center gap-1 text-xs font-semibold transition-all",
-                  a.ocupado
-                    ? "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
-                    : isSelected
-                    ? "border-blue-500 bg-blue-500 text-white shadow-md"
-                    : "border-gray-200 hover:border-blue-300 text-gray-700",
-                )}>
-                <svg className={cn("w-5 h-5", a.ocupado ? "text-gray-300" : isSelected ? "text-white" : "text-gray-400")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-                </svg>
-                <span>{a.id}</span>
-                {a.ocupado && <span className="text-[9px] font-normal text-gray-400">Ocupado</span>}
-              </button>
-            );
-          })}
-        </div>
+        {isLoadingAndenes ? (
+          <div className="flex items-center justify-center py-6 text-xs text-gray-400">
+            Cargando andenes...
+          </div>
+        ) : andenes.length === 0 ? (
+          <div className="flex items-center justify-center py-6 text-xs text-gray-400">
+            No hay andenes configurados
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {andenes.map((id) => {
+              const isSelected = selected === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => toggle(id)}
+                  className={cn(
+                    "rounded-xl border-2 py-3 flex flex-col items-center gap-1 text-xs font-semibold transition-all",
+                    isSelected
+                      ? "border-blue-500 bg-blue-500 text-white shadow-md"
+                      : "border-gray-200 hover:border-blue-300 text-gray-700",
+                  )}>
+                  <svg className={cn("w-5 h-5", isSelected ? "text-white" : "text-gray-400")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+                  </svg>
+                  <span>{id}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Sin andén */}
         <button
