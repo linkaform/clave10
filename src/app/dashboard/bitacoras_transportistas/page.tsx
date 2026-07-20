@@ -176,7 +176,7 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
                 {savingAnden
                   ? <span className="w-2.5 h-2.5 border border-blue-400 border-t-transparent rounded-full animate-spin" />
                   : null}
-                Andén {localAnden}
+                {localAnden}
               </span>
               {!andenLocked && (
                 <button
