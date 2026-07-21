@@ -2920,26 +2920,28 @@ export default function DetalleTransportistaPage() {
           </div>
 
           {/* Lugar de entrega */}
-          <div className="border-t border-gray-100 px-4 py-3 space-y-2.5">
-            <p className="text-xs font-bold text-gray-700">
-              Lugar de entrega / recepción
-            </p>
-            <Field label="Ubicación" value={null} />
-            <Field label="Área" value={null} />
-            <div>
-              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                Andén
+          {data?.tipo_operacion !== "entrega" && (
+            <div className="border-t border-gray-100 px-4 py-3 space-y-2.5">
+              <p className="text-xs font-bold text-gray-700">
+                Lugar de entrega / recepción
               </p>
-              {data?.embarque?.anden_asignado ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-xs font-bold text-blue-700">
-                  {data.embarque.anden_asignado}
-                </span>
-              ) : (
-                <p className="text-xs text-gray-300 italic">Sin información</p>
-              )}
+              <Field label="Ubicación" value={null} />
+              <Field label="Área" value={null} />
+              <div>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                  Andén
+                </p>
+                {data?.embarque?.anden_asignado ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-xs font-bold text-blue-700">
+                    {data.embarque.anden_asignado}
+                  </span>
+                ) : (
+                  <p className="text-xs text-gray-300 italic">Sin información</p>
+                )}
+              </div>
+              <Field label="Fecha y Hora de Descarga" value={null} />
             </div>
-            <Field label="Fecha y Hora de Descarga" value={null} />
-          </div>
+          )}
         </div>
 
         {/* ── CENTER ───────────────────────────────────────────────────────── */}
