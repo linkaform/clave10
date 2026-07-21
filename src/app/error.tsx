@@ -46,7 +46,15 @@ export default function Error({
       </p>
 
       <div className="flex flex-col gap-4 sm:flex-row">
-        <Button onClick={() => reset()} variant="default" size="lg" className="gap-2">
+        <Button
+          onClick={() => {
+            if (typeof window !== 'undefined') window.location.reload();
+            else reset();
+          }}
+          variant="default"
+          size="lg"
+          className="gap-2"
+        >
           <RefreshCcw className="h-4 w-4" />
           Reintentar
         </Button>
