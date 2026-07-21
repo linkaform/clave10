@@ -1124,7 +1124,7 @@ function InspeccionSelloModal({
 
   const [activeTab, setActiveTab] = useState(0);
   const [unitsData, setUnitsData] = useState<SelloUnitData[]>(() => unidades.map(emptySelloUnit));
-  const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
+  const [uploadingSlots, setUploadingSlots] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<string | null>(null);
@@ -1149,10 +1149,16 @@ function InspeccionSelloModal({
     const file = e.target.files?.[0];
     const target = pendingSlotRef.current;
     e.target.value = "";
+    // Se limpia de inmediato, antes del upload asíncrono — si se dejara para
+    // el "finally" de más abajo, y el usuario dispara la subida de OTRO slot
+    // mientras esta sigue en curso, ese "finally" borraría el target del
+    // nuevo slot y su subida nunca se ejecutaría (bug reportado: "paso al
+    // siguiente campo y no carga").
+    pendingSlotRef.current = null;
     if (!file || !target) return;
     const [uiStr, slotKey] = target.split(":");
     const ui = parseInt(uiStr);
-    setUploadingSlot(target);
+    setUploadingSlots((p) => new Set(p).add(target));
     try {
       const res = await uploadImage(file);
       if (res?.file) {
@@ -1162,8 +1168,11 @@ function InspeccionSelloModal({
         }));
       }
     } finally {
-      setUploadingSlot(null);
-      pendingSlotRef.current = null;
+      setUploadingSlots((p) => {
+        const next = new Set(p);
+        next.delete(target);
+        return next;
+      });
     }
   };
 
@@ -1361,7 +1370,7 @@ function InspeccionSelloModal({
                   {SELLO_EVIDENCIA_SLOTS.map((slot, si) => {
                     const foto = d.evidencias[slot.key];
                     const slotId = `${activeTab}:${slot.key}`;
-                    const loading = uploadingSlot === slotId;
+                    const loading = uploadingSlots.has(slotId);
                     const Icon = slot.icon;
                     return (
                       <div key={slot.key} className="rounded-xl border border-gray-100 p-2.5 space-y-1.5">
