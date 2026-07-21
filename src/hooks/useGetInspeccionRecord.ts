@@ -168,6 +168,16 @@ function isPhotoArray(raw: unknown): raw is EvidenciaFile[] {
     typeof raw[0] === "object" && raw[0] !== null && "file_url" in raw[0];
 }
 
+interface RawFotoYDocumento {
+  tipo_de_documento?: string;
+  documento?: EvidenciaFile[];
+}
+
+function isFotosYDocumentosArray(raw: unknown): raw is RawFotoYDocumento[] {
+  return Array.isArray(raw) && raw.length > 0 &&
+    typeof raw[0] === "object" && raw[0] !== null && "documento" in raw[0];
+}
+
 function parseValue(raw: unknown): FieldValue {
   if (isPhotoArray(raw)) return { kind: "photos", files: raw };
   if (Array.isArray(raw)) return { kind: "array", items: raw.map(String) };
@@ -200,6 +210,21 @@ function buildSections(
   // Mark all _comentarios / _evidencia keys as used upfront so they never land in "Otros"
   for (const key of Object.keys(data)) {
     if (key.endsWith("_comentarios") || key.endsWith("_evidencia")) used.add(key);
+  }
+
+  // fotos_y_documentos trae varios documentos sueltos (uno por foto subida),
+  // no un solo array de fotos de un mismo campo — cada uno se muestra como su
+  // propia tarjeta, en vez de intentar meterlos en un solo campo "array".
+  if (isFotosYDocumentosArray(data.fotos_y_documentos)) {
+    const campos: InspeccionField[] = data.fotos_y_documentos
+      .map((d, i) => ({
+        key: `fotos_y_documentos_${i}`,
+        label: d.tipo_de_documento?.trim() || `Documento ${i + 1}`,
+        value: { kind: "photos" as const, files: (d.documento ?? []).filter((f) => f?.file_url) },
+      }))
+      .filter((c) => c.value.files.length > 0);
+    if (campos.length) sections.push({ titulo: "Fotos y documentos", campos });
+    used.add("fotos_y_documentos");
   }
 
   for (const g of groups) {

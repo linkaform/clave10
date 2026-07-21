@@ -204,6 +204,8 @@ function InspeccionEntradaModal({
   const [activeTab, setActiveTab] = useState(0);
   const [tractorEvidencia, setTractorEvidencia] = useState<EvidenciaImg[]>([]);
   const [uploadingSection, setUploadingSection] = useState<string | null>(null);
+  const [draggingSection, setDraggingSection] = useState<string | null>(null);
+  const dragCounterRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Subida directa de un documento ligado (ej. foto de placa / tarjeta de
@@ -507,19 +509,28 @@ function InspeccionEntradaModal({
     }
   };
 
-  const handleEvidenciaFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    const key = pendingSectionRef.current;
-    e.target.value = "";
-    if (!file || !key) return;
+  const uploadEvidenciaFiles = async (key: string, files: File[]) => {
+    if (!files.length) return;
     setUploadingSection(key);
     try {
-      const res = await uploadImage(file);
-      if (res?.file) addImg(key, { file_url: res.file, file_name: res.file_name });
+      await Promise.all(
+        files.map(async (file) => {
+          const res = await uploadImage(file);
+          if (res?.file) addImg(key, { file_url: res.file, file_name: res.file_name });
+        }),
+      );
     } finally {
       setUploadingSection(null);
-      pendingSectionRef.current = null;
     }
+  };
+
+  const handleEvidenciaFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    const key = pendingSectionRef.current;
+    e.target.value = "";
+    pendingSectionRef.current = null;
+    if (!files.length || !key) return;
+    await uploadEvidenciaFiles(key, files);
   };
 
   const Spinner = ({ className }: { className?: string }) => (
@@ -532,6 +543,25 @@ function InspeccionEntradaModal({
   const renderEvidence = (sectionLabel: string, evKey: string, evidencias: EvidenciaImg[], sugeridas?: string) => {
     const loading = uploadingSection === evKey;
     const hasImgs = evidencias.length > 0;
+    const isDragging = draggingSection === evKey;
+    const dragHandlers = {
+      onDragEnter: (e: React.DragEvent) => {
+        e.preventDefault();
+        dragCounterRef.current++;
+        setDraggingSection(evKey);
+      },
+      onDragOver: (e: React.DragEvent) => e.preventDefault(),
+      onDragLeave: () => {
+        dragCounterRef.current--;
+        if (dragCounterRef.current === 0) setDraggingSection(null);
+      },
+      onDrop: (e: React.DragEvent) => {
+        e.preventDefault();
+        dragCounterRef.current = 0;
+        setDraggingSection(null);
+        uploadEvidenciaFiles(evKey, Array.from(e.dataTransfer.files));
+      },
+    };
     return (
       <div className="space-y-2">
         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -542,15 +572,19 @@ function InspeccionEntradaModal({
             type="button"
             disabled={loading}
             onClick={() => triggerUpload(evKey)}
-            className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/40 hover:border-blue-300 hover:bg-blue-50/40 transition-all flex flex-col items-center justify-center gap-1.5 py-6 disabled:opacity-60">
+            {...dragHandlers}
+            className={cn(
+              "w-full rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-1.5 py-6 disabled:opacity-60",
+              isDragging ? "border-blue-400 bg-blue-50/60" : "border-gray-200 bg-gray-50/40 hover:border-blue-300 hover:bg-blue-50/40",
+            )}>
             {loading
               ? <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              : <Camera className="w-5 h-5 text-gray-300" />}
-            <span className="text-sm text-gray-400 font-medium">Subir fotografías</span>
+              : <Camera className={cn("w-5 h-5", isDragging ? "text-blue-400" : "text-gray-300")} />}
+            <span className="text-sm text-gray-400 font-medium">{isDragging ? "Suelta aquí" : "Subir fotografías"}</span>
             <span className="text-[11px] text-gray-300">Puedes seleccionar múltiples fotos</span>
           </button>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" {...dragHandlers}>
             {evidencias.map((img, i) => (
               <div key={i} className="relative w-16 h-16 shrink-0">
                 <Image src={img.file_url} fill className="object-cover rounded-lg border border-gray-200" alt="" unoptimized />
@@ -566,11 +600,14 @@ function InspeccionEntradaModal({
               type="button"
               disabled={loading}
               onClick={() => triggerUpload(evKey)}
-              className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 hover:border-blue-300 hover:bg-blue-50/40 transition-all flex flex-col items-center justify-center gap-1 text-gray-300 disabled:opacity-60 shrink-0">
+              className={cn(
+                "w-16 h-16 rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-1 disabled:opacity-60 shrink-0",
+                isDragging ? "border-blue-400 bg-blue-50/60 text-blue-400" : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/40 text-gray-300",
+              )}>
               {loading
                 ? <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                 : <Camera className="w-4 h-4" />}
-              {!loading && <span className="text-[10px]">Agregar</span>}
+              {!loading && <span className="text-[10px]">{isDragging ? "Suelta" : "Agregar"}</span>}
             </button>
           </div>
         )}
@@ -974,6 +1011,7 @@ function InspeccionEntradaModal({
           ref={fileInputRef}
           type="file"
           accept="image/jpeg,image/jpg,image/png"
+          multiple
           className="hidden"
           onChange={handleEvidenciaFileChange}
         />
@@ -2016,6 +2054,8 @@ export default function DetalleTransportistaPage() {
     });
 
   const [docTab, setDocTab] = useState<"pendientes" | "subidos">("pendientes");
+  const [isDraggingDocs, setIsDraggingDocs] = useState(false);
+  const dragCounterDocsRef = useRef(0);
   const [docsExpanded, setDocsExpanded] = useState(true);
   const docsExpandedInitialized = useRef(false);
   useEffect(() => {
@@ -2218,10 +2258,8 @@ export default function DetalleTransportistaPage() {
     }
   };
 
-  const handleAddDocumento = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = "";
-    if (!files.length) return;
+  const addDocumentos = async (files: File[]) => {
+    if (!files.length || isLocked) return;
 
     // Pendientes: solo subir a storage, sin llamar al servicio de guardado
     if (docTab === "pendientes") {
@@ -2246,6 +2284,12 @@ export default function DetalleTransportistaPage() {
     } finally {
       setUploadingNewDoc(false);
     }
+  };
+
+  const handleAddDocumento = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    await addDocumentos(files);
   };
 
   const handleAnalizarDocumentos = async () => {
@@ -3297,7 +3341,19 @@ export default function DetalleTransportistaPage() {
                   type="button"
                   disabled={stagingUpload || isLocked}
                   onClick={() => newDocInputRef.current?.click()}
-                  className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/40 hover:border-blue-300 hover:bg-blue-50/40 transition-all flex flex-col items-center justify-center gap-1.5 py-5 disabled:opacity-60 disabled:cursor-not-allowed">
+                  onDragEnter={(e) => { e.preventDefault(); dragCounterDocsRef.current++; setIsDraggingDocs(true); }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragLeave={() => { dragCounterDocsRef.current--; if (dragCounterDocsRef.current === 0) setIsDraggingDocs(false); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    dragCounterDocsRef.current = 0;
+                    setIsDraggingDocs(false);
+                    addDocumentos(Array.from(e.dataTransfer.files));
+                  }}
+                  className={cn(
+                    "w-full rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-1.5 py-5 disabled:opacity-60 disabled:cursor-not-allowed",
+                    isDraggingDocs ? "border-blue-400 bg-blue-50/60" : "border-gray-200 bg-gray-50/40 hover:border-blue-300 hover:bg-blue-50/40",
+                  )}>
                   {stagingUpload ? (
                     <>
                       <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -3305,8 +3361,8 @@ export default function DetalleTransportistaPage() {
                     </>
                   ) : (
                     <>
-                      <Camera className="w-5 h-5 text-gray-300" />
-                      <span className="text-sm text-gray-400 font-medium">Subir imágenes o archivos</span>
+                      <Camera className={cn("w-5 h-5", isDraggingDocs ? "text-blue-400" : "text-gray-300")} />
+                      <span className="text-sm text-gray-400 font-medium">{isDraggingDocs ? "Suelta aquí" : "Subir imágenes o archivos"}</span>
                       <span className="text-[11px] text-gray-300">Puedes seleccionar múltiples archivos</span>
                     </>
                   )}
@@ -3316,7 +3372,19 @@ export default function DetalleTransportistaPage() {
                   type="button"
                   disabled={(docTab === "pendientes" ? stagingUpload : uploadingNewDoc) || isLocked}
                   onClick={() => newDocInputRef.current?.click()}
-                  className="w-full h-9 mt-1 rounded-xl border border-dashed border-gray-300 hover:border-blue-300 hover:bg-blue-50/40 text-xs font-medium text-gray-400 hover:text-blue-600 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
+                  onDragEnter={(e) => { e.preventDefault(); dragCounterDocsRef.current++; setIsDraggingDocs(true); }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragLeave={() => { dragCounterDocsRef.current--; if (dragCounterDocsRef.current === 0) setIsDraggingDocs(false); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    dragCounterDocsRef.current = 0;
+                    setIsDraggingDocs(false);
+                    addDocumentos(Array.from(e.dataTransfer.files));
+                  }}
+                  className={cn(
+                    "w-full h-9 mt-1 rounded-xl border border-dashed text-xs font-medium transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed",
+                    isDraggingDocs ? "border-blue-400 bg-blue-50/60 text-blue-600" : "border-gray-300 hover:border-blue-300 hover:bg-blue-50/40 text-gray-400 hover:text-blue-600",
+                  )}>
                   {(docTab === "pendientes" ? stagingUpload : uploadingNewDoc) ? (
                     <>
                       <span className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -3325,7 +3393,7 @@ export default function DetalleTransportistaPage() {
                   ) : (
                     <>
                       <Camera className="w-3.5 h-3.5" />
-                      {docTab === "pendientes" ? "Agregar más documentos" : "Tomar foto a otro documento"}
+                      {isDraggingDocs ? "Suelta aquí" : docTab === "pendientes" ? "Agregar más documentos" : "Tomar foto a otro documento"}
                     </>
                   )}
                 </button>

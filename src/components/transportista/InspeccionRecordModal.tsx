@@ -91,7 +91,7 @@ export function InspeccionRecordModal({
 
 function SectionBlock({ section }: { section: InspeccionSection }) {
   const isMedidas = section.titulo === "Medidas interiores";
-  const isEvidencia = section.titulo === "Evidencia fotográfica";
+  const isEvidencia = section.titulo === "Evidencia fotográfica" || section.titulo === "Fotos y documentos";
 
   if (isMedidas) return (
     <div>
