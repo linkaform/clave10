@@ -32,9 +32,11 @@ import {
   Sparkles,
   ArrowLeftRight,
   IdCard,
+  Images,
 } from "lucide-react";
 import { cn, capitalizeOnlyFirstLetter } from "@/lib/utils";
-import { useGetVisitTransportista } from "@/hooks/useGetVisitTransportista";
+import { GaleriaFotosModal, FotoGaleria, toThumbnailUrl } from "@/components/modals/galeria-fotos-modal";
+import { useGetVisitTransportista, VisitaTransportista } from "@/hooks/useGetVisitTransportista";
 import { saveBitacoraTransportistaRecord, saveInspeccionesTransportista, saveInspeccionesSelloTransportista, ocrAccesoTransportista } from "@/services/endpoints";
 import { uploadImage } from "@/lib/get-upload-image";
 import { toast } from "sonner";
@@ -73,6 +75,27 @@ function formatTimestamp(ts: string | number): string {
   const m = String(d.getMinutes()).padStart(2, "0");
   const s = String(d.getSeconds()).padStart(2, "0");
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} · ${h}:${m}:${s} hrs`;
+}
+
+// TODO: reemplazar por el endpoint que junte fotos de documentos + inspecciones
+// en una sola respuesta (pendiente de definir en backend). Por ahora solo
+// agrega lo que ya viene cargado en `data`, sin peticiones adicionales.
+function getGaleriaFotos(data: VisitaTransportista | null): FotoGaleria[] {
+  if (!data) return [];
+  const fotos: FotoGaleria[] = [];
+  if (data.vehiculo?.foto_placa?.file_url) {
+    fotos.push({ ...data.vehiculo.foto_placa, tipo: "foto_placa_vehiculo" });
+  }
+  if (data.conductor?.foto_conductor?.file_url) {
+    fotos.push({ ...data.conductor.foto_conductor, tipo: "foto_conductor" });
+  }
+  if (data.conductor?.foto_licencia?.file_url) {
+    fotos.push({ ...data.conductor.foto_licencia, tipo: "foto_licencia" });
+  }
+  for (const doc of data.documentos_adicionales ?? []) {
+    if (doc.file_url) fotos.push(doc);
+  }
+  return fotos;
 }
 
 function Field({
@@ -1891,6 +1914,7 @@ export default function DetalleTransportistaPage() {
   const [showInspeccionCarga, setShowInspeccionCarga] = useState<false | "edit" | "readonly">(false);
   const [viewingInspeccion, setViewingInspeccion] = useState<{ url: string; tipo: string } | null>(null);
   const [showInspeccionSello, setShowInspeccionSello] = useState(false);
+  const [showGaleria, setShowGaleria] = useState(false);
   const [showAndenModal, setShowAndenModal] = useState(false);
   const [vehicleExpanded, setVehicleExpanded] = useState(true);
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
@@ -4117,11 +4141,53 @@ export default function DetalleTransportistaPage() {
               );
             })();
 
+            const cardGaleria = estatus === "terminado" ? (() => {
+              const fotos = getGaleriaFotos(data);
+              const preview = fotos.slice(0, 4);
+              const restantes = fotos.length - preview.length;
+              return (
+                <button
+                  key="galeria"
+                  type="button"
+                  disabled={fotos.length === 0}
+                  onClick={() => setShowGaleria(true)}
+                  className="w-full text-left bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:border-blue-200 hover:shadow-md transition-all disabled:cursor-not-allowed disabled:hover:border-gray-100 disabled:hover:shadow-sm">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <Images className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm font-bold text-gray-800">Galería de fotos</span>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-100 text-blue-700">
+                      {fotos.length}
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    {preview.length === 0 ? (
+                      <p className="text-xs text-gray-300">Sin fotos registradas</p>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {preview.map((foto, i) => (
+                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                            <Image src={toThumbnailUrl(foto.file_url)} fill className="object-cover" alt={foto.file_name ?? `foto-${i}`} unoptimized />
+                            {i === preview.length - 1 && restantes > 0 && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">+{restantes}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })() : null;
+
             const ordered =
               estatus === "carga_/_descarga"
                 ? [cardMateriales, cardEntrada, cardSello, cardSalida]
                 : estatus === "inspeccion_salida" || estatus === "terminado"
-                ? [cardSalida, cardEntrada, cardSello, cardMateriales]
+                ? [cardGaleria, cardSalida, cardEntrada, cardSello, cardMateriales]
                 : [cardEntrada, cardSello, cardMateriales, cardSalida];
 
             return <>{ordered}</>;
@@ -4206,6 +4272,11 @@ export default function DetalleTransportistaPage() {
           onClose={() => setViewingInspeccion(null)}
         />
       )}
+      <GaleriaFotosModal
+        open={showGaleria}
+        onClose={() => setShowGaleria(false)}
+        fotos={getGaleriaFotos(data)}
+      />
       {editingUnit && (
         <AgregarUnidadModal
           initialData={editingUnit}
