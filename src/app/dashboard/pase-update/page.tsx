@@ -16,7 +16,7 @@ import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
 import LoadImage, { Imagen } from "@/components/upload-Image";
-import { Car, Check, Clock, Laptop, Loader2, Share2, X, ArrowLeft, Construction } from "lucide-react";
+import { Car, Check, Laptop, Loader2, X, ArrowLeft, Construction } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import Image from "next/image";
@@ -41,6 +41,7 @@ import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { MapPin, CalendarDays, User, Users, QrCode, Download } from "lucide-react";
+import type { Dispatch, SetStateAction } from "react";
 const grupoEquipos = z
   .array(
     z.object({
@@ -160,7 +161,7 @@ const PaseUpdate = () => {
   const [ocrIdenResult, setOcrIdenResult] = useState<any>(null);
   const { grupoRequisitos } = useMenuStore();
   const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
-  const [copiedPadre, setCopiedPadre] = useState(false);
+  // const [copiedPadre, setCopiedPadre] = useState(false);
 
   // Estos tres solo se editan cuando el pase está "en proceso" Y es un pase
   // vinculado (pertenece a un pase padre, o sea trae link_padre). En cualquier
@@ -177,21 +178,21 @@ const PaseUpdate = () => {
     }
   }, [dataCatalogos]);
 
-  const handleCopyPadre = async () => {
-    const url = dataCatalogos?.pass_selected?.link_padre;
-    if (!url) {
-      toast.error("No hay link de pase con acompañantes disponible");
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopiedPadre(true);
-      toast.success("Link copiado");
-      setTimeout(() => setCopiedPadre(false), 1500);
-    } catch {
-      toast.error("No se pudo copiar el link");
-    }
-  };
+  // const handleCopyPadre = async () => {
+  //   const url = dataCatalogos?.pass_selected?.link_padre;
+  //   if (!url) {
+  //     toast.error("No hay link de pase con acompañantes disponible");
+  //     return;
+  //   }
+  //   try {
+  //     await navigator.clipboard.writeText(url);
+  //     setCopiedPadre(true);
+  //     toast.success("Link copiado");
+  //     setTimeout(() => setCopiedPadre(false), 1500);
+  //   } catch {
+  //     toast.error("No se pudo copiar el link");
+  //   }
+  // };
 
   useEffect(() => {
     if (!dataCatalogos?.pass_selected?.ubicacion?.length || !grupoRequisitos?.length) return;
@@ -229,6 +230,56 @@ const PaseUpdate = () => {
   const [mostrarAviso, setMostrarAviso] = useState(false);
   const [mostrarReglasAcceso, setMostrarReglasAcceso] = useState(false);
   const [radioSelected, setRadioSelected] = useState("3 meses");
+
+  // --- Navegación tipo "ancla": abrir Aviso de Privacidad / Reglas de acceso
+  // empuja una entrada al historial del navegador. Así, si el usuario presiona
+  // "atrás", en vez de salir de la página, se dispara `popstate` y solo
+  // cerramos el overlay actual (regresando a la vista del pase).
+  useEffect(() => {
+    const handlePopState = () => {
+      setMostrarAviso(false);
+      setMostrarReglasAcceso(false);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const openAviso = () => {
+    window.history.pushState({ modal: "aviso-privacidad" }, "");
+    setMostrarAviso(true);
+  };
+
+  const closeAviso = () => {
+    // Quitamos la entrada del historial que empujamos al abrir, para que
+    // "atrás"/"adelante" se mantengan consistentes sin importar si el
+    // usuario cerró con el botón de "atrás" del navegador o con la UI.
+    window.history.back();
+  };
+
+  const openReglasAcceso = () => {
+    window.history.pushState({ modal: "reglas-acceso" }, "");
+    setMostrarReglasAcceso(true);
+  };
+
+  const closeReglasAcceso = () => {
+    window.history.back();
+  };
+
+  // AvisoPrivacidad recibe `setMostrarAviso` como si fuera un
+  // Dispatch<SetStateAction<boolean>> normal. Este wrapper intercepta esas
+  // llamadas (tanto setMostrarAviso(true) como setMostrarAviso(false)) y las
+  // redirige a openAviso/closeAviso, sin tener que tocar el componente
+  // AvisoPrivacidad por dentro.
+  const setMostrarAvisoConHistory: Dispatch<SetStateAction<boolean>> = (value) => {
+    const next = typeof value === "function"
+      ? (value as (prev: boolean) => boolean)(mostrarAviso)
+      : value;
+    if (next) {
+      openAviso();
+    } else {
+      closeAviso();
+    }
+  };
 
   const formSchema = useMemo(
     () => createSchema(requireFoto, requireIden),
@@ -649,7 +700,7 @@ const PaseUpdate = () => {
   if (mostrarAviso) {
     return (
       <AvisoPrivacidad
-        setMostrarAviso={setMostrarAviso}
+        setMostrarAviso={setMostrarAvisoConHistory}
         radioSelected={radioSelected}
         setRadioSelected={setRadioSelected}
       />
@@ -661,8 +712,8 @@ const PaseUpdate = () => {
       <div className="max-w-3xl mx-auto px-4 py-6">
         <button
           type="button"
-          onClick={() => setMostrarReglasAcceso(false)}
-          className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 mb-4 transition-colors"
+          onClick={closeReglasAcceso}
+          className="flex items-center gap-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl px-4 py-2.5 mb-4 shadow-sm shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver
@@ -687,11 +738,20 @@ const PaseUpdate = () => {
             </div>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={closeReglasAcceso}
+          className="flex items-center gap-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl px-4 py-2.5 mt-4 shadow-sm shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Volver
+        </button>
       </div>
     );
   }
 
-const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
+const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos?.pass_selected?.link_padre) && (() => {
   const activo = dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo";
 
   return (
@@ -719,34 +779,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
               {dataCatalogos.pass_selected.estatus_pase_padre || "—"}
             </span>
           </div>
-          {activo ? (
-            <p className="text-green-700 text-xs font-medium">
-              El pase padre ya está activo. Comparte el link para que lo puedan ver.
-            </p>
-          ) : (
-            <p className="text-blue-700 text-xs font-medium">
-              El pase padre aún está en proceso — el link estará disponible cuando se active.
-            </p>
-          )}
         </div>
-        <button
-          type="button"
-          title={activo ? "Compartir link" : "Pase en proceso"}
-          className={`shrink-0 flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold shadow-sm transition-all ${
-            activo
-              ? "bg-green-600 hover:bg-green-700 text-white hover:scale-105 active:scale-95 cursor-pointer"
-              : "bg-blue-200 text-blue-500 cursor-not-allowed"
-          }`}
-          onClick={activo ? handleCopyPadre : undefined}
-          disabled={!activo}
-        >
-          {activo ? (
-            copiedPadre ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />
-          ) : (
-            <Clock className="w-4 h-4" />
-          )}
-          <span>Compartir link</span>
-        </button>
       </div>
     </div>
   );
@@ -1273,7 +1306,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                           He leído y acepto el{" "}
                           <button
                             type="button"
-                            onClick={() => setMostrarAviso(true)}
+                            onClick={openAviso}
                             className="text-blue-600 underline hover:text-blue-800">
                             aviso de privacidad
                           </button>
@@ -1308,7 +1341,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                           Estoy de acuerdo con las{" "}
                           <button
                             type="button"
-                            onClick={() => setMostrarReglasAcceso(true)}
+                            onClick={openReglasAcceso}
                             className="text-blue-600 underline hover:text-blue-800">
                             reglas de acceso
                           </button>

@@ -6,10 +6,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip } from "@/components/ui/tooltip";
 import { changeUserPhoto, changeUserPhotoPatch } from "@/lib/change-user-photo";
 import { capitalizeOnlyFirstLetter } from "@/lib/utils";
 import useAuthStore from "@/store/useAuthStore";
 import { useBoothStore } from "@/store/useBoothStore";
+import { ShieldCheck } from "lucide-react";
 import React , { Dispatch, SetStateAction, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -26,6 +28,11 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
       .join("")
       .toUpperCase(); 
   };
+
+  // Roles con los que el guardia tiene el turno iniciado.
+  const roles: string[] = Array.isArray(shift?.guard?.roles) ? shift.guard.roles : [];
+  const rolesVisibles = roles.slice(0, 3);
+  const rolesOcultos = roles.slice(3);
 
     const handleButtonClick = () => {
         fileInputRef.current?.click();
@@ -65,6 +72,32 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
           <p className="font-bold text-2xl">{userNameSoter}</p>
           <p className="font-bold">{shift?.guard?.position}</p>
           <p className="">{userEmailSoter}</p>
+          {shift?.guard?.status_turn !== "Turno Cerrado" && roles.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              {rolesVisibles.map((rol, i) => (
+                <span
+                  key={i}
+                  className="bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                >
+                  {rol}
+                </span>
+              ))}
+              {rolesOcultos.length > 0 && (
+                <Tooltip
+                  content={
+                    <p className="text-xs text-gray-700">
+                      {rolesOcultos.join(", ")}
+                    </p>
+                  }
+                >
+                  <span className="bg-gray-100 text-gray-600 border border-gray-200 rounded-full px-2.5 py-0.5 text-xs font-semibold cursor-default">
+                    +{rolesOcultos.length}
+                  </span>
+                </Tooltip>
+              )}
+            </div>
+          )}
         </div>
  
         <Input 
