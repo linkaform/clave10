@@ -6,6 +6,7 @@ import { Input } from "./ui/input";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { Camera, Trash2, UploadCloud } from "lucide-react";
 import Webcam from "react-webcam";
+import { WebcamErrorBoundary } from "./webcam-error-boundary";
 import { base64ToFile, quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
 import Image from "next/image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
@@ -59,7 +60,27 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   const [webcamReady, setWebcamReady] = useState(false);
   const { uploadImageMutation, isLoading } = useUploadImage();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const webcamRef = useRef<Webcam | null>(null);
+  const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  function stopWebcamStream() {
+    try {
+      const video = webcamRef.current?.video;
+      if (video?.srcObject) {
+        (video.srcObject as MediaStream).getTracks().forEach((t) => t.stop());
+        video.srcObject = null;
+      }
+    } catch {
+      // ignorar errores de limpieza
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      stopWebcamStream();
+    };
+  }, []);
   const videoConstraints = { width: 320, height: 240, facingMode };
   const reachedLimit = (imgArray?.length ?? 0) >= limit;
   const [activeIndex, setActiveIndex] = useState(0);
@@ -141,23 +162,26 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     if (nuevos.length > 0) {
       const updatedImgs = [...(imgArray ?? []), ...nuevos];
       setImg(updatedImgs);
-      // Auto-analizar si tiene onOcrResult
       if (onOcrResult) {
-        const urls = updatedImgs
-          .map((i: Imagen) => i.file_url)
-          .filter((url): url is string => Boolean(url));
-          console.log('updatedImgs=', JSON.stringify(updatedImgs));
-          console.log('urls=', JSON.stringify(urls));
-        const result = await ocrMutation.mutateAsync(urls);
-        onOcrResult?.(result);
+        try {
+          const urls = updatedImgs
+            .map((i: Imagen) => i.file_url)
+            .filter((url): url is string => Boolean(url));
+          const result = await ocrMutation.mutateAsync(urls);
+          onOcrResult?.(result);
+        } catch {
+          onOcrResult?.({});
+        }
       }
     }
+    stopWebcamStream();
     setHideWebcam(true);
     setHideButtonWebcam(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function cleanPhoto() {
+    stopWebcamStream();
     setImg([]);
     setHideWebcam(true);
     setHideButtonWebcam(false);
@@ -173,6 +197,10 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   }
 
   function handleOpenCamera() {
+    if (isMobile) {
+      cameraInputRef.current?.click();
+      return;
+    }
     setWebcamReady(false);
     setLoadingWebcam(true);
     setHideWebcam(false);
@@ -195,6 +223,17 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     const nuevoNombre = `${quitarAcentosYMinusculasYEspacios(id)}.${extension}`;
     const nuevoArchivo = new File([base64], nuevoNombre, { type: base64.type });
 
+    // Se suelta la cámara de inmediato, antes de los awaits de subida/OCR —
+    // dejarla montada y con el stream activo durante ese tiempo (antes se
+    // liberaba hasta el final) deja una ventana donde un desmonte externo
+    // (cerrar el diálogo, navegar, un re-render del padre) puede toparse con
+    // el <video> todavía streameando y producir un "Failed to execute
+    // 'removeChild'" al desmontarlo.
+    stopWebcamStream();
+    setHideWebcam(true);
+    setHideButtonWebcam(false);
+    setWebcamReady(false);
+
     const result = await uploadImageMutation.mutateAsync({ img: nuevoArchivo });
     if (result?.file_url) {
       const updatedImgs = [...(imgArray ?? []), result];
@@ -208,13 +247,10 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
           const result = await ocrMutation.mutateAsync(urls);
           onOcrResult?.(result);
         } catch {
-          onOcrResult?.({}); 
+          onOcrResult?.({});
         }
       }
     }
-    setHideWebcam(true);
-    setHideButtonWebcam(false);
-    setWebcamReady(false);
   }
 
   const handleButtonClick = () => {
@@ -247,7 +283,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
             <Trash2 size={13} />
           </button>
 
-          {showWebcamOption && !hideButtonWebcam && !reachedLimit && (
+          {showWebcamOption && !hideButtonWebcam && !reachedLimit && !isLoading && !ocrMutation.isPending && (
             <>
               {hideWebcam && (
                 <button
@@ -288,6 +324,14 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
             onChange={handleFileChange}
             className="hidden"
             multiple
+          />
+          <input
+            type="file"
+            accept="image/jpeg,image/jpg,image/png"
+            capture={facingMode === "user" ? "user" : "environment"}
+            ref={cameraInputRef}
+            onChange={handleFileChange}
+            className="hidden"
           />
 
           <button
@@ -336,18 +380,26 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
               )}
 
               <div className={loadingWebcam ? "hidden" : "block"}>
-                <Webcam
-                  ref={webcamRef}
-                  audio={false}
-                  height={180}
-                  width={192}
-                  className="w-48 h-36 object-cover rounded-xl"
-                  screenshotFormat="image/jpeg"
-                  mirrored={facingMode === "user"}
-                  videoConstraints={videoConstraints}
-                  onUserMediaError={handleUserMedia}
-                  onUserMedia={handleUserMedia}
-                />
+                <WebcamErrorBoundary onError={() => {
+                  stopWebcamStream();
+                  setHideWebcam(true);
+                  setHideButtonWebcam(false);
+                  setWebcamReady(false);
+                  setLoadingWebcam(false);
+                }}>
+                  <Webcam
+                    ref={webcamRef}
+                    audio={false}
+                    height={180}
+                    width={192}
+                    className="w-48 h-36 object-cover rounded-xl"
+                    screenshotFormat="image/jpeg"
+                    mirrored={facingMode === "user"}
+                    videoConstraints={videoConstraints}
+                    onUserMediaError={handleUserMedia}
+                    onUserMedia={handleUserMedia}
+                  />
+                </WebcamErrorBoundary>
               </div>
             </div>
           )}

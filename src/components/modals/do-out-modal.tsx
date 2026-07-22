@@ -9,7 +9,7 @@ import {
 
 import { Dispatch, SetStateAction } from "react";
 import { Loader2 } from "lucide-react";
-import { useDoOut } from "@/hooks/Bitacora/useDoOut";
+import { useDoOut } from "@/hooks/bitacora/useDoOut";
 import { useShiftStore } from "@/store/useShiftStore";
 
 interface AddBadgeModalProps {

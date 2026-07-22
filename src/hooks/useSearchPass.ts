@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useState } from "react"
 import { useBoothStore } from "@/store/useBoothStore"
+import { Miembro } from "@/components/miembros-del-pase"
 
 
 export interface SearchAccessPass {
@@ -49,6 +50,8 @@ export interface SearchAccessPass {
   total_entradas?:string;
   anfitrions_data?:any;
   habilitar_vehiculo:string
+  acompanantes_grupo?: Miembro[]
+  acompanantes_pases?:Miembro[]
 }
 
 

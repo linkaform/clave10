@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useBitacoras } from "../Bitacora/useBitacoras";
+import { useBitacoras } from "./useBitacoras";
 import { useGetStats } from "../useGetStats";
 import {
   processBitacorasE,

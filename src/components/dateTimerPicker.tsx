@@ -323,6 +323,13 @@ export default function DateTimePicker({
     setToday(new Date());
   }, []);
 
+  useEffect(() => {
+    setSelected(date);
+    setHour(date ? date.getHours() : 0);
+    setMinute(date ? date.getMinutes() : 0);
+    timeSelected.current = !!date;
+  }, [date]);
+
   const commitAndClose = useCallback((day: Date | undefined, h: number, m: number): void => {
     if (!day) return;
     const d = new Date(day);
