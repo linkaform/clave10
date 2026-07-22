@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
@@ -35,8 +35,10 @@ import {
   Images,
 } from "lucide-react";
 import { cn, capitalizeOnlyFirstLetter } from "@/lib/utils";
-import { GaleriaFotosModal, FotoGaleria, toThumbnailUrl } from "@/components/modals/galeria-fotos-modal";
-import { useGetVisitTransportista, VisitaTransportista } from "@/hooks/useGetVisitTransportista";
+import { GaleriaFotosModal, toThumbnailUrl } from "@/components/modals/galeria-fotos-modal";
+import { useGetVisitTransportista } from "@/hooks/useGetVisitTransportista";
+import { useGetFotografiasTransportista, buildRegistrosFotografias } from "@/hooks/useGetFotografiasTransportista";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { saveBitacoraTransportistaRecord, saveInspeccionesTransportista, saveInspeccionesSelloTransportista, ocrAccesoTransportista } from "@/services/endpoints";
 import { uploadImage } from "@/lib/get-upload-image";
 import { toast } from "sonner";
@@ -77,26 +79,6 @@ function formatTimestamp(ts: string | number): string {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} · ${h}:${m}:${s} hrs`;
 }
 
-// TODO: reemplazar por el endpoint que junte fotos de documentos + inspecciones
-// en una sola respuesta (pendiente de definir en backend). Por ahora solo
-// agrega lo que ya viene cargado en `data`, sin peticiones adicionales.
-function getGaleriaFotos(data: VisitaTransportista | null): FotoGaleria[] {
-  if (!data) return [];
-  const fotos: FotoGaleria[] = [];
-  if (data.vehiculo?.foto_placa?.file_url) {
-    fotos.push({ ...data.vehiculo.foto_placa, tipo: "foto_placa_vehiculo" });
-  }
-  if (data.conductor?.foto_conductor?.file_url) {
-    fotos.push({ ...data.conductor.foto_conductor, tipo: "foto_conductor" });
-  }
-  if (data.conductor?.foto_licencia?.file_url) {
-    fotos.push({ ...data.conductor.foto_licencia, tipo: "foto_licencia" });
-  }
-  for (const doc of data.documentos_adicionales ?? []) {
-    if (doc.file_url) fotos.push(doc);
-  }
-  return fotos;
-}
 
 function Field({
   label,
@@ -219,6 +201,7 @@ function InspeccionEntradaModal({
   onSaved?: () => void;
   onViewRecord?: (url: string, tipo: string) => void;
 }) {
+  useBodyScrollLock(true);
   const withPrefix = (tipo: string) => tipoPrefix ? `${tipoPrefix}_${tipo}` : tipo;
   const buildTipoKey = (tipo: string, unidad?: number) =>
     unidad !== undefined ? `${withPrefix(tipo)}_${unidad}` : withPrefix(tipo);
@@ -1125,6 +1108,7 @@ function InspeccionSelloModal({
   onSaved?: () => void;
   onViewRecord?: (url: string, tipo: string) => void;
 }) {
+  useBodyScrollLock(true);
   const getDone = (unidad: number) => inspeccionesDone.find((i) => i.tipo === `sello_${unidad}`);
   const isDone = (unidad: number) => !!getDone(unidad);
 
@@ -1584,6 +1568,7 @@ function InspeccionCargaModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  useBodyScrollLock(true);
   const [filas, setFilas] = useState<FilaCarga[]>(() =>
     materiales.map((m) => ({
       producto:          m.producto ?? "",
@@ -1822,6 +1807,13 @@ export default function DetalleTransportistaPage() {
   const router = useRouter();
   const { data, isLoading, error, refetch } = useGetVisitTransportista(id);
   const queryClient = useQueryClient();
+
+  // La galería de fotos solo aplica una vez terminado el acceso.
+  const registrosFotografias = useMemo(
+    () => (data?.estatus === "terminado" ? buildRegistrosFotografias(id, data.inspecciones ?? []) : []),
+    [id, data?.estatus, data?.inspecciones],
+  );
+  const { fotos: galeriaFotos, isLoading: isLoadingGaleria } = useGetFotografiasTransportista(registrosFotografias);
 
   const unidadesInitialized = useRef(false);
 
@@ -4142,14 +4134,13 @@ export default function DetalleTransportistaPage() {
             })();
 
             const cardGaleria = estatus === "terminado" ? (() => {
-              const fotos = getGaleriaFotos(data);
-              const preview = fotos.slice(0, 4);
-              const restantes = fotos.length - preview.length;
+              const preview = galeriaFotos.slice(0, 4);
+              const restantes = galeriaFotos.length - preview.length;
               return (
                 <button
                   key="galeria"
                   type="button"
-                  disabled={fotos.length === 0}
+                  disabled={isLoadingGaleria || galeriaFotos.length === 0}
                   onClick={() => setShowGaleria(true)}
                   className="w-full text-left bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:border-blue-200 hover:shadow-md transition-all disabled:cursor-not-allowed disabled:hover:border-gray-100 disabled:hover:shadow-sm">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -4157,12 +4148,20 @@ export default function DetalleTransportistaPage() {
                       <Images className="w-4 h-4 text-gray-400" />
                       <span className="text-sm font-bold text-gray-800">Galería de fotos</span>
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-100 text-blue-700">
-                      {fotos.length}
-                    </span>
+                    {!isLoadingGaleria && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-100 text-blue-700">
+                        {galeriaFotos.length}
+                      </span>
+                    )}
                   </div>
                   <div className="p-4">
-                    {preview.length === 0 ? (
+                    {isLoadingGaleria ? (
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="aspect-square rounded-lg bg-gray-100 animate-pulse" />
+                        ))}
+                      </div>
+                    ) : preview.length === 0 ? (
                       <p className="text-xs text-gray-300">Sin fotos registradas</p>
                     ) : (
                       <div className="grid grid-cols-4 gap-1.5">
@@ -4275,7 +4274,7 @@ export default function DetalleTransportistaPage() {
       <GaleriaFotosModal
         open={showGaleria}
         onClose={() => setShowGaleria(false)}
-        fotos={getGaleriaFotos(data)}
+        fotos={galeriaFotos}
       />
       {editingUnit && (
         <AgregarUnidadModal

@@ -3,6 +3,7 @@
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useGetInspeccionRecord, InspeccionSection, FieldValue, EvidenciaFile } from "@/hooks/useGetInspeccionRecord";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { cn } from "@/lib/utils";
 
 function tipoLabel(tipo: string): string {
@@ -28,6 +29,7 @@ export function InspeccionRecordModal({
   onClose: () => void;
 }) {
   const { data, isLoading, error } = useGetInspeccionRecord(url, tipo);
+  useBodyScrollLock(true);
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">

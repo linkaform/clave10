@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getBitacoraTransportistaRecords } from "@/services/endpoints";
+import { getBitacoraTransportistaRecords, BitacoraTransportistaRecordsParams } from "@/services/endpoints";
 
 export interface BitacoraTransportistaRecord {
   _id: string;
@@ -9,6 +9,7 @@ export interface BitacoraTransportistaRecord {
   proveedor_cliente: string | null;
   conductor: string | null;
   tipo_de_operacion: "entrega" | "recoleccion" | string | null;
+  tipo_de_vehiculo: string | null;
   estatus: string;
   fecha_hora_ingreso: string | null;
   material: string | null;
@@ -24,11 +25,24 @@ function extractRecords(res: unknown): BitacoraTransportistaRecord[] {
   return [];
 }
 
-export const useGetBitacoraTransportistaRecords = (fecha?: string) => {
+export const useGetBitacoraTransportistaRecords = (
+  fecha?: string,
+  params: BitacoraTransportistaRecordsParams = {},
+) => {
+  const { date_from, date_to, tipo_de_vehiculo, proveedor_cliente, anden_asignado } = params;
+
   const { data, isLoading, error, refetch } = useQuery<BitacoraTransportistaRecord[]>({
-    queryKey: ["bitacoraTransportistaRecords", fecha ?? "all"],
+    queryKey: [
+      "bitacoraTransportistaRecords",
+      fecha ?? "all",
+      date_from ?? "",
+      date_to ?? "",
+      [...(tipo_de_vehiculo ?? [])].sort().join(","),
+      [...(proveedor_cliente ?? [])].sort().join(","),
+      [...(anden_asignado ?? [])].sort().join(","),
+    ],
     queryFn: async () => {
-      const res = await getBitacoraTransportistaRecords(fecha);
+      const res = await getBitacoraTransportistaRecords({ fecha, ...params });
       return extractRecords(res);
     },
     staleTime: 1000 * 60 * 2,

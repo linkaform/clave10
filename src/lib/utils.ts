@@ -448,6 +448,74 @@ export function obtenerFechas(rango: string) {
   }
 }
 
+export function resolveDateRange(
+  dateFilter?: string,
+  date1?: Date | "",
+  date2?: Date | ""
+): { date_from?: string; date_to?: string } {
+  if (!dateFilter || dateFilter === "all_records") return {};
+
+  const fmt = (d: Date, time: string) => `${dateToString(d)} ${time}`;
+  const fmtExact = (d: Date) =>
+    `${dateToString(d)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  switch (dateFilter) {
+    case "today":
+      return { date_from: fmt(startOfToday, "00:00:00"), date_to: fmt(startOfToday, "23:59:59") };
+
+    case "yesterday": {
+      const y = new Date(startOfToday.getTime() - 86400000);
+      return { date_from: fmt(y, "00:00:00"), date_to: fmt(y, "23:59:59") };
+    }
+
+    case "this_week": {
+      const start = new Date(startOfToday);
+      start.setDate(startOfToday.getDate() - startOfToday.getDay());
+      return { date_from: fmt(start, "00:00:00"), date_to: fmtExact(now) };
+    }
+
+    case "last_week": {
+      const startOfThisWeek = new Date(startOfToday);
+      startOfThisWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
+      const startOfLastWeek = new Date(startOfThisWeek.getTime() - 7 * 86400000);
+      const endOfLastWeek = new Date(startOfThisWeek.getTime() - 86400000);
+      return { date_from: fmt(startOfLastWeek, "00:00:00"), date_to: fmt(endOfLastWeek, "23:59:59") };
+    }
+
+    case "last_fifteen_days": {
+      const fifteenDaysAgo = new Date(now.getTime() - 15 * 86400000);
+      return { date_from: fmtExact(fifteenDaysAgo), date_to: fmtExact(now) };
+    }
+
+    case "this_month": {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { date_from: fmt(startOfMonth, "00:00:00"), date_to: fmtExact(now) };
+    }
+
+    case "last_month": {
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { date_from: fmt(startOfLastMonth, "00:00:00"), date_to: fmt(endOfLastMonth, "23:59:59") };
+    }
+
+    case "this_year": {
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      return { date_from: fmt(startOfYear, "00:00:00"), date_to: fmtExact(now) };
+    }
+
+    case "range": {
+      if (!date1 || !date2) return {};
+      return { date_from: fmt(new Date(date1), "00:00:00"), date_to: fmt(new Date(date2), "23:59:59") };
+    }
+
+    default:
+      return {};
+  }
+}
+
 export const dateToString = (fecha: Date) => {
   const year = fecha.getFullYear();
   const month = String(fecha.getMonth() + 1).padStart(2, "0"); // Los meses en JavaScript van de 0 a 11, por eso se suma 1

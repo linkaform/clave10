@@ -221,11 +221,27 @@ export const saveBitacoraTransportistaRecord = (record_id: string, seccion: stri
     payload,
   });
 
-export const getBitacoraTransportistaRecords = (fecha?: string) =>
+export interface BitacoraTransportistaRecordsParams {
+  fecha?: string;
+  date_from?: string;
+  date_to?: string;
+  tipo_de_vehiculo?: string[];
+  proveedor_cliente?: string[];
+  anden_asignado?: string[];
+}
+
+export const getBitacoraTransportistaRecords = (
+  params: BitacoraTransportistaRecordsParams = {},
+) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "transportistas.py",
     option: "get_bitac_transportista_records",
-    ...(fecha && { fecha }),
+    ...(params.fecha && { fecha: params.fecha }),
+    ...(params.date_from && { date_from: params.date_from }),
+    ...(params.date_to && { date_to: params.date_to }),
+    ...(params.tipo_de_vehiculo?.length && { tipo_de_vehiculo: params.tipo_de_vehiculo }),
+    ...(params.proveedor_cliente?.length && { proveedor_cliente: params.proveedor_cliente }),
+    ...(params.anden_asignado?.length && { anden_asignado: params.anden_asignado }),
   });
 
 export const saveInspeccionesTransportista = (record_id: string, inspecciones: unknown[]) =>
@@ -250,4 +266,13 @@ export const getInspeccionRecord = (record_id: string, tipo: string) =>
     option: "get_inspeccion_record",
     record_id,
     tipo,
+  });
+
+export const getFotografiasTransportista = (
+  registros: { record_id: string; tipo_de_registro: string }[],
+) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_fotografias",
+    registros,
   });
