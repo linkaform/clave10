@@ -85,6 +85,11 @@ function todayIso(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function isHoy(fechaHoraIngreso: string | null): boolean {
+  if (!fechaHoraIngreso) return false;
+  return fechaHoraIngreso.slice(0, 10) === todayIso();
+}
+
 function formatFechaDisplay(iso: string): string {
   if (iso === todayIso()) return "Hoy";
   const [y, m, d] = iso.split("-");
@@ -266,8 +271,13 @@ function KanbanColumn({
       {/* Header */}
       <div className={cn("flex items-center gap-2 px-3 py-2.5 rounded-t-xl border", col.border, col.light)}>
         <span className={cn("w-2 h-2 rounded-full shrink-0", col.color)} />
-        <span className={cn("text-xs font-bold flex-1", col.text)}>{col.label}</span>
-        <span className={cn("text-xs font-semibold px-1.5 py-0.5 rounded-md bg-white border", col.border, col.text)}>{records.length}</span>
+        <span className={cn("text-xs font-bold flex-1 truncate", col.text)}>
+          {col.label}
+          {col.key === "terminado" && (
+            <span className="font-normal text-[10px] opacity-70 ml-1">(solo de hoy)</span>
+          )}
+        </span>
+        <span className={cn("text-xs font-semibold px-1.5 py-0.5 rounded-md bg-white border shrink-0", col.border, col.text)}>{records.length}</span>
         <ArrowUpDown className={cn("w-3 h-3 shrink-0", col.text, "opacity-50")} />
       </div>
       {/* Body */}
@@ -308,13 +318,15 @@ export default function BitacorasTransportistasPage() {
     return () => clearInterval(id);
   }, []);
 
-  // Bloquea el scroll global solo en vista kanban
+  // Bloquea el scroll global solo en vista kanban.
+  // Depende también de isSidebarOpen para re-aplicar "hidden" después de que
+  // FloatingFiltersDrawer libere el scroll al cerrarse (ambos tocan el mismo estilo).
   useEffect(() => {
     if (viewMode !== "kanban") return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, [viewMode]);
+  }, [viewMode, isSidebarOpen]);
 
   const { data: records, isLoading } = useGetBitacoraTransportistaRecords(fecha, {
     date_from: dateRange.date_from,
@@ -400,6 +412,19 @@ export default function BitacorasTransportistasPage() {
         </PageHeader>
       </div>
 
+      {/* Drawer de filtros — fuera del estado de carga para que no se desmonte al refetchear */}
+      {(viewMode === "kanban" || viewMode === "table") && (
+        <FloatingFiltersDrawer
+          isOpen={isSidebarOpen}
+          onOpenChange={setIsSidebarOpen}
+          activeFiltersCount={activeFiltersCount}
+          filters={externalFilters}
+          onFiltersChange={onExternalFiltersChange}
+          filtersConfig={filtersConfig}
+          filtroUbicacion={false}
+        />
+      )}
+
       {/* ── Contenido ── */}
       {isLoading ? (
         <div className="flex items-center justify-center flex-1 text-sm text-gray-400">
@@ -410,29 +435,23 @@ export default function BitacorasTransportistasPage() {
           <div className="flex gap-3 p-4 h-full w-full">
             <ProgramadosColumn records={byEstatus("programado")} fecha={fecha} now={now} onChangeDay={changeDay} />
             {COLUMNAS.map((col) => (
-              <KanbanColumn key={col.key} col={col} records={byEstatus(col.key)} now={now} />
+              <KanbanColumn
+                key={col.key}
+                col={col}
+                records={col.key === "terminado" ? byEstatus(col.key).filter((r) => isHoy(r.fecha_hora_ingreso)) : byEstatus(col.key)}
+                now={now}
+              />
             ))}
           </div>
         </div>
       ) : viewMode === "table" ? (
-        <>
-          <FloatingFiltersDrawer
-            isOpen={isSidebarOpen}
-            onOpenChange={setIsSidebarOpen}
-            activeFiltersCount={activeFiltersCount}
-            filters={externalFilters}
-            onFiltersChange={onExternalFiltersChange}
-            filtersConfig={filtersConfig}
-            filtroUbicacion={false}
+        <div className="p-4">
+          <TransportistasTable
+            data={filtered}
+            isLoading={isLoading}
+            globalSearch={search ? [search] : []}
           />
-          <div className="p-4">
-            <TransportistasTable
-              data={filtered}
-              isLoading={isLoading}
-              globalSearch={search ? [search] : []}
-            />
-          </div>
-        </>
+        </div>
       ) : (
         <div className="flex gap-4 items-start p-4">
           <aside className="w-72 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[72px] shadow-sm max-h-[calc(100vh-100px)] overflow-y-auto">
