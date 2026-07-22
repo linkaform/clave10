@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { getAndenes } from "@/services/endpoints";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 const SENTINEL = Symbol("unset");
 
@@ -25,6 +26,7 @@ export function SeleccionAndenModal({
 }) {
   const [selected, setSelected] = useState<string | null | typeof SENTINEL>(SENTINEL);
   const confirmed = selected !== SENTINEL;
+  useBodyScrollLock(true);
 
   const { data: andenesData, isLoading: isLoadingAndenes } = useQuery({
     queryKey: ["getAndenes"],

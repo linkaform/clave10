@@ -298,6 +298,8 @@ export default function BitacorasTransportistasPage() {
     activeFiltersCount,
     isSidebarOpen,
     setIsSidebarOpen,
+    dateRange,
+    serverFilters,
   } = useTransportistaFilters();
 
   // Actualiza el reloj cada minuto para refrescar los tiempos en etapa
@@ -314,7 +316,11 @@ export default function BitacorasTransportistasPage() {
     return () => { document.body.style.overflow = prev; };
   }, [viewMode]);
 
-  const { data: records, isLoading } = useGetBitacoraTransportistaRecords(fecha);
+  const { data: records, isLoading } = useGetBitacoraTransportistaRecords(fecha, {
+    date_from: dateRange.date_from,
+    date_to: dateRange.date_to,
+    ...serverFilters,
+  });
 
   const searchFiltered = records.filter((r) => {
     if (!search) return true;

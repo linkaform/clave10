@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useFilters } from "../bitacora/useFilters";
 import { getTransportistaFilters } from "@/services/endpoints";
 import { FilterConfig } from "@/types/bitacoras";
+import { resolveDateRange } from "@/lib/utils";
 
 // Filtros estáticos usados como fallback mientras el backend no tiene la option lista
 const STATIC_FILTERS_CONFIG: FilterConfig[] = [
@@ -47,8 +48,6 @@ export function applyTransportistaFilters(
 
   const dynamic = filters.dynamic || {};
   const dateFilter = filters.dateFilter || "";
-  const date1 = filters.date1;
-  const date2 = filters.date2;
 
   const normalize = (text: any) =>
     String(text ?? "")
@@ -82,14 +81,6 @@ export function applyTransportistaFilters(
         return false;
     }
 
-    if (dynamic.proveedor_cliente) {
-      const pFilter = Array.isArray(dynamic.proveedor_cliente)
-        ? dynamic.proveedor_cliente
-        : [dynamic.proveedor_cliente];
-      if (!pFilter.some((p: string) => normalize(p) === normalize(item.proveedor_cliente)))
-        return false;
-    }
-
     if (dynamic.conductor) {
       const cFilter = Array.isArray(dynamic.conductor)
         ? dynamic.conductor
@@ -104,57 +95,6 @@ export function applyTransportistaFilters(
         : [dynamic.material];
       if (!mFilter.some((m: string) => normalize(m) === normalize(item.material)))
         return false;
-    }
-
-    if (dynamic.anden_asignado) {
-      const aFilter = Array.isArray(dynamic.anden_asignado)
-        ? dynamic.anden_asignado
-        : [dynamic.anden_asignado];
-      if (!aFilter.some((a: string) => normalize(a) === normalize(item.anden_asignado)))
-        return false;
-    }
-
-    if (dateFilter && dateFilter !== "" && dateFilter !== "all_records") {
-      const rawFecha = item.fecha_hora_ingreso;
-      if (!rawFecha) return false;
-      const itemDate = new Date(rawFecha.replace(" ", "T"));
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      if (dateFilter === "today") {
-        if (itemDate < startOfToday || itemDate >= new Date(startOfToday.getTime() + 86400000))
-          return false;
-      } else if (dateFilter === "yesterday") {
-        const startOfYesterday = new Date(startOfToday.getTime() - 86400000);
-        if (itemDate < startOfYesterday || itemDate >= startOfToday) return false;
-      } else if (dateFilter === "this_week") {
-        const startOfWeek = new Date(startOfToday);
-        startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
-        if (itemDate < startOfWeek || itemDate > now) return false;
-      } else if (dateFilter === "last_week") {
-        const startOfThisWeek = new Date(startOfToday);
-        startOfThisWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
-        const startOfLastWeek = new Date(startOfThisWeek.getTime() - 7 * 86400000);
-        if (itemDate < startOfLastWeek || itemDate >= startOfThisWeek) return false;
-      } else if (dateFilter === "last_fifteen_days") {
-        const fifteenDaysAgo = new Date(now.getTime() - 15 * 86400000);
-        if (itemDate < fifteenDaysAgo || itemDate > now) return false;
-      } else if (dateFilter === "this_month") {
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        if (itemDate < startOfMonth || itemDate > now) return false;
-      } else if (dateFilter === "last_month") {
-        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        if (itemDate < startOfLastMonth || itemDate >= endOfLastMonth) return false;
-      } else if (dateFilter === "this_year") {
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        if (itemDate < startOfYear || itemDate > now) return false;
-      } else if (dateFilter === "range" && date1 && date2) {
-        const from = new Date(date1);
-        const to = new Date(date2);
-        to.setHours(23, 59, 59, 999);
-        if (itemDate < from || itemDate > to) return false;
-      }
     }
 
     return true;
@@ -190,6 +130,24 @@ export function useTransportistaFilters() {
     return dynamicCount + dateCount;
   }, [dynamicFilters, dateFilter]);
 
+  const dateRange = useMemo(
+    () => resolveDateRange(dateFilter, date1, date2),
+    [dateFilter, date1, date2]
+  );
+
+  // Filtros que se resuelven server-side (van al backend, no se filtran en el cliente)
+  const asArray = (v: any): string[] | undefined =>
+    v === undefined || v === "" ? undefined : Array.isArray(v) ? v : [v];
+
+  const serverFilters = useMemo(
+    () => ({
+      tipo_de_vehiculo: asArray(dynamicFilters.tipo_de_vehiculo),
+      proveedor_cliente: asArray(dynamicFilters.proveedor_cliente),
+      anden_asignado: asArray(dynamicFilters.anden_asignado),
+    }),
+    [dynamicFilters.tipo_de_vehiculo, dynamicFilters.proveedor_cliente, dynamicFilters.anden_asignado]
+  );
+
   const onExternalFiltersChange = (newFilters: any) => {
     if (
       !newFilters.dynamic ||
@@ -215,5 +173,7 @@ export function useTransportistaFilters() {
     loadingFilters,
     isSidebarOpen,
     setIsSidebarOpen,
+    dateRange,
+    serverFilters,
   };
 }
