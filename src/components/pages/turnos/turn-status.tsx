@@ -47,6 +47,10 @@ const TurnStatus = ({
 	const [openCloseView, setOpenCloseView] = useState(false);
 
 	const [openDeletePhoto, setOpenDeletePhoto] = useState(false);
+	// Roles seleccionados al tomar la foto de inicio / cierre de turno
+	const [rolesInicio, setRolesInicio] = useState<string[]>([]);
+	const [rolesCierre, setRolesCierre] = useState<string[]>([]);
+	console.log(rolesCierre)
 	const location = shift?.location?.name?? "";
 	const area = shift?.location?.area?? ""
 
@@ -106,7 +110,10 @@ const TurnStatus = ({
 			setIdentificacion(shift?.guard?.end_turn_image?.length)
 	
 	},[shift?.guard?.start_turn_image, shift?.guard?.end_turn_image, setEvidencia, setIdentificacion, shift?.booth_status?.guard_on_dutty, userIdSoter, shift?.guard?.user_id, isUserActiveTurn])
-
+	const rolesParaCierre =
+	Array.isArray(shift?.guard?.roles) && shift.guard.roles.length > 0
+		? shift.guard.roles
+		: rolesInicio;
   return (
     <div className="flex items-center flex-col md:flex-row justify-between md:mb-3">
       <div className="flex mb-3 lg:mb-0">
@@ -157,7 +164,17 @@ const TurnStatus = ({
 				<DeletePhotoGuard setEvidencia={setEvidencia } open={openDeletePhoto} setOpen={setOpenDeletePhoto}>
 				</DeletePhotoGuard>
 
-				<TakePhotoGuard title="Tomar Fotografía" descripcion="Capture una fotografía de su uniforme completo antes de iniciar su turno." evidencia={evidencia} setEvidencia={setEvidencia} open={openStartPhotoModal} setOpen={setOpenStartPhotoModal}>
+				<TakePhotoGuard
+					title="Tomar Fotografía"
+					descripcion="Capture una fotografía de su uniforme completo antes de iniciar su turno."
+					evidencia={evidencia}
+					setEvidencia={setEvidencia}
+					roles={rolesInicio}
+					setRoles={setRolesInicio}
+					modo="inicio"
+					open={openStartPhotoModal}
+					setOpen={setOpenStartPhotoModal}
+				>
 				</TakePhotoGuard>
 
 				<ViewPhotoGuard  evidencia={isUserActiveTurn? (evidencia || shift?.guard?.start_turn_image ||[]):[]} open={openStartView} setOpen={setOpenStartView}>
@@ -206,7 +223,17 @@ const TurnStatus = ({
 					</span>
 				</div> */}
 
-				<TakePhotoGuard title="Tomar Fotografía" descripcion="Capture una fotografía de su uniforme completo antes de cerrar su turno." evidencia={identificacion} setEvidencia={setIdentificacion} open={openClosePhotoModal} setOpen={setOpenClosePhotoModal} >
+				<TakePhotoGuard
+					title="Tomar Fotografía"
+					descripcion="Capture una fotografía de su uniforme completo antes de cerrar su turno."
+					evidencia={identificacion}
+					setEvidencia={setIdentificacion}
+					setRoles={setRolesCierre}
+					roles={rolesParaCierre} 
+					modo="cierre"
+					open={openClosePhotoModal}
+					setOpen={setOpenClosePhotoModal}
+				>
 				</TakePhotoGuard>
 
 				<div className="flex flex-col sm:flex-row justify-between sm:gap-10 sm:gap-y-10 items-center">
@@ -255,7 +282,7 @@ const TurnStatus = ({
 			</Button>
 		)}
 
-		<StartShiftModal title="Confirmación" evidencia={evidencia} open= {openStartShift} setOpen={setOpenStartShift} nombreSuplente={nombreSuplente} checkin_id={checkin_id}>
+		<StartShiftModal title="Confirmación" evidencia={evidencia} roles={rolesInicio} open= {openStartShift} setOpen={setOpenStartShift} nombreSuplente={nombreSuplente} checkin_id={checkin_id}>
 		</StartShiftModal>
        
 		{shift?.guard?.status_turn !== "Turno Cerrado" && (
@@ -271,7 +298,7 @@ const TurnStatus = ({
             </Button>
         )}
 
-     	<CloseShiftModal title="Confirmación" shift={shift} area={area} location={location} identificacion={identificacion} open={openCloseShift} setOpen={setOpenCloseShift} checkin_id={checkin_id}>
+     	<CloseShiftModal title="Confirmación" shift={shift} area={area} location={location} identificacion={identificacion} roles={rolesParaCierre} open={openCloseShift} setOpen={setOpenCloseShift} checkin_id={checkin_id}>
       	</CloseShiftModal>
 
 		<>
