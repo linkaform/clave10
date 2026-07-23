@@ -44,6 +44,17 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+// Material tal como lo regresa el análisis de IA — puede venir suelto a nivel
+// del documento o ya ligado dentro de un remolque/contenedor específico.
+interface RawMaterialAI {
+  producto?: string;
+  lote?: string;
+  cant_esperada?: string;
+  peso?: string;
+  volumen?: string;
+  no_orden_compra?: string; // aún sin campo propio en MaterialCarga — no se mapea
+}
+
 type TipoOperacion = "Entrega" | "Recolección";
 
 const TIPOS_OPERACION = [
@@ -448,15 +459,37 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
           transportista: string; tipo_vehiculo: string; placa: string;
           procedencia: string; no_economico: string;
           marca: string; modelo: string; color: string;
+          placa_tarjeta_circulacion: string;
         }>;
         conductor: Partial<{ nombre: string; no_licencia: string; vigencia_licencia: string; rfc: string; acompanante: string }>;
         documentos_detectados: { url: string; fuente: string; tipo: string }[];
-        remolques: { tipo?: string; no_caja?: string; no_sello?: string; placas?: string; color?: string; comentarios?: string }[];
-        contenedores: { tipo?: string; no_caja?: string; no_sello?: string; placas?: string; color?: string; comentarios?: string }[];
-        materiales: { producto?: string; lote?: string; cant_esperada?: string; peso?: string; volumen?: string }[];
-        embarque: Partial<{ proveedor_cliente: string; no_orden_compra: string }>;
-        placas_tarjetas: Partial<{ vehiculo: string; remolque: string }>;
+        remolques: {
+          tipo?: string; no_caja?: string; no_sello?: string; placas?: string;
+          placas_tarjeta_circulacion?: string; color?: string; comentarios?: string;
+          materiales?: RawMaterialAI[];
+        }[];
+        contenedores: {
+          tipo?: string; no_caja?: string; no_contenedor?: string; no_sello?: string; placas?: string;
+          color?: string; comentarios?: string; materiales?: RawMaterialAI[];
+        }[];
+        materiales: RawMaterialAI[];
+        embarque: Partial<{
+          proveedor_cliente: string; no_orden_compra: string;
+          fecha_embarque: string; origen: string; destino: string;
+          naviera: string; no_bl: string; no_autorizacion_puerto: string; no_pedimento: string;
+        }>;
+        observaciones: string;
       }>;
+
+      const toMaterialesCarga = (raw?: RawMaterialAI[]) =>
+        (raw ?? []).map((m) => ({
+          ...emptyMaterial(),
+          producto:     m.producto      ?? "",
+          lote:         m.lote          ?? "",
+          cantEsperada: m.cant_esperada ?? "",
+          peso:         m.peso          ?? "",
+          volumen:      m.volumen       ?? "",
+        }));
 
       const filled = new Set<string>();
 
@@ -487,10 +520,12 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       }
 
       // Remolques y contenedores llegan en arreglos separados — la IA no
-      // sabe qué contenedor va sobre qué remolque. Si hay exactamente uno de
-      // cada uno se ligan automáticamente (caso simple); si hay más de uno,
-      // se crea una unidad por remolque y los contenedores quedan "sueltos"
-      // para que el usuario los ligue arrastrándolos sobre el remolque.
+      // sabe qué contenedor va sobre qué remolque. Si se detectó como mucho
+      // un remolque real, se duplica su info para cubrir cada contenedor
+      // sobrante y se ligan automáticamente 1:1 (el usuario corrige después
+      // si en realidad son remolques distintos). Si se detectaron 2+
+      // remolques reales, la correspondencia es ambigua y los contenedores
+      // quedan "sueltos" para que el usuario los ligue arrastrándolos.
       const remolquesAI = d.remolques ?? [];
       const contenedoresAI = d.contenedores ?? [];
       const unidadesFromAI: UnidadItem[] = remolquesAI.map((r) => {
@@ -503,6 +538,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
           placas:      r.placas      ?? "",
           color:       r.color       ?? "",
           comentarios: r.comentarios ?? "",
+          materiales:  r.materiales?.length ? toMaterialesCarga(r.materiales) : u.remolque.materiales,
         };
         return u;
       });
@@ -510,43 +546,66 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       const contenedoresParaLigar: (ContenedorData & { id: string })[] = contenedoresAI.map((c) => ({
         id: Math.random().toString(36).slice(2),
         ...emptyContenedorData(),
-        tipo:         c.tipo        ?? "",
-        noSello:      c.no_sello    ?? "",
-        noContenedor: c.no_caja     ?? "",
-        color:        c.color       ?? "",
-        comentarios:  c.comentarios ?? "",
+        tipo:         c.tipo         ?? "",
+        noSello:      c.no_sello     ?? "",
+        noContenedor: c.no_contenedor ?? "",
+        noCaja:       c.no_caja      ?? "",
+        color:        c.color        ?? "",
+        comentarios:  c.comentarios  ?? "",
+        materiales:   c.materiales?.length ? toMaterialesCarga(c.materiales) : emptyContenedorData().materiales,
       }));
 
-      if (remolquesAI.length === 1 && contenedoresParaLigar.length === 1) {
-        // Caso simple — se liga solo, sin pasar por el pool de sueltos
-        const { tipo, noSello, noContenedor, noCaja, color, comentarios, materiales } = contenedoresParaLigar[0];
-        unidadesFromAI[0] = {
-          ...unidadesFromAI[0],
-          config: "remolque_contenedor",
-          contenedor: { tipo, noSello, noContenedor, noCaja, color, comentarios, materiales },
-        };
+      // ¿Ya vino algún material ligado directamente al remolque/contenedor?
+      // Si es así, el arreglo plano `materiales` de abajo (formato legado) se ignora.
+      const materialesYaLigadosPorEntidad =
+        remolquesAI.some((r) => r.materiales?.length) || contenedoresAI.some((c) => c.materiales?.length);
+
+      // Si se detectó un único remolque real y hay más contenedores que
+      // remolques, se duplica la info de ese remolque para cada contenedor
+      // sobrante — el usuario la ajusta después si en realidad corresponde
+      // a un remolque distinto. Con 2+ remolques reales no se rellena nada:
+      // la correspondencia ya es ambigua tal como venía de la IA.
+      const remolquesRealesDetectados = unidadesFromAI.length;
+      if (remolquesRealesDetectados === 1) {
+        while (unidadesFromAI.length < contenedoresParaLigar.length) {
+          const u = emptyUnidad();
+          u.remolque = { ...unidadesFromAI[0].remolque, materiales: [emptyMaterial()] };
+          unidadesFromAI.push(u);
+        }
+      }
+
+      if (
+        remolquesRealesDetectados <= 1 &&
+        unidadesFromAI.length > 0 &&
+        unidadesFromAI.length === contenedoresParaLigar.length
+      ) {
+        // Correspondencia 1:1 sin ambigüedad (0-1 remolque real, resto duplicado) — se ligan automáticamente
+        contenedoresParaLigar.forEach((c, i) => {
+          const { tipo, noSello, noContenedor, noCaja, color, comentarios, materiales } = c;
+          unidadesFromAI[i] = {
+            ...unidadesFromAI[i],
+            config: "remolque_contenedor",
+            contenedor: { tipo, noSello, noContenedor, noCaja, color, comentarios, materiales },
+          };
+        });
       } else if (contenedoresParaLigar.length) {
         setContenedoresSueltos(contenedoresParaLigar);
       }
 
-      // Materiales — el servicio aún no indica a qué remolque/contenedor
-      // pertenece cada uno, así que se anexan a la primera unidad con
-      // contenedor (o a la primera unidad si ninguna tiene contenedor).
-      if (d.materiales?.length) {
+      // Materiales — formato legado: cuando el servicio no liga cada material
+      // a su remolque/contenedor, llegan sueltos en un arreglo plano y se
+      // anexan a la primera unidad con contenedor (o a la primera unidad).
+      // Si ya llegaron ligados por entidad (ver arriba), este bloque no hace nada.
+      if (!materialesYaLigadosPorEntidad && d.materiales?.length) {
         if (!unidadesFromAI.length) unidadesFromAI.push(emptyUnidad());
         const targetIdx = Math.max(unidadesFromAI.findIndex((u) => u.config === "remolque_contenedor"), 0);
-        const materialesCarga = d.materiales.map((m) => ({
-          ...emptyMaterial(),
-          producto:     m.producto      ?? "",
-          lote:         m.lote          ?? "",
-          cantEsperada: m.cant_esperada ?? "",
-          peso:         m.peso          ?? "",
-          volumen:      m.volumen       ?? "",
-        }));
+        const materialesCarga = toMaterialesCarga(d.materiales);
         const target = unidadesFromAI[targetIdx];
         unidadesFromAI[targetIdx] = target.config === "remolque_contenedor"
           ? { ...target, contenedor: { ...target.contenedor, materiales: materialesCarga } }
           : { ...target, remolque: { ...target.remolque, materiales: materialesCarga } };
+        filled.add("carga");
+      } else if (materialesYaLigadosPorEntidad) {
         filled.add("carga");
       }
 
@@ -562,7 +621,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
 
       // Placa de la tarjeta de circulación del vehículo — sin campo visual,
       // se guarda para mandarla al crear el registro.
-      if (d.placas_tarjetas?.vehiculo) setPlacaTarjetaVehiculo(d.placas_tarjetas.vehiculo);
+      if (d.vehiculo?.placa_tarjeta_circulacion) setPlacaTarjetaVehiculo(d.vehiculo.placa_tarjeta_circulacion);
 
       setAiFilledFields(filled);
     } finally {
