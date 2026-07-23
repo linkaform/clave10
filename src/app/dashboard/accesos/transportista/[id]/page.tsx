@@ -2277,17 +2277,22 @@ export default function DetalleTransportistaPage() {
 
   const [savingStagedDocs, setSavingStagedDocs] = useState(false);
   const guardarDocumentosPendientes = async () => {
-    const asignados = stagedDocs.filter((d) => d.asignadoA && d.file_url && !d.uploading);
-    if (!asignados.length) return;
+    // Se guardan todos los documentos listos, tengan o no un tipo asignado —
+    // no hace falta analizar con IA ni asignar tipo para poder guardarlos;
+    // los que queden "sin asignar" se les puede poner tipo después desde
+    // la pestaña "Subidos".
+    const listos = stagedDocs.filter((d) => d.file_url && !d.uploading);
+    if (!listos.length) return;
     setSavingStagedDocs(true);
     try {
+      const toSave = listos.map((d) => ({
+        file_url: d.file_url,
+        file_name: d.file_name,
+        ...(d.asignadoA ? { tipo: tipoRequeridoSlug(d.asignadoA) } : {}),
+        index: null,
+      }));
       await saveBitacoraTransportistaRecord(id, "documentos", {
-        documentos_adicionales: asignados.map((d) => ({
-          file_url: d.file_url,
-          file_name: d.file_name,
-          tipo: tipoRequeridoSlug(d.asignadoA as string),
-          index: null,
-        })),
+        documentos_adicionales: toSave,
       });
       // Optimista: ya sabemos que se guardaron bien, así que se marcan como
       // subidos de inmediato (para que la fila de pendientes no "parpadee" de
@@ -2296,15 +2301,12 @@ export default function DetalleTransportistaPage() {
         ["visitaTransportista", id],
         (old) => old ? {
           ...old,
-          documentos_adicionales: [
-            ...(old.documentos_adicionales ?? []),
-            ...asignados.map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo: tipoRequeridoSlug(d.asignadoA as string) })),
-          ],
+          documentos_adicionales: [...(old.documentos_adicionales ?? []), ...toSave],
         } : old
       );
-      setStagedDocs((p) => p.filter((d) => !asignados.includes(d)));
+      setStagedDocs((p) => p.filter((d) => !listos.includes(d)));
       refetch();
-      toast.success(asignados.length > 1 ? "Documentos guardados" : "Documento guardado");
+      toast.success(listos.length > 1 ? "Documentos guardados" : "Documento guardado");
     } catch {
       toast.error("Error al guardar los documentos");
     } finally {
@@ -3255,12 +3257,11 @@ export default function DetalleTransportistaPage() {
                 const tipoLabel = doc.tipo ? doc.tipo.replace(/_/g, " ").toUpperCase() : doc.file_name;
 
                 if (isEditing && draft) {
-                  // Opciones del select: los documentos aún pendientes + el que ya
-                  // trae este archivo (para que se muestre seleccionado aunque ya
-                  // esté cubierto por otro lado).
-                  const tipoOptions = documentosRequeridosNombres.filter(
-                    (nombre) => !tiposSubidos.has(tipoRequeridoSlug(nombre)) || tipoRequeridoSlug(nombre) === draft.tipo,
-                  );
+                  // Se permiten varios documentos del mismo tipo (ej. dos
+                  // identificaciones) — el backend ya los guarda como filas
+                  // independientes, así que el select ofrece todos los tipos
+                  // sin excluir los ya usados por otro documento.
+                  const tipoOptions = documentosRequeridosNombres;
                   return (
                     <div key={doc.file_url} className="rounded-xl border-2 border-blue-200 bg-blue-50/30 p-3.5 space-y-3">
                       <div className="flex items-center gap-3">
@@ -3483,8 +3484,8 @@ export default function DetalleTransportistaPage() {
                 );
               })()}
               {!isLocked && docTab === "pendientes" && (() => {
-                const asignados = stagedDocs.filter((d) => d.asignadoA);
-                const guardarDisabled = savingStagedDocs || asignados.length === 0;
+                const listos = stagedDocs.filter((d) => d.file_url && !d.uploading);
+                const guardarDisabled = savingStagedDocs || listos.length === 0;
                 return (
                   <button
                     type="button"
@@ -3504,7 +3505,7 @@ export default function DetalleTransportistaPage() {
                     ) : (
                       <>
                         <Save className="w-3.5 h-3.5" />
-                        Guardar documentos{asignados.length > 0 ? ` (${asignados.length})` : ""}
+                        Guardar documentos{listos.length > 0 ? ` (${listos.length})` : ""}
                       </>
                     )}
                   </button>
