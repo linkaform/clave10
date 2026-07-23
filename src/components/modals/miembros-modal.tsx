@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { X, Search, Share2, ArrowUpRight, ChevronLeft, ChevronRight, CheckCircle2, Clock ,QrCode} from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +9,9 @@ import { QRCodeSVG } from "qrcode.react";
 import { useAccessStore } from "@/store/useAccessStore";
 
 interface Miembro {
+  // Id real del pase de este acompañante (viene de qr_code en MembersCarousel),
+  // compartido para sincronizar la selección entre ambas vistas.
+  id: string;
   nombre: string;
   foto?: string;
   identificacion?: string;
@@ -23,8 +26,11 @@ interface MembersModalProps {
   open: boolean;
   onClose: () => void;
   miembros: Miembro[];
-  onSeleccionMiembros?: (miembros: Miembro[]) => void;
-  puedeSeleccionar:boolean;
+  puedeSeleccionar: boolean;
+  /** Set de ids de pase seleccionados actualmente. Controlado por el padre (MembersCarousel), no por este modal. */
+  selectedPases: Set<string>;
+  /** El padre decide qué hacer cuando se marca/desmarca un miembro (identificado por su `id`, el id real del pase). */
+  onTogglePase: (id: string) => void;
 }
 
 const statusConfig: Record<string, { cls: string; icon: React.ReactNode }> = {
@@ -98,31 +104,15 @@ export const MembersModal: React.FC<MembersModalProps> = ({
   open,
   onClose,
   miembros,
-  onSeleccionMiembros,
-  puedeSeleccionar = true,
+  puedeSeleccionar,
+  selectedPases,
+  onTogglePase,
 }) => {
   const { setPassCode } = useAccessStore();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [qrMiembro, setQrMiembro] = useState<Miembro | null>(null);
-  const [selected, setSelected] = useState<Set<Miembro>>(new Set());
   const pageSize = 10;
-
-  // Avisa al padre (Credentials) cada vez que cambia la selección, con los
-  // miembros marcados para ingreso.
-  useEffect(() => {
-    onSeleccionMiembros?.(Array.from(selected));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
-
-  // Si el pase pasa a estar en proceso (o el padre lo marca como no
-  // seleccionable) mientras el modal está abierto, limpiamos cualquier
-  // selección previa para que no quede "ingreso" pendiente inválido.
-  useEffect(() => {
-    if (!puedeSeleccionar) {
-      setSelected(new Set());
-    }
-  }, [puedeSeleccionar]);
 
   if (!open) return null;
 
@@ -141,30 +131,18 @@ export const MembersModal: React.FC<MembersModalProps> = ({
 
   const toggleSelect = (miembro: Miembro) => {
     if (!esSeleccionable(miembro)) return;
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(miembro)) {
-        next.delete(miembro);
-      } else {
-        next.add(miembro);
-      }
-      return next;
-    });
+    onTogglePase(miembro.id);
   };
 
   const toggleSelectAll = (checked: boolean) => {
     if (!puedeSeleccionar) return;
-    setSelected((prev) => {
-      const next = new Set(prev);
-      paginated.forEach((m) => {
-        if (!esSeleccionable(m)) return;
-        if (checked) {
-          next.add(m);
-        } else {
-          next.delete(m);
-        }
-      });
-      return next;
+    paginated.forEach((m) => {
+      if (!esSeleccionable(m)) return;
+      const yaSeleccionado = selectedPases.has(m.id);
+      // onTogglePase siempre "invierte" el estado actual de ese id, así que
+      // solo la llamamos cuando el estado actual difiere del que queremos.
+      if (checked && !yaSeleccionado) onTogglePase(m.id);
+      if (!checked && yaSeleccionado) onTogglePase(m.id);
     });
   };
 
@@ -240,9 +218,9 @@ export const MembersModal: React.FC<MembersModalProps> = ({
               className="bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none w-full"
             />
           </div>
-          {selected.size > 0 && (
+          {selectedPases.size > 0 && (
             <p className="text-xs text-emerald-700 font-medium mt-2">
-              {selected.size} seleccionado{selected.size !== 1 ? "s" : ""} para ingreso
+              {selectedPases.size} seleccionado{selectedPases.size !== 1 ? "s" : ""} para ingreso
             </p>
           )}
           {!puedeSeleccionar && (
@@ -262,7 +240,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                       type="checkbox"
                       checked={
                         paginated.some(esSeleccionable) &&
-                        paginated.filter(esSeleccionable).every((m) => selected.has(m))
+                        paginated.filter(esSeleccionable).every((m) => selectedPases.has(m.id))
                       }
                       onChange={(e) => toggleSelectAll(e.target.checked)}
                       disabled={!puedeSeleccionar || !paginated.some(esSeleccionable)}
@@ -279,7 +257,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {paginated.map((miembro, index) => {
+                {paginated.map((miembro) => {
                   const statusKey = (miembro.estatus ?? "").toLowerCase();
                   const config = statusConfig[statusKey] ?? {
                     cls: "bg-gray-50 text-gray-500",
@@ -287,15 +265,16 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                   };
                   return (
                     <tr
-                      key={index}
+                      key={miembro.id}
+                      onClick={() => toggleSelect(miembro)}
                       className={`border-t border-gray-50 hover:bg-gray-50/50 ${
                         miembro.es_padre ? "bg-purple-50 hover:bg-purple-100/60" : ""
-                      }`}
+                      } ${esSeleccionable(miembro) ? "cursor-pointer" : ""}`}
                     >
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
-                          checked={selected.has(miembro)}
+                          checked={selectedPases.has(miembro.id)}
                           onChange={() => toggleSelect(miembro)}
                           disabled={!esSeleccionable(miembro)}
                           title={
@@ -335,7 +314,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                           {miembro.estatus ?? "—"}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-1.5 justify-end">
                           <button
                             type="button"

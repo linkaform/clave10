@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Miembro } from "@/components/miembros-del-pase";
+import { Imagen } from "@/components/upload-Image";
 import { getCatalogosPaseNoJwt } from "@/lib/get-catalogos_pase_no_jwt";
 import { errorMsj } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -18,8 +19,9 @@ export interface Data {
   pass_selected?: PassSelected;
   cat_estados?: string[];
   cat_vehiculos?: string[];
-  documento_de_condiciones_de_servicio: string;
+  documento_de_condiciones_de_servicio: Imagen[];
   url_de_condiciones_de_servicio: string;
+  desc_condiciones_servicio:string;
 }
 
 export interface PassSelected {

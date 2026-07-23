@@ -1,12 +1,16 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, CheckCircle2, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MembersModal } from "./modals/miembros-modal";
 
 interface Miembro {
+  // Id real del pase de este acompañante (viene de qr_code). Es el
+  // identificador que se usa para sincronizar la selección entre el
+  // carrusel y el modal, y el que se expone hacia afuera en selectedPases.
+  id: string;
   nombre: string;
   foto?: string;
   identificacion?: string;
@@ -25,6 +29,9 @@ interface AcompananteRaw {
   identificacion?: { file_name?: string; file_url?: string }[];
   link?: string;
   estatus?: string;
+  /** Id real del pase de este acompañante. */
+  qr_code?: string;
+  _id?: string;
   /** Presente cuando este elemento en realidad es el registro completo del pase padre. */
   es_padre?: boolean;
   [key: string]: any;
@@ -52,14 +59,20 @@ interface MembersCarouselProps {
     link_padre?: string;
     status_pase?: string;
   } | null;
+  /** Se llama cada vez que cambia la selección (desde el carrusel o desde el modal), con los miembros actualmente seleccionados. */
+  onSeleccionMiembros?: (miembros: Miembro[]) => void;
 }
 
 // Convierte el shape "crudo" del backend al shape que usa el carrusel/modal.
 // El elemento del padre viene con otro shape (nombre, email, telefono en vez
 // de nombre_acompanante, email_acompanante, telefono_acompanante), así que
 // hacemos fallback a esos campos cuando los "_acompanante" no existen.
+// `id` se resuelve a partir de qr_code (o _id como respaldo, o el índice
+// como último recurso si no viniera ninguno) — es el id real del pase de
+// ese acompañante, y es lo que se usa para la selección compartida.
 const mapAcompanantes = (acompanantes: AcompananteRaw[] = []): Miembro[] =>
-  acompanantes.map((a) => ({
+  acompanantes.map((a, i) => ({
+    id: a?.qr_code || a?._id || String(i),
     nombre: a?.nombre_acompanante || a?.nombre || "Sin nombre",
     foto: Array.isArray(a?.foto) && a.foto.length > 0 ? a.foto[0].file_url : undefined,
     identificacion:
@@ -74,7 +87,7 @@ const mapAcompanantes = (acompanantes: AcompananteRaw[] = []): Miembro[] =>
     es_padre: !!a?.es_padre,
   }));
 
-const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass }) => {
+const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass, onSeleccionMiembros }) => {
   const grupoRaw = searchPass?.acompanantes_grupo;
   const pasesRaw = searchPass?.acompanantes_pases;
   const padreGrupoRaw = searchPass?.pase_padre?.acompanantes_grupo;
@@ -106,7 +119,11 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass }) => {
 
   const data = tieneAcompanantes ? mapAcompanantes(acompanantesRaw!) : [];
 
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  // Selección compartida entre el carrusel y el modal: un Set con los ids
+  // reales de los pases seleccionados (no índices, no objetos Miembro) —
+  // así ambas vistas siempre están viendo/editando el mismo estado, y lo
+  // que se expone hacia afuera ya son ids de pase listos para usarse.
+  const [selectedPases, setSelectedPases] = useState<Set<string>>(new Set());
   const [openModal, setOpenModal] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -115,18 +132,34 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass }) => {
     scrollRef.current.scrollBy({ left: dir === "left" ? -180 : 180, behavior: "smooth" });
   };
 
-  const toggle = (index: number) => {
+  const togglePase = (id: string) => {
     if (paseEnProceso) return;
-    setSelected((prev) => {
+    setSelectedPases((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
+      if (next.has(id)) {
+        next.delete(id);
       } else {
-        next.add(index);
+        next.add(id);
       }
       return next;
     });
   };
+
+  // Si el pase pasa a estar en proceso mientras hay una selección activa,
+  // la limpiamos (ya no aplica "ingreso" pendiente válido).
+  useEffect(() => {
+    if (paseEnProceso) {
+      setSelectedPases(new Set());
+    }
+  }, [paseEnProceso]);
+
+  // Avisa hacia arriba (si el consumidor de MembersCarousel lo necesita)
+  // cada vez que cambia la selección, con los objetos Miembro completos.
+  useEffect(() => {
+    if (!onSeleccionMiembros) return;
+    onSeleccionMiembros(data.filter((m) => selectedPases.has(m.id)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPases]);
 
   // No renderiza nada si el pase no tiene acompañantes ni es un pase hijo
   if (!tieneAcompanantes && !esPaseHijo) return null;
@@ -209,6 +242,8 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass }) => {
             onClose={() => setOpenModal(false)}
             miembros={data}
             puedeSeleccionar={!paseEnProceso}
+            selectedPases={selectedPases}
+            onTogglePase={togglePase}
           />
 
           <div className="relative flex items-center gap-2">
@@ -225,11 +260,11 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass }) => {
               className="flex gap-3 overflow-x-auto overflow-y-visible scrollbar-none scroll-smooth flex-1 pt-2"
               style={{ scrollbarWidth: "none" }}
             >
-              {data.map((miembro, index) => (
+              {data.map((miembro) => (
                 <button
-                  key={index}
+                  key={miembro.id}
                   type="button"
-                  onClick={() => toggle(index)}
+                  onClick={() => togglePase(miembro.id)}
                   disabled={paseEnProceso}
                   className={`flex flex-col items-center gap-2 p-4 pt-5 mt-1 rounded-xl border transition-all shrink-0 w-32 relative ${
                     paseEnProceso ? "cursor-default" : "hover:shadow-sm"
@@ -239,7 +274,7 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass }) => {
                       : "bg-white border-slate-100 hover:border-slate-200"
                   }`}
                 >
-                  {!paseEnProceso && selected.has(index) && (
+                  {!paseEnProceso && selectedPases.has(miembro.id) && (
                     <div className="absolute top-2 right-2 z-10">
                       <CheckCircle2 className={`w-5 h-5 ${theme.checkIcon} fill-white`} />
                     </div>
@@ -253,7 +288,7 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass }) => {
                     className={`relative w-16 h-16 rounded-full overflow-hidden border-2 transition-all ${
                       miembro.es_padre
                         ? "border-purple-400"
-                        : selected.has(index)
+                        : selectedPases.has(miembro.id)
                           ? theme.avatarBorderSelected
                           : "border-slate-100"
                     }`}

@@ -104,7 +104,7 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
       acepto_aviso_privacidad: z.boolean().refine((val) => val === true, {
         message: "Debes aceptar el aviso de privacidad",
       }),
-      acepto_reglas_acceso: z.boolean().refine((val) => val === true, {
+      acepto_aviso_datos_personales: z.boolean().refine((val) => val === true, {
         message: "Debes aceptar las reglas de acceso",
       }),
     })
@@ -310,8 +310,50 @@ const PaseUpdate = () => {
   // backend: el PDF (documento_de_condiciones_de_servicio) y un video
   // (url_de_condiciones_de_servicio). Ambos llegan como string plano
   // (URL), no como array de Foto.
-  const reglasAccesoPdfUrl = dataCatalogos?.documento_de_condiciones_de_servicio || "";
-  const reglasAccesoVideoUrl = dataCatalogos?.url_de_condiciones_de_servicio || "";
+  // "Reglas de acceso" tiene dos fuentes independientes que regresa el
+  // backend: el PDF (documento_de_condiciones_de_servicio, llega como array
+  // [{file_name, file_url}]) y un video (url_de_condiciones_de_servicio,
+  // que es un link de YouTube, no un archivo de video directo).
+  const reglasAccesoPdfUrl =
+    dataCatalogos?.documento_de_condiciones_de_servicio?.[0]?.file_url || "";
+  const reglasAccesoDescripcion =
+    dataCatalogos?.desc_condiciones_servicio || "";
+
+  // Los navegadores no pueden mostrar .doc/.docx/.ppt/.xls directo en un
+  // <iframe> (solo PDFs). Para esos casos, envolvemos la URL con el visor
+  // de Google Docs, que sí sabe renderizarlos (requiere que el archivo sea
+  // accesible públicamente por URL, como es el caso de Backblaze aquí).
+  const getDocumentViewerUrl = (url: string): string => {
+    if (!url) return url;
+    const isPdf = url.toLowerCase().split("?")[0].endsWith(".pdf");
+    if (isPdf) return url;
+    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+  };
+
+  const reglasAccesoPdfViewerUrl = getDocumentViewerUrl(reglasAccesoPdfUrl);
+  const reglasAccesoVideoUrlRaw = dataCatalogos?.url_de_condiciones_de_servicio || "";
+
+  // Convierte un link de YouTube (watch?v=... o youtu.be/...) a su URL de
+  // embed, para poder mostrarlo en un <iframe>. Si no es de YouTube (o no
+  // se puede parsear), regresa la URL tal cual por si ya es un embed válido.
+  const getYoutubeEmbedUrl = (url: string): string => {
+    try {
+      const u = new URL(url);
+      let videoId = "";
+      if (u.hostname.includes("youtu.be")) {
+        videoId = u.pathname.slice(1);
+      } else if (u.hostname.includes("youtube.com")) {
+        videoId = u.searchParams.get("v") || "";
+      }
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+    } catch {
+      return url;
+    }
+  };
+
+  const reglasAccesoVideoUrl = reglasAccesoVideoUrlRaw
+    ? getYoutubeEmbedUrl(reglasAccesoVideoUrlRaw)
+    : "";
 
   useEffect(() => {
     if (dataCatalogos) {
@@ -335,7 +377,7 @@ const PaseUpdate = () => {
       email: "",
       telefono: "",
       acepto_aviso_privacidad: false,
-      acepto_reglas_acceso: false,
+      acepto_aviso_datos_personales: false,
       acompanantes:[]
     },
   });
@@ -553,7 +595,7 @@ const PaseUpdate = () => {
       telefono: telefonoPaseEdit || dataCatalogos?.pass_selected?.telefono || "",
       telefono_pase: telefonoPaseEdit || dataCatalogos?.pass_selected?.telefono || "",
       acepto_aviso_privacidad: data.acepto_aviso_privacidad,
-      acepto_reglas_acceso: data.acepto_reglas_acceso,
+      acepto_aviso_datos_personales: data.acepto_aviso_datos_personales? "sí" : "no",
       conservar_datos_por: radioSelected,
       acompanantes:dataCatalogos?.pass_selected?.acompanantes,
       acompanantes_grupo: miembrosAcompanantes.map((m) => ({
@@ -745,6 +787,12 @@ const PaseUpdate = () => {
         </button>
         <h1 className="font-bold text-2xl text-slate-800 mb-4">Reglas de acceso</h1>
 
+        {reglasAccesoDescripcion && (
+          <p className="text-sm text-slate-600 mb-4 whitespace-pre-line">
+            {reglasAccesoDescripcion}
+          </p>
+        )}
+
         {!reglasAccesoPdfUrl && !reglasAccesoVideoUrl ? (
           <div className="w-full h-[75vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex items-center justify-center">
             <p className="text-slate-400 text-sm">No hay archivo disponible</p>
@@ -756,7 +804,7 @@ const PaseUpdate = () => {
                 <p className="text-sm font-semibold text-slate-600 mb-2">Documento</p>
                 <div className="w-full h-[60vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
                   <iframe
-                    src={reglasAccesoPdfUrl}
+                    src={reglasAccesoPdfViewerUrl}
                     className="w-full h-full"
                     title="Documento de reglas de acceso"
                   />
@@ -768,13 +816,13 @@ const PaseUpdate = () => {
               <div>
                 <p className="text-sm font-semibold text-slate-600 mb-2">Video</p>
                 <div className="w-full aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-black shadow-sm">
-                  <video
+                  <iframe
                     src={reglasAccesoVideoUrl}
-                    controls
                     className="w-full h-full"
-                  >
-                    Tu navegador no soporta la reproducción de este video.
-                  </video>
+                    title="Video de reglas de acceso"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
                 </div>
               </div>
             )}
@@ -1038,7 +1086,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                                   <span>No pudimos confirmar el tipo de documento — puedes continuar, pero revisa que la imagen sea legible</span></>
                                 )}
                               </div>
-                              {/* {nombreIdRaw && (
+                               {/* {nombreIdRaw && (
                                 <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
                                   coinciden ? "bg-green-50 border-green-200 text-green-700" : "bg-amber-50 border-amber-200 text-amber-700"
                                 }`}>
@@ -1374,7 +1422,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
 
               <FormField
                 control={form.control}
-                name="acepto_reglas_acceso"
+                name="acepto_aviso_datos_personales"
                 render={({ field , fieldState}) => (
                   <FormItem>
                     <FormControl>

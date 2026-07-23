@@ -58,6 +58,7 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
           walkin_fotografia: data?.walkin_fotografia,
           walkin_identificacion: data?.walkin_identificacion,
           acepto_aviso_privacidad: data?.acepto_aviso_privacidad ? "sí" : "no",
+          acepto_aviso_datos_personales: data?.acepto_aviso_datos_personales ? "sí" : "no",
           acepto_reglas_acceso: data?.acepto_reglas_acceso ? "sí" : "no",
           conservar_datos_por: data?.conservar_datos_por,
           acompanantes: data?.acompanantes ?? [],
