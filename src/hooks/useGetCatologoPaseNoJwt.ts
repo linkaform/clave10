@@ -18,6 +18,8 @@ export interface Data {
   pass_selected?: PassSelected;
   cat_estados?: string[];
   cat_vehiculos?: string[];
+  documento_de_condiciones_de_servicio: string;
+  url_de_condiciones_de_servicio: string;
 }
 
 export interface PassSelected {

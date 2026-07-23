@@ -16,7 +16,7 @@ import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
 import LoadImage, { Imagen } from "@/components/upload-Image";
-import { Car, Check, Laptop, Loader2, X, ArrowLeft, Construction } from "lucide-react";
+import { Car, Check, Laptop, Loader2, X, ArrowLeft } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import Image from "next/image";
@@ -211,11 +211,29 @@ const PaseUpdate = () => {
     }
   }, [dataCatalogos, grupoRequisitos]);
 
+  // El OCR puede llegar con distinta profundidad de anidación según el
+  // endpoint: a veces el objeto real vive en response.data.data (persona),
+  // otras veces directo en response.data como array (identificación).
+  // Probamos varias rutas candidatas y nos quedamos con la primera que
+  // exista; si resulta ser un array, tomamos su primer elemento.
+  const unwrapOcrResult = (result: any) => {
+    const candidates = [
+      result?.response?.data?.data,
+      result?.response?.data,
+      result?.data?.data,
+      result?.data,
+      result,
+    ];
+    const found = candidates.find((c) => c !== undefined && c !== null);
+    if (!found) return null;
+    return Array.isArray(found) ? (found[0] ?? null) : found;
+  };
+
   const handleOcrFotografia = (result: any) => {
-    setOcrFotoResult(result ?? null);
+    setOcrFotoResult(unwrapOcrResult(result));
   };
   const handleOcrIdentificacion = (result: any) => {
-    setOcrIdenResult(result ?? null);
+    setOcrIdenResult(unwrapOcrResult(result));
   };
 
   const [errorFotografia, setErrorFotografia] = useState("");
@@ -287,6 +305,13 @@ const PaseUpdate = () => {
   );
 
   const vehiculoHabilitado = isVehiculoHabilitado(dataCatalogos?.pass_selected?.habilitar_vehiculo);
+
+  // "Reglas de acceso" ahora tiene dos fuentes independientes que regresa el
+  // backend: el PDF (documento_de_condiciones_de_servicio) y un video
+  // (url_de_condiciones_de_servicio). Ambos llegan como string plano
+  // (URL), no como array de Foto.
+  const reglasAccesoPdfUrl = dataCatalogos?.documento_de_condiciones_de_servicio || "";
+  const reglasAccesoVideoUrl = dataCatalogos?.url_de_condiciones_de_servicio || "";
 
   useEffect(() => {
     if (dataCatalogos) {
@@ -713,38 +738,55 @@ const PaseUpdate = () => {
         <button
           type="button"
           onClick={closeReglasAcceso}
-          className="flex items-center gap-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl px-4 py-2.5 mb-4 shadow-sm shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95"
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 mb-4 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           Volver
         </button>
         <h1 className="font-bold text-2xl text-slate-800 mb-4">Reglas de acceso</h1>
-        <div className="w-full h-[75vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex items-center justify-center">
-          {/* TODO: reemplazar por la URL real del PDF de reglas de acceso */}
-          {/* <iframe
-            src="asfda"
-            className="w-full h-full"
-            title="Reglas de acceso"
-          /> */}
-          <div className="flex flex-col items-center gap-3 text-center px-6">
-            <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center">
-              <Construction className="w-7 h-7 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-slate-700 font-semibold text-sm">En construcción</p>
-              <p className="text-slate-400 text-xs mt-1">
-                Estamos preparando este contenido, vuelve a intentarlo más tarde.
-              </p>
-            </div>
+
+        {!reglasAccesoPdfUrl && !reglasAccesoVideoUrl ? (
+          <div className="w-full h-[75vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex items-center justify-center">
+            <p className="text-slate-400 text-sm">No hay archivo disponible</p>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {reglasAccesoPdfUrl && (
+              <div>
+                <p className="text-sm font-semibold text-slate-600 mb-2">Documento</p>
+                <div className="w-full h-[60vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
+                  <iframe
+                    src={reglasAccesoPdfUrl}
+                    className="w-full h-full"
+                    title="Documento de reglas de acceso"
+                  />
+                </div>
+              </div>
+            )}
+
+            {reglasAccesoVideoUrl && (
+              <div>
+                <p className="text-sm font-semibold text-slate-600 mb-2">Video</p>
+                <div className="w-full aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-black shadow-sm">
+                  <video
+                    src={reglasAccesoVideoUrl}
+                    controls
+                    className="w-full h-full"
+                  >
+                    Tu navegador no soporta la reproducción de este video.
+                  </video>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           type="button"
           onClick={closeReglasAcceso}
-          className="flex items-center gap-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl px-4 py-2.5 mt-4 shadow-sm shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95"
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 mt-4 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           Volver
         </button>
       </div>
@@ -968,15 +1010,21 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                         ocrIdenResult ? (() => {
                         const iden = Array.isArray(ocrIdenResult) ? ocrIdenResult[0] : ocrIdenResult;
 
-                        const nombrePase = dataCatalogos?.pass_selected?.nombre?.toLowerCase().trim() ?? "";
-                        const nombreId = (iden.nombre_completo ?? iden.nombre ?? "").toLowerCase().trim();
-                        const coinciden = nombrePase && nombreId && (
-                          nombreId.includes(nombrePase) ||
-                          nombrePase.includes(nombreId) ||
-                          nombrePase.split(" ").some((p: string) => nombreId.includes(p))
-                        );
-                        const esId = iden.tipo_documento &&
-                          ["ine", "licencia"].includes(iden.tipo_documento.toLowerCase().trim());
+                        // const nombrePase = dataCatalogos?.pass_selected?.nombre?.toLowerCase().trim() ?? "";
+                        // const nombreIdRaw = iden.nombre_completo ?? iden.nombre ?? "";
+                        // const nombreId = nombreIdRaw.toLowerCase().trim();
+                        // const coinciden = nombrePase && nombreId && (
+                        //   nombreId.includes(nombrePase) ||
+                        //   nombrePase.includes(nombreId) ||
+                        //   nombrePase.split(" ").some((p: string) => nombreId.includes(p))
+                        // );
+                        // Antes solo aceptaba "ine"/"licencia" exacto — si el backend regresaba
+                        // cualquier otro tipo (pasaporte, credencial, con mayúsculas distintas,
+                        // etc.) siempre mostraba amarillo aunque sí hubiera un documento válido.
+                        // Ahora: cualquier tipo_documento detectado se muestra en verde con su
+                        // nombre tal cual vino.
+                        const tipoDocumento = iden.tipo_documento?.trim();
+                        const esId = Boolean(tipoDocumento);
                           return (
                             <div className="flex flex-col gap-1">
                              <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
@@ -984,25 +1032,25 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                               }`}>
                                 {esId ? (
                                   <><span className="text-green-500 text-base">✓</span>
-                                  <span>Identificación detectada — <strong>{ocrIdenResult.tipo_documento ?? "ID"}</strong></span></>
+                                  <span>Identificación detectada — <strong>{tipoDocumento}</strong></span></>
                                 ) : (
                                   <><span className="text-amber-500 text-base">⚠</span>
                                   <span>No pudimos confirmar el tipo de documento — puedes continuar, pero revisa que la imagen sea legible</span></>
                                 )}
                               </div>
-                              {ocrIdenResult.nombre && (
+                              {/* {nombreIdRaw && (
                                 <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
                                   coinciden ? "bg-green-50 border-green-200 text-green-700" : "bg-amber-50 border-amber-200 text-amber-700"
                                 }`}>
                                   {coinciden ? (
                                     <><span className="text-green-500 text-base">✓</span>
-                                    <span>Los nombres coinciden — <strong>{ocrIdenResult.nombre}</strong></span></>
+                                    <span>Los nombres coinciden — <strong>{nombreIdRaw}</strong></span></>
                                   ) : (
                                     <><span className="text-amber-500 text-base">⚠</span>
-                                    <span>Nombre en ID: <strong>{ocrIdenResult.nombre}</strong> — verifica que coincida</span></>
+                                    <span>Nombre en ID: <strong>{nombreIdRaw}</strong> — verifica que coincida</span></>
                                   )}
                                 </div>
-                              )}
+                              )} */}
                             </div>
                           );
                         })() : null

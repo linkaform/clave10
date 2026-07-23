@@ -97,9 +97,9 @@ This Privacy Notice was last modified on April 5, 2019.`,
         <button
           type="button"
           onClick={() => setMostrarAviso(false)}
-          className="flex items-center gap-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl px-4 py-2.5 shadow-sm shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95 shrink-0"
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors shrink-0"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           Volver
         </button>
         <div className="flex w-full justify-center">
@@ -165,9 +165,9 @@ This Privacy Notice was last modified on April 5, 2019.`,
       <button
         type="button"
         onClick={() => setMostrarAviso(false)}
-        className="flex items-center gap-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl px-4 py-2.5 mt-2 mb-6 shadow-sm shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95"
+        className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 mt-2 mb-6 transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" />
+        <ArrowLeft className="w-3.5 h-3.5" />
         Volver
       </button>
     </div>
