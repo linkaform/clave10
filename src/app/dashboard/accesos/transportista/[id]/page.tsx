@@ -2276,6 +2276,10 @@ export default function DetalleTransportistaPage() {
     setStagedDocs((p) => p.map((d) => d.id === stagedId ? { ...d, asignadoA: undefined } : d));
 
   const [savingStagedDocs, setSavingStagedDocs] = useState(false);
+  // Vehículo, Material/Embarque y Documentos guardan sobre el mismo registro —
+  // mientras cualquiera de las tres esté en curso, se bloquean los "Guardar"
+  // de las otras dos para no mandar peticiones concurrentes.
+  const savingRegistroCompartido = savingVehicle || savingMaterial || savingStagedDocs;
   const guardarDocumentosPendientes = async () => {
     // Se guardan todos los documentos listos, tengan o no un tipo asignado —
     // no hace falta analizar con IA ni asignar tipo para poder guardarlos;
@@ -2433,54 +2437,85 @@ export default function DetalleTransportistaPage() {
 
       // ── Auto-fill form fields from AI structured data ────────────────────────
       type AiField<T> = T | null | undefined;
+      interface AiMaterialRaw { producto?: AiField<string>; lote?: AiField<string>; cant_esperada?: AiField<string>; peso?: AiField<string>; volumen?: AiField<string>; }
+      const toMaterialesCarga = (raw?: AiMaterialRaw[]): MaterialCarga[] =>
+        (raw ?? []).map((m) => ({
+          ...emptyMaterial(),
+          producto:     m.producto      ?? "",
+          lote:         m.lote          ?? "",
+          cantEsperada: m.cant_esperada ?? "",
+          peso:         m.peso          ?? "",
+          volumen:      m.volumen       ?? "",
+        }));
       const aiData = result?.response?.data?.data as {
         vehiculo?: { placa?: AiField<string>; no_economico?: AiField<string>; color?: AiField<string>; marca?: AiField<string>; procedencia?: AiField<string>; modelo?: AiField<string>; tipo_vehiculo?: AiField<string>; transportista?: AiField<string> };
         conductor?: { nombre?: AiField<string>; no_licencia?: AiField<string> };
         embarque?: { proveedor_cliente?: AiField<string>; no_orden_compra?: AiField<string> };
-        remolques?: { no_caja?: AiField<string>; tipo?: AiField<string>; color?: AiField<string>; placas?: AiField<string>; no_sello?: AiField<string>; comentarios?: AiField<string> }[];
-        contenedores?: { no_caja?: AiField<string>; tipo?: AiField<string>; color?: AiField<string>; placas?: AiField<string>; no_sello?: AiField<string>; comentarios?: AiField<string> }[];
-        materiales?: { producto?: AiField<string>; lote?: AiField<string>; cant_esperada?: AiField<string>; peso?: AiField<string>; volumen?: AiField<string> }[];
+        remolques?: { no_caja?: AiField<string>; tipo?: AiField<string>; color?: AiField<string>; placas?: AiField<string>; no_sello?: AiField<string>; comentarios?: AiField<string>; materiales?: AiMaterialRaw[] }[];
+        contenedores?: { no_caja?: AiField<string>; no_contenedor?: AiField<string>; tipo?: AiField<string>; color?: AiField<string>; placas?: AiField<string>; no_sello?: AiField<string>; comentarios?: AiField<string>; materiales?: AiMaterialRaw[] }[];
+        materiales?: AiMaterialRaw[];
       } | undefined;
 
       if (aiData) {
-        const aiSaves: Promise<unknown>[] = [];
         let camposLlenados = 0;
 
         // Lee el caché fresco en el momento exacto del autofill — más confiable
         // que la variable `data` del hook, que puede estar un render atrás.
         const fresh = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
 
-        // Vehículo
+        // Vehículo — ya NO se autoguarda: se precargan los valores detectados
+        // en el formulario de "Datos del Vehículo" y se deja abierto para que
+        // el usuario revise y confirme con su propio "Guardar cambios". Antes
+        // se guardaba solo, en paralelo con Embarque/Conductor/Remolques,
+        // varias peticiones concurrentes sobre el mismo registro.
         const veh = aiData.vehiculo;
-        const vehPayload: Record<string, string> = {};
-        if (veh?.tipo_vehiculo && !fresh?.vehiculo?.tipo_vehiculo) { vehPayload.tipo_de_vehiculo = veh.tipo_vehiculo; camposLlenados++; }
-        if (veh?.placa && !fresh?.vehiculo?.placa) { vehPayload.placas_de_vehiculo = veh.placa; camposLlenados++; }
-        if (veh?.no_economico && !fresh?.vehiculo?.no_economico) { vehPayload.num_eco_num_rotulo = veh.no_economico; camposLlenados++; }
-        if (veh?.marca && !fresh?.vehiculo?.marca) { vehPayload.marca = veh.marca; camposLlenados++; }
-        if (veh?.modelo && !fresh?.vehiculo?.modelo) { vehPayload.modelo = veh.modelo; camposLlenados++; }
-        if (veh?.color && !fresh?.vehiculo?.color) { vehPayload.color = veh.color; camposLlenados++; }
-        if (veh?.transportista && !fresh?.vehiculo?.transportista) { vehPayload.empresa_transportista = veh.transportista; camposLlenados++; }
-        if (Object.keys(vehPayload).length > 0) {
-          aiSaves.push(saveBitacoraTransportistaRecord(id, "vehiculo", { vehiculo: vehPayload }));
+        const vehiculoDraftAI: Partial<typeof vehicleDraft> = {};
+        if (veh?.tipo_vehiculo && !fresh?.vehiculo?.tipo_vehiculo) { vehiculoDraftAI.tipo_vehiculo = veh.tipo_vehiculo; camposLlenados++; }
+        if (veh?.placa && !fresh?.vehiculo?.placa) { vehiculoDraftAI.placa = veh.placa; camposLlenados++; }
+        if (veh?.no_economico && !fresh?.vehiculo?.no_economico) { vehiculoDraftAI.no_economico = veh.no_economico; camposLlenados++; }
+        if (veh?.marca && !fresh?.vehiculo?.marca) { vehiculoDraftAI.marca = veh.marca; camposLlenados++; }
+        if (veh?.modelo && !fresh?.vehiculo?.modelo) { vehiculoDraftAI.modelo = veh.modelo; camposLlenados++; }
+        if (veh?.color && !fresh?.vehiculo?.color) { vehiculoDraftAI.color = veh.color; camposLlenados++; }
+        if (Object.keys(vehiculoDraftAI).length > 0) {
+          setVehicleDraft({
+            tipo_vehiculo: fresh?.vehiculo?.tipo_vehiculo ?? "",
+            placa:         fresh?.vehiculo?.placa ?? "",
+            no_economico:  fresh?.vehiculo?.no_economico ?? "",
+            marca:         fresh?.vehiculo?.marca ?? "",
+            modelo:        fresh?.vehiculo?.modelo ?? "",
+            color:         fresh?.vehiculo?.color ?? "",
+            ...vehiculoDraftAI,
+          });
+          setVehicleEditMode(true);
+          setVehicleExpanded(true);
         }
 
-        // Embarque + Procedencia
+        // Embarque + Procedencia — mismo criterio: se precarga "Material Carga
+        // / Descarga" en modo edición en vez de autoguardarlo.
         const emb = aiData.embarque;
-        const embPayload: Record<string, string> = {};
-        if (emb?.proveedor_cliente && !fresh?.embarque?.proveedor_cliente) { embPayload.proveedor_cliente = emb.proveedor_cliente; camposLlenados++; }
-        if (emb?.no_orden_compra && !fresh?.embarque?.no_orden_compra) { embPayload.no_orden_compra = emb.no_orden_compra; camposLlenados++; }
-        if (veh?.procedencia && !fresh?.vehiculo?.procedencia) { embPayload.procedencia = veh.procedencia; camposLlenados++; }
-        if (Object.keys(embPayload).length > 0) {
-          aiSaves.push(saveBitacoraTransportistaRecord(id, "embarque", { embarque: embPayload }));
+        const materialDraftAI: Partial<typeof materialDraft> = {};
+        if (emb?.proveedor_cliente && !fresh?.embarque?.proveedor_cliente) { materialDraftAI.proveedor_cliente = emb.proveedor_cliente; camposLlenados++; }
+        if (emb?.no_orden_compra && !fresh?.embarque?.no_orden_compra) { materialDraftAI.no_orden_compra = emb.no_orden_compra; camposLlenados++; }
+        if (veh?.procedencia && !fresh?.vehiculo?.procedencia) { materialDraftAI.procedencia = veh.procedencia; camposLlenados++; }
+        if (Object.keys(materialDraftAI).length > 0) {
+          setMaterialDraft({
+            proveedor_cliente: fresh?.embarque?.proveedor_cliente ?? "",
+            no_orden_compra:   fresh?.embarque?.no_orden_compra ?? "",
+            procedencia:       fresh?.vehiculo?.procedencia ?? "",
+            ...materialDraftAI,
+          });
+          setMaterialEditMode(true);
         }
 
-        // Conductor
+        // Conductor y Remolques/Contenedores sí se guardan automáticamente,
+        // pero NUNCA en paralelo entre sí — ambas peticiones tocan el mismo
+        // registro, así que se esperan una a la vez.
         const cond = aiData.conductor;
         const condPayload: Record<string, string> = {};
         if (cond?.nombre && !fresh?.conductor?.nombre) { condPayload.nombre = cond.nombre; camposLlenados++; }
         if (cond?.no_licencia && !fresh?.conductor?.no_licencia) { condPayload.no_licencia = cond.no_licencia; camposLlenados++; }
         if (Object.keys(condPayload).length > 0) {
-          aiSaves.push(saveBitacoraTransportistaRecord(id, "conductor", { conductor: condPayload }));
+          await saveBitacoraTransportistaRecord(id, "conductor", { conductor: condPayload });
         }
 
         // Remolques / Contenedores + Materiales
@@ -2488,26 +2523,32 @@ export default function DetalleTransportistaPage() {
         const aiRems = aiData.remolques ?? [];
         const aiCons = aiData.contenedores ?? [];
         const aiMats = aiData.materiales ?? [];
+        const materialesPorEntidad = aiRems.some((r) => r.materiales?.length) || aiCons.some((c) => c.materiales?.length);
         const serverHasUnidades = (fresh?.remolques?.length ?? 0) > 0;
         if (unidades.length === 0 && !serverHasUnidades && (aiRems.length > 0 || aiCons.length > 0)) {
+          // Si se detectó un único remolque real y hay más contenedores que
+          // remolques, se duplica la info de ese remolque para cada contenedor
+          // sobrante — el usuario la ajusta después si en realidad corresponde
+          // a un remolque distinto (mismo criterio que en el modal de "Nuevo
+          // acceso"). Con 2+ remolques reales no se rellena nada: ambigüedad.
+          const rems = [...aiRems];
+          if (rems.length === 1) {
+            while (rems.length < aiCons.length) rems.push(rems[0]);
+          }
+          const count = Math.max(rems.length, aiCons.length);
           const newUnidades: UnidadItem[] = [];
-          const count = Math.max(aiRems.length, aiCons.length);
           for (let i = 0; i < count; i++) {
-            const r = aiRems[i];
+            const r = rems[i];
             const con = aiCons[i];
             const isRC = !!con;
-            const mats: MaterialCarga[] = i === 0 && aiMats.length > 0
-              ? aiMats.map((m) => ({
-                  id: Math.random().toString(36).slice(2),
-                  apiIndex: null as null,
-                  producto: m.producto ?? "",
-                  lote: m.lote ?? "",
-                  cantEsperada: m.cant_esperada ?? "",
-                  cantFisica: "",
-                  peso: m.peso ?? "",
-                  volumen: m.volumen ?? "",
-                }))
-              : [emptyMaterial()];
+
+            const matsRemolque = r?.materiales?.length ? toMaterialesCarga(r.materiales) : null;
+            const matsContenedor = con?.materiales?.length ? toMaterialesCarga(con.materiales) : null;
+            // Fallback legado: arreglo plano `materiales`, solo si ningún
+            // remolque/contenedor trajo los suyos propios, y solo en la
+            // primera unidad.
+            const matsLegado = !materialesPorEntidad && i === 0 && aiMats.length > 0 ? toMaterialesCarga(aiMats) : null;
+
             newUnidades.push({
               id: Math.random().toString(36).slice(2),
               config: isRC ? "remolque_contenedor" : "solo_remolque",
@@ -2520,32 +2561,34 @@ export default function DetalleTransportistaPage() {
                 placas: r?.placas ?? "",
                 color: r?.color ?? "",
                 comentarios: r?.comentarios ?? "",
-                materiales: isRC ? [emptyMaterial()] : mats,
+                materiales: matsRemolque ?? (isRC ? [emptyMaterial()] : (matsLegado ?? [emptyMaterial()])),
               },
               contenedor: {
                 tipo: con?.tipo ?? "",
                 noSello: con?.no_sello ?? "",
-                noContenedor: con?.no_caja ?? "",
+                noContenedor: con?.no_contenedor ?? "",
                 noCaja: con?.no_caja ?? "",
                 color: con?.color ?? "",
                 comentarios: con?.comentarios ?? "",
-                materiales: isRC ? mats : [emptyMaterial()],
+                materiales: matsContenedor ?? (isRC ? (matsLegado ?? [emptyMaterial()]) : [emptyMaterial()]),
               },
             });
           }
           setUnidades(newUnidades);
-          aiSaves.push(
-            saveBitacoraTransportistaRecord(id, "remolques", serializeUnidades(newUnidades)).then(() => {
-              unidadesInitialized.current = false;
-            })
-          );
+          await saveBitacoraTransportistaRecord(id, "remolques", serializeUnidades(newUnidades));
+          unidadesInitialized.current = false;
           camposLlenados += count;
         }
 
-        if (aiSaves.length > 0) {
-          await Promise.all(aiSaves);
+        if (camposLlenados > 0) {
           refetch();
-          toast.success(`IA llenó ${camposLlenados} campo${camposLlenados !== 1 ? "s" : ""} del formulario automáticamente`, { id: "ai-autofill" });
+          const abrioFormularios = Object.keys(vehiculoDraftAI).length > 0 || Object.keys(materialDraftAI).length > 0;
+          toast.success(
+            abrioFormularios
+              ? `IA detectó ${camposLlenados} campo${camposLlenados !== 1 ? "s" : ""} — revisa y confirma los que quedaron abiertos para edición`
+              : `IA llenó ${camposLlenados} campo${camposLlenados !== 1 ? "s" : ""} del formulario automáticamente`,
+            { id: "ai-autofill" },
+          );
         }
       }
     } catch {
@@ -3485,11 +3528,12 @@ export default function DetalleTransportistaPage() {
               })()}
               {!isLocked && docTab === "pendientes" && (() => {
                 const listos = stagedDocs.filter((d) => d.file_url && !d.uploading);
-                const guardarDisabled = savingStagedDocs || listos.length === 0;
+                const guardarDisabled = savingRegistroCompartido || listos.length === 0;
                 return (
                   <button
                     type="button"
                     disabled={guardarDisabled}
+                    title={!savingStagedDocs && savingRegistroCompartido ? "Espera a que termine el otro guardado en curso" : undefined}
                     onClick={guardarDocumentosPendientes}
                     className={cn(
                       "w-full h-9 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
@@ -3529,8 +3573,9 @@ export default function DetalleTransportistaPage() {
                   </span>
                 )}
                 {!materialEditMode && !isLocked && (
-                  <button type="button" onClick={startMaterialEdit}
-                    className="w-6 h-6 rounded-md hover:bg-orange-50 flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors">
+                  <button type="button" onClick={startMaterialEdit} disabled={analyzingDocs}
+                    title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
+                    className="w-6 h-6 rounded-md hover:bg-orange-50 flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
                     <Pencil className="w-3 h-3" />
                   </button>
                 )}
@@ -3562,8 +3607,9 @@ export default function DetalleTransportistaPage() {
                       className="h-8 px-3 rounded-lg border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors">
                       Cancelar
                     </button>
-                    <button type="button" onClick={saveMaterial} disabled={savingMaterial}
-                      className="h-8 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                    <button type="button" onClick={saveMaterial} disabled={savingRegistroCompartido}
+                      title={!savingMaterial && savingRegistroCompartido ? "Espera a que termine el otro guardado en curso" : undefined}
+                      className="h-8 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:cursor-not-allowed">
                       <Save className="w-3 h-3" /> {savingMaterial ? "Guardando…" : "Guardar cambios"}
                     </button>
                   </div>
@@ -3641,7 +3687,9 @@ export default function DetalleTransportistaPage() {
                     <button
                       type="button"
                       onClick={startVehicleEdit}
-                      className="w-6 h-6 rounded-md hover:bg-indigo-100 flex items-center justify-center text-indigo-400 hover:text-indigo-600 transition-colors">
+                      disabled={analyzingDocs}
+                      title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
+                      className="w-6 h-6 rounded-md hover:bg-indigo-100 flex items-center justify-center text-indigo-400 hover:text-indigo-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
                       <Pencil className="w-3 h-3" />
                     </button>
                   )}
@@ -3682,8 +3730,9 @@ export default function DetalleTransportistaPage() {
                             className="h-8 px-3 rounded-lg border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors">
                             Cancelar
                           </button>
-                          <button type="button" onClick={saveVehicle} disabled={savingVehicle}
-                            className="h-8 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                          <button type="button" onClick={saveVehicle} disabled={savingRegistroCompartido}
+                            title={!savingVehicle && savingRegistroCompartido ? "Espera a que termine el otro guardado en curso" : undefined}
+                            className="h-8 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:cursor-not-allowed">
                             <Save className="w-3 h-3" /> {savingVehicle ? "Guardando…" : "Guardar cambios"}
                           </button>
                         </div>
@@ -3723,16 +3772,20 @@ export default function DetalleTransportistaPage() {
                           </span>
                         </button>
                         <div className="flex items-center gap-2 shrink-0">
-                          <button type="button" disabled={savingUnidades || isLocked} onClick={() => setEditingUnit(u)}
+                          <button type="button" disabled={savingUnidades || isLocked || analyzingDocs}
+                            title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
+                            onClick={() => setEditingUnit(u)}
                             className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <Pencil className="w-3 h-3" />
                           </button>
                           {!isLocked && (
-                            <button type="button" disabled={savingUnidades} onClick={() => {
-                              const next = unidades.filter((x) => x.id !== u.id);
-                              setUnidades(next);
-                              persistUnidades(next, deletionsFromUnit(u));
-                            }}
+                            <button type="button" disabled={savingUnidades || analyzingDocs}
+                              title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
+                              onClick={() => {
+                                const next = unidades.filter((x) => x.id !== u.id);
+                                setUnidades(next);
+                                persistUnidades(next, deletionsFromUnit(u));
+                              }}
                               className="w-6 h-6 rounded-md hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                               <Trash2 className="w-3 h-3" />
                             </button>
@@ -3828,7 +3881,9 @@ export default function DetalleTransportistaPage() {
                     </div>
                     );
                   })}
-                  <button type="button" disabled={savingUnidades || isLocked} onClick={() => setShowAgregarUnidad(true)}
+                  <button type="button" disabled={savingUnidades || isLocked || analyzingDocs}
+                    title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
+                    onClick={() => setShowAgregarUnidad(true)}
                     className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <Plus className="w-4 h-4" /> Agregar remolque
                   </button>
