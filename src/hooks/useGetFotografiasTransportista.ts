@@ -45,6 +45,8 @@ export function buildRegistrosFotografias(
   return registros;
 }
 
+const isImagen = (fileName: string): boolean => /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(fileName);
+
 export const useGetFotografiasTransportista = (registros: RegistroFotografias[]) => {
   const { data, isLoading, error } = useQuery<FotoGaleria[]>({
     queryKey: ["fotografiasTransportista", registros],
@@ -56,10 +58,12 @@ export const useGetFotografiasTransportista = (registros: RegistroFotografias[])
         fotografias: { file_name: string; file_url: string }[];
       }[];
       return items.flatMap((item) =>
-        (item.fotografias ?? []).map((f) => ({
-          ...f,
-          tipo: labelFromTipoRegistro(item.tipo_de_registro),
-        })),
+        (item.fotografias ?? [])
+          .filter((f) => isImagen(f.file_name))
+          .map((f) => ({
+            ...f,
+            tipo: labelFromTipoRegistro(item.tipo_de_registro),
+          })),
       );
     },
     enabled: registros.length > 0,
