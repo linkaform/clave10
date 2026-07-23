@@ -19,6 +19,34 @@ function tipoLabel(tipo: string): string {
   return tipo;
 }
 
+// Contenido reusable de una inspección — se usa tanto en el modal flotante
+// (InspeccionRecordModal) como incrustado directamente en un tab que ya
+// muestra "Inspección ya realizada", sin necesidad de abrir nada aparte.
+export function InspeccionRecordContent({ url, tipo }: { url: string; tipo: string }) {
+  const { data, isLoading, error } = useGetInspeccionRecord(url, tipo);
+
+  return (
+    <div className="space-y-5">
+      {isLoading && (
+        <div className="flex items-center justify-center py-16">
+          <span className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      {error && (
+        <div className="flex flex-col items-center justify-center py-16 gap-2 text-red-400">
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <p className="text-sm font-semibold">Error al cargar la inspección</p>
+        </div>
+      )}
+      {!isLoading && !error && data && data.secciones.map((sec) => (
+        <SectionBlock key={sec.titulo} section={sec} />
+      ))}
+    </div>
+  );
+}
+
 export function InspeccionRecordModal({
   url,
   tipo,
@@ -28,7 +56,7 @@ export function InspeccionRecordModal({
   tipo: string;
   onClose: () => void;
 }) {
-  const { data, isLoading, error } = useGetInspeccionRecord(url, tipo);
+  const { data } = useGetInspeccionRecord(url, tipo);
   useBodyScrollLock(true);
 
   return createPortal(
@@ -59,23 +87,8 @@ export function InspeccionRecordModal({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {isLoading && (
-            <div className="flex items-center justify-center py-16">
-              <span className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
-          {error && (
-            <div className="flex flex-col items-center justify-center py-16 gap-2 text-red-400">
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-              </svg>
-              <p className="text-sm font-semibold">Error al cargar la inspección</p>
-            </div>
-          )}
-          {!isLoading && !error && data && data.secciones.map((sec) => (
-            <SectionBlock key={sec.titulo} section={sec} />
-          ))}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <InspeccionRecordContent url={url} tipo={tipo} />
         </div>
 
         {/* Footer */}
