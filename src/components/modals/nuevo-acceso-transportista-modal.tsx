@@ -29,6 +29,7 @@ import { useUploadImage } from "@/hooks/useUploadImage";
 import { useCreateVisitTransportista } from "@/hooks/useCreateVisitTransportista";
 import { useQueryClient } from "@tanstack/react-query";
 import { ocrAccesoTransportista } from "@/services/endpoints";
+import { toast } from "sonner";
 import type { VisitaTransportista } from "@/hooks/useGetVisitTransportista";
 import {
   type UnidadItem,
@@ -338,14 +339,35 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   const [dragOverUnidadId, setDragOverUnidadId] = useState<string | null>(null);
 
   const linkContenedorSuelto = (unidadId: string, contenedorId: string) => {
+    const target = unidades.find((x) => x.id === unidadId);
+    if (!target) return;
+    if (target.config === "remolque_contenedor") {
+      toast.error("Este remolque ya tiene un contenedor asignado. Desligalo primero para asignar otro.");
+      return;
+    }
+
     const suelto = contenedoresSueltos.find((c) => c.id === contenedorId);
     if (!suelto) return;
+
+    // El material capturado en el remolque se pasa automáticamente al contenedor al ligarlos
+    const materialesRemolque = target.remolque.materiales.filter((m) => m.producto);
+    const materialesSuelto = suelto.materiales.filter((m) => m.producto);
+    const materialesContenedor = [...materialesRemolque, ...materialesSuelto];
+
     const contenedorData: ContenedorData = {
       tipo: suelto.tipo, noSello: suelto.noSello, noContenedor: suelto.noContenedor,
-      noCaja: suelto.noCaja, color: suelto.color, comentarios: suelto.comentarios, materiales: suelto.materiales,
+      noCaja: suelto.noCaja, color: suelto.color, comentarios: suelto.comentarios,
+      materiales: materialesContenedor.length > 0 ? materialesContenedor : suelto.materiales,
     };
     setUnidades((prev) => prev.map((u) => u.id === unidadId
-      ? { ...u, config: "remolque_contenedor", contenedor: contenedorData }
+      ? {
+          ...u,
+          config: "remolque_contenedor",
+          contenedor: contenedorData,
+          remolque: materialesRemolque.length > 0
+            ? { ...u.remolque, materiales: [emptyMaterial()] }
+            : u.remolque,
+        }
       : u));
     setContenedoresSueltos((prev) => prev.filter((c) => c.id !== contenedorId));
     setExpandedUnits((prev) => new Set(prev).add(unidadId));
@@ -1113,10 +1135,15 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
               {unidades.map((u, idx) => {
                 if (editingUnit?.id === u.id) return null; // se edita inline debajo de la lista
                 const isUnitExpanded = expandedUnits.has(u.id);
+                const yaTieneContenedor = u.config === "remolque_contenedor";
                 const isDropTarget = dragOverUnidadId === u.id;
                 return (
                   <div key={u.id}
-                    onDragOver={(e) => { e.preventDefault(); if (dragOverUnidadId !== u.id) setDragOverUnidadId(u.id); }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = yaTieneContenedor ? "none" : "move";
+                      if (!yaTieneContenedor && dragOverUnidadId !== u.id) setDragOverUnidadId(u.id);
+                    }}
                     onDragLeave={() => setDragOverUnidadId((prev) => prev === u.id ? null : prev)}
                     onDrop={(e) => {
                       e.preventDefault();

@@ -3854,17 +3854,25 @@ export default function DetalleTransportistaPage() {
             const entradaCompleta = inspecsDone.length >= totalSecciones;
             const selloCompleto = inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total;
             if (!entradaCompleta || !selloCompleto) return null;
+            const materialesRegistrados = (data?.materiales ?? []).some((m) => m.producto && m.producto.trim() !== "");
             return (
-              <button
-                type="button"
-                disabled={savingEstatus}
-                onClick={() => setShowAndenModal(true)}
-                className="relative w-full h-11 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2 shadow-md overflow-hidden disabled:opacity-60">
-                {savingEstatus
-                  ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  : <ArrowRight className="w-3.5 h-3.5" style={{ animation: "slide-right 0.7s ease-in-out infinite alternate" }} />}
-                Pasar a etapa · Carga / Descarga
-              </button>
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  disabled={savingEstatus || !materialesRegistrados}
+                  onClick={() => setShowAndenModal(true)}
+                  className="relative w-full h-11 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2 shadow-md overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed">
+                  {savingEstatus
+                    ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <ArrowRight className="w-3.5 h-3.5" style={{ animation: materialesRegistrados ? "slide-right 0.7s ease-in-out infinite alternate" : undefined }} />}
+                  Pasar a etapa · Carga / Descarga
+                </button>
+                {!materialesRegistrados && (
+                  <p className="text-[10px] text-red-500 leading-relaxed px-1">
+                    No hay materiales registrados. Agrega al menos un material antes de continuar.
+                  </p>
+                )}
+              </div>
             );
           })()}
 
