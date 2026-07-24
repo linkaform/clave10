@@ -33,9 +33,11 @@ import MembersCarousel from "@/components/carrousel-miembros";
 
 interface Props {
 	searchPass: SearchAccessPass | undefined;
+	/** Recibe los ids de los pases de acompañantes seleccionados (desde MembersCarousel), para que AccesosPage los use al armar el payload de doAccess. */
+	onSeleccionPases?: (ids: string[]) => void;
 }
 
-const Credentials: React.FC<Props> = ({ searchPass }) => {
+const Credentials: React.FC<Props> = ({ searchPass, onSeleccionPases }) => {
 	const getStatusIcon = (status: string | undefined) => {
 		switch (status?.toLowerCase()) {
 			case "vencido": return <XCircle className="w-4 h-4 mr-1" />;
@@ -324,7 +326,12 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 									</div>
 								)}
 
-								<MembersCarousel searchPass={searchPass} />
+								<MembersCarousel
+									searchPass={searchPass}
+									onSeleccionMiembros={(miembros) =>
+										onSeleccionPases?.(miembros.map((m) => m.id))
+									}
+								/>
 							</div>
 						)}
 					</div>

@@ -62,6 +62,11 @@ const AccesosPage = () => {
   const { shift, isLoading:loadingShift, turno, downloadPass} = useGetShift(area,location);
   const {setTab, setFilter, setOption} = useShiftStore();
   const { passCode, setPassCode, clearPassCode, selectedEquipos, setSelectedEquipos, setSelectedVehiculos, selectedVehiculos, setTipoMovimiento, tipoMovimiento} = useAccessStore();
+  // Ids de los pases de acompañantes seleccionados en el carrusel/modal
+  // (MembersCarousel, dentro de Credentials). Vive aquí como estado local,
+  // al mismo nivel donde se arma la petición de doAccess — no en un store
+  // global — y se pasa hacia abajo por props.
+  const [selectedPasses, setSelectedPasses] = useState<string[]>([]);
   const { isLoading, loading:loadingSearchPass, searchPass } = useSearchPass(false);
   const [inputValue, setInputValue] = useState("");
   const [ openActivePases , setOpenActivePases ] = useState(false)
@@ -222,6 +227,9 @@ const AccesosPage = () => {
         equipo: selectedEquipos,
         comentario_acceso:[],
         comentario_pase: allComments,
+        // Ids de los pases de acompañantes seleccionados para dar ingreso
+        // junto con el titular (vienen de MembersCarousel, via prop local).
+        selected_pases: selectedPasses,
       });
 
       if (!data.success) {
@@ -489,7 +497,7 @@ const AccesosPage = () => {
 			<>
 				<div className="grid grid-cols-1 md:grid-cols-3">
 					<div className="row-span-3 flex flex-col p-4 ">
-						<Credentials searchPass={searchPass} />
+						<Credentials searchPass={searchPass} onSeleccionPases={setSelectedPasses} />
 					</div>
 					<div className="flex flex-col pl-0 p-4 gap-3 ">
 						<ComentariosAccesosTable allComments={allComments} />

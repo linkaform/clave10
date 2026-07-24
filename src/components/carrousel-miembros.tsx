@@ -119,6 +119,13 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass, onSelecci
 
   const data = tieneAcompanantes ? mapAcompanantes(acompanantesRaw!) : [];
 
+  // Un miembro solo se puede seleccionar si el pase principal no está en
+  // proceso Y ese acompañante en particular ya tiene su propio pase "Activo"
+  // — misma regla que ya aplica el modal, para que ambas vistas se vean y
+  // se comporten igual.
+  const esSeleccionable = (miembro: Miembro) =>
+    !paseEnProceso && (miembro.estatus ?? "").toLowerCase() === "activo";
+
   // Selección compartida entre el carrusel y el modal: un Set con los ids
   // reales de los pases seleccionados (no índices, no objetos Miembro) —
   // así ambas vistas siempre están viendo/editando el mismo estado, y lo
@@ -133,7 +140,8 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass, onSelecci
   };
 
   const togglePase = (id: string) => {
-    if (paseEnProceso) return;
+    const miembro = data.find((m) => m.id === id);
+    if (!miembro || !esSeleccionable(miembro)) return;
     setSelectedPases((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -265,19 +273,26 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass, onSelecci
                   key={miembro.id}
                   type="button"
                   onClick={() => togglePase(miembro.id)}
-                  disabled={paseEnProceso}
+                  disabled={!esSeleccionable(miembro)}
                   className={`flex flex-col items-center gap-2 p-4 pt-5 mt-1 rounded-xl border transition-all shrink-0 w-32 relative ${
-                    paseEnProceso ? "cursor-default" : "hover:shadow-sm"
+                    !esSeleccionable(miembro) ? "cursor-not-allowed" : "hover:shadow-sm"
                   } ${
-                    miembro.es_padre
-                      ? "bg-purple-50 border-purple-200 hover:border-purple-300"
-                      : "bg-white border-slate-100 hover:border-slate-200"
+                    !esSeleccionable(miembro)
+                      ? "bg-slate-50 border-slate-200 opacity-60 grayscale"
+                      : miembro.es_padre
+                        ? "bg-purple-50 border-purple-200 hover:border-purple-300"
+                        : "bg-white border-slate-100 hover:border-slate-200"
                   }`}
                 >
-                  {!paseEnProceso && selectedPases.has(miembro.id) && (
+                  {esSeleccionable(miembro) && selectedPases.has(miembro.id) && (
                     <div className="absolute top-2 right-2 z-10">
                       <CheckCircle2 className={`w-5 h-5 ${theme.checkIcon} fill-white`} />
                     </div>
+                  )}
+                  {!esSeleccionable(miembro) && !miembro.es_padre && (
+                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10 text-[9px] font-bold text-white bg-slate-400 px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm">
+                      En proceso
+                    </span>
                   )}
                   {miembro.es_padre && (
                     <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10 text-[9px] font-bold text-white bg-purple-600 px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm">
@@ -290,14 +305,20 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass, onSelecci
                         ? "border-purple-400"
                         : selectedPases.has(miembro.id)
                           ? theme.avatarBorderSelected
-                          : "border-slate-100"
+                          : !esSeleccionable(miembro)
+                            ? "border-slate-200"
+                            : "border-slate-100"
                     }`}
                   >
                     <Image src={miembro.foto || "/nouser.svg"} alt={miembro.nombre} fill className="object-cover" />
                   </div>
                   <p
                     className={`text-xs font-semibold text-center leading-tight line-clamp-2 w-full ${
-                      miembro.es_padre ? "text-purple-700" : "text-slate-700"
+                      miembro.es_padre
+                        ? "text-purple-700"
+                        : !esSeleccionable(miembro)
+                          ? "text-slate-400"
+                          : "text-slate-700"
                     }`}
                   >
                     {miembro.nombre}
