@@ -30,6 +30,13 @@ export const getCheckAreasFilters = () =>
     public_script: true,
   });
 
+export const getAreasFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters_sdk.py",
+    option: "areas",
+    public_script: true,
+  });
+
 export const getIncidenciasFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "filters.py",

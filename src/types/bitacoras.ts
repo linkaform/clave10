@@ -113,6 +113,11 @@ export interface AreaItem {
   geolocalizacion_area_ubicacion: GeolocalizacionArea[];
   area_tag_id: string[];
   foto_area: FotoArea[];
+  tipo_de_area?: string;
+  area_state?: string;
+  area_status?: string;
+  folio?: string;
+  record_id?: string;
 }
 
 export interface CardConfiguration {
@@ -129,7 +134,7 @@ export interface BadgesListItem {
 export interface DetailsListItem {
   label?: string;
   icon: React.ReactNode;
-  value: string | string[];
+  value: React.ReactNode | string[];
   customClass?: string;
 }
 
@@ -216,6 +221,7 @@ export interface FiltersPanelProps {
     salidas_registradas: number;
   };
   filtroUbicacion?:boolean
+  hideFecha?: boolean
 }
 
 export interface Visitor {

@@ -32,6 +32,7 @@ import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-
 export function PhotoGridView({
   isLoading,
   records,
+  onRecordClick,
   children,
   onSelectionChange,
   selectionActions,
@@ -117,6 +118,10 @@ export function PhotoGridView({
   };
 
   const handleCardClick = (record: PhotoRecord) => {
+    if (onRecordClick) {
+      onRecordClick(record);
+      return;
+    }
     setSelectedRecord(record);
     setIsModalOpen(true);
   };

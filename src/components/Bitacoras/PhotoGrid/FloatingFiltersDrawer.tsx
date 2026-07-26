@@ -21,7 +21,8 @@ export function FloatingFiltersDrawer({
   onFiltersChange,
   filtersConfig,
   stats,
-  filtroUbicacion = false
+  filtroUbicacion = false,
+  hideFecha = false
 }: FloatingFiltersDrawerProps) {
   useEffect(() => {
     if (isOpen) {
@@ -74,6 +75,7 @@ export function FloatingFiltersDrawer({
               filtersConfig={filtersConfig}
               stats={stats}
               filtroUbicacion={filtroUbicacion}
+              hideFecha={hideFecha}
             />
           </div>
         </div>

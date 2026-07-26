@@ -28,7 +28,7 @@ interface ListItemProps {
   icon?: React.ReactNode;
   iconColor?: string;
   label: string;
-  value: string | string[];
+  value: React.ReactNode | string[];
 }
 
 function ListItem({ label, value }: ListItemProps) {

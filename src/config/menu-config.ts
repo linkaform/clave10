@@ -907,13 +907,15 @@ export const menuStructure: MenuConfig = {
             {
               key: "areas_disponibles",
               label: "Disponibles",
-              type: "option",
+              type: "link",
+              href: "/areas?status=disponible",
               order: 2,
             },
             {
               key: "areas_todas",
               label: "Todas",
-              type: "option",
+              type: "link",
+              href: "/areas",
               order: 3,
             },
           ],

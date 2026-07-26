@@ -8,6 +8,7 @@ interface FiltersStore {
   isLoading: (key: string) => boolean;
   clearCache: (key?: string) => void;
   fetchFilter: (key: string, fetcher: () => Promise<any>) => Promise<void>;
+  fetchFilterStale: (key: string, fetcher: () => Promise<any>) => void;
 }
 
 export const useFiltersStore = create(
@@ -42,6 +43,26 @@ export const useFiltersStore = create(
           } finally {
             set((state) => ({ loading: { ...state.loading, [key]: false } }));
           }
+        },
+
+        // Muestra el cache de inmediato (si existe) y SIEMPRE dispara un
+        // refetch en segundo plano para refrescarlo -- a diferencia de
+        // fetchFilter, que no vuelve a pedir si ya hay cache. Pensado para
+        // opciones que se piden "al picar un botón" (no al montar la
+        // pantalla) y que pueden cambiar entre cuentas/tiempo.
+        fetchFilterStale: (key, fetcher) => {
+          set((state) => ({ loading: { ...state.loading, [key]: true } }));
+          fetcher()
+            .then((data) => {
+              const safeData = Array.isArray(data) ? data : [];
+              set((state) => ({ cache: { ...state.cache, [key]: safeData } }));
+            })
+            .catch((err) => {
+              toast.error(`Error al cargar filtro [${key}]: ${err}`);
+            })
+            .finally(() => {
+              set((state) => ({ loading: { ...state.loading, [key]: false } }));
+            });
         },
     }),
     {

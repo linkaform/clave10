@@ -104,6 +104,10 @@ export default function PhotoListView({
   }, [selectedItems, onSelectionChange]);
 
   const handleCardClick = (record: ListRecord) => {
+    if (onRecordClick) {
+      onRecordClick(record as any);
+      return;
+    }
     setSelectedRecord(record);
     if (typeof children === "function") {
       setSelectedChildren(children(record));
@@ -111,7 +115,6 @@ export default function PhotoListView({
       setSelectedChildren(children);
     }
     setIsModalOpen(true);
-    onRecordClick?.(record as any);
   };
   const clearSelection = () => setSelectedItems([]);
 

@@ -18,7 +18,7 @@ interface PhotoDetailModalProps {
 
 interface ListItemProps {
   label: string;
-  value: string | string[];
+  value: React.ReactNode | string[];
 }
 
 function ListItem({ label, value }: ListItemProps) {

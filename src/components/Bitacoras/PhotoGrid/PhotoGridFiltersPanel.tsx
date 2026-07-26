@@ -29,7 +29,8 @@ export function FiltersPanel({
   onFiltersChange,
   filtersConfig = [],
   stats,
-  filtroUbicacion = false
+  filtroUbicacion = false,
+  hideFecha = false
 }: FiltersPanelProps) {
   const { handleDynamicChange, clearFilters, hasActiveFilters } =
     useFiltersPanel(filters, onFiltersChange);
@@ -81,90 +82,92 @@ export function FiltersPanel({
           ?.map((c) => `${c.key}-${c.defaultDisplayOpen}`)
           .join("_")}
         defaultValue={[
-          "fecha",
+          ...(hideFecha ? [] : ["fecha"]),
           ...(filtersConfig
             ?.filter((c) => c.defaultDisplayOpen === true)
             ?.map((c) => c.key) || []),
         ]}>
         {/* Filtro de Fecha */}
-        <AccordionItem value="fecha" className="border-none">
-          <AccordionTrigger className="hover:no-underline py-3 px-1">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-700">Fecha</span>
-              {filters.dateFilter && filters.dateFilter !== "" && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2A7EFF] text-[10px] font-bold text-white">
-                  1
-                </span>
-              )}
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="pt-1 pb-4 space-y-3 overflow-visible">
-            <div className="flex items-center gap-2 border border-slate-200 rounded-lg bg-white p-1 relative z-[105]">
-              <Select
-                value={
-                  filters.dateFilter === ""
-                    ? "all_records"
-                    : filters.dateFilter || "today"
-                }
-                onValueChange={(value) =>
-                  onFiltersChange({
-                    ...filters,
-                    dateFilter: value === "all_records" ? "" : value,
-                  })
-                }>
-                <SelectTrigger className="w-full h-8 border-none shadow-none focus:ring-0 z-[110]">
-                  <SelectValue placeholder="Fecha" />
-                </SelectTrigger>
-                <SelectPortal>
-                  <SelectContent
-                    position="popper"
-                    side="bottom"
-                    className="z-[1000] min-w-[200px]">
-                    {catalogoFechas().map((option: any) => (
-                      <SelectItem key={option.key} value={option.key}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </SelectPortal>
-              </Select>
-              <CalendarDays className="text-slate-400 mr-2" size={18} />
-            </div>
-
-            {filters.dateFilter === "range" && (
-              <div className="flex flex-col gap-2">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase px-1">
-                    Desde
+        {!hideFecha && (
+          <AccordionItem value="fecha" className="border-none">
+            <AccordionTrigger className="hover:no-underline py-3 px-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-700">Fecha</span>
+                {filters.dateFilter && filters.dateFilter !== "" && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2A7EFF] text-[10px] font-bold text-white">
+                    1
                   </span>
-                  <DateTime
-                    date={filters.date1 || ""}
-                    setDate={(d) => {
-                      const newDate =
-                        typeof d === "function" ? d(filters.date1 || "") : d;
-                      onFiltersChange({ ...filters, date1: newDate });
-                    }}
-                    disablePastDates={false}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase px-1">
-                    Hasta
-                  </span>
-                  <DateTime
-                    date={filters.date2 || ""}
-                    setDate={(d) => {
-                      const newDate =
-                        typeof d === "function" ? d(filters.date2 || "") : d;
-                      onFiltersChange({ ...filters, date2: newDate });
-                    }}
-                    disablePastDates={false}
-                  />
-                </div>
+                )}
               </div>
-            )}
-          </AccordionContent>
-        </AccordionItem>
+            </AccordionTrigger>
+            <AccordionContent className="pt-1 pb-4 space-y-3 overflow-visible">
+              <div className="flex items-center gap-2 border border-slate-200 rounded-lg bg-white p-1 relative z-[105]">
+                <Select
+                  value={
+                    filters.dateFilter === ""
+                      ? "all_records"
+                      : filters.dateFilter || "today"
+                  }
+                  onValueChange={(value) =>
+                    onFiltersChange({
+                      ...filters,
+                      dateFilter: value === "all_records" ? "" : value,
+                    })
+                  }>
+                  <SelectTrigger className="w-full h-8 border-none shadow-none focus:ring-0 z-[110]">
+                    <SelectValue placeholder="Fecha" />
+                  </SelectTrigger>
+                  <SelectPortal>
+                    <SelectContent
+                      position="popper"
+                      side="bottom"
+                      className="z-[1000] min-w-[200px]">
+                      {catalogoFechas().map((option: any) => (
+                        <SelectItem key={option.key} value={option.key}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </SelectPortal>
+                </Select>
+                <CalendarDays className="text-slate-400 mr-2" size={18} />
+              </div>
+
+              {filters.dateFilter === "range" && (
+                <div className="flex flex-col gap-2">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase px-1">
+                      Desde
+                    </span>
+                    <DateTime
+                      date={filters.date1 || ""}
+                      setDate={(d) => {
+                        const newDate =
+                          typeof d === "function" ? d(filters.date1 || "") : d;
+                        onFiltersChange({ ...filters, date1: newDate });
+                      }}
+                      disablePastDates={false}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase px-1">
+                      Hasta
+                    </span>
+                    <DateTime
+                      date={filters.date2 || ""}
+                      setDate={(d) => {
+                        const newDate =
+                          typeof d === "function" ? d(filters.date2 || "") : d;
+                        onFiltersChange({ ...filters, date2: newDate });
+                      }}
+                      disablePastDates={false}
+                    />
+                  </div>
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        )}
 
         {/* Filtro de Ubicación (Base) */}
         {storeLocations.length > 0 && filtroUbicacion && (
