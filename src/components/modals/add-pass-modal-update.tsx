@@ -43,7 +43,6 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
   const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
   const [sendDataUpdate, setSendDataUpdate] = useState<Update_full_pass | null>(null);
 
-  const [docs, setDocs] = useState("");
   const [link, setLink] = useState("");
   const { updatePaseEntradaFullMutation, responseCreatePase, isLoading } = usePaseEntrada(dataPass?.ubicacion ?? "");
   const [hostPro, setHostPro] = useState({ protocol: '', host: '' });
@@ -57,10 +56,6 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
       const host = window.location.host;
       setHostPro({ protocol, host });
     }
-
-    const params = new URLSearchParams(dataPass?.link.link.split('?')[0]);
-    const docss = params.get('docs') ?? "";
-    setDocs(docss);
   }, []);
 
   const items =
@@ -96,8 +91,8 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
       status_pase: dataPass.status_pase,
       visita_a: dataPass.visita_a,
       link: {
-        link: `${hostPro?.protocol}//${hostPro?.host}/pase-update`,
-        docs: docs,
+        link: `${hostPro?.protocol}//${hostPro?.host}/dashboard/pase-update`,
+        docs: dataPass?.link?.docs ?? [],
         qr_code: dataPass._id,
         creado_por_id: userIdSoter ?? 0,
         creado_por_email: userEmailSoter ?? ""

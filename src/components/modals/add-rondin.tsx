@@ -47,6 +47,28 @@ import DateTimePicker from "../dateTimerPicker";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
+const ROLES_FALLBACK = [
+  { value: "gerente", label: "Gerente" },
+  { value: "guardia_de_caseta_acceso", label: "Guardia de CasetaAcceso" },
+  { value: "jefe_de_seguridad", label: "Jefe de Seguridad" },
+  { value: "mantenimiento_electrico", label: "Mantenimiento Eléctrico" },
+  { value: "monitorista", label: "Monitorista" },
+  { value: "supervisor_de_mantenimiento", label: "Supervisor de Mantenimiento" },
+  { value: "supervisor_de_seguridad", label: "Supervisor de Seguridad" },
+  { value: "auditor_calidad", label: "Auditor Calidad" },
+  { value: "guardia_de_acceso", label: "Guardia de Acceso" },
+  { value: "guardia_de_patio", label: "Guardia de Patio" },
+  { value: "mantenimiento", label: "Mantenimiento" },
+  { value: "mantenimiento_mecanico", label: "Mantenimiento Mecánico" },
+  { value: "rondinero", label: "Rondinero" },
+  { value: "guardia", label: "Guardia" },
+  { value: "guardia_de_inspeccion", label: "Guardia de Inspeccion" },
+  { value: "jefe_de_turno", label: "Jefe de Turno" },
+  { value: "mantenimiento_general", label: "Mantenimiento General" },
+  { value: "produccion", label: "Produccion" },
+  { value: "supervisor_de_produccion", label: "Supervisor de Producción" },
+  { value: "supervisor_ehs", label: "Supervisor EHS" },
+];
 
 interface AddRondinModalProps {
   title: string;
@@ -89,7 +111,8 @@ export type RondinPayload = {
   cron_conf: string;
   accion_recurrencia: string;
   tipo_rondin: string;
-  area:string
+  area: string;
+  roles?: string[];
 };
 
 const cronRegex =
@@ -131,7 +154,8 @@ const formSchema = z.object({
     .or(z.literal("")),
   tipo_rondin: z.string().optional(),
   area: z.string().optional(),
-  tipo_asignacion: z.string().optional()
+  roles: z.array(z.string()).optional(),
+  tipo_asignacion: z.string().optional(),
 });
 
 function SectionCard({
@@ -157,6 +181,21 @@ function SectionCard({
     </div>
   );
 }
+
+// Opciones de ejemplo para el selector de Roles.
+// TODO: reemplazar por catálogo real (por ejemplo, via un hook como useCatalogoRoles)
+const ROLES_EJEMPLO = [
+  { value: "administrador", label: "Administrador" },
+  { value: "supervisor", label: "Supervisor" },
+  { value: "guardia_de_seguridad", label: "Guardia de Seguridad" },
+  { value: "gerente_de_operaciones", label: "Gerente de Operaciones" },
+  { value: "recepcionista", label: "Recepcionista" },
+];
+
+const ROLES_LABEL_MAP: Record<string, string> = ROLES_EJEMPLO.reduce(
+  (acc, r) => ({ ...acc, [r.value]: r.label }),
+  {},
+);
 
 export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   title,
@@ -202,7 +241,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     useCatalogAreasRondin(ubicacionSeleccionada ?? "", isSuccess);
 
   const { data: dataEmpleados, isLoading: loadingEmpleados } =
-    useCatalogoAreaEmpleado(isSuccess, location??"", "Incidencias");
+    useCatalogoAreaEmpleado(isSuccess, location ?? "", "Incidencias");
   const { data: dataGrupos, isLoading: loadingGrupos } =
     useCatalogoGrupos(isSuccess);
   console.log("isSuccess:", isSuccess, "loadingGrupos:", loadingGrupos, "dataGrupos:", dataGrupos);
@@ -219,7 +258,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       nombre_rondin: "",
       duracion_estimada: "",
       ubicacion: "",
-      area:"",
+      area: "",
+      roles: [],
       areas: [],
       grupo_asignado: "",
       fecha_hora_programada: "",
@@ -260,9 +300,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       set_todas_las_semanas(false);
       set_en_que_mes([]);
       setAsignadoA("responsable_en_turno");
-      setPersonaEspecifica(""); 
+      setPersonaEspecifica("");
       setMostrarArea(false);
       form.setValue("area", "");
+      form.setValue("roles", []);
       setGrupoSeleccionado("");
       reset();
     }
@@ -322,6 +363,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         : asignadoA,
       ...recurrenciaFiltrada,
       area: values.area ?? "",
+      roles: values.roles ?? [],
     };
 
     if (mode == "edit" && folio) {
@@ -471,7 +513,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
           setAsignadoA("responsable_en_turno");
         } else {
           setAsignadoA("persona_especifica");
-          setPersonaEspecifica(rondinData.asignado_a); 
+          setPersonaEspecifica(rondinData.asignado_a);
         }
       }
       if (rondinData?.que_dias_de_la_semana?.length > 0) {
@@ -490,8 +532,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         const meses = Array.isArray(rondinData.en_que_mes)
           ? rondinData.en_que_mes : [rondinData.en_que_mes];
         set_en_que_mes(meses);
-        const todosMeses = ["enero","febrero","marzo","abril","mayo","junio",
-          "julio","agosto","septiembre","octubre","noviembre","diciembre"];
+        const todosMeses = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+          "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
         set_todas_las_meses(meses.length === 12 && todosMeses.every((m) => meses.includes(m)));
       }
       if (rondinData.cada_cuantas_horas_se_repite) {
@@ -500,6 +542,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       }
       if (rondinData.cada_cuantos_meses_se_repite) setEsRepetirCada(true);
       else if (rondinData.en_que_mes?.length > 0) setEsRepetirCada(false);
+
+      if (rondinData?.area) {
+        setMostrarArea(true);
+      }
 
       const recurrenciaValida = ["diario", "semana", "mes", "configurable"];
       reset({
@@ -514,9 +560,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         sucede_recurrencia: rondinData.sucede_recurrencia || [],
         tipo_rondin: rondinData.tipo_rondin || "",
         area: rondinData.area || "",
+        roles: Array.isArray(rondinData.roles) ? rondinData.roles : [],
         se_repite_cada: recurrenciaValida.includes(rondinData.se_repite_cada)
-        ? rondinData.se_repite_cada
-        : "", // si viene "hora" o "año" deja vacío
+          ? rondinData.se_repite_cada
+          : "", // si viene "hora" o "año" deja vacío
       });
     }
   }, [mode, rondinData, isSuccess, catalogAreasRondin, reset]);
@@ -659,6 +706,45 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                     )}
                   />
                 )}
+
+                {/* NUEVO: Selector de Roles (ejemplo, debajo de Área) */}
+                <FormField
+                  control={form.control}
+                  name="roles"
+                  render={({ field }: any) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Roles
+                      </FormLabel>
+                     <MultiSelect
+                        isMulti
+                        placeholder="Selecciona uno o más roles"
+                        className="border border-slate-100 rounded-2xl"
+                        options={ROLES_FALLBACK}
+                        value={
+                          Array.isArray(field.value)
+                            ? field.value
+                                .filter(Boolean)
+                                .map((r: string) => ({
+                                  value: r,
+                                  label: ROLES_LABEL_MAP[r] ?? r,
+                                }))
+                            : []
+                        }
+                        onChange={(selectedOptions: any) => {
+                          field.onChange(
+                            selectedOptions
+                              ? selectedOptions.map((o: any) => o.value)
+                              : [],
+                          );
+                        }}
+                        isClearable
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                   <FormField
                     control={form.control}
                     name="nombre_rondin"
@@ -942,8 +1028,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                         </div>
                       </div>
                       <div className="flex flex-wrap mt-2 mb-5">
-                        {["Primer semana del mes","Segunda semana del mes","Tercer semana del mes",
-                          "Cuarta semana del mes","Quinta semana del mes"].map((semana) => {
+                        {["Primer semana del mes", "Segunda semana del mes", "Tercer semana del mes",
+                          "Cuarta semana del mes", "Quinta semana del mes"].map((semana) => {
                           const value = semana.toLowerCase().replace(/\s+/g, "_");
                           return (
                             <FormItem key={value} className="flex items-center space-x-3">
@@ -1041,8 +1127,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                                   const checked = e.target.checked;
                                   set_todas_las_meses(checked);
                                   if (checked) {
-                                    set_en_que_mes(["enero","febrero","marzo","abril","mayo","junio",
-                                      "julio","agosto","septiembre","octubre","noviembre","diciembre"]);
+                                    set_en_que_mes(["enero", "febrero", "marzo", "abril", "mayo", "junio",
+                                      "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]);
                                   } else {
                                     set_en_que_mes([]);
                                   }

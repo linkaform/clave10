@@ -16,7 +16,7 @@ import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
 import LoadImage, { Imagen } from "@/components/upload-Image";
-import { Car, Check, Clock, Laptop, Loader2, Share2, X, ArrowLeft, Construction } from "lucide-react";
+import { Car, Check, Laptop, Loader2, X, ArrowLeft } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import Image from "next/image";
@@ -41,6 +41,7 @@ import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { MapPin, CalendarDays, User, Users, QrCode, Download } from "lucide-react";
+import type { Dispatch, SetStateAction } from "react";
 const grupoEquipos = z
   .array(
     z.object({
@@ -103,7 +104,7 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
       acepto_aviso_privacidad: z.boolean().refine((val) => val === true, {
         message: "Debes aceptar el aviso de privacidad",
       }),
-      acepto_reglas_acceso: z.boolean().refine((val) => val === true, {
+      acepto_aviso_datos_personales: z.boolean().refine((val) => val === true, {
         message: "Debes aceptar las reglas de acceso",
       }),
     })
@@ -160,7 +161,7 @@ const PaseUpdate = () => {
   const [ocrIdenResult, setOcrIdenResult] = useState<any>(null);
   const { grupoRequisitos } = useMenuStore();
   const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
-  const [copiedPadre, setCopiedPadre] = useState(false);
+  // const [copiedPadre, setCopiedPadre] = useState(false);
 
   // Estos tres solo se editan cuando el pase está "en proceso" Y es un pase
   // vinculado (pertenece a un pase padre, o sea trae link_padre). En cualquier
@@ -177,21 +178,21 @@ const PaseUpdate = () => {
     }
   }, [dataCatalogos]);
 
-  const handleCopyPadre = async () => {
-    const url = dataCatalogos?.pass_selected?.link_padre;
-    if (!url) {
-      toast.error("No hay link de pase con acompañantes disponible");
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopiedPadre(true);
-      toast.success("Link copiado");
-      setTimeout(() => setCopiedPadre(false), 1500);
-    } catch {
-      toast.error("No se pudo copiar el link");
-    }
-  };
+  // const handleCopyPadre = async () => {
+  //   const url = dataCatalogos?.pass_selected?.link_padre;
+  //   if (!url) {
+  //     toast.error("No hay link de pase con acompañantes disponible");
+  //     return;
+  //   }
+  //   try {
+  //     await navigator.clipboard.writeText(url);
+  //     setCopiedPadre(true);
+  //     toast.success("Link copiado");
+  //     setTimeout(() => setCopiedPadre(false), 1500);
+  //   } catch {
+  //     toast.error("No se pudo copiar el link");
+  //   }
+  // };
 
   useEffect(() => {
     if (!dataCatalogos?.pass_selected?.ubicacion?.length || !grupoRequisitos?.length) return;
@@ -210,11 +211,29 @@ const PaseUpdate = () => {
     }
   }, [dataCatalogos, grupoRequisitos]);
 
+  // El OCR puede llegar con distinta profundidad de anidación según el
+  // endpoint: a veces el objeto real vive en response.data.data (persona),
+  // otras veces directo en response.data como array (identificación).
+  // Probamos varias rutas candidatas y nos quedamos con la primera que
+  // exista; si resulta ser un array, tomamos su primer elemento.
+  const unwrapOcrResult = (result: any) => {
+    const candidates = [
+      result?.response?.data?.data,
+      result?.response?.data,
+      result?.data?.data,
+      result?.data,
+      result,
+    ];
+    const found = candidates.find((c) => c !== undefined && c !== null);
+    if (!found) return null;
+    return Array.isArray(found) ? (found[0] ?? null) : found;
+  };
+
   const handleOcrFotografia = (result: any) => {
-    setOcrFotoResult(result ?? null);
+    setOcrFotoResult(unwrapOcrResult(result));
   };
   const handleOcrIdentificacion = (result: any) => {
-    setOcrIdenResult(result ?? null);
+    setOcrIdenResult(unwrapOcrResult(result));
   };
 
   const [errorFotografia, setErrorFotografia] = useState("");
@@ -230,12 +249,111 @@ const PaseUpdate = () => {
   const [mostrarReglasAcceso, setMostrarReglasAcceso] = useState(false);
   const [radioSelected, setRadioSelected] = useState("3 meses");
 
+  // --- Navegación tipo "ancla": abrir Aviso de Privacidad / Reglas de acceso
+  // empuja una entrada al historial del navegador. Así, si el usuario presiona
+  // "atrás", en vez de salir de la página, se dispara `popstate` y solo
+  // cerramos el overlay actual (regresando a la vista del pase).
+  useEffect(() => {
+    const handlePopState = () => {
+      setMostrarAviso(false);
+      setMostrarReglasAcceso(false);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const openAviso = () => {
+    window.history.pushState({ modal: "aviso-privacidad" }, "");
+    setMostrarAviso(true);
+  };
+
+  const closeAviso = () => {
+    // Quitamos la entrada del historial que empujamos al abrir, para que
+    // "atrás"/"adelante" se mantengan consistentes sin importar si el
+    // usuario cerró con el botón de "atrás" del navegador o con la UI.
+    window.history.back();
+  };
+
+  const openReglasAcceso = () => {
+    window.history.pushState({ modal: "reglas-acceso" }, "");
+    setMostrarReglasAcceso(true);
+  };
+
+  const closeReglasAcceso = () => {
+    window.history.back();
+  };
+
+  // AvisoPrivacidad recibe `setMostrarAviso` como si fuera un
+  // Dispatch<SetStateAction<boolean>> normal. Este wrapper intercepta esas
+  // llamadas (tanto setMostrarAviso(true) como setMostrarAviso(false)) y las
+  // redirige a openAviso/closeAviso, sin tener que tocar el componente
+  // AvisoPrivacidad por dentro.
+  const setMostrarAvisoConHistory: Dispatch<SetStateAction<boolean>> = (value) => {
+    const next = typeof value === "function"
+      ? (value as (prev: boolean) => boolean)(mostrarAviso)
+      : value;
+    if (next) {
+      openAviso();
+    } else {
+      closeAviso();
+    }
+  };
+
   const formSchema = useMemo(
     () => createSchema(requireFoto, requireIden),
     [requireFoto, requireIden],
   );
 
   const vehiculoHabilitado = isVehiculoHabilitado(dataCatalogos?.pass_selected?.habilitar_vehiculo);
+
+  // "Reglas de acceso" ahora tiene dos fuentes independientes que regresa el
+  // backend: el PDF (documento_de_condiciones_de_servicio) y un video
+  // (url_de_condiciones_de_servicio). Ambos llegan como string plano
+  // (URL), no como array de Foto.
+  // "Reglas de acceso" tiene dos fuentes independientes que regresa el
+  // backend: el PDF (documento_de_condiciones_de_servicio, llega como array
+  // [{file_name, file_url}]) y un video (url_de_condiciones_de_servicio,
+  // que es un link de YouTube, no un archivo de video directo).
+  const reglasAccesoPdfUrl =
+    dataCatalogos?.documento_de_condiciones_de_servicio?.[0]?.file_url || "";
+  const reglasAccesoDescripcion =
+    dataCatalogos?.desc_condiciones_servicio || "";
+
+  // Los navegadores no pueden mostrar .doc/.docx/.ppt/.xls directo en un
+  // <iframe> (solo PDFs). Para esos casos, envolvemos la URL con el visor
+  // de Google Docs, que sí sabe renderizarlos (requiere que el archivo sea
+  // accesible públicamente por URL, como es el caso de Backblaze aquí).
+  const getDocumentViewerUrl = (url: string): string => {
+    if (!url) return url;
+    const isPdf = url.toLowerCase().split("?")[0].endsWith(".pdf");
+    if (isPdf) return url;
+    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+  };
+
+  const reglasAccesoPdfViewerUrl = getDocumentViewerUrl(reglasAccesoPdfUrl);
+  const reglasAccesoVideoUrlRaw = dataCatalogos?.url_de_condiciones_de_servicio || "";
+
+  // Convierte un link de YouTube (watch?v=... o youtu.be/...) a su URL de
+  // embed, para poder mostrarlo en un <iframe>. Si no es de YouTube (o no
+  // se puede parsear), regresa la URL tal cual por si ya es un embed válido.
+  const getYoutubeEmbedUrl = (url: string): string => {
+    try {
+      const u = new URL(url);
+      let videoId = "";
+      if (u.hostname.includes("youtu.be")) {
+        videoId = u.pathname.slice(1);
+      } else if (u.hostname.includes("youtube.com")) {
+        videoId = u.searchParams.get("v") || "";
+      }
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+    } catch {
+      return url;
+    }
+  };
+
+  const reglasAccesoVideoUrl = reglasAccesoVideoUrlRaw
+    ? getYoutubeEmbedUrl(reglasAccesoVideoUrlRaw)
+    : "";
 
   useEffect(() => {
     if (dataCatalogos) {
@@ -259,7 +377,7 @@ const PaseUpdate = () => {
       email: "",
       telefono: "",
       acepto_aviso_privacidad: false,
-      acepto_reglas_acceso: false,
+      acepto_aviso_datos_personales: false,
       acompanantes:[]
     },
   });
@@ -477,7 +595,7 @@ const PaseUpdate = () => {
       telefono: telefonoPaseEdit || dataCatalogos?.pass_selected?.telefono || "",
       telefono_pase: telefonoPaseEdit || dataCatalogos?.pass_selected?.telefono || "",
       acepto_aviso_privacidad: data.acepto_aviso_privacidad,
-      acepto_reglas_acceso: data.acepto_reglas_acceso,
+      acepto_aviso_datos_personales: data.acepto_aviso_datos_personales? "sí" : "no",
       conservar_datos_por: radioSelected,
       acompanantes:dataCatalogos?.pass_selected?.acompanantes,
       acompanantes_grupo: miembrosAcompanantes.map((m) => ({
@@ -649,7 +767,7 @@ const PaseUpdate = () => {
   if (mostrarAviso) {
     return (
       <AvisoPrivacidad
-        setMostrarAviso={setMostrarAviso}
+        setMostrarAviso={setMostrarAvisoConHistory}
         radioSelected={radioSelected}
         setRadioSelected={setRadioSelected}
       />
@@ -661,37 +779,69 @@ const PaseUpdate = () => {
       <div className="max-w-3xl mx-auto px-4 py-6">
         <button
           type="button"
-          onClick={() => setMostrarReglasAcceso(false)}
-          className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 mb-4 transition-colors"
+          onClick={closeReglasAcceso}
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 mb-4 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           Volver
         </button>
         <h1 className="font-bold text-2xl text-slate-800 mb-4">Reglas de acceso</h1>
-        <div className="w-full h-[75vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex items-center justify-center">
-          {/* TODO: reemplazar por la URL real del PDF de reglas de acceso */}
-          {/* <iframe
-            src="asfda"
-            className="w-full h-full"
-            title="Reglas de acceso"
-          /> */}
-          <div className="flex flex-col items-center gap-3 text-center px-6">
-            <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center">
-              <Construction className="w-7 h-7 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-slate-700 font-semibold text-sm">En construcción</p>
-              <p className="text-slate-400 text-xs mt-1">
-                Estamos preparando este contenido, vuelve a intentarlo más tarde.
-              </p>
-            </div>
+
+        {reglasAccesoDescripcion && (
+          <p className="text-sm text-slate-600 mb-4 whitespace-pre-line">
+            {reglasAccesoDescripcion}
+          </p>
+        )}
+
+        {!reglasAccesoPdfUrl && !reglasAccesoVideoUrl ? (
+          <div className="w-full h-[75vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex items-center justify-center">
+            <p className="text-slate-400 text-sm">No hay archivo disponible</p>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {reglasAccesoPdfUrl && (
+              <div>
+                <p className="text-sm font-semibold text-slate-600 mb-2">Documento</p>
+                <div className="w-full h-[60vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
+                  <iframe
+                    src={reglasAccesoPdfViewerUrl}
+                    className="w-full h-full"
+                    title="Documento de reglas de acceso"
+                  />
+                </div>
+              </div>
+            )}
+
+            {reglasAccesoVideoUrl && (
+              <div>
+                <p className="text-sm font-semibold text-slate-600 mb-2">Video</p>
+                <div className="w-full aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-black shadow-sm">
+                  <iframe
+                    src={reglasAccesoVideoUrl}
+                    className="w-full h-full"
+                    title="Video de reglas de acceso"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={closeReglasAcceso}
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 mt-4 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Volver
+        </button>
       </div>
     );
   }
 
-const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
+const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos?.pass_selected?.link_padre) && (() => {
   const activo = dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo";
 
   return (
@@ -719,34 +869,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
               {dataCatalogos.pass_selected.estatus_pase_padre || "—"}
             </span>
           </div>
-          {activo ? (
-            <p className="text-green-700 text-xs font-medium">
-              El pase padre ya está activo. Comparte el link para que lo puedan ver.
-            </p>
-          ) : (
-            <p className="text-blue-700 text-xs font-medium">
-              El pase padre aún está en proceso — el link estará disponible cuando se active.
-            </p>
-          )}
         </div>
-        <button
-          type="button"
-          title={activo ? "Compartir link" : "Pase en proceso"}
-          className={`shrink-0 flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold shadow-sm transition-all ${
-            activo
-              ? "bg-green-600 hover:bg-green-700 text-white hover:scale-105 active:scale-95 cursor-pointer"
-              : "bg-blue-200 text-blue-500 cursor-not-allowed"
-          }`}
-          onClick={activo ? handleCopyPadre : undefined}
-          disabled={!activo}
-        >
-          {activo ? (
-            copiedPadre ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />
-          ) : (
-            <Clock className="w-4 h-4" />
-          )}
-          <span>Compartir link</span>
-        </button>
       </div>
     </div>
   );
@@ -935,15 +1058,21 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                         ocrIdenResult ? (() => {
                         const iden = Array.isArray(ocrIdenResult) ? ocrIdenResult[0] : ocrIdenResult;
 
-                        const nombrePase = dataCatalogos?.pass_selected?.nombre?.toLowerCase().trim() ?? "";
-                        const nombreId = (iden.nombre_completo ?? iden.nombre ?? "").toLowerCase().trim();
-                        const coinciden = nombrePase && nombreId && (
-                          nombreId.includes(nombrePase) ||
-                          nombrePase.includes(nombreId) ||
-                          nombrePase.split(" ").some((p: string) => nombreId.includes(p))
-                        );
-                        const esId = iden.tipo_documento &&
-                          ["ine", "licencia"].includes(iden.tipo_documento.toLowerCase().trim());
+                        // const nombrePase = dataCatalogos?.pass_selected?.nombre?.toLowerCase().trim() ?? "";
+                        // const nombreIdRaw = iden.nombre_completo ?? iden.nombre ?? "";
+                        // const nombreId = nombreIdRaw.toLowerCase().trim();
+                        // const coinciden = nombrePase && nombreId && (
+                        //   nombreId.includes(nombrePase) ||
+                        //   nombrePase.includes(nombreId) ||
+                        //   nombrePase.split(" ").some((p: string) => nombreId.includes(p))
+                        // );
+                        // Antes solo aceptaba "ine"/"licencia" exacto — si el backend regresaba
+                        // cualquier otro tipo (pasaporte, credencial, con mayúsculas distintas,
+                        // etc.) siempre mostraba amarillo aunque sí hubiera un documento válido.
+                        // Ahora: cualquier tipo_documento detectado se muestra en verde con su
+                        // nombre tal cual vino.
+                        const tipoDocumento = iden.tipo_documento?.trim();
+                        const esId = Boolean(tipoDocumento);
                           return (
                             <div className="flex flex-col gap-1">
                              <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
@@ -951,25 +1080,25 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                               }`}>
                                 {esId ? (
                                   <><span className="text-green-500 text-base">✓</span>
-                                  <span>Identificación detectada — <strong>{ocrIdenResult.tipo_documento ?? "ID"}</strong></span></>
+                                  <span>Identificación detectada — <strong>{tipoDocumento}</strong></span></>
                                 ) : (
                                   <><span className="text-amber-500 text-base">⚠</span>
                                   <span>No pudimos confirmar el tipo de documento — puedes continuar, pero revisa que la imagen sea legible</span></>
                                 )}
                               </div>
-                              {ocrIdenResult.nombre && (
+                               {/* {nombreIdRaw && (
                                 <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
                                   coinciden ? "bg-green-50 border-green-200 text-green-700" : "bg-amber-50 border-amber-200 text-amber-700"
                                 }`}>
                                   {coinciden ? (
                                     <><span className="text-green-500 text-base">✓</span>
-                                    <span>Los nombres coinciden — <strong>{ocrIdenResult.nombre}</strong></span></>
+                                    <span>Los nombres coinciden — <strong>{nombreIdRaw}</strong></span></>
                                   ) : (
                                     <><span className="text-amber-500 text-base">⚠</span>
-                                    <span>Nombre en ID: <strong>{ocrIdenResult.nombre}</strong> — verifica que coincida</span></>
+                                    <span>Nombre en ID: <strong>{nombreIdRaw}</strong> — verifica que coincida</span></>
                                   )}
                                 </div>
-                              )}
+                              )} */}
                             </div>
                           );
                         })() : null
@@ -1275,7 +1404,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                           He leído y acepto el{" "}
                           <button
                             type="button"
-                            onClick={() => setMostrarAviso(true)}
+                            onClick={openAviso}
                             className="text-blue-600 underline hover:text-blue-800">
                             aviso de privacidad
                           </button>
@@ -1293,7 +1422,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
 
               <FormField
                 control={form.control}
-                name="acepto_reglas_acceso"
+                name="acepto_aviso_datos_personales"
                 render={({ field , fieldState}) => (
                   <FormItem>
                     <FormControl>
@@ -1310,7 +1439,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                           Estoy de acuerdo con las{" "}
                           <button
                             type="button"
-                            onClick={() => setMostrarReglasAcceso(true)}
+                            onClick={openReglasAcceso}
                             className="text-blue-600 underline hover:text-blue-800">
                             reglas de acceso
                           </button>

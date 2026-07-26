@@ -9,6 +9,7 @@ interface GetShiftParams {
   fotografia?:Imagen[];
   nombre_suplente?:string;
   checkin_id?: string;
+  roles?:string[];
 }
 
   export const startShift = async ({
@@ -17,8 +18,8 @@ interface GetShiftParams {
     employee_list = [],
     fotografia= [],
     nombre_suplente="",
-    checkin_id=""
-
+    checkin_id="",
+    roles=[]
   }: GetShiftParams = {}) => {
     const payload = {
       area,
@@ -28,7 +29,8 @@ interface GetShiftParams {
       employee_list: employee_list ?? [],
       fotografia,
       nombre_suplente,
-      checkin_id
+      checkin_id,
+      roles
     };
   
     const userJwt = await getValidToken();

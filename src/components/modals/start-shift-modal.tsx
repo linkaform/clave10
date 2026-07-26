@@ -12,14 +12,43 @@ import { useGuardSelectionStore } from "@/store/useGuardStore";
 import { useStartShift } from "@/hooks/useGetShift";
 import { Dispatch, SetStateAction } from "react";
 import { Imagen } from "../upload-Image";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { useBoothStore } from "@/store/useBoothStore";
+import { useCatalogoRoles } from "@/hooks/useGetRoles";
+import useAuthStore from "@/store/useAuthStore";
+
+// Fallback estático: se usa únicamente si el catálogo real (useCatalogoRoles)
+// regresa vacío, para poder resolver los labels de los roles igual que en
+// TakePhotoGuard / CloseShiftModal.
+const ROLES_FALLBACK = [
+  { value: "gerente", label: "Gerente" },
+  { value: "guardia_de_caseta_acceso", label: "Guardia de CasetaAcceso" },
+  { value: "jefe_de_seguridad", label: "Jefe de Seguridad" },
+  { value: "mantenimiento_electrico", label: "Mantenimiento Eléctrico" },
+  { value: "monitorista", label: "Monitorista" },
+  { value: "supervisor_de_mantenimiento", label: "Supervisor de Mantenimiento" },
+  { value: "supervisor_de_seguridad", label: "Supervisor de Seguridad" },
+  { value: "auditor_calidad", label: "Auditor Calidad" },
+  { value: "guardia_de_acceso", label: "Guardia de Acceso" },
+  { value: "guardia_de_patio", label: "Guardia de Patio" },
+  { value: "mantenimiento", label: "Mantenimiento" },
+  { value: "mantenimiento_mecanico", label: "Mantenimiento Mecánico" },
+  { value: "rondinero", label: "Rondinero" },
+  { value: "guardia", label: "Guardia" },
+  { value: "guardia_de_inspeccion", label: "Guardia de Inspeccion" },
+  { value: "jefe_de_turno", label: "Jefe de Turno" },
+  { value: "mantenimiento_general", label: "Mantenimiento General" },
+  { value: "produccion", label: "Produccion" },
+  { value: "supervisor_de_produccion", label: "Supervisor de Producción" },
+  { value: "supervisor_ehs", label: "Supervisor EHS" },
+];
 
 interface StartShiftModalProps {
   title: string;
-  evidencia: Imagen[]
+  evidencia: Imagen[];
+  roles: string[];
   open: boolean;
-  nombreSuplente:string;
+  nombreSuplente: string;
   setOpen: Dispatch<SetStateAction<boolean>>;
   checkin_id?: string;
 }
@@ -28,10 +57,11 @@ export const StartShiftModal: React.FC<StartShiftModalProps> = ({
   title,
   // children,
   nombreSuplente,
-  evidencia, 
+  evidencia,
+  roles,
   open,
   setOpen,
-  checkin_id
+  checkin_id,
 }) => {
   const { area, location } = useBoothStore();
 
@@ -39,6 +69,20 @@ export const StartShiftModal: React.FC<StartShiftModalProps> = ({
 
   const { mutate, isPending } = useStartShift();
 
+  const { userIdSoter } = useAuthStore();
+  const { data: dataRoles } = useCatalogoRoles(open, userIdSoter);
+  const rolesDisponibles =
+    dataRoles && dataRoles.length > 0 ? dataRoles : ROLES_FALLBACK;
+
+  const rolesConLabel = (roles ?? []).map((r) => {
+    const match = rolesDisponibles.find(
+      (rol: any) => (rol.value ?? rol.id ?? rol) === r,
+    );
+    return {
+      value: r,
+      label: (match as any)?.label ?? (match as any)?.nombre ?? r,
+    };
+  });
 
   const guardNames = selectedGuards
     ?.map((guardia: { name: string }) => guardia.name)
@@ -50,7 +94,7 @@ export const StartShiftModal: React.FC<StartShiftModalProps> = ({
 
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-center  font-bold my-5">
+          <DialogTitle className="text-2xl text-center font-bold my-5">
             {title}
           </DialogTitle>
         </DialogHeader>
@@ -69,6 +113,27 @@ export const StartShiftModal: React.FC<StartShiftModalProps> = ({
               "?"
             )}
           </p>
+
+          <div className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+              Vas a abrir turno como
+            </label>
+            {rolesConLabel.length > 0 ? (
+              <div className="flex flex-wrap justify-center gap-2">
+                {rolesConLabel.map((r) => (
+                  <span
+                    key={r.value}
+                    className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-3 py-1 text-xs font-semibold"
+                  >
+                    {r.label}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-sm text-gray-400">Sin roles asignados</span>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-5">
@@ -78,26 +143,41 @@ export const StartShiftModal: React.FC<StartShiftModalProps> = ({
             </Button>
           </DialogClose>
 
-            <Button
-              className="w-full  bg-blue-500 hover:bg-blue-600 text-white"
-              disabled={isPending}
-              onClick={() => {
-                const formattedGuards = selectedGuards?.map(
-                  (guard: { user_id: number; name: string }) => ({
-                    user_id: guard.user_id,
-                    name: guard.name,
-                  })
-                );
+          <Button
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+            disabled={isPending}
+            onClick={() => {
+              const formattedGuards = selectedGuards?.map(
+                (guard: { user_id: number; name: string }) => ({
+                  user_id: guard.user_id,
+                  name: guard.name,
+                }),
+              );
 
-                mutate({ employee_list: formattedGuards ,fotografia:evidencia, nombre_suplente:nombreSuplente, checkin_id },{
-                  onSuccess:()=>{
-                    setOpen(false)
-                  }
-                })
-              }}
-            >
-              {isPending? <> <Loader2 className="animate-spin"/> {"Iniciando Turno..."} </>: <> {"Confirmar"}</>}
-            </Button>
+              mutate(
+                {
+                  employee_list: formattedGuards,
+                  fotografia: evidencia,
+                  roles,
+                  nombre_suplente: nombreSuplente,
+                  checkin_id,
+                },
+                {
+                  onSuccess: () => {
+                    setOpen(false);
+                  },
+                },
+              );
+            }}
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="animate-spin" /> {"Iniciando Turno..."}
+              </>
+            ) : (
+              <>{"Confirmar"}</>
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

@@ -87,17 +87,20 @@ export const useStartShift = () => {
       fotografia,
       nombre_suplente,
       checkin_id,
+      roles
     }: {
       employee_list?: { user_id: number; name: string }[];
       fotografia: Imagen[];
       nombre_suplente: string;
       checkin_id?: string;
+      roles:string[];
     }) => {
       const params: any = {
         employee_list,
         fotografia,
         nombre_suplente,
         checkin_id,
+        roles
       };
 
       if (area) params.area = area;
@@ -144,14 +147,17 @@ export const useCloseShift = () => {
   return useMutation({
     mutationFn: async ({
       fotografia,
-      checkin_id
+      checkin_id,
+      roles
     }: {
       fotografia: Imagen[];
       checkin_id: string | undefined;
+      roles:string[]
     }) => {
       const params: any = {
         checkin_id,
         fotografia,
+        roles
       };
       if (area) params.area = area;
       if (location) params.location = location;

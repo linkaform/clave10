@@ -15,6 +15,7 @@ import {
   Tag,
   Layers,
   FilePenLine,
+  ShieldCheck,
 } from "lucide-react";
 import { useRecorridoStore } from "@/store/useRecorridoStore";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
@@ -40,6 +41,31 @@ export function parseRecurrencia(value: string | undefined): RecurrenciaValida |
   return RECURRENCIAS_VALIDAS.includes(value as RecurrenciaValida) ? (value as RecurrenciaValida) : "";
 }
 
+// Fallback estático: se usa si no hay catálogo de roles disponible por otra
+// vía, para no dejar el selector sin opciones utilizables.
+const ROLES_FALLBACK = [
+  { value: "gerente", label: "Gerente" },
+  { value: "guardia_de_caseta_acceso", label: "Guardia de CasetaAcceso" },
+  { value: "jefe_de_seguridad", label: "Jefe de Seguridad" },
+  { value: "mantenimiento_electrico", label: "Mantenimiento Eléctrico" },
+  { value: "monitorista", label: "Monitorista" },
+  { value: "supervisor_de_mantenimiento", label: "Supervisor de Mantenimiento" },
+  { value: "supervisor_de_seguridad", label: "Supervisor de Seguridad" },
+  { value: "auditor_calidad", label: "Auditor Calidad" },
+  { value: "guardia_de_acceso", label: "Guardia de Acceso" },
+  { value: "guardia_de_patio", label: "Guardia de Patio" },
+  { value: "mantenimiento", label: "Mantenimiento" },
+  { value: "mantenimiento_mecanico", label: "Mantenimiento Mecánico" },
+  { value: "rondinero", label: "Rondinero" },
+  { value: "guardia", label: "Guardia" },
+  { value: "guardia_de_inspeccion", label: "Guardia de Inspeccion" },
+  { value: "jefe_de_turno", label: "Jefe de Turno" },
+  { value: "mantenimiento_general", label: "Mantenimiento General" },
+  { value: "produccion", label: "Produccion" },
+  { value: "supervisor_de_produccion", label: "Supervisor de Producción" },
+  { value: "supervisor_ehs", label: "Supervisor EHS" },
+];
+
 const RondinDetalle = ({ id }: { id: string }) => {
 
   const { recorridoSeleccionado, setRecorridoSeleccionado } = useRecorridoStore();
@@ -53,6 +79,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const [duracion, setDuracion] = useState("");
   const [tipoRondin, setTipoRondin] = useState("");
   const [areaSeleccionada, setAreaSeleccionada] = useState("");
+  const [rolesSeleccionados, setRolesSeleccionados] = useState<string[]>([]);
 
   const { dataAreas } = useCatalogoPaseAreaLocation(
     rondin?.ubicacion ?? "", true, !!rondin?.ubicacion
@@ -176,6 +203,8 @@ const RondinDetalle = ({ id }: { id: string }) => {
     setDuracion(rondin.duracion_esperada_rondin?.replace(" minutos", "") || "");
     setTipoRondin(rondin.tipo_rondin || "");
     setAreaSeleccionada(rondin.area || "");
+    // Roles (llegan del backend como array de strings)
+    setRolesSeleccionados(Array.isArray(rondin.roles) ? rondin.roles : []);
     if (rondin.fecha_inicio_rondin) setFechaProgramada(new Date(rondin.fecha_inicio_rondin));
     if (rondin.areas) setAreas(rondin.areas);
 
@@ -293,6 +322,7 @@ const handleActualizar = () => {
         tipo_rondin: tipoRondin,
         se_repite_cada: recurrenciaSeleccionada,
         area: areaSeleccionada,
+        roles: rolesSeleccionados,
         tipo_asignacion: tipoAsignado === "guardia" ? "responsable_en_turno" : tipoAsignado,
         asignado_a: asignadoA,
         fecha_hora_programada: fechaProgramada ? format(fechaProgramada, "yyyy-MM-dd HH:mm:ss") : "",
@@ -502,6 +532,31 @@ const handleActualizar = () => {
             <option value="mes">Mensual</option>
             <option value="configurable">Configurable</option>
           </select>
+        </div>
+
+        {/* Roles */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+            <ShieldCheck className="w-3 h-3" /> Roles
+          </label>
+          <Select
+            isMulti
+            placeholder="Selecciona roles"
+            className="text-xs"
+            styles={{
+              control: (base: any) => ({ ...base, minHeight: "38px", fontSize: "12px", borderColor: "#bfdbfe", borderRadius: "8px" }),
+              valueContainer: (base: any) => ({ ...base, padding: "0 8px" }),
+            }}
+            options={ROLES_FALLBACK}
+            value={rolesSeleccionados.map((r) => {
+              const match = ROLES_FALLBACK.find((rol) => rol.value === r);
+              return { value: r, label: match?.label ?? r };
+            })}
+            onChange={(selected: any) =>
+              setRolesSeleccionados(selected ? selected.map((s: any) => s.value) : [])
+            }
+            isClearable
+          />
         </div>
 
         {/* Asignado a */}

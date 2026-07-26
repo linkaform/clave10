@@ -41,7 +41,8 @@ import { getValidToken } from "./login/get-valid-token";
         cada_cuantos_meses_se_repite:string,
         la_recurrencia_cuenta_con_fecha_final: string,
         fecha_final_recurrencia:string,
-        accion_recurrencia:string
+        accion_recurrencia:string,
+        roles:string[]
 
     }
 
@@ -73,7 +74,8 @@ import { getValidToken } from "./login/get-valid-token";
         cada_cuantos_meses_se_repite?:string,
         la_recurrencia_cuenta_con_fecha_final?: string,
         fecha_final_recurrencia?:string,
-        accion_recurrencia?:string
+        accion_recurrencia?:string,
+        roles?:string[]
     }
 
     export const getListRecorridos  = async (date1:string, date2:string, limit:number, offset:number ) => {
