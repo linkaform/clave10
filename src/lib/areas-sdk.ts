@@ -170,3 +170,51 @@ export const updateAreaDisponibilidadSdk = async (record_id: string, disponibili
 
   return response.json();
 };
+
+export interface CreateAreaData {
+  ubicacion: string;
+  nombre: string;
+  tipo_de_area: string;
+  foto_area?: any[];
+  qr_area?: string;
+  geolocalizacion?: { latitude: number; longitude: number };
+}
+
+export const createAreaSdk = async (data: CreateAreaData) => {
+  const payload = {
+    ...data,
+    option: "create_area",
+    script_name: "rondines_sdk.py",
+  };
+
+  const userJwt = await getValidToken();
+  const response = await fetch(API_ENDPOINTS.runScript, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${userJwt}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return response.json();
+};
+
+export const getFiltersAreasSdk = async () => {
+  const payload = {
+    option: "filters_areas",
+    script_name: "rondines_sdk.py",
+  };
+
+  const userJwt = await getValidToken();
+  const response = await fetch(API_ENDPOINTS.runScript, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${userJwt}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return response.json();
+};

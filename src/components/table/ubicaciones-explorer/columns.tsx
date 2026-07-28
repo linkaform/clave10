@@ -13,6 +13,7 @@ export const getUbicacionesColumns = (
       <div className="flex items-center gap-3">
         <div
           className="cursor-pointer"
+          data-ubicacion-ver="true"
           onClick={() => onVerUbicacion(row.original)}
           title="Ver ubicación"
         >

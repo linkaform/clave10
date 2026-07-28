@@ -21,21 +21,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil } from "lucide-react";
-import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
-import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
-import { PhotoGridActionButtons } from "@/components/Bitacoras/PhotoGrid/PhotoGridActionButtons";
-import { formatPhotoRecord, formatListRecord } from "@/utils/formatRecords";
-import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { UbicacionRow, NormalizedUbicacion, normalizeUbicacion } from "@/lib/ubicaciones";
-import { ViewMode } from "@/lib/utils";
 import { getUbicacionesColumns } from "./columns";
 import { UbicacionDetallePanel } from "@/components/Ubicaciones/UbicacionDetallePanel";
 
 interface UbicacionesExplorerTableProps {
   ubicaciones: UbicacionRow[];
   isLoading?: boolean;
-  viewMode: ViewMode;
   searchTags: string[];
   selectedUbicacionId: string | null;
   onSelectedUbicacionIdChange: (id: string | null) => void;
@@ -45,7 +37,6 @@ interface UbicacionesExplorerTableProps {
 export const UbicacionesExplorerTable: React.FC<UbicacionesExplorerTableProps> = ({
   ubicaciones,
   isLoading,
-  viewMode,
   searchTags,
   selectedUbicacionId,
   onSelectedUbicacionIdChange,
@@ -69,39 +60,6 @@ export const UbicacionesExplorerTable: React.FC<UbicacionesExplorerTableProps> =
   const handleVerUbicacion = React.useCallback(
     (ubicacion: NormalizedUbicacion) => onSelectedUbicacionIdChange(ubicacion.recordId),
     [onSelectedUbicacionIdChange],
-  );
-
-  const handleRecordClick = React.useCallback(
-    (record: PhotoRecord | ListRecord) => {
-      const recordId = (record as any)?.rawData?.record_id;
-      if (recordId) onSelectedUbicacionIdChange(recordId);
-    },
-    [onSelectedUbicacionIdChange],
-  );
-
-  const iconButtonClass =
-    "p-1.5 rounded-full transition-all duration-200 bg-white/90 hover:bg-white shadow-sm border border-slate-100 cursor-pointer hover:shadow-md text-slate-700 hover:text-blue-600 active:scale-95";
-
-  const renderUbicacionActions = React.useCallback(
-    (record: PhotoRecord | ListRecord) => {
-      const rawData = (record as any)?.rawData || {};
-      const normalized = normalizedUbicaciones.find((u) => u.recordId === rawData.record_id);
-      return (
-        <PhotoGridActionButtons
-          actions={[
-            <div
-              key="edit"
-              className={iconButtonClass}
-              title="Editar ubicación"
-              onClick={() => normalized && onEditarUbicacion(normalized)}
-            >
-              <Pencil className="w-4 h-4" />
-            </div>,
-          ]}
-        />
-      );
-    },
-    [normalizedUbicaciones, onEditarUbicacion],
   );
 
   const columns = useMemo(
@@ -134,121 +92,86 @@ export const UbicacionesExplorerTable: React.FC<UbicacionesExplorerTableProps> =
     state: { sorting, columnVisibility, rowSelection, pagination, globalFilter },
   });
 
-  const photoRecords: PhotoRecord[] = useMemo(
-    () => normalizedUbicaciones.map((ubicacion) => formatPhotoRecord(ubicacion, "ubicacion")),
-    [normalizedUbicaciones],
-  );
-
-  const listRecords: ListRecord[] = useMemo(
-    () => normalizedUbicaciones.map((ubicacion) => formatListRecord(ubicacion, "ubicacion")),
-    [normalizedUbicaciones],
-  );
-
-  const gridContainerRef = React.useRef<HTMLDivElement>(null);
-
   return (
     <div className="w-full">
-      <div ref={gridContainerRef} className="flex-1 min-w-0">
-        {viewMode === "photos" ? (
-          <PhotoGridView
-            isLoading={isLoading}
-            records={photoRecords}
-            globalSearch={searchTags}
-            onRecordClick={handleRecordClick}
-          >
-            {renderUbicacionActions}
-          </PhotoGridView>
-        ) : viewMode === "list" ? (
-          <PhotoListView
-            isLoading={isLoading}
-            records={listRecords}
-            globalSearch={searchTags}
-            onRecordClick={handleRecordClick}
-          >
-            {renderUbicacionActions}
-          </PhotoListView>
-        ) : (
-          <>
-            <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
-              <Table className="text-xs">
-                <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
-                      {headerGroup.headers.map((header) => (
-                        <TableHead
-                          key={header.id}
-                          className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none ${
-                            header.id === "options" ? "w-1" : ""
-                          }`}
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(header.column.columnDef.header, header.getContext())}
-                        </TableHead>
-                      ))}
-                    </TableRow>
+      <div className="flex-1 min-w-0">
+        <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
+          <Table className="text-xs">
+            <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      className={`text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none ${
+                        header.id === "options" ? "w-1" : ""
+                      }`}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
                   ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && "selected"}
-                        className="hover:bg-slate-100 transition-colors border-slate-50"
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="hover:bg-slate-100 transition-colors border-slate-50"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={`py-2 px-3 border-r border-slate-100 last:border-r-0 font-normal ${
+                          cell.column.id === "options" ? "w-1" : ""
+                        }`}
                       >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell
-                            key={cell.id}
-                            className={`py-2 px-3 border-r border-slate-100 last:border-r-0 font-normal ${
-                              cell.column.id === "options" ? "w-1" : ""
-                            }`}
-                          >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={columns.length} className="h-32 text-center">
-                        {isLoading ? (
-                          <div className="flex flex-col items-center gap-3 h-32 justify-center">
-                            <div className="relative h-8 w-8">
-                              <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
-                              <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                            </div>
-                            <span className="text-base text-slate-400">Cargando ubicaciones...</span>
-                          </div>
-                        ) : (
-                          <span className="text-base text-slate-400 font-normal">
-                            No se encontraron ubicaciones. Selecciona una ubicación en el menú superior.
-                          </span>
-                        )}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-              <div className="space-x-2">
-                <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-                  Anterior
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-                  Siguiente
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-32 text-center">
+                    {isLoading ? (
+                      <div className="flex flex-col items-center gap-3 h-32 justify-center">
+                        <div className="relative h-8 w-8">
+                          <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
+                          <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                        </div>
+                        <span className="text-base text-slate-400">Cargando ubicaciones...</span>
+                      </div>
+                    ) : (
+                      <span className="text-base text-slate-400 font-normal">
+                        No se encontraron ubicaciones. Selecciona una ubicación en el menú superior.
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="flex items-center justify-end space-x-2 py-4">
+          <div className="space-x-2">
+            <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+              Anterior
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+              Siguiente
+            </Button>
+          </div>
+        </div>
       </div>
 
       <UbicacionDetallePanel
         recordId={selectedUbicacionId}
         onOpenChange={(open) => !open && onSelectedUbicacionIdChange(null)}
-        allowOutsideRef={gridContainerRef}
       />
     </div>
   );
