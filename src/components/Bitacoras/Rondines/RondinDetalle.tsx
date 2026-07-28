@@ -29,8 +29,12 @@ import { useEjecutarRecorrido } from "@/hooks/Rondines/recorridos/useEjecutarRec
 import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 import Select from "react-select";
 import { useCatalogoInspeccionesRecorridos } from "@/hooks/Rondines/recorridos/useCatalogoInspecciones";
-// import MapView from "@/components/map-v2";
+import dynamic from "next/dynamic";
 import { useActualizarInspeccion } from "@/hooks/Rondines/recorridos/useActualizarInspeccion";
+
+// react-leaflet/leaflet tocan window/document al importarse, así que se
+// carga con ssr:false para evitar errores en build/SSR.
+const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
 export type RecurrenciaValida = "diario" | "semana" | "mes" | "configurable";
 
@@ -966,6 +970,7 @@ const handleActualizar = () => {
               <p className="text-xs text-gray-400">{rondin.map_data.length} puntos en el mapa</p>
             </div>
             <div className="flex-1" style={{ minHeight: "360px" }}>
+              <MapView map_data={rondin.map_data} areas={areas} />
             </div>
           </div>
         ) : (
