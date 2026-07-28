@@ -70,11 +70,70 @@ export const getAreaPdfSdk = async (record_id: string) => {
   return response.json();
 };
 
+export const getFallasByAreaSdk = async (
+  ubicacion: string,
+  area: string,
+  dateFrom: string,
+  dateTo: string,
+) => {
+  const payload = {
+    location: ubicacion,
+    area,
+    dateFrom,
+    dateTo,
+    filterDate: "range",
+    option: "get_fallas",
+    script_name: "fallas_sdk.py",
+  };
+
+  const userJwt = await getValidToken();
+  const response = await fetch(API_ENDPOINTS.runScript, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${userJwt}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return response.json();
+};
+
 export const updateAreaEstadoSdk = async (record_id: string, estado: string) => {
   const payload = {
     record_id,
     estado,
     option: "update_area_estado",
+    script_name: "rondines_sdk.py",
+  };
+
+  const userJwt = await getValidToken();
+  const response = await fetch(API_ENDPOINTS.runScript, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${userJwt}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return response.json();
+};
+
+export const getChecksByAreaSdk = async (
+  ubicacion: string,
+  area: string,
+  dateFrom?: string,
+  dateTo?: string,
+  limit: number = 500,
+) => {
+  const payload = {
+    ubicacion,
+    area,
+    date_from: dateFrom || "",
+    date_to: dateTo || "",
+    limit,
+    option: "get_all_checks",
     script_name: "rondines_sdk.py",
   };
 

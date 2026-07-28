@@ -16,11 +16,14 @@ import {
   AlertTriangle,
   Wrench,
   Settings,
+  Navigation,
 } from "lucide-react";
 import { useGetAreaById } from "@/hooks/Areas/useGetAreaById";
 import { useAreaActions } from "@/hooks/Areas/useAreaActions";
 import { normalizeArea } from "@/lib/areas";
 import { AreaDisponibilidadMenu } from "@/components/table/areas-explorer/AreaDisponibilidadMenu";
+import { ChecksAreaDashboard } from "./ChecksAreaDashboard";
+import { FallasAreaDashboard } from "./FallasAreaDashboard";
 
 type AreaTab = "rondines" | "checks" | "inspecciones" | "incidencias" | "fallas" | "configuracion";
 
@@ -61,6 +64,12 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
 
   const esActiva = normalized.estado?.toLowerCase() === "activa";
   const esDisponible = normalized.disponibilidad?.toLowerCase() === "disponible";
+
+  const coords = normalized.raw.geolocalizacion_area_ubicacion?.[0];
+  const tieneGeolocalizacion = !!coords && (coords.latitude !== 0 || coords.longitude !== 0);
+  const mapsUrl = tieneGeolocalizacion
+    ? `https://www.google.com/maps?q=${coords!.latitude},${coords!.longitude}`
+    : null;
 
   return (
     <div className="flex flex-col h-full bg-gray-50 min-h-screen px-4 pt-2">
@@ -179,12 +188,29 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
                 {normalized.disponibilidad || "-"}
               </span>
             </div>
+            <div className="flex flex-col gap-1 col-span-2">
+              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+                <Navigation className="w-3 h-3" /> Geolocalización
+              </label>
+              {mapsUrl ? (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-blue-600 hover:underline w-fit"
+                >
+                  Ver en mapa
+                </a>
+              ) : (
+                <span className="text-sm font-medium text-gray-800">N/A</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Tabs (mismas secciones que la app móvil) */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 mb-4 flex-1 min-h-[300px]">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 mb-4 min-h-[300px] min-w-0">
         <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-3 border-b border-gray-100">
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -207,7 +233,11 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
         </div>
 
         <div className="px-2 pb-2">
-          {activeTab === "configuracion" ? (
+          {activeTab === "checks" ? (
+            <ChecksAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
+          ) : activeTab === "fallas" ? (
+            <FallasAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
+          ) : activeTab === "configuracion" ? (
             <div className="flex flex-col gap-4 max-w-sm">
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">

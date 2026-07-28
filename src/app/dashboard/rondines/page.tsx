@@ -92,6 +92,14 @@ const RondinesContent = () => {
     activeFiltersCount: checkAreasFiltersCount,
   } = useCheckAreasFilters();
 
+  useEffect(() => {
+    const areaParam = searchParams.get("area");
+    if (areaParam) {
+      onCheckAreasFiltersChange({ dynamic: { area: [areaParam] } });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const {
     externalFilters: incidenciasFilters,
     onExternalFiltersChange: onIncidenciasFiltersChange,

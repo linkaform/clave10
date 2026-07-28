@@ -2,7 +2,7 @@
 
 import React, { Suspense, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LayoutGrid, LayoutList, Sheet } from "lucide-react";
+import { LayoutGrid, LayoutList, Sheet, Plus } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +11,10 @@ import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { useAreasCatalog } from "@/hooks/Areas/useAreasCatalog";
 import { useAreasFilters } from "@/hooks/Areas/useAreasFilters";
 import { AreasExplorerTable } from "@/components/table/areas-explorer/table";
+import { useUbicacionesCatalog } from "@/hooks/Ubicaciones/useUbicacionesCatalog";
+import { UbicacionesExplorerTable } from "@/components/table/ubicaciones-explorer/table";
+import { UbicacionFormModal } from "@/components/Ubicaciones/UbicacionFormModal";
+import { NormalizedUbicacion } from "@/lib/ubicaciones";
 import { ViewMode } from "@/lib/utils";
 
 const AreasContent = () => {
@@ -23,6 +27,10 @@ const AreasContent = () => {
   const [viewMode, setViewMode] = React.useState<ViewMode>("photos");
   const [selectedTab, setSelectedTab] = React.useState<"ubicaciones" | "areas">("areas");
   const [selectedAreaId, setSelectedAreaId] = React.useState<string | null>(idParam);
+  const [selectedUbicacionId, setSelectedUbicacionId] = React.useState<string | null>(null);
+  const [ubicacionFormModal, setUbicacionFormModal] = React.useState<
+    { mode: "create" } | { mode: "edit"; ubicacion: NormalizedUbicacion } | null
+  >(null);
 
   useEffect(() => {
     setSelectedAreaId(idParam);
@@ -57,6 +65,7 @@ const AreasContent = () => {
   });
 
   const { areas, isLoading } = useAreasCatalog(selectedLocations, dynamicFiltersArray);
+  const { ubicaciones, isLoading: isLoadingUbicaciones } = useUbicacionesCatalog(selectedLocations);
 
   const btnClass = (mode: ViewMode) =>
     `h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${
@@ -78,8 +87,14 @@ const AreasContent = () => {
       )}
       <div className="p-6 space-y-4 pt-3 w-full">
         <PageHeader
-          title={statusParam === "disponible" ? "Áreas disponibles" : "Áreas"}
-          totalRecords={areas.length}
+          title={
+            selectedTab === "ubicaciones"
+              ? "Ubicaciones"
+              : statusParam === "disponible"
+                ? "Áreas disponibles"
+                : "Áreas"
+          }
+          totalRecords={selectedTab === "ubicaciones" ? ubicaciones.length : areas.length}
           onSearch={(val) => setSearchTags(val ? [val] : [])}
           searchPlaceholder="Buscar..."
         >
@@ -100,18 +115,23 @@ const AreasContent = () => {
             </TabsList>
           </Tabs>
 
-          {selectedTab === "areas" && (
-            <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
-              <Button variant="ghost" size="icon" className={btnClass("photos")} onClick={() => setViewMode("photos")}>
-                <LayoutGrid size={18} />
-              </Button>
-              <Button variant="ghost" size="icon" className={btnClass("list")} onClick={() => setViewMode("list")}>
-                <LayoutList size={18} />
-              </Button>
-              <Button variant="ghost" size="icon" className={btnClass("table")} onClick={() => setViewMode("table")}>
-                <Sheet size={18} />
-              </Button>
-            </div>
+          <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
+            <Button variant="ghost" size="icon" className={btnClass("photos")} onClick={() => setViewMode("photos")}>
+              <LayoutGrid size={18} />
+            </Button>
+            <Button variant="ghost" size="icon" className={btnClass("list")} onClick={() => setViewMode("list")}>
+              <LayoutList size={18} />
+            </Button>
+            <Button variant="ghost" size="icon" className={btnClass("table")} onClick={() => setViewMode("table")}>
+              <Sheet size={18} />
+            </Button>
+          </div>
+
+          {selectedTab === "ubicaciones" && (
+            <Button onClick={() => setUbicacionFormModal({ mode: "create" })} className="gap-2">
+              <Plus size={16} />
+              Nueva ubicación
+            </Button>
           )}
         </PageHeader>
 
@@ -128,11 +148,23 @@ const AreasContent = () => {
             onSelectedAreaIdChange={handleAreaIdChange}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center h-64 text-center text-slate-500 border border-dashed border-slate-200 rounded-lg">
-            Vista de ubicaciones — próximamente.
-          </div>
+          <UbicacionesExplorerTable
+            ubicaciones={ubicaciones}
+            isLoading={isLoadingUbicaciones}
+            viewMode={viewMode}
+            searchTags={searchTags}
+            selectedUbicacionId={selectedUbicacionId}
+            onSelectedUbicacionIdChange={setSelectedUbicacionId}
+            onEditarUbicacion={(ubicacion) => setUbicacionFormModal({ mode: "edit", ubicacion })}
+          />
         )}
       </div>
+
+      <UbicacionFormModal
+        open={!!ubicacionFormModal}
+        onOpenChange={(open) => !open && setUbicacionFormModal(null)}
+        ubicacion={ubicacionFormModal?.mode === "edit" ? ubicacionFormModal.ubicacion : null}
+      />
     </div>
   );
 };
