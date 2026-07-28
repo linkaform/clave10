@@ -20,14 +20,17 @@ export interface InputOutArticuloCon {
 }
 
 
-export const getListArticulosCon = async (location:string, area:string,status:string,date1:string, date2:string, filterDate:string) => {
+export const getListArticulosCon = async (location:string, area:string,status:string,date1:string, date2:string, filterDate:string, limit:number = 25, skip:number = 0, locations:string[] = []) => {
     const payload = {
         dateFrom:date1,
-        dateTo: date2, 
+        dateTo: date2,
         filterDate:filterDate,
         status:status,
         location:"",
+        locations,
         area:area,
+        limit,
+        skip,
         option: "get_articles",
         script_name: "articulos_consecionados.py",
     };
