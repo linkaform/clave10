@@ -4,7 +4,6 @@
 import * as React from "react";
 import {
   ColumnFiltersState,
-  Row,
   SortingState,
   VisibilityState,
   flexRender,
@@ -23,20 +22,14 @@ import {
 } from "@/components/ui/table";
 import UpdateFullPassModal from "@/components/modals/update-full-pass";
 import { useMemo, useState } from "react";
-import { OptionsCell } from "./pases-entrada-columns";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { capitalizeFirstLetter, formatTo12Hour } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { getPasesEntradaColumns } from "./pases-entrada-columns";
 
 interface ListProps {
   isLoading: boolean;
   pases: any[];
 }
 
-const PasesEntradaTable: React.FC<ListProps> = ({
-  isLoading,
-  pases,
-}) => {
+const PasesEntradaTable: React.FC<ListProps> = ({ isLoading, pases }) => {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
@@ -99,7 +92,7 @@ const PasesEntradaTable: React.FC<ListProps> = ({
       telefono: telefonoLimpio,
       visita_a: visitaALimpia,
       ubicacion: ubicacionLimpia,
-      url_padre:pase.url_padre
+      url_padre: pase.url_padre,
     };
 
     setPaseSeleccionado(paseLimpio);
@@ -108,192 +101,7 @@ const PasesEntradaTable: React.FC<ListProps> = ({
 
   const columns = useMemo(() => {
     if (isLoading) return [];
-    return [
-      {
-        id: "options",
-        header: "Opciones",
-        cell: ({ row }: { row: Row<any> }) => (
-          <OptionsCell
-            onEditarClick={handleEditar}
-            row={row}
-            key={row.original._id}
-          />
-        ),
-        enableSorting: false,
-      },
-      {
-        accessorKey: "pase",
-        header: "Nombre",
-        cell: ({ row }: { row: Row<any> }) => {
-          const foto = row.original.foto;
-          const nombre = row.original.nombre;
-          const estatus = row.original.estatus;
-          const primeraImagen =
-            foto && foto.length > 0 ? foto[0].file_url : "/nouser.svg";
-
-          return (
-            <div className="flex items-center space-x-4">
-              <div>
-                {primeraImagen ? (
-                  <>
-                    <Avatar>
-                      <AvatarImage
-                        src={primeraImagen}
-                        alt="Avatar"
-                        className="object-cover"
-                      />
-                      <AvatarFallback>CN</AvatarFallback>
-                    </Avatar>
-                  </>
-                ) : (
-                  <span>No hay imagen</span>
-                )}
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold">{nombre}</span>
-                <div>
-                  <Badge
-                    className={`text-white text-sm ${
-                      estatus?.toLowerCase() == "vencido"
-                        ? "bg-red-600 hover:bg-red-600"
-                        : estatus?.toLowerCase() == "activo"
-                          ? "bg-green-600 hover:bg-green-600"
-                          : estatus?.toLowerCase() == "proceso"
-                            ? "bg-blue-600 hover:bg-blue-600"
-                            : "bg-gray-400"
-                    }`}>
-                    {capitalizeFirstLetter(estatus)}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          );
-        },
-        enableSorting: false,
-      },
-      {
-        accessorKey: "visita_a",
-        header: "Visita a",
-        cell: ({ row }: { row: Row<any> }) => {
-          const visitaA = row.getValue("visita_a");
-          let nombre = "-";
-
-          if (Array.isArray(visitaA) && visitaA.length > 0) {
-            nombre = visitaA[0]?.nombre || "-";
-          } else if (typeof visitaA === "string") {
-            nombre = visitaA;
-          }
-
-          return <div>{nombre}</div>;
-        },
-        enableSorting: true,
-      },
-      {
-        accessorKey: "autorizado_por",
-        header: "Autorizado Por",
-        cell: ({ row }: { row: Row<any> }) => (
-          <div>{row.getValue("autorizado_por")}</div>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "ubicacion",
-        header: "Ubicación",
-        cell: ({ row }: { row: Row<any> }) => {
-          return (
-            <div className="w-full flex gap-2">
-              <div className="relative group w-full break-words">
-                {Array.isArray(row.original?.ubicacion) &&
-                row.original.ubicacion.length > 0
-                  ? row.original.ubicacion[0]
-                  : ""}
-                {Array.isArray(row.original?.ubicacion) &&
-                  row.original.ubicacion.length > 1 && (
-                    <span className="text-blue-600 cursor-pointer ml-1 underline relative">
-                      +{row.original?.ubicacion.length - 1}
-                      <div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
-                        {Array.isArray(row.original?.ubicacion) &&
-                          row.original.ubicacion.length > 1 &&
-                          row.original.ubicacion
-                            .slice(1)
-                            .map((ubic: string, idx: number) => (
-                              <div key={idx}>{ubic}</div>
-                            ))}
-                      </div>
-                    </span>
-                  )}
-              </div>
-            </div>
-          );
-        },
-        enableSorting: true,
-      },
-      {
-        accessorKey: "folio",
-        header: "Folio",
-        cell: ({ row }: { row: Row<any> }) => (
-          <div>{row.getValue("folio")}</div>
-        ),
-        enableSorting: true,
-      },
-     {
-        accessorKey: "fecha_desde_visita",
-        header: "Fecha de inicio",
-        cell: ({ row }: { row: Row<any> }) => {
-          const fecha = row.getValue("fecha_desde_visita");
-          const fechaFormateada = typeof fecha === "string" ? formatTo12Hour(fecha) : "";
-          return <div>{fechaFormateada}</div>;
-        },
-        enableSorting: true,
-      },
-      {
-        accessorKey: "fecha_desde_hasta",
-        header: "Vigencia del Pase",
-        cell: ({ row }: { row: Row<any> }) => {
-          const fecha = row.getValue("fecha_desde_hasta");
-          const fechaFormateada = typeof fecha === "string" ? formatTo12Hour(fecha) : "";
-          return <div>{fechaFormateada}</div>;
-        },
-        enableSorting: true,
-      },
-      {
-        accessorKey: "limite_de_acceso",
-        header: "Limite de Entradas",
-        cell: ({ row }: { row: Row<any> }) => {
-          const total_entradas = row.original.total_entradas;
-          const limite_entradas = row.original.limite_de_acceso ?? 1;
-          return (
-            <div>
-              {total_entradas} / {limite_entradas}
-            </div>
-          );
-        },
-        enableSorting: true,
-      },
-      {
-        accessorKey: "limitado_a_dias",
-        header: "Días de acceso",
-        cell: ({ row }: { row: Row<any> }) => {
-          const dias = row.original.limitado_a_dias;
-
-          if (!dias || dias.length === 0) {
-            return <span className="text-gray-400 italic">Todos los días</span>;
-          }
-
-          return (
-            <div className="flex flex-wrap gap-1">
-              {dias.map((dia: number, index: number) => (
-                <Badge
-                  key={index}
-                  className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-sm font-semibold px-2.5 py-0.5 rounded-full">
-                  {dia}
-                </Badge>
-              ))}
-            </div>
-          );
-        },
-      },
-    ];
+    return getPasesEntradaColumns(handleEditar);
   }, [isLoading, handleEditar]);
 
   const memoizedData = useMemo(() => pases || [], [pases]);

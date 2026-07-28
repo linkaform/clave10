@@ -63,6 +63,10 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
           conservar_datos_por: data?.conservar_datos_por,
           acompanantes: data?.acompanantes ?? [],
           grupo_acompanantes:data?.acompanantes_grupo ?? [],
+          // Firma del paso de "Reglas de acceso" (llega de PaseUpdate como
+          // { file_url, file_name }; solo se manda con contenido si el pase
+          // tenía reglas de acceso que firmar).
+          firma_reglas_de_acceso: data?.firma_reglas_de_acceso ?? { file_url: "", file_name: "" },
         },
         id: data.folio,
         account_id: data.account_id,
@@ -191,6 +195,22 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
               </div>
             </div>
           </div>
+
+          {/* Firma de reglas de acceso */}
+          {data?.firma_reglas_de_acceso?.file_url && (
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+              <SectionHeader icon={<ShieldCheck size={16} className="text-blue-600" />} label="Firma de reglas de acceso" />
+              <div className="flex justify-center">
+                <Image
+                  src={data.firma_reglas_de_acceso.file_url}
+                  alt="Firma"
+                  width={200}
+                  height={100}
+                  className="max-w-full h-auto rounded-xl border border-gray-100 shadow-sm bg-gray-50"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Acompañantes */}
           {data?.acompanantes_grupo?.some((m: any) => m.nombre) && (

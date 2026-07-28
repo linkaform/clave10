@@ -8,46 +8,48 @@ import { Miembro } from "@/components/miembros-del-pase";
 
 export type Update_pass = {
   nombre?:string,
-  email?:string,
-  acepto_reglas_acceso?:string
-  nombre_pase?: string,
-  email_pase?: string,
-  telefono_pase?: string,
-  ubicacion?: string,
-  tema_cita?: string,
-  descripcion?: string,
-  perfil_pase?: string,
-  status_pase?: string,
-  visita_a?: any[],
-  link?: {
-    link: string,
-    docs: string,
-    qr_code: string,
-    creado_por_id: number,
-    creado_por_email:string 
+email?:string,
+acepto_reglas_acceso?:string
+nombre_pase?: string,
+email_pase?: string,
+telefono_pase?: string,
+ubicacion?: string,
+tema_cita?: string,
+descripcion?: string,
+perfil_pase?: string,
+status_pase?: string,
+visita_a?: any[],
+link?: {
+link: string,
+docs: string,
+qr_code: string,
+creado_por_id: number,
+creado_por_email:string 
   },
-  qr_pase?: string,
-  tipo_visita?:string ,
-  enviar_correo_pre_registro?: string[],
-  tipo_visita_pase?: string,
-  fecha_desde_visita?: string,
-  fecha_desde_hasta?: string,
-  config_dia_de_acceso?: string,
-  config_dias_acceso?: string,
-  config_limitar_acceso?: number,
-  grupo_vehiculos?:Vehiculo[],
-  grupo_equipos?:Equipo[],
-  autorizado_por?: string,
-  walkin_fotografia?: Imagen[],
-  walkin_identificacion?:Imagen[],
-  enviar_correo?: string[],
-  acepto_aviso_privacidad?:string,
-	acepto_aviso_datos_personales?:string,
-	conservar_datos_por?:string
-  acompanantes?: number | any[];
-  grupo_acompanantes?:Miembro[]
+qr_pase?: string,
+tipo_visita?:string ,
+enviar_correo_pre_registro?: string[],
+tipo_visita_pase?: string,
+fecha_desde_visita?: string,
+fecha_desde_hasta?: string,
+config_dia_de_acceso?: string,
+config_dias_acceso?: string,
+config_limitar_acceso?: number,
+grupo_vehiculos?:Vehiculo[],
+grupo_equipos?:Equipo[],
+autorizado_por?: string,
+walkin_fotografia?: Imagen[],
+walkin_identificacion?:Imagen[],
+enviar_correo?: string[],
+acepto_aviso_privacidad?:string,
+acepto_aviso_datos_personales?:string,
+conservar_datos_por?:string
+acompanantes?: number | any[];
+grupo_acompanantes?:Miembro[]
+// Firma del paso de "Reglas de acceso" (documento/video + firma obligatoria
+// en PaseUpdate). Llega como { file_url, file_name }.
+firma_reglas_de_acceso?: { file_url: string; file_name: string };
 }
-
 
 export const useUpdateAccessPass = () => {
   const [isLoadingUpdate, setIsLoadingUpdate] = useState(false)
