@@ -54,6 +54,7 @@ import {
 } from "@/components/transportista/agregar-unidad-modal";
 import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
 import { InspeccionRecordModal, InspeccionRecordContent } from "@/components/transportista/InspeccionRecordModal";
+import { DesgloseMaterialesModal } from "@/components/transportista/desglose-materiales-modal";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -1933,6 +1934,7 @@ export default function DetalleTransportistaPage() {
   const [showInspeccion, setShowInspeccion] = useState(false);
   const [showInspeccionSalida, setShowInspeccionSalida] = useState(false);
   const [showInspeccionCarga, setShowInspeccionCarga] = useState<false | "edit" | "readonly">(false);
+  const [showDesgloseMateriales, setShowDesgloseMateriales] = useState(false);
   const [viewingInspeccion, setViewingInspeccion] = useState<{ url: string; tipo: string } | null>(null);
   const [showInspeccionSello, setShowInspeccionSello] = useState(false);
   const [showGaleria, setShowGaleria] = useState(false);
@@ -4149,7 +4151,7 @@ export default function DetalleTransportistaPage() {
                     )}
                     <button
                       type="button"
-                      onClick={() => setShowInspeccionCarga(todasDone ? "readonly" : "edit")}
+                      onClick={() => (todasDone ? setShowInspeccionCarga("readonly") : setShowDesgloseMateriales(true))}
                       className={cn(
                         "w-full h-10 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2",
                         todasDone
@@ -4286,6 +4288,18 @@ export default function DetalleTransportistaPage() {
           })()}
         </div>
       </div>
+      {showDesgloseMateriales && (
+        <DesgloseMaterialesModal
+          materiales={data?.materiales ?? []}
+          recordId={id}
+          onClose={() => setShowDesgloseMateriales(false)}
+          onSaved={refetch}
+          onContinuar={() => {
+            setShowDesgloseMateriales(false);
+            setShowInspeccionCarga("edit");
+          }}
+        />
+      )}
       {showInspeccionCarga && (
         <InspeccionCargaModal
           materiales={data?.materiales ?? []}
