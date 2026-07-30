@@ -182,7 +182,17 @@ export function DesgloseMaterialesModal({
   useBodyScrollLock(true);
 
   const [desglose, setDesglose] = useState<MaterialDesglose[]>(() =>
-    materiales.map((m) => ({ material: m, renglones: [emptyRenglon()] })),
+    materiales.map((m) => ({
+      material: m,
+      renglones:
+        m.desglose.length > 0
+          ? m.desglose.map((d) => ({
+              id: Math.random().toString(36).slice(2),
+              tipo: d.tipo_unidad_empaque ?? "",
+              cantidad: d.cantidad ?? "",
+            }))
+          : [emptyRenglon()],
+    })),
   );
   const [saving, setSaving] = useState(false);
 

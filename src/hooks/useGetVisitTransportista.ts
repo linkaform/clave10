@@ -23,8 +23,18 @@ interface RawMaterial {
   lote: string | null;
   cantidad: string | null;
   cantidad_fisica: string | null;
+  cantidad_buena: string | null;
+  cantidad_danada: string | null;
   peso: string | null;
   volumen: string | null;
+}
+
+interface RawDesgloseRenglon {
+  no_referencia_material: string | null; // índice del material en grupo_materiales, como string
+  nivel: string | null;
+  tipo_unidad_empaque: string | null;
+  cantidad: string | null;
+  cantidad_acumulada: string | null;
 }
 
 interface RawRecord {
@@ -53,8 +63,15 @@ interface RawRecord {
   documentos: RawDocumento[];
   remolques: RawRemolque[];
   materiales: RawMaterial[];
+  desglose_empaque: RawDesgloseRenglon[];
   inspecciones: { tipo: string; unidad?: number; url?: string }[];
 }
+
+// Los campos de cantidad son "texto" en la forma, pero Linkaform/Mongo
+// a veces los regresa como número (ej. 10.0) cuando el valor guardado es
+// puramente numérico — normalizamos a string para que el resto del código
+// (inputs controlados, .trim()) no truene por un tipo inesperado.
+const strOrNull = (v: unknown): string | null => (v === null || v === undefined ? null : String(v));
 
 function mapRecord(raw: RawRecord): VisitaTransportista {
   const findDoc = (tipo: string) =>
@@ -103,15 +120,27 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
       comentarios:            r.comentarios,
       no_referencia_remolque: r.no_referencia_remolque ?? null,
     })),
-    materiales: (raw.materiales ?? []).map((m) => ({
-      lugar:          m.lugar,
-      no_referencia:  m.no_referencia,
-      producto:       m.producto,
-      lote:           m.lote,
-      cantidad:       m.cantidad,
-      cantidad_fisica: m.cantidad_fisica,
-      peso:           m.peso,
-      volumen:        m.volumen,
+    materiales: (raw.materiales ?? []).map((m, matIdx) => ({
+      lugar:           m.lugar,
+      no_referencia:   m.no_referencia,
+      producto:        m.producto,
+      lote:            m.lote,
+      cantidad:        strOrNull(m.cantidad),
+      cantidad_fisica: strOrNull(m.cantidad_fisica),
+      cantidad_buena:  strOrNull(m.cantidad_buena),
+      cantidad_danada: strOrNull(m.cantidad_danada),
+      peso:            m.peso,
+      volumen:         m.volumen,
+      // no_referencia_material del desglose guarda el índice del material (ver desglose-materiales-modal.tsx)
+      desglose: (raw.desglose_empaque ?? [])
+        .filter((d) => Number(d.no_referencia_material) === matIdx)
+        .sort((a, b) => Number(a.nivel ?? 0) - Number(b.nivel ?? 0))
+        .map((d) => ({
+          nivel:               d.nivel ? Number(d.nivel) : null,
+          tipo_unidad_empaque: d.tipo_unidad_empaque,
+          cantidad:            strOrNull(d.cantidad),
+          cantidad_acumulada:  strOrNull(d.cantidad_acumulada),
+        })),
     })),
     embarque: {
       proveedor_cliente: raw.proveedor_cliente,
@@ -136,6 +165,13 @@ export interface RemolqueVisita {
   no_referencia_remolque?: string | null;
 }
 
+export interface DesgloseRenglonVisita {
+  nivel:               number | null;
+  tipo_unidad_empaque: string | null;
+  cantidad:            string | null;
+  cantidad_acumulada:  string | null;
+}
+
 export interface MaterialVisita {
   lugar:           string | null;
   no_referencia:   string | null;
@@ -143,8 +179,11 @@ export interface MaterialVisita {
   lote:            string | null;
   cantidad:        string | null;
   cantidad_fisica: string | null;
+  cantidad_buena:  string | null;
+  cantidad_danada: string | null;
   peso:            string | null;
   volumen:         string | null;
+  desglose:        DesgloseRenglonVisita[];
 }
 
 export interface VisitaTransportista {
