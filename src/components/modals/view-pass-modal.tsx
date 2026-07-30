@@ -78,6 +78,14 @@ interface ViewPassModalProps {
     habilitar_vehiculo?: string
     created_by?: string;
     url_padre?: string;
+    pase_padre?: {
+      foto?: string | Imagen[];
+      identificacion?: string | Imagen[];
+      estatus?: string;
+      nombre?: string;
+      telefono?: string;
+      email?: string;
+    };
   };
   isSuccess: boolean;
   children: React.ReactNode;
@@ -389,6 +397,50 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
           {data?.created_by && (
             <SectionCard icon={<UserCog size={15} />} label="Solicitante">
               <Field label="Creado por" value={data.created_by} wide />
+            </SectionCard>
+          )}
+
+          {esAcompanante && data?.pase_padre && (
+            <SectionCard icon={<UserRound size={15} />} label="Pase Titular / Principal">
+              {(() => {
+                const fotoRaw = data.pase_padre?.foto;
+                const idenRaw = data.pase_padre?.identificacion;
+                let foto: string | undefined;
+                if (Array.isArray(fotoRaw) && fotoRaw.length > 0 && fotoRaw[0]?.file_url) {
+                  foto = fotoRaw[0].file_url;
+                } else if (Array.isArray(idenRaw) && idenRaw.length > 0 && idenRaw[0]?.file_url) {
+                  foto = idenRaw[0].file_url;
+                }
+                return (
+                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl border border-purple-100">
+                    {foto ? (
+                      <Image
+                        src={foto}
+                        alt={data.pase_padre?.nombre ?? "Titular"}
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 rounded-full object-cover border border-purple-200"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-purple-200 flex items-center justify-center">
+                        <User size={16} className="text-purple-500" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-semibold text-gray-800 truncate">
+                          {data.pase_padre?.nombre || "Sin nombre"}
+                        </p>
+                        {data.pase_padre?.estatus && <StatusBadge status={data.pase_padre.estatus} />}
+                      </div>
+                      <p className="text-[11px] text-gray-500 truncate">
+                        {[data.pase_padre?.email, data.pase_padre?.telefono].filter(Boolean).join(" · ") ||
+                          "Sin datos de contacto"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
             </SectionCard>
           )}
 
