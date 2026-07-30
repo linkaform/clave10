@@ -47,6 +47,8 @@ import DateTimePicker from "../dateTimerPicker";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
+import { useCatalogoRoles } from "@/hooks/useGetRoles";
+import useAuthStore from "@/store/useAuthStore";
 
 interface AddRondinModalProps {
   title: string;
@@ -239,6 +241,21 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   const { data: dataGrupos, isLoading: loadingGrupos } =
     useCatalogoGrupos(isSuccess);
   console.log("isSuccess:", isSuccess, "loadingGrupos:", loadingGrupos, "dataGrupos:", dataGrupos);
+
+  const { userIdSoter } = useAuthStore();
+  const { data: dataRoles } = useCatalogoRoles(isSuccess, userIdSoter);
+  const rolesDisponibles: { value: string; label: string }[] =
+    dataRoles && dataRoles.length > 0
+      ? dataRoles.map((r: any) =>
+          typeof r === "string"
+            ? { value: r, label: ROLES_LABEL_MAP[r] ?? capitalizeFirstLetter(r.replace(/_/g, " ")) }
+            : r,
+        )
+      : ROLES_FALLBACK;
+  const rolesLabelMap: Record<string, string> = rolesDisponibles.reduce(
+    (acc, r) => ({ ...acc, [r.value]: r.label }),
+    {} as Record<string, string>,
+  );
   const [dropdownOffset, setDropdownOffset] = useState({
     distance: 40,
     width: "100%",
@@ -726,14 +743,14 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                               isMulti
                               placeholder="Selecciona uno o más roles"
                               className="border border-slate-100 rounded-2xl"
-                              options={ROLES_FALLBACK}
+                              options={rolesDisponibles}
                               value={
                                 Array.isArray(field.value)
                                   ? field.value
                                       .filter(Boolean)
                                       .map((r: string) => ({
                                         value: r,
-                                        label: ROLES_LABEL_MAP[r] ?? r,
+                                        label: rolesLabelMap[r] ?? r,
                                       }))
                                   : []
                               }

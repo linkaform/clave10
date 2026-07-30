@@ -271,6 +271,14 @@ export const getBitacorasColumns = (onReturnGafete: (bitacora: Bitacora_record) 
 			enableGlobalFilter: true
 		},
 		{
+			accessorKey: "created_by",
+			header: "Creado por",
+			cell: ({ row }) => (
+				<div className="text-xs font-normal text-slate-900 leading-tight min-w-[80px]">{row.getValue("created_by") ?? ""}</div>
+			),
+			enableSorting: true,
+		},
+		{
 			accessorKey: "caseta_entrada",
 			header: "Caseta entrada",
 			cell: ({ row }) => (

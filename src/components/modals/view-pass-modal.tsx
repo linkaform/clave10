@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { useEffect, useState } from "react";
-import { Loader2, User, Shield, CalendarClock, Car, Wrench, Image as ImageIcon, Layers, MessageSquare, Copy, Users } from "lucide-react";
+import { Loader2, User, Shield, CalendarClock, Car, Wrench, Image as ImageIcon, Layers, MessageSquare, Copy, Users, UserCog, UserRound } from "lucide-react";
 import { Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import CalendarDays from "../calendar-days";
@@ -76,6 +76,8 @@ interface ViewPassModalProps {
     acompanantes?: number;
     acompanantes_grupo?: AcompananteRaw[];
     habilitar_vehiculo?: string
+    created_by?: string;
+    url_padre?: string;
   };
   isSuccess: boolean;
   children: React.ReactNode;
@@ -195,6 +197,14 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
 
   const toleranciaPrevia = requisitoUbicacion?.tolerancia_de_entrada_previa ?? 0;
   const toleranciaPosterior = requisitoUbicacion?.tolerancia_de_entrada_posterior ?? 0;
+  const esTitular = (data?.acompanantes_grupo?.length ?? 0) > 0;
+  const esAcompanante = Boolean(data?.url_padre?.trim());
+  const colorAcompanante =
+    data?.status_pase?.toLowerCase() === "activo"
+      ? "bg-green-600"
+      : data?.status_pase?.toLowerCase() === "proceso"
+        ? "bg-blue-600"
+        : "bg-gray-400";
 
   function onEnviarCorreo() {
     if (data?.status_pase?.toLowerCase() != "vencido") {
@@ -353,8 +363,34 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
                 <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Estatus</p>
                 <StatusBadge status={data?.status_pase} />
               </div>
+              <div>
+                <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Tipo de pase</p>
+                {esTitular ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-purple-600 px-2.5 py-0.5 text-[10px] font-bold text-white">
+                    <Users size={11} />
+                    Titular
+                  </span>
+                ) : esAcompanante ? (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold text-white ${colorAcompanante}`}
+                  >
+                    <UserRound size={11} />
+                    Acompañante
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-400 px-2.5 py-0.5 text-[10px] font-bold text-white">
+                    Individual
+                  </span>
+                )}
+              </div>
             </div>
           </SectionCard>
+
+          {data?.created_by && (
+            <SectionCard icon={<UserCog size={15} />} label="Solicitante">
+              <Field label="Creado por" value={data.created_by} wide />
+            </SectionCard>
+          )}
 
           <SectionCard icon={<Shield size={15} />} label="Detalles de visita">
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
@@ -411,11 +447,11 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
           <SectionCard icon={<CalendarClock size={15} />} label="Vigencia y accesos">
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
               <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Fecha inicio</p>
+                <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Fecha de entrada</p>
                 <p className="text-sm font-semibold text-gray-800">{data?.fecha_desde_visita || "—"}</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Fecha hasta</p>
+                <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Fecha de salida</p>
                 <p className="text-sm font-semibold text-gray-800">{data?.fecha_desde_hasta || "—"}</p>
               </div>
             </div>
