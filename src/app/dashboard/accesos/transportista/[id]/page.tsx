@@ -54,6 +54,7 @@ import {
 } from "@/components/transportista/agregar-unidad-modal";
 import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
 import { InspeccionRecordModal, InspeccionRecordContent } from "@/components/transportista/InspeccionRecordModal";
+import { DesgloseMaterialesModal } from "@/components/transportista/desglose-materiales-modal";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -1580,8 +1581,9 @@ interface FilaCarga {
   lote: string;
   cantidad_esperada: string;
   no_referencia: string;
-  cantidad_fisica: string;
-  check: boolean | null; // null=sin revisar, true=correcto, false=diferencia
+  cantidad_buena: string;
+  cantidad_danada: string;
+  desglose: import("@/hooks/useGetVisitTransportista").DesgloseRenglonVisita[];
 }
 
 function InspeccionCargaModal({
@@ -1604,8 +1606,9 @@ function InspeccionCargaModal({
       lote:              m.lote ?? "",
       cantidad_esperada: m.cantidad ?? "",
       no_referencia:     m.no_referencia ?? "",
-      cantidad_fisica:   m.cantidad_fisica ?? "",
-      check:             null,
+      cantidad_buena:    m.cantidad_buena ?? "",
+      cantidad_danada:   m.cantidad_danada ?? "",
+      desglose:          m.desglose ?? [],
     }))
   );
   const [saving, setSaving] = useState(false);
@@ -1613,28 +1616,39 @@ function InspeccionCargaModal({
   const setFila = (i: number, patch: Partial<FilaCarga>) =>
     setFilas((p) => p.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
 
-  const handleCheck = (i: number) => {
-    const cur = filas[i].check;
-    // null → true → false → null
-    const next = cur === null ? true : cur === true ? false : null;
-    setFila(i, { check: next });
+  // La física ya no se captura a mano: es la suma de buenas + dañadas, para
+  // que no pueda quedar inconsistente contra ese desglose.
+  const fisicaCalculada = (f: FilaCarga) => {
+    if (!f.cantidad_buena.trim() && !f.cantidad_danada.trim()) return "";
+    return String((Number(f.cantidad_buena) || 0) + (Number(f.cantidad_danada) || 0));
   };
 
   const handleGuardar = async () => {
     setSaving(true);
     try {
       const payload = {
-        materiales: filas.map((f, i) => ({
-          index:         i,
-          ref:           materiales[i]?.no_referencia ?? null,
-          producto:      f.producto,
-          lote:          f.lote,
-          cant_esperada: f.cantidad_esperada,
-          cant_fisica:   f.cantidad_fisica,
-          peso:          materiales[i]?.peso ?? null,
-          volumen:       materiales[i]?.volumen ?? null,
-          resultado:     f.check === null ? "pendiente" : f.check ? "correcto" : "diferencia",
-        })),
+        materiales: filas.map((f, i) => {
+          const buena = f.cantidad_buena.trim();
+          const danada = f.cantidad_danada.trim();
+          const resultado =
+            !buena && !danada ? "pendiente"
+            : Number(danada || 0) > 0 ? "con_diferencia"
+            : Number(buena || 0) === Number(f.cantidad_esperada || 0) ? "correcto"
+            : "con_diferencia";
+          return {
+            index:         i,
+            ref:           materiales[i]?.no_referencia ?? null,
+            producto:      f.producto,
+            lote:          f.lote,
+            cant_esperada: f.cantidad_esperada,
+            cant_fisica:   fisicaCalculada(f),
+            cant_buena:    f.cantidad_buena,
+            cant_danada:   f.cantidad_danada,
+            peso:          materiales[i]?.peso ?? null,
+            volumen:       materiales[i]?.volumen ?? null,
+            resultado,
+          };
+        }),
       };
       await saveBitacoraTransportistaRecord(recordId, "remolques", payload);
       toast.success("Inspección de material guardada");
@@ -1671,78 +1685,88 @@ function InspeccionCargaModal({
         {/* Instructivo */}
         <div className="mx-6 mt-4 shrink-0 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-amber-700">
           <span className="text-amber-500 shrink-0">ⓘ Instructivo:</span>
-          <span className="flex items-center gap-1.5 text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1">
-            <svg className="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-            1 clic = Producto correcto
-          </span>
-          <span className="flex items-center gap-1.5 text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1">
-            <svg className="w-3.5 h-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-            Doble clic = Diferencia / hallazgo
-          </span>
+          <span>Captura cuántas unidades llegaron en buen estado y cuántas dañadas por cada producto.</span>
         </div>
 
-        {/* Tabla */}
-        <div className="flex-1 overflow-y-auto px-6 pb-4 mt-4">
-          <table className="w-full text-xs border-collapse" style={{ borderSpacing: 0 }}>
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-3">Producto</th>
-                <th className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-3">Lote</th>
-                <th className="text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-3">Cant. esperada</th>
-                <th className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-3">Cant. física</th>
-                <th className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-3">Check</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filas.length === 0 && (
-                <tr><td colSpan={5} className="py-8 text-center text-gray-300 text-xs">Sin materiales registrados</td></tr>
+        {/* Materiales */}
+        <div className="flex-1 overflow-y-auto px-6 pb-4 mt-4 space-y-3">
+          {filas.length === 0 && (
+            <p className="py-8 text-center text-gray-300 text-xs">Sin materiales registrados</p>
+          )}
+          {filas.map((f, i) => (
+            <div key={i} className="rounded-xl bg-gray-50 px-4 py-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-sm text-gray-800">{f.producto || "—"}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    {[f.lote, f.no_referencia].filter(Boolean).join(" · ") || "—"}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[10px] text-gray-400">Esperada</p>
+                  <p className="text-sm font-semibold text-gray-800 mt-0.5">{f.cantidad_esperada || "—"}</p>
+                </div>
+              </div>
+
+              {f.desglose.length > 0 && (
+                <div className="flex items-center gap-1.5 mt-2.5 px-2.5 py-2 bg-white rounded-lg text-[11px] text-gray-500">
+                  <Package className="w-3.5 h-3.5 shrink-0 text-gray-300" />
+                  <span className="flex-1 flex items-center gap-1 flex-wrap">
+                    {f.desglose.map((d, di) => (
+                      <span key={di}>
+                        {di > 0 && " → "}
+                        {d.cantidad} {d.tipo_unidad_empaque}
+                      </span>
+                    ))}
+                  </span>
+                  {f.desglose[f.desglose.length - 1]?.cantidad_acumulada && (
+                    <span className="font-semibold text-gray-700 shrink-0">
+                      {f.desglose[f.desglose.length - 1].cantidad_acumulada} total
+                    </span>
+                  )}
+                </div>
               )}
-              {filas.map((f, i) => (
-                <tr key={i} className="group">
-                  <td className="py-3">
-                    <p className="font-semibold text-gray-800">{f.producto || "—"}</p>
-                    {f.no_referencia && <p className="text-[10px] text-gray-400 mt-0.5">{f.no_referencia}</p>}
-                  </td>
-                  <td className="py-3 font-bold text-gray-700">{f.lote || "—"}</td>
-                  <td className="py-3 text-right font-semibold text-orange-600">{f.cantidad_esperada || "—"}</td>
-                  <td className="py-3 px-4">
-                    {readOnly ? (
-                      <span className="block text-center text-xs font-semibold text-gray-700">{f.cantidad_fisica || "—"}</span>
-                    ) : (
-                      <input
-                        type="text"
-                        value={f.cantidad_fisica}
-                        onChange={(e) => setFila(i, { cantidad_fisica: e.target.value })}
-                        placeholder="—"
-                        className="w-full text-center text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-300 bg-gray-50"
-                      />
-                    )}
-                  </td>
-                  <td className="py-3 text-center">
-                    <button
-                      type="button"
-                      disabled={readOnly}
-                      onClick={() => !readOnly && handleCheck(i)}
-                      onDoubleClick={(e) => { if (readOnly) return; e.preventDefault(); setFila(i, { check: false }); }}
-                      className={cn(
-                        "w-7 h-7 rounded-lg border-2 flex items-center justify-center mx-auto transition-all",
-                        readOnly ? "cursor-default" : "",
-                        f.check === null  ? "border-gray-200 bg-white" + (readOnly ? "" : " hover:border-gray-300")
-                        : f.check === true ? "border-blue-500 bg-blue-500"
-                        : "border-red-500 bg-red-500"
-                      )}>
-                      {f.check === true && (
-                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                      )}
-                      {f.check === false && (
-                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                      )}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <div>
+                  <label className="text-[10px] text-gray-400 block mb-1">Cant. física</label>
+                  <span className="block text-center text-xs font-semibold text-gray-700 h-9 flex items-center justify-center bg-white rounded-lg border border-gray-100">
+                    {fisicaCalculada(f) || "—"}
+                  </span>
+                </div>
+                <div>
+                  <label className="text-[10px] text-blue-500 block mb-1">Buenas</label>
+                  {readOnly ? (
+                    <span className="block text-center text-xs font-semibold text-blue-700 h-9 flex items-center justify-center">{f.cantidad_buena || "—"}</span>
+                  ) : (
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={f.cantidad_buena}
+                      onChange={(e) => setFila(i, { cantidad_buena: e.target.value })}
+                      placeholder="—"
+                      className="w-full h-9 text-center text-xs border border-blue-200 rounded-lg px-2 focus:outline-none focus:border-blue-400 bg-blue-50/50"
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="text-[10px] text-red-500 block mb-1">Dañadas</label>
+                  {readOnly ? (
+                    <span className="block text-center text-xs font-semibold text-red-700 h-9 flex items-center justify-center">{f.cantidad_danada || "—"}</span>
+                  ) : (
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={f.cantidad_danada}
+                      onChange={(e) => setFila(i, { cantidad_danada: e.target.value })}
+                      placeholder="—"
+                      className="w-full h-9 text-center text-xs border border-red-200 rounded-lg px-2 focus:outline-none focus:border-red-400 bg-red-50/50"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Footer */}
@@ -1933,6 +1957,7 @@ export default function DetalleTransportistaPage() {
   const [showInspeccion, setShowInspeccion] = useState(false);
   const [showInspeccionSalida, setShowInspeccionSalida] = useState(false);
   const [showInspeccionCarga, setShowInspeccionCarga] = useState<false | "edit" | "readonly">(false);
+  const [showDesgloseMateriales, setShowDesgloseMateriales] = useState(false);
   const [viewingInspeccion, setViewingInspeccion] = useState<{ url: string; tipo: string } | null>(null);
   const [showInspeccionSello, setShowInspeccionSello] = useState(false);
   const [showGaleria, setShowGaleria] = useState(false);
@@ -4122,6 +4147,9 @@ export default function DetalleTransportistaPage() {
               const matsConFisica = mats.filter((m) => m.cantidad_fisica && m.cantidad_fisica.trim() !== "").length;
               const todasDone = totalMats > 0 && matsConFisica >= totalMats;
               const hayAlguna = matsConFisica > 0;
+              // Si cada material ya tiene su desglose de empaque guardado, no
+              // hace falta volver a pedirlo — se va directo a la inspección.
+              const desgloseListo = totalMats > 0 && mats.every((m) => m.desglose.length > 0);
               return (
                 <div key="materiales" className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -4149,7 +4177,13 @@ export default function DetalleTransportistaPage() {
                     )}
                     <button
                       type="button"
-                      onClick={() => setShowInspeccionCarga(todasDone ? "readonly" : "edit")}
+                      onClick={() =>
+                        todasDone
+                          ? setShowInspeccionCarga("readonly")
+                          : desgloseListo
+                          ? setShowInspeccionCarga("edit")
+                          : setShowDesgloseMateriales(true)
+                      }
                       className={cn(
                         "w-full h-10 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2",
                         todasDone
@@ -4286,6 +4320,18 @@ export default function DetalleTransportistaPage() {
           })()}
         </div>
       </div>
+      {showDesgloseMateriales && (
+        <DesgloseMaterialesModal
+          materiales={data?.materiales ?? []}
+          recordId={id}
+          onClose={() => setShowDesgloseMateriales(false)}
+          onSaved={refetch}
+          onContinuar={() => {
+            setShowDesgloseMateriales(false);
+            setShowInspeccionCarga("edit");
+          }}
+        />
+      )}
       {showInspeccionCarga && (
         <InspeccionCargaModal
           materiales={data?.materiales ?? []}
