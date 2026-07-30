@@ -16,7 +16,7 @@ import {
   NuevoPaseWalkinData,
 } from "@/components/modals/add-pass-create-modal";
 import LoadImage from "@/components/upload-Image";
-import { Car, Laptop, X, MapPin, DoorOpen, Loader2, ArrowLeft } from "lucide-react";
+import { Car, Laptop, X, MapPin, DoorOpen, Loader2, ArrowLeft, FileX, VideoOff } from "lucide-react";
 import { VehicleLocalPassModal } from "@/components/modals/add-local-vehicule";
 import { EqipmentLocalPassModal } from "@/components/modals/add-local-equipo";
 import Image from "next/image";
@@ -27,105 +27,6 @@ import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
 import FirmaReglasAcceso, { FirmaValue } from "@/components/reglas-de-acceso";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// TODO: quitar estos tres fallbacks una vez que get_config_modulo_seguridad
-// regrese condiciones_servicio (doc/video/desc) de forma consistente. Solo
-// sirven para poder ver/probar la pantalla de "Reglas de acceso" mientras el
-// servicio la regresa vacía.
-const FALLBACK_DOC_CONDICIONES_SERVICIO =
-  "https://f001.backblazeb2.com/file/app-linkaform/public-client-30335/150601/6a4c673722f825e7b3e46469/6a4fdfd02ae21bb51b53b609.pdf";
-const FALLBACK_VIDEO_CONDICIONES_SERVICIO =
-  "https://www.youtube.com/watch?v=hIyW8Rg5ka4&themeRefresh=1";
-const FALLBACK_DESC_CONDICIONES_SERVICIO = `Términos y Condiciones de Servicio
-
-Última actualización: [FECHA]
-
-Bienvenido/a a [NOMBRE DE LA EMPRESA/PRODUCTO] ("nosotros", "nuestro" o "la Empresa"). Estos Términos y Condiciones de Servicio ("Términos") regulan el acceso y uso de [nombre del sitio web, aplicación o servicio] (el "Servicio"). Al acceder o utilizar el Servicio, aceptas quedar vinculado/a por estos Términos. Si no estás de acuerdo, no debes utilizar el Servicio.
-
-1. Aceptación de los Términos
-
-Al registrarte, acceder o utilizar el Servicio, confirmas que:
-
-Tienes al menos 18 años de edad, o cuentas con el consentimiento de un padre, madre o tutor legal.
-Tienes la capacidad legal para celebrar un contrato vinculante.
-Cumplirás con estos Términos y con todas las leyes y regulaciones aplicables.
-
-2. Descripción del Servicio
-
-[NOMBRE DE LA EMPRESA] ofrece [breve descripción del producto o servicio: por ejemplo, "una plataforma de gestión de proyectos en línea" o "una aplicación móvil para el seguimiento de hábitos"]. Nos reservamos el derecho de modificar, suspender o discontinuar el Servicio, total o parcialmente, en cualquier momento y sin previo aviso.
-
-3. Cuentas de Usuario
-
-3.1. Para utilizar ciertas funciones del Servicio, deberás crear una cuenta proporcionando información veraz, completa y actualizada.
-
-3.2. Eres responsable de mantener la confidencialidad de tu contraseña y de todas las actividades que ocurran bajo tu cuenta.
-
-3.3. Debes notificarnos de inmediato ante cualquier uso no autorizado de tu cuenta.
-
-3.4. Nos reservamos el derecho de suspender o cancelar cuentas que incumplan estos Términos.
-
-4. Uso Aceptable
-
-Al utilizar el Servicio, te comprometes a NO:
-
-Violar leyes o regulaciones aplicables.
-Publicar contenido difamatorio, obsceno, discriminatorio o que infrinja derechos de terceros.
-Intentar acceder sin autorización a sistemas, servidores o cuentas de otros usuarios.
-Distribuir virus, malware o cualquier código malicioso.
-Utilizar el Servicio para enviar spam o comunicaciones no solicitadas.
-Realizar ingeniería inversa, descompilar o intentar extraer el código fuente del Servicio.
-
-El incumplimiento de esta sección puede resultar en la suspensión o terminación inmediata de tu cuenta.
-
-5. Contenido del Usuario
-
-5.1. Mantienes la propiedad de cualquier contenido que subas, publiques o compartas a través del Servicio ("Contenido de Usuario").
-
-5.2. Al publicar Contenido de Usuario, nos otorgas una licencia no exclusiva, mundial, libre de regalías, para usar, almacenar, reproducir y mostrar dicho contenido con el único fin de operar y mejorar el Servicio.
-
-5.3. Eres el único responsable de tu Contenido de Usuario y garantizas que tienes los derechos necesarios para compartirlo.
-
-6. Propiedad Intelectual
-
-Todo el contenido, marcas, logotipos, software y materiales del Servicio (excluyendo el Contenido de Usuario) son propiedad de [NOMBRE DE LA EMPRESA] o de sus licenciantes, y están protegidos por leyes de propiedad intelectual. No se concede ninguna licencia ni derecho sobre dicho contenido salvo lo expresamente indicado en estos Términos.
-
-7. Pagos y Suscripciones (si aplica)
-
-7.1. Algunos servicios pueden requerir el pago de una tarifa. Los precios se indicarán claramente antes de la compra.
-
-7.2. Las suscripciones se renuevan automáticamente al final de cada periodo, salvo que se cancelen antes de la fecha de renovación.
-
-7.3. Salvo que la ley exija lo contrario, los pagos realizados no son reembolsables.
-
-7.4. Nos reservamos el derecho de modificar los precios, notificando con [30] días de anticipación.
-
-8. Privacidad
-
-El uso del Servicio también se rige por nuestra [Política de Privacidad], la cual describe cómo recopilamos, usamos y protegemos tu información personal. Al usar el Servicio, aceptas dicha política.
-
-9. Terminación
-
-9.1. Puedes dejar de usar el Servicio y cancelar tu cuenta en cualquier momento.
-
-9.2. Podemos suspender o terminar tu acceso al Servicio, con o sin previo aviso, si consideramos que has incumplido estos Términos o por cualquier otra razón a nuestra discreción.
-
-9.3. Las disposiciones que por su naturaleza deban sobrevivir a la terminación (propiedad intelectual, limitación de responsabilidad, ley aplicable, etc.) permanecerán vigentes.
-
-10. Exclusión de Garantías
-
-El Servicio se proporciona "tal cual" y "según disponibilidad", sin garantías de ningún tipo, expresas o implícitas, incluyendo, entre otras, garantías de comerciabilidad, idoneidad para un propósito particular o no infracción. No garantizamos que el Servicio será ininterrumpido, seguro o libre de errores.
-
-11. Limitación de Responsabilidad
-
-En la máxima medida permitida por la ley, [NOMBRE DE LA EMPRESA] no será responsable por daños indirectos, incidentales, especiales, consecuentes o punitivos, ni por pérdida de beneficios, datos o uso, derivados del uso o la imposibilidad de uso del Servicio, incluso si se nos ha advertido de la posibilidad de dichos daños.
-
-12. Indemnización
-
-Aceptas indemnizar y mantener indemne a [NOMBRE DE LA EMPRESA], sus directivos, empleados y afiliados, frente a cualquier reclamo, daño, pérdida o gasto (incluidos honorarios legales razonables) derivado de tu uso del Servicio o de tu incumplimiento de estos Términos.
-
-13. Modificaciones a los Términos
-
-Podemos actualizar estos Términos periódicamente. Notificaremos los cambios significativos publicando la nueva versión en el Servicio y actualizando la fecha de "Última actualización". El uso continuado del Servicio tras dichos cambios constituye tu aceptación de los nuevos Términos.`;
 
 const createSchema = (requireFoto: boolean, requireIden: boolean) =>
   z
@@ -222,25 +123,21 @@ const RegistroIngresoPage = () => {
   // reglas de acceso configuradas — el botón "Continuar" se bloquea hasta
   // entonces para no saltarse ese paso por una condición de carrera.
   const configResuelta = confData !== undefined || errorConfig;
-  // TODO: quitar este fallback una vez que get_config_modulo_seguridad
-  // regrese requerimientos de forma consistente — por ahora siempre pide
-  // foto e identificación para poder probar esa parte del formulario.
-  const requireFoto = true;
-  const requireIden = true;
+  const requireFoto = (confData?.requerimientos ?? []).includes("fotografia");
+  const requireIden = (confData?.requerimientos ?? []).includes("identificacion");
 
   // Reglas de acceso (mismo patrón que pase-update): documento + video +
   // texto de condiciones de servicio. Si la ubicación no trae nada de esto,
   // el paso de firma se salta por completo.
   const reglasAccesoPdfUrl =
-    confData?.condiciones_servicio?.doc_condiciones_servicio?.[0]?.file_url ||
-    FALLBACK_DOC_CONDICIONES_SERVICIO;
+    confData?.condiciones_servicio?.doc_condiciones_servicio?.[0]?.file_url || "";
   const hoyFormateado = new Date().toLocaleDateString("es-MX", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
   const reglasAccesoDescripcion = (
-    confData?.condiciones_servicio?.desc_condiciones_servicio || FALLBACK_DESC_CONDICIONES_SERVICIO
+    confData?.condiciones_servicio?.desc_condiciones_servicio || ""
   ).replace(/\[FECHA\]/gi, hoyFormateado);
 
   const getDocumentViewerUrl = (url: string): string => {
@@ -250,9 +147,7 @@ const RegistroIngresoPage = () => {
     return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
   };
   const reglasAccesoPdfViewerUrl = getDocumentViewerUrl(reglasAccesoPdfUrl);
-  const reglasAccesoVideoUrlRaw =
-    confData?.condiciones_servicio?.url_condiciones_servicio ||
-    FALLBACK_VIDEO_CONDICIONES_SERVICIO;
+  const reglasAccesoVideoUrlRaw = confData?.condiciones_servicio?.url_condiciones_servicio || "";
 
   const getYoutubeEmbedUrl = (url: string): string => {
     try {
@@ -271,9 +166,7 @@ const RegistroIngresoPage = () => {
   const reglasAccesoVideoUrl = reglasAccesoVideoUrlRaw
     ? getYoutubeEmbedUrl(reglasAccesoVideoUrlRaw)
     : "";
-  const tieneReglasDeAcceso = Boolean(
-    reglasAccesoPdfUrl || reglasAccesoVideoUrl || reglasAccesoDescripcion,
-  );
+  const tieneReglasDeAcceso = Boolean(reglasAccesoPdfUrl || reglasAccesoVideoUrl);
 
   const [vehicles, setVehiculos] = useState<Vehiculo[]>([]);
   const [equipos, setEquipos] = useState<Equipo[]>([]);
@@ -474,7 +367,7 @@ const RegistroIngresoPage = () => {
             )}
 
             <div className="flex flex-col gap-6 mt-6 mb-6">
-              {reglasAccesoPdfUrl && (
+              {reglasAccesoPdfUrl ? (
                 <div>
                   <p className="text-sm font-semibold text-slate-600 mb-2 text-left">Documento</p>
                   <div className="w-full h-[60vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
@@ -485,9 +378,17 @@ const RegistroIngresoPage = () => {
                     />
                   </div>
                 </div>
+              ) : (
+                <div>
+                  <p className="text-sm font-semibold text-slate-600 mb-2 text-left">Documento</p>
+                  <div className="w-full h-40 rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-2 text-slate-400">
+                    <FileX className="w-8 h-8" />
+                    <span className="text-xs font-medium">Documento no disponible</span>
+                  </div>
+                </div>
               )}
 
-              {reglasAccesoVideoUrl && (
+              {reglasAccesoVideoUrl ? (
                 <div>
                   <p className="text-sm font-semibold text-slate-600 mb-2 text-left">Video</p>
                   <div className="w-full aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-black shadow-sm">
@@ -498,6 +399,14 @@ const RegistroIngresoPage = () => {
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm font-semibold text-slate-600 mb-2 text-left">Video</p>
+                  <div className="w-full aspect-video rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-2 text-slate-400">
+                    <VideoOff className="w-8 h-8" />
+                    <span className="text-xs font-medium">Video no disponible</span>
                   </div>
                 </div>
               )}
