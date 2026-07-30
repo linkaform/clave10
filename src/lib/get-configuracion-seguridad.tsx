@@ -9,15 +9,24 @@ export const getConfSeguridad = async (locations:string[], account_id?: number) 
       ...(account_id ? { account_id } : {}),
      };
 
-    const userJwt = await getValidToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+    // Cuando se manda account_id explícito (flujo público, sin sesión, p.ej.
+    // registro-ingreso) NO se manda Authorization: si el navegador trae un
+    // JWT válido de OTRA cuenta (alguien con sesión abierta en el dashboard),
+    // el backend resuelve por ese JWT en vez del account_id del payload, y la
+    // ubicación termina sin encontrarse. Solo se manda el JWT para el uso
+    // original (dashboard autenticado, sin account_id explícito).
+    if (!account_id) {
+      const userJwt = await getValidToken();
+      headers['Authorization'] = `Bearer ${userJwt}`;
+    }
+
     const response = await fetch(API_ENDPOINTS.runScript, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userJwt}`,
-        },
+        headers,
         body: JSON.stringify(payload),
       });
-      const data = await response.json(); 
-      return data 
+      const data = await response.json();
+      return data
   };
