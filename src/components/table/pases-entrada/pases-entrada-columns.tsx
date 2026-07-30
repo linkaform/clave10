@@ -198,6 +198,7 @@ export const OptionsCell: React.FC<{ row: any; onEditarClick: (pase: any) => voi
     habilitar_vehiculo: rowData.habilitar_vehiculo,
     url_padre: rowData.url_padre || "",
     created_by: rowData.created_by || "",
+    pase_padre: rowData.pase_padre || null,
   };
   return (
     <div className="flex space-x-2">
