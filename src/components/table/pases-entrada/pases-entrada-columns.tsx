@@ -197,6 +197,7 @@ export const OptionsCell: React.FC<{ row: any; onEditarClick: (pase: any) => voi
     acompanantes_grupo: rowData.acompanantes_grupo || [],
     habilitar_vehiculo: rowData.habilitar_vehiculo,
     url_padre: rowData.url_padre || "",
+    created_by: rowData.created_by || "",
   };
   return (
     <div className="flex space-x-2">
@@ -261,9 +262,9 @@ export const getPasesEntradaColumns = (
     enableSorting: true,
   },
   {
-    accessorKey: "autorizado_por",
-    header: "Autorizado Por",
-    cell: ({ row }) => <div>{row.getValue("autorizado_por")}</div>,
+    accessorKey: "created_by",
+    header: "Creado Por",
+    cell: ({ row }) => <div>{row.getValue("created_by")}</div>,
     enableSorting: true,
   },
   {
