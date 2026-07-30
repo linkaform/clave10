@@ -6,13 +6,8 @@ export const useGetConfSeguridad = (location:string[], account_id?: number) => {
     queryKey: ["getConfSeguridad", location, account_id],
     enabled: location?true:false,
     queryFn: async () => {
-<<<<<<< HEAD
-        const data = await getConfSeguridad(location);
-        return data.response?.data || [];
-=======
         const data = await getConfSeguridad(location, account_id);
         return data.response?.data.requerimientos || [];
->>>>>>> develop
     },
   });
 
