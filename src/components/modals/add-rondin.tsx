@@ -33,7 +33,7 @@ import { useRondines } from "@/hooks/Rondines/useRondines";
 import { Input } from "../ui/input";
 import { format } from "date-fns";
 import Multiselect from "multiselect-react-dropdown";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCatalogAreasRondin } from "@/hooks/Rondines/useCatalogAreasRondin";
 import {
   capitalizeFirstLetter,
@@ -225,7 +225,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   // const [mostrarArea, setMostrarArea] = useState(false);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<string>("");
   const [asignacionError, setAsignacionError] = useState<string>("");
-  const { locations: ubicaciones, fetchLocations, fetchAreas } = useAreasLocationStore();
+  const { locations: ubicaciones, fetchLocations, fetchAreas, locationDetails } = useAreasLocationStore();
 
   useEffect(() => {
     if (isSuccess) {
@@ -235,6 +235,21 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   }, [isSuccess, ubicacionSeleccionada]);
   const { data: catalogAreasRondin, isLoading: isLoadingAreas } =
     useCatalogAreasRondin(ubicacionSeleccionada ?? "", isSuccess);
+
+  // Fallback: si el catálogo de áreas de rondin viene vacío, se usan las áreas
+  // ya conocidas en el areaLocation-store para la ubicación seleccionada.
+  const areasFallback = useMemo(() => {
+    const detalle = locationDetails.find(
+      (d) => d.ubicacion?.toLowerCase() === ubicacionSeleccionada?.toLowerCase(),
+    );
+    return (detalle?.areas ?? [])
+      .map((a) => a.nombre_area)
+      .filter((n): n is string => Boolean(n))
+      .map((nombre) => ({ id: nombre, name: nombre }));
+  }, [locationDetails, ubicacionSeleccionada]);
+
+  const areasOptions =
+    catalogAreasRondin && catalogAreasRondin.length > 0 ? catalogAreasRondin : areasFallback;
 
   const { data: dataEmpleados, isLoading: loadingEmpleados } =
     useCatalogoAreaEmpleado(isSuccess, location ?? "", "Incidencias");
@@ -390,6 +405,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       se_repite_cada: values.se_repite_cada,
       cron_conf: "",
       tipo_rondin: values.tipo_rondin,
+      tipo: (values.tipo_rondin || "").toLowerCase(),
       tipo_asignacion: asignadoA,
       asignado_a: asignadoA === "persona_especifica"
         ? [personaEspecifica]
@@ -1253,7 +1269,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                     </div>
                   ) : (
                     <Multiselect
-                      options={catalogAreasRondin}
+                      options={areasOptions}
                       onSelect={setAreasSeleccionadas}
                       onRemove={setAreasSeleccionadas}
                       displayValue="name"
