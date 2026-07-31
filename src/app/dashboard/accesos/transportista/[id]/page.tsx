@@ -38,6 +38,12 @@ import { cn, capitalizeOnlyFirstLetter } from "@/lib/utils";
 import { GaleriaFotosModal, toThumbnailUrl } from "@/components/modals/galeria-fotos-modal";
 import { useGetVisitTransportista } from "@/hooks/useGetVisitTransportista";
 import { useGetFotografiasTransportista, buildRegistrosFotografias } from "@/hooks/useGetFotografiasTransportista";
+import {
+  useInspeccionPuntosTransportista,
+  type MedidasLabels,
+  type SelloClasificacionOption,
+  type SelloVvttPunto,
+} from "@/hooks/transportistas/useInspeccionPuntosTransportista";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { saveBitacoraTransportistaRecord, saveInspeccionesTransportista, saveInspeccionesSelloTransportista, ocrAccesoTransportista } from "@/services/endpoints";
 import { uploadImage } from "@/lib/get-upload-image";
@@ -113,50 +119,6 @@ function Field({
 
 // ─── Inspección de Entrada Modal ──────────────────────────────────────────────
 
-const PUNTOS_TRACTOR = [
-  "Defensa",
-  "Motor, caja de la batería, caja y filtros de aire",
-  "Llantas y rines (tractor y remolque)",
-  "Piso (tractor)",
-  "Tanque de combustible",
-  "Cabina, dormitorio, puertas y compartimientos de herramientas, sección de pasajero y techo",
-  "Tanque de aire",
-  "Ejes de transmisión",
-  "Quinta rueda",
-  "Chasis",
-  "Puertas externa",
-  "Piso externo (trailer, contenedor, caja)",
-  "Paredes externa",
-  "Pared frontal externa",
-  "Techo externo",
-  "Unidad de refrigeración",
-  "Escape / Mofles",
-];
-
-const PUNTOS_REMOLQUE = [
-  "Tanque de aire",
-  "Ejes de transmisión",
-  "Quinta rueda",
-  "Chasis",
-  "Puertas externa",
-  "Piso externo (trailer, contenedor, caja)",
-  "Paredes externa",
-  "Pared frontal externa",
-  "Techo externo",
-  "Unidad de refrigeración",
-  "Escape / Mofles",
-];
-
-const FILAS_CONTENEDOR = [
-  "Exterior / parte inferior del contenedor (bastidor o chasis)",
-  "Puertas interiores / exteriores",
-  "Pared interior lado derecho",
-  "Pared interior lado izquierdo",
-  "Pared interior frontal",
-  "Techo / cubierta superior",
-  "Piso (interior)",
-];
-
 type SiNoVal = "sí" | "no" | null;
 type EvidenciaImg = { file_url: string; file_name?: string };
 interface PuntoInsp { value: SiNoVal; comentario: string; fotos: EvidenciaImg[]; }
@@ -182,14 +144,7 @@ type InspTabDef =
   | { kind: "remolque"; unitIdx: number; label: string }
   | { kind: "contenedor"; unitIdx: number; label: string };
 
-function InspeccionEntradaModal({
-  recordId,
-  unidades,
-  inspeccionesDone,
-  tipoPrefix,
-  onClose,
-  onSaved,
-}: {
+interface InspeccionEntradaModalProps {
   recordId: string;
   unidades: UnidadItem[];
   inspeccionesDone: { tipo: string; unidad?: number; url?: string }[];
@@ -199,6 +154,69 @@ function InspeccionEntradaModal({
   tipoPrefix?: string;
   onClose: () => void;
   onSaved?: () => void;
+}
+
+function InspeccionEntradaModal(props: InspeccionEntradaModalProps) {
+  const { data: puntos, isLoading, error } = useInspeccionPuntosTransportista();
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-3 text-center">
+          <p className="text-xs text-gray-600">No se pudieron cargar los puntos de inspección.</p>
+          <button
+            type="button"
+            onClick={props.onClose}
+            className="h-9 px-4 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading || !puntos) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center gap-3">
+          <span className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-gray-500">Cargando puntos de inspección…</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <InspeccionEntradaModalContent
+      {...props}
+      puntosTractor={puntos.puntosTractor}
+      puntosRemolque={puntos.puntosRemolque}
+      filasContenedor={puntos.filasContenedor}
+      medidasLabelsRemolque={puntos.medidasLabelsRemolque}
+      medidasLabelsContenedor={puntos.medidasLabelsContenedor}
+    />
+  );
+}
+
+function InspeccionEntradaModalContent({
+  recordId,
+  unidades,
+  inspeccionesDone,
+  tipoPrefix,
+  onClose,
+  onSaved,
+  puntosTractor,
+  puntosRemolque,
+  filasContenedor,
+  medidasLabelsRemolque,
+  medidasLabelsContenedor,
+}: InspeccionEntradaModalProps & {
+  puntosTractor: string[];
+  puntosRemolque: string[];
+  filasContenedor: string[];
+  medidasLabelsRemolque: MedidasLabels;
+  medidasLabelsContenedor: MedidasLabels;
 }) {
   useBodyScrollLock(true);
   const withPrefix = (tipo: string) => tipoPrefix ? `${tipoPrefix}_${tipo}` : tipo;
@@ -257,13 +275,13 @@ function InspeccionEntradaModal({
   const emptyPunto = (): PuntoInsp => ({ value: null, comentario: "", fotos: [] });
   const emptyRemolqueSection = (): RemolqueInspSection => ({
     evidencia: [], altura: "", ancho: "", longitud: "",
-    puntos: PUNTOS_REMOLQUE.map(emptyPunto),
+    puntos: puntosRemolque.map(emptyPunto),
   });
   const emptyContenedorSection = (): ContenedorInspSection => ({
     evidencia: [], altura: "", ancho: "", longitud: "",
-    filas: FILAS_CONTENEDOR.map(() => ({ suciedad: null as FilaCelda, plagas: null as FilaCelda, fauna: null as FilaCelda })),
+    filas: filasContenedor.map(() => ({ suciedad: null as FilaCelda, plagas: null as FilaCelda, fauna: null as FilaCelda })),
   });
-  const [tractorPuntos, setTractorPuntos] = useState<PuntoInsp[]>(PUNTOS_TRACTOR.map(emptyPunto));
+  const [tractorPuntos, setTractorPuntos] = useState<PuntoInsp[]>(puntosTractor.map(emptyPunto));
   const [unitsData, setUnitsData] = useState<UnitInspData[]>(() =>
     unidades.map((u) => ({
       remolque: emptyRemolqueSection(),
@@ -367,7 +385,7 @@ function InspeccionEntradaModal({
     inspecciones.push({
       tipo: withPrefix("tractor"),
       evidencias: tractorEvidencia,
-      puntos: PUNTOS_TRACTOR.map((descripcion, i) => ({
+      puntos: puntosTractor.map((descripcion, i) => ({
         numero: i + 1,
         descripcion,
         resultado: tractorPuntos[i].value,
@@ -391,7 +409,7 @@ function InspeccionEntradaModal({
           ancho: d.remolque.ancho,
           longitud: d.remolque.longitud,
         },
-        puntos: PUNTOS_REMOLQUE.map((descripcion, pi) => ({
+        puntos: puntosRemolque.map((descripcion, pi) => ({
           numero: pi + 1,
           descripcion,
           resultado: d.remolque.puntos[pi].value,
@@ -412,7 +430,7 @@ function InspeccionEntradaModal({
             ancho: sec.ancho,
             longitud: sec.longitud,
           },
-          filas: FILAS_CONTENEDOR.map((punto, fi) => {
+          filas: filasContenedor.map((punto, fi) => {
             const f = sec.filas[fi];
             return {
               punto,
@@ -751,15 +769,15 @@ function InspeccionEntradaModal({
             {renderEvidence("Fotografías", "ev:tractor", tractorEvidencia, "Placa del vehículo · Tarjeta de circulación · Vista frontal · Vista lateral · Vista trasera")}
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
-                Inspección de {PUNTOS_TRACTOR.length} puntos
+                Inspección de {puntosTractor.length} puntos
                 <HelpCircle className="w-3.5 h-3.5 text-gray-300" />
               </span>
               <span className="text-[11px] font-bold text-orange-500 bg-orange-50 px-2.5 py-0.5 rounded-full">
-                {tractorEval} / {PUNTOS_TRACTOR.length} evaluados
+                {tractorEval} / {puntosTractor.length} evaluados
               </span>
             </div>
             <div>
-              {PUNTOS_TRACTOR.map((label, i) =>
+              {puntosTractor.map((label, i) =>
                 renderSiNoRow(
                   label, i, tractorPuntos[i],
                   (val) => setTractorPunto(i, val), (text) => setTractorComentario(i, text),
@@ -777,12 +795,13 @@ function InspeccionEntradaModal({
   const renderMeasures = (
     section: RemolqueInspSection | ContenedorInspSection,
     onMeasure: (field: "altura" | "ancho" | "longitud", val: string) => void,
+    labels: MedidasLabels,
   ) => (
     <div className="grid grid-cols-3 gap-3">
       {(["altura", "ancho", "longitud"] as const).map((field) => (
         <div key={field}>
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-            {field === "altura" ? "Altura Interior" : field === "ancho" ? "Ancho Interior" : "Longitud Interior"}
+            {labels[field]}
           </p>
           <input
             className="w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400"
@@ -812,13 +831,13 @@ function InspeccionEntradaModal({
                 <HelpCircle className="w-3.5 h-3.5 text-gray-300" />
               </span>
               <span className="text-[11px] font-bold text-orange-500 bg-orange-50 px-2.5 py-0.5 rounded-full">
-                {eval_} / {PUNTOS_REMOLQUE.length} evaluados
+                {eval_} / {puntosRemolque.length} evaluados
               </span>
             </div>
             {renderEvidence("EVIDENCIA DEL REMOLQUE · ENTRADA", `ev:remolque:${unitIdx}`, sec.evidencia)}
-            {renderMeasures(sec, (field, val) => setRemolqueMeasure(unitIdx, field, val))}
+            {renderMeasures(sec, (field, val) => setRemolqueMeasure(unitIdx, field, val), medidasLabelsRemolque)}
             <div>
-              {PUNTOS_REMOLQUE.map((label, i) =>
+              {puntosRemolque.map((label, i) =>
                 renderSiNoRow(
                   label, i, sec.puntos[i],
                   (val) => setUnitPunto(unitIdx, i, val), (text) => setUnitComentario(unitIdx, i, text),
@@ -849,11 +868,11 @@ function InspeccionEntradaModal({
             <HelpCircle className="w-3.5 h-3.5 text-gray-300" />
           </span>
           <span className="text-[11px] font-bold text-orange-500 bg-orange-50 px-2.5 py-0.5 rounded-full">
-            {eval_} / {FILAS_CONTENEDOR.length} evaluados
+            {eval_} / {filasContenedor.length} evaluados
           </span>
         </div>
         {renderEvidence("EVIDENCIA DEL CONTENEDOR · ENTRADA", `ev:contenedor:${unitIdx}`, sec.evidencia)}
-        {renderMeasures(sec, (field, val) => setContenedorMeasure(unitIdx, field, val))}
+        {renderMeasures(sec, (field, val) => setContenedorMeasure(unitIdx, field, val), medidasLabelsContenedor)}
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse">
             <thead>
@@ -875,7 +894,7 @@ function InspeccionEntradaModal({
                 const hasNo = fila.suciedad === "no" || fila.plagas === "no" || fila.fauna === "no";
                 return (
                   <tr key={fi} className={cn("border-t border-gray-50", hasNo && "bg-red-50/30", !hasNo && anyEval && "bg-green-50/30")}>
-                    <td className="py-2 pr-3 text-xs text-gray-700 leading-snug">{FILAS_CONTENEDOR[fi]}</td>
+                    <td className="py-2 pr-3 text-xs text-gray-700 leading-snug">{filasContenedor[fi]}</td>
                     <td className="py-2 px-1.5 text-center">
                       <button
                         type="button"
@@ -1076,7 +1095,7 @@ function InspeccionEntradaModal({
 // ─── Inspección de Sello ──────────────────────────────────────────────────────
 
 interface SelloVVTT { view: boolean; verify: boolean; tug: boolean; twist: boolean; }
-type SelloClasificacion = "I" | "S" | "H";
+type SelloClasificacion = string;
 interface SelloUnitData {
   noSelloRevisado: string;
   clasificacion: SelloClasificacion | null;
@@ -1085,20 +1104,26 @@ interface SelloUnitData {
   comentario: string;
 }
 
-const VVTT_PUNTOS: { key: keyof SelloVVTT; sigla: string; label: string; descripcion: string }[] = [
-  { key: "view",   sigla: "V", label: "View",   descripcion: "Verificar visualmente el sello" },
-  { key: "verify", sigla: "V", label: "Verify",  descripcion: "Confirmar que el número coincide con documentos y sistemas" },
-  { key: "tug",    sigla: "T", label: "Tug",     descripcion: "Jalar el sello para confirmar que está asegurado" },
-  { key: "twist",  sigla: "T", label: "Twist",   descripcion: "Girar para detectar manipulación" },
-];
+// Las 4 claves de VVTT y los 5 slots de evidencia son estructurales (así los
+// espera el backend en el payload) — solo su label/descripción es dinámico.
+const SELLO_VVTT_KEYS: (keyof SelloVVTT)[] = ["view", "verify", "tug", "twist"];
+const FALLBACK_VVTT_PUNTO: Record<keyof SelloVVTT, { sigla: string; label: string; descripcion: string }> = {
+  view:   { sigla: "V", label: "View",   descripcion: "Verificar visualmente el sello" },
+  verify: { sigla: "V", label: "Verify", descripcion: "Confirmar que el número coincide con documentos y sistemas" },
+  tug:    { sigla: "T", label: "Tug",    descripcion: "Jalar el sello para confirmar que está asegurado" },
+  twist:  { sigla: "T", label: "Twist",  descripcion: "Girar para detectar manipulación" },
+};
 
-const SELLO_CLASIFICACIONES: { value: SelloClasificacion; sigla: string; label: string }[] = [
-  { value: "I", sigla: "I", label: "Indicative" },
-  { value: "S", sigla: "S", label: "Security" },
-  { value: "H", sigla: "H", label: "High Security" },
-];
+function resolveVvttPuntos(dynamic: SelloVvttPunto[]): { key: keyof SelloVVTT; sigla: string; label: string; descripcion: string }[] {
+  return SELLO_VVTT_KEYS.map((key) => {
+    const found = dynamic.find((d) => d.key === key);
+    return found
+      ? { key, sigla: found.sigla, label: found.label, descripcion: found.descripcion }
+      : { key, ...FALLBACK_VVTT_PUNTO[key] };
+  });
+}
 
-const SELLO_EVIDENCIA_SLOTS: { key: string; label: string; icon: React.ElementType }[] = [
+const SELLO_EVIDENCIA_DEFAULTS: { key: string; label: string; icon: React.ElementType }[] = [
   { key: "foto_sello",              label: "Foto del sello",                 icon: Lock },
   { key: "sello_puertas",           label: "Sello colocado en las puertas",  icon: FileText },
   { key: "puertas_completas",       label: "Puertas completas del remolque", icon: FileText },
@@ -1106,15 +1131,11 @@ const SELLO_EVIDENCIA_SLOTS: { key: string; label: string; icon: React.ElementTy
   { key: "identificacion_operador", label: "Identificación del operador",    icon: IdCard },
 ];
 
-function InspeccionSelloModal({
-  recordId,
-  unidades,
-  inspeccionesDone,
-  documentosAdicionales,
-  onClose,
-  onSaved,
-  onViewRecord,
-}: {
+function resolveEvidenciaSlots(labels: Record<string, string>): { key: string; label: string; icon: React.ElementType }[] {
+  return SELLO_EVIDENCIA_DEFAULTS.map((s) => ({ ...s, label: labels[s.key] ?? s.label }));
+}
+
+interface InspeccionSelloModalProps {
   recordId: string;
   unidades: UnidadItem[];
   inspeccionesDone: { tipo: string; unidad?: number; url?: string }[];
@@ -1122,6 +1143,64 @@ function InspeccionSelloModal({
   onClose: () => void;
   onSaved?: () => void;
   onViewRecord?: (url: string, tipo: string) => void;
+}
+
+function InspeccionSelloModal(props: InspeccionSelloModalProps) {
+  const { data: puntos, isLoading, error } = useInspeccionPuntosTransportista();
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-3 text-center">
+          <p className="text-xs text-gray-600">No se pudieron cargar los datos de la inspección de sello.</p>
+          <button
+            type="button"
+            onClick={props.onClose}
+            className="h-9 px-4 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading || !puntos) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center gap-3">
+          <span className="w-6 h-6 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-gray-500">Cargando datos de inspección…</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <InspeccionSelloModalContent
+      {...props}
+      selloClasificaciones={puntos.selloClasificaciones}
+      selloVvttPuntos={resolveVvttPuntos(puntos.selloVvttPuntos)}
+      selloEvidenciaSlots={resolveEvidenciaSlots(puntos.selloEvidenciaLabels)}
+    />
+  );
+}
+
+function InspeccionSelloModalContent({
+  recordId,
+  unidades,
+  inspeccionesDone,
+  documentosAdicionales,
+  onClose,
+  onSaved,
+  onViewRecord,
+  selloClasificaciones,
+  selloVvttPuntos,
+  selloEvidenciaSlots,
+}: InspeccionSelloModalProps & {
+  selloClasificaciones: SelloClasificacionOption[];
+  selloVvttPuntos: { key: keyof SelloVVTT; sigla: string; label: string; descripcion: string }[];
+  selloEvidenciaSlots: { key: string; label: string; icon: React.ElementType }[];
 }) {
   useBodyScrollLock(true);
   const getDone = (unidad: number) => inspeccionesDone.find((i) => i.tipo === `sello_${unidad}`);
@@ -1134,7 +1213,7 @@ function InspeccionSelloModal({
     noSelloRevisado: "",
     clasificacion: null,
     vvtt: { view: false, verify: false, tug: false, twist: false },
-    evidencias: Object.fromEntries(SELLO_EVIDENCIA_SLOTS.map((s) => {
+    evidencias: Object.fromEntries(selloEvidenciaSlots.map((s) => {
       if (s.key === "placas_economico" && fotoPlaca)
         return [s.key, { file_url: fotoPlaca.file_url, file_name: fotoPlaca.file_name }];
       if (s.key === "identificacion_operador" && fotoIdentificacion)
@@ -1212,8 +1291,8 @@ function InspeccionSelloModal({
         no_sello_sistema: noSello,
         no_sello_revisado: d.noSelloRevisado,
         clasificacion_iso: d.clasificacion,
-        vvtt: VVTT_PUNTOS.map((v) => ({ punto: v.label, verificado: d.vvtt[v.key] })),
-        evidencias: SELLO_EVIDENCIA_SLOTS
+        vvtt: selloVvttPuntos.map((v) => ({ punto: v.label, verificado: d.vvtt[v.key] })),
+        evidencias: selloEvidenciaSlots
           .filter((s) => d.evidencias[s.key])
           .map((s) => ({ slot: s.key, ...(d.evidencias[s.key] as EvidenciaImg) })),
         comentario: d.comentario,
@@ -1238,7 +1317,7 @@ function InspeccionSelloModal({
   const u = unidades[activeTab];
   if (!d || !u) return null;
   const { noCaja, noSello } = refUnidad(u);
-  const vvttCompletos = VVTT_PUNTOS.filter((v) => d.vvtt[v.key]).length;
+  const vvttCompletos = selloVvttPuntos.filter((v) => d.vvtt[v.key]).length;
   const todasUnidadesDone = unidades.every((_, i) => isDone(i + 1));
 
   return (
@@ -1331,7 +1410,7 @@ function InspeccionSelloModal({
               <div>
                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Tipo de sello (clasificación ISO 17712)</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {SELLO_CLASIFICACIONES.map((c) => (
+                  {selloClasificaciones.map((c) => (
                     <button key={c.value} type="button"
                       onClick={() => updateUnit(activeTab, { clasificacion: d.clasificacion === c.value ? null : c.value })}
                       className={cn(
@@ -1357,7 +1436,7 @@ function InspeccionSelloModal({
                   <span className="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">{vvttCompletos} / 4</span>
                 </div>
                 <div className="space-y-1.5">
-                  {VVTT_PUNTOS.map((v) => {
+                  {selloVvttPuntos.map((v) => {
                     const checked = d.vvtt[v.key];
                     return (
                       <button key={v.key} type="button" onClick={() => toggleVVTT(activeTab, v.key)}
@@ -1389,7 +1468,7 @@ function InspeccionSelloModal({
               <div>
                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Evidencia fotográfica</p>
                 <div className="grid grid-cols-2 gap-2.5">
-                  {SELLO_EVIDENCIA_SLOTS.map((slot, si) => {
+                  {selloEvidenciaSlots.map((slot, si) => {
                     const foto = d.evidencias[slot.key];
                     const slotId = `${activeTab}:${slot.key}`;
                     const loading = uploadingSlots.has(slotId);
@@ -1860,6 +1939,9 @@ export default function DetalleTransportistaPage() {
   const router = useRouter();
   const { data, isLoading, error, refetch } = useGetVisitTransportista(id);
   const queryClient = useQueryClient();
+  // Precarga los puntos de inspección desde que se abre el detalle, en paralelo
+  // con el registro, para que el modal de inspección abra sin spinner propio.
+  useInspeccionPuntosTransportista();
 
   // La galería de fotos solo aplica una vez terminado el acceso.
   const registrosFotografias = useMemo(
