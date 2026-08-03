@@ -77,11 +77,13 @@ const ArticulosContent = () => {
     statusPerdidos, true, datePrimera,dateSegunda, dateFilter,
   );
 
+  const searchConcesionados = searchQuery[0] ?? "";
+
   const { listArticulosCon: articulosConData, isLoadingListArticulosCon } = useArticulosConcesionados(
     ubicacionSeleccionada,
     areaSeleccionada === "todas" ? "" : areaSeleccionada,
     statusConcesionados, true,datePrimera,dateSegunda, dateFilter,
-    limitCon, skipCon, selectedLocations,
+    limitCon, skipCon, selectedLocations, searchConcesionados,
   );
   const {
     records: listArticulosCon = [],
@@ -179,6 +181,9 @@ const ArticulosContent = () => {
   }, [statusParam, selectedTab]);
 
   useEffect(() => { setTotalRegistros(0); }, [selectedTab]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setSkipCon(0); }, [searchConcesionados]);
 
   const handleOpenChange = (value: React.SetStateAction<boolean>) => {
     const open = typeof value === "function" ? value(isSuccess) : value;
