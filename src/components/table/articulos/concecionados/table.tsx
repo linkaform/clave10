@@ -47,7 +47,6 @@ const ArticulosConTable: React.FC<ListProps> = ({
   isLoadingListArticulosCon,
   viewMode,
   setSelectedArticulos,
-  searchTags: searchTagsProp,
   filtersConfig: filtersConfigProp,
   externalFilters: externalFiltersProp,
   onExternalFiltersChange: onExternalFiltersChangeProp,
@@ -65,21 +64,13 @@ const ArticulosConTable: React.FC<ListProps> = ({
   );
   const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
   const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
-  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   const memoizedData = useMemo(() => data || [], [data]);
 
+  // El search ya se resuelve en el backend (getListArticulosCon); aquí solo aplican los filtros del sidebar.
   const filteredData = useMemo(() => {
     return applyArticulosConcesionadosFilters(memoizedData, externalFilters ?? { dynamic: {} });
   }, [memoizedData, externalFilters]);
-
-  React.useEffect(() => {
-    if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join("|"));
-    } else {
-      setGlobalFilter("");
-    }
-  }, [searchTags]);
 
   useEffect(() => {
     setTotalRegistros?.(filteredData.length);
@@ -208,7 +199,6 @@ const ArticulosConTable: React.FC<ListProps> = ({
             <PhotoGridView
               isLoading={isLoadingListArticulosCon}
               records={concesionadoPhotoRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalType="art_concesionado"
@@ -227,7 +217,6 @@ const ArticulosConTable: React.FC<ListProps> = ({
             <PhotoListView
               isLoading={isLoadingListArticulosCon}
               records={concesionadoListRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalType="art_concesionado"
