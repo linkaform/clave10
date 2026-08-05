@@ -268,6 +268,21 @@ export const getInspeccionRecord = (record_id: string, tipo: string) =>
     tipo,
   });
 
+export const sendAvisoCorreoTransportista = (record_id: string, email_to: string[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "send_aviso_correo_transportista",
+    record_id,
+    email_to,
+  });
+
+export const getFormFieldsTransportista = (form_ids: string[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_form_fields",
+    form_ids,
+  });
+
 export const getFotografiasTransportista = (
   registros: { record_id: string; tipo_de_registro: string }[],
 ) =>
