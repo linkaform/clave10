@@ -6,16 +6,10 @@ import { getFormFieldsTransportista } from "@/services/endpoints";
 // TODO: estos form_id son de la cuenta 10 (hardcodeados temporalmente).
 // Si se corre en otra cuenta de Clave10, hay que resolverlos por cuenta.
 const TRACTOR_FORM_ID = "157729";
-const REMOLQUE_FORM_ID = "157740";
 const CONTENEDOR_FORM_ID = "157730";
 const SELLO_FORM_ID = "158808";
 
 // field_id de los 3 campos de medida interior — estables aunque se renombre el label.
-const REMOLQUE_MEDIDA_FIELD_IDS = {
-  altura: "6703c4acd45242ffb0eb0839",
-  ancho: "7bfa6fe868c1cbec93a051e5",
-  longitud: "2624dc82316e99315084d385",
-};
 const CONTENEDOR_MEDIDA_FIELD_IDS = {
   altura: "d412fb9f428dfc231c9bc3f0",
   ancho: "6477c73222d9b7e8dd1de3b9",
@@ -71,9 +65,7 @@ export interface SelloVvttPunto {
 
 interface InspeccionPuntos {
   puntosTractor: string[];
-  puntosRemolque: string[];
   filasContenedor: string[];
-  medidasLabelsRemolque: MedidasLabels;
   medidasLabelsContenedor: MedidasLabels;
   selloClasificaciones: SelloClasificacionOption[];
   selloVvttPuntos: SelloVvttPunto[];
@@ -184,7 +176,6 @@ export function useInspeccionPuntosTransportista() {
     queryFn: async () => {
       const res = await getFormFieldsTransportista([
         TRACTOR_FORM_ID,
-        REMOLQUE_FORM_ID,
         CONTENEDOR_FORM_ID,
         SELLO_FORM_ID,
       ]);
@@ -197,13 +188,7 @@ export function useInspeccionPuntosTransportista() {
 
       return {
         puntosTractor: extractPuntos(fieldsOf(TRACTOR_FORM_ID)),
-        puntosRemolque: extractPuntos(fieldsOf(REMOLQUE_FORM_ID)),
         filasContenedor: extractFilas(fieldsOf(CONTENEDOR_FORM_ID)),
-        medidasLabelsRemolque: extractMedidasLabels(
-          fieldsOf(REMOLQUE_FORM_ID),
-          REMOLQUE_MEDIDA_FIELD_IDS,
-          FALLBACK_MEDIDAS_LABELS,
-        ),
         medidasLabelsContenedor: extractMedidasLabels(
           fieldsOf(CONTENEDOR_FORM_ID),
           CONTENEDOR_MEDIDA_FIELD_IDS,
