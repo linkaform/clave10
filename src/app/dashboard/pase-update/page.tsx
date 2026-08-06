@@ -16,7 +16,7 @@ import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
 import LoadImage, { Imagen } from "@/components/upload-Image";
-import { Car, Check, Clock, Laptop, Loader2, Share2, X, ArrowLeft, Construction } from "lucide-react";
+import { Car, Check, Laptop, Loader2, X, ArrowLeft } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import Image from "next/image";
@@ -41,6 +41,8 @@ import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { MapPin, CalendarDays, User, Users, QrCode, Download } from "lucide-react";
+import type { Dispatch, SetStateAction } from "react";
+import FirmaReglasAcceso, { FirmaValue } from "@/components/reglas-de-acceso";
 const grupoEquipos = z
   .array(
     z.object({
@@ -103,9 +105,6 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
       acepto_aviso_privacidad: z.boolean().refine((val) => val === true, {
         message: "Debes aceptar el aviso de privacidad",
       }),
-      acepto_reglas_acceso: z.boolean().refine((val) => val === true, {
-        message: "Debes aceptar las reglas de acceso",
-      }),
     })
     .superRefine((data, ctx) => {
       if (
@@ -160,7 +159,7 @@ const PaseUpdate = () => {
   const [ocrIdenResult, setOcrIdenResult] = useState<any>(null);
   const { grupoRequisitos } = useMenuStore();
   const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
-  const [copiedPadre, setCopiedPadre] = useState(false);
+  // const [copiedPadre, setCopiedPadre] = useState(false);
 
   // Estos tres solo se editan cuando el pase está "en proceso" Y es un pase
   // vinculado (pertenece a un pase padre, o sea trae link_padre). En cualquier
@@ -176,22 +175,6 @@ const PaseUpdate = () => {
       setTelefonoPaseEdit(dataCatalogos.pass_selected.telefono || "");
     }
   }, [dataCatalogos]);
-
-  const handleCopyPadre = async () => {
-    const url = dataCatalogos?.pass_selected?.link_padre;
-    if (!url) {
-      toast.error("No hay link de pase con acompañantes disponible");
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopiedPadre(true);
-      toast.success("Link copiado");
-      setTimeout(() => setCopiedPadre(false), 1500);
-    } catch {
-      toast.error("No se pudo copiar el link");
-    }
-  };
 
   useEffect(() => {
     if (!dataCatalogos?.pass_selected?.ubicacion?.length || !grupoRequisitos?.length) return;
@@ -210,11 +193,29 @@ const PaseUpdate = () => {
     }
   }, [dataCatalogos, grupoRequisitos]);
 
+  // El OCR puede llegar con distinta profundidad de anidación según el
+  // endpoint: a veces el objeto real vive en response.data.data (persona),
+  // otras veces directo en response.data como array (identificación).
+  // Probamos varias rutas candidatas y nos quedamos con la primera que
+  // exista; si resulta ser un array, tomamos su primer elemento.
+  const unwrapOcrResult = (result: any) => {
+    const candidates = [
+      result?.response?.data?.data,
+      result?.response?.data,
+      result?.data?.data,
+      result?.data,
+      result,
+    ];
+    const found = candidates.find((c) => c !== undefined && c !== null);
+    if (!found) return null;
+    return Array.isArray(found) ? (found[0] ?? null) : found;
+  };
+
   const handleOcrFotografia = (result: any) => {
-    setOcrFotoResult(result ?? null);
+    setOcrFotoResult(unwrapOcrResult(result));
   };
   const handleOcrIdentificacion = (result: any) => {
-    setOcrIdenResult(result ?? null);
+    setOcrIdenResult(unwrapOcrResult(result));
   };
 
   const [errorFotografia, setErrorFotografia] = useState("");
@@ -227,8 +228,59 @@ const PaseUpdate = () => {
   const [vehicles, setVehiculos] = useState<Vehiculo[]>([]);
 
   const [mostrarAviso, setMostrarAviso] = useState(false);
-  const [mostrarReglasAcceso, setMostrarReglasAcceso] = useState(false);
   const [radioSelected, setRadioSelected] = useState("3 meses");
+
+  // --- NUEVO: paso intermedio de "Reglas de acceso + Firma" ---
+  // Cuando el pase trae documento y/o video de condiciones de servicio, al
+  // dar "Siguiente" en el primer paso ya no se abre el modal de confirmación
+  // directo: primero se muestra esta pantalla (contenido de reglas + firma
+  // obligatoria) y hasta que se firme se puede continuar al modal.
+  const [mostrarFirmaReglas, setMostrarFirmaReglas] = useState(false);
+  const [pendingFormattedData, setPendingFormattedData] = useState<any>(null);
+  const [firmaReglasAcceso, setFirmaReglasAcceso] = useState<FirmaValue>({
+    file_url: "",
+    file_name: "",
+  });
+
+  // --- Navegación tipo "ancla": abrir Aviso de Privacidad empuja una entrada
+  // al historial del navegador. Así, si el usuario presiona "atrás", en vez
+  // de salir de la página, se dispara `popstate` y solo cerramos el overlay
+  // actual (regresando a la vista del pase).
+  useEffect(() => {
+    const handlePopState = () => {
+      setMostrarAviso(false);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const openAviso = () => {
+    window.history.pushState({ modal: "aviso-privacidad" }, "");
+    setMostrarAviso(true);
+  };
+
+  const closeAviso = () => {
+    // Quitamos la entrada del historial que empujamos al abrir, para que
+    // "atrás"/"adelante" se mantengan consistentes sin importar si el
+    // usuario cerró con el botón de "atrás" del navegador o con la UI.
+    window.history.back();
+  };
+
+  // AvisoPrivacidad recibe `setMostrarAviso` como si fuera un
+  // Dispatch<SetStateAction<boolean>> normal. Este wrapper intercepta esas
+  // llamadas (tanto setMostrarAviso(true) como setMostrarAviso(false)) y las
+  // redirige a openAviso/closeAviso, sin tener que tocar el componente
+  // AvisoPrivacidad por dentro.
+  const setMostrarAvisoConHistory: Dispatch<SetStateAction<boolean>> = (value) => {
+    const next = typeof value === "function"
+      ? (value as (prev: boolean) => boolean)(mostrarAviso)
+      : value;
+    if (next) {
+      openAviso();
+    } else {
+      closeAviso();
+    }
+  };
 
   const formSchema = useMemo(
     () => createSchema(requireFoto, requireIden),
@@ -236,6 +288,65 @@ const PaseUpdate = () => {
   );
 
   const vehiculoHabilitado = isVehiculoHabilitado(dataCatalogos?.pass_selected?.habilitar_vehiculo);
+
+  // "Reglas de acceso" tiene dos fuentes independientes que regresa el
+  // backend: el PDF (documento_de_condiciones_de_servicio, llega como array
+  // [{file_name, file_url}]) y un video (url_de_condiciones_de_servicio,
+  // que es un link de YouTube, no un archivo de video directo).
+  const reglasAccesoPdfUrl =
+    dataCatalogos?.documento_de_condiciones_de_servicio?.[0]?.file_url || "";
+  // El texto de "descripción" (condiciones de servicio) a veces llega como
+  // una plantilla genérica con placeholders sin llenar en el CMS, como
+  // "[FECHA]". Lo reemplazamos aquí por la fecha de hoy en vez de requerir
+  // que alguien edite el texto manualmente cada día.
+  const hoyFormateado = new Date().toLocaleDateString("es-MX", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const reglasAccesoDescripcion = (
+    dataCatalogos?.desc_condiciones_servicio || ""
+  ).replace(/\[FECHA\]/gi, hoyFormateado);
+
+  // Los navegadores no pueden mostrar .doc/.docx/.ppt/.xls directo en un
+  // <iframe> (solo PDFs). Para esos casos, envolvemos la URL con el visor
+  // de Google Docs, que sí sabe renderizarlos (requiere que el archivo sea
+  // accesible públicamente por URL, como es el caso de Backblaze aquí).
+  const getDocumentViewerUrl = (url: string): string => {
+    if (!url) return url;
+    const isPdf = url.toLowerCase().split("?")[0].endsWith(".pdf");
+    if (isPdf) return url;
+    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+  };
+
+  const reglasAccesoPdfViewerUrl = getDocumentViewerUrl(reglasAccesoPdfUrl);
+  const reglasAccesoVideoUrlRaw = dataCatalogos?.url_de_condiciones_de_servicio || "";
+
+  // Convierte un link de YouTube (watch?v=... o youtu.be/...) a su URL de
+  // embed, para poder mostrarlo en un <iframe>. Si no es de YouTube (o no
+  // se puede parsear), regresa la URL tal cual por si ya es un embed válido.
+  const getYoutubeEmbedUrl = (url: string): string => {
+    try {
+      const u = new URL(url);
+      let videoId = "";
+      if (u.hostname.includes("youtu.be")) {
+        videoId = u.pathname.slice(1);
+      } else if (u.hostname.includes("youtube.com")) {
+        videoId = u.searchParams.get("v") || "";
+      }
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+    } catch {
+      return url;
+    }
+  };
+
+  const reglasAccesoVideoUrl = reglasAccesoVideoUrlRaw
+    ? getYoutubeEmbedUrl(reglasAccesoVideoUrlRaw)
+    : "";
+
+  // Si el pase no trae ni documento ni video, no hay nada que "leer y
+  // firmar" — el flujo se salta el paso intermedio directo al modal.
+  const tieneReglasDeAcceso = Boolean(reglasAccesoPdfUrl || reglasAccesoVideoUrl);
 
   useEffect(() => {
     if (dataCatalogos) {
@@ -259,7 +370,6 @@ const PaseUpdate = () => {
       email: "",
       telefono: "",
       acepto_aviso_privacidad: false,
-      acepto_reglas_acceso: false,
       acompanantes:[]
     },
   });
@@ -298,7 +408,6 @@ const PaseUpdate = () => {
       return;
     }
     try {
-      // setLoadingImgAcompananteId(m.id);
       toast.loading("Obteniendo pase del acompañante...", {
         style: { background: "#fff", color: "#000", border: "1px solid #e5e7eb" },
       });
@@ -460,6 +569,11 @@ const PaseUpdate = () => {
     return undefined;
   };
 
+  // Se ejecuta al dar "Siguiente" en el primer paso. Arma el payload igual
+  // que antes; la diferencia es que, si el pase tiene reglas de acceso
+  // (documento y/o video), en vez de abrir el modal de confirmación directo
+  // se guarda el payload en `pendingFormattedData` y se muestra el paso de
+  // firma. El modal solo se abre una vez que esa firma se complete.
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     const formattedData = {
       grupo_vehiculos: vehicles,
@@ -477,7 +591,6 @@ const PaseUpdate = () => {
       telefono: telefonoPaseEdit || dataCatalogos?.pass_selected?.telefono || "",
       telefono_pase: telefonoPaseEdit || dataCatalogos?.pass_selected?.telefono || "",
       acepto_aviso_privacidad: data.acepto_aviso_privacidad,
-      acepto_reglas_acceso: data.acepto_reglas_acceso,
       conservar_datos_por: radioSelected,
       acompanantes:dataCatalogos?.pass_selected?.acompanantes,
       acompanantes_grupo: miembrosAcompanantes.map((m) => ({
@@ -491,7 +604,28 @@ const PaseUpdate = () => {
       })),
     };
 
+    if (tieneReglasDeAcceso) {
+      setPendingFormattedData(formattedData);
+      setFirmaReglasAcceso({ file_url: "", file_name: "" });
+      setMostrarFirmaReglas(true);
+      return;
+    }
+
     setModalData(formattedData);
+    setIsSuccess(true);
+  };
+
+  // Se ejecuta al dar "Siguiente" en el nuevo paso de Reglas de acceso +
+  // Firma, una vez que la firma ya está lista. Toma el payload que se dejó
+  // pendiente en el primer paso, le agrega firma_reglas_de_acceso, y recién
+  // ahí abre el modal de confirmación.
+  const handleContinuarConFirma = () => {
+    if (!firmaReglasAcceso.file_url) return;
+    setModalData({
+      ...pendingFormattedData,
+      firma_reglas_de_acceso: firmaReglasAcceso,
+    });
+    setMostrarFirmaReglas(false);
     setIsSuccess(true);
   };
 
@@ -649,49 +783,100 @@ const PaseUpdate = () => {
   if (mostrarAviso) {
     return (
       <AvisoPrivacidad
-        setMostrarAviso={setMostrarAviso}
+        setMostrarAviso={setMostrarAvisoConHistory}
         radioSelected={radioSelected}
         setRadioSelected={setRadioSelected}
       />
     );
   }
 
-  if (mostrarReglasAcceso) {
+  // --- NUEVO: paso intermedio de Reglas de acceso + Firma obligatoria ---
+  // Se muestra al dar "Siguiente" en el primer paso, solo si el pase trae
+  // documento y/o video de condiciones de servicio. El botón "Siguiente" de
+  // aquí queda deshabilitado hasta que exista una firma válida.
+  if (mostrarFirmaReglas) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-6">
-        <button
-          type="button"
-          onClick={() => setMostrarReglasAcceso(false)}
-          className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 mb-4 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Volver
-        </button>
-        <h1 className="font-bold text-2xl text-slate-800 mb-4">Reglas de acceso</h1>
-        <div className="w-full h-[75vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex items-center justify-center">
-          {/* TODO: reemplazar por la URL real del PDF de reglas de acceso */}
-          {/* <iframe
-            src="asfda"
-            className="w-full h-full"
-            title="Reglas de acceso"
-          /> */}
-          <div className="flex flex-col items-center gap-3 text-center px-6">
-            <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center">
-              <Construction className="w-7 h-7 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-slate-700 font-semibold text-sm">En construcción</p>
-              <p className="text-slate-400 text-xs mt-1">
-                Estamos preparando este contenido, vuelve a intentarlo más tarde.
+      <div className="flex flex-col min-h-screen bg-gray-50 items-center">
+        {/* Contenido con scroll propio, dejando espacio fijo abajo para el botón */}
+        <div className="w-full flex-1 overflow-y-auto px-4 py-6 pb-28 flex justify-center">
+          <div className="w-full max-w-3xl text-left mx-auto">
+            <button
+              type="button"
+              onClick={() => setMostrarFirmaReglas(false)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 mb-4 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Volver
+            </button>
+
+            <div className="mb-2 text-left">
+              <h1 className="font-bold text-2xl text-slate-800 text-center">Reglas de acceso</h1>
+              <p className="text-sm text-slate-500 mt-1 text-left">
+                Debes leer y firmar el documento para poder continuar.
               </p>
             </div>
+
+            {reglasAccesoDescripcion && (
+              <p className="text-sm text-slate-600 mt-4 mb-4 whitespace-pre-line text-left">
+                {reglasAccesoDescripcion}
+              </p>
+            )}
+
+            <div className="flex flex-col gap-6 mt-6 mb-6">
+              {reglasAccesoPdfUrl && (
+                <div>
+                  <p className="text-sm font-semibold text-slate-600 mb-2 text-left">Documento</p>
+                  <div className="w-full h-[60vh] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
+                    <iframe
+                      src={reglasAccesoPdfViewerUrl}
+                      className="w-full h-full"
+                      title="Documento de reglas de acceso"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {reglasAccesoVideoUrl && (
+                <div>
+                  <p className="text-sm font-semibold text-slate-600 mb-2 text-left">Video</p>
+                  <div className="w-full aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-black shadow-sm">
+                    <iframe
+                      src={reglasAccesoVideoUrl}
+                      className="w-full h-full"
+                      title="Video de reglas de acceso"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+              <FirmaReglasAcceso onFirmaChange={setFirmaReglasAcceso} />
+            </div>
+          </div>
+        </div>
+
+        {/* Botón fijo abajo, con su propio fondo y margen respecto al borde */}
+        <div className="w-full sticky bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-4 pb-6 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex justify-center">
+          <div className="w-full max-w-3xl flex justify-center mx-auto">
+            <Button
+              className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-1/2 disabled:opacity-40 disabled:cursor-not-allowed"
+              variant="secondary"
+              type="button"
+              disabled={!firmaReglasAcceso.file_url}
+              onClick={handleContinuarConFirma}
+          >
+            Siguiente
+          </Button>
           </div>
         </div>
       </div>
     );
   }
 
-const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
+const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos?.pass_selected?.link_padre) && (() => {
   const activo = dataCatalogos.pass_selected.estatus_pase_padre?.toLowerCase() === "activo";
 
   return (
@@ -719,34 +904,7 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
               {dataCatalogos.pass_selected.estatus_pase_padre || "—"}
             </span>
           </div>
-          {activo ? (
-            <p className="text-green-700 text-xs font-medium">
-              El pase padre ya está activo. Comparte el link para que lo puedan ver.
-            </p>
-          ) : (
-            <p className="text-blue-700 text-xs font-medium">
-              El pase padre aún está en proceso — el link estará disponible cuando se active.
-            </p>
-          )}
         </div>
-        <button
-          type="button"
-          title={activo ? "Compartir link" : "Pase en proceso"}
-          className={`shrink-0 flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold shadow-sm transition-all ${
-            activo
-              ? "bg-green-600 hover:bg-green-700 text-white hover:scale-105 active:scale-95 cursor-pointer"
-              : "bg-blue-200 text-blue-500 cursor-not-allowed"
-          }`}
-          onClick={activo ? handleCopyPadre : undefined}
-          disabled={!activo}
-        >
-          {activo ? (
-            copiedPadre ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />
-          ) : (
-            <Clock className="w-4 h-4" />
-          )}
-          <span>Compartir link</span>
-        </button>
       </div>
     </div>
   );
@@ -935,15 +1093,8 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                         ocrIdenResult ? (() => {
                         const iden = Array.isArray(ocrIdenResult) ? ocrIdenResult[0] : ocrIdenResult;
 
-                        const nombrePase = dataCatalogos?.pass_selected?.nombre?.toLowerCase().trim() ?? "";
-                        const nombreId = (iden.nombre_completo ?? iden.nombre ?? "").toLowerCase().trim();
-                        const coinciden = nombrePase && nombreId && (
-                          nombreId.includes(nombrePase) ||
-                          nombrePase.includes(nombreId) ||
-                          nombrePase.split(" ").some((p: string) => nombreId.includes(p))
-                        );
-                        const esId = iden.tipo_documento &&
-                          ["ine", "licencia"].includes(iden.tipo_documento.toLowerCase().trim());
+                        const tipoDocumento = iden.tipo_documento?.trim();
+                        const esId = Boolean(tipoDocumento);
                           return (
                             <div className="flex flex-col gap-1">
                              <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
@@ -951,25 +1102,12 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                               }`}>
                                 {esId ? (
                                   <><span className="text-green-500 text-base">✓</span>
-                                  <span>Identificación detectada — <strong>{ocrIdenResult.tipo_documento ?? "ID"}</strong></span></>
+                                  <span>Identificación detectada — <strong>{tipoDocumento}</strong></span></>
                                 ) : (
                                   <><span className="text-amber-500 text-base">⚠</span>
                                   <span>No pudimos confirmar el tipo de documento — puedes continuar, pero revisa que la imagen sea legible</span></>
                                 )}
                               </div>
-                              {ocrIdenResult.nombre && (
-                                <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-xs ${
-                                  coinciden ? "bg-green-50 border-green-200 text-green-700" : "bg-amber-50 border-amber-200 text-amber-700"
-                                }`}>
-                                  {coinciden ? (
-                                    <><span className="text-green-500 text-base">✓</span>
-                                    <span>Los nombres coinciden — <strong>{ocrIdenResult.nombre}</strong></span></>
-                                  ) : (
-                                    <><span className="text-amber-500 text-base">⚠</span>
-                                    <span>Nombre en ID: <strong>{ocrIdenResult.nombre}</strong> — verifica que coincida</span></>
-                                  )}
-                                </div>
-                              )}
                             </div>
                           );
                         })() : null
@@ -1275,44 +1413,9 @@ const pasePadreBadge = dataCatalogos?.pass_selected?.link_padre && (() => {
                           He leído y acepto el{" "}
                           <button
                             type="button"
-                            onClick={() => setMostrarAviso(true)}
+                            onClick={openAviso}
                             className="text-blue-600 underline hover:text-blue-800">
                             aviso de privacidad
-                          </button>
-                        </Label>
-                      </div>
-                    </FormControl>
-                    {fieldState.error && form.formState.isSubmitted && (
-                      <span className="text-red-500 text-xs mt-1 block">
-                        {fieldState.error.message}
-                      </span>
-                    )}
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="acepto_reglas_acceso"
-                render={({ field , fieldState}) => (
-                  <FormItem>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          id="reglas-acceso"
-                        />
-                        <Label
-                          htmlFor="reglas-acceso"
-                          className="text-sm text-slate-500">
-                          <span className="text-red-500 mr-1">*</span>
-                          Estoy de acuerdo con las{" "}
-                          <button
-                            type="button"
-                            onClick={() => setMostrarReglasAcceso(true)}
-                            className="text-blue-600 underline hover:text-blue-800">
-                            reglas de acceso
                           </button>
                         </Label>
                       </div>

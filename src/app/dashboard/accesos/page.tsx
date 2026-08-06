@@ -7,18 +7,18 @@ import { Button } from "@/components/ui/button";
 import { ActivePassesModal } from "@/components/modals/active-passes-modal";
 import {
   CarFront,
-  Clock,
   DoorOpen,
   Eraser,
   FileSymlink,
   LogIn,
+  Menu,
   PackageOpen,
   List,
-  QrCode,
-  Truck,
+  Plus,
+  Scan,
   RotateCcw,
   Search,
-  UserPlus,
+  Sun,
   UsersRound,
   Webcam,
   Wrench,
@@ -59,35 +59,20 @@ import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { useScanPreference } from "@/hooks/scan";
-import { NuevoAccesoTransportistaModal } from "@/components/modals/nuevo-acceso-transportista-modal";
 
 const AccesosPage = () => {
   const { isAuth, userParentId } = useAuthStore();
   const { area, location } = useBoothStore();
-  const { excludes } = useMenuStore();
-  const {
-    shift,
-    isLoading: loadingShift,
-    turno,
-    downloadPass,
-  } = useGetShift(area, location);
-  const { setTab, setFilter, setOption } = useShiftStore();
-  const {
-    passCode,
-    setPassCode,
-    clearPassCode,
-    selectedEquipos,
-    setSelectedEquipos,
-    setSelectedVehiculos,
-    selectedVehiculos,
-    setTipoMovimiento,
-    tipoMovimiento,
-  } = useAccessStore();
-  const {
-    isLoading,
-    loading: loadingSearchPass,
-    searchPass,
-  } = useSearchPass(false);
+  const { excludes }= useMenuStore()
+  const { shift, isLoading:loadingShift, turno, downloadPass} = useGetShift(area,location);
+  const {setTab, setFilter, setOption} = useShiftStore();
+  const { passCode, setPassCode, clearPassCode, selectedEquipos, setSelectedEquipos, setSelectedVehiculos, selectedVehiculos, setTipoMovimiento, tipoMovimiento} = useAccessStore();
+  // Ids de los pases de acompañantes seleccionados en el carrusel/modal
+  // (MembersCarousel, dentro de Credentials). Vive aquí como estado local,
+  // al mismo nivel donde se arma la petición de doAccess — no en un store
+  // global — y se pasa hacia abajo por props.
+  const [selectedPasses, setSelectedPasses] = useState<string[]>([]);
+  const { isLoading, loading:loadingSearchPass, searchPass } = useSearchPass(false);
   const [inputValue, setInputValue] = useState("");
   const [openActivePases, setOpenActivePases] = useState(false);
   const queryClient = useQueryClient();
@@ -105,7 +90,6 @@ const AccesosPage = () => {
   const [id, setId] = useState("");
   const [loading, setLoading] = useState(false);
   const { preference, setPreference, reset } = useScanPreference();
-  const [openTransportista, setOpenTransportista] = useState(false);
   const { refetch } = useGetPdf(userParentId, id ?? "", false);
 
   useEffect(() => {
@@ -257,6 +241,9 @@ const AccesosPage = () => {
         equipo: selectedEquipos,
         comentario_acceso: [],
         comentario_pase: allComments,
+        // Ids de los pases de acompañantes seleccionados para dar ingreso
+        // junto con el titular (vienen de MembersCarousel, via prop local).
+        selected_pases: selectedPasses,
       });
 
       if (!data.success) {
@@ -391,298 +378,261 @@ const AccesosPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        {/* Título */}
-        <h1 className="text-2xl font-bold text-gray-800">Control de Accesos</h1>
+    <div >
+		<div className="flex flex-col w-full ">
+			<div className="p-6 space-y-6 w-full mx-auto pb-0 ">
 
-        {/* Barra de búsqueda + acciones */}
-        <div className="flex items-center gap-3">
-          {/* Search card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex gap-3 items-center flex-1">
-            <div className="relative flex items-center flex-1 min-w-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              <Input
-                ref={inputRef}
-                type="text"
-                placeholder="Escanear Pase"
-                className="pl-10 pr-10 border-0 bg-gray-50 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-              />
-              <ActivePassesModal
-                title="Pases Activos"
-                input={debouncedValue}
-                setOpen={setOpenActivePases}
-                open={openActivePases}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg">
-                  <List className="w-4 h-4" />
-                </Button>
-              </ActivePassesModal>
-            </div>
-            <ScanPassOptionsModal
-              title="Escanea Pase"
-              inputRef={inputRef}
-              preference={preference}
-              setPreference={setPreference}>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl gap-2 shrink-0">
-                {preference === "camera" ? <Webcam className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
-                {preference === "camera" ? "QR con Cámara" : "Escanear QR"}
-              </Button>
-            </ScanPassOptionsModal>
-            {preference && (
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                onClick={reset}
-                className="h-9 w-9 text-gray-400 hover:text-red-500 hover:bg-red-50 shrink-0"
-                title="Resetear preferencia">
-                <RotateCcw className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
+				<div className="flex justify-center flex-col md:flex-row gap-3 ">
+					<div className="flex justify-center mb-5 mr-5 w-full md:max-w-lg ">
+						<div className="relative w-full flex items-center ">
+							<Input
+							ref={inputRef}
+							type="text"
+							placeholder="Escanear Pase"
+							className="pl-5 pr-10 w-full"
+							value={inputValue}
+							onChange={(e) => setInputValue(e.target.value)}
+							/>
+							<Search className="absolute right-12 h-4 w-4 text-gray-500 pointer-events-none" />
 
-          {/* Botones de acción — fuera de la card, misma fila */}
-          {searchPass?.tipo_movimiento === "Entrada" && (
-            <Button
-              className="bg-green-600 hover:bg-green-700 gap-2 shrink-0"
-              onClick={() => {
-                if (shift?.guard?.status_turn === "Turno Cerrado") {
-                  toast.error("¡Debes iniciar turno antes de registrar un ingreso!.");
-                  return;
-                }
-                doAccess.mutate();
-              }}>
-              <LogIn className="w-4 h-4" /> Registrar Ingreso
-            </Button>
-          )}
-          {searchPass?.tipo_movimiento === "Salida" && (
-            <Button
-              className="bg-red-500 hover:bg-red-600 text-white gap-2 shrink-0"
-              onClick={() => {
-                if (shift?.guard?.status_turn === "Turno Cerrado") {
-                  toast.error("¡Debes iniciar turno antes de registrar una salida!.");
-                  return;
-                }
-                exitRegisterAccess.mutate();
-              }}>
-              <DoorOpen className="w-4 h-4" /> Registrar Salida
-            </Button>
-          )}
-          {searchPass?.estatus === "proceso" &&
-            isExcluded("completar_pase", excludes ?? undefined) && (
-              <UpdatePassModal title="Completar Pase" id={searchPass._id} dataCatalogos={searchPass}>
-                <Button className="bg-blue-500 hover:bg-blue-600 text-white gap-2 shrink-0" variant="secondary">
-                  <FileSymlink className="w-4 h-4" /> Completar Pase
-                </Button>
-              </UpdatePassModal>
-            )}
-          {searchPass && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="text-gray-400 hover:text-red-500 hover:bg-red-50 shrink-0"
-              onClick={() => { setDebouncedValue(""); clearPassCode(); }}>
-              <Eraser className="w-4 h-4" />
-            </Button>
-          )}
-          {!searchPass && (
-            <TemporaryPassesModal title="Pases en Proceso">
-              <Button variant="outline" className="rounded-xl gap-2 shrink-0">
-                <Clock className="w-4 h-4" />
-                Pases en proceso
-              </Button>
-            </TemporaryPassesModal>
-          )}
-        </div>
+							<ActivePassesModal title="Pases Activos"  input={debouncedValue} setOpen={setOpenActivePases} open={openActivePases}>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="absolute right-0 top-0 h-full border rounded-tl-none rounded-bl-none rounded-tr-sm rounded-br-sm"
+							>
+								<Menu className="h-4 w-4" />
+							</Button>
+							</ActivePassesModal>
+						</div>
+					</div>
+ 					<div className="flex flex-col sm:flex-row gap-2">
+					{searchPass?.tipo_movimiento === "Entrada" && (
+						<Button
+						className="bg-green-600 hover:bg-green-700"
+						onClick={() => {
+							if (shift?.guard?.status_turn === "Turno Cerrado") {
+							toast.error(
+								"¡Debes iniciar turno antes de registrar un ingreso!."
+							);
+							return;
+							}
+							doAccess.mutate();
+						}}
+						>
+						<LogIn />
+						Registrar Ingreso
+						</Button>
+					)}
 
-      </div>
+					{searchPass?.tipo_movimiento === "Salida" && (
+						<Button
+						className="bg-red-500 hover:bg-red-600 text-white"
+						onClick={() => {
+							if (shift?.guard?.status_turn === "Turno Cerrado") {
+							toast.error(
+								"¡Debes iniciar turno antes de registrar una salida!."
+							);
+							return;
+							}
 
-      {/* Detalle del pase — full width */}
-      {searchPass ? (
-        <div className="px-6 pb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3">
-            <div className="row-span-3 flex flex-col p-4">
-              <Credentials searchPass={searchPass} />
-            </div>
-            <div className="flex flex-col pl-0 p-4 gap-3">
-              <ComentariosAccesosTable allComments={allComments} />
-              <PermisosTable certificaciones={certificaciones} />
-            </div>
-            <div className="flex flex-col pl-0 p-4 gap-3">
-              <UltimosAccesosTable ultimosAccesos={ultimosAccesos} />
-              <AccesosPermitidosTable accesosPermitidos={accesosPermitidos} />
-            </div>
-            <div className="col-span-2 col-start-2 pr-4 mb-5 space-y-4">
-              <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-100">
-                <EquiposAutorizadosTable
-                  equipos={equipos}
-                  setEquipos={setEquipos}
-                  setSelectedEquipos={setSelectedEquipos}
-                  selectedEquipos={selectedEquipos}
-                  tipoMovimiento={tipoMovimiento}
-                />
-              </div>
-              <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-100">
-                <VehiculosAutorizadosTable
-                  vehiculos={vehiculos}
-                  setVehiculos={setVehiculos}
-                  setSelectedVehiculos={setSelectedVehiculos}
-                  selectedVehiculos={selectedVehiculos}
-                  tipoMovimiento={tipoMovimiento}
-                  vehiculoHabilitado={vehiculoHabilitado}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="max-w-7xl mx-auto px-6 pb-6 space-y-6">
-            {/* Acciones rápidas */}
-            <section className="space-y-3">
-              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                Acciones Rápidas
-              </h2>
-              <div className="flex gap-4">
-                {!passCode &&
-                  isExcluded("nueva_visita", excludes ?? undefined) && (
-                    <AddVisitModal title="Nueva Visita">
-                      <div className="bg-white rounded-2xl border border-gray-100 p-5 w-52 cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group">
-                        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-green-50 group-hover:bg-green-100 transition-colors" />
-                        <div className="relative">
-                          <div className="w-11 h-11 rounded-xl bg-green-100 flex items-center justify-center mb-4">
-                            <UserPlus className="w-5 h-5 text-green-600" />
-                          </div>
-                          <p className="font-semibold text-gray-800 text-sm">
-                            Nueva visita
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                            Registra manualmente a un visitante.
-                          </p>
-                        </div>
-                      </div>
-                    </AddVisitModal>
-                  )}
-                <div
-                  className="bg-white rounded-2xl border border-gray-100 p-5 w-52 cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group"
-                  onClick={() => setOpenTransportista(true)}>
-                  <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-orange-50 group-hover:bg-orange-100 transition-colors" />
-                  <div className="relative">
-                    <div className="w-11 h-11 rounded-xl bg-orange-100 flex items-center justify-center mb-4">
-                      <Truck className="w-5 h-5 text-orange-500" />
-                    </div>
-                    <p className="font-semibold text-gray-800 text-sm">
-                      Nuevo transportista
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                      Registra ingreso de transporte y carga.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
+							exitRegisterAccess.mutate();
+						}}
+						>
+						<DoorOpen />
+						Registrar Salida
+						</Button>
+					)}
 
-            {/* Métricas del día */}
-            <section className="space-y-3">
-              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                Métricas del Día
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                <Link
-                  href="/dashboard/bitacoras"
-                  onClick={() =>
-                    setTabAndFilter("Personal", "today", ["entrada"])
-                  }>
-                  <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer">
-                    <UsersRound className="w-6 h-6 text-blue-400 mb-2" />
-                    <span className="text-3xl font-bold text-gray-800">
-                      {stats?.visitas_en_dia}
-                    </span>
-                    <span className="text-xs text-gray-400 mt-1">
-                      Visitas del día
-                    </span>
-                  </div>
-                </Link>
-                <Link
-                  href="/dashboard/bitacoras"
-                  onClick={() => setTabAndFilter("Personal", "", ["entrada"])}>
-                  <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer">
-                    <UserPlus className="w-6 h-6 text-green-400 mb-2" />
-                    <span className="text-3xl font-bold text-gray-800">
-                      {stats?.personas_dentro}
-                    </span>
-                    <span className="text-xs text-gray-400 mt-1">
-                      Personas dentro
-                    </span>
-                  </div>
-                </Link>
-                <Link
-                  href="/dashboard/bitacoras"
-                  onClick={() =>
-                    setTabAndFilter("Personal", "today", ["salida"])
-                  }>
-                  <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer">
-                    <DoorOpen className="w-6 h-6 text-orange-400 mb-2" />
-                    <span className="text-3xl font-bold text-gray-800">
-                      {stats?.salidas_registradas}
-                    </span>
-                    <span className="text-xs text-gray-400 mt-1">
-                      Salidas registradas
-                    </span>
-                  </div>
-                </Link>
-                <Link
-                  href="/dashboard/articulos"
-                  onClick={() => setTabAndFilter("Paqueteria", "", [])}>
-                  <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer">
-                    <PackageOpen className="w-6 h-6 text-purple-400 mb-2" />
-                    <span className="text-3xl font-bold text-gray-800">
-                      {stats?.paquetes_recibidos}
-                    </span>
-                    <span className="text-xs text-gray-400 mt-1">
-                      Paquetes recibidos
-                    </span>
-                  </div>
-                </Link>
-                <Link
-                  href="/dashboard/bitacoras"
-                  onClick={() => setTabAndFilter("Vehiculos", "", ["entrada"])}>
-                  <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer">
-                    <CarFront className="w-6 h-6 text-cyan-400 mb-2" />
-                    <span className="text-3xl font-bold text-gray-800">
-                      {stats?.total_vehiculos_dentro}
-                    </span>
-                    <span className="text-xs text-gray-400 mt-1">
-                      Vehículos dentro
-                    </span>
-                  </div>
-                </Link>
-                <Link
-                  href="/dashboard/bitacoras"
-                  onClick={() => setTabAndFilter("Equipos", "", ["entrada"])}>
-                  <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer">
-                    <Wrench className="w-6 h-6 text-gray-400 mb-2" />
-                    <span className="text-3xl font-bold text-gray-800">
-                      {stats?.total_equipos_dentro}
-                    </span>
-                    <span className="text-xs text-gray-400 mt-1">
-                      Equipos dentro
-                    </span>
-                  </div>
-                </Link>
-              </div>
-            </section>
-        </div>
-      )}
+					<ScanPassOptionsModal
+							title="Escanea Pase"
+							inputRef={inputRef}
+							preference={preference}
+							setPreference={setPreference}
+						>
+							<Button className="bg-yellow-400 hover:bg-yellow-500 text-black">
+								{preference === 'camera' ? <Webcam className="w-4 h-4" /> : <Scan />}
+								{preference === 'camera' ? 'Escanear con Cámara'
+								: preference === 'scanner' ? 'Escanear con Scanner'
+								: 'Escanear Pase'}
+							</Button>
+						</ScanPassOptionsModal>
 
-      <NuevoAccesoTransportistaModal
-        open={openTransportista}
-        onClose={() => setOpenTransportista(false)}
-      />
+						{preference && (
+							<Button
+								type="button"
+								size="icon"
+								variant="ghost"
+								onClick={reset}
+								className="h-8 w-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
+								title="Resetear preferencia"
+							>
+								<RotateCcw className="w-4 h-4" />
+							</Button>
+						)}
+
+					{!passCode && isExcluded("nueva_visita", excludes?? undefined) && (
+						<AddVisitModal title="Nueva Visita">
+						<Button className="bg-green-600 hover:bg-green-700 text-white">
+							<Plus />
+							Nueva Visita
+						</Button>
+						</AddVisitModal>
+					)}
+
+					{ !searchPass ? (<>
+					<TemporaryPassesModal title="Pases en Proceso">
+						<Button
+						variant="secondary"
+						className="bg-blue-500 hover:bg-blue-600 text-white"
+						>
+						<List className="text-white" />
+						Pases en Proceso
+						</Button>
+					</TemporaryPassesModal></>):null}
+					{ searchPass ? (<>
+					<Button
+						className="bg-red-500 hover:bg-red-600 text-white"
+						variant="secondary"
+						onClick={() =>{ setDebouncedValue(""); clearPassCode(); }}
+					>
+						<Eraser className="text-white" />
+
+					</Button></>):null}
+
+					{ searchPass?.estatus=="proceso" && isExcluded("completar_pase", excludes ?? undefined) ? (<>
+					<UpdatePassModal title={"Completar Pase"} id={searchPass?._id} dataCatalogos={searchPass}>
+						<Button
+							className="bg-blue-500 hover:bg-blue-600 text-white"
+							variant="secondary"
+						>
+							<FileSymlink />  Completar Pase
+
+						</Button>
+					</UpdatePassModal>
+					</>):null}
+					</div>
+				</div>
+			</div>
+
+			{ searchPass ? (
+			<>
+				<div className="grid grid-cols-1 md:grid-cols-3">
+					<div className="row-span-3 flex flex-col p-4 ">
+						<Credentials searchPass={searchPass} onSeleccionPases={setSelectedPasses} />
+					</div>
+					<div className="flex flex-col pl-0 p-4 gap-3 ">
+						<ComentariosAccesosTable allComments={allComments} />
+						<PermisosTable certificaciones={certificaciones}/>
+					</div>
+
+					<div className="flex flex-col pl-0 p-4 gap-3 ">
+						<UltimosAccesosTable ultimosAccesos={ultimosAccesos} /> 
+						<AccesosPermitidosTable accesosPermitidos={accesosPermitidos} />
+					</div>
+
+						
+					  <div className="col-span-2 col-start-2 pr-4 mb-5">
+					 	<div className="fbg-slate-400">
+					 		<div className="">
+					 			<EquiposAutorizadosTable equipos={equipos} setEquipos={setEquipos} setSelectedEquipos={setSelectedEquipos} selectedEquipos={selectedEquipos} tipoMovimiento={tipoMovimiento}/>
+					 		</div>
+
+					 		<div className="">
+					 			<VehiculosAutorizadosTable vehiculos={vehiculos} setVehiculos={setVehiculos} setSelectedVehiculos={setSelectedVehiculos} selectedVehiculos={selectedVehiculos} tipoMovimiento={tipoMovimiento}
+								vehiculoHabilitado={vehiculoHabilitado}/>
+					 		</div>
+					 	</div>
+					 </div>
+					 
+				</div>
+				
+			</>
+			):null}
+		</div>
+		{!searchPass ?
+	  	<div className="flex flex-col justify-center items-center gap-10 mt-20 overflow-hidden">
+				<div className="flex flex-col justify-center w-1/6 gap-2">
+					<Input placeholder="Ubicacion" value={location} disabled/>
+					<Input placeholder="Area" value={area} disabled/>
+				</div>
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+					<Link  href={"/dashboard/bitacoras"}>
+					<div className={`border p-4 px-12 py-6 rounded-md cursor-pointer transition duration-100`} onClick={() => setTabAndFilter("Personal", "today", ["entrada"])}>
+						<div className="flex gap-6"><Sun className="text-primary w-14 h-14" />
+							<span className="flex items-center font-bold text-5xl"> {stats?.visitas_en_dia}</span>
+						</div>
+						<div className="flex items-center space-x-0">
+							<div className="h-1 w-1/2 bg-cyan-100"></div>
+							<div className="h-1 w-1/2 bg-blue-500"></div>
+						</div>
+						<span className="text-lg">Visitas En El Día</span>
+					</div>
+					</Link>
+
+					<Link  href={"/dashboard/bitacoras"}>
+					<div className={`border p-4 px-12 py-6 rounded-md cursor-pointer transition duration-100 `} onClick={() => setTabAndFilter("Personal", "", ["entrada"])}>
+						<div className="flex gap-6"><UsersRound className="text-primary w-14 h-14"/>
+							<span className="flex items-center font-bold text-5xl"> {stats?.personas_dentro}</span>
+						</div>
+						<div className="flex items-center space-x-0">
+							<div className="h-1 w-1/2 bg-cyan-100"></div>
+							<div className="h-1 w-1/2 bg-blue-500"></div>
+						</div>
+						<span className="text-lg">Personas Dentro</span>
+					</div>
+					</Link>
+					<Link  href={"/dashboard/bitacoras"}>
+					<div className={`border p-4 px-12 py-6 rounded-md cursor-pointer transition duration-100 `} onClick={() => {setTabAndFilter("Personal", "today", ["salida"]); }}>
+						<div className="flex gap-6"><DoorOpen className="text-primary w-14 h-14"/>
+							<span className="flex items-center font-bold text-5xl"> {stats?.salidas_registradas}</span>
+						</div>
+						<div className="flex items-center space-x-0">
+							<div className="h-1 w-1/2 bg-cyan-100"></div>
+							<div className="h-1 w-1/2 bg-blue-500"></div>
+						</div>
+						<span className="text-lg">Salidas Registradas</span>
+					</div>
+					</Link>
+					<Link  href={"/dashboard/articulos"}>
+					<div className={`border p-4 px-12 py-6 rounded-md cursor-pointer transition duration-100 `} onClick={() => setTabAndFilter("Paqueteria", "",[])}>
+						<div className="flex gap-6"><PackageOpen className="text-primary w-14 h-14"/>
+							<span className="flex items-center font-bold text-5xl"> {stats?.paquetes_recibidos}</span>
+						</div>
+						<div className="flex items-center space-x-0">
+							<div className="h-1 w-1/2 bg-cyan-100"></div>
+							<div className="h-1 w-1/2 bg-blue-500"></div>
+						</div>
+						<span className="text-lg">Paquetes Recibidos</span>
+					</div>
+					</Link>
+					<Link href={"/dashboard/bitacoras"}>
+					<div className={`border p-4 px-12 py-6 rounded-md cursor-pointer transition duration-100 `} onClick={() => setTabAndFilter("Vehiculos", "",["entrada"])}>
+						<div className="flex gap-6"><CarFront className="text-primary w-14 h-14"/>
+							<span className="flex items-center font-bold text-5xl"> {stats?.total_vehiculos_dentro}</span>
+						</div>
+						<div className="flex items-center space-x-0">
+							<div className="h-1 w-1/2 bg-cyan-100"></div>
+							<div className="h-1 w-1/2 bg-blue-500"></div>
+						</div>
+						<span className="text-lg">Vehículos Dentro</span>
+					</div>
+					</Link>
+					<Link href={"/dashboard/bitacoras"}>
+					<div className={`border p-4 px-12 py-6 rounded-md cursor-pointer transition duration-100 `} onClick={() => setTabAndFilter("Equipos", "",["entrada"])}>
+						<div className="flex gap-6"><Wrench className="text-primary w-14 h-14"/>
+							<span className="flex items-center font-bold text-5xl"> {stats?.total_equipos_dentro}</span>
+						</div>
+						<div className="flex items-center space-x-0">
+							<div className="h-1 w-1/2 bg-cyan-100"></div>
+							<div className="h-1 w-1/2 bg-blue-500"></div>
+						</div>
+						<span className="text-lg">Equipos Dentro</span>
+					</div>
+					</Link>
+				</div>
+		</div>
+		:null}
     </div>
   );
 };

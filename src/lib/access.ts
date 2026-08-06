@@ -99,6 +99,7 @@ export interface RegisterIncomingProps {
   vehiculo?: any[];
   visita_a?: any[];
   gafete?: any;
+  selected_pases:string[];
 }
 
 export const registerIncoming = async (props: RegisterIncomingProps) => {
@@ -113,6 +114,7 @@ export const registerIncoming = async (props: RegisterIncomingProps) => {
     gafete: props.gafete || {},
     visita_a: props.visita_a || [],
     option: "do_access",
+    selected_pases: props.selected_pases || [],
     script_name: "script_turnos.py",
   };
 

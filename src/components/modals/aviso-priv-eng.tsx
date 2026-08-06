@@ -51,7 +51,7 @@ El presente Aviso de Privacidad ha sido modificado el día 05 abril del 2019.`,
       title: "Integral Privacy Notice",
       responsable: "Controller",
       responsableText: `
-INFOSYNC, SAPI DE CV (hereinafter jointly referred to as the "Controller") with conventional address at José Maria Morelos Poniente no. 177 int. 62, Monterrey Centro, Postal Code 64000, Phone (81) 8192‑2973, email info@linkaform.com, hereby informs you, as a visitor to our offices and/or website, consumer or potential consumer of our products and/or services, that you have the right to know what information we collect about you and our practices regarding such information. The terms herein apply to information collected in the name of and by the Controller or any of its affiliate or subsidiary companies, by any means, including through or any website operated by the Controller.`,
+INFOSYNC, SAPI DE CV (hereinafter jointly referred to as the "Controller") with conventional address at José Maria Morelos Poniente no. 177 int. 62, Monterrey Centro, Postal Code 64000, Phone (81) 8192‑2973, email info@linkaform.com, hereby informs you, as a visitor to our offices and/or website, consumer or potential consumer of our products and/or services, that you have the right to know what information we collect about you and our practices regarding such information. The terms herein apply to information collected in the name of and by the Controller or any of its affiliate or subsidiary companies, by any means, including through or any website operated by the Controller.`,
       datosPersonales: "Personal Data",
       datosPersonalesText: `
 The personal data that the Controller may collect, directly or indirectly, includes the following: Identification personal data are all data related to the identification of the person (full name, address, landline and/or mobile phone numbers, employer, fingerprints, date of birth, nationality, place of birth, occupation and/or direct relatives). We commit to treat all obtained data under the strictest security measures that ensure its confidentiality.`,
@@ -94,10 +94,14 @@ This Privacy Notice was last modified on April 5, 2019.`,
       </div>
 
       <div className="flex gap-3 mt-6 items-center">
-        <ArrowLeft
-          className="text-black w-8 h-8 cursor-pointer"
+        <button
+          type="button"
           onClick={() => setMostrarAviso(false)}
-        />
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors shrink-0"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Volver
+        </button>
         <div className="flex w-full justify-center">
           <h1 className="text-3xl font-bold mb-4">{t.title}</h1>
         </div>
@@ -157,6 +161,15 @@ This Privacy Notice was last modified on April 5, 2019.`,
           ))}
         </RadioGroup>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setMostrarAviso(false)}
+        className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 mt-2 mb-6 transition-colors"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        Volver
+      </button>
     </div>
   );
 };

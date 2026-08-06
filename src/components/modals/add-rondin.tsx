@@ -33,7 +33,7 @@ import { useRondines } from "@/hooks/Rondines/useRondines";
 import { Input } from "../ui/input";
 import { format } from "date-fns";
 import Multiselect from "multiselect-react-dropdown";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCatalogAreasRondin } from "@/hooks/Rondines/useCatalogAreasRondin";
 import {
   capitalizeFirstLetter,
@@ -47,6 +47,8 @@ import DateTimePicker from "../dateTimerPicker";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
+import { useCatalogoRoles } from "@/hooks/useGetRoles";
+import useAuthStore from "@/store/useAuthStore";
 
 interface AddRondinModalProps {
   title: string;
@@ -89,7 +91,8 @@ export type RondinPayload = {
   cron_conf: string;
   accion_recurrencia: string;
   tipo_rondin: string;
-  area:string
+  area: string;
+  roles?: string[];
 };
 
 const cronRegex =
@@ -131,7 +134,8 @@ const formSchema = z.object({
     .or(z.literal("")),
   tipo_rondin: z.string().optional(),
   area: z.string().optional(),
-  tipo_asignacion: z.string().optional()
+  roles: z.array(z.string()).optional(),
+  tipo_asignacion: z.string().optional(),
 });
 
 function SectionCard({
@@ -157,6 +161,36 @@ function SectionCard({
     </div>
   );
 }
+
+// Fallback estático: se usa únicamente si el catálogo real (useCatalogoRoles)
+// regresa vacío, para no dejar el selector sin opciones utilizables.
+const ROLES_FALLBACK = [
+  { value: "gerente", label: "Gerente" },
+  { value: "guardia_de_caseta_acceso", label: "Guardia de CasetaAcceso" },
+  { value: "jefe_de_seguridad", label: "Jefe de Seguridad" },
+  { value: "mantenimiento_electrico", label: "Mantenimiento Eléctrico" },
+  { value: "monitorista", label: "Monitorista" },
+  { value: "supervisor_de_mantenimiento", label: "Supervisor de Mantenimiento" },
+  { value: "supervisor_de_seguridad", label: "Supervisor de Seguridad" },
+  { value: "auditor_calidad", label: "Auditor Calidad" },
+  { value: "guardia_de_acceso", label: "Guardia de Acceso" },
+  { value: "guardia_de_patio", label: "Guardia de Patio" },
+  { value: "mantenimiento", label: "Mantenimiento" },
+  { value: "mantenimiento_mecanico", label: "Mantenimiento Mecánico" },
+  { value: "rondinero", label: "Rondinero" },
+  { value: "guardia", label: "Guardia" },
+  { value: "guardia_de_inspeccion", label: "Guardia de Inspeccion" },
+  { value: "jefe_de_turno", label: "Jefe de Turno" },
+  { value: "mantenimiento_general", label: "Mantenimiento General" },
+  { value: "produccion", label: "Produccion" },
+  { value: "supervisor_de_produccion", label: "Supervisor de Producción" },
+  { value: "supervisor_ehs", label: "Supervisor EHS" },
+];
+
+const ROLES_LABEL_MAP: Record<string, string> = ROLES_FALLBACK.reduce(
+  (acc, r) => ({ ...acc, [r.value]: r.label }),
+  {},
+);
 
 export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   title,
@@ -188,9 +222,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   const [mostrarFrecuencia, setMostrarFrecuencia] = useState(false);
   const [noRecurrente, setNoRecurrente] = useState(false);
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location ?? "");
-  const [mostrarArea, setMostrarArea] = useState(false);
+  // const [mostrarArea, setMostrarArea] = useState(false);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<string>("");
-  const { locations: ubicaciones, areas, fetchLocations, fetchAreas } = useAreasLocationStore();
+  const [asignacionError, setAsignacionError] = useState<string>("");
+  const { locations: ubicaciones, fetchLocations, fetchAreas, locationDetails } = useAreasLocationStore();
 
   useEffect(() => {
     if (isSuccess) {
@@ -201,11 +236,41 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   const { data: catalogAreasRondin, isLoading: isLoadingAreas } =
     useCatalogAreasRondin(ubicacionSeleccionada ?? "", isSuccess);
 
+  // Fallback: si el catálogo de áreas de rondin viene vacío, se usan las áreas
+  // ya conocidas en el areaLocation-store para la ubicación seleccionada.
+  const areasFallback = useMemo(() => {
+    const detalle = locationDetails.find(
+      (d) => d.ubicacion?.toLowerCase() === ubicacionSeleccionada?.toLowerCase(),
+    );
+    return (detalle?.areas ?? [])
+      .map((a) => a.nombre_area)
+      .filter((n): n is string => Boolean(n))
+      .map((nombre) => ({ id: nombre, name: nombre }));
+  }, [locationDetails, ubicacionSeleccionada]);
+
+  const areasOptions =
+    catalogAreasRondin && catalogAreasRondin.length > 0 ? catalogAreasRondin : areasFallback;
+
   const { data: dataEmpleados, isLoading: loadingEmpleados } =
-    useCatalogoAreaEmpleado(isSuccess, location??"", "Incidencias");
+    useCatalogoAreaEmpleado(isSuccess, location ?? "", "Incidencias");
   const { data: dataGrupos, isLoading: loadingGrupos } =
     useCatalogoGrupos(isSuccess);
   console.log("isSuccess:", isSuccess, "loadingGrupos:", loadingGrupos, "dataGrupos:", dataGrupos);
+
+  const { userIdSoter } = useAuthStore();
+  const { data: dataRoles } = useCatalogoRoles(isSuccess, userIdSoter);
+  const rolesDisponibles: { value: string; label: string }[] =
+    dataRoles && dataRoles.length > 0
+      ? dataRoles.map((r: any) =>
+          typeof r === "string"
+            ? { value: r, label: ROLES_LABEL_MAP[r] ?? capitalizeFirstLetter(r.replace(/_/g, " ")) }
+            : r,
+        )
+      : ROLES_FALLBACK;
+  const rolesLabelMap: Record<string, string> = rolesDisponibles.reduce(
+    (acc, r) => ({ ...acc, [r.value]: r.label }),
+    {} as Record<string, string>,
+  );
   const [dropdownOffset, setDropdownOffset] = useState({
     distance: 40,
     width: "100%",
@@ -219,7 +284,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       nombre_rondin: "",
       duracion_estimada: "",
       ubicacion: "",
-      area:"",
+      area: "",
+      roles: [],
       areas: [],
       grupo_asignado: "",
       fecha_hora_programada: "",
@@ -260,10 +326,12 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       set_todas_las_semanas(false);
       set_en_que_mes([]);
       setAsignadoA("responsable_en_turno");
-      setPersonaEspecifica(""); 
-      setMostrarArea(false);
+      setPersonaEspecifica("");
+      // setMostrarArea(false);
       form.setValue("area", "");
+      form.setValue("roles", []);
       setGrupoSeleccionado("");
+      setAsignacionError("");
       reset();
     }
   }, [isSuccess]);
@@ -285,13 +353,36 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   ];
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    let hasError = false;
+
     if (!date) {
       form.setError("fecha_hora_programada", {
         type: "manual",
         message: "Fecha es obligatoria",
       });
-      return;
+      hasError = true;
     }
+
+    // El selector visible (Roles / Persona / Grupo) depende de asignadoA,
+    // y el que esté visible es obligatorio para poder crear/guardar.
+    // Se evalúa siempre (no con un "return" temprano) para que este error
+    // se muestre junto con el de fecha si ambos faltan, en vez de que uno
+    // tape al otro.
+    if (asignadoA === "responsable_en_turno" && (!values.roles || values.roles.length === 0)) {
+      setAsignacionError("Selecciona al menos un rol.");
+      hasError = true;
+    } else if (asignadoA === "persona_especifica" && !personaEspecifica) {
+      setAsignacionError("Selecciona una persona.");
+      hasError = true;
+    } else if (asignadoA === "grupo" && !grupoSeleccionado) {
+      setAsignacionError("Selecciona un grupo.");
+      hasError = true;
+    } else {
+      setAsignacionError("");
+    }
+
+    if (hasError) return;
+
     const formattedDate = format(new Date(date), "yyyy-MM-dd HH:mm:ss");
     const areas = areasSeleccionadas.map((e) => e.id);
     const recurrenciaFiltrada = obtenerRecurrencia(values);
@@ -314,6 +405,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       se_repite_cada: values.se_repite_cada,
       cron_conf: "",
       tipo_rondin: values.tipo_rondin,
+      tipo: (values.tipo_rondin || "").toLowerCase(),
       tipo_asignacion: asignadoA,
       asignado_a: asignadoA === "persona_especifica"
         ? [personaEspecifica]
@@ -322,6 +414,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         : asignadoA,
       ...recurrenciaFiltrada,
       area: values.area ?? "",
+      roles: values.roles ?? [],
     };
 
     if (mode == "edit" && folio) {
@@ -471,7 +564,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
           setAsignadoA("responsable_en_turno");
         } else {
           setAsignadoA("persona_especifica");
-          setPersonaEspecifica(rondinData.asignado_a); 
+          setPersonaEspecifica(rondinData.asignado_a);
         }
       }
       if (rondinData?.que_dias_de_la_semana?.length > 0) {
@@ -490,8 +583,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         const meses = Array.isArray(rondinData.en_que_mes)
           ? rondinData.en_que_mes : [rondinData.en_que_mes];
         set_en_que_mes(meses);
-        const todosMeses = ["enero","febrero","marzo","abril","mayo","junio",
-          "julio","agosto","septiembre","octubre","noviembre","diciembre"];
+        const todosMeses = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+          "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
         set_todas_las_meses(meses.length === 12 && todosMeses.every((m) => meses.includes(m)));
       }
       if (rondinData.cada_cuantas_horas_se_repite) {
@@ -500,6 +593,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       }
       if (rondinData.cada_cuantos_meses_se_repite) setEsRepetirCada(true);
       else if (rondinData.en_que_mes?.length > 0) setEsRepetirCada(false);
+
+      // if (rondinData?.area) {
+      //   setMostrarArea(true);
+      // }
 
       const recurrenciaValida = ["diario", "semana", "mes", "configurable"];
       reset({
@@ -514,9 +611,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         sucede_recurrencia: rondinData.sucede_recurrencia || [],
         tipo_rondin: rondinData.tipo_rondin || "",
         area: rondinData.area || "",
+        roles: Array.isArray(rondinData.roles) ? rondinData.roles : [],
         se_repite_cada: recurrenciaValida.includes(rondinData.se_repite_cada)
-        ? rondinData.se_repite_cada
-        : "", // si viene "hora" o "año" deja vacío
+          ? rondinData.se_repite_cada
+          : "", // si viene "hora" o "año" deja vacío
       });
     }
   }, [mode, rondinData, isSuccess, catalogAreasRondin, reset]);
@@ -622,7 +720,132 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                     )}
                   />
 
-                {/* Toggle área */}
+                  {/* Tipo de Asignación (movido debajo de Ubicación) */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5" /> Tipo de Asignación
+                    </label>
+                    <MultiSelect
+                        placeholder="Selecciona una opción"
+                        options={[
+                          { value: "responsable_en_turno", label: "Responsable en Turno" },
+                          { value: "persona_especifica", label: "Persona Específica" },
+                          { value: "grupo", label: "Grupo" },
+                        ]}
+                        value={asignadoA ? { value: asignadoA, label: { responsable_en_turno: "Responsable en Turno", persona_especifica: "Persona Específica", grupo: "Grupo" }[asignadoA] ?? asignadoA } : null}
+                        onChange={(opt) => {
+                          setAsignadoA(opt ? opt.value : "");
+                          if (opt?.value !== "persona_especifica") setPersonaEspecifica("");
+                          if (opt?.value !== "grupo") setGrupoSeleccionado("");
+                          if (opt?.value !== "responsable_en_turno") form.setValue("roles", []);
+                          setAsignacionError("");
+                        }}
+                        isClearable
+                      />
+
+                    {/* Solo se muestra UN selector a la vez, según lo elegido arriba.
+                        El que se muestre es obligatorio para poder crear/guardar. */}
+
+                    {asignadoA === "responsable_en_turno" && (
+                      <FormField
+                        control={form.control}
+                        name="roles"
+                        render={({ field }: any) => (
+                          <FormItem className="mt-2">
+                            <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                              Roles <span className="text-red-400">*</span>
+                            </FormLabel>
+                            <MultiSelect
+                              isMulti
+                              placeholder="Selecciona uno o más roles"
+                              className="border border-slate-100 rounded-2xl"
+                              options={rolesDisponibles}
+                              value={
+                                Array.isArray(field.value)
+                                  ? field.value
+                                      .filter(Boolean)
+                                      .map((r: string) => ({
+                                        value: r,
+                                        label: rolesLabelMap[r] ?? r,
+                                      }))
+                                  : []
+                              }
+                              onChange={(selectedOptions: any) => {
+                                field.onChange(
+                                  selectedOptions
+                                    ? selectedOptions.map((o: any) => o.value)
+                                    : [],
+                                );
+                                setAsignacionError("");
+                              }}
+                              isClearable
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {asignadoA === "persona_especifica" && (
+                      <div className="flex flex-col gap-1 mt-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          Persona <span className="text-red-400">*</span>
+                        </label>
+                        <MultiSelect
+                          placeholder={loadingEmpleados ? "Cargando..." : "Selecciona una persona"}
+                          className="border border-slate-100 rounded-2xl"
+                          isLoading={loadingEmpleados}
+                          options={dataEmpleados?.map((empleado: string) => ({
+                            value: empleado,
+                            label: empleado,
+                          })) ?? []}
+                          value={
+                            personaEspecifica
+                              ? { value: personaEspecifica, label: personaEspecifica }
+                              : null
+                          }
+                          onChange={(opt: any) => {
+                            setPersonaEspecifica(opt ? opt.value : "");
+                            setAsignacionError("");
+                          }}
+                          isClearable
+                        />
+                      </div>
+                    )}
+
+                    {asignadoA === "grupo" && (
+                      <div className="flex flex-col gap-1 mt-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          Grupo <span className="text-red-400">*</span>
+                        </label>
+                        <MultiSelect
+                          placeholder={loadingGrupos ? "Cargando..." : "Selecciona un grupo"}
+                          className="border border-slate-100 rounded-2xl"
+                          isLoading={loadingGrupos}
+                          options={dataGrupos?.map((grupo: string) => ({
+                            value: grupo,
+                            label: grupo,
+                          })) ?? []}
+                          value={
+                            grupoSeleccionado
+                              ? { value: grupoSeleccionado, label: grupoSeleccionado }
+                              : null
+                          }
+                          onChange={(opt: any) => {
+                            setGrupoSeleccionado(opt ? opt.value : "");
+                            setAsignacionError("");
+                          }}
+                          isClearable
+                        />
+                      </div>
+                    )}
+
+                    {asignacionError && (
+                      <p className="text-xs font-medium text-red-500 mt-1">{asignacionError}</p>
+                    )}
+                  </div>
+
+                {/* Toggle área — comentado por ahora
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={mostrarArea}
@@ -659,6 +882,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                     )}
                   />
                 )}
+                */}
+
+                {/* El selector de Roles vive dentro del bloque "Tipo de Asignación" de arriba. */}
+
                   <FormField
                     control={form.control}
                     name="nombre_rondin"
@@ -756,79 +983,6 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                         </FormItem>
                       )}
                     />
-                  </div>
-
-                  {/* Asignado a */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5" /> Tipo de Asignación
-                    </label>
-                    <MultiSelect
-                        placeholder="Selecciona una opción"
-                        options={[
-                          { value: "responsable_en_turno", label: "Responsable en Turno" },
-                          { value: "persona_especifica", label: "Persona Específica" },
-                          { value: "grupo", label: "Grupo" },
-                        ]}
-                        value={asignadoA ? { value: asignadoA, label: { responsable_en_turno: "Responsable en Turno", persona_especifica: "Persona Específica", grupo: "Grupo" }[asignadoA] ?? asignadoA } : null}
-                        onChange={(opt) => {
-                          setAsignadoA(opt ? opt.value : "");
-                          if (opt?.value !== "persona_especifica") setPersonaEspecifica("");
-                          if (opt?.value !== "grupo") setGrupoSeleccionado("");
-                        }}
-                        isClearable
-                      />
-                    {/* CAMBIO 3: segundo selector condicional */}
-                    {asignadoA === "persona_especifica" && (
-                      <Select value={personaEspecifica} onValueChange={setPersonaEspecifica}>
-                        <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50 mt-2">
-                          <SelectValue placeholder="Selecciona una persona" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {loadingEmpleados ? (
-                            <SelectItem value="cargando" disabled>
-                              <span className="flex items-center gap-2">
-                                <Loader2 className="w-3 h-3 animate-spin" /> Cargando...
-                              </span>
-                            </SelectItem>
-                          ) : (
-                            dataEmpleados?.map((empleado: string, i: number) => (
-                              <SelectItem key={i} value={empleado}>
-                                {empleado}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                    )}
-
-                   {asignadoA === "grupo" && (
-                    <Select value={grupoSeleccionado} onValueChange={setGrupoSeleccionado}>
-                      <SelectTrigger className="rounded-xl border-gray-200 bg-gray-50 mt-2">
-                        <SelectValue placeholder="Selecciona un grupo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {loadingGrupos ? (
-                          <SelectItem value="cargando" disabled>
-                            <span className="flex items-center gap-2">
-                              <Loader2 className="w-3 h-3 animate-spin" /> Cargando...
-                            </span>
-                          </SelectItem>
-                        ) : dataGrupos?.length > 0 ? (
-                          dataGrupos.map((grupo: string, i: number) => (
-                            <SelectItem key={i} value={grupo}>
-                              {grupo}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-disponible" disabled>
-                            Sin grupos disponibles
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  )}
-
                   </div>
                 </div>
               </SectionCard>
@@ -942,8 +1096,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                         </div>
                       </div>
                       <div className="flex flex-wrap mt-2 mb-5">
-                        {["Primer semana del mes","Segunda semana del mes","Tercer semana del mes",
-                          "Cuarta semana del mes","Quinta semana del mes"].map((semana) => {
+                        {["Primer semana del mes", "Segunda semana del mes", "Tercer semana del mes",
+                          "Cuarta semana del mes", "Quinta semana del mes"].map((semana) => {
                           const value = semana.toLowerCase().replace(/\s+/g, "_");
                           return (
                             <FormItem key={value} className="flex items-center space-x-3">
@@ -1041,8 +1195,8 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                                   const checked = e.target.checked;
                                   set_todas_las_meses(checked);
                                   if (checked) {
-                                    set_en_que_mes(["enero","febrero","marzo","abril","mayo","junio",
-                                      "julio","agosto","septiembre","octubre","noviembre","diciembre"]);
+                                    set_en_que_mes(["enero", "febrero", "marzo", "abril", "mayo", "junio",
+                                      "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]);
                                   } else {
                                     set_en_que_mes([]);
                                   }
@@ -1115,7 +1269,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                     </div>
                   ) : (
                     <Multiselect
-                      options={catalogAreasRondin}
+                      options={areasOptions}
                       onSelect={setAreasSeleccionadas}
                       onRemove={setAreasSeleccionadas}
                       displayValue="name"

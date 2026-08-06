@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { useEffect, useState } from "react";
-import { Loader2, User, Shield, CalendarClock, Car, Wrench, Image as ImageIcon, Layers, MessageSquare, Copy, Users } from "lucide-react";
+import { Loader2, User, Shield, CalendarClock, Car, Wrench, Image as ImageIcon, Layers, MessageSquare, Copy, Users, UserCog, UserRound } from "lucide-react";
 import { Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import CalendarDays from "../calendar-days";
@@ -76,6 +76,16 @@ interface ViewPassModalProps {
     acompanantes?: number;
     acompanantes_grupo?: AcompananteRaw[];
     habilitar_vehiculo?: string
+    created_by?: string;
+    url_padre?: string;
+    pase_padre?: {
+      foto?: string | Imagen[];
+      identificacion?: string | Imagen[];
+      estatus?: string;
+      nombre?: string;
+      telefono?: string;
+      email?: string;
+    };
   };
   isSuccess: boolean;
   children: React.ReactNode;
@@ -195,6 +205,14 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
 
   const toleranciaPrevia = requisitoUbicacion?.tolerancia_de_entrada_previa ?? 0;
   const toleranciaPosterior = requisitoUbicacion?.tolerancia_de_entrada_posterior ?? 0;
+  const esTitular = (data?.acompanantes_grupo?.length ?? 0) > 0;
+  const esAcompanante = Boolean(data?.url_padre?.trim());
+  const colorAcompanante =
+    data?.status_pase?.toLowerCase() === "activo"
+      ? "bg-green-600"
+      : data?.status_pase?.toLowerCase() === "proceso"
+        ? "bg-blue-600"
+        : "bg-gray-400";
 
   function onEnviarCorreo() {
     if (data?.status_pase?.toLowerCase() != "vencido") {
@@ -353,8 +371,78 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
                 <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Estatus</p>
                 <StatusBadge status={data?.status_pase} />
               </div>
+              <div>
+                <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Tipo de pase</p>
+                {esTitular ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-purple-600 px-2.5 py-0.5 text-[10px] font-bold text-white">
+                    <Users size={11} />
+                    Titular
+                  </span>
+                ) : esAcompanante ? (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold text-white ${colorAcompanante}`}
+                  >
+                    <UserRound size={11} />
+                    Acompañante
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-400 px-2.5 py-0.5 text-[10px] font-bold text-white">
+                    Individual
+                  </span>
+                )}
+              </div>
             </div>
           </SectionCard>
+
+          {data?.created_by && (
+            <SectionCard icon={<UserCog size={15} />} label="Solicitante">
+              <Field label="Creado por" value={data.created_by} wide />
+            </SectionCard>
+          )}
+
+          {esAcompanante && data?.pase_padre && (
+            <SectionCard icon={<UserRound size={15} />} label="Pase Titular / Principal">
+              {(() => {
+                const fotoRaw = data.pase_padre?.foto;
+                const idenRaw = data.pase_padre?.identificacion;
+                let foto: string | undefined;
+                if (Array.isArray(fotoRaw) && fotoRaw.length > 0 && fotoRaw[0]?.file_url) {
+                  foto = fotoRaw[0].file_url;
+                } else if (Array.isArray(idenRaw) && idenRaw.length > 0 && idenRaw[0]?.file_url) {
+                  foto = idenRaw[0].file_url;
+                }
+                return (
+                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl border border-purple-100">
+                    {foto ? (
+                      <Image
+                        src={foto}
+                        alt={data.pase_padre?.nombre ?? "Titular"}
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 rounded-full object-cover border border-purple-200"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-purple-200 flex items-center justify-center">
+                        <User size={16} className="text-purple-500" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-semibold text-gray-800 truncate">
+                          {data.pase_padre?.nombre || "Sin nombre"}
+                        </p>
+                        {data.pase_padre?.estatus && <StatusBadge status={data.pase_padre.estatus} />}
+                      </div>
+                      <p className="text-[11px] text-gray-500 truncate">
+                        {[data.pase_padre?.email, data.pase_padre?.telefono].filter(Boolean).join(" · ") ||
+                          "Sin datos de contacto"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </SectionCard>
+          )}
 
           <SectionCard icon={<Shield size={15} />} label="Detalles de visita">
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
@@ -411,11 +499,11 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
           <SectionCard icon={<CalendarClock size={15} />} label="Vigencia y accesos">
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
               <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Fecha inicio</p>
+                <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Fecha de entrada</p>
                 <p className="text-sm font-semibold text-gray-800">{data?.fecha_desde_visita || "—"}</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Fecha hasta</p>
+                <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-1">Fecha de salida</p>
                 <p className="text-sm font-semibold text-gray-800">{data?.fecha_desde_hasta || "—"}</p>
               </div>
             </div>

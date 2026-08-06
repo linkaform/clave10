@@ -3,17 +3,111 @@ import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Button } from "../ui/button";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import Webcam from "react-webcam";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2, ShieldCheck } from "lucide-react";
 import { base64ToFile, quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
 import Image from "next/image";
 import { Imagen } from "../upload-Image";
+import MultiSelect from "react-select";
+import { useCatalogoRoles } from "@/hooks/useGetRoles";
+import useAuthStore from "@/store/useAuthStore";
 
+// Fallback estático: se usa únicamente si el catálogo real (useCatalogoRoles)
+// regresa vacío, para no dejar el selector sin opciones utilizables.
+const ROLES_FALLBACK = [
+  { value: "gerente", label: "Gerente" },
+  { value: "guardia_de_caseta_acceso", label: "Guardia de CasetaAcceso" },
+  { value: "jefe_de_seguridad", label: "Jefe de Seguridad" },
+  { value: "mantenimiento_electrico", label: "Mantenimiento Eléctrico" },
+  { value: "monitorista", label: "Monitorista" },
+  { value: "supervisor_de_mantenimiento", label: "Supervisor de Mantenimiento" },
+  { value: "supervisor_de_seguridad", label: "Supervisor de Seguridad" },
+  { value: "auditor_calidad", label: "Auditor Calidad" },
+  { value: "guardia_de_acceso", label: "Guardia de Acceso" },
+  { value: "guardia_de_patio", label: "Guardia de Patio" },
+  { value: "mantenimiento", label: "Mantenimiento" },
+  { value: "mantenimiento_mecanico", label: "Mantenimiento Mecánico" },
+  { value: "rondinero", label: "Rondinero" },
+  { value: "guardia", label: "Guardia" },
+  { value: "guardia_de_inspeccion", label: "Guardia de Inspeccion" },
+  { value: "jefe_de_turno", label: "Jefe de Turno" },
+  { value: "mantenimiento_general", label: "Mantenimiento General" },
+  { value: "produccion", label: "Produccion" },
+  { value: "supervisor_de_produccion", label: "Supervisor de Producción" },
+  { value: "supervisor_ehs", label: "Supervisor EHS" },
+];
+
+// Estilos custom del react-select. El menú ya NO usa portal: vive dentro del
+// modal, así que basta con un z-index alto para que no quede detrás de nada
+// dentro del propio DialogContent.
+const rolesSelectStyles = {
+  control: (base: any, state: any) => ({
+    ...base,
+    borderRadius: "1rem",
+    borderColor: state.isFocused ? "#93c5fd" : "#e5e7eb",
+    boxShadow: state.isFocused ? "0 0 0 3px rgba(59,130,246,0.15)" : "none",
+    padding: "2px 4px",
+    minHeight: "44px",
+    backgroundColor: "#f9fafb",
+    "&:hover": {
+      borderColor: "#93c5fd",
+    },
+  }),
+  menu: (base: any) => ({
+    ...base,
+    borderRadius: "0.75rem",
+    overflow: "hidden",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+    zIndex: 50,
+  }),
+  option: (base: any, state: any) => ({
+    ...base,
+    fontSize: "0.875rem",
+    backgroundColor: state.isSelected
+      ? "#2563eb"
+      : state.isFocused
+      ? "#eff6ff"
+      : "white",
+    color: state.isSelected ? "white" : "#374151",
+    cursor: "pointer",
+  }),
+  multiValue: (base: any) => ({
+    ...base,
+    backgroundColor: "#dbeafe",
+    borderRadius: "9999px",
+    paddingLeft: "4px",
+  }),
+  multiValueLabel: (base: any) => ({
+    ...base,
+    color: "#1d4ed8",
+    fontWeight: 600,
+    fontSize: "0.75rem",
+  }),
+  multiValueRemove: (base: any) => ({
+    ...base,
+    borderRadius: "9999px",
+    color: "#1d4ed8",
+    "&:hover": {
+      backgroundColor: "#bfdbfe",
+      color: "#1e3a8a",
+    },
+  }),
+  placeholder: (base: any) => ({
+    ...base,
+    fontSize: "0.875rem",
+    color: "#9ca3af",
+  }),
+};
 
 interface TakeModalProps {
     title:string;
 	descripcion:string;
     evidencia: Imagen[];
     setEvidencia: Dispatch<SetStateAction<Imagen[]>>;
+    roles: string[];
+    setRoles: Dispatch<SetStateAction<string[]>>;
+    // "inicio" (default): muestra el selector interactivo de roles.
+    // "cierre": no muestra selector, solo el texto "Cerrarás turno como" con los roles ya elegidos.
+    modo?: "inicio" | "cierre";
 	open: boolean;
 	setOpen: Dispatch<SetStateAction<boolean>>;
 	// children: React.ReactNode;
@@ -24,6 +118,9 @@ interface TakeModalProps {
 	descripcion,
     setEvidencia,
     evidencia,
+    roles,
+    setRoles,
+    modo = "inicio",
 	open,
 	setOpen
 	// children
@@ -32,6 +129,14 @@ interface TakeModalProps {
     const [hideWebcam, setHideWebcam] = useState(false)
     const { uploadImageMutation, response, isLoading} = useUploadImage();
 	// const [open, setOpen] = useState(false)
+	const { userIdSoter } = useAuthStore();
+	const { data: dataRoles, isLoading: loadingRoles } = useCatalogoRoles(
+		open,
+		userIdSoter,
+	);
+	// Si el catálogo real viene vacío (o aún está cargando), usamos el fallback estático
+	const rolesDisponibles =
+		dataRoles && dataRoles.length > 0 ? dataRoles : ROLES_FALLBACK;
 
     const webcamRef = useRef<Webcam | null>(null);
     const videoConstraints = {
@@ -45,8 +150,13 @@ interface TakeModalProps {
 			setloadingWebcam(true);
 			setHideWebcam(false);
 			setEvidencia([]);
+			// En cierre no reseteamos roles: aquí solo se muestran de forma
+			// informativa los roles que ya se eligieron al iniciar turno.
+			if (modo !== "cierre") {
+				setRoles([]);
+			}
 		}
-	}, [open, setEvidencia]);
+	}, [open, setEvidencia, setRoles, modo]);
 
 	const handleUserMedia = () => {
 	setloadingWebcam(false); 
@@ -80,11 +190,21 @@ interface TakeModalProps {
 			}, 700);
 		}
 	},[response, setOpen, setEvidencia])
-	
-  return (
+
+	const rolesConLabel = roles.map((r) => {
+		const match = rolesDisponibles.find(
+			(rol: any) => (rol.value ?? rol.id ?? rol) === r,
+		);
+		return {
+			value: r,
+			label: (match as any)?.label ?? (match as any)?.nombre ?? r,
+		};
+	});
+
+	return (
     <Dialog open={open} onOpenChange={setOpen} modal>
 		{/* <DialogTrigger asChild>{children}</DialogTrigger> */}
-		<DialogContent className="max-w-md min-h-[600px] max-h-[90vh] flex flex-col overflow-hidden justify-between" onInteractOutside={(e) => e.preventDefault()} aria-describedby="">
+		<DialogContent className="max-w-md min-h-[600px] max-h-[90vh] flex flex-col overflow-visible justify-between" onInteractOutside={(e) => e.preventDefault()} aria-describedby="">
 			<DialogHeader className="flex-shrink-0">
 				<DialogTitle className="text-2xl text-center font-bold">
 					{title}
@@ -93,8 +213,9 @@ interface TakeModalProps {
 		<div>
 		{descripcion}
 		</div>
+
 		{!hideWebcam ? (
-			<div className="flex justify-center items-center h-[350px]">
+			<div className="flex justify-center items-center h-[350px] overflow-hidden rounded-lg">
 				{loadingWebcam? (<>
 					<div role="status" >
 						<svg aria-hidden="true" className="w-8  text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -117,6 +238,56 @@ interface TakeModalProps {
 				onUserMedia={handleUserMedia}/>			
 			</div>
 		):null}
+
+		{modo === "inicio" ? (
+			/* Selector de Roles (catálogo real vía useCatalogoRoles, con fallback estático si viene vacío) */
+			<div className="flex flex-col gap-2 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+				<label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide">
+					<ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+					Roles para iniciar turno
+				</label>
+				<MultiSelect
+					isMulti
+					isLoading={loadingRoles}
+					placeholder={loadingRoles ? "Cargando roles..." : "Selecciona uno o más roles"}
+					styles={rolesSelectStyles}
+					menuPlacement="auto"
+					options={rolesDisponibles.map((rol: any) => ({
+						value: rol.value ?? rol.id ?? rol,
+						label: rol.label ?? rol.nombre ?? rol,
+					}))}
+					value={rolesConLabel}
+					onChange={(selectedOptions: any) => {
+						setRoles(
+							selectedOptions ? selectedOptions.map((o: any) => o.value) : [],
+						);
+					}}
+					isClearable
+				/>
+			</div>
+		) : (
+			/* Modo cierre: solo lectura, muestra los roles ya elegidos al iniciar turno */
+			<div className="flex flex-col gap-2 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+				<label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide">
+					<ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+					Cerrarás turno como
+				</label>
+				{rolesConLabel.length > 0 ? (
+					<div className="flex flex-wrap gap-2">
+						{rolesConLabel.map((r) => (
+							<span
+								key={r.value}
+								className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-3 py-1 text-xs font-semibold"
+							>
+								{r.label}
+							</span>
+						))}
+					</div>
+				) : (
+					<span className="text-sm text-gray-400">Sin roles asignados</span>
+				)}
+			</div>
+		)}
 
 			{evidencia?.length > 0 && (
 			<div className="flex justify-center items-center h-[350px]">
