@@ -17,12 +17,14 @@ import { useShiftStore } from "@/store/useShiftStore";
 import { AddPaqueteriaModal } from "@/components/modals/add-paqueteria";
 import { dateToString, ViewMode } from "@/lib/utils";
 import { useBoothStore } from "@/store/useBoothStore";
+import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { AddArticuloConModal } from "@/components/modals/add-article.con";
 import { PageHeader } from "@/components/common/PageHeader";
 import { usePaqueteriaFilters } from "@/hooks/Paqueteria/usePaqueteriaFilters";
 import { useArticulosConcesionadosFilters } from "@/hooks/Concesionados/useConcesionadosFilters";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { usePerdidosFilters } from "@/hooks/Perdidos/usePerdidosFilters";
+import PaginationPases from "@/components/pages/pases/PaginationPases";
 
 const TAB_MAP: Record<string, string> = {
   paqueteria: "Paqueteria",
@@ -52,6 +54,7 @@ const ArticulosContent = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("photos");
   const { location } = useBoothStore();
   const [ubicacionSeleccionada] = useState(location || "Planta Monterrey");
+  const { selectedLocations } = useSelectedLocationsStore();
   const [areaSeleccionada] = useState("todas");
 
   const [date1, setDate1] = useState<Date | "">("");
@@ -65,6 +68,8 @@ const ArticulosContent = () => {
   const [searchQuery, setSearchQuery] = useState<string[]>([]);
   // const [ setSearchQuery] = useState<string[]>([]);
   const [totalRegistros, setTotalRegistros] = useState(0);
+  const [limitCon, setLimitCon] = useState(25);
+  const [skipCon, setSkipCon] = useState(0);
 
   const { listArticulosPerdidos, isLoadingListArticulosPerdidos } = useArticulosPerdidos(
     ubicacionSeleccionada,
@@ -72,11 +77,26 @@ const ArticulosContent = () => {
     statusPerdidos, true, datePrimera,dateSegunda, dateFilter,
   );
 
-  const { listArticulosCon, isLoadingListArticulosCon } = useArticulosConcesionados(
+  const searchConcesionados = searchQuery[0] ?? "";
+
+  const { listArticulosCon: articulosConData, isLoadingListArticulosCon } = useArticulosConcesionados(
     ubicacionSeleccionada,
     areaSeleccionada === "todas" ? "" : areaSeleccionada,
     statusConcesionados, true,datePrimera,dateSegunda, dateFilter,
+    limitCon, skipCon, selectedLocations, searchConcesionados,
   );
+  const {
+    records: listArticulosCon = [],
+    actual_page: actualPageCon = 1,
+    records_on_page: recordsOnPageCon = 0,
+    total_pages: totalPagesCon = 1,
+    total_records: totalRecordsCon = 0,
+  } = articulosConData ?? {};
+
+  const handleConcesionadosPageChange = (newSkip: number, newLimit: number) => {
+    setSkipCon(newSkip);
+    setLimitCon(newLimit);
+  };
 
   const { listPaqueteria, isLoadingListPaqueteria } = usePaqueteria(
     ubicacionSeleccionada,
@@ -161,6 +181,9 @@ const ArticulosContent = () => {
   }, [statusParam, selectedTab]);
 
   useEffect(() => { setTotalRegistros(0); }, [selectedTab]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setSkipCon(0); }, [searchConcesionados]);
 
   const handleOpenChange = (value: React.SetStateAction<boolean>) => {
     const open = typeof value === "function" ? value(isSuccess) : value;
@@ -356,6 +379,16 @@ const ArticulosContent = () => {
                   filtersConfig={concesionadosFiltersConfig}
                   setTotalRegistros={setTotalRegistros}
                 />
+                {!isLoadingListArticulosCon && (
+                  <PaginationPases
+                    actual_page={actualPageCon}
+                    records_on_page={recordsOnPageCon}
+                    total_pages={totalPagesCon}
+                    total_records={totalRecordsCon}
+                    limit={limitCon}
+                    onPageChange={handleConcesionadosPageChange}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="Perdidos">

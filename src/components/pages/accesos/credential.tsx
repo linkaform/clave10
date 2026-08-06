@@ -33,9 +33,11 @@ import MembersCarousel from "@/components/carrousel-miembros";
 
 interface Props {
 	searchPass: SearchAccessPass | undefined;
+	/** Recibe los ids de los pases de acompañantes seleccionados (desde MembersCarousel), para que AccesosPage los use al armar el payload de doAccess. */
+	onSeleccionPases?: (ids: string[]) => void;
 }
 
-const Credentials: React.FC<Props> = ({ searchPass }) => {
+const Credentials: React.FC<Props> = ({ searchPass, onSeleccionPases }) => {
 	const getStatusIcon = (status: string | undefined) => {
 		switch (status?.toLowerCase()) {
 			case "vencido": return <XCircle className="w-4 h-4 mr-1" />;
@@ -72,18 +74,6 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 							<div className="relative group">
 								<div className="w-32 h-32 rounded-2xl overflow-hidden shadow-sm border-2 border-slate-100 transition-all duration-500 ease-out group-hover:scale-[1.03] group-hover:shadow-xl group-hover:border-indigo-100">
 									<Image
-										src={searchPass?.identificacion?.[0]?.file_url || "/noiden.svg"}
-										alt="Identificación"
-										fill
-										className="object-cover rounded-xl transition-transform duration-700 ease-out group-hover:scale-110"
-									/>
-								</div>
-								<div className="absolute -bottom-2 -right-2 bg-white rounded-lg px-2 py-0.5 shadow-sm border text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID</div>
-							</div>
-
-							<div className="relative group">
-								<div className="w-32 h-32 rounded-2xl overflow-hidden shadow-sm border-2 border-slate-100 transition-all duration-500 ease-out group-hover:scale-[1.03] group-hover:shadow-xl group-hover:border-indigo-100">
-									<Image
 										src={searchPass?.foto?.[0]?.file_url || "/nouser.svg"}
 										alt="Foto"
 										fill
@@ -91,6 +81,17 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 									/>
 								</div>
 								<div className="absolute -bottom-2 -right-2 bg-white rounded-lg px-2 py-0.5 shadow-sm border text-[10px] font-bold text-slate-400 uppercase tracking-tighter">FOTO</div>
+							</div>
+							<div className="relative group">
+								<div className="w-32 h-32 rounded-2xl overflow-hidden shadow-sm border-2 border-slate-100 transition-all duration-500 ease-out group-hover:scale-[1.03] group-hover:shadow-xl group-hover:border-indigo-100">
+									<Image
+										src={searchPass?.identificacion?.[0]?.file_url || "/noiden.svg"}
+										alt="Identificación"
+										fill
+										className="object-cover rounded-xl transition-transform duration-700 ease-out group-hover:scale-110"
+									/>
+								</div>
+								<div className="absolute -bottom-2 -right-2 bg-white rounded-lg px-2 py-0.5 shadow-sm border text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID</div>
 							</div>
 						</div>
 
@@ -325,7 +326,12 @@ const Credentials: React.FC<Props> = ({ searchPass }) => {
 									</div>
 								)}
 
-								<MembersCarousel searchPass={searchPass} />
+								<MembersCarousel
+									searchPass={searchPass}
+									onSeleccionMiembros={(miembros) =>
+										onSeleccionPases?.(miembros.map((m) => m.id))
+									}
+								/>
 							</div>
 						)}
 					</div>

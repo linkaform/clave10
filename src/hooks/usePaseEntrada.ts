@@ -5,7 +5,6 @@ import { getConfSeguridad } from "@/lib/get-configuracion-seguridad";
 import { Equipo, UpdatePase, Vehiculo } from "@/lib/update-pass";
 import { UpdatePaseFull } from "@/lib/update-pass-full";
 import { errorMsj } from "@/lib/utils";
-import { useShiftStore } from "@/store/useShiftStore";
 import { useMutation, useQuery ,useQueryClient} from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -117,7 +116,6 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
       });
 
     const queryClient = useQueryClient();
-    const {isLoading, setLoading} = useShiftStore();
     const [responseCreatePase, setResponseCreatePase] = useState<any>();
 
      //Crear Incidencia
@@ -138,9 +136,6 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
                 return data?.response?.data
             }
         },
-        onMutate: () => {
-          setLoading(true);
-        },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["getMyPases"] });
           queryClient.invalidateQueries({ queryKey: ["getUserContacts"] });
@@ -149,10 +144,7 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
         onError: (err) => {
           console.error("Error al crear el pase de entrada:", err);
           toast.error(err.message || "Hubo un error al crear el pase de entrada.");
-    
-        },
-        onSettled: () => {
-          setLoading(false);
+
         },
       });
       //Actualizar pase da entrada
@@ -168,9 +160,6 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
                 return response.response?.data
             }
         },
-        onMutate: () => {
-          setLoading(true);
-        },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["getMyPases"] });
           queryClient.invalidateQueries({ queryKey: ["getStatsIncidencias"] });
@@ -179,10 +168,7 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
         onError: (err) => {
           console.error("Error al actulizar pase de entrada:", err);
           toast.error(err.message || "Hubo un error al actualizar el pase de entrada.");
-    
-        },
-        onSettled: () => {
-          setLoading(false);
+
         },
       });
 
@@ -200,9 +186,6 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
                 return response.response?.data
             }
         },
-        onMutate: () => {
-          setLoading(true);
-        },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["getListIncidencias"] });
           queryClient.invalidateQueries({ queryKey: ["getStatsIncidencias"] });
@@ -210,10 +193,9 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
         },
         onError: (err) => {
           toast.error(err.message || "Hubo un error al editar el pase entrada.");
-    
+
         },
         onSettled: () => {
-          setLoading(false);
           router.push(`/dashboard/pases`)
         },
       });
@@ -225,7 +207,6 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
     //Update Pase
     updatePaseEntradaMutation,
     updatePaseEntradaFullMutation,
-    isLoading,
     //Configuracion Seguridad
     dataConfigLocation,
     isLoadingConfigLocation,

@@ -5,9 +5,8 @@ import * as React from "react";
 import {
   ColumnFiltersState, SortingState, VisibilityState,
   flexRender, getCoreRowModel, getFilteredRowModel,
-  getPaginationRowModel, getSortedRowModel, useReactTable,
+  getSortedRowModel, useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Articulo_con_record, conColumns } from "./concecionados-columns";
 import { useEffect, useMemo } from "react";
@@ -48,7 +47,6 @@ const ArticulosConTable: React.FC<ListProps> = ({
   isLoadingListArticulosCon,
   viewMode,
   setSelectedArticulos,
-  searchTags: searchTagsProp,
   filtersConfig: filtersConfigProp,
   externalFilters: externalFiltersProp,
   onExternalFiltersChange: onExternalFiltersChangeProp,
@@ -58,7 +56,6 @@ const ArticulosConTable: React.FC<ListProps> = ({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 23 });
   const [globalFilter, setGlobalFilter] = React.useState("");
 
   const externalFilters = useMemo(
@@ -67,21 +64,13 @@ const ArticulosConTable: React.FC<ListProps> = ({
   );
   const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
   const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
-  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   const memoizedData = useMemo(() => data || [], [data]);
 
+  // El search ya se resuelve en el backend (getListArticulosCon); aquí solo aplican los filtros del sidebar.
   const filteredData = useMemo(() => {
     return applyArticulosConcesionadosFilters(memoizedData, externalFilters ?? { dynamic: {} });
   }, [memoizedData, externalFilters]);
-
-  React.useEffect(() => {
-    if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join("|"));
-    } else {
-      setGlobalFilter("");
-    }
-  }, [searchTags]);
 
   useEffect(() => {
     setTotalRegistros?.(filteredData.length);
@@ -96,12 +85,10 @@ const ArticulosConTable: React.FC<ListProps> = ({
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
     globalFilterFn: (row, _columnId, filterValue: string) => {
       if (!filterValue) return true;
       const normalize = (str: string) =>
@@ -113,7 +100,7 @@ const ArticulosConTable: React.FC<ListProps> = ({
         .join(" ");
       return tags.some((tag) => allValues.includes(tag));
     },
-    state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
+    state: { sorting, columnFilters, columnVisibility, rowSelection, globalFilter },
   });
 
   useEffect(() => {
@@ -197,18 +184,14 @@ const ArticulosConTable: React.FC<ListProps> = ({
                   </TableBody>
                 </Table>
               </div>
-              <div className="flex items-center justify-end space-x-2 py-4">
-                {!isLoadingListArticulosCon && (
+              {!isLoadingListArticulosCon && (
+                <div className="flex items-center justify-end py-4">
                   <div className="flex-1 text-sm text-muted-foreground">
                     {table.getFilteredSelectedRowModel().rows.length} de{" "}
                     {table.getFilteredRowModel().rows.length} items seleccionados.
                   </div>
-                )}
-                <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Anterior</Button>
-                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Siguiente</Button>
                 </div>
-              </div>
+              )}
             </>
           )}
 
@@ -216,7 +199,6 @@ const ArticulosConTable: React.FC<ListProps> = ({
             <PhotoGridView
               isLoading={isLoadingListArticulosCon}
               records={concesionadoPhotoRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalType="art_concesionado"
@@ -235,7 +217,6 @@ const ArticulosConTable: React.FC<ListProps> = ({
             <PhotoListView
               isLoading={isLoadingListArticulosCon}
               records={concesionadoListRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalType="art_concesionado"

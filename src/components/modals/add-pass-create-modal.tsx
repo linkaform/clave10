@@ -1,12 +1,7 @@
 import { Button } from "../ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-} from "../ui/dialog";
-import { Dispatch, SetStateAction, useState } from "react";
-import { Loader2, UserRound, ShieldCheck, Car, Laptop, Users } from "lucide-react";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "../ui/dialog";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Loader2, UserRound, ShieldCheck, Car, Laptop, UserCheck, Download } from "lucide-react";
 import { UpdatedPassModal } from "./updated-pass-modal";
 import {
   Accordion,
@@ -16,74 +11,136 @@ import {
 } from "../ui/accordion";
 import { data_correo } from "@/lib/send_correo";
 import Image from "next/image";
-import { useUpdateAccessPass } from "@/hooks/useUpdatePass";
 import { capitalizeFirstLetter } from "@/lib/utils";
-import { Badge } from "../ui/badge";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
+import { Imagen } from "../upload-Image";
+import { useCreateAccessPassWalkin } from "@/hooks/useCreateAccessPassWalkin";
+import QRious from "qrious";
+import { useGetPdf } from "@/hooks/usetGetPdf";
+import { descargarPdfPase } from "@/lib/download-pdf";
+import { toast } from "sonner";
 
-interface EntryPassModal2Props {
+export type NuevoPaseWalkinData = {
+  nombre: string;
+  empresa: string;
+  email: string;
+  telefono: string;
+  ubicacion: string;
+  caseta: string;
+  visita_nombre: string;
+  visita_email: string;
+  visita_telefono: string;
+  motivo: string;
+  walkin_fotografia: Imagen[];
+  walkin_identificacion: Imagen[];
+  equipos: Equipo[];
+  vehiculos: Vehiculo[];
+  acepto_aviso_privacidad: boolean;
+  conservar_datos_por: string;
+  firma_reglas_de_acceso?: { file_url: string; file_name: string };
+  acepto_reglas_ingreso?: boolean;
+};
+
+interface EntryPassModalCreateProps {
   title: string;
-  data: any;
+  data: NuevoPaseWalkinData | null;
   isSuccess: boolean;
   setIsSuccess: Dispatch<SetStateAction<boolean>>;
   onClose: () => void;
-  passData: any;
-  parentUserId: number;
+  account_id: number;
 }
 
-export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
+export const EntryPassModalCreate: React.FC<EntryPassModalCreateProps> = ({
   title,
   data,
   isSuccess,
-  passData,
   setIsSuccess,
   onClose,
-  parentUserId,
+  account_id,
 }) => {
   const [response, setResponse] = useState<any>(null);
   const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
   const [responseformated, setResponseFormated] = useState<data_correo | null>(null);
-  const { updatePassMutation, isLoadingUpdate } = useUpdateAccessPass();
+  const { createAccessPassWalkinMutation, isLoadingCreate } = useCreateAccessPassWalkin();
+
+  // `create_access_pass` (a diferencia de `update_pass`) no regresa una imagen
+  // de pase ya diseñada con el QR incrustado, solo el `id` del pase recién
+  // creado — por eso el QR se genera aquí mismo en el navegador con ese id,
+  // igual que hacía el ingreso.js original (ahí con QRious). Se dibuja en un
+  // canvas fuera de pantalla y se convierte a data-URL para poder mostrarlo
+  // como imagen dentro de UpdatedPassModal ("Pase de Entrada Completado").
+  const recordId: string | undefined = response?.json?.id;
+  const [enablePdf, setEnablePdf] = useState(false);
+  const { data: responsePdf } = useGetPdf(account_id, recordId ?? "", enablePdf);
+  const [qrDataUrl, setQrDataUrl] = useState("");
+
+  useEffect(() => {
+    const downloadUrl = responsePdf?.response?.data?.data?.download_url;
+    if (downloadUrl) {
+      descargarPdfPase(downloadUrl);
+      setEnablePdf(false);
+      toast.success("¡PDF descargado correctamente!");
+    }
+  }, [responsePdf]);
+
+  useEffect(() => {
+    if (recordId) {
+      const canvas = document.createElement("canvas");
+      new QRious({
+        element: canvas,
+        value: recordId,
+        size: 200,
+        backgroundAlpha: 0,
+        foreground: "#505050",
+        level: "L",
+      });
+      setQrDataUrl(canvas.toDataURL());
+    }
+  }, [recordId]);
+
   const onSubmit = async () => {
-    updatePassMutation.mutate(
+    if (!data) return;
+
+    createAccessPassWalkinMutation.mutate(
       {
         access_pass: {
-          nombre: data?.nombre,
-          email: data?.email,
-          telefono_pase: data?.telefono_pase,
-          grupo_vehiculos: data.grupo_vehiculos,
-          grupo_equipos: data.grupo_equipos,
-          status_pase: data.status_pase,
-          walkin_fotografia: data?.walkin_fotografia,
-          walkin_identificacion: data?.walkin_identificacion,
-          acepto_aviso_privacidad: data?.acepto_aviso_privacidad ? "sí" : "no",
-          acepto_aviso_datos_personales: data?.acepto_aviso_datos_personales ? "sí" : "no",
-          acepto_reglas_acceso: data?.acepto_reglas_acceso ? "sí" : "no",
-          conservar_datos_por: data?.conservar_datos_por,
-          acompanantes: data?.acompanantes ?? [],
-          grupo_acompanantes:data?.acompanantes_grupo ?? [],
-          // Firma del paso de "Reglas de acceso" (llega de PaseUpdate como
-          // { file_url, file_name }; solo se manda con contenido si el pase
-          // tenía reglas de acceso que firmar).
-          firma_reglas_de_acceso: data?.firma_reglas_de_acceso ?? { file_url: "", file_name: "" },
+          ubicaciones: [data.ubicacion],
+          nombre: data.nombre,
+          perfil_pase: data.caseta === "Lobby" ? "Internos" : "Walkin",
+          telefono: data.telefono,
+          visita_a: {
+            nombre: data.visita_nombre,
+            email: data.visita_email,
+            telefono: data.visita_telefono,
+          },
+          email: data.email,
+          empresa: data.empresa,
+          foto: data.walkin_fotografia,
+          identificacion: data.walkin_identificacion,
+          equipos: data.equipos,
+          vehiculos: data.vehiculos,
+          motivo: data.motivo,
+          created_from: "auto_registro",
+          // El backend compara este valor contra el string literal "true"
+          // (no "sí"/"no", no un booleano) — ver create_access_pass.
+          acepto_aviso_privacidad: data.acepto_aviso_privacidad ? "true" : "false",
+          conservar_datos_por: data.conservar_datos_por,
+          firma_reglas_de_acceso: data.firma_reglas_de_acceso ?? { file_url: "", file_name: "" },
+          acepto_reglas_ingreso: data.acepto_reglas_ingreso ? "true" : "false",
         },
-        id: data.folio,
-        account_id: data.account_id,
+        account_id,
       },
       {
         onSuccess: (response) => {
           setResponseFormated({
             email_to: data.email,
-            asunto: response?.response?.data?.json?.asunto,
-            email_from: response?.response?.data?.enviar_de_correo,
-            nombre: response?.response?.data?.json?.enviar_a,
-            nombre_organizador: response?.response?.data?.json?.enviar_de,
-            ubicacion: response?.response?.data?.json?.ubicacion,
-            fecha: {
-              desde: response?.response?.data?.json?.fecha_desde,
-              hasta: response?.response?.data?.json?.fecha_hasta,
-            },
-            descripcion: response?.response?.data?.json?.descripcion,
+            asunto: "",
+            email_from: "",
+            nombre: data.nombre,
+            nombre_organizador: "",
+            ubicacion: data.ubicacion,
+            fecha: { desde: "", hasta: "" },
+            descripcion: "",
           });
           setResponse(response);
           setIsSuccess(true);
@@ -116,7 +173,6 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
         aria-describedby=""
         onInteractOutside={(e) => e.preventDefault()}
       >
-        {/* Header azul */}
         <div className="bg-blue-600 p-6 text-white text-center flex-shrink-0 rounded-t-3xl">
           <DialogTitle className="text-xl font-bold tracking-tight uppercase">
             {title}
@@ -127,41 +183,53 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
         </div>
 
         <div className="flex-grow overflow-y-auto px-6 py-5 space-y-4 bg-gray-50/50">
-
-          {/* Datos personales */}
+        {response ? (
+          <div className="flex flex-col items-center gap-3 py-8">
+            <p className="text-lg font-bold text-slate-800">¡Pase creado correctamente!</p>
+            <p className="text-sm text-gray-500">Tu código QR está en la siguiente ventana.</p>
+            {recordId && <p className="text-xs text-gray-400">Folio: {recordId}</p>}
+          </div>
+        ) : (
+          <>
           <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
             <SectionHeader icon={<UserRound size={16} className="text-blue-600" />} label="Datos Personales" />
             <div className="grid grid-cols-1 gap-4">
-              <LabelValue label="Nombre Completo" value={data?.nombre} />
+              <div className="grid grid-cols-2 gap-4">
+                <LabelValue label="Nombre Completo" value={data?.nombre} />
+                <LabelValue label="Empresa" value={data?.empresa} />
+              </div>
               <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-50">
                 <LabelValue label="Email" value={data?.email} />
                 <LabelValue label="Teléfono" value={data?.telefono} />
               </div>
               <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-50">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tipo de pase</p>
-                  <p className="text-sm font-semibold text-gray-700">Visita General</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Estatus</p>
-                  <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none text-[10px] font-black px-2 py-0">
-                    Proceso
-                  </Badge>
-                </div>
+                <LabelValue label="Ubicación" value={data?.ubicacion} />
+                <LabelValue label="Caseta" value={data?.caseta} />
               </div>
             </div>
           </div>
 
-          {/* Foto e identificación */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <SectionHeader icon={<UserCheck size={16} className="text-blue-600" />} label="Visita a" />
+            <div className="grid grid-cols-3 gap-4">
+              <LabelValue label="Nombre" value={data?.visita_nombre} />
+              <LabelValue label="Email" value={data?.visita_email} />
+              <LabelValue label="Teléfono" value={data?.visita_telefono} />
+            </div>
+            <div className="pt-3 mt-3 border-t border-gray-50">
+              <LabelValue label="Motivo" value={data?.motivo} />
+            </div>
+          </div>
+
           <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
             <SectionHeader icon={<ShieldCheck size={16} className="text-blue-600" />} label="Documentos" />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fotografía</p>
-                {data?.walkin_fotografia?.length > 0 ? (
+                {(data?.walkin_fotografia?.length ?? 0) > 0 ? (
                   <div className="flex justify-center">
                     <Image
-                      src={data.walkin_fotografia[0].file_url}
+                      src={data!.walkin_fotografia[0].file_url ?? "/nouser.svg"}
                       alt="Fotografía"
                       width={120}
                       height={120}
@@ -176,10 +244,10 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
               </div>
               <div className="space-y-2">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Identificación</p>
-                {data?.walkin_identificacion?.length > 0 ? (
+                {(data?.walkin_identificacion?.length ?? 0) > 0 ? (
                   <div className="flex justify-center">
                     <Image
-                      src={data.walkin_identificacion[0].file_url}
+                      src={data!.walkin_identificacion[0].file_url ?? "/nouser.svg"}
                       alt="Identificación"
                       width={120}
                       height={120}
@@ -195,7 +263,6 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
             </div>
           </div>
 
-          {/* Firma de reglas de acceso */}
           {data?.firma_reglas_de_acceso?.file_url && (
             <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
               <SectionHeader icon={<ShieldCheck size={16} className="text-blue-600" />} label="Firma de reglas de acceso" />
@@ -211,41 +278,7 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
             </div>
           )}
 
-          {/* Acompañantes */}
-          {data?.acompanantes_grupo?.some((m: any) => m.nombre) && (
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-              <SectionHeader icon={<Users size={16} className="text-blue-600" />} label={`Acompañantes (${data.acompanantes_grupo.filter((m: any) => m.nombre).length})`} />
-              <div className="space-y-3">
-                {data.acompanantes_grupo.filter((m: any) => m.nombre).map((m: any, index: number) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                   {m.foto?.[0]?.file_url ? (
-                      <Image
-                        src={m.foto[0].file_url}
-                        alt="foto"
-                        width={36}
-                        height={36}
-                        className="w-9 h-9 rounded-full object-cover border border-gray-200 flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <UserRound size={16} className="text-blue-500" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-700 truncate">{m.nombre}</p>
-                      <div className="flex gap-3 mt-0.5">
-                        {m.email && <p className="text-[11px] text-gray-400 truncate">{m.email}</p>}
-                        {m.telefono && <p className="text-[11px] text-gray-400">{m.telefono}</p>}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Equipos */}
-          {data?.grupo_equipos?.length > 0 && (
+          {(data?.equipos?.length ?? 0) > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <Accordion type="single" collapsible>
                 <AccordionItem value="equipos" className="border-none">
@@ -255,13 +288,13 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
                         <Laptop size={14} className="text-blue-600" />
                       </div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                        Equipos ({data.grupo_equipos.length})
+                        Equipos ({data?.equipos.length})
                       </span>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-5 pb-4">
                     <div className="space-y-2">
-                      {data.grupo_equipos.map((item: Equipo, index: number) => (
+                      {data?.equipos.map((item: Equipo, index: number) => (
                         <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                           {(item.foto_equipo?.length ?? 0) > 0 ? (
                             <Image src={item.foto_equipo?.[0]?.file_url ?? "/nouser.svg"} alt="equipo" width={36} height={36} className="w-9 h-9 rounded-lg object-cover border flex-shrink-0" />
@@ -286,8 +319,7 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
             </div>
           )}
 
-          {/* Vehículos */}
-          {data?.grupo_vehiculos?.length > 0 && (
+          {(data?.vehiculos?.length ?? 0) > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <Accordion type="single" collapsible>
                 <AccordionItem value="vehiculos" className="border-none">
@@ -297,13 +329,13 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
                         <Car size={14} className="text-blue-600" />
                       </div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                        Vehículos ({data.grupo_vehiculos.length})
+                        Vehículos ({data?.vehiculos.length})
                       </span>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-5 pb-4">
                     <div className="space-y-2">
-                      {data.grupo_vehiculos.map((item: Vehiculo, index: number) => (
+                      {data?.vehiculos.map((item: Vehiculo, index: number) => (
                         <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                           {(item.foto_vehiculo?.length ?? 0) > 0 ? (
                             <Image src={item.foto_vehiculo?.[0]?.file_url ?? "/nouser.svg"} alt="vehiculo" width={36} height={36} className="w-9 h-9 rounded-lg object-cover border flex-shrink-0" />
@@ -328,50 +360,62 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
               </Accordion>
             </div>
           )}
-
+          </>
+        )}
         </div>
 
-        {/* Footer */}
         <div className="p-5 bg-white border-t border-gray-100 flex gap-3 flex-shrink-0 rounded-b-3xl">
-          <DialogClose asChild>
+          {!response ? (
+            <>
+              <DialogClose asChild>
+                <Button
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl py-5 font-bold uppercase text-[10px] tracking-widest h-auto"
+                  onClick={handleClose}
+                  disabled={isLoadingCreate}
+                >
+                  Cancelar
+                </Button>
+              </DialogClose>
+
+              <Button
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-5 font-bold uppercase text-[10px] tracking-widest h-auto shadow-lg shadow-blue-100"
+                type="submit"
+                onClick={onSubmit}
+                disabled={isLoadingCreate}
+              >
+                {!isLoadingCreate ? (
+                  "Crear pase"
+                ) : (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creando...</>
+                )}
+              </Button>
+            </>
+          ) : (
             <Button
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl py-5 font-bold uppercase text-[10px] tracking-widest h-auto"
-              onClick={handleClose}
-              disabled={isLoadingUpdate}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-5 font-bold uppercase text-[10px] tracking-widest h-auto flex items-center justify-center gap-2"
+              type="button"
+              onClick={() => setEnablePdf(true)}
             >
-              Cancelar
+              <Download size={14} /> Descargar PDF
             </Button>
-          </DialogClose>
+          )}
 
           <UpdatedPassModal
             title="Pase de Entrada Completado"
             description=""
             openGeneratedPass={openGeneratedPass}
-            hasEmail={data?.email ? true : false}
-            hasTelefono={data?.telefono ? true : false}
+            hasEmail={!!data?.email}
+            hasTelefono={!!data?.telefono}
             setOpenGeneratedPass={setOpenGeneratedPass}
-            qr={response?.json?.qr_pase[0].file_url ?? "/nouser.svg"}
+            qr={qrDataUrl}
             dataPass={responseformated}
-            account_id={data?.account_id ?? 0}
+            account_id={account_id ?? 0}
             folio={response?.json?.id}
             closePadre={handleClose}
-            passData={passData}
+            passData={{ pass_selected: { _id: response?.json?.id } }}
             updateResponse={response}
-            parentUserId={parentUserId}
+            parentUserId={account_id}
           />
-
-          <Button
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-5 font-bold uppercase text-[10px] tracking-widest h-auto shadow-lg shadow-blue-100"
-            type="submit"
-            onClick={onSubmit}
-            disabled={isLoadingUpdate}
-          >
-            {!isLoadingUpdate ? (
-              "Confirmar pase"
-            ) : (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Actualizando...</>
-            )}
-          </Button>
         </div>
       </DialogContent>
     </Dialog>

@@ -223,6 +223,17 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     const nuevoNombre = `${quitarAcentosYMinusculasYEspacios(id)}.${extension}`;
     const nuevoArchivo = new File([base64], nuevoNombre, { type: base64.type });
 
+    // Se suelta la cámara de inmediato, antes de los awaits de subida/OCR —
+    // dejarla montada y con el stream activo durante ese tiempo (antes se
+    // liberaba hasta el final) deja una ventana donde un desmonte externo
+    // (cerrar el diálogo, navegar, un re-render del padre) puede toparse con
+    // el <video> todavía streameando y producir un "Failed to execute
+    // 'removeChild'" al desmontarlo.
+    stopWebcamStream();
+    setHideWebcam(true);
+    setHideButtonWebcam(false);
+    setWebcamReady(false);
+
     const result = await uploadImageMutation.mutateAsync({ img: nuevoArchivo });
     if (result?.file_url) {
       const updatedImgs = [...(imgArray ?? []), result];
@@ -240,10 +251,6 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
         }
       }
     }
-    stopWebcamStream();
-    setHideWebcam(true);
-    setHideButtonWebcam(false);
-    setWebcamReady(false);
   }
 
   const handleButtonClick = () => {
