@@ -45,6 +45,7 @@ import {
   type SelloClasificacionOption,
   type SelloVvttPunto,
 } from "@/hooks/transportistas/useInspeccionPuntosTransportista";
+import { useConfigFlujoTransportista } from "@/hooks/transportistas/useConfigFlujoTransportista";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { saveBitacoraTransportistaRecord, saveInspeccionesTransportista, saveInspeccionesSelloTransportista, ocrAccesoTransportista, sendAvisoCorreoTransportista } from "@/services/endpoints";
 import { uploadImage } from "@/lib/get-upload-image";
@@ -1429,23 +1430,27 @@ function ProgressBar({
   entradaDone,
   cargaDone,
   salidaDone,
+  etapasActivas,
 }: {
   arriboDone: boolean;
   entradaDone: boolean;
   cargaDone: boolean;
   salidaDone: boolean;
+  etapasActivas: string[];
 }) {
   const BLUE = "#2F80ED";
   const AMBER = "#F5A623";
   const GRAY = "#E2E8F0";
 
+  // Los keys de las etapas opcionales deben coincidir con los value reales de las
+  // opciones del checkbox `etapas_activas` en Linkaform (no con el valor de `estatus`).
   const defs = [
-    { label: "Arribo", done: arriboDone },
-    { label: "Insp. entrada", done: entradaDone },
-    { label: "Carga / Descarga", done: cargaDone },
-    { label: "Insp. salida", done: salidaDone },
-    { label: "Terminado", done: false },
-  ];
+    { key: "arribo", label: "Arribo", done: arriboDone },
+    { key: "inspeccion_de_entrada", label: "Insp. entrada", done: entradaDone },
+    { key: "carga_/_descarga", label: "Carga / Descarga", done: cargaDone },
+    { key: "inspeccion_salida", label: "Insp. salida", done: salidaDone },
+    { key: "terminado", label: "Terminado", done: false },
+  ].filter((d) => d.key === "arribo" || d.key === "terminado" || etapasActivas.includes(d.key));
   const activeIdx = defs.findIndex((d) => !d.done);
 
   const NODE_SIZE = 28;
@@ -1864,6 +1869,7 @@ export default function DetalleTransportistaPage() {
   // Precarga los puntos de inspección desde que se abre el detalle, en paralelo
   // con el registro, para que el modal de inspección abra sin spinner propio.
   useInspeccionPuntosTransportista();
+  const { data: configFlujo } = useConfigFlujoTransportista();
 
   // La galería de fotos solo aplica una vez terminado el acceso.
   const registrosFotografias = useMemo(
@@ -2719,13 +2725,32 @@ export default function DetalleTransportistaPage() {
 
   // Etapas derivadas del estatus real del registro
   const estatus = data?.estatus ?? "";
-  const ORDEN_ESTATUS = ["arribo", "inspeccion_entrada", "carga_/_descarga", "inspeccion_salida", "terminado"];
+  const etapasActivas = configFlujo.etapasActivas;
+  // Slug de configuración (value real del checkbox en Linkaform) → valor real del
+  // campo `estatus` en la bitácora — solo "inspeccion_de_entrada" difiere.
+  const ETAPA_SLUG_A_ESTATUS: Record<string, string> = {
+    inspeccion_de_entrada: "inspeccion_entrada",
+    "carga_/_descarga": "carga_/_descarga",
+    inspeccion_salida: "inspeccion_salida",
+  };
+  const ORDEN_ESTATUS = [
+    "arribo",
+    ...["inspeccion_de_entrada", "carga_/_descarga", "inspeccion_salida"]
+      .filter((etapa) => etapasActivas.includes(etapa))
+      .map((etapa) => ETAPA_SLUG_A_ESTATUS[etapa]),
+    "terminado",
+  ];
+  // Siguiente estatus activo tras `actual` — salta automáticamente cualquier etapa desactivada.
+  const siguienteEstatus = (actual: string) => {
+    const idx = ORDEN_ESTATUS.indexOf(actual);
+    return ORDEN_ESTATUS[idx + 1] ?? actual;
+  };
   const estatusIdx = ORDEN_ESTATUS.indexOf(estatus);
-  const isLocked = estatusIdx >= ORDEN_ESTATUS.indexOf("carga_/_descarga");
-  const arriboDone  = estatusIdx > 0;
-  const entradaDone = estatusIdx > 1;
-  const cargaDone   = estatusIdx > 2;
-  const salidaDone  = estatusIdx > 3;
+  const isLocked = estatusIdx > ORDEN_ESTATUS.indexOf("inspeccion_entrada");
+  const arriboDone  = estatusIdx > ORDEN_ESTATUS.indexOf("arribo");
+  const entradaDone = estatusIdx > ORDEN_ESTATUS.indexOf("inspeccion_entrada");
+  const cargaDone   = etapasActivas.includes("carga_/_descarga") && estatusIdx > ORDEN_ESTATUS.indexOf("carga_/_descarga");
+  const salidaDone  = etapasActivas.includes("inspeccion_salida") && estatusIdx > ORDEN_ESTATUS.indexOf("inspeccion_salida");
 
   // Inspecciones — valores estructurales (no vienen del API aún)
   const inspecciones = {
@@ -2849,6 +2874,7 @@ export default function DetalleTransportistaPage() {
               entradaDone={entradaDone}
               cargaDone={cargaDone}
               salidaDone={salidaDone}
+              etapasActivas={etapasActivas}
             />
           </div>
         </div>
@@ -3950,7 +3976,7 @@ export default function DetalleTransportistaPage() {
                   <button
                     type="button"
                     disabled={savingEstatus}
-                    onClick={() => cambiarEstatus("terminado")}
+                    onClick={() => cambiarEstatus(siguienteEstatus(estatus))}
                     className="w-full h-11 rounded-xl text-xs font-semibold bg-white hover:bg-green-50 text-green-700 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
                     {savingEstatus
                       ? <span className="w-3.5 h-3.5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
@@ -3972,17 +3998,18 @@ export default function DetalleTransportistaPage() {
             const selloCompleto = inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total;
             if (!entradaCompleta || !selloCompleto) return null;
             const materialesRegistrados = (data?.materiales ?? []).some((m) => m.producto && m.producto.trim() !== "");
+            const cargaDescargaActiva = etapasActivas.includes("carga_/_descarga");
             return (
               <div className="space-y-1.5">
                 <button
                   type="button"
                   disabled={savingEstatus || !materialesRegistrados}
-                  onClick={() => setShowAndenModal(true)}
+                  onClick={() => cargaDescargaActiva ? setShowAndenModal(true) : cambiarEstatus(siguienteEstatus(estatus))}
                   className="relative w-full h-11 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2 shadow-md overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed">
                   {savingEstatus
                     ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     : <ArrowRight className="w-3.5 h-3.5" style={{ animation: materialesRegistrados ? "slide-right 0.7s ease-in-out infinite alternate" : undefined }} />}
-                  Pasar a etapa · Carga / Descarga
+                  {cargaDescargaActiva ? "Pasar a etapa · Carga / Descarga" : "Pasar a etapa · Inspección de salida"}
                 </button>
                 {!materialesRegistrados && (
                   <p className="text-[10px] text-red-500 leading-relaxed px-1">
@@ -4019,7 +4046,7 @@ export default function DetalleTransportistaPage() {
                   <button
                     type="button"
                     disabled={finalizarDisabled}
-                    onClick={() => cambiarEstatus("inspeccion_salida")}
+                    onClick={() => cambiarEstatus(siguienteEstatus(estatus))}
                     className="w-full h-10 rounded-xl text-xs font-semibold bg-white hover:bg-amber-50 text-amber-700 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
                     {savingEstatus
                       ? <span className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
@@ -4146,7 +4173,7 @@ export default function DetalleTransportistaPage() {
               );
             })();
 
-            const cardMateriales = estatusIdx >= ORDEN_ESTATUS.indexOf("carga_/_descarga") ? (() => {
+            const cardMateriales = etapasActivas.includes("carga_/_descarga") && estatusIdx >= ORDEN_ESTATUS.indexOf("carga_/_descarga") ? (() => {
               const mats = data?.materiales ?? [];
               const totalMats = mats.length;
               const matsConFisica = mats.filter((m) => m.cantidad_fisica && m.cantidad_fisica.trim() !== "").length;
@@ -4204,7 +4231,7 @@ export default function DetalleTransportistaPage() {
             })() : null;
 
             const cardSalida = (() => {
-              const salidaHabilitada = estatusIdx >= ORDEN_ESTATUS.indexOf("inspeccion_salida");
+              const salidaHabilitada = etapasActivas.includes("inspeccion_salida") && estatusIdx >= ORDEN_ESTATUS.indexOf("inspeccion_salida");
               const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
                 i.tipo === "salida_tractor" || i.tipo.startsWith("salida_contenedor_")
               );
@@ -4353,7 +4380,7 @@ export default function DetalleTransportistaPage() {
           onClose={() => setShowAndenModal(false)}
           onConfirm={(anden) => {
             setShowAndenModal(false);
-            cambiarEstatus("carga_/_descarga", anden);
+            cambiarEstatus(siguienteEstatus(estatus), anden);
           }}
         />
       )}

@@ -37,6 +37,7 @@ import {
   useTransportistaFilters,
   applyTransportistaFilters,
 } from "@/hooks/transportistas/useTransportistaFilters";
+import { useConfigFlujoTransportista } from "@/hooks/transportistas/useConfigFlujoTransportista";
 
 // ─── Columnas del kanban ────────────────────────────────────────────────────
 
@@ -334,6 +335,16 @@ export default function BitacorasTransportistasPage() {
     ...serverFilters,
   });
 
+  // Oculta del kanban las columnas de etapas desactivadas para esta cuenta.
+  // El value real de la opción de Linkaform para "entrada" es "inspeccion_de_entrada"
+  // (no coincide con el key de la columna, que sí es el valor real de `estatus`).
+  const { data: configFlujo } = useConfigFlujoTransportista();
+  const columnasVisibles = COLUMNAS.filter((col) => {
+    if (col.key === "arribo" || col.key === "terminado") return true;
+    const slug = col.key === "inspeccion_entrada" ? "inspeccion_de_entrada" : col.key;
+    return configFlujo.etapasActivas.includes(slug);
+  });
+
   const searchFiltered = records.filter((r) => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -434,7 +445,7 @@ export default function BitacorasTransportistasPage() {
         <div className="flex-1 min-h-0 overflow-hidden">
           <div className="flex gap-3 p-4 h-full w-full">
             <ProgramadosColumn records={byEstatus("programado")} fecha={fecha} now={now} onChangeDay={changeDay} />
-            {COLUMNAS.map((col) => (
+            {columnasVisibles.map((col) => (
               <KanbanColumn
                 key={col.key}
                 col={col}
