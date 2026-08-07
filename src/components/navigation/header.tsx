@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MegaMenu } from "./mega-menu";
+import { MobileMenu } from "./mobile-menu";
 import type { MenuConfig } from "@/types/menu-types";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 
@@ -83,6 +84,9 @@ export function Header({
       <div className="mx-auto grid grid-cols-3 items-center">
         {/* Left Section: Logo & Location */}
         <div className="flex items-center gap-8 justify-self-start">
+          {/* Mobile/Tablet menu trigger */}
+          <MobileMenu modules={menuConfig.modules} basePath="/dashboard" />
+
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 relative h-10 w-[120px]">
