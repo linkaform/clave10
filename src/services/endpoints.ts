@@ -283,6 +283,19 @@ export const getFormFieldsTransportista = (form_ids: string[]) =>
     form_ids,
   });
 
+export const getConfigFlujoTransportista = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_config_flujo_transportistas",
+  });
+
+export const getFormasInspeccionTransportista = (ubicacion?: string | null) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_formas_inspeccion_transportista",
+    ubicacion,
+  });
+
 export const getFotografiasTransportista = (
   registros: { record_id: string; tipo_de_registro: string }[],
 ) =>

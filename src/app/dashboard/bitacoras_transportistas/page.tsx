@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { NuevoAccesoTransportistaModal } from "@/components/modals/nuevo-acceso-transportista-modal";
 import {
@@ -37,6 +38,10 @@ import {
   useTransportistaFilters,
   applyTransportistaFilters,
 } from "@/hooks/transportistas/useTransportistaFilters";
+import { useConfigFlujoTransportista } from "@/hooks/transportistas/useConfigFlujoTransportista";
+import useAuthStore from "@/store/useAuthStore";
+import { useBoothStore } from "@/store/useBoothStore";
+import { useGetShift } from "@/hooks/useGetShift";
 
 // ─── Columnas del kanban ────────────────────────────────────────────────────
 
@@ -301,6 +306,10 @@ export default function BitacorasTransportistasPage() {
   const [modalNuevoOpen, setModalNuevoOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list" | "grid" | "table">("kanban");
 
+  const { isAuth } = useAuthStore();
+  const { area, location } = useBoothStore();
+  const { isLoading: loadingShift, turno } = useGetShift(area, location);
+
   const {
     externalFilters,
     onExternalFiltersChange,
@@ -334,6 +343,16 @@ export default function BitacorasTransportistasPage() {
     ...serverFilters,
   });
 
+  // Oculta del kanban las columnas de etapas desactivadas para esta cuenta.
+  // El value real de la opción de Linkaform para "entrada" es "inspeccion_de_entrada"
+  // (no coincide con el key de la columna, que sí es el valor real de `estatus`).
+  const { data: configFlujo } = useConfigFlujoTransportista();
+  const columnasVisibles = COLUMNAS.filter((col) => {
+    if (col.key === "arribo" || col.key === "terminado") return true;
+    const slug = col.key === "inspeccion_entrada" ? "inspeccion_de_entrada" : col.key;
+    return configFlujo.etapasActivas.includes(slug);
+  });
+
   const searchFiltered = records.filter((r) => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -357,6 +376,26 @@ export default function BitacorasTransportistasPage() {
     d.setDate(d.getDate() + delta);
     setFecha(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
   };
+
+  // Igual que en accesos/page.tsx: sin turno abierto no se puede operar esta pantalla.
+  if (!turno && isAuth && !loadingShift) {
+    return (
+      <div className="flex justify-center items-center overflow-hidden mt-32">
+        <div className="flex items-center flex-col gap-2">
+          <Image src="/guardia1.png" alt="Next.js img" width={300} height={300} priority />
+          <div className="text-2xl font-bold">Inicia turno para comenzar...</div>
+          <p className="text-gray-500">Activa tus funciones registrando el inicio de turno.</p>
+          <Link href="/dashboard/turnos">
+            <Button
+              className="w-40 h-9 mt-5 px-3 border border-blue-500 bg-blue-500 rounded-md text-sm text-white font-medium hover:bg-blue-600"
+              variant="default">
+              Turnos
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col", viewMode === "kanban" ? "overflow-hidden" : "overflow-y-auto")} style={{ height: "calc(100vh - 57px)" }}>
@@ -434,7 +473,7 @@ export default function BitacorasTransportistasPage() {
         <div className="flex-1 min-h-0 overflow-hidden">
           <div className="flex gap-3 p-4 h-full w-full">
             <ProgramadosColumn records={byEstatus("programado")} fecha={fecha} now={now} onChangeDay={changeDay} />
-            {COLUMNAS.map((col) => (
+            {columnasVisibles.map((col) => (
               <KanbanColumn
                 key={col.key}
                 col={col}
