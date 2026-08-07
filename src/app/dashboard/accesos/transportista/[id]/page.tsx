@@ -3,8 +3,13 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
+import useAuthStore from "@/store/useAuthStore";
+import { useBoothStore } from "@/store/useBoothStore";
+import { useGetShift } from "@/hooks/useGetShift";
+import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   ArrowRight,
@@ -44,6 +49,7 @@ import {
   type MedidasLabels,
   type SelloClasificacionOption,
   type SelloVvttPunto,
+  type PuntoConId,
 } from "@/hooks/transportistas/useInspeccionPuntosTransportista";
 import { useConfigFlujoTransportista } from "@/hooks/transportistas/useConfigFlujoTransportista";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
@@ -131,6 +137,8 @@ interface ContenedorInspSection {
   evidencia: EvidenciaImg[];
   altura: string; ancho: string; longitud: string;
   filas: FilaCont[];
+  // Comentario general — solo se usa/muestra cuando la forma de contenedor es custom.
+  comentarioGeneral: string;
 }
 interface UnitInspData {
   contenedor: ContenedorInspSection | null; // null para solo_remolque
@@ -147,12 +155,13 @@ interface InspeccionEntradaModalProps {
   placaTarjetaCirculacion?: string | null;
   documentosAdicionales?: { file_url: string; file_name: string; tipo?: string }[];
   tipoPrefix?: string;
+  ubicacion?: string | null;
   onClose: () => void;
   onSaved?: () => void;
 }
 
 function InspeccionEntradaModal(props: InspeccionEntradaModalProps) {
-  const { data: puntos, isLoading, error } = useInspeccionPuntosTransportista();
+  const { data: puntos, isLoading, error } = useInspeccionPuntosTransportista(props.ubicacion);
 
   if (error) {
     return (
@@ -188,6 +197,12 @@ function InspeccionEntradaModal(props: InspeccionEntradaModalProps) {
       puntosTractor={puntos.puntosTractor}
       filasContenedor={puntos.filasContenedor}
       medidasLabelsContenedor={puntos.medidasLabelsContenedor}
+      tractorFormId={puntos.tractorFormId}
+      contenedorFormId={puntos.contenedorFormId}
+      tractorComentarioFieldId={puntos.tractorComentarioFieldId}
+      tractorEvidenciaFieldId={puntos.tractorEvidenciaFieldId}
+      contenedorComentarioFieldId={puntos.contenedorComentarioFieldId}
+      contenedorEvidenciaFieldId={puntos.contenedorEvidenciaFieldId}
     />
   );
 }
@@ -202,10 +217,22 @@ function InspeccionEntradaModalContent({
   puntosTractor,
   filasContenedor,
   medidasLabelsContenedor,
+  tractorFormId,
+  contenedorFormId,
+  tractorComentarioFieldId,
+  tractorEvidenciaFieldId,
+  contenedorComentarioFieldId,
+  contenedorEvidenciaFieldId,
 }: InspeccionEntradaModalProps & {
-  puntosTractor: string[];
-  filasContenedor: string[];
+  puntosTractor: PuntoConId[];
+  filasContenedor: PuntoConId[];
   medidasLabelsContenedor: MedidasLabels;
+  tractorFormId: string;
+  contenedorFormId: string;
+  tractorComentarioFieldId: string | null;
+  tractorEvidenciaFieldId: string | null;
+  contenedorComentarioFieldId: string | null;
+  contenedorEvidenciaFieldId: string | null;
 }) {
   useBodyScrollLock(true);
   const withPrefix = (tipo: string) => tipoPrefix ? `${tipoPrefix}_${tipo}` : tipo;
@@ -263,10 +290,12 @@ function InspeccionEntradaModalContent({
   };
   const emptyPunto = (): PuntoInsp => ({ value: null, comentario: "", fotos: [] });
   const emptyContenedorSection = (): ContenedorInspSection => ({
-    evidencia: [], altura: "", ancho: "", longitud: "",
+    evidencia: [], altura: "", ancho: "", longitud: "", comentarioGeneral: "",
     filas: filasContenedor.map(() => ({ suciedad: null as FilaCelda, plagas: null as FilaCelda, fauna: null as FilaCelda })),
   });
   const [tractorPuntos, setTractorPuntos] = useState<PuntoInsp[]>(puntosTractor.map(emptyPunto));
+  // Comentario general de tractor — solo se usa/muestra cuando la forma es custom.
+  const [comentarioGeneralTractor, setComentarioGeneralTractor] = useState("");
   const [unitsData, setUnitsData] = useState<UnitInspData[]>(() =>
     unidades.map((u) => ({
       contenedor: u.config === "remolque_contenedor" ? emptyContenedorSection() : null,
@@ -330,22 +359,44 @@ function InspeccionEntradaModalContent({
       })
     );
 
+  const setContenedorComentarioGeneral = (ui: number, val: string) =>
+    setUnitsData((p) =>
+      p.map((u, i) => {
+        if (i !== ui || !u.contenedor) return u;
+        return { ...u, contenedor: { ...u.contenedor, comentarioGeneral: val } };
+      })
+    );
+
   const [saving, setSaving] = useState(false);
+
+  // El value real de "Sí"/"No" en Linkaform no siempre es el string "sí"/"no"
+  // (ver PuntoConId.siValue/noValue) — se resuelve por punto, no por texto fijo.
+  const resolverResultado = (valor: SiNoVal, punto: PuntoConId): string | null => {
+    if (valor === "sí") return punto.siValue ?? valor;
+    if (valor === "no") return punto.noValue ?? valor;
+    return null;
+  };
 
   const buildPayload = () => {
     const inspecciones: unknown[] = [];
 
-    // Tractor
+    // Tractor — siempre por field_id (ver extractPuntos: detecta comentario/
+    // evidencia por adyacencia, funciona igual para la forma default o una custom).
     inspecciones.push({
       tipo: withPrefix("tractor"),
-      evidencias: tractorEvidencia,
-      puntos: puntosTractor.map((descripcion, i) => ({
-        numero: i + 1,
-        descripcion,
-        resultado: tractorPuntos[i].value,
-        comentario: tractorPuntos[i].comentario,
-        fotos: tractorPuntos[i].fotos,
+      form_id: tractorFormId,
+      puntos: puntosTractor.map((punto, i) => ({
+        field_id: punto.field_id,
+        resultado: resolverResultado(tractorPuntos[i].value, punto),
+        comentario_field_id: punto.comentarioFieldId,
+        comentario: punto.comentarioFieldId ? tractorPuntos[i].comentario : undefined,
+        evidencia_field_id: punto.evidenciaFieldId,
+        fotos: punto.evidenciaFieldId ? tractorPuntos[i].fotos : undefined,
       })),
+      comentario_general_field_id: tractorComentarioFieldId,
+      comentario_general: comentarioGeneralTractor,
+      evidencia_general_field_id: tractorEvidenciaFieldId,
+      evidencias: tractorEvidencia,
     });
 
     // Unidades
@@ -359,7 +410,7 @@ function InspeccionEntradaModalContent({
         inspecciones.push({
           tipo: withPrefix("contenedor"),
           unidad: i + 1,
-          evidencias: sec.evidencia,
+          form_id: contenedorFormId,
           medidas: {
             altura: sec.altura,
             ancho: sec.ancho,
@@ -368,10 +419,14 @@ function InspeccionEntradaModalContent({
           filas: filasContenedor.map((punto, fi) => {
             const f = sec.filas[fi];
             return {
-              punto,
+              field_id: punto.field_id,
               valores: (["suciedad", "plagas", "fauna"] as const).filter((col) => f[col] === "sí"),
             };
           }),
+          comentario_general_field_id: contenedorComentarioFieldId,
+          comentario_general: sec.comentarioGeneral,
+          evidencia_general_field_id: contenedorEvidenciaFieldId,
+          evidencias: sec.evidencia,
         });
       }
     });
@@ -562,6 +617,9 @@ function InspeccionEntradaModalContent({
     onComentario: (text: string) => void,
     ptKey: string,
     locked: boolean = false,
+    // Formas custom: solo se guarda el resultado por punto — comentario y foto
+    // pasan a ser generales para toda la inspección (ver "Comentario general").
+    ocultarComentarioYFoto: boolean = false,
   ) => {
     const uploadingFoto = uploadingSection === ptKey;
     return (
@@ -597,30 +655,32 @@ function InspeccionEntradaModalContent({
           >
             No
           </button>
-          <button
-            type="button"
-            onClick={() => triggerUpload(ptKey)}
-            disabled={uploadingFoto || locked}
-            className={cn(
-              "relative w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition-colors",
-              locked && "cursor-not-allowed",
-              punto.fotos.length > 0
-                ? "border-blue-400 bg-blue-50 text-blue-500"
-                : "border-gray-200 hover:border-blue-300 text-gray-300"
-            )}
-          >
-            {uploadingFoto
-              ? <Spinner className="w-3.5 h-3.5 text-blue-400" />
-              : <Camera className="w-3.5 h-3.5" />
-            }
-            {punto.fotos.length > 0 && !uploadingFoto && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center leading-none">
-                {punto.fotos.length}
-              </span>
-            )}
-          </button>
+          {!ocultarComentarioYFoto && (
+            <button
+              type="button"
+              onClick={() => triggerUpload(ptKey)}
+              disabled={uploadingFoto || locked}
+              className={cn(
+                "relative w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition-colors",
+                locked && "cursor-not-allowed",
+                punto.fotos.length > 0
+                  ? "border-blue-400 bg-blue-50 text-blue-500"
+                  : "border-gray-200 hover:border-blue-300 text-gray-300"
+              )}
+            >
+              {uploadingFoto
+                ? <Spinner className="w-3.5 h-3.5 text-blue-400" />
+                : <Camera className="w-3.5 h-3.5" />
+              }
+              {punto.fotos.length > 0 && !uploadingFoto && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                  {punto.fotos.length}
+                </span>
+              )}
+            </button>
+          )}
         </div>
-        {punto.fotos.length > 0 && (
+        {!ocultarComentarioYFoto && punto.fotos.length > 0 && (
           <div className="pb-2.5 pl-6 flex gap-2 flex-wrap">
             {punto.fotos.map((img, fi) => (
               <div key={fi} className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-200 shrink-0">
@@ -636,7 +696,7 @@ function InspeccionEntradaModalContent({
             ))}
           </div>
         )}
-        {punto.value === "no" && (
+        {!ocultarComentarioYFoto && punto.value === "no" && (
           <div className="pb-2.5 pl-6">
             <textarea
               rows={2}
@@ -672,6 +732,9 @@ function InspeccionEntradaModalContent({
 
   const renderTractorTab = () => {
     const done = isDone("tractor");
+    // "Comentario general" solo aplica cuando NINGÚN punto trae su propio
+    // comentario/evidencia detectado por adyacencia (ver extractPuntos).
+    const tractorTieneComentarioPorPunto = puntosTractor.some((p) => p.comentarioFieldId);
     return (
       <div className="p-5 space-y-4">
         {renderDoneBanner("tractor")}
@@ -688,15 +751,28 @@ function InspeccionEntradaModalContent({
               </span>
             </div>
             <div>
-              {puntosTractor.map((label, i) =>
+              {puntosTractor.map((punto, i) =>
                 renderSiNoRow(
-                  label, i, tractorPuntos[i],
+                  punto.label, i, tractorPuntos[i],
                   (val) => setTractorPunto(i, val), (text) => setTractorComentario(i, text),
                   `pt:tractor:${i}`,
                   i > 0 && tractorPuntos[i - 1].value === null,
+                  !punto.comentarioFieldId && !punto.evidenciaFieldId,
                 )
               )}
             </div>
+            {!tractorTieneComentarioPorPunto && tractorComentarioFieldId && (
+              <div>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Comentario general</p>
+                <textarea
+                  rows={3}
+                  placeholder="Añadir comentario u observación de toda la inspección…"
+                  value={comentarioGeneralTractor}
+                  onChange={(e) => setComentarioGeneralTractor(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:outline-none focus:border-blue-300 resize-none"
+                />
+              </div>
+            )}
           </>
         )}
       </div>
@@ -767,7 +843,7 @@ function InspeccionEntradaModalContent({
                 const hasNo = fila.suciedad === "no" || fila.plagas === "no" || fila.fauna === "no";
                 return (
                   <tr key={fi} className={cn("border-t border-gray-50", hasNo && "bg-red-50/30", !hasNo && anyEval && "bg-green-50/30")}>
-                    <td className="py-2 pr-3 text-xs text-gray-700 leading-snug">{filasContenedor[fi]}</td>
+                    <td className="py-2 pr-3 text-xs text-gray-700 leading-snug">{filasContenedor[fi]?.label}</td>
                     <td className="py-2 px-1.5 text-center">
                       <button
                         type="button"
@@ -806,6 +882,18 @@ function InspeccionEntradaModalContent({
             </tbody>
           </table>
         </div>
+        {contenedorComentarioFieldId && (
+          <div>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Comentario general</p>
+            <textarea
+              rows={3}
+              placeholder="Añadir comentario u observación de toda la inspección…"
+              value={sec.comentarioGeneral}
+              onChange={(e) => setContenedorComentarioGeneral(unitIdx, e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:outline-none focus:border-blue-300 resize-none"
+            />
+          </div>
+        )}
         </>}
       </div>
     );
@@ -1010,13 +1098,14 @@ interface InspeccionSelloModalProps {
   unidades: UnidadItem[];
   inspeccionesDone: { tipo: string; unidad?: number; url?: string }[];
   documentosAdicionales?: { file_url: string; file_name: string; tipo?: string }[];
+  ubicacion?: string | null;
   onClose: () => void;
   onSaved?: () => void;
   onViewRecord?: (url: string, tipo: string) => void;
 }
 
 function InspeccionSelloModal(props: InspeccionSelloModalProps) {
-  const { data: puntos, isLoading, error } = useInspeccionPuntosTransportista();
+  const { data: puntos, isLoading, error } = useInspeccionPuntosTransportista(props.ubicacion);
 
   if (error) {
     return (
@@ -1866,9 +1955,14 @@ export default function DetalleTransportistaPage() {
   const router = useRouter();
   const { data, isLoading, error, refetch } = useGetVisitTransportista(id);
   const queryClient = useQueryClient();
+  const { isAuth } = useAuthStore();
+  const { area, location } = useBoothStore();
+  const { isLoading: loadingShift, turno } = useGetShift(area, location);
   // Precarga los puntos de inspección desde que se abre el detalle, en paralelo
   // con el registro, para que el modal de inspección abra sin spinner propio.
-  useInspeccionPuntosTransportista();
+  // Arranca con los form_id por default (ubicación aún no cargada) y se re-resuelve
+  // solo si esta cuenta tiene una forma custom configurada para esa ubicación.
+  useInspeccionPuntosTransportista(data?.ubicacion);
   const { data: configFlujo } = useConfigFlujoTransportista();
 
   // La galería de fotos solo aplica una vez terminado el acceso.
@@ -2746,9 +2840,16 @@ export default function DetalleTransportistaPage() {
     return ORDEN_ESTATUS[idx + 1] ?? actual;
   };
   const estatusIdx = ORDEN_ESTATUS.indexOf(estatus);
-  const isLocked = estatusIdx > ORDEN_ESTATUS.indexOf("inspeccion_entrada");
+  // "Locked" = ya se pasó la ventana editable de captura (documentos/materiales/
+  // vehículo). Normalmente esa ventana termina justo después de inspección de
+  // entrada; si esa etapa no está activa para la cuenta, cae a "arribo" en vez
+  // de romper con indexOf(-1) (que siempre sería mayor que cualquier índice real).
+  const indiceFinVentanaEditable = etapasActivas.includes("inspeccion_de_entrada")
+    ? ORDEN_ESTATUS.indexOf("inspeccion_entrada")
+    : ORDEN_ESTATUS.indexOf("arribo");
+  const isLocked = estatusIdx > indiceFinVentanaEditable;
   const arriboDone  = estatusIdx > ORDEN_ESTATUS.indexOf("arribo");
-  const entradaDone = estatusIdx > ORDEN_ESTATUS.indexOf("inspeccion_entrada");
+  const entradaDone = estatusIdx > indiceFinVentanaEditable;
   const cargaDone   = etapasActivas.includes("carga_/_descarga") && estatusIdx > ORDEN_ESTATUS.indexOf("carga_/_descarga");
   const salidaDone  = etapasActivas.includes("inspeccion_salida") && estatusIdx > ORDEN_ESTATUS.indexOf("inspeccion_salida");
 
@@ -2841,6 +2942,27 @@ export default function DetalleTransportistaPage() {
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 rounded-xl" />)}
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Igual que en accesos/page.tsx y bitacoras_transportistas: sin turno abierto
+  // no se puede operar esta pantalla.
+  if (!turno && isAuth && !loadingShift) {
+    return (
+      <div className="flex justify-center items-center overflow-hidden mt-32">
+        <div className="flex items-center flex-col gap-2">
+          <Image src="/guardia1.png" alt="Next.js img" width={300} height={300} priority />
+          <div className="text-2xl font-bold">Inicia turno para comenzar...</div>
+          <p className="text-gray-500">Activa tus funciones registrando el inicio de turno.</p>
+          <Link href="/dashboard/turnos">
+            <Button
+              className="w-40 h-9 mt-5 px-3 border border-blue-500 bg-blue-500 rounded-md text-sm text-white font-medium hover:bg-blue-600"
+              variant="default">
+              Turnos
+            </Button>
+          </Link>
         </div>
       </div>
     );
@@ -4022,8 +4144,12 @@ export default function DetalleTransportistaPage() {
 
           {/* Carga / Descarga en curso */}
           {estatus === "carga_/_descarga" && (() => {
+            // 'inspeccion_materiales' desactivado = carga/descarga es solo un estatus
+            // informativo (esperar a que el transporte termine), sin exigir inspección
+            // de cantidad física de materiales para poder avanzar.
+            const requiereInspeccionMateriales = etapasActivas.includes("inspeccion_materiales");
             const mats = data?.materiales ?? [];
-            const inspeccionCargaDone = mats.length > 0 && mats.every((m) => m.cantidad_fisica && m.cantidad_fisica.trim() !== "");
+            const inspeccionCargaDone = !requiereInspeccionMateriales || (mats.length > 0 && mats.every((m) => m.cantidad_fisica && m.cantidad_fisica.trim() !== ""));
             const finalizarDisabled = savingEstatus || !inspeccionCargaDone;
             return (
               <div className="rounded-xl overflow-hidden shadow-md" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)" }}>
@@ -4173,7 +4299,7 @@ export default function DetalleTransportistaPage() {
               );
             })();
 
-            const cardMateriales = etapasActivas.includes("carga_/_descarga") && estatusIdx >= ORDEN_ESTATUS.indexOf("carga_/_descarga") ? (() => {
+            const cardMateriales = etapasActivas.includes("carga_/_descarga") && etapasActivas.includes("inspeccion_materiales") && estatusIdx >= ORDEN_ESTATUS.indexOf("carga_/_descarga") ? (() => {
               const mats = data?.materiales ?? [];
               const totalMats = mats.length;
               const matsConFisica = mats.filter((m) => m.cantidad_fisica && m.cantidad_fisica.trim() !== "").length;
@@ -4392,6 +4518,7 @@ export default function DetalleTransportistaPage() {
           placaVehiculo={data?.vehiculo?.placa}
           placaTarjetaCirculacion={data?.vehiculo?.placa_tarjeta_circulacion}
           documentosAdicionales={data?.documentos_adicionales}
+          ubicacion={data?.ubicacion}
           onClose={() => setShowInspeccion(false)}
           onSaved={refetch}
         />
@@ -4405,6 +4532,7 @@ export default function DetalleTransportistaPage() {
           placaTarjetaCirculacion={data?.vehiculo?.placa_tarjeta_circulacion}
           documentosAdicionales={data?.documentos_adicionales}
           tipoPrefix="salida"
+          ubicacion={data?.ubicacion}
           onClose={() => setShowInspeccionSalida(false)}
           onSaved={refetch}
         />
@@ -4415,6 +4543,7 @@ export default function DetalleTransportistaPage() {
           unidades={unidades}
           inspeccionesDone={data?.inspecciones ?? []}
           documentosAdicionales={data?.documentos_adicionales}
+          ubicacion={data?.ubicacion}
           onClose={() => setShowInspeccionSello(false)}
           onSaved={refetch}
           onViewRecord={(url, tipo) => setViewingInspeccion({ url, tipo })}

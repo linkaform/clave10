@@ -44,6 +44,8 @@ interface RawRecord {
   tipo_de_operacion: string | null;
   created_at: string | null;
   fecha_hora_ingreso: string | null;
+  ubicacion: string | null;
+  area: string | null;
   empresa_transportista: string | null;
   procedencia: string | null;
   tipo_de_vehiculo: string | null;
@@ -87,6 +89,8 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
     tipo_operacion: raw.tipo_de_operacion,
     created_at: raw.created_at,
     estatus: raw.estatus,
+    ubicacion: raw.ubicacion,
+    area: raw.area,
     vehiculo: {
       transportista: raw.empresa_transportista,
       procedencia: raw.procedencia,
@@ -192,6 +196,8 @@ export interface VisitaTransportista {
   tipo_operacion: string | null;
   created_at: string | null;
   estatus: string | null;
+  ubicacion: string | null;
+  area: string | null;
   vehiculo: {
     transportista: string | null;
     procedencia: string | null;

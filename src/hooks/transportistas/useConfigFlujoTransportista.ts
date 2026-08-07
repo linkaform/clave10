@@ -4,9 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { getConfigFlujoTransportista } from "@/services/endpoints";
 
 // Etapas opcionales del flujo — si la cuenta no tiene el registro de configuración
-// creado todavía, se asume que las 3 están activas (fail-open, comportamiento actual).
+// creado todavía, se asume que todas están activas (fail-open, comportamiento actual).
 // Valores tal cual quedaron las opciones del checkbox `etapas_activas` en Linkaform.
-const FALLBACK_ETAPAS_ACTIVAS = ["inspeccion_de_entrada", "carga_/_descarga", "inspeccion_salida"];
+// 'inspeccion_materiales' no es una etapa del kanban — es un sub-toggle de carga/descarga
+// (¿exige inspeccionar cantidad física de materiales, o es solo un estatus informativo?).
+const FALLBACK_ETAPAS_ACTIVAS = ["inspeccion_de_entrada", "carga_/_descarga", "inspeccion_salida", "inspeccion_materiales"];
 
 export interface ConfigFlujoTransportista {
   etapasActivas: string[];

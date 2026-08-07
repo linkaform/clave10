@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  FileText,
   GripVertical,
   Link2,
   Package,
@@ -27,6 +28,7 @@ import {
 import { cn, reemplazarGuionMinuscula } from "@/lib/utils";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { useCreateVisitTransportista } from "@/hooks/useCreateVisitTransportista";
+import { useBoothStore } from "@/store/useBoothStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { ocrAccesoTransportista } from "@/services/endpoints";
 import { toast } from "sonner";
@@ -92,6 +94,10 @@ interface DocItem {
   preview:   string | null;
   tipo?:     string;
 }
+
+// El navegador no puede pintar un PDF dentro de un <img> — se muestra un ícono
+// en vez de la miniatura rota cuando el archivo no es una imagen.
+const esPdf = (fileName: string) => fileName.toLowerCase().endsWith(".pdf");
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -281,6 +287,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   const [showValidation, setShowValidation] = useState(false);
   const { uploadImageMutation } = useUploadImage();
   const { mutate: createVisit, isPending } = useCreateVisitTransportista();
+  const { area, location } = useBoothStore();
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -798,6 +805,11 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                             {doc.uploading ? (
                               <div className="w-full h-full flex items-center justify-center">
                                 <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                              </div>
+                            ) : esPdf(doc.file_name) ? (
+                              <div className="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-red-50">
+                                <FileText className="w-6 h-6 text-red-400" />
+                                <span className="text-[8px] font-semibold text-red-400">PDF</span>
                               </div>
                             ) : doc.preview ? (
                               <Image src={doc.preview} fill className="object-cover" alt="" unoptimized />
@@ -1460,6 +1472,8 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
               const payload = {
                 creado_desde: "acceso_web",
                 tipo_operacion: tipoOperacion,
+                ubicacion: location || null,
+                area: area || null,
                 vehiculo: {
                   transportista: transportista || null,
                   procedencia: procedencia || null,
@@ -1498,6 +1512,8 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                       tipo_operacion: tipoOperacion,
                       created_at: result.created_at ? String(result.created_at) : null,
                       estatus: null,
+                      ubicacion: location || null,
+                      area: area || null,
                       vehiculo: {
                         transportista: transportista || null,
                         procedencia: procedencia || null,

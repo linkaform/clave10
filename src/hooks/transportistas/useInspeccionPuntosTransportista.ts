@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getFormFieldsTransportista } from "@/services/endpoints";
+import { getFormFieldsTransportista, getFormasInspeccionTransportista } from "@/services/endpoints";
 
 // TODO: estos form_id son de la cuenta 10 (hardcodeados temporalmente).
 // Si se corre en otra cuenta de Clave10, hay que resolverlos por cuenta.
@@ -63,23 +63,108 @@ export interface SelloVvttPunto {
   descripcion: string;
 }
 
+export interface PuntoConId {
+  field_id: string;
+  label: string;
+  // Detectados por adyacencia (ver extractPuntos): el radio de cada punto,
+  // en la forma real de cuenta 10, va seguido de su propio textarea de
+  // comentario y su propio campo de imágenes de evidencia. Cualquier forma
+  // custom que replique ese patrón (radio → textarea → images consecutivos)
+  // se beneficia igual, sin depender de una lista fija por posición/slug.
+  comentarioFieldId?: string;
+  evidenciaFieldId?: string;
+  // El value real de las opciones "Sí"/"No" de ESTE campo en Linkaform — no se
+  // puede asumir que siempre sea el string "sí"/"no": la forma default de
+  // cuenta 10 usa "sí" (con acento) porque así se escribió el label ahí, pero
+  // una forma custom puede tener "si" (sin acento) u otra variante. Se resuelve
+  // por opciones reales del campo, no por texto fijo (ver resolverSiNo).
+  siValue?: string;
+  noValue?: string;
+}
+
+// Normaliza quitando acentos/mayúsculas para comparar "Sí"/"si"/"SI" como iguales.
+const MAPA_ACENTOS: Record<string, string> = {
+  á: "a", é: "e", í: "i", ó: "o", ú: "u", ñ: "n",
+};
+function normalizarTexto(s: string): string {
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[áéíóúñ]/g, (c) => MAPA_ACENTOS[c] ?? c);
+}
+
+// Resuelve, para un campo radio tipo Sí/No, cuál de sus 2 opciones reales
+// corresponde a "sí" y cuál a "no" — comparando value y label normalizados,
+// en vez de asumir que el value literal sea "sí"/"no".
+function resolverSiNo(options: { label: string; value: string }[]): { siValue?: string; noValue?: string } {
+  const si = options.find((o) => normalizarTexto(o.value) === "si" || normalizarTexto(o.label) === "si");
+  const no = options.find((o) => normalizarTexto(o.value) === "no" || normalizarTexto(o.label) === "no");
+  return { siValue: si?.value, noValue: no?.value };
+}
+
 interface InspeccionPuntos {
-  puntosTractor: string[];
-  filasContenedor: string[];
+  puntosTractor: PuntoConId[];
+  filasContenedor: PuntoConId[];
   medidasLabelsContenedor: MedidasLabels;
   selloClasificaciones: SelloClasificacionOption[];
   selloVvttPuntos: SelloVvttPunto[];
   selloEvidenciaLabels: Record<string, string>;
+  // Forma resuelta para esta ubicación (default de cuenta 10, o una custom
+  // configurada en "Configuración de Flujo de Transportistas").
+  tractorFormId: string;
+  contenedorFormId: string;
+  // Candidatos de comentario/evidencia "general" (primer textarea/text y primer
+  // campo de imágenes de la forma) — solo se usan en la UI cuando NINGÚN punto
+  // trae su propio comentarioFieldId/evidenciaFieldId (ver page.tsx).
+  tractorComentarioFieldId: string | null;
+  tractorEvidenciaFieldId: string | null;
+  contenedorComentarioFieldId: string | null;
+  contenedorEvidenciaFieldId: string | null;
 }
 
-function extractPuntos(fields: ApiFormField[]): string[] {
+// Puntos de inspección (radio) con sus campos de comentario/evidencia propios,
+// detectados por adyacencia en el orden real de la forma: un radio seguido de
+// un textarea es su comentario; el campo de imágenes que sigue es su evidencia.
+// Así el guardado deja de depender de una lista fija por posición — sobrevive
+// a que se agreguen/quiten/reordenen puntos en Linkaform.
+function extractPuntos(fields: ApiFormField[]): PuntoConId[] {
+  const puntos: PuntoConId[] = [];
+  fields.forEach((f, i) => {
+    if (f.field_type !== "radio") return;
+    let comentarioFieldId: string | undefined;
+    let evidenciaFieldId: string | undefined;
+    let cursor = i + 1;
+    if (fields[cursor]?.field_type === "textarea") {
+      comentarioFieldId = fields[cursor].field_id;
+      cursor += 1;
+    }
+    if (fields[cursor]?.field_type === "images") {
+      evidenciaFieldId = fields[cursor].field_id;
+    }
+    const { siValue, noValue } = resolverSiNo(f.options ?? []);
+    puntos.push({
+      field_id: f.field_id,
+      label: f.label.replace(/^\d+\.\s*/, ""),
+      comentarioFieldId,
+      evidenciaFieldId,
+      siValue,
+      noValue,
+    });
+  });
+  return puntos;
+}
+
+function extractFilas(fields: ApiFormField[]): PuntoConId[] {
   return fields
-    .filter((f) => f.field_type === "radio")
-    .map((f) => f.label.replace(/^\d+\.\s*/, ""));
+    .filter((f) => f.field_type === "checkbox")
+    .map((f) => ({ field_id: f.field_id, label: f.label }));
 }
 
-function extractFilas(fields: ApiFormField[]): string[] {
-  return fields.filter((f) => f.field_type === "checkbox").map((f) => f.label);
+// Campo de comentario/evidencia "general" candidato de una forma — se toma el
+// primer campo de texto/imágenes que traiga, ya que no hay una convención de
+// slug para identificarlos. Solo se usa cuando ningún punto tiene el suyo propio.
+function extractPrimerCampoDeTipo(fields: ApiFormField[], fieldTypes: string[]): string | null {
+  return fields.find((f) => fieldTypes.includes(f.field_type))?.field_id ?? null;
 }
 
 function extractMedidasLabels(
@@ -170,14 +255,33 @@ const FALLBACK_SELLO_EVIDENCIA_LABELS: Record<string, string> = {
   identificacion_operador: "Identificación del operador",
 };
 
-export function useInspeccionPuntosTransportista() {
+export function useInspeccionPuntosTransportista(ubicacion?: string | null) {
   const { data, isLoading, error } = useQuery<InspeccionPuntos>({
-    queryKey: ["inspeccionPuntosTransportista"],
+    queryKey: ["inspeccionPuntosTransportista", ubicacion ?? null],
     queryFn: async () => {
+      let tractorFormId = TRACTOR_FORM_ID;
+      let contenedorFormId = CONTENEDOR_FORM_ID;
+      let selloFormId = SELLO_FORM_ID;
+
+      if (ubicacion) {
+        try {
+          const formasRes = await getFormasInspeccionTransportista(ubicacion);
+          const formasRaw = ((formasRes as Record<string, unknown>)?.response as Record<string, unknown>)?.data
+            ?? (formasRes as Record<string, unknown>)?.data;
+          const formas = formasRaw as { tractor?: string; contenedor?: string; sello?: string } | undefined;
+          tractorFormId = formas?.tractor || TRACTOR_FORM_ID;
+          contenedorFormId = formas?.contenedor || CONTENEDOR_FORM_ID;
+          selloFormId = formas?.sello || SELLO_FORM_ID;
+        } catch {
+          // Si falla la resolución por ubicación, se sigue con los form_id
+          // hardcodeados de la cuenta 10 — mismo fail-open que el backend.
+        }
+      }
+
       const res = await getFormFieldsTransportista([
-        TRACTOR_FORM_ID,
-        CONTENEDOR_FORM_ID,
-        SELLO_FORM_ID,
+        tractorFormId,
+        contenedorFormId,
+        selloFormId,
       ]);
       const raw = ((res as Record<string, unknown>)?.response as Record<string, unknown>)?.data
         ?? (res as Record<string, unknown>)?.data;
@@ -187,28 +291,39 @@ export function useInspeccionPuntosTransportista() {
         byId.get(formId)?.pages.flatMap((p) => p.fields) ?? [];
 
       return {
-        puntosTractor: extractPuntos(fieldsOf(TRACTOR_FORM_ID)),
-        filasContenedor: extractFilas(fieldsOf(CONTENEDOR_FORM_ID)),
+        puntosTractor: extractPuntos(fieldsOf(tractorFormId)),
+        filasContenedor: extractFilas(fieldsOf(contenedorFormId)),
         medidasLabelsContenedor: extractMedidasLabels(
-          fieldsOf(CONTENEDOR_FORM_ID),
+          fieldsOf(contenedorFormId),
           CONTENEDOR_MEDIDA_FIELD_IDS,
           FALLBACK_MEDIDAS_LABELS,
         ),
         selloClasificaciones: extractSelloClasificaciones(
-          fieldsOf(SELLO_FORM_ID),
+          fieldsOf(selloFormId),
           SELLO_ISO_FIELD_ID,
           FALLBACK_SELLO_CLASIFICACIONES,
         ),
         selloVvttPuntos: extractSelloVvttPuntos(
-          fieldsOf(SELLO_FORM_ID),
+          fieldsOf(selloFormId),
           SELLO_VVTT_FIELD_ID,
           FALLBACK_SELLO_VVTT_PUNTOS,
         ),
         selloEvidenciaLabels: extractSelloEvidenciaLabels(
-          fieldsOf(SELLO_FORM_ID),
+          fieldsOf(selloFormId),
           SELLO_EVIDENCIA_FIELD_IDS,
           FALLBACK_SELLO_EVIDENCIA_LABELS,
         ),
+        tractorFormId,
+        contenedorFormId,
+        tractorComentarioFieldId: extractPrimerCampoDeTipo(fieldsOf(tractorFormId), ["text", "textarea"]),
+        tractorEvidenciaFieldId: extractPrimerCampoDeTipo(fieldsOf(tractorFormId), ["images"]),
+        // Se excluyen los 3 field_id de medidas — también son field_type "text"
+        // y no deben confundirse con un campo de comentario general.
+        contenedorComentarioFieldId: extractPrimerCampoDeTipo(
+          fieldsOf(contenedorFormId).filter((f) => !Object.values(CONTENEDOR_MEDIDA_FIELD_IDS).includes(f.field_id)),
+          ["text", "textarea"],
+        ),
+        contenedorEvidenciaFieldId: extractPrimerCampoDeTipo(fieldsOf(contenedorFormId), ["images"]),
       };
     },
     staleTime: 1000 * 60 * 30,
