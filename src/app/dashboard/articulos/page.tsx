@@ -63,7 +63,7 @@ const ArticulosContent = () => {
   const [statusPaqueteria, setStatusPaqueteria] = useState<string>("");
   const [statusPerdidos, setStatusPerdidos] = useState<string>("");
   const [datePrimera, setDatePrimera] = useState<string>("");
-  const [dateSegunda, setDateSegunda] = useState<string>(""); 
+  const [dateSegunda, setDateSegunda] = useState<string>("");
   const [statusConcesionados, setStatusConcesionados] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string[]>([]);
   // const [ setSearchQuery] = useState<string[]>([]);
@@ -79,10 +79,29 @@ const ArticulosContent = () => {
 
   const searchConcesionados = searchQuery[0] ?? "";
 
+  const {
+    externalFilters: concesionadosFilters,
+    onExternalFiltersChange: onConcesionadosFiltersChange,
+    filtersConfig: concesionadosFiltersConfig,
+    activeFiltersCount: concesionadosFiltersCount,
+    isSidebarOpen: concesionadosSidebarOpen,
+    setIsSidebarOpen: setConcesionadosSidebarOpen,
+  } = useArticulosConcesionadosFilters();
+
+  // El filtro de fecha del panel de Concesionados se manda al backend (igual
+  // que status/área/búsqueda) en vez de filtrarse en memoria sobre la página
+  // ya traída — así el filtro aplica sobre TODOS los registros, no solo los
+  // de la página actual.
+  const concesionadosDateFrom = concesionadosFilters.date1
+    ? dateToString(new Date(concesionadosFilters.date1))
+    : "";
+  const concesionadosDateTo = concesionadosFilters.date2
+    ? dateToString(new Date(concesionadosFilters.date2))
+    : "";
   const { listArticulosCon: articulosConData, isLoadingListArticulosCon } = useArticulosConcesionados(
     ubicacionSeleccionada,
     areaSeleccionada === "todas" ? "" : areaSeleccionada,
-    statusConcesionados, true,datePrimera,dateSegunda, dateFilter,
+    statusConcesionados, true, concesionadosDateFrom, concesionadosDateTo, concesionadosFilters.dateFilter ?? "",
     limitCon, skipCon, selectedLocations, searchConcesionados,
   );
   const {
@@ -98,6 +117,18 @@ const ArticulosContent = () => {
     setLimitCon(newLimit);
   };
 
+  // Solo la fecha cambia la petición al servidor (ver concesionadosDateFrom/
+  // concesionadosDateTo arriba), así que solo ella debe regresar a skip 0 —
+  // de lo contrario se podría quedar apuntando más allá del nuevo total de
+  // resultados filtrados. Los filtros "dynamic" (status_concesion, etc.) son
+  // 100% en cliente y no cambian qué página trae el servidor; si este efecto
+  // también reaccionara a ellos, cada vez que tocas un filtro de estatus se
+  // abandonaría la página donde estabas (con sus propias coincidencias) y se
+  // reemplazaría por la página 1, aunque no hiciera falta.
+  useEffect(() => {
+    setSkipCon(0);
+  }, [concesionadosDateFrom, concesionadosDateTo, concesionadosFilters.dateFilter]);
+
   const { listPaqueteria, isLoadingListPaqueteria } = usePaqueteria(
     ubicacionSeleccionada,
     areaSeleccionada === "todas" ? "" : areaSeleccionada,
@@ -112,15 +143,6 @@ const ArticulosContent = () => {
     isSidebarOpen: paqueteriaSidebarOpen,
     setIsSidebarOpen: setPaqueteriaSidebarOpen,
   } = usePaqueteriaFilters();
-
-  const {
-    externalFilters: concesionadosFilters,
-    onExternalFiltersChange: onConcesionadosFiltersChange,
-    filtersConfig: concesionadosFiltersConfig,
-    activeFiltersCount: concesionadosFiltersCount,
-    isSidebarOpen: concesionadosSidebarOpen,
-    setIsSidebarOpen: setConcesionadosSidebarOpen,
-  } = useArticulosConcesionadosFilters();
 
   const {
     externalFilters: perdidosFilters,
