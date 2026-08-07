@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { getRecorridosColumns, Recorrido } from "./recorridos-columns";
 import { AddRondinModal } from "@/components/modals/add-rondin";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { EliminarRondinModal } from "@/components/modals/delete-rondin-modal";
 import { useGetRondinById } from "@/hooks/Rondines/useGetRondinById";
 import dynamic from "next/dynamic";
@@ -174,10 +174,20 @@ const RecorridosTable: React.FC<ListProps> = ({
 
   const { setRecorridoSeleccionado } = useRecorridoStore();
 
-  const handleVerRondin = (recorrido: Recorrido) => {
+  // Estabilizado con useCallback: es la única dependencia real del useMemo
+  // de `columns` (abajo). Si se recreara en cada render, `columns` se
+  // recalcularía también en cada render, generando una referencia de
+  // función nueva para cada `cell` — TanStack invoca `cell` vía flexRender
+  // como si fuera un componente, así que un cambio de identidad ahí
+  // desmonta y remonta esa celda. Eso incluye la celda de "options" con el
+  // AddRondinModal: si algo ajeno (p. ej. un refetch de una query que
+  // comparte cache key con una que usa el modal) fuerza un re-render de
+  // esta tabla justo cuando el modal de editar se acaba de abrir, la celda
+  // se remonta y el modal recién abierto se cierra al instante.
+  const handleVerRondin = useCallback((recorrido: Recorrido) => {
     setRecorridoSeleccionado(recorrido);
     router.push(`/dashboard/ver-recorrido/${recorrido._id}`);
-  };
+  }, [router, setRecorridoSeleccionado]);
   const [mapKey, setMapKey] = useState(0);
 
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -255,6 +265,12 @@ const RecorridosTable: React.FC<ListProps> = ({
   const table = useReactTable({
     data: filteredData ?? [],
     columns,
+    // Sin esto, TanStack usa el índice del array como id de fila: si un
+    // refetch de useGetListRecorridos reordena los datos, la fila en la
+    // posición N pasa a representar otro rondín sin desmontarse, y el
+    // AddRondinModal de esa celda (que sigue montado con su propio estado)
+    // termina mostrando/editando el registro equivocado.
+    getRowId: (row) => row._id,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,

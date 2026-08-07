@@ -54,6 +54,7 @@ import { Equipo , Vehiculo} from "@/lib/update-pass";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { useScanPreference } from "@/hooks/scan";
+import { ConfirmarAccesoModal } from "@/components/modals/confirmar-acceso-modal";
 
 const AccesosPage = () => {
   const { isAuth, userParentId } = useAuthStore();
@@ -67,6 +68,9 @@ const AccesosPage = () => {
   // al mismo nivel donde se arma la petición de doAccess — no en un store
   // global — y se pasa hacia abajo por props.
   const [selectedPasses, setSelectedPasses] = useState<string[]>([]);
+  // Antes de ejecutar el ingreso/salida se muestra un modal chico para
+  // confirmar con quién más se hace el movimiento (ver ConfirmarAccesoModal).
+  const [confirmModal, setConfirmModal] = useState<"ingreso" | "salida" | null>(null);
   const { isLoading, loading:loadingSearchPass, searchPass } = useSearchPass(false);
   const [inputValue, setInputValue] = useState("");
   const [ openActivePases , setOpenActivePases ] = useState(false)
@@ -148,7 +152,7 @@ const AccesosPage = () => {
 
   const exitRegisterAccess = useMutation({
     mutationFn: async () => {
-      const data = await exitRegister(area??"", location??"", passCode);
+      const data = await exitRegister(area ?? "", location ?? "", passCode, "", selectedPasses);
 
       if (!data.success) {
         throw new Error(data.error?.msg?.msg || "Hubo un error en la Salida");
@@ -161,6 +165,7 @@ const AccesosPage = () => {
     },
     onSuccess: () => {
       setPassCode("");
+      setSelectedPasses([]);
 
 	  toast.success("Salida Exitosa", {
 		style: {
@@ -246,6 +251,7 @@ const AccesosPage = () => {
       queryClient.invalidateQueries({ queryKey: ['getStats'] });
 
       setPassCode("");
+      setSelectedPasses([]);
 
 	  toast.success("Entrada Exitosa", {
 		style: {
@@ -358,6 +364,20 @@ const AccesosPage = () => {
 
   return (
     <div >
+		<ConfirmarAccesoModal
+			open={confirmModal !== null}
+			onClose={() => setConfirmModal(null)}
+			onConfirm={() => {
+				if (confirmModal === "ingreso") doAccess.mutate();
+				else if (confirmModal === "salida") exitRegisterAccess.mutate();
+				setConfirmModal(null);
+			}}
+			searchPass={searchPass}
+			tipo={confirmModal ?? "ingreso"}
+			initialSelectedIds={selectedPasses}
+			onChangeSelected={setSelectedPasses}
+			loading={doAccess.isPending || exitRegisterAccess.isPending}
+		/>
 		<div className="flex flex-col w-full ">
 			<div className="p-6 space-y-6 w-full mx-auto pb-0 ">
 
@@ -396,7 +416,7 @@ const AccesosPage = () => {
 							);
 							return;
 							}
-							doAccess.mutate();
+							setConfirmModal("ingreso");
 						}}
 						>
 						<LogIn />
@@ -415,7 +435,7 @@ const AccesosPage = () => {
 							return;
 							}
 
-							exitRegisterAccess.mutate();
+							setConfirmModal("salida");
 						}}
 						>
 						<DoorOpen />

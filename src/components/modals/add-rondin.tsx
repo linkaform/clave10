@@ -256,7 +256,6 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     useCatalogoAreaEmpleado(isSuccess, location ?? "", "Incidencias");
   const { data: dataGrupos, isLoading: loadingGrupos } =
     useCatalogoGrupos(isSuccess);
-  console.log("isSuccess:", isSuccess, "loadingGrupos:", loadingGrupos, "dataGrupos:", dataGrupos);
 
   // El row de la tabla de recorridos (rondinData) viene del listado
   // (get_recorridos), que NO trae `roles` ni siempre los campos reales de
@@ -269,7 +268,6 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     () => (mode === "edit" ? { ...(rondinData ?? {}), ...(rondinCompleto ?? {}) } : rondinData),
     [mode, rondinData, rondinCompleto],
   );
-
   const { userIdSoter } = useAuthStore();
   const { data: dataRoles } = useCatalogoRoles(isSuccess, userIdSoter);
   const rolesDisponibles: { value: string; label: string }[] =
@@ -329,8 +327,6 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     },
   });
   const { reset } = form;
-
-  console.log(form.formState.errors);
 
   useEffect(() => {
     if (isSuccess && mode == "create") {
@@ -560,23 +556,49 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     setEsRepetirCada((prev) => (prev === valor ? null : valor));
   };
 
+  // Al abrir el modal en modo edición (o cambiar de rondín) se limpia el
+  // estado local de UI. Este componente nunca se desmonta al cerrar el
+  // diálogo (solo el DialogContent interno de Radix), así que sin este
+  // reset valores del rondín anterior (banner "no recurrente", toggles de
+  // frecuencia, áreas, asignación) se quedaban pegados al abrir uno nuevo.
+  const editHydratedRef = useRef<string | null>(null);
+  const areasHydratedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (mode !== "edit" || !isSuccess) return;
+    editHydratedRef.current = null;
+    areasHydratedRef.current = null;
+    set_que_dias_de_la_semana([]);
+    set_en_que_semana_sucede("");
+    set_todas_las_semanas(false);
+    set_en_que_mes([]);
+    set_todas_las_meses(false);
+    setEsRepetirCada(null);
+    setMostrarFrecuencia(false);
+    setNoRecurrente(false);
+    setAreasSeleccionadas([]);
+    setAsignadoA("responsable_en_turno");
+    setPersonaEspecifica("");
+    setGrupoSeleccionado("");
+    setAsignacionError("");
+  }, [mode, isSuccess, rondinId]);
+
   useEffect(() => {
     if (mode === "edit" && rondinEfectivo && isSuccess) {
+      // rondinEfectivo cambia de referencia en cada refetch de
+      // useGetRondinById aunque el contenido no cambie (p. ej. al recuperar
+      // el foco de la ventana). Sin este guard el reset() de abajo se
+      // volvía a disparar y borraba lo que el usuario ya había editado.
+      const key = rondinCompleto ? `${rondinId}:full` : `${rondinId}:partial`;
+      if (editHydratedRef.current === key) return;
+      editHydratedRef.current = key;
+
       const rondinData = rondinEfectivo;
       const sucede = rondinData.sucede_recurrencia ?? [];
       form.setValue("sucede_recurrencia", sucede);
       if (rondinData.fecha_hora_programada)
         setDate(new Date(rondinData.fecha_hora_programada));
       if (rondinData.ubicacion) setUbicacionSeleccionada(rondinData.ubicacion);
-      if (rondinData.areas && catalogAreasRondin) {
-        const cat = (rondinData?.areas ?? []).map((area: any) => {
-          if (typeof area === "string") return { name: area, id: area };
-          if (area?.rondin_area) return { name: area.rondin_area, id: area?.area_tag_id?.[0] ?? area.rondin_area };
-          if (area?.area) return { name: area.area, id: area.area };
-          return null;
-        }).filter(Boolean);
-        setAreasSeleccionadas(cat);
-      }
       // tipo_asignacion es la key que este mismo formulario guarda al crear
       // (coincide 1:1 con los 3 valores de asignadoA); se usa como fuente de
       // verdad, y solo si no viene (registros viejos) se infiere de
@@ -644,6 +666,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       const recurrenciaValida = ["diario", "semana", "mes", "configurable"];
       reset({
         nombre_rondin: rondinData.nombre_rondin || rondinData.nombre_del_rondin || "",
+        fecha_hora_programada: rondinData.fecha_hora_programada || "",
         duracion_estimada: rondinData.duracion_estimada?.replace(" minutos", "") || "",
         cada_cuantas_horas_se_repite: rondinData.cada_cuantas_horas_se_repite || "",
         cada_cuantos_meses_se_repite: rondinData.cada_cuantos_meses_se_repite || 0,
@@ -660,7 +683,28 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
           : "", // si viene "hora" o "año" deja vacío
       });
     }
-  }, [mode, rondinEfectivo, isSuccess, catalogAreasRondin, reset]);
+  }, [mode, isSuccess, rondinId, rondinEfectivo, reset]);
+
+  // Mapeo de áreas por separado: depende del catálogo (catalogAreasRondin),
+  // que solo llega después de que el efecto de arriba fija la ubicación, y
+  // que puede refrescarse en segundo plano. Se guarda por rondinId para no
+  // repetir el mapeo (y pisar una selección manual del usuario) cada vez
+  // que el catálogo se re-obtiene con el mismo contenido.
+  useEffect(() => {
+    if (mode !== "edit" || !isSuccess || !rondinEfectivo?.areas || !catalogAreasRondin) return;
+    if (areasHydratedRef.current === rondinId) return;
+    areasHydratedRef.current = rondinId ?? null;
+    const cat = (rondinEfectivo.areas ?? [])
+      .map((area: any) => {
+        if (typeof area === "string") return { name: area, id: area };
+        if (area?.rondin_area)
+          return { name: area.rondin_area, id: area?.area_tag_id?.[0] ?? area.rondin_area };
+        if (area?.area) return { name: area.area, id: area.area };
+        return null;
+      })
+      .filter(Boolean);
+    setAreasSeleccionadas(cat);
+  }, [mode, isSuccess, rondinId, rondinEfectivo, catalogAreasRondin]);
 
   useEffect(() => {
     const container = multiselectRef.current;

@@ -17,12 +17,14 @@ import { useShiftStore } from "@/store/useShiftStore";
 import { AddPaqueteriaModal } from "@/components/modals/add-paqueteria";
 import { dateToString, ViewMode } from "@/lib/utils";
 import { useBoothStore } from "@/store/useBoothStore";
+import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { AddArticuloConModal } from "@/components/modals/add-article.con";
 import { PageHeader } from "@/components/common/PageHeader";
 import { usePaqueteriaFilters } from "@/hooks/Paqueteria/usePaqueteriaFilters";
 import { useArticulosConcesionadosFilters } from "@/hooks/Concesionados/useConcesionadosFilters";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { usePerdidosFilters } from "@/hooks/Perdidos/usePerdidosFilters";
+import PaginationPases from "@/components/pages/pases/PaginationPases";
 
 const TAB_MAP: Record<string, string> = {
   paqueteria: "Paqueteria",
@@ -52,6 +54,7 @@ const ArticulosContent = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("photos");
   const { location } = useBoothStore();
   const [ubicacionSeleccionada] = useState(location || "Planta Monterrey");
+  const { selectedLocations } = useSelectedLocationsStore();
   const [areaSeleccionada] = useState("todas");
 
   const [date1, setDate1] = useState<Date | "">("");
@@ -60,11 +63,13 @@ const ArticulosContent = () => {
   const [statusPaqueteria, setStatusPaqueteria] = useState<string>("");
   const [statusPerdidos, setStatusPerdidos] = useState<string>("");
   const [datePrimera, setDatePrimera] = useState<string>("");
-  const [dateSegunda, setDateSegunda] = useState<string>(""); 
+  const [dateSegunda, setDateSegunda] = useState<string>("");
   const [statusConcesionados, setStatusConcesionados] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string[]>([]);
   // const [ setSearchQuery] = useState<string[]>([]);
   const [totalRegistros, setTotalRegistros] = useState(0);
+  const [limitCon, setLimitCon] = useState(25);
+  const [skipCon, setSkipCon] = useState(0);
 
   const { listArticulosPerdidos, isLoadingListArticulosPerdidos } = useArticulosPerdidos(
     ubicacionSeleccionada,
@@ -72,11 +77,57 @@ const ArticulosContent = () => {
     statusPerdidos, true, datePrimera,dateSegunda, dateFilter,
   );
 
-  const { listArticulosCon, isLoadingListArticulosCon } = useArticulosConcesionados(
+  const searchConcesionados = searchQuery[0] ?? "";
+
+  const {
+    externalFilters: concesionadosFilters,
+    onExternalFiltersChange: onConcesionadosFiltersChange,
+    filtersConfig: concesionadosFiltersConfig,
+    activeFiltersCount: concesionadosFiltersCount,
+    isSidebarOpen: concesionadosSidebarOpen,
+    setIsSidebarOpen: setConcesionadosSidebarOpen,
+  } = useArticulosConcesionadosFilters();
+
+  // El filtro de fecha del panel de Concesionados se manda al backend (igual
+  // que status/área/búsqueda) en vez de filtrarse en memoria sobre la página
+  // ya traída — así el filtro aplica sobre TODOS los registros, no solo los
+  // de la página actual.
+  const concesionadosDateFrom = concesionadosFilters.date1
+    ? dateToString(new Date(concesionadosFilters.date1))
+    : "";
+  const concesionadosDateTo = concesionadosFilters.date2
+    ? dateToString(new Date(concesionadosFilters.date2))
+    : "";
+  const { listArticulosCon: articulosConData, isLoadingListArticulosCon } = useArticulosConcesionados(
     ubicacionSeleccionada,
     areaSeleccionada === "todas" ? "" : areaSeleccionada,
-    statusConcesionados, true,datePrimera,dateSegunda, dateFilter,
+    statusConcesionados, true, concesionadosDateFrom, concesionadosDateTo, concesionadosFilters.dateFilter ?? "",
+    limitCon, skipCon, selectedLocations, searchConcesionados,
   );
+  const {
+    records: listArticulosCon = [],
+    actual_page: actualPageCon = 1,
+    records_on_page: recordsOnPageCon = 0,
+    total_pages: totalPagesCon = 1,
+    total_records: totalRecordsCon = 0,
+  } = articulosConData ?? {};
+
+  const handleConcesionadosPageChange = (newSkip: number, newLimit: number) => {
+    setSkipCon(newSkip);
+    setLimitCon(newLimit);
+  };
+
+  // Solo la fecha cambia la petición al servidor (ver concesionadosDateFrom/
+  // concesionadosDateTo arriba), así que solo ella debe regresar a skip 0 —
+  // de lo contrario se podría quedar apuntando más allá del nuevo total de
+  // resultados filtrados. Los filtros "dynamic" (status_concesion, etc.) son
+  // 100% en cliente y no cambian qué página trae el servidor; si este efecto
+  // también reaccionara a ellos, cada vez que tocas un filtro de estatus se
+  // abandonaría la página donde estabas (con sus propias coincidencias) y se
+  // reemplazaría por la página 1, aunque no hiciera falta.
+  useEffect(() => {
+    setSkipCon(0);
+  }, [concesionadosDateFrom, concesionadosDateTo, concesionadosFilters.dateFilter]);
 
   const { listPaqueteria, isLoadingListPaqueteria } = usePaqueteria(
     ubicacionSeleccionada,
@@ -92,15 +143,6 @@ const ArticulosContent = () => {
     isSidebarOpen: paqueteriaSidebarOpen,
     setIsSidebarOpen: setPaqueteriaSidebarOpen,
   } = usePaqueteriaFilters();
-
-  const {
-    externalFilters: concesionadosFilters,
-    onExternalFiltersChange: onConcesionadosFiltersChange,
-    filtersConfig: concesionadosFiltersConfig,
-    activeFiltersCount: concesionadosFiltersCount,
-    isSidebarOpen: concesionadosSidebarOpen,
-    setIsSidebarOpen: setConcesionadosSidebarOpen,
-  } = useArticulosConcesionadosFilters();
 
   const {
     externalFilters: perdidosFilters,
@@ -356,6 +398,16 @@ const ArticulosContent = () => {
                   filtersConfig={concesionadosFiltersConfig}
                   setTotalRegistros={setTotalRegistros}
                 />
+                {!isLoadingListArticulosCon && (
+                  <PaginationPases
+                    actual_page={actualPageCon}
+                    records_on_page={recordsOnPageCon}
+                    total_pages={totalPagesCon}
+                    total_records={totalRecordsCon}
+                    limit={limitCon}
+                    onPageChange={handleConcesionadosPageChange}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="Perdidos">
