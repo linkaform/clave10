@@ -49,6 +49,7 @@ import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { useCatalogoRoles } from "@/hooks/useGetRoles";
 import useAuthStore from "@/store/useAuthStore";
+import { useGetRondinById } from "@/hooks/Rondines/useGetRondinById";
 
 interface AddRondinModalProps {
   title: string;
@@ -257,6 +258,18 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     useCatalogoGrupos(isSuccess);
   console.log("isSuccess:", isSuccess, "loadingGrupos:", loadingGrupos, "dataGrupos:", dataGrupos);
 
+  // El row de la tabla de recorridos (rondinData) viene del listado
+  // (get_recorridos), que NO trae `roles` ni siempre los campos reales de
+  // asignación — se pide el registro completo (get_rondin_by_id) al abrir en
+  // modo edición, y se usa como fuente de verdad por encima de rondinData.
+  const { data: rondinCompleto } = useGetRondinById(
+    mode === "edit" && isSuccess && rondinId ? rondinId : "",
+  );
+  const rondinEfectivo = useMemo(
+    () => (mode === "edit" ? { ...(rondinData ?? {}), ...(rondinCompleto ?? {}) } : rondinData),
+    [mode, rondinData, rondinCompleto],
+  );
+
   const { userIdSoter } = useAuthStore();
   const { data: dataRoles } = useCatalogoRoles(isSuccess, userIdSoter);
   const rolesDisponibles: { value: string; label: string }[] =
@@ -413,7 +426,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         ? [grupoSeleccionado]
         : asignadoA,
       ...recurrenciaFiltrada,
-      area: values.area ?? "",
+      // El campo "area" está oculto en este formulario (bloque comentado);
+      // en edición se conserva el valor real ya guardado en vez de mandar
+      // siempre "" y borrarlo.
+      area: values.area || (mode === "edit" ? rondinEfectivo?.area : "") || "",
       roles: values.roles ?? [],
     };
 
@@ -545,11 +561,13 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   };
 
   useEffect(() => {
-    if (mode === "edit" && rondinData && isSuccess) {
+    if (mode === "edit" && rondinEfectivo && isSuccess) {
+      const rondinData = rondinEfectivo;
       const sucede = rondinData.sucede_recurrencia ?? [];
       form.setValue("sucede_recurrencia", sucede);
       if (rondinData.fecha_hora_programada)
         setDate(new Date(rondinData.fecha_hora_programada));
+      if (rondinData.ubicacion) setUbicacionSeleccionada(rondinData.ubicacion);
       if (rondinData.areas && catalogAreasRondin) {
         const cat = (rondinData?.areas ?? []).map((area: any) => {
           if (typeof area === "string") return { name: area, id: area };
@@ -559,12 +577,37 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         }).filter(Boolean);
         setAreasSeleccionadas(cat);
       }
-      if (rondinData?.asignado_a) {
+      // tipo_asignacion es la key que este mismo formulario guarda al crear
+      // (coincide 1:1 con los 3 valores de asignadoA); se usa como fuente de
+      // verdad, y solo si no viene (registros viejos) se infiere de
+      // asignado_a/grupo_asignado/empleados_asignado.
+      if (rondinData?.tipo_asignacion === "grupo") {
+        setAsignadoA("grupo");
+        setGrupoSeleccionado(
+          rondinData.grupo_asignado ||
+            (Array.isArray(rondinData.asignado_a) ? rondinData.asignado_a[0] : "") ||
+            "",
+        );
+      } else if (rondinData?.tipo_asignacion === "persona_especifica") {
+        setAsignadoA("persona_especifica");
+        setPersonaEspecifica(
+          rondinData.empleados_asignado?.[0] ||
+            (Array.isArray(rondinData.asignado_a) ? rondinData.asignado_a[0] : "") ||
+            "",
+        );
+      } else if (rondinData?.tipo_asignacion === "responsable_en_turno") {
+        setAsignadoA("responsable_en_turno");
+      } else if (rondinData?.grupo_asignado) {
+        setAsignadoA("grupo");
+        setGrupoSeleccionado(rondinData.grupo_asignado);
+      } else if (rondinData?.asignado_a) {
         if (rondinData.asignado_a === "responsable_en_turno") {
           setAsignadoA("responsable_en_turno");
         } else {
           setAsignadoA("persona_especifica");
-          setPersonaEspecifica(rondinData.asignado_a);
+          setPersonaEspecifica(
+            Array.isArray(rondinData.asignado_a) ? rondinData.asignado_a[0] : rondinData.asignado_a,
+          );
         }
       }
       if (rondinData?.que_dias_de_la_semana?.length > 0) {
@@ -617,7 +660,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
           : "", // si viene "hora" o "año" deja vacío
       });
     }
-  }, [mode, rondinData, isSuccess, catalogAreasRondin, reset]);
+  }, [mode, rondinEfectivo, isSuccess, catalogAreasRondin, reset]);
 
   useEffect(() => {
     const container = multiselectRef.current;
