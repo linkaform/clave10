@@ -22,6 +22,14 @@ export interface Data {
   documento_de_condiciones_de_servicio: Imagen[];
   url_de_condiciones_de_servicio: string;
   desc_condiciones_servicio:string;
+  permisos_certificaciones?: PermisoCertificacion[];
+}
+
+export interface PermisoCertificacion {
+  nombre_permiso: string;
+  requerimientos_pase?: string[];
+  vigencia_certificado?: string | null;
+  vigencia_certificado_en?: string | null;
 }
 
 export interface PassSelected {
@@ -54,6 +62,7 @@ export interface PassSelected {
   url_padre?:string;
   link_padre?:string;
   estatus_pase_padre?:string;
+  walkin?:string;
 }
 
 export interface VisitaA {

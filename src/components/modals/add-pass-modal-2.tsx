@@ -63,10 +63,19 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
           conservar_datos_por: data?.conservar_datos_por,
           acompanantes: data?.acompanantes ?? [],
           grupo_acompanantes:data?.acompanantes_grupo ?? [],
+          // Si ningún permiso/certificación tiene foto o documento cargado,
+          // no se manda la key en vez de mandar el arreglo vacío/sin evidencia.
+          ...(data?.permisos_certificaciones?.some(
+            (p: any) => (p.foto?.length ?? 0) > 0 || (p.documento?.length ?? 0) > 0,
+          )
+            ? { permisos_certificaciones: data.permisos_certificaciones }
+            : {}),
           // Firma del paso de "Reglas de acceso" (llega de PaseUpdate como
-          // { file_url, file_name }; solo se manda con contenido si el pase
-          // tenía reglas de acceso que firmar).
-          firma_reglas_de_acceso: data?.firma_reglas_de_acceso ?? { file_url: "", file_name: "" },
+          // { file_url, file_name }). Si no se firmó (no cargó/no aplicaba),
+          // no se manda la key en vez de mandarla vacía.
+          ...(data?.firma_reglas_de_acceso?.file_url
+            ? { firma_reglas_de_acceso: data.firma_reglas_de_acceso }
+            : {}),
         },
         id: data.folio,
         account_id: data.account_id,
