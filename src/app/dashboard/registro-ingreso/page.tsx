@@ -718,6 +718,7 @@ const RegistroIngresoPage = () => {
                 setVehiculos={setVehiculos}
                 isAccesos={false}
                 fetch={false}
+                account_id= {accountId}
               >
                 <button
                   type="button"
