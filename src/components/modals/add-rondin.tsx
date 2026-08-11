@@ -209,6 +209,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 
   const { location } = useBoothStore();
   const [areasSeleccionadas, setAreasSeleccionadas] = useState<any[]>([]);
+  const [areasHydrated, setAreasHydrated] = useState(true);
   const [asignadoA, setAsignadoA] = useState<string>("responsable_en_turno");
   const [personaEspecifica, setPersonaEspecifica] = useState<string>("");
   const { createRondinMutation, isLoading } = useRondines();
@@ -362,6 +363,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   ];
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // El botón ya se deshabilita mientras esto es false, pero el <form> también
+    // dispara este submit con Enter, así que se revalida aquí por si acaso.
+    if (mode === "edit" && !areasHydrated) return;
+
     let hasError = false;
 
     if (!date) {
@@ -430,7 +435,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     };
 
     if (mode == "edit" && folio) {
-      console.log("ediutarr", mode, folio, rondinId);
+      console.log("ediutarr", mode, payload);
       editarRondinMutation.mutate({ folio: folio, rondin_data: payload });
     } else if (mode == "create") {
       createRondinMutation.mutate(
@@ -577,10 +582,17 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     setMostrarFrecuencia(false);
     setNoRecurrente(false);
     setAreasSeleccionadas([]);
+    setAreasHydrated(false);
     setAsignadoA("responsable_en_turno");
     setPersonaEspecifica("");
     setGrupoSeleccionado("");
     setAsignacionError("");
+    // Se fija la ubicación real del rondín desde ya (no hay que esperar a
+    // que llegue rondinCompleto): así el catálogo de áreas (useCatalogAreasRondin)
+    // arranca su fetch con la ubicación correcta en vez de la del booth,
+    // evitando un fetch de más y el reset intermedio de catalogAreasRondin
+    // a undefined que dejaba a areasSeleccionadas vacío en el submit.
+    if (rondinData?.ubicacion) setUbicacionSeleccionada(rondinData.ubicacion);
   }, [mode, isSuccess, rondinId]);
 
   useEffect(() => {
@@ -685,25 +697,37 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     }
   }, [mode, isSuccess, rondinId, rondinEfectivo, reset]);
 
-  // Mapeo de áreas por separado: depende del catálogo (catalogAreasRondin),
-  // que solo llega después de que el efecto de arriba fija la ubicación, y
-  // que puede refrescarse en segundo plano. Se guarda por rondinId para no
-  // repetir el mapeo (y pisar una selección manual del usuario) cada vez
-  // que el catálogo se re-obtiene con el mismo contenido.
+  // Mapeo de áreas por separado: si el rondín trae áreas, depende del
+  // catálogo (catalogAreasRondin), que solo llega después de que el efecto
+  // de arriba fija la ubicación, y que puede refrescarse en segundo plano.
+  // Se guarda por rondinId para no repetir el mapeo (y pisar una selección
+  // manual del usuario) cada vez que el catálogo se re-obtiene con el mismo
+  // contenido. areasHydrated se usa para bloquear el submit mientras esto no
+  // termine: sin eso, un submit antes de que resuelva mandaba areas: [].
   useEffect(() => {
-    if (mode !== "edit" || !isSuccess || !rondinEfectivo?.areas || !catalogAreasRondin) return;
+    if (mode !== "edit" || !isSuccess || !rondinEfectivo) return;
     if (areasHydratedRef.current === rondinId) return;
+    const rawAreas = rondinEfectivo.areas ?? [];
+    if (rawAreas.length > 0 && !catalogAreasRondin) return;
     areasHydratedRef.current = rondinId ?? null;
-    const cat = (rondinEfectivo.areas ?? [])
+    const cat = rawAreas
       .map((area: any) => {
         if (typeof area === "string") return { name: area, id: area };
-        if (area?.rondin_area)
-          return { name: area.rondin_area, id: area?.area_tag_id?.[0] ?? area.rondin_area };
+        if (area?.rondin_area) {
+          // area_tag_id puede venir malformado desde el backend (p. ej. [[]],
+          // un array conteniendo un array vacío en vez de un id string), así
+          // que se valida el tipo en vez de confiar en "??" — un array vacío
+          // no es nullish y por tanto no cae al fallback con "??".
+          const tagId = area?.area_tag_id?.[0];
+          const id = typeof tagId === "string" && tagId ? tagId : area.rondin_area;
+          return { name: area.rondin_area, id };
+        }
         if (area?.area) return { name: area.area, id: area.area };
         return null;
       })
       .filter(Boolean);
     setAreasSeleccionadas(cat);
+    setAreasHydrated(true);
   }, [mode, isSuccess, rondinId, rondinEfectivo, catalogAreasRondin]);
 
   useEffect(() => {
@@ -1401,7 +1425,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
             type="button"
             onClick={form.handleSubmit(onSubmit)}
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 font-semibold"
-            disabled={isLoading || isLoadingEdit}>
+            disabled={isLoading || isLoadingEdit || (mode === "edit" && !areasHydrated)}>
             {isLoading || isLoadingEdit ? (
               <>
                 {mode === "edit" ? (
@@ -1414,6 +1438,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                   </span>
                 )}
               </>
+            ) : mode === "edit" && !areasHydrated ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="animate-spin" size={16} /> Cargando datos...
+              </span>
             ) : (
               <>{mode == "edit" ? "Guardar recorrido" : "Crear recorrido"}</>
             )}
