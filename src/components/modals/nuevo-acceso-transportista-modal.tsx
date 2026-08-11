@@ -99,43 +99,6 @@ interface DocItem {
 // en vez de la miniatura rota cuando el archivo no es una imagen.
 const esPdf = (fileName: string) => fileName.toLowerCase().endsWith(".pdf");
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-const ESTADOS_MX = [
-  "Aguascalientes",
-  "Baja California",
-  "Baja California Sur",
-  "Campeche",
-  "Chiapas",
-  "Chihuahua",
-  "Ciudad de México",
-  "Coahuila",
-  "Colima",
-  "Durango",
-  "Estado de México",
-  "Guanajuato",
-  "Guerrero",
-  "Hidalgo",
-  "Jalisco",
-  "Michoacán",
-  "Morelos",
-  "Nayarit",
-  "Nuevo León",
-  "Oaxaca",
-  "Puebla",
-  "Querétaro",
-  "Quintana Roo",
-  "San Luis Potosí",
-  "Sinaloa",
-  "Sonora",
-  "Tabasco",
-  "Tamaulipas",
-  "Tlaxcala",
-  "Veracruz",
-  "Yucatán",
-  "Zacatecas",
-];
-
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function FieldLabel({
@@ -150,79 +113,6 @@ function FieldLabel({
       {children}
       {required && <span className="text-red-400 ml-0.5">*</span>}
     </label>
-  );
-}
-
-function ComboboxSelect({
-  value,
-  onChange,
-  options,
-  placeholder = "Buscar...",
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: string[];
-  placeholder?: string;
-}) {
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-
-  const filtered = query.trim()
-    ? options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
-    : options;
-
-  if (value) {
-    return (
-      <div className="flex items-center justify-between gap-2 h-10 px-3 rounded-xl border border-blue-200 bg-blue-50 text-sm">
-        <span className="truncate text-gray-700 font-medium">{value}</span>
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          className="text-gray-400 hover:text-gray-600 shrink-0 transition-colors">
-          <X className="w-3.5 h-3.5" />
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative">
-      <div className="flex items-center gap-2 px-3 h-10 rounded-xl border border-gray-200 bg-gray-50 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-200 transition-all">
-        <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
-          placeholder={placeholder}
-          className="flex-1 bg-transparent text-sm text-gray-700 placeholder:text-gray-400 outline-none"
-        />
-      </div>
-      {open && filtered.length > 0 && (
-        <div className="absolute z-20 mt-1 w-full bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
-          <ul className="max-h-48 overflow-y-auto py-1">
-            {filtered.map((o) => (
-              <li key={o}>
-                <button
-                  type="button"
-                  onMouseDown={() => {
-                    onChange(o);
-                    setQuery("");
-                    setOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors truncate">
-                  {o}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -918,25 +808,20 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                   )}
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
-                      Procedencia<span className="text-red-400 ml-0.5">*</span>
-                    </span>
-                    {aiFilledFields.has("procedencia") && (
-                      <span className="flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5">
-                        <Sparkles className="w-2.5 h-2.5" /> IA
-                      </span>
-                    )}
+                  <FieldLabel required>Procedencia</FieldLabel>
+                  <div className="relative">
+                    <Input
+                      className={cn(
+                        "text-sm",
+                        aiFilledFields.has("procedencia") && "border-violet-200 bg-violet-50/40",
+                        showValidation && !procedencia.trim() && "border-red-300 bg-red-50",
+                      )}
+                      placeholder="Ej. Bodega central del proveedor"
+                      value={procedencia}
+                      onChange={(e) => { setProcedencia(e.target.value); clearAiField("procedencia"); }}
+                    />
+                    {aiFilledFields.has("procedencia") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
                   </div>
-                  <ComboboxSelect
-                    value={procedencia}
-                    onChange={(v) => {
-                      setProcedencia(v);
-                      clearAiField("procedencia");
-                    }}
-                    options={ESTADOS_MX}
-                    placeholder="Buscar estado..."
-                  />
                   {showValidation && !procedencia.trim() && (
                     <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
                   )}

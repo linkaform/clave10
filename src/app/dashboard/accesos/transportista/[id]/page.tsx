@@ -1098,6 +1098,7 @@ interface InspeccionSelloModalProps {
   unidades: UnidadItem[];
   inspeccionesDone: { tipo: string; unidad?: number; url?: string }[];
   documentosAdicionales?: { file_url: string; file_name: string; tipo?: string }[];
+  tipoPrefix?: string;
   ubicacion?: string | null;
   onClose: () => void;
   onSaved?: () => void;
@@ -1150,6 +1151,7 @@ function InspeccionSelloModalContent({
   unidades,
   inspeccionesDone,
   documentosAdicionales,
+  tipoPrefix,
   onClose,
   onSaved,
   onViewRecord,
@@ -1162,7 +1164,8 @@ function InspeccionSelloModalContent({
   selloEvidenciaSlots: { key: string; label: string; icon: React.ElementType }[];
 }) {
   useBodyScrollLock(true);
-  const getDone = (unidad: number) => inspeccionesDone.find((i) => i.tipo === `sello_${unidad}`);
+  const withPrefix = (tipo: string) => tipoPrefix ? `${tipoPrefix}_${tipo}` : tipo;
+  const getDone = (unidad: number) => inspeccionesDone.find((i) => i.tipo === withPrefix(`sello_${unidad}`));
   const isDone = (unidad: number) => !!getDone(unidad);
 
   const fotoPlaca = documentosAdicionales?.find((d) => d.tipo === "foto_placa_vehiculo" || d.tipo === "FOTO PLACA");
@@ -1244,7 +1247,7 @@ function InspeccionSelloModalContent({
       const d = unitsData[i];
       const { noCaja, noSello } = refUnidad(u);
       return {
-        tipo: "sello",
+        tipo: withPrefix("sello"),
         unidad: i + 1,
         no_caja: noCaja,
         no_sello_sistema: noSello,
@@ -1287,7 +1290,7 @@ function InspeccionSelloModalContent({
           <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
             <Shield className="w-4.5 h-4.5 text-teal-600" />
           </div>
-          <p className="text-sm font-bold text-gray-800 flex-1">Inspección Del Sello</p>
+          <p className="text-sm font-bold text-gray-800 flex-1">{tipoPrefix === "salida" ? "Inspección Del Sello · Salida" : "Inspección Del Sello"}</p>
           <button type="button" onClick={onClose}
             className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors">
             <X className="w-4 h-4" />
@@ -1333,7 +1336,7 @@ function InspeccionSelloModalContent({
                     const done = getDone(activeTab + 1);
                     if (done?.url) {
                       onClose();
-                      onViewRecord?.(done.url, `sello_${activeTab + 1}`);
+                      onViewRecord?.(done.url, withPrefix(`sello_${activeTab + 1}`));
                     }
                   }}
                   className="text-[11px] font-semibold text-green-700 hover:text-green-800 underline shrink-0"
@@ -1625,6 +1628,7 @@ interface FilaCarga {
   no_referencia: string;
   cantidad_buena: string;
   cantidad_danada: string;
+  cantidad_faltante: string;
   desglose: import("@/hooks/useGetVisitTransportista").DesgloseRenglonVisita[];
 }
 
@@ -1650,6 +1654,7 @@ function InspeccionCargaModal({
       no_referencia:     m.no_referencia ?? "",
       cantidad_buena:    m.cantidad_buena ?? "",
       cantidad_danada:   m.cantidad_danada ?? "",
+      cantidad_faltante: m.cantidad_faltante ?? "",
       desglose:          m.desglose ?? [],
     }))
   );
@@ -1672,9 +1677,10 @@ function InspeccionCargaModal({
         materiales: filas.map((f, i) => {
           const buena = f.cantidad_buena.trim();
           const danada = f.cantidad_danada.trim();
+          const faltante = f.cantidad_faltante.trim();
           const resultado =
-            !buena && !danada ? "pendiente"
-            : Number(danada || 0) > 0 ? "con_diferencia"
+            !buena && !danada && !faltante ? "pendiente"
+            : Number(danada || 0) > 0 || Number(faltante || 0) > 0 ? "con_diferencia"
             : Number(buena || 0) === Number(f.cantidad_esperada || 0) ? "correcto"
             : "con_diferencia";
           return {
@@ -1686,6 +1692,7 @@ function InspeccionCargaModal({
             cant_fisica:   fisicaCalculada(f),
             cant_buena:    f.cantidad_buena,
             cant_danada:   f.cantidad_danada,
+            cant_faltante: f.cantidad_faltante,
             peso:          materiales[i]?.peso ?? null,
             volumen:       materiales[i]?.volumen ?? null,
             resultado,
@@ -1727,7 +1734,7 @@ function InspeccionCargaModal({
         {/* Instructivo */}
         <div className="mx-6 mt-4 shrink-0 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-amber-700">
           <span className="text-amber-500 shrink-0">ⓘ Instructivo:</span>
-          <span>Captura cuántas unidades llegaron en buen estado y cuántas dañadas por cada producto.</span>
+          <span>Captura cuántas unidades llegaron en buen estado, cuántas dañadas y cuántas faltantes por cada producto.</span>
         </div>
 
         {/* Materiales */}
@@ -1769,7 +1776,7 @@ function InspeccionCargaModal({
                 </div>
               )}
 
-              <div className="grid grid-cols-3 gap-2 mt-3">
+              <div className="grid grid-cols-4 gap-2 mt-3">
                 <div>
                   <label className="text-[10px] text-gray-400 block mb-1">Cant. física</label>
                   <span className="block text-center text-xs font-semibold text-gray-700 h-9 flex items-center justify-center bg-white rounded-lg border border-gray-100">
@@ -1803,6 +1810,21 @@ function InspeccionCargaModal({
                       onChange={(e) => setFila(i, { cantidad_danada: e.target.value })}
                       placeholder="—"
                       className="w-full h-9 text-center text-xs border border-red-200 rounded-lg px-2 focus:outline-none focus:border-red-400 bg-red-50/50"
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="text-[10px] text-amber-500 block mb-1">Faltantes</label>
+                  {readOnly ? (
+                    <span className="block text-center text-xs font-semibold text-amber-700 h-9 flex items-center justify-center">{f.cantidad_faltante || "—"}</span>
+                  ) : (
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={f.cantidad_faltante}
+                      onChange={(e) => setFila(i, { cantidad_faltante: e.target.value })}
+                      placeholder="—"
+                      className="w-full h-9 text-center text-xs border border-amber-200 rounded-lg px-2 focus:outline-none focus:border-amber-400 bg-amber-50/50"
                     />
                   )}
                 </div>
@@ -1861,9 +1883,14 @@ const IDENTIFICACION_CHOFER_LABEL = "Identificación del chofer";
 
 const FOTO_CONDUCTOR_LABEL = "Foto del conductor";
 
+// Solo aplica a Recolección: la unidad debe llegar vacía, así que se pide
+// evidencia de la caja/contenedor vacío antes de cargarla.
+const FOTO_CAJA_VACIA_LABEL = "Foto de caja vacía";
+
 const DOCUMENTOS_REQUERIDOS_DESCRIPCION: Record<string, string> = {
   [IDENTIFICACION_CHOFER_LABEL]: "INE, pasaporte, licencia de conducir o gafete de empresa",
   [FOTO_CONDUCTOR_LABEL]: "Fotografía reciente del rostro del conductor",
+  [FOTO_CAJA_VACIA_LABEL]: "Evidencia de que la caja/contenedor llegó vacío, antes de cargarlo",
 };
 
 const documentosRequeridosNombres = [
@@ -1890,6 +1917,7 @@ const DOCUMENTOS_REQUERIDOS_SLUGS: Record<string, string> = {
   "Foto de placa de vehículo": "foto_placa_vehiculo",
   "Evidencia de carga": "evidencia_carga",
   "Conocimiento del embarque (BL)": "conocimiento_embarque_bl",
+  [FOTO_CAJA_VACIA_LABEL]: "foto_caja_vacia",
 };
 const tipoRequeridoSlug = (nombre: string) => DOCUMENTOS_REQUERIDOS_SLUGS[nombre] ?? tipoSlug(nombre);
 
@@ -1954,6 +1982,11 @@ export default function DetalleTransportistaPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data, isLoading, error, refetch } = useGetVisitTransportista(id);
+  // Recolección: la unidad llega vacía y sale cargada, así que el precinto se
+  // coloca hasta la salida — se requiere sello completo en ambos momentos y
+  // evidencia de que la caja/contenedor llegó vacía. Entrega solo lo necesita
+  // a la entrada, como ya funcionaba.
+  const esRecoleccion = !!data?.tipo_operacion?.toLowerCase().includes("recolec");
   const queryClient = useQueryClient();
   const { isAuth } = useAuthStore();
   const { area, location } = useBoothStore();
@@ -2064,6 +2097,7 @@ export default function DetalleTransportistaPage() {
   const [showDesgloseMateriales, setShowDesgloseMateriales] = useState(false);
   const [viewingInspeccion, setViewingInspeccion] = useState<{ url: string; tipo: string } | null>(null);
   const [showInspeccionSello, setShowInspeccionSello] = useState(false);
+  const [showInspeccionSelloSalida, setShowInspeccionSelloSalida] = useState(false);
   const [showGaleria, setShowGaleria] = useState(false);
   const [showAndenModal, setShowAndenModal] = useState(false);
   const [vehicleExpanded, setVehicleExpanded] = useState(true);
@@ -2521,7 +2555,7 @@ export default function DetalleTransportistaPage() {
               const detectedTipo = byUrl.get(d.file_url);
               let asignadoA = d.asignadoA;
               if (!asignadoA) {
-                const nombreMatch = documentosRequeridosNombres.find((n) =>
+                const nombreMatch = documentosRequeridosNombresRecord.find((n) =>
                   tipoRequeridoSlug(n) === detectedTipo && docsPendientesReq.includes(n) && !yaAsignados.has(n)
                 );
                 if (nombreMatch) { asignadoA = nombreMatch; yaAsignados.add(nombreMatch); colocadosEnEstaPasada++; }
@@ -2861,7 +2895,15 @@ export default function DetalleTransportistaPage() {
       completados: (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("sello_")).length,
       total: unidades.length,
     },
+    selloSalida: {
+      completados: (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("salida_sello_")).length,
+      total: unidades.length,
+    },
   };
+
+  const documentosRequeridosNombresRecord = esRecoleccion
+    ? [...documentosRequeridosNombres, FOTO_CAJA_VACIA_LABEL]
+    : documentosRequeridosNombres;
 
   const tiposSubidos = new Set(
     (data?.documentos_adicionales ?? [])
@@ -2869,7 +2911,7 @@ export default function DetalleTransportistaPage() {
       .filter((t): t is string => !!t)
       .map(tipoSlug),
   );
-  const docsPendientesReq = documentosRequeridosNombres.filter((nombre) => !tiposSubidos.has(tipoRequeridoSlug(nombre)));
+  const docsPendientesReq = documentosRequeridosNombresRecord.filter((nombre) => !tiposSubidos.has(tipoRequeridoSlug(nombre)));
 
   // Selecciona "subidos" automáticamente cuando no quedan pendientes
   useEffect(() => {
@@ -3481,7 +3523,7 @@ export default function DetalleTransportistaPage() {
                   // identificaciones) — el backend ya los guarda como filas
                   // independientes, así que el select ofrece todos los tipos
                   // sin excluir los ya usados por otro documento.
-                  const tipoOptions = documentosRequeridosNombres;
+                  const tipoOptions = documentosRequeridosNombresRecord;
                   return (
                     <div key={doc.file_url} className="rounded-xl border-2 border-blue-200 bg-blue-50/30 p-3.5 space-y-3">
                       <div className="flex items-center gap-3">
@@ -4081,7 +4123,8 @@ export default function DetalleTransportistaPage() {
               i.tipo === "salida_tractor" || i.tipo.startsWith("salida_contenedor_")
             );
             const totalSecciones = 1 + unidades.filter(u => u.config === "remolque_contenedor").length;
-            if (inspecsSalida.length < totalSecciones) return null;
+            const selloSalidaCompleto = !esRecoleccion || (inspecciones.selloSalida.total > 0 && inspecciones.selloSalida.completados >= inspecciones.selloSalida.total);
+            if (inspecsSalida.length < totalSecciones || !selloSalidaCompleto) return null;
             return (
               <div className="rounded-xl overflow-hidden shadow-md" style={{ background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)" }}>
                 <div className="px-4 py-3 flex items-center justify-between">
@@ -4416,6 +4459,67 @@ export default function DetalleTransportistaPage() {
               );
             })();
 
+            // Solo Recolección: la unidad llega vacía y el precinto se coloca
+            // hasta la salida (ya cargada), así que el sello se inspecciona
+            // otra vez en ese momento — independiente del sello de entrada.
+            const cardSelloSalida = (() => {
+              const salidaHabilitada = etapasActivas.includes("inspeccion_salida") && estatusIdx >= ORDEN_ESTATUS.indexOf("inspeccion_salida");
+              if (!esRecoleccion || !salidaHabilitada) return null;
+              const selloSalidaTodasDone = inspecciones.selloSalida.total > 0 && inspecciones.selloSalida.completados >= inspecciones.selloSalida.total;
+              const sinUnidades = unidades.length === 0;
+              return (
+                <div key="sello-salida" className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-teal-500" />
+                      <span className="text-sm font-bold text-gray-800">Inspección de sello · Salida</span>
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                      selloSalidaTodasDone ? "bg-green-100 text-green-700" : "bg-teal-100 text-teal-700",
+                    )}>
+                      {selloSalidaTodasDone ? "Completa" : "Pendiente"}
+                    </span>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <p className="text-[11px] text-gray-400">Precinto colocado tras la carga · ISO 17712</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-extrabold text-gray-800">{inspecciones.selloSalida.completados}</span>
+                      <span className="text-sm text-gray-400">de {inspecciones.selloSalida.total}</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700 mb-0.5">
+                        {sinUnidades ? "Agrega un remolque para poder inspeccionar el sello" : selloSalidaTodasDone ? "Inspección de sello de salida completa" : "Inspección de sello de salida pendiente"}
+                      </p>
+                      <p className="text-xs text-gray-500 leading-relaxed">Método VVTT (View · Verify · Tug · Twist) sobre el precinto colocado al salir.</p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={sinUnidades}
+                      onClick={() => {
+                        if (selloSalidaTodasDone) {
+                          const sellosDone = (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("salida_sello_"));
+                          if (sellosDone.length === 1 && sellosDone[0].url) {
+                            setViewingInspeccion({ url: sellosDone[0].url, tipo: sellosDone[0].tipo });
+                          } else {
+                            setShowInspeccionSelloSalida(true);
+                          }
+                        } else {
+                          setShowInspeccionSelloSalida(true);
+                        }
+                      }}
+                      className={cn(
+                        "w-full h-9 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
+                        selloSalidaTodasDone ? "bg-white border border-teal-200 text-teal-700 hover:bg-teal-50" : "bg-teal-900 hover:bg-teal-800 text-white",
+                      )}>
+                      <Shield className="w-3.5 h-3.5" />
+                      {selloSalidaTodasDone ? "Ver inspección de sello de salida" : "Realizar inspección de sello de salida"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })();
+
             const cardGaleria = estatus === "terminado" ? (() => {
               const preview = galeriaFotos.slice(0, 4);
               const restantes = galeriaFotos.length - preview.length;
@@ -4467,10 +4571,10 @@ export default function DetalleTransportistaPage() {
 
             const ordered =
               estatus === "carga_/_descarga"
-                ? [cardMateriales, cardEntrada, cardSello, cardSalida]
+                ? [cardMateriales, cardEntrada, cardSello, cardSalida, cardSelloSalida]
                 : estatus === "inspeccion_salida" || estatus === "terminado"
-                ? [cardGaleria, cardSalida, cardEntrada, cardSello, cardMateriales]
-                : [cardEntrada, cardSello, cardMateriales, cardSalida];
+                ? [cardGaleria, cardSalida, cardSelloSalida, cardEntrada, cardSello, cardMateriales]
+                : [cardEntrada, cardSello, cardMateriales, cardSalida, cardSelloSalida];
 
             return <>{ordered}</>;
           })()}
@@ -4545,6 +4649,19 @@ export default function DetalleTransportistaPage() {
           documentosAdicionales={data?.documentos_adicionales}
           ubicacion={data?.ubicacion}
           onClose={() => setShowInspeccionSello(false)}
+          onSaved={refetch}
+          onViewRecord={(url, tipo) => setViewingInspeccion({ url, tipo })}
+        />
+      )}
+      {showInspeccionSelloSalida && (
+        <InspeccionSelloModal
+          recordId={id}
+          unidades={unidades}
+          inspeccionesDone={data?.inspecciones ?? []}
+          documentosAdicionales={data?.documentos_adicionales}
+          tipoPrefix="salida"
+          ubicacion={data?.ubicacion}
+          onClose={() => setShowInspeccionSelloSalida(false)}
           onSaved={refetch}
           onViewRecord={(url, tipo) => setViewingInspeccion({ url, tipo })}
         />

@@ -25,6 +25,7 @@ interface RawMaterial {
   cantidad_fisica: string | null;
   cantidad_buena: string | null;
   cantidad_danada: string | null;
+  cantidad_faltante: string | null;
   peso: string | null;
   volumen: string | null;
 }
@@ -133,6 +134,7 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
       cantidad_fisica: strOrNull(m.cantidad_fisica),
       cantidad_buena:  strOrNull(m.cantidad_buena),
       cantidad_danada: strOrNull(m.cantidad_danada),
+      cantidad_faltante: strOrNull(m.cantidad_faltante),
       peso:            m.peso,
       volumen:         m.volumen,
       // no_referencia_material del desglose guarda el índice del material (ver desglose-materiales-modal.tsx)
@@ -185,6 +187,7 @@ export interface MaterialVisita {
   cantidad_fisica: string | null;
   cantidad_buena:  string | null;
   cantidad_danada: string | null;
+  cantidad_faltante: string | null;
   peso:            string | null;
   volumen:         string | null;
   desglose:        DesgloseRenglonVisita[];
