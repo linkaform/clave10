@@ -66,7 +66,10 @@ function MegaMenuItem({ module, basePath, isActive }: MegaMenuItemProps) {
   }
 
   const columnGroups = groupSectionsByColumn(module.sections);
-  const maxColumns = Math.max(...Array.from(columnGroups.keys()), 1);
+  const populatedColumns = Array.from(columnGroups.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([, sections]) => sections);
+  const maxColumns = populatedColumns.length || 1;
   const hasSidebar = module.sidebar && module.sidebar.items.length > 0;
 
   return (
@@ -89,16 +92,14 @@ function MegaMenuItem({ module, basePath, isActive }: MegaMenuItemProps) {
               maxColumns === 3 && "w-[580px] grid-cols-3",
               maxColumns >= 4 && "w-[750px] grid-cols-4",
             )}>
-            {Array.from({ length: maxColumns }, (_, i) => i + 1).map(
-              (colNum) => (
-                <MenuColumn
-                  key={colNum}
-                  sections={columnGroups.get(colNum) || []}
-                  basePath={basePath}
-                  moduleKey={module.key}
-                />
-              ),
-            )}
+            {populatedColumns.map((sections, i) => (
+              <MenuColumn
+                key={i}
+                sections={sections}
+                basePath={basePath}
+                moduleKey={module.key}
+              />
+            ))}
           </div>
 
           {/* Sidebar opcional */}

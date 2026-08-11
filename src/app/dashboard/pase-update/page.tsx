@@ -12,10 +12,12 @@ import {
   FormItem,
 } from "@/components/ui/form";
 import { toast } from "sonner";
-import { useGetCatalogoPaseNoJwt } from "@/hooks/useGetCatologoPaseNoJwt";
+import { useGetCatalogoPaseNoJwt, PermisoCertificacion } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
 import LoadImage, { Imagen } from "@/components/upload-Image";
+import LoadFile from "@/components/upload-file";
+import { Switch } from "@/components/ui/switch";
 import { Car, Check, Laptop, Loader2, X, ArrowLeft } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
@@ -132,6 +134,87 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
 
 export type formatData = z.infer<ReturnType<typeof createSchema>>;
 
+export type PermisoCertificacionArchivos = {
+  foto: Imagen[];
+  documento: Imagen[];
+};
+
+function PermisoCertificacionCard({
+  permiso,
+  archivos,
+  onFotoChange,
+  onDocumentoChange,
+  accountId,
+}: {
+  permiso: PermisoCertificacion;
+  archivos: PermisoCertificacionArchivos;
+  onFotoChange: Dispatch<SetStateAction<Imagen[]>>;
+  onDocumentoChange: Dispatch<SetStateAction<Imagen[]>>;
+  accountId?: number;
+}) {
+  const [modoCarga, setModoCarga] = useState<"imagen" | "documento">("imagen");
+  const vigenciaTexto = [permiso.vigencia_certificado, permiso.vigencia_certificado_en]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-slate-800">{permiso.nombre_permiso}</p>
+          {vigenciaTexto && (
+            <p className="text-xs text-slate-500 mt-1">Vigencia: {vigenciaTexto}</p>
+          )}
+          {(permiso.requerimientos_pase?.length ?? 0) > 0 && (
+            <ul className="mt-2 space-y-1">
+              {permiso.requerimientos_pase!.map((req, i) => (
+                <li key={i} className="text-xs text-slate-600 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                  {req}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="flex items-center gap-2 mr-4 mb-5">
+          <span className={`text-xs font-medium ${modoCarga === "imagen" ? "text-blue-600" : "text-slate-400"}`}>
+            Imagen
+          </span>
+          <Switch
+            checked={modoCarga === "documento"}
+            onCheckedChange={(checked) => setModoCarga(checked ? "documento" : "imagen")}
+            className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-slate-200"
+          />
+          <span className={`text-xs font-medium ${modoCarga === "documento" ? "text-blue-600" : "text-slate-400"}`}>
+            Documento
+          </span>
+        </div>
+        <div className="sm:w-56 shrink-0">
+          {modoCarga === "imagen" ? (
+            <LoadImage
+              id={`permiso-${permiso.nombre_permiso}-foto`}
+              titulo="Imagen"
+              imgArray={archivos.foto}
+              setImg={onFotoChange}
+              showWebcamOption={true}
+              facingMode="environment"
+              accountId={accountId}
+            />
+          ) : (
+            <LoadFile
+              id={`permiso-${permiso.nombre_permiso}-documento`}
+              titulo="Documento"
+              docArray={archivos.documento}
+              setDocs={onDocumentoChange}
+              limit={10}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const PaseUpdate = () => {
   const [id, setUserId] = useState("");
   const [showIneIden, setShowIneIden] = useState<string[] | undefined>([]);
@@ -155,6 +238,34 @@ const PaseUpdate = () => {
   const requireFoto = showIneIden?.includes("foto") ?? false;
   const requireIden = showIneIden?.includes("iden") ?? false;
   const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
+  const [permisosCertificacionesFiles, setPermisosCertificacionesFiles] = useState<
+    Record<string, PermisoCertificacionArchivos>
+  >({});
+  const handlePermisoArchivoChange = (
+    nombrePermiso: string,
+    campo: keyof PermisoCertificacionArchivos,
+    action: SetStateAction<Imagen[]>,
+  ) => {
+    setPermisosCertificacionesFiles((prev) => {
+      const current = prev[nombrePermiso] ?? { foto: [], documento: [] };
+      const next = typeof action === "function" ? action(current[campo]) : action;
+      return { ...prev, [nombrePermiso]: { ...current, [campo]: next } };
+    });
+  };
+
+  // El catálogo puede traer permisos duplicados (mismo nombre_permiso exacto
+  // repetido) — se deduplica aquí, quedándose con la primera aparición, para
+  // no romper el key de React ni el estado de archivos (que se indexa por
+  // nombre_permiso, así que dos entradas iguales compartirían slot).
+  const permisosCertificacionesUnicos = useMemo(() => {
+    const vistos = new Set<string>();
+    return (dataCatalogos?.permisos_certificaciones ?? []).filter((p) => {
+      if (vistos.has(p.nombre_permiso)) return false;
+      vistos.add(p.nombre_permiso);
+      return true;
+    });
+  }, [dataCatalogos?.permisos_certificaciones]);
+
   const [ocrFotoResult, setOcrFotoResult] = useState<any>(null);
   const [ocrIdenResult, setOcrIdenResult] = useState<any>(null);
   const { grupoRequisitos } = useMenuStore();
@@ -312,11 +423,15 @@ const PaseUpdate = () => {
   // <iframe> (solo PDFs). Para esos casos, envolvemos la URL con el visor
   // de Google Docs, que sí sabe renderizarlos (requiere que el archivo sea
   // accesible públicamente por URL, como es el caso de Backblaze aquí).
+  // Google Docs Viewer (docs.google.com/gview) manda X-Frame-Options:
+  // sameorigin y rechaza mostrarse dentro de nuestro <iframe>. El visor de
+  // Office Online de Microsoft sí permite embeberse y soporta los mismos
+  // formatos (doc, docx, xls, ppt, etc.) a partir de una URL pública.
   const getDocumentViewerUrl = (url: string): string => {
     if (!url) return url;
     const isPdf = url.toLowerCase().split("?")[0].endsWith(".pdf");
     if (isPdf) return url;
-    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
   };
 
   const reglasAccesoPdfViewerUrl = getDocumentViewerUrl(reglasAccesoPdfUrl);
@@ -592,6 +707,11 @@ const PaseUpdate = () => {
       telefono_pase: telefonoPaseEdit || dataCatalogos?.pass_selected?.telefono || "",
       acepto_aviso_privacidad: data.acepto_aviso_privacidad,
       conservar_datos_por: radioSelected,
+      permisos_certificaciones: permisosCertificacionesUnicos.map((p) => ({
+        nombre_del_permiso: p.nombre_permiso,
+        foto: permisosCertificacionesFiles[p.nombre_permiso]?.foto ?? [],
+        documento: permisosCertificacionesFiles[p.nombre_permiso]?.documento ?? [],
+      })),
       acompanantes:dataCatalogos?.pass_selected?.acompanantes,
       acompanantes_grupo: miembrosAcompanantes.map((m) => ({
         qr_code:m.id,
@@ -1124,7 +1244,8 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               />
             )}
           </div>
-      
+
+          
           {pasePadreBadge}
 
           {(dataCatalogos?.pass_selected?.acompanantes_grupo?.length ?? 0) > 0 && (() => {
@@ -1389,6 +1510,35 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               )}
             </Accordion>
           </div>
+
+
+          {dataCatalogos?.pass_selected?.walkin?.toLowerCase() === "no" &&
+            permisosCertificacionesUnicos.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="font-bold text-lg text-slate-800">Permisos y certificaciones</h2>
+              {permisosCertificacionesUnicos.map((permiso) => (
+                <PermisoCertificacionCard
+                  key={permiso.nombre_permiso}
+                  permiso={permiso}
+                  archivos={
+                    permisosCertificacionesFiles[permiso.nombre_permiso] ?? {
+                      foto: [],
+                      documento: [],
+                    }
+                  }
+                  onFotoChange={(action) =>
+                    handlePermisoArchivoChange(permiso.nombre_permiso, "foto", action)
+                  }
+                  onDocumentoChange={(action) =>
+                    handlePermisoArchivoChange(permiso.nombre_permiso, "documento", action)
+                  }
+                  accountId={account_id}
+                />
+              ))}
+            </div>
+          )}
+
+
 
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 

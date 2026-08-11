@@ -49,6 +49,7 @@ import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { useCatalogoRoles } from "@/hooks/useGetRoles";
 import useAuthStore from "@/store/useAuthStore";
+import { useGetRondinById } from "@/hooks/Rondines/useGetRondinById";
 
 interface AddRondinModalProps {
   title: string;
@@ -208,6 +209,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
 
   const { location } = useBoothStore();
   const [areasSeleccionadas, setAreasSeleccionadas] = useState<any[]>([]);
+  const [areasHydrated, setAreasHydrated] = useState(true);
   const [asignadoA, setAsignadoA] = useState<string>("responsable_en_turno");
   const [personaEspecifica, setPersonaEspecifica] = useState<string>("");
   const { createRondinMutation, isLoading } = useRondines();
@@ -255,8 +257,18 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     useCatalogoAreaEmpleado(isSuccess, location ?? "", "Incidencias");
   const { data: dataGrupos, isLoading: loadingGrupos } =
     useCatalogoGrupos(isSuccess);
-  console.log("isSuccess:", isSuccess, "loadingGrupos:", loadingGrupos, "dataGrupos:", dataGrupos);
 
+  // El row de la tabla de recorridos (rondinData) viene del listado
+  // (get_recorridos), que NO trae `roles` ni siempre los campos reales de
+  // asignación — se pide el registro completo (get_rondin_by_id) al abrir en
+  // modo edición, y se usa como fuente de verdad por encima de rondinData.
+  const { data: rondinCompleto } = useGetRondinById(
+    mode === "edit" && isSuccess && rondinId ? rondinId : "",
+  );
+  const rondinEfectivo = useMemo(
+    () => (mode === "edit" ? { ...(rondinData ?? {}), ...(rondinCompleto ?? {}) } : rondinData),
+    [mode, rondinData, rondinCompleto],
+  );
   const { userIdSoter } = useAuthStore();
   const { data: dataRoles } = useCatalogoRoles(isSuccess, userIdSoter);
   const rolesDisponibles: { value: string; label: string }[] =
@@ -317,8 +329,6 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   });
   const { reset } = form;
 
-  console.log(form.formState.errors);
-
   useEffect(() => {
     if (isSuccess && mode == "create") {
       set_que_dias_de_la_semana([]);
@@ -353,6 +363,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   ];
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // El botón ya se deshabilita mientras esto es false, pero el <form> también
+    // dispara este submit con Enter, así que se revalida aquí por si acaso.
+    if (mode === "edit" && !areasHydrated) return;
+
     let hasError = false;
 
     if (!date) {
@@ -413,12 +427,15 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         ? [grupoSeleccionado]
         : asignadoA,
       ...recurrenciaFiltrada,
-      area: values.area ?? "",
+      // El campo "area" está oculto en este formulario (bloque comentado);
+      // en edición se conserva el valor real ya guardado en vez de mandar
+      // siempre "" y borrarlo.
+      area: values.area || (mode === "edit" ? rondinEfectivo?.area : "") || "",
       roles: values.roles ?? [],
     };
 
     if (mode == "edit" && folio) {
-      console.log("ediutarr", mode, folio, rondinId);
+      console.log("ediutarr", mode, payload);
       editarRondinMutation.mutate({ folio: folio, rondin_data: payload });
     } else if (mode == "create") {
       createRondinMutation.mutate(
@@ -544,27 +561,87 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     setEsRepetirCada((prev) => (prev === valor ? null : valor));
   };
 
+  // Al abrir el modal en modo edición (o cambiar de rondín) se limpia el
+  // estado local de UI. Este componente nunca se desmonta al cerrar el
+  // diálogo (solo el DialogContent interno de Radix), así que sin este
+  // reset valores del rondín anterior (banner "no recurrente", toggles de
+  // frecuencia, áreas, asignación) se quedaban pegados al abrir uno nuevo.
+  const editHydratedRef = useRef<string | null>(null);
+  const areasHydratedRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (mode === "edit" && rondinData && isSuccess) {
+    if (mode !== "edit" || !isSuccess) return;
+    editHydratedRef.current = null;
+    areasHydratedRef.current = null;
+    set_que_dias_de_la_semana([]);
+    set_en_que_semana_sucede("");
+    set_todas_las_semanas(false);
+    set_en_que_mes([]);
+    set_todas_las_meses(false);
+    setEsRepetirCada(null);
+    setMostrarFrecuencia(false);
+    setNoRecurrente(false);
+    setAreasSeleccionadas([]);
+    setAreasHydrated(false);
+    setAsignadoA("responsable_en_turno");
+    setPersonaEspecifica("");
+    setGrupoSeleccionado("");
+    setAsignacionError("");
+    // Se fija la ubicación real del rondín desde ya (no hay que esperar a
+    // que llegue rondinCompleto): así el catálogo de áreas (useCatalogAreasRondin)
+    // arranca su fetch con la ubicación correcta en vez de la del booth,
+    // evitando un fetch de más y el reset intermedio de catalogAreasRondin
+    // a undefined que dejaba a areasSeleccionadas vacío en el submit.
+    if (rondinData?.ubicacion) setUbicacionSeleccionada(rondinData.ubicacion);
+  }, [mode, isSuccess, rondinId]);
+
+  useEffect(() => {
+    if (mode === "edit" && rondinEfectivo && isSuccess) {
+      // rondinEfectivo cambia de referencia en cada refetch de
+      // useGetRondinById aunque el contenido no cambie (p. ej. al recuperar
+      // el foco de la ventana). Sin este guard el reset() de abajo se
+      // volvía a disparar y borraba lo que el usuario ya había editado.
+      const key = rondinCompleto ? `${rondinId}:full` : `${rondinId}:partial`;
+      if (editHydratedRef.current === key) return;
+      editHydratedRef.current = key;
+
+      const rondinData = rondinEfectivo;
       const sucede = rondinData.sucede_recurrencia ?? [];
       form.setValue("sucede_recurrencia", sucede);
       if (rondinData.fecha_hora_programada)
         setDate(new Date(rondinData.fecha_hora_programada));
-      if (rondinData.areas && catalogAreasRondin) {
-        const cat = (rondinData?.areas ?? []).map((area: any) => {
-          if (typeof area === "string") return { name: area, id: area };
-          if (area?.rondin_area) return { name: area.rondin_area, id: area?.area_tag_id?.[0] ?? area.rondin_area };
-          if (area?.area) return { name: area.area, id: area.area };
-          return null;
-        }).filter(Boolean);
-        setAreasSeleccionadas(cat);
-      }
-      if (rondinData?.asignado_a) {
+      if (rondinData.ubicacion) setUbicacionSeleccionada(rondinData.ubicacion);
+      // tipo_asignacion es la key que este mismo formulario guarda al crear
+      // (coincide 1:1 con los 3 valores de asignadoA); se usa como fuente de
+      // verdad, y solo si no viene (registros viejos) se infiere de
+      // asignado_a/grupo_asignado/empleados_asignado.
+      if (rondinData?.tipo_asignacion === "grupo") {
+        setAsignadoA("grupo");
+        setGrupoSeleccionado(
+          rondinData.grupo_asignado ||
+            (Array.isArray(rondinData.asignado_a) ? rondinData.asignado_a[0] : "") ||
+            "",
+        );
+      } else if (rondinData?.tipo_asignacion === "persona_especifica") {
+        setAsignadoA("persona_especifica");
+        setPersonaEspecifica(
+          rondinData.empleados_asignado?.[0] ||
+            (Array.isArray(rondinData.asignado_a) ? rondinData.asignado_a[0] : "") ||
+            "",
+        );
+      } else if (rondinData?.tipo_asignacion === "responsable_en_turno") {
+        setAsignadoA("responsable_en_turno");
+      } else if (rondinData?.grupo_asignado) {
+        setAsignadoA("grupo");
+        setGrupoSeleccionado(rondinData.grupo_asignado);
+      } else if (rondinData?.asignado_a) {
         if (rondinData.asignado_a === "responsable_en_turno") {
           setAsignadoA("responsable_en_turno");
         } else {
           setAsignadoA("persona_especifica");
-          setPersonaEspecifica(rondinData.asignado_a);
+          setPersonaEspecifica(
+            Array.isArray(rondinData.asignado_a) ? rondinData.asignado_a[0] : rondinData.asignado_a,
+          );
         }
       }
       if (rondinData?.que_dias_de_la_semana?.length > 0) {
@@ -601,6 +678,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       const recurrenciaValida = ["diario", "semana", "mes", "configurable"];
       reset({
         nombre_rondin: rondinData.nombre_rondin || rondinData.nombre_del_rondin || "",
+        fecha_hora_programada: rondinData.fecha_hora_programada || "",
         duracion_estimada: rondinData.duracion_estimada?.replace(" minutos", "") || "",
         cada_cuantas_horas_se_repite: rondinData.cada_cuantas_horas_se_repite || "",
         cada_cuantos_meses_se_repite: rondinData.cada_cuantos_meses_se_repite || 0,
@@ -617,7 +695,40 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
           : "", // si viene "hora" o "año" deja vacío
       });
     }
-  }, [mode, rondinData, isSuccess, catalogAreasRondin, reset]);
+  }, [mode, isSuccess, rondinId, rondinEfectivo, reset]);
+
+  // Mapeo de áreas por separado: si el rondín trae áreas, depende del
+  // catálogo (catalogAreasRondin), que solo llega después de que el efecto
+  // de arriba fija la ubicación, y que puede refrescarse en segundo plano.
+  // Se guarda por rondinId para no repetir el mapeo (y pisar una selección
+  // manual del usuario) cada vez que el catálogo se re-obtiene con el mismo
+  // contenido. areasHydrated se usa para bloquear el submit mientras esto no
+  // termine: sin eso, un submit antes de que resuelva mandaba areas: [].
+  useEffect(() => {
+    if (mode !== "edit" || !isSuccess || !rondinEfectivo) return;
+    if (areasHydratedRef.current === rondinId) return;
+    const rawAreas = rondinEfectivo.areas ?? [];
+    if (rawAreas.length > 0 && !catalogAreasRondin) return;
+    areasHydratedRef.current = rondinId ?? null;
+    const cat = rawAreas
+      .map((area: any) => {
+        if (typeof area === "string") return { name: area, id: area };
+        if (area?.rondin_area) {
+          // area_tag_id puede venir malformado desde el backend (p. ej. [[]],
+          // un array conteniendo un array vacío en vez de un id string), así
+          // que se valida el tipo en vez de confiar en "??" — un array vacío
+          // no es nullish y por tanto no cae al fallback con "??".
+          const tagId = area?.area_tag_id?.[0];
+          const id = typeof tagId === "string" && tagId ? tagId : area.rondin_area;
+          return { name: area.rondin_area, id };
+        }
+        if (area?.area) return { name: area.area, id: area.area };
+        return null;
+      })
+      .filter(Boolean);
+    setAreasSeleccionadas(cat);
+    setAreasHydrated(true);
+  }, [mode, isSuccess, rondinId, rondinEfectivo, catalogAreasRondin]);
 
   useEffect(() => {
     const container = multiselectRef.current;
@@ -1314,7 +1425,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
             type="button"
             onClick={form.handleSubmit(onSubmit)}
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 font-semibold"
-            disabled={isLoading || isLoadingEdit}>
+            disabled={isLoading || isLoadingEdit || (mode === "edit" && !areasHydrated)}>
             {isLoading || isLoadingEdit ? (
               <>
                 {mode === "edit" ? (
@@ -1327,6 +1438,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                   </span>
                 )}
               </>
+            ) : mode === "edit" && !areasHydrated ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="animate-spin" size={16} /> Cargando datos...
+              </span>
             ) : (
               <>{mode == "edit" ? "Guardar recorrido" : "Crear recorrido"}</>
             )}
