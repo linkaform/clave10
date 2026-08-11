@@ -42,7 +42,7 @@ interface Props {
   isAccesos: boolean;
   id?: string;
   fetch?: boolean;
-  account_id:number;
+  account_id?:number;
 }
 
 const formSchema = z.object({
@@ -75,7 +75,7 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
   const [marcasCat, setMarcasCat] = useState<string[]>([]);
   const [modelosCat, setModelosCat] = useState<string[]>([]);
   const { data: dataVehiculosHook } = useGetVehiculos({
-    account_id:userIdSoter || account_id,
+    account_id:userIdSoter || account_id || 0,
     tipo: tipoVehiculoState,
     marca: marcaState,
     isModalOpen: open,
@@ -98,7 +98,7 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
     label: tipo,
   }));
 
-  const { data: dataEstados } = useCatalogoEstados(userParentId || account_id, open);
+  const { data: dataEstados } = useCatalogoEstados(userParentId || account_id || 0, open);
   const catEstados = Array.isArray(dataEstados)
     ? dataEstados.map((estado: string) => ({ value: estado, label: estado }))
     : [];

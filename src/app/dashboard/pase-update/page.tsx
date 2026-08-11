@@ -1299,7 +1299,8 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                 vehicles={vehicles}
                 setVehiculos={setVehiculos}
                 isAccesos={false}
-                fetch={false}>
+                fetch={false}
+                account_id={account_id}>
                 <button
                   type="button"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors">
@@ -1846,7 +1847,8 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                                 vehicles={vehicles}
                                 setVehiculos={setVehiculos}
                                 isAccesos={false}
-                                fetch={false}>
+                                fetch={false}
+                                account_id={account_id}>
                                 <button
                                   type="button"
                                   onClick={() => handleCheckboxChange("agregar-vehiculos")}

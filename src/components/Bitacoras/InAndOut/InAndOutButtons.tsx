@@ -75,7 +75,8 @@ export const InAndOutButtons = ({
       <PhotoGridActionButtons
         actions={[
           !isSalida ? (
-            <VehicleLocalPassModal key="car" title="Agregar vehículo" vehicles={[]} setVehiculos={() => {}} isAccesos={false} id={bitacora._id} fetch={true}>
+            <VehicleLocalPassModal key="car" title="Agregar vehículo" vehicles={[]} setVehiculos={() => {}} isAccesos={false} id={bitacora._id} fetch={true}
+            >
               <div className={iconClass(false)} title="Agregar vehículo">
                 <Car className="w-4 h-4" />
               </div>
