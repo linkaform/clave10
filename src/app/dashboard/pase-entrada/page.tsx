@@ -188,6 +188,7 @@ const PaseEntradaPage = () => {
   const [defaultCountry, setDefaultCountry] = useState<any>("MX");
   const [habilitarVehiculo, setHabilitarVehiculo] = useState(true);
   const [toleranciaEntrada, setToleranciaEntrada] = useState<number>(0);
+  const [toleranciaPrevia, setToleranciaPrevia] = useState<number>(15);
 
   const {
     locations: ubicacionesStore,
@@ -326,6 +327,7 @@ const PaseEntradaPage = () => {
     );
 
     setToleranciaEntrada(requisito?.tolerancia_de_entrada_posterior ?? 0);
+    setToleranciaPrevia(requisito?.tolerancia_de_entrada_previa ?? 15);
   }, [ubicacionesSeleccionadas, grupoRequisitos]);
 
   const ubicacionesSeleccionadasLista = ubicacionesSeleccionadas?.map(
@@ -1097,6 +1099,7 @@ const PaseEntradaPage = () => {
                           date={date}
                           setDate={setDate}
                           allowPast={false}
+                          toleranceMinutes={toleranciaPrevia}
                           use12Hour
                         />
                       </FormControl>

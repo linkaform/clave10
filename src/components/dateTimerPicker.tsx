@@ -20,6 +20,7 @@ interface ClockPickerProps {
   onChange: (value: TimeValue) => void;
   minuteStep?: 1 | 5 | 15;
   use12Hour?: boolean;
+  minTime?: TimeValue | null;
 }
 
 interface DateTimePickerProps {
@@ -27,13 +28,15 @@ interface DateTimePickerProps {
   setDate: (date: Date | undefined) => void;
   allowPast?: boolean;
   minDate?: Date;
+  /** Minutos de tolerancia hacia atrás permitidos respecto a la hora actual (solo aplica cuando allowPast=false y no se pasa minDate) */
+  toleranceMinutes?: number;
   showTime?: boolean;
   placeholder?: string;
   minuteStep?: 1 | 5 | 15;
   use12Hour?: boolean;
 }
 
-function ClockPicker({ hour, minute, onChange, minuteStep = 5, use12Hour = false }: ClockPickerProps) {
+function ClockPicker({ hour, minute, onChange, minuteStep = 5, use12Hour = false, minTime = null }: ClockPickerProps) {
   const [mode, setMode] = useState<ClockMode>("hour");
   const clockRef = useRef<SVGSVGElement>(null);
   const isDragging = useRef<boolean>(false);
@@ -68,6 +71,16 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5, use12Hour = false
     [minuteStep]
   );
 
+  const clampToMin = useCallback(
+    (h: number, m: number): TimeValue => {
+      if (!minTime) return { hour: h, minute: m };
+      if (h < minTime.hour) return { hour: minTime.hour, minute: minTime.minute };
+      if (h === minTime.hour && m < minTime.minute) return { hour: minTime.hour, minute: minTime.minute };
+      return { hour: h, minute: m };
+    },
+    [minTime]
+  );
+
   const angleToValue = useCallback(
     (cx: number, cy: number): void => {
       if (!clockRef.current) return;
@@ -83,20 +96,20 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5, use12Hour = false
         if (use12Hour) {
           const h12 = segment === 0 ? 12 : segment;
           const newHour = isPM ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
-          onChange({ hour: newHour, minute });
+          onChange(clampToMin(newHour, minute));
         } else {
           const isInner = dist < 58;
           const val = isInner
             ? segment === 0 ? 0 : segment + 12
             : segment === 0 ? 12 : segment;
-          onChange({ hour: val, minute });
+          onChange(clampToMin(val, minute));
         }
       } else {
         const raw = Math.round(angle / 6) % 60;
-        onChange({ hour, minute: snapMinute(raw) });
+        onChange(clampToMin(hour, snapMinute(raw)));
       }
     },
-    [mode, hour, minute, onChange, CENTER, snapMinute, use12Hour, isPM]
+    [mode, hour, minute, onChange, CENTER, snapMinute, use12Hour, isPM, clampToMin]
   );
 
   const handlePointer = useCallback(
@@ -158,6 +171,9 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5, use12Hour = false
 
   const isActiveHour = (v: number): boolean => hour === v;
   const isActiveMinute = (v: number): boolean => minute === v;
+  const isHourDisabled = (v: number): boolean => !!minTime && v < minTime.hour;
+  const isMinuteDisabled = (v: number): boolean =>
+    !!minTime && hour === minTime.hour && v < minTime.minute;
   const fmt = (n: number): string => String(n).padStart(2, "0");
   const fmt12 = (h: number): string => {
     const h12 = h % 12 === 0 ? 12 : h % 12;
@@ -167,8 +183,10 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5, use12Hour = false
   const handlePeriodToggle = (period: "AM" | "PM"): void => {
     const h12 = hour % 12 === 0 ? 12 : hour % 12;
     const newHour = period === "PM" ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
-    onChange({ hour: newHour, minute });
+    onChange(clampToMin(newHour, minute));
   };
+
+  const amDisabled = !!minTime && minTime.hour >= 12;
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -191,9 +209,12 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5, use12Hour = false
 
         {use12Hour && (
           <div className="flex flex-col gap-0.5 ml-1">
-            <button type="button" onClick={() => handlePeriodToggle("AM")}
+            <button type="button" onClick={() => !amDisabled && handlePeriodToggle("AM")}
+              disabled={amDisabled}
               className={cn("px-2 py-0.5 rounded text-xs font-semibold transition-colors",
-                !isPM ? "bg-blue-100 text-blue-700" : "text-slate-400 hover:text-slate-600"
+                amDisabled
+                  ? "text-slate-200 cursor-not-allowed"
+                  : !isPM ? "bg-blue-100 text-blue-700" : "text-slate-400 hover:text-slate-600"
               )}>
               AM
             </button>
@@ -226,14 +247,16 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5, use12Hour = false
             <>
               {hours.map((h: number, i: number) => {
                 const pos = hourPos(i, HOUR_R);
+                const actualHour = use12Hour ? (isPM ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h)) : h;
                 const active = use12Hour
                   ? (hour % 12 === 0 ? 12 : hour % 12) === h
                   : isActiveHour(h);
+                const disabled = isHourDisabled(actualHour);
                 return (
                   <g key={h}>
                     {active && <circle cx={pos.x} cy={pos.y} r={13} fill="#2563EB" />}
                     <text x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="central"
-                      fontSize={11} fontWeight={active ? "600" : "400"} fill={active ? "white" : "#475569"}>
+                      fontSize={11} fontWeight={active ? "600" : "400"} fill={active ? "white" : disabled ? "#CBD5E1" : "#475569"}>
                       {h}
                     </text>
                   </g>
@@ -242,11 +265,12 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5, use12Hour = false
               {!use12Hour && hoursInner.map((h: number, i: number) => {
                 const pos = hourPos(i, INNER_HOUR_R);
                 const active = isActiveHour(h);
+                const disabled = isHourDisabled(h);
                 return (
                   <g key={`inner-${h}`}>
                     {active && <circle cx={pos.x} cy={pos.y} r={11} fill="#2563EB" />}
                     <text x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="central"
-                      fontSize={9} fontWeight={active ? "600" : "400"} fill={active ? "white" : "#94A3B8"}>
+                      fontSize={9} fontWeight={active ? "600" : "400"} fill={active ? "white" : disabled ? "#E2E8F0" : "#94A3B8"}>
                       {h === 0 ? "00" : h}
                     </text>
                   </g>
@@ -260,11 +284,12 @@ function ClockPicker({ hour, minute, onChange, minuteStep = 5, use12Hour = false
               {minuteMarks.map((m: number, i: number) => {
                 const pos = minutePos(i, minuteMarks.length, MINUTE_R);
                 const active = isActiveMinute(m);
+                const disabled = isMinuteDisabled(m);
                 return (
                   <g key={m}>
                     {active && <circle cx={pos.x} cy={pos.y} r={13} fill="#2563EB" />}
                     <text x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="central"
-                      fontSize={10} fontWeight={active ? "600" : "400"} fill={active ? "white" : "#475569"}>
+                      fontSize={10} fontWeight={active ? "600" : "400"} fill={active ? "white" : disabled ? "#CBD5E1" : "#475569"}>
                       {String(m).padStart(2, "0")}
                     </text>
                   </g>
@@ -300,6 +325,7 @@ export default function DateTimePicker({
   setDate,
   allowPast = false,
   minDate,
+  toleranceMinutes,
   showTime = true,
   placeholder,
   minuteStep = 5,
@@ -310,6 +336,16 @@ export default function DateTimePicker({
   // ── Fix hydration: no usar new Date() en el render inicial ──
   const [mounted, setMounted] = useState<boolean>(false);
   const [today, setToday] = useState<Date | undefined>(undefined);
+
+  // ── Piso de fecha/hora efectivo: minDate explícito, o "ahora - tolerancia" cuando no se permite pasado ──
+  const effectiveMin: Date | undefined = minDate
+    ? minDate
+    : !allowPast && today
+    ? new Date(today.getTime() - (toleranceMinutes ?? 0) * 60000)
+    : undefined;
+
+  const isSameCalendarDay = (a: Date, b: Date): boolean =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
   const [open, setOpen] = useState<boolean>(false);
   const [selected, setSelected] = useState<Date | undefined>(date);
@@ -350,6 +386,14 @@ export default function DateTimePicker({
     if (!day) return;
     setSelected(day);
     if (showTime) {
+      if (effectiveMin && isSameCalendarDay(day, effectiveMin)) {
+        const minH = effectiveMin.getHours();
+        const minM = effectiveMin.getMinutes();
+        if (hour < minH || (hour === minH && minute < minM)) {
+          setHour(minH);
+          setMinute(minM);
+        }
+      }
       setView("clock");
     } else {
       const d = new Date(day);
@@ -462,11 +506,7 @@ export default function DateTimePicker({
               onSelect={handleDaySelect}
               locale={es}
               // ── Fix: usar estado inicializado en cliente ──
-              disabled={
-                minDate 
-                  ? { before: minDate } 
-                  : (allowPast ? undefined : (today ? { before: today } : undefined))
-              }
+              disabled={effectiveMin ? { before: effectiveMin } : undefined}
               classNames={{
                 months: "flex flex-col",
                 month: "space-y-2",
@@ -493,7 +533,18 @@ export default function DateTimePicker({
               }}
             />
           ) : (
-            <ClockPicker hour={hour} minute={minute} onChange={handleTimeChange} minuteStep={minuteStep} use12Hour={use12Hour} />
+            <ClockPicker
+              hour={hour}
+              minute={minute}
+              onChange={handleTimeChange}
+              minuteStep={minuteStep}
+              use12Hour={use12Hour}
+              minTime={
+                effectiveMin && selected && isSameCalendarDay(selected, effectiveMin)
+                  ? { hour: effectiveMin.getHours(), minute: effectiveMin.getMinutes() }
+                  : null
+              }
+            />
           )}
         </div>
         {view === "clock" && (

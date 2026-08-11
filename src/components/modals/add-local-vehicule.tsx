@@ -50,7 +50,7 @@ const formSchema = z.object({
   marca: z.array(z.string()).min(1, "Debe seleccionar una marca."),
   modelo: z.array(z.string()).min(1, "Debe seleccionar un modelo."),
   estado: z.array(z.string()).optional(),
-  placas: z.string().optional(),
+  placas: z.string().min(1, "Debe escribir las placas."),
   color: z.array(z.string()).min(1, "Debe seleccionar un color."),
   foto_vehiculo: z.array(z.any()).optional().default([]),
 });
