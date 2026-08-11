@@ -435,8 +435,11 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     };
 
     if (mode == "edit" && folio) {
-      console.log("ediutarr", mode, payload);
-      editarRondinMutation.mutate({ folio: folio, rondin_data: payload });
+      editarRondinMutation.mutate({ folio: folio, rondin_data: payload }, {
+          onSuccess: () => {
+            setIsSuccess(false);
+          },
+        },);
     } else if (mode == "create") {
       createRondinMutation.mutate(
         { rondin_data: payload },

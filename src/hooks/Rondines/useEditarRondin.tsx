@@ -21,8 +21,8 @@ export const useEditarRondin = () => {
         onMutate: () => {
         },
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["getListRondines"] });
-          queryClient.invalidateQueries({ queryKey: ["getStatsRondines"] });
+          queryClient.invalidateQueries({ queryKey: ["getListRecorridos"] });
+          queryClient.invalidateQueries({ queryKey: ["getStatsRecorridos"] });
           toast.success("Rondin editado correctamente.");
         },
         onError: (err) => {
