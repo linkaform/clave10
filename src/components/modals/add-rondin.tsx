@@ -1029,6 +1029,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                           <DateTimePicker
                             showTime={true}
                             allowPast={true}
+                            use12Hour
                             placeholder="Selecciona fecha y hora"
                             date={field.value ? new Date(field.value) : undefined}
                             setDate={(d) => {
