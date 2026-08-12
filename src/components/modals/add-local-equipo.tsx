@@ -238,9 +238,9 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="">
+        <div className="px-4 overflow-y-auto flex-1 pb-4">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <div className="flex items-start gap-3 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
               <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center">
                 <svg
@@ -279,7 +279,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                   control={form.control}
                   name="foto_equipo"
                   render={({ field, fieldState }) => (
-                    <div className="space-y-2 col-span-1 md:col-span-2">
+                    <div className="space-y-2">
                       <FormLabel className="flex gap-1">
                         Foto del Equipo
                       </FormLabel>
@@ -292,8 +292,8 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                           showWebcamOption={true}
                           facingMode="environment"
                           showPlaceholder
-                          tipoOcr="equipo"                    
-                          onOcrResult={handleOcrEquipo} 
+                          tipoOcr="equipo"
+                          onOcrResult={handleOcrEquipo}
                         />
                       </FormControl>
                       {fieldState.error && (
@@ -304,7 +304,8 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                     </div>
                   )}
                 />
-                
+
+              <div className="grid grid-cols-2 gap-x-4 gap-y-4">
                 <FormField
                   control={form.control}
                   name="tipo"
@@ -332,6 +333,10 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                             : null
                         }
                         isClearable
+                        styles={{
+                          menu: (base) => ({ ...base, zIndex: 9999 }),
+                          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                        }}
                       />
                       <FormMessage />
                     </FormItem>
@@ -357,8 +362,6 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                   )}
                 />
               )}
-
-              <div className="grid md:grid-cols-2 gap-x-4 gap-y-8 pl-2">
                 <FormField
                   control={form.control}
                   name="marca"
@@ -470,7 +473,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
           </Form>
         </div>
 
-        <div className="flex gap-5">
+        <div className="flex gap-2 px-4 pt-2 flex-shrink-0">
           <DialogClose asChild>
             <Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700">
               Cancelar
@@ -480,7 +483,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
           <Button
             type="submit"
             onClick={form.handleSubmit(onSubmit)}
-            className="w-full  bg-blue-500 hover:bg-blue-600 text-white "
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white"
             disabled={isLoading}>
             {isLoading ? "Cargando..." : "Agregar"}
           </Button>

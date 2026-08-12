@@ -717,13 +717,12 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       .map((area: any) => {
         if (typeof area === "string") return { name: area, id: area };
         if (area?.rondin_area) {
-          // area_tag_id puede venir malformado desde el backend (p. ej. [[]],
-          // un array conteniendo un array vacío en vez de un id string), así
-          // que se valida el tipo en vez de confiar en "??" — un array vacío
-          // no es nullish y por tanto no cae al fallback con "??".
-          const tagId = area?.area_tag_id?.[0];
-          const id = typeof tagId === "string" && tagId ? tagId : area.rondin_area;
-          return { name: area.rondin_area, id };
+          // El catálogo de áreas y el submit usan siempre el nombre como id
+          // (ver areasOptions/useCatalogAreasRondin: {id: nombre, name: nombre}).
+          // area_tag_id es el ObjectId real de Mongo y no debe usarse aquí:
+          // mezclarlo con nombres en areasSeleccionadas hacía que el payload
+          // de "areas" mandara IDs para algunas áreas y nombres para otras.
+          return { name: area.rondin_area, id: area.rondin_area };
         }
         if (area?.area) return { name: area.area, id: area.area };
         return null;
