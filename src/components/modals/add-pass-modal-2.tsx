@@ -44,7 +44,6 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
   const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
   const [responseformated, setResponseFormated] = useState<data_correo | null>(null);
   const { updatePassMutation, isLoadingUpdate } = useUpdateAccessPass();
-  console.log("data?.acompanantes_grupo", data)
   const onSubmit = async () => {
     updatePassMutation.mutate(
       {
@@ -63,6 +62,19 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
           conservar_datos_por: data?.conservar_datos_por,
           acompanantes: data?.acompanantes ?? [],
           grupo_acompanantes:data?.acompanantes_grupo ?? [],
+          // Si ningún permiso/certificación tiene foto o documento cargado,
+          // no se manda la key en vez de mandar el arreglo vacío/sin evidencia.
+          ...(data?.permisos_certificaciones?.some(
+            (p: any) => (p.foto?.length ?? 0) > 0 || (p.documento?.length ?? 0) > 0,
+          )
+            ? { permisos_certificaciones: data.permisos_certificaciones }
+            : {}),
+          // Firma del paso de "Reglas de acceso" (llega de PaseUpdate como
+          // { file_url, file_name }). Si no se firmó (no cargó/no aplicaba),
+          // no se manda la key en vez de mandarla vacía.
+          ...(data?.firma_reglas_de_acceso?.file_url
+            ? { firma_reglas_de_acceso: data.firma_reglas_de_acceso }
+            : {}),
         },
         id: data.folio,
         account_id: data.account_id,
@@ -191,6 +203,22 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
               </div>
             </div>
           </div>
+
+          {/* Firma de reglas de acceso */}
+          {data?.firma_reglas_de_acceso?.file_url && (
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+              <SectionHeader icon={<ShieldCheck size={16} className="text-blue-600" />} label="Firma de reglas de acceso" />
+              <div className="flex justify-center">
+                <Image
+                  src={data.firma_reglas_de_acceso.file_url}
+                  alt="Firma"
+                  width={200}
+                  height={100}
+                  className="max-w-full h-auto rounded-xl border border-gray-100 shadow-sm bg-gray-50"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Acompañantes */}
           {data?.acompanantes_grupo?.some((m: any) => m.nombre) && (

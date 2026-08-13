@@ -1,5 +1,7 @@
 import { Briefcase, CalendarDays, Contact, IdCard, MapPin, User } from "lucide-react";
 
+const IMAGE_EXTENSION_REGEX = /\.(jpg|jpeg|png|gif|webp)$/i;
+
 export function mapBitacoraGrid(raw: any, base: any) {
   return {
     ...base,
@@ -7,8 +9,8 @@ export function mapBitacoraGrid(raw: any, base: any) {
     title: raw?.nombre_visitante || "Visitante desconocido",
     description: raw?.contratista || "Sin Empresa Registrada",
     images: [
-      raw?.fotografia?.[0]?.file_url?.replace(".jpg", ".thumbnail") || null,
-      raw?.identificacion?.[0]?.file_url?.replace(".jpg", ".thumbnail") || null,
+      raw?.fotografia?.[0]?.file_url?.replace(IMAGE_EXTENSION_REGEX, ".thumbnail") || null,
+      raw?.identificacion?.[0]?.file_url?.replace(IMAGE_EXTENSION_REGEX, ".thumbnail") || null,
     ].filter((url): url is string => url !== null),
     status: raw?.status_visita === "Entrada" ? "entrada" : "salida",
     statusLabel: raw?.status_visita || "",
@@ -88,7 +90,7 @@ export function mapBitacoraGridEquipos(raw: any, base: any) {
     description: raw?.contratista || "Sin Empresa Registrada",
     images: [
       raw?.equipos?.[0]?.foto_equipo?.[0]?.file_url?.replace(
-        ".jpg",
+        IMAGE_EXTENSION_REGEX,
         ".thumbnail",
       ) || null,
     ].filter((url): url is string => url !== null),
@@ -164,7 +166,7 @@ export function mapBitacoraGridVehiculos(raw: any, base: any) {
     description: raw?.contratista || "Sin Empresa Registrada",
     images: [
       raw?.vehiculos?.[0]?.foto_vehiculo?.[0]?.file_url?.replace(
-        ".jpg",
+        IMAGE_EXTENSION_REGEX,
         ".thumbnail",
       ) || null,
     ].filter((url): url is string => url !== null),

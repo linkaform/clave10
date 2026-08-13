@@ -25,11 +25,11 @@ export const useUploadImage = () => {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["getListIncidencias"] });
         queryClient.invalidateQueries({ queryKey: ["getStatsIncidencias"] });
-        toast.success("Archivo cargado con éxito");
+        toast.success("Archivo cargado con éxito",{ position: "top-right" });
       },
       onError: (err) => {
         console.error("Error al subir archivo:", err);
-        toast.error(err.message || "Hubo un error al subir el archivo.");
+        toast.error(err.message || "Hubo un error al subir el archivo.",{ position: "top-right" });
       },
       onSettled: () => {
         setLoading(false);

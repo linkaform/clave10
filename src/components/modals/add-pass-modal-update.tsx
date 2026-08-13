@@ -44,7 +44,8 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
   const [sendDataUpdate, setSendDataUpdate] = useState<Update_full_pass | null>(null);
 
   const [link, setLink] = useState("");
-  const { updatePaseEntradaFullMutation, responseCreatePase, isLoading } = usePaseEntrada(dataPass?.ubicacion ?? "");
+  const { updatePaseEntradaFullMutation, responseCreatePase } = usePaseEntrada(dataPass?.ubicacion ?? "");
+  const isLoading = updatePaseEntradaFullMutation.isPending;
   const [hostPro, setHostPro] = useState({ protocol: '', host: '' });
   const telefonoFormateado = dataPass?.telefono?.startsWith("+")
     ? dataPass?.telefono

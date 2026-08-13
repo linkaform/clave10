@@ -1,6 +1,7 @@
 import { apiPost } from "@/lib/api";
 import { API_ENDPOINTS } from "@/config/api";
 import { ApiResponse } from "@/types/api";
+import useAuthStore from "@/store/useAuthStore";
 
 export const getBitacoraFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
@@ -100,6 +101,13 @@ export const getNotasFilters = () =>
     public_script: true,
   });
 
+export const getTransportistaFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters.py",
+    option: "transportistas",
+    public_script: true,
+  });
+
 export const createPaseTransportista = (payload: unknown) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "transportistas.py",
@@ -179,4 +187,127 @@ export const updateInformationTransportista = (payload: unknown, account_id?: nu
     option: "update_information_transportista",
     payload,
     ...(account_id !== undefined && { account_id }),
+  });
+
+export const createVisitTransportista = (payload: unknown) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "create_visit_transportista",
+    account_id: useAuthStore.getState().userParentId,
+    payload,
+  });
+
+export const ocrAccesoTransportista = (image_source: { file_url: string; file_name: string }[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "ocr_docs_2.py",
+    option: "ocr_acceso_transportista",
+    image_source,
+  });
+
+export const saveDataTransportista = (payload: unknown) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "save_data_transportista",
+    account_id: useAuthStore.getState().userParentId,
+    payload,
+  });
+
+export const getBitacoraTransportistaRecord = (record_id: string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_bitac_transportista_record",
+    record_id,
+  });
+
+export const saveBitacoraTransportistaRecord = (record_id: string, seccion: string, payload: unknown) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "save_bitac_transportista_record",
+    record_id,
+    seccion,
+    payload,
+  });
+
+export interface BitacoraTransportistaRecordsParams {
+  fecha?: string;
+  date_from?: string;
+  date_to?: string;
+  tipo_de_vehiculo?: string[];
+  proveedor_cliente?: string[];
+  anden_asignado?: string[];
+}
+
+export const getBitacoraTransportistaRecords = (
+  params: BitacoraTransportistaRecordsParams = {},
+) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_bitac_transportista_records",
+    ...(params.fecha && { fecha: params.fecha }),
+    ...(params.date_from && { date_from: params.date_from }),
+    ...(params.date_to && { date_to: params.date_to }),
+    ...(params.tipo_de_vehiculo?.length && { tipo_de_vehiculo: params.tipo_de_vehiculo }),
+    ...(params.proveedor_cliente?.length && { proveedor_cliente: params.proveedor_cliente }),
+    ...(params.anden_asignado?.length && { anden_asignado: params.anden_asignado }),
+  });
+
+export const saveInspeccionesTransportista = (record_id: string, inspecciones: unknown[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "save_inspecciones",
+    record_id,
+    inspecciones,
+  });
+
+export const saveInspeccionesSelloTransportista = (record_id: string, inspecciones: unknown[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "save_inspecciones_sello",
+    record_id,
+    inspecciones,
+  });
+
+export const getInspeccionRecord = (record_id: string, tipo: string) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_inspeccion_record",
+    record_id,
+    tipo,
+  });
+
+export const sendAvisoCorreoTransportista = (record_id: string, email_to: string[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "send_aviso_correo_transportista",
+    record_id,
+    email_to,
+  });
+
+export const getFormFieldsTransportista = (form_ids: string[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_form_fields",
+    form_ids,
+  });
+
+export const getConfigFlujoTransportista = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_config_flujo_transportistas",
+  });
+
+export const getFormasInspeccionTransportista = (ubicacion?: string | null) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_formas_inspeccion_transportista",
+    ubicacion,
+  });
+
+export const getFotografiasTransportista = (
+  registros: { record_id: string; tipo_de_registro: string }[],
+) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "transportistas.py",
+    option: "get_fotografias",
+    registros,
   });

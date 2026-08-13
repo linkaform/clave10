@@ -11,17 +11,19 @@ export type ArticulosConcesionadosExternalFilters = {
   date2?: Date | "";
 };
 
+// El filtro de fecha (dateFilter/date1/date2) NO se aplica aqu\u00ed: se manda al
+// backend como parte de la petici\u00f3n (ver useArticulosConcesionados, llamado
+// desde dashboard/articulos/page.tsx con estos mismos valores), para que
+// filtre sobre todos los registros y no solo sobre la p\u00e1gina ya tra\u00edda.
+// status_concesion (abierto/devuelto/parcial) s\u00ed se queda en cliente por
+// decisi\u00f3n expl\u00edcita: filtra solo sobre la p\u00e1gina ya cargada.
 export function applyArticulosConcesionadosFilters(data: any[], filters: ArticulosConcesionadosExternalFilters): any[] {
   if (!data?.length) return [];
 
   const dynamic = filters.dynamic || {};
-  const dateFilter = filters.dateFilter || "";
-  const date1 = filters.date1;
-  const date2 = filters.date2;
 
   const hasActiveFilters =
-    Object.values(dynamic).some((v) => Array.isArray(v) ? v.length > 0 : Boolean(v)) ||
-    (dateFilter && dateFilter !== "");
+    Object.values(dynamic).some((v) => Array.isArray(v) ? v.length > 0 : Boolean(v));
 
   if (!hasActiveFilters) return data;
 
@@ -29,17 +31,13 @@ export function applyArticulosConcesionadosFilters(data: any[], filters: Articul
     String(text ?? "").toLowerCase().normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").trim();
 
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
   return data.filter((item) => {
 
     if (dynamic.status_concesion) {
       const filter = Array.isArray(dynamic.status_concesion) ? dynamic.status_concesion : [dynamic.status_concesion];
       if (!filter.some((f: string) => normalize(f) === normalize(item.status_concesion || ""))) return false;
     }
-  
+
     if (dynamic.persona_nombre_concesion) {
       const filter = Array.isArray(dynamic.persona_nombre_concesion) ? dynamic.persona_nombre_concesion : [dynamic.persona_nombre_concesion];
       const persona = item.persona_nombre_concesion || item.persona_nombre_otro || "";
@@ -66,45 +64,6 @@ export function applyArticulosConcesionadosFilters(data: any[], filters: Articul
     if (dynamic.created_by) {
       const filter = Array.isArray(dynamic.created_by) ? dynamic.created_by : [dynamic.created_by];
       if (!filter.some((f: string) => normalize(f) === normalize(item.created_by || ""))) return false;
-    }
-
-    if (dateFilter && dateFilter !== "" && dateFilter !== "all_records") {
-      const rawFecha = item.fecha_concesion;
-      if (!rawFecha) return false;
-      const itemDate = new Date(rawFecha.replace(" ", "T"));
-
-      if (dateFilter === "today") {
-        if (itemDate < startOfToday || itemDate >= new Date(startOfToday.getTime() + 86400000)) return false;
-      } else if (dateFilter === "yesterday") {
-        const startOfYesterday = new Date(startOfToday.getTime() - 86400000);
-        if (itemDate < startOfYesterday || itemDate >= startOfToday) return false;
-      } else if (dateFilter === "this_week") {
-        const startOfWeek = new Date(startOfToday);
-        startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
-        if (itemDate < startOfWeek || itemDate > now) return false;
-      } else if (dateFilter === "last_week") {
-        const startOfThisWeek = new Date(startOfToday);
-        startOfThisWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
-        const startOfLastWeek = new Date(startOfThisWeek.getTime() - 7 * 86400000);
-        if (itemDate < startOfLastWeek || itemDate >= startOfThisWeek) return false;
-      } else if (dateFilter === "last_fifteen_days") {
-        const fifteenDaysAgo = new Date(now.getTime() - 15 * 86400000);
-        if (itemDate < fifteenDaysAgo || itemDate > now) return false;
-      } else if (dateFilter === "this_month") {
-        if (itemDate < startOfMonth || itemDate > now) return false;
-      } else if (dateFilter === "last_month") {
-        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        if (itemDate < startOfLastMonth || itemDate >= endOfLastMonth) return false;
-      } else if (dateFilter === "this_year") {
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        if (itemDate < startOfYear || itemDate > now) return false;
-      } else if (dateFilter === "range" && date1 && date2) {
-        const from = new Date(date1);
-        const to = new Date(date2);
-        to.setHours(23, 59, 59, 999);
-        if (itemDate < from || itemDate > to) return false;
-      }
     }
 
     return true;

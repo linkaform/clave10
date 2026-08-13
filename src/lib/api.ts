@@ -16,16 +16,16 @@ export async function apiPost<TData>(
   url: string,
   body: Record<string, unknown>,
   options: ApiPostOptions = {},
-  public_script = false,
 ): Promise<TData> {
   const { messages, showToast = false } = options;
   const userJwt = await getValidToken();
   const { userParentId } = useAuthStore.getState();
-  if (public_script) {
+  if (body.public_script) {
     body.account_id = userParentId;
   }
-
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   if (userJwt) headers.Authorization = `Bearer ${userJwt}`;
 
   const promise = fetch(url, {

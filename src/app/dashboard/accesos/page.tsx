@@ -10,13 +10,13 @@ import {
   DoorOpen,
   Eraser,
   FileSymlink,
-  List,
   LogIn,
   Menu,
   PackageOpen,
+  List,
   Plus,
-  RotateCcw,
   Scan,
+  RotateCcw,
   Search,
   Sun,
   UsersRound,
@@ -41,7 +41,12 @@ import { useGetShift } from "@/hooks/useGetShift";
 import { exitRegister, registerIncoming } from "@/lib/access";
 import { PermisosTable } from "@/components/table/accesos/permisos-certificaciones/table";
 import useAuthStore from "@/store/useAuthStore";
-import { esHexadecimal, imprimirYDescargarPDF, isExcluded, isVehiculoHabilitado } from "@/lib/utils";
+import {
+  esHexadecimal,
+  imprimirYDescargarPDF,
+  isExcluded,
+  isVehiculoHabilitado,
+} from "@/lib/utils";
 import Link from "next/link";
 import { useGetStats } from "@/hooks/useGetStats";
 import { ScanPassOptionsModal } from "@/components/modals/scan-pass-options";
@@ -50,10 +55,11 @@ import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { UpdatePassModal } from "@/components/modals/complete-pass-accesos";
 import Image from "next/image";
 import { useGetPdf } from "@/hooks/usetGetPdf";
-import { Equipo , Vehiculo} from "@/lib/update-pass";
+import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { useScanPreference } from "@/hooks/scan";
+import { ConfirmarAccesoModal } from "@/components/modals/confirmar-acceso-modal";
 
 const AccesosPage = () => {
   const { isAuth, userParentId } = useAuthStore();
@@ -67,88 +73,100 @@ const AccesosPage = () => {
   // al mismo nivel donde se arma la petición de doAccess — no en un store
   // global — y se pasa hacia abajo por props.
   const [selectedPasses, setSelectedPasses] = useState<string[]>([]);
+  // Antes de ejecutar el ingreso/salida se muestra un modal chico para
+  // confirmar con quién más se hace el movimiento (ver ConfirmarAccesoModal).
+  const [confirmModal, setConfirmModal] = useState<"ingreso" | "salida" | null>(null);
   const { isLoading, loading:loadingSearchPass, searchPass } = useSearchPass(false);
   const [inputValue, setInputValue] = useState("");
-  const [ openActivePases , setOpenActivePases ] = useState(false)
+  const [openActivePases, setOpenActivePases] = useState(false);
   const queryClient = useQueryClient();
-  const [debouncedValue,setDebouncedValue]=useState("")
-  const { data: stats } = useGetStats(true,location??"", area??"", 'Accesos')
-  const { loading:loadingLocationArea} = useAreasLocationStore();
-  const [equipos, setEquipos]= useState<Equipo[]>([])
-  const [vehiculos, setVehiculos]= useState<Vehiculo[]>([])
+  const [debouncedValue, setDebouncedValue] = useState("");
+  const { data: stats } = useGetStats(
+    true,
+    location ?? "",
+    area ?? "",
+    "Accesos",
+  );
+  const { loading: loadingLocationArea } = useAreasLocationStore();
+  const [equipos, setEquipos] = useState<Equipo[]>([]);
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const [id, setId] = useState("");
-  const [loading, setLoading]= useState(false);
+  const [loading, setLoading] = useState(false);
   const { preference, setPreference, reset } = useScanPreference();
-  const {
-	refetch,
-  } = useGetPdf(userParentId, id??"", false);
+  const { refetch } = useGetPdf(userParentId, id ?? "", false);
 
   useEffect(() => {
-	if(searchPass){
-		setId(searchPass?._id)
-		setEquipos(searchPass?.grupo_equipos)
-		setSelectedEquipos(searchPass?.grupo_equipos)
-		const ultimoVehiculo = searchPass?.grupo_vehiculos?.[searchPass.grupo_vehiculos.length - 1];
-		setVehiculos(searchPass?.grupo_vehiculos)
-		setSelectedVehiculos([ultimoVehiculo])
-		setTipoMovimiento(searchPass?.tipo_movimiento)
-	}
-  }, [searchPass?.grupo_equipos, searchPass?.grupo_vehiculos, searchPass?.tipo_movimiento]);
+    if (searchPass) {
+      setId(searchPass?._id);
+      setEquipos(searchPass?.grupo_equipos);
+      setSelectedEquipos(searchPass?.grupo_equipos);
+      const ultimoVehiculo =
+        searchPass?.grupo_vehiculos?.[searchPass.grupo_vehiculos.length - 1];
+      setVehiculos(searchPass?.grupo_vehiculos);
+      setSelectedVehiculos([ultimoVehiculo]);
+      setTipoMovimiento(searchPass?.tipo_movimiento);
+    }
+  }, [
+    searchPass?.grupo_equipos,
+    searchPass?.grupo_vehiculos,
+    searchPass?.tipo_movimiento,
+  ]);
 
-  const vehiculoHabilitado = isVehiculoHabilitado(searchPass?.habilitar_vehiculo);
+  const vehiculoHabilitado = isVehiculoHabilitado(
+    searchPass?.habilitar_vehiculo,
+  );
   const handleGetPdf = async () => {
-	try {
-	  const result = await refetch();
-  
-	  if (result.error) {
-		toast.error(`Error de red: ${result.error}`, {
-		  style: {
-			backgroundColor: "#f44336",
-			color: "#fff",
-		  },
-		});
-		return;
-	  }
-  
-	  const data = result.data?.response?.data;
-  
-	  if (!data || data.status_code !== 200) {
-		const errorMsg =
-		  data?.json?.error ||
-		  result.data?.error ||
-		  "Error desconocido del servidor";
-  
-		toast.error(`Error de red: ${errorMsg}`, {
-		  style: {
-			backgroundColor: "#f44336",
-			color: "#fff",
-		  },
-		});
-		return;
-	  }
-  
-	  const downloadUrl = data?.json?.download_url;
-  
-	  if (downloadUrl) {
-		imprimirYDescargarPDF(downloadUrl); 
-	  } else {
-		toast.warning("No se encontró URL de descarga");
-	  }
-	} catch (err) {
-	  toast.error(`Error inesperado: ${err}`, {
-		style: {
-		  backgroundColor: "#f44336",
-		  color: "#fff",
-		},
-	  });
-	}
-  };
+    try {
+      const result = await refetch();
 
+      if (result.error) {
+        toast.error(`Error de red: ${result.error}`, {
+          style: {
+            backgroundColor: "#f44336",
+            color: "#fff",
+          },
+        });
+        return;
+      }
+
+      const data = result.data?.response?.data;
+
+      if (!data || data.status_code !== 200) {
+        const errorMsg =
+          data?.json?.error ||
+          result.data?.error ||
+          "Error desconocido del servidor";
+
+        toast.error(`Error de red: ${errorMsg}`, {
+          style: {
+            backgroundColor: "#f44336",
+            color: "#fff",
+          },
+        });
+        return;
+      }
+
+      const downloadUrl = data?.json?.download_url;
+
+      if (downloadUrl) {
+        imprimirYDescargarPDF(downloadUrl);
+      } else {
+        toast.warning("No se encontró URL de descarga");
+      }
+    } catch (err) {
+      toast.error(`Error inesperado: ${err}`, {
+        style: {
+          backgroundColor: "#f44336",
+          color: "#fff",
+        },
+      });
+    }
+  };
 
   const exitRegisterAccess = useMutation({
     mutationFn: async () => {
-      const data = await exitRegister(area??"", location??"", passCode);
+      const data = await exitRegister(area ?? "", location ?? "", passCode, "", selectedPasses);
 
       if (!data.success) {
         throw new Error(data.error?.msg?.msg || "Hubo un error en la Salida");
@@ -161,28 +179,30 @@ const AccesosPage = () => {
     },
     onSuccess: () => {
       setPassCode("");
+      setSelectedPasses([]);
 
-	  toast.success("Salida Exitosa", {
-		style: {
-		  background: '#22c55e', 
-		  color: 'white',
-		},
-	  });
+      toast.success("Salida Exitosa", {
+        style: {
+          background: "#22c55e",
+          color: "white",
+        },
+      });
 
       queryClient.invalidateQueries({ queryKey: ["serchPass"] });
-      queryClient.invalidateQueries({ queryKey: ['getStats'] });
+      queryClient.invalidateQueries({ queryKey: ["getStats"] });
     },
     onError: (error) => {
-	  Swal.fire({
-		icon: "error",
-		title: "Error al realizar la salida:",
-		text: error.message,
-		confirmButtonText: 'OK',
-		customClass: {
-		  confirmButton: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow',
-		},
-		buttonsStyling: false, 
-	  });
+      Swal.fire({
+        icon: "error",
+        title: "Error al realizar la salida:",
+        text: error.message,
+        confirmButtonText: "OK",
+        customClass: {
+          confirmButton:
+            "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow",
+        },
+        buttonsStyling: false,
+      });
     },
     onSettled: () => {
       setLoading(false);
@@ -192,18 +212,17 @@ const AccesosPage = () => {
   //COMENTADO
   const certificaciones = Array.isArray(searchPass?.certificaciones)
     ? searchPass.certificaciones
-    : []
+    : [];
 
   const ultimosAccesos = Array.isArray(searchPass?.ultimo_acceso)
     ? searchPass.ultimo_acceso
-    : []
+    : [];
 
   const accesosPermitidos = Array.isArray(searchPass?.grupo_areas_acceso)
     ? searchPass.grupo_areas_acceso
-    : []
+    : [];
 
-  const { newCommentsPase, setAllComments } =
-    useAccessStore();
+  const { newCommentsPase, setAllComments } = useAccessStore();
 
   const allComments = [
     ...(newCommentsPase || []),
@@ -225,7 +244,7 @@ const AccesosPage = () => {
         qr_code: passCode,
         vehiculo: selectedVehiculos,
         equipo: selectedEquipos,
-        comentario_acceso:[],
+        comentario_acceso: [],
         comentario_pase: allComments,
         // Ids de los pases de acompañantes seleccionados para dar ingreso
         // junto con el titular (vienen de MembersCarousel, via prop local).
@@ -233,7 +252,9 @@ const AccesosPage = () => {
       });
 
       if (!data.success) {
-        throw new Error(data.error?.exception?.msg[0] || "Hubo un error en el Ingreso");
+        throw new Error(
+          data.error?.exception?.msg[0] || "Hubo un error en el Ingreso",
+        );
       }
 
       return data.response?.data || [];
@@ -243,121 +264,141 @@ const AccesosPage = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["serchPass"] });
-      queryClient.invalidateQueries({ queryKey: ['getStats'] });
+      queryClient.invalidateQueries({ queryKey: ["getStats"] });
 
       setPassCode("");
+      setSelectedPasses([]);
 
-	  toast.success("Entrada Exitosa", {
-		style: {
-		  background: '#22c55e', 
-		  color: 'white',
-		},
-	  });
+      toast.success("Entrada Exitosa", {
+        style: {
+          background: "#22c55e",
+          color: "white",
+        },
+      });
 
-	  if(downloadPass.includes("impresion_de_pase")){
-		Swal.fire({
-			title: 'Preparando documento',
-			html: 'Cargando PDF para imprimir...',
-			allowOutsideClick: false,
-			allowEscapeKey: false,
-			didOpen: () => {
-			  Swal.showLoading();
-			}
-		  });
-	  	handleGetPdf();
-	  }
-
-
+      if (downloadPass.includes("impresion_de_pase")) {
+        Swal.fire({
+          title: "Preparando documento",
+          html: "Cargando PDF para imprimir...",
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+        handleGetPdf();
+      }
     },
     onError: (error) => {
-	  Swal.fire({
-		icon: "error",
-		title: "Error al realizar ingreso:",
-		text: error.message,
-		confirmButtonText: 'OK',
-		customClass: {
-		  confirmButton: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow',
-		},
-		buttonsStyling: false, 
-	  });
+      Swal.fire({
+        icon: "error",
+        title: "Error al realizar ingreso:",
+        text: error.message,
+        confirmButtonText: "OK",
+        customClass: {
+          confirmButton:
+            "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow",
+        },
+        buttonsStyling: false,
+      });
     },
     onSettled: () => {
       setLoading(false);
     },
   });
 
- 
-
   useEffect(() => {
-   	if(inputValue){
-		const handler = setTimeout(() => {
-			setDebouncedValue(inputValue)
-		}, 700);
-		return () => clearTimeout(handler); 
-   	}
+    if (inputValue) {
+      const handler = setTimeout(() => {
+        setDebouncedValue(inputValue);
+      }, 700);
+      return () => clearTimeout(handler);
+    }
   }, [inputValue]);
 
   useEffect(() => {
     if (debouncedValue) {
-		if(esHexadecimal(inputValue)){
-			setInputValue("")
-			setPassCode(inputValue)
-		}else{
-			setOpenActivePases(true)
-			setPassCode("")
-			setInputValue("")
-		}
-    }else{
-		setOpenActivePases(false)
-		setPassCode("")
-		setPassCode("")
-		setInputValue("")
-	}
+      if (esHexadecimal(inputValue)) {
+        setInputValue("");
+        setPassCode(inputValue);
+      } else {
+        setOpenActivePases(true);
+        setPassCode("");
+        setInputValue("");
+      }
+    } else {
+      setOpenActivePases(false);
+      setPassCode("");
+      setPassCode("");
+      setInputValue("");
+    }
   }, [debouncedValue]);
-  
 
-  function setTabAndFilter(tab:string, filter:string, option:string[]){
-    setTab(tab)
-    setFilter(filter)
-	setOption(option)
+  function setTabAndFilter(tab: string, filter: string, option: string[]) {
+    setTab(tab);
+    setFilter(filter);
+    setOption(option);
   }
 
-  if (isLoading || loadingSearchPass ||loading|| loadingShift || loadingLocationArea) {
+  if (
+    isLoading ||
+    loadingSearchPass ||
+    loading ||
+    loadingShift ||
+    loadingLocationArea
+  ) {
     return (
       <div className="flex justify-center items-center h-screen overflow-hidden">
-			<div className="w-24 h-24 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+        <div className="w-24 h-24 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
       </div>
     );
   }
   if (!turno && isAuth) {
-	return (
-		<div className="flex justify-center items-center overflow-hidden mt-32">
-		  <div className="flex items-center flex-col gap-2">
-			  <Image
-                src="/guardia1.png"
-                alt="Next.js img"
-                width={300}
-                height={300}
-                priority
-              />
+    return (
+      <div className="flex justify-center items-center overflow-hidden mt-32">
+        <div className="flex items-center flex-col gap-2">
+          <Image
+            src="/guardia1.png"
+            alt="Next.js img"
+            width={300}
+            height={300}
+            priority
+          />
 
-			<div className="text-2xl font-bold">Inicia turno para comenzar...</div>
-			<p className="text-gray-500">Activa tus funciones registrando el inicio de turno.</p>
-			<Link href="/dashboard/turnos">
-			<Button
-			  className="w-40 h-9 mt-5 px-3 border border-blue-500 bg-blue-500 rounded-md text-sm text-white font-medium hover:bg-blue-600"
-			  variant="default"
-			>
-			  Turnos
-			</Button>
-			</Link>
-		  </div>
-		</div>
-		)
+          <div className="text-2xl font-bold">
+            Inicia turno para comenzar...
+          </div>
+          <p className="text-gray-500">
+            Activa tus funciones registrando el inicio de turno.
+          </p>
+          <Link href="/dashboard/turnos">
+            <Button
+              className="w-40 h-9 mt-5 px-3 border border-blue-500 bg-blue-500 rounded-md text-sm text-white font-medium hover:bg-blue-600"
+              variant="default">
+              Turnos
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div >
+		<ConfirmarAccesoModal
+			open={confirmModal !== null}
+			onClose={() => setConfirmModal(null)}
+			onConfirm={() => {
+				if (confirmModal === "ingreso") doAccess.mutate();
+				else if (confirmModal === "salida") exitRegisterAccess.mutate();
+				setConfirmModal(null);
+			}}
+			searchPass={searchPass}
+			tipo={confirmModal ?? "ingreso"}
+			initialSelectedIds={selectedPasses}
+			onChangeSelected={setSelectedPasses}
+			loading={doAccess.isPending || exitRegisterAccess.isPending}
+		/>
 		<div className="flex flex-col w-full ">
 			<div className="p-6 space-y-6 w-full mx-auto pb-0 ">
 
@@ -369,8 +410,8 @@ const AccesosPage = () => {
 							type="text"
 							placeholder="Escanear Pase"
 							className="pl-5 pr-10 w-full"
-							value={inputValue} 
-							onChange={(e) => setInputValue(e.target.value)} 
+							value={inputValue}
+							onChange={(e) => setInputValue(e.target.value)}
 							/>
 							<Search className="absolute right-12 h-4 w-4 text-gray-500 pointer-events-none" />
 
@@ -396,7 +437,7 @@ const AccesosPage = () => {
 							);
 							return;
 							}
-							doAccess.mutate();
+							setConfirmModal("ingreso");
 						}}
 						>
 						<LogIn />
@@ -415,14 +456,14 @@ const AccesosPage = () => {
 							return;
 							}
 
-							exitRegisterAccess.mutate();
+							setConfirmModal("salida");
 						}}
 						>
 						<DoorOpen />
 						Registrar Salida
 						</Button>
 					)}
-					
+
 					<ScanPassOptionsModal
 							title="Escanea Pase"
 							inputRef={inputRef}
@@ -449,7 +490,7 @@ const AccesosPage = () => {
 								<RotateCcw className="w-4 h-4" />
 							</Button>
 						)}
-					
+
 					{!passCode && isExcluded("nueva_visita", excludes?? undefined) && (
 						<AddVisitModal title="Nueva Visita">
 						<Button className="bg-green-600 hover:bg-green-700 text-white">
@@ -458,6 +499,7 @@ const AccesosPage = () => {
 						</Button>
 						</AddVisitModal>
 					)}
+
 					{ !searchPass ? (<>
 					<TemporaryPassesModal title="Pases en Proceso">
 						<Button
@@ -475,9 +517,9 @@ const AccesosPage = () => {
 						onClick={() =>{ setDebouncedValue(""); clearPassCode(); }}
 					>
 						<Eraser className="text-white" />
-						
+
 					</Button></>):null}
-				
+
 					{ searchPass?.estatus=="proceso" && isExcluded("completar_pase", excludes ?? undefined) ? (<>
 					<UpdatePassModal title={"Completar Pase"} id={searchPass?._id} dataCatalogos={searchPass}>
 						<Button
@@ -485,7 +527,7 @@ const AccesosPage = () => {
 							variant="secondary"
 						>
 							<FileSymlink />  Completar Pase
-							
+
 						</Button>
 					</UpdatePassModal>
 					</>):null}

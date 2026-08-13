@@ -323,7 +323,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 				? dataPass.visita_a.map((v: any) => v?.nombre || v)
 				: [dataPass?.visita_a?.nombre || dataPass?.visita_a || ""],
 			custom: true,
-			link: { link: dataPass.link?.link || "", docs: formatedDocs, creado_por_id: userIdSoter, creado_por_email: userEmailSoter },
+			link: { link: dataPass.link?.link || "", docs: dataPass.link?.docs ?? formatedDocs, creado_por_id: userIdSoter, creado_por_email: userEmailSoter },
 			qr_pase: dataPass.qr_pase || [],
 			enviar_correo_pre_registro: formatedEnvio,
 			tipo_visita_pase: dataPass.tipo_fechas_pase || dataPass.tipo_visita_pase || "fecha_fija",
@@ -460,6 +460,16 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			form.setError("ubicacion", { type: "manual", message: "Selecciona al menos una ubicación." });
 			return;
 		}
+		const ubicacionesActuales = ubicacionesSeleccionadas?.map((u: any) => u.name || u) ?? [];
+		const ubicacionesOriginales = Array.isArray(dataPass.ubicacion) ? dataPass.ubicacion : [];
+		const cambioUbicacion =
+			ubicacionesActuales.length !== ubicacionesOriginales.length ||
+			ubicacionesActuales.some((u: string) => !ubicacionesOriginales.includes(u));
+		const docsDesdeConfigActual = (Array.isArray(dataConfigLocation) ? dataConfigLocation : []).reduce((acc: string[], value: string) => {
+			if (value === "identificacion") acc.push("agregarIdentificacion");
+			if (value === "fotografia") acc.push("agregarFoto");
+			return acc;
+		}, [] as string[]);
 		const formattedData = {
 			_id: dataPass._id,
 			folio: dataPass.folio,
@@ -467,14 +477,14 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			email: data.email || "",
 			telefono: data.telefono || "",
 			empresa: data.empresa || "",
-			ubicacion: ubicacionesSeleccionadas?.map((u: any) => u.name || u),
+			ubicacion: ubicacionesActuales,
 			tema_cita: data.tema_cita || "",
 			descripcion: data.descripcion || "",
 			perfil_pase: data.perfil_pase || dataPass.perfil_pase || "",
 			status_pase: data.status_pase || "",
 			visita_a: visitaASeleccionadas?.map((u: any) => u.name || u) ?? [],
 			custom: true,
-			link: { link: dataPass.link?.link || "", docs: formatedDocs, creado_por_id: userIdSoter, creado_por_email: userEmailSoter },
+			link: { link: dataPass.link?.link || "", docs: cambioUbicacion ? docsDesdeConfigActual : (dataPass.link?.docs ?? docsDesdeConfigActual), creado_por_id: userIdSoter, creado_por_email: userEmailSoter },
 			qr_pase: dataPass.qr_pase || [],
 			limitado_a_dias: dataPass.limitado_a_dias || [],
 			enviar_correo_pre_registro: formatedEnvio,

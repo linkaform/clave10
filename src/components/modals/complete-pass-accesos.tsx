@@ -29,6 +29,7 @@ import { useSearchPass } from "@/hooks/useSearchPass";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { DialogTitle } from "../ui/dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
+import Image from "next/image";
 
 interface Props {
   title: string;
@@ -56,6 +57,10 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
   const [vehicles, setVehicles] = useState<Vehiculo[]>([]);
   const [errorFotografia, setErrorFotografia] = useState("");
   const [errorIdentificacion, setErrorIdentificacion] = useState("");
+  const [errorVisitaA, setErrorVisitaA] = useState("");
+
+  const tieneFotoExistente = (dataCatalogos?.foto?.length ?? 0) > 0;
+  const tieneIdentificacionExistente = (dataCatalogos?.identificacion?.length ?? 0) > 0;
 
   // Estos tres campos siempre son editables, tengan dato o no, para poder
   // corregirlos aunque el pase ya venga con información.
@@ -130,6 +135,7 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
     setErrorNombre("");
     setErrorEmail("");
     setErrorTelefono("");
+    setErrorVisitaA("");
   }, []);
 
   function onSubmit(data: z.infer<typeof formSchema>) {
@@ -139,11 +145,22 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
     if (fotografia?.length > 0) access_pass.walkin_fotografia = fotografia;
     if (identificacion?.length > 0) access_pass.walkin_identificacion = identificacion;
 
+    const visitaAValidas = (visitaASeleccionadas || []).filter(
+      (v: any) => typeof v?.id === "string" && v.id.trim().length > 0
+    );
+
     const originalIds = visitaDataFormateada.map((v: { id: any }) => v.id).sort();
-    const currentIds = visitaASeleccionadas.map((v: any) => v.id).sort();
+    const currentIds = visitaAValidas.map((v: any) => v.id).sort();
     if (JSON.stringify(originalIds) !== JSON.stringify(currentIds)) access_pass.visita_a = currentIds;
 
     let hasError = false;
+
+    if (visitaAValidas.length === 0) {
+      setErrorVisitaA("Este campo es requerido.");
+      hasError = true;
+    } else {
+      setErrorVisitaA("");
+    }
 
     if (!nombre.trim()) {
       setErrorNombre("Este campo es requerido.");
@@ -171,12 +188,12 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
     }
 
     if (showIneIden?.includes("foto")) {
-      const empty = (!dataCatalogos?.walkin_fotografia || dataCatalogos.walkin_fotografia.length === 0) && fotografia.length === 0;
+      const empty = !tieneFotoExistente && fotografia.length === 0;
       if (empty) { setErrorFotografia("Este campo es requerido."); hasError = true; }
       else setErrorFotografia("");
     }
     if (showIneIden?.includes("iden")) {
-      const empty = (!dataCatalogos?.walkin_identificacion || dataCatalogos.walkin_identificacion.length === 0) && identificacion.length === 0;
+      const empty = !tieneIdentificacionExistente && identificacion.length === 0;
       if (empty) { setErrorIdentificacion("Este campo es requerido."); hasError = true; }
       else setErrorIdentificacion("");
     }
@@ -287,7 +304,9 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
                 name="visita_a"
                 render={() => (
                   <FormItem className="w-1/2 pr-3">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Visita a</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      <span className="text-red-500">*</span> Visita a
+                    </p>
                     <Multiselect
                       options={visitaAFormatted ?? []}
                       selectedValues={visitaASeleccionadas}
@@ -299,6 +318,7 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
                         searchBox: { borderRadius: "10px", border: "1px solid #e5e7eb", background: "#f9fafb" },
                       }}
                     />
+                    {errorVisitaA && <p className="text-red-500 text-xs mt-1">{errorVisitaA}</p>}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -311,35 +331,63 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
                 {showIneIden?.includes("foto") && (
                   <div>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                      <span className="text-red-500">*</span> Fotografía
+                      {!tieneFotoExistente && <span className="text-red-500">* </span>}Fotografía
                     </p>
-                    <LoadImage
-                      id="fotografia"
-                      titulo="Fotografía"
-                      setImg={setFotografia}
-                      showWebcamOption={true}
-                      facingMode="user"
-                      imgArray={fotografia}
-                      limit={1}
-                    />
-                    {errorFotografia && <p className="text-red-500 text-xs mt-1">{errorFotografia}</p>}
+                    {tieneFotoExistente ? (
+                      <div className="flex justify-center">
+                        <Image
+                          src={dataCatalogos.foto[0].file_url}
+                          alt="Fotografía"
+                          width={120}
+                          height={120}
+                          className="h-28 w-28 object-cover rounded-xl border border-gray-100 shadow-sm"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <LoadImage
+                          id="fotografia"
+                          titulo="Fotografía"
+                          setImg={setFotografia}
+                          showWebcamOption={true}
+                          facingMode="user"
+                          imgArray={fotografia}
+                          limit={1}
+                        />
+                        {errorFotografia && <p className="text-red-500 text-xs mt-1">{errorFotografia}</p>}
+                      </>
+                    )}
                   </div>
                 )}
                 {showIneIden?.includes("iden") && (
                   <div>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                      <span className="text-red-500">*</span> Identificación
+                      {!tieneIdentificacionExistente && <span className="text-red-500">* </span>}Identificación
                     </p>
-                    <LoadImage
-                      id="identificacion"
-                      titulo="Identificación"
-                      setImg={setIdentificacion}
-                      showWebcamOption={true}
-                      facingMode="environment"
-                      imgArray={identificacion}
-                      limit={1}
-                    />
-                    {errorIdentificacion && <p className="text-red-500 text-xs mt-1">{errorIdentificacion}</p>}
+                    {tieneIdentificacionExistente ? (
+                      <div className="flex justify-center">
+                        <Image
+                          src={dataCatalogos.identificacion[0].file_url}
+                          alt="Identificación"
+                          width={120}
+                          height={120}
+                          className="h-28 w-28 object-cover rounded-xl border border-gray-100 shadow-sm"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <LoadImage
+                          id="identificacion"
+                          titulo="Identificación"
+                          setImg={setIdentificacion}
+                          showWebcamOption={true}
+                          facingMode="environment"
+                          imgArray={identificacion}
+                          limit={1}
+                        />
+                        {errorIdentificacion && <p className="text-red-500 text-xs mt-1">{errorIdentificacion}</p>}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
