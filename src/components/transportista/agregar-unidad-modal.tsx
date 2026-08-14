@@ -170,6 +170,18 @@ export function resolveColorSwatch(value: string): { hex: string | null; label: 
 export const TIPOS_REMOLQUE = ["Caja seca", "Plataforma", "Caja refrigerada", "Ganadero", "Basculante", "Portavehículos", "Caravana"];
 export const TIPOS_CONTENEDOR = ["20' Standard (20GP)", "40' Standard (40GP)", "40' High Cube (40HC)", "20' Reefer (20RF)", "40' Reefer (40RF)", "40' HC Reefer (40HR)", "20' Open Top (20OT)", "40' Open Top (40OT)", "20' Flat Rack (20FR)", "40' Flat Rack (40FR)", "ISO Tank", "20' Ventilado (20VH)", "Open Side"];
 
+// Deriva el subtipo (config de "Configuración de Flujo de Transportistas") a
+// partir del tipo ISO ya capturado en la unidad — no hay un selector separado,
+// se infiere por texto ya que ambos vocabularios no coinciden 1:1.
+// Ojo: no todos los registros guardan la etiqueta completa del dropdown
+// ("40' Reefer (40RF)") — algunos (ej. capturados por OCR) solo guardan el
+// código corto entre paréntesis ("40RF"). Por eso "rf" se busca como
+// substring, sin límites de palabra — un dígito pegado a la letra ("40RF")
+// no cuenta como límite en regex y \brf\b nunca la habría detectado.
+export function inferSubtipoContenedor(tipo: string): "caja_seca" | "refrigerado" {
+  return /reefer|rf/i.test(tipo) ? "refrigerado" : "caja_seca";
+}
+
 // ─── Agregar Unidad Modal ─────────────────────────────────────────────────────
 
 // `UnidadEditorCard` es el formulario "puro" (sin overlay ni posicionamiento
