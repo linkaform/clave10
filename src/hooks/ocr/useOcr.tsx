@@ -71,12 +71,12 @@ export const useOcr = (accountId?: number) => {
       const hasError = (!response?.success) || (response?.response?.data?.status_code === 400);
       if (hasError) {
         const textMsj = errorMsj(response);
-        throw new Error(`Error al procesar vehículo, Error: ${textMsj?.text}`);
+        throw new Error(`Error al procesar equipo, Error: ${textMsj?.text}`);
       }
       return response.response?.data;
     },
     onError: (err) => {
-      toast.error(err.message || "Error al procesar vehículo.");
+      toast.error(err.message || "Error al procesar equipo.");
     },
   });
 
