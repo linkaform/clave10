@@ -138,7 +138,8 @@ export const exitRegister = async (
   area: string,
   location: string,
   qr_code: string,
-  gafete_id?: ""
+  gafete_id?: "",
+  selected_pases?: string[]
 ) => {
   const payload = {
     area,
@@ -146,6 +147,7 @@ export const exitRegister = async (
     gafete_id,
     qr_code,
     option: "do_out",
+    selected_pases: selected_pases || [],
     script_name: "script_turnos.py",
   };
 

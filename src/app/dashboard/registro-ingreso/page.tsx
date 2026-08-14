@@ -140,11 +140,15 @@ const RegistroIngresoPage = () => {
     confData?.condiciones_servicio?.desc_condiciones_servicio || ""
   ).replace(/\[FECHA\]/gi, hoyFormateado);
 
+  // Google Docs Viewer (docs.google.com/gview) manda X-Frame-Options:
+  // sameorigin y rechaza mostrarse dentro de nuestro <iframe>. El visor de
+  // Office Online de Microsoft sí permite embeberse y soporta los mismos
+  // formatos (doc, docx, xls, ppt, etc.) a partir de una URL pública.
   const getDocumentViewerUrl = (url: string): string => {
     if (!url) return url;
     const isPdf = url.toLowerCase().split("?")[0].endsWith(".pdf");
     if (isPdf) return url;
-    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
   };
   const reglasAccesoPdfViewerUrl = getDocumentViewerUrl(reglasAccesoPdfUrl);
   const reglasAccesoVideoUrlRaw = confData?.condiciones_servicio?.url_condiciones_servicio || "";
@@ -714,6 +718,7 @@ const RegistroIngresoPage = () => {
                 setVehiculos={setVehiculos}
                 isAccesos={false}
                 fetch={false}
+                account_id= {accountId}
               >
                 <button
                   type="button"

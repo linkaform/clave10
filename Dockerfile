@@ -12,8 +12,8 @@ RUN npm install -g next
 
 RUN mkdir -p /srv
 RUN chown 1000:1000 -R /srv/
-COPY ../*.json /srv/
-COPY ../*.config.* /srv/
+COPY *.json /srv/
+COPY *.config.* /srv/
 WORKDIR /srv/
 RUN yarn
 

@@ -49,6 +49,11 @@ grupo_acompanantes?:Miembro[]
 // Firma del paso de "Reglas de acceso" (documento/video + firma obligatoria
 // en PaseUpdate). Llega como { file_url, file_name }.
 firma_reglas_de_acceso?: { file_url: string; file_name: string };
+permisos_certificaciones?: {
+  nombre_del_permiso?: string;
+  foto?: Imagen[];
+  documento?: Imagen[];
+}[];
 }
 
 export const useUpdateAccessPass = () => {

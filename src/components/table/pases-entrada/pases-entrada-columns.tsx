@@ -65,6 +65,24 @@ export const getRolPase = (rowOriginal: any) => {
 };
 
 // ---------------------------------------------------------------------------
+// El backend guarda "docs" como query param dentro de la URL del link
+// (?docs=iden-foto), no como campo aparte — hay que extraerlo de ahí.
+// ---------------------------------------------------------------------------
+export const getDocsFromLink = (link: unknown): string[] => {
+  if (typeof link !== "string" || !link) return [];
+  let docsParam = "";
+  try {
+    docsParam = new URL(link).searchParams.get("docs") || "";
+  } catch {
+    return [];
+  }
+  return docsParam
+    .split("-")
+    .filter(Boolean)
+    .map((d) => (d === "iden" ? "agregarIdentificacion" : d === "foto" ? "agregarFoto" : d));
+};
+
+// ---------------------------------------------------------------------------
 // Celda: Nombre (avatar + nombre + estatus)
 // ---------------------------------------------------------------------------
 export const NombreCell: React.FC<{ row: Row<any> }> = ({ row }) => {
@@ -167,7 +185,7 @@ export const OptionsCell: React.FC<{ row: any; onEditarClick: (pase: any) => voi
     custom: false,
     link: {
       link: rowData.link,
-      docs: rowData.docs,
+      docs: getDocsFromLink(rowData.link),
       creado_por_id: rowData.visita_a.lenght > 0 ? rowData.visita_a[0].user_id : null,
       creado_por_email: rowData.visita_a.lenght > 0 ? rowData.visita_a[0].email : null,
     },
