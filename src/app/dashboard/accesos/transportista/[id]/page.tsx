@@ -50,6 +50,7 @@ import {
   type SelloClasificacionOption,
   type SelloVvttPunto,
   type PuntoConId,
+  type ContenedorFormResuelta,
 } from "@/hooks/transportistas/useInspeccionPuntosTransportista";
 import { useConfigFlujoTransportista } from "@/hooks/transportistas/useConfigFlujoTransportista";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
@@ -65,6 +66,7 @@ import {
   resolveColorSwatch,
   AgregarUnidadModal,
   serializeUnidades,
+  inferSubtipoContenedor,
 } from "@/components/transportista/agregar-unidad-modal";
 import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
 import { InspeccionRecordModal, InspeccionRecordContent } from "@/components/transportista/InspeccionRecordModal";
@@ -136,7 +138,12 @@ interface FilaCont { suciedad: FilaCelda; plagas: FilaCelda; fauna: FilaCelda; }
 interface ContenedorInspSection {
   evidencia: EvidenciaImg[];
   altura: string; ancho: string; longitud: string;
+  // Modo "filas" (CTPAT default): grid suciedad/plagas/fauna.
   filas: FilaCont[];
+  // Modo "puntos" (ej. BASC, custom): radio Sí/No + comentario + evidencia
+  // propios por punto, igual que tractor — cuál de los dos aplica lo decide
+  // el `modo` de la forma resuelta para el subtipo de esta unidad.
+  puntos: PuntoInsp[];
   // Comentario general — solo se usa/muestra cuando la forma de contenedor es custom.
   comentarioGeneral: string;
 }
@@ -195,14 +202,10 @@ function InspeccionEntradaModal(props: InspeccionEntradaModalProps) {
     <InspeccionEntradaModalContent
       {...props}
       puntosTractor={puntos.puntosTractor}
-      filasContenedor={puntos.filasContenedor}
-      medidasLabelsContenedor={puntos.medidasLabelsContenedor}
       tractorFormId={puntos.tractorFormId}
-      contenedorFormId={puntos.contenedorFormId}
       tractorComentarioFieldId={puntos.tractorComentarioFieldId}
       tractorEvidenciaFieldId={puntos.tractorEvidenciaFieldId}
-      contenedorComentarioFieldId={puntos.contenedorComentarioFieldId}
-      contenedorEvidenciaFieldId={puntos.contenedorEvidenciaFieldId}
+      contenedorPorSubtipo={puntos.contenedorPorSubtipo}
     />
   );
 }
@@ -215,25 +218,21 @@ function InspeccionEntradaModalContent({
   onClose,
   onSaved,
   puntosTractor,
-  filasContenedor,
-  medidasLabelsContenedor,
   tractorFormId,
-  contenedorFormId,
   tractorComentarioFieldId,
   tractorEvidenciaFieldId,
-  contenedorComentarioFieldId,
-  contenedorEvidenciaFieldId,
+  contenedorPorSubtipo,
 }: InspeccionEntradaModalProps & {
   puntosTractor: PuntoConId[];
-  filasContenedor: PuntoConId[];
-  medidasLabelsContenedor: MedidasLabels;
   tractorFormId: string;
-  contenedorFormId: string;
   tractorComentarioFieldId: string | null;
   tractorEvidenciaFieldId: string | null;
-  contenedorComentarioFieldId: string | null;
-  contenedorEvidenciaFieldId: string | null;
+  contenedorPorSubtipo: Record<"caja_seca" | "refrigerado", ContenedorFormResuelta>;
 }) {
+  // Forma resuelta para el contenedor de una unidad, según su subtipo real
+  // (ver inferSubtipoContenedor) — cada unidad puede usar una forma distinta.
+  const contenedorCfg = (u: UnidadItem): ContenedorFormResuelta =>
+    contenedorPorSubtipo[inferSubtipoContenedor(u.contenedor.tipo)];
   useBodyScrollLock(true);
   const withPrefix = (tipo: string) => tipoPrefix ? `${tipoPrefix}_${tipo}` : tipo;
   const buildTipoKey = (tipo: string, unidad?: number) =>
@@ -289,16 +288,17 @@ function InspeccionEntradaModalContent({
     tabsScrollRef.current?.scrollBy({ left: dir === "left" ? -120 : 120, behavior: "smooth" });
   };
   const emptyPunto = (): PuntoInsp => ({ value: null, comentario: "", fotos: [] });
-  const emptyContenedorSection = (): ContenedorInspSection => ({
+  const emptyContenedorSection = (cfg: ContenedorFormResuelta): ContenedorInspSection => ({
     evidencia: [], altura: "", ancho: "", longitud: "", comentarioGeneral: "",
-    filas: filasContenedor.map(() => ({ suciedad: null as FilaCelda, plagas: null as FilaCelda, fauna: null as FilaCelda })),
+    filas: (cfg.modo === "filas" ? cfg.filas : []).map(() => ({ suciedad: null as FilaCelda, plagas: null as FilaCelda, fauna: null as FilaCelda })),
+    puntos: (cfg.modo === "puntos" ? cfg.puntos : []).map(emptyPunto),
   });
   const [tractorPuntos, setTractorPuntos] = useState<PuntoInsp[]>(puntosTractor.map(emptyPunto));
   // Comentario general de tractor — solo se usa/muestra cuando la forma es custom.
   const [comentarioGeneralTractor, setComentarioGeneralTractor] = useState("");
   const [unitsData, setUnitsData] = useState<UnitInspData[]>(() =>
     unidades.map((u) => ({
-      contenedor: u.config === "remolque_contenedor" ? emptyContenedorSection() : null,
+      contenedor: u.config === "remolque_contenedor" ? emptyContenedorSection(contenedorCfg(u)) : null,
     }))
   );
 
@@ -316,8 +316,10 @@ function InspeccionEntradaModalContent({
 
   const tractorEval = tractorPuntos.filter((p) => p.value !== null).length;
 
-  const contenedorEval = (d: UnitInspData) =>
-    (d.contenedor?.filas ?? []).filter((f) => f.suciedad !== null || f.plagas !== null || f.fauna !== null).length;
+  const contenedorEval = (d: UnitInspData, cfg: ContenedorFormResuelta) =>
+    cfg.modo === "puntos"
+      ? (d.contenedor?.puntos ?? []).filter((p) => p.value !== null).length
+      : (d.contenedor?.filas ?? []).filter((f) => f.suciedad !== null || f.plagas !== null || f.fauna !== null).length;
 
 
   const setTractorPunto = (i: number, val: SiNoVal) =>
@@ -327,6 +329,31 @@ function InspeccionEntradaModalContent({
 
   const setTractorComentario = (i: number, text: string) =>
     setTractorPuntos((p) => p.map((pt, idx) => idx !== i ? pt : { ...pt, comentario: text }));
+
+  // Contenedor en modo "puntos" (ej. BASC) — mismo patrón que tractor, pero
+  // por unidad.
+  const setContenedorPunto = (ui: number, i: number, val: SiNoVal) =>
+    setUnitsData((p) => p.map((u, idx) => {
+      if (idx !== ui || !u.contenedor) return u;
+      return {
+        ...u,
+        contenedor: {
+          ...u.contenedor,
+          puntos: u.contenedor.puntos.map((pt, pidx) =>
+            pidx !== i ? pt : { ...pt, value: pt.value === val ? null : val, comentario: pt.value === val ? "" : pt.comentario }
+          ),
+        },
+      };
+    }));
+
+  const setContenedorPuntoComentario = (ui: number, i: number, text: string) =>
+    setUnitsData((p) => p.map((u, idx) => {
+      if (idx !== ui || !u.contenedor) return u;
+      return {
+        ...u,
+        contenedor: { ...u.contenedor, puntos: u.contenedor.puntos.map((pt, pidx) => pidx !== i ? pt : { ...pt, comentario: text }) },
+      };
+    }));
 
   const cycleCelda = (v: FilaCelda): FilaCelda => (v === null ? "sí" : v === "sí" ? "no" : null);
   const setFilaVal = (ui: number, fi: number, opcion: FilaOpcion) =>
@@ -407,25 +434,39 @@ function InspeccionEntradaModalContent({
       // Contenedor (solo si aplica)
       if (u.config === "remolque_contenedor" && d.contenedor) {
         const sec = d.contenedor;
+        const cfg = contenedorCfg(u);
         inspecciones.push({
           tipo: withPrefix("contenedor"),
           unidad: i + 1,
-          form_id: contenedorFormId,
-          medidas: {
-            altura: sec.altura,
-            ancho: sec.ancho,
-            longitud: sec.longitud,
-          },
-          filas: filasContenedor.map((punto, fi) => {
-            const f = sec.filas[fi];
-            return {
-              field_id: punto.field_id,
-              valores: (["suciedad", "plagas", "fauna"] as const).filter((col) => f[col] === "sí"),
-            };
-          }),
-          comentario_general_field_id: contenedorComentarioFieldId,
+          form_id: cfg.formId,
+          ...(cfg.modo === "puntos"
+            ? {
+                puntos: cfg.puntos.map((punto, pi) => ({
+                  field_id: punto.field_id,
+                  resultado: resolverResultado(sec.puntos[pi].value, punto),
+                  comentario_field_id: punto.comentarioFieldId,
+                  comentario: punto.comentarioFieldId ? sec.puntos[pi].comentario : undefined,
+                  evidencia_field_id: punto.evidenciaFieldId,
+                  fotos: punto.evidenciaFieldId ? sec.puntos[pi].fotos : undefined,
+                })),
+              }
+            : {
+                medidas: {
+                  altura: sec.altura,
+                  ancho: sec.ancho,
+                  longitud: sec.longitud,
+                },
+                filas: cfg.filas.map((punto, fi) => {
+                  const f = sec.filas[fi];
+                  return {
+                    field_id: punto.field_id,
+                    valores: (["suciedad", "plagas", "fauna"] as const).filter((col) => f[col] === "sí"),
+                  };
+                }),
+              }),
+          comentario_general_field_id: cfg.comentarioGeneralFieldId,
           comentario_general: sec.comentarioGeneral,
-          evidencia_general_field_id: contenedorEvidenciaFieldId,
+          evidencia_general_field_id: cfg.evidenciaGeneralFieldId,
           evidencias: sec.evidencia,
         });
       }
@@ -472,9 +513,25 @@ function InspeccionEntradaModalContent({
         }));
       }
     } else {
-      const [, , piStr] = parts;
-      const pi = parseInt(piStr);
-      setTractorPuntos((p) => p.map((pt, i) => i !== pi ? pt : { ...pt, fotos: [...pt.fotos, img] }));
+      // "pt:tractor:I" o "pt:contenedor:U:I"
+      const [, kind, a, b] = parts;
+      if (kind === "tractor") {
+        const pi = parseInt(a);
+        setTractorPuntos((p) => p.map((pt, i) => i !== pi ? pt : { ...pt, fotos: [...pt.fotos, img] }));
+      } else {
+        const ui = parseInt(a);
+        const pi = parseInt(b);
+        setUnitsData((p) => p.map((u, idx) => {
+          if (idx !== ui || !u.contenedor) return u;
+          return {
+            ...u,
+            contenedor: {
+              ...u.contenedor,
+              puntos: u.contenedor.puntos.map((pt, pidx) => pidx !== pi ? pt : { ...pt, fotos: [...pt.fotos, img] }),
+            },
+          };
+        }));
+      }
     }
   };
 
@@ -492,9 +549,24 @@ function InspeccionEntradaModalContent({
         }));
       }
     } else {
-      const [, , piStr] = parts;
-      const pi = parseInt(piStr);
-      setTractorPuntos((p) => p.map((pt, i) => i !== pi ? pt : { ...pt, fotos: pt.fotos.filter((_, j) => j !== imgIdx) }));
+      const [, kind, a, b] = parts;
+      if (kind === "tractor") {
+        const pi = parseInt(a);
+        setTractorPuntos((p) => p.map((pt, i) => i !== pi ? pt : { ...pt, fotos: pt.fotos.filter((_, j) => j !== imgIdx) }));
+      } else {
+        const ui = parseInt(a);
+        const pi = parseInt(b);
+        setUnitsData((p) => p.map((u, idx) => {
+          if (idx !== ui || !u.contenedor) return u;
+          return {
+            ...u,
+            contenedor: {
+              ...u.contenedor,
+              puntos: u.contenedor.puntos.map((pt, pidx) => pidx !== pi ? pt : { ...pt, fotos: pt.fotos.filter((_, j) => j !== imgIdx) }),
+            },
+          };
+        }));
+      }
     }
   };
 
@@ -802,11 +874,61 @@ function InspeccionEntradaModalContent({
   );
 
   const renderContenedorTab = (unitIdx: number) => {
+    const u = unidades[unitIdx];
     const d = unitsData[unitIdx];
     const sec = d?.contenedor;
-    if (!sec) return null;
-    const eval_ = contenedorEval(d);
+    if (!sec || !u) return null;
+    const cfg = contenedorCfg(u);
     const done = isDone("contenedor", unitIdx + 1);
+    const eval_ = contenedorEval(d, cfg);
+
+    // Modo "puntos" (ej. BASC, custom): mismo render que Tractor — radio
+    // Sí/No + comentario + evidencia propios por punto.
+    if (cfg.modo === "puntos") {
+      const tieneComentarioPorPunto = cfg.puntos.some((p) => p.comentarioFieldId);
+      return (
+        <div className="p-5 space-y-4">
+          {renderDoneBanner("contenedor", unitIdx + 1)}
+          {!done && <>
+          {renderEvidence("EVIDENCIA DEL CONTENEDOR · ENTRADA", `ev:contenedor:${unitIdx}`, sec.evidencia)}
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
+              Unidad {unitIdx + 1} · Contenedor · Inspección de {cfg.puntos.length} puntos
+              <HelpCircle className="w-3.5 h-3.5 text-gray-300" />
+            </span>
+            <span className="text-[11px] font-bold text-orange-500 bg-orange-50 px-2.5 py-0.5 rounded-full">
+              {eval_} / {cfg.puntos.length} evaluados
+            </span>
+          </div>
+          <div>
+            {cfg.puntos.map((punto, i) =>
+              renderSiNoRow(
+                punto.label, i, sec.puntos[i],
+                (val) => setContenedorPunto(unitIdx, i, val), (text) => setContenedorPuntoComentario(unitIdx, i, text),
+                `pt:contenedor:${unitIdx}:${i}`,
+                i > 0 && sec.puntos[i - 1].value === null,
+                !punto.comentarioFieldId && !punto.evidenciaFieldId,
+              )
+            )}
+          </div>
+          {!tieneComentarioPorPunto && cfg.comentarioGeneralFieldId && (
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Comentario general</p>
+              <textarea
+                rows={3}
+                placeholder="Añadir comentario u observación de toda la inspección…"
+                value={sec.comentarioGeneral}
+                onChange={(e) => setContenedorComentarioGeneral(unitIdx, e.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:outline-none focus:border-blue-300 resize-none"
+              />
+            </div>
+          )}
+          </>}
+        </div>
+      );
+    }
+
+    // Modo "filas" (forma CTPAT default): grid de columnas fijas, sin cambios.
     return (
       <div className="p-5 space-y-4">
         {renderDoneBanner("contenedor", unitIdx + 1)}
@@ -817,11 +939,11 @@ function InspeccionEntradaModalContent({
             <HelpCircle className="w-3.5 h-3.5 text-gray-300" />
           </span>
           <span className="text-[11px] font-bold text-orange-500 bg-orange-50 px-2.5 py-0.5 rounded-full">
-            {eval_} / {filasContenedor.length} evaluados
+            {eval_} / {cfg.filas.length} evaluados
           </span>
         </div>
         {renderEvidence("EVIDENCIA DEL CONTENEDOR · ENTRADA", `ev:contenedor:${unitIdx}`, sec.evidencia)}
-        {renderMeasures(sec, (field, val) => setContenedorMeasure(unitIdx, field, val), medidasLabelsContenedor)}
+        {renderMeasures(sec, (field, val) => setContenedorMeasure(unitIdx, field, val), cfg.medidasLabelsContenedor)}
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse">
             <thead>
@@ -843,7 +965,7 @@ function InspeccionEntradaModalContent({
                 const hasNo = fila.suciedad === "no" || fila.plagas === "no" || fila.fauna === "no";
                 return (
                   <tr key={fi} className={cn("border-t border-gray-50", hasNo && "bg-red-50/30", !hasNo && anyEval && "bg-green-50/30")}>
-                    <td className="py-2 pr-3 text-xs text-gray-700 leading-snug">{filasContenedor[fi]?.label}</td>
+                    <td className="py-2 pr-3 text-xs text-gray-700 leading-snug">{cfg.filas[fi]?.label}</td>
                     <td className="py-2 px-1.5 text-center">
                       <button
                         type="button"
@@ -882,7 +1004,7 @@ function InspeccionEntradaModalContent({
             </tbody>
           </table>
         </div>
-        {contenedorComentarioFieldId && (
+        {cfg.comentarioGeneralFieldId && (
           <div>
             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Comentario general</p>
             <textarea
@@ -1995,7 +2117,7 @@ export default function DetalleTransportistaPage() {
   // con el registro, para que el modal de inspección abra sin spinner propio.
   // Arranca con los form_id por default (ubicación aún no cargada) y se re-resuelve
   // solo si esta cuenta tiene una forma custom configurada para esa ubicación.
-  useInspeccionPuntosTransportista(data?.ubicacion);
+  const { data: inspeccionPuntos } = useInspeccionPuntosTransportista(data?.ubicacion);
   const { data: configFlujo } = useConfigFlujoTransportista();
 
   // La galería de fotos solo aplica una vez terminado el acceso.
@@ -3075,16 +3197,35 @@ export default function DetalleTransportistaPage() {
                 </span>
               </span>
             )}
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full",
-                tipo_accion
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-gray-100 text-gray-400",
-              )}>
-              <LogIn className="w-3 h-3" />
-              {tipo_accion ?? "—"}
-            </span>
+            <div className="flex items-center gap-1.5">
+              {/* Indicador derivado de la configuración de la ubicación — no es
+                  un dato capturado en la visita, solo informativo (ver
+                  get_formas_inspeccion / useInspeccionPuntosTransportista).
+                  Se oculta mientras carga para no mostrar "CTPAT" de más
+                  (default transitorio del hook mientras resuelve). */}
+              {inspeccionPuntos && (
+                <span
+                  className={cn(
+                    "inline-flex items-center text-[11px] font-bold px-2.5 py-0.5 rounded-full",
+                    inspeccionPuntos.norma === "basc"
+                      ? "bg-indigo-100 text-indigo-700"
+                      : "bg-slate-100 text-slate-500",
+                  )}
+                  title="Norma de inspección de la ubicación de esta visita">
+                  {inspeccionPuntos.norma === "basc" ? "BASC" : "CTPAT"}
+                </span>
+              )}
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full",
+                  tipo_accion
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-gray-100 text-gray-400",
+                )}>
+                <LogIn className="w-3 h-3" />
+                {tipo_accion ?? "—"}
+              </span>
+            </div>
           </div>
 
           {/* Photos + identity */}

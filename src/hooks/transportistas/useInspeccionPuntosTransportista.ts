@@ -102,24 +102,51 @@ function resolverSiNo(options: { label: string; value: string }[]): { siValue?: 
   return { siValue: si?.value, noValue: no?.value };
 }
 
+// Una forma de contenedor resuelta para un subtipo dado (caja_seca/refrigerado).
+// `modo` decide cómo se renderiza/guarda:
+//  - "puntos" (ej. formas BASC, custom): mismo patrón que tractor — radio
+//    Sí/No + comentario + evidencia propios por punto.
+//  - "filas" (forma CTPAT default): grid de columnas fijas suciedad/plagas/fauna.
+export type ContenedorFormResuelta =
+  | {
+      formId: string;
+      modo: "puntos";
+      puntos: PuntoConId[];
+      comentarioGeneralFieldId: string | null;
+      evidenciaGeneralFieldId: string | null;
+    }
+  | {
+      formId: string;
+      modo: "filas";
+      filas: PuntoConId[];
+      medidasLabelsContenedor: MedidasLabels;
+      comentarioGeneralFieldId: string | null;
+      evidenciaGeneralFieldId: string | null;
+    };
+
 interface InspeccionPuntos {
   puntosTractor: PuntoConId[];
-  filasContenedor: PuntoConId[];
-  medidasLabelsContenedor: MedidasLabels;
+  // Indicador derivado de la ubicación (basc si tiene alguna fila con
+  // Norma=BASC configurada, ctpat si no tiene ninguna) — solo para mostrar en
+  // el front (badge en el detalle de la visita), no se usa para resolver forma.
+  norma: "basc" | "ctpat";
   selloClasificaciones: SelloClasificacionOption[];
   selloVvttPuntos: SelloVvttPunto[];
   selloEvidenciaLabels: Record<string, string>;
   // Forma resuelta para esta ubicación (default de cuenta 10, o una custom
   // configurada en "Configuración de Flujo de Transportistas").
   tractorFormId: string;
-  contenedorFormId: string;
   // Candidatos de comentario/evidencia "general" (primer textarea/text y primer
   // campo de imágenes de la forma) — solo se usan en la UI cuando NINGÚN punto
   // trae su propio comentarioFieldId/evidenciaFieldId (ver page.tsx).
   tractorComentarioFieldId: string | null;
   tractorEvidenciaFieldId: string | null;
-  contenedorComentarioFieldId: string | null;
-  contenedorEvidenciaFieldId: string | null;
+  // Una entrada resuelta por subtipo — cada unidad de contenedor de la visita
+  // usa la que corresponda a su propio tipo (ver inferSubtipoContenedor en
+  // agregar-unidad-modal.tsx). Ambos subtipos se resuelven siempre, no solo
+  // los presentes en la visita actual (el costo extra es nulo cuando ambos
+  // caen al mismo form_id catch-all, vía el Map de fetch deduplicado).
+  contenedorPorSubtipo: Record<"caja_seca" | "refrigerado", ContenedorFormResuelta>;
 }
 
 // Puntos de inspección (radio) con sus campos de comentario/evidencia propios,
@@ -255,34 +282,54 @@ const FALLBACK_SELLO_EVIDENCIA_LABELS: Record<string, string> = {
   identificacion_operador: "Identificación del operador",
 };
 
+const SUBTIPOS_CONTENEDOR = ["caja_seca", "refrigerado"] as const;
+
 export function useInspeccionPuntosTransportista(ubicacion?: string | null) {
   const { data, isLoading, error } = useQuery<InspeccionPuntos>({
     queryKey: ["inspeccionPuntosTransportista", ubicacion ?? null],
     queryFn: async () => {
       let tractorFormId = TRACTOR_FORM_ID;
-      let contenedorFormId = CONTENEDOR_FORM_ID;
       let selloFormId = SELLO_FORM_ID;
+      let contenedorFormIdPorSubtipo: Record<string, string> = {
+        caja_seca: CONTENEDOR_FORM_ID,
+        refrigerado: CONTENEDOR_FORM_ID,
+      };
+      let norma: "basc" | "ctpat" = "ctpat";
 
       if (ubicacion) {
         try {
           const formasRes = await getFormasInspeccionTransportista(ubicacion);
           const formasRaw = ((formasRes as Record<string, unknown>)?.response as Record<string, unknown>)?.data
             ?? (formasRes as Record<string, unknown>)?.data;
-          const formas = formasRaw as { tractor?: string; contenedor?: string; sello?: string } | undefined;
+          const formas = formasRaw as {
+            tractor?: string;
+            contenedor?: string;
+            sello?: string;
+            contenedor_por_subtipo?: Record<string, string>;
+            norma?: "basc" | "ctpat";
+          } | undefined;
           tractorFormId = formas?.tractor || TRACTOR_FORM_ID;
-          contenedorFormId = formas?.contenedor || CONTENEDOR_FORM_ID;
           selloFormId = formas?.sello || SELLO_FORM_ID;
+          norma = formas?.norma || "ctpat";
+          // Catch-all: fila de contenedor sin subtipo especificado, o default
+          // CTPAT si no hay nada configurado para esta ubicación.
+          const contenedorCatchAll = formas?.contenedor || CONTENEDOR_FORM_ID;
+          contenedorFormIdPorSubtipo = {
+            caja_seca: formas?.contenedor_por_subtipo?.["caja_seca"] || contenedorCatchAll,
+            refrigerado: formas?.contenedor_por_subtipo?.["refrigerado"] || contenedorCatchAll,
+          };
         } catch {
           // Si falla la resolución por ubicación, se sigue con los form_id
           // hardcodeados de la cuenta 10 — mismo fail-open que el backend.
         }
       }
 
-      const res = await getFormFieldsTransportista([
+      const formIdsUnicos = Array.from(new Set([
         tractorFormId,
-        contenedorFormId,
         selloFormId,
-      ]);
+        ...SUBTIPOS_CONTENEDOR.map((s) => contenedorFormIdPorSubtipo[s]),
+      ]));
+      const res = await getFormFieldsTransportista(formIdsUnicos);
       const raw = ((res as Record<string, unknown>)?.response as Record<string, unknown>)?.data
         ?? (res as Record<string, unknown>)?.data;
       const forms = (raw as ApiFormFieldsResult[]) ?? [];
@@ -290,14 +337,38 @@ export function useInspeccionPuntosTransportista(ubicacion?: string | null) {
       const fieldsOf = (formId: string) =>
         byId.get(formId)?.pages.flatMap((p) => p.fields) ?? [];
 
+      // El modo se detecta por la estructura real de la forma resuelta, no por
+      // convención de nombre: un campo "radio" indica Patrón A (puntos, como
+      // tractor); si no hay ninguno, se asume Patrón B (filas, como CTPAT).
+      const resolverContenedor = (formId: string): ContenedorFormResuelta => {
+        const fields = fieldsOf(formId);
+        if (fields.some((f) => f.field_type === "radio")) {
+          return {
+            formId,
+            modo: "puntos",
+            puntos: extractPuntos(fields),
+            comentarioGeneralFieldId: extractPrimerCampoDeTipo(fields, ["text", "textarea"]),
+            evidenciaGeneralFieldId: extractPrimerCampoDeTipo(fields, ["images"]),
+          };
+        }
+        // Se excluyen los 3 field_id de medidas — también son field_type "text"
+        // y no deben confundirse con un campo de comentario general.
+        const fieldsSinMedidas = fields.filter(
+          (f) => !Object.values(CONTENEDOR_MEDIDA_FIELD_IDS).includes(f.field_id),
+        );
+        return {
+          formId,
+          modo: "filas",
+          filas: extractFilas(fields),
+          medidasLabelsContenedor: extractMedidasLabels(fields, CONTENEDOR_MEDIDA_FIELD_IDS, FALLBACK_MEDIDAS_LABELS),
+          comentarioGeneralFieldId: extractPrimerCampoDeTipo(fieldsSinMedidas, ["text", "textarea"]),
+          evidenciaGeneralFieldId: extractPrimerCampoDeTipo(fields, ["images"]),
+        };
+      };
+
       return {
         puntosTractor: extractPuntos(fieldsOf(tractorFormId)),
-        filasContenedor: extractFilas(fieldsOf(contenedorFormId)),
-        medidasLabelsContenedor: extractMedidasLabels(
-          fieldsOf(contenedorFormId),
-          CONTENEDOR_MEDIDA_FIELD_IDS,
-          FALLBACK_MEDIDAS_LABELS,
-        ),
+        norma,
         selloClasificaciones: extractSelloClasificaciones(
           fieldsOf(selloFormId),
           SELLO_ISO_FIELD_ID,
@@ -314,16 +385,12 @@ export function useInspeccionPuntosTransportista(ubicacion?: string | null) {
           FALLBACK_SELLO_EVIDENCIA_LABELS,
         ),
         tractorFormId,
-        contenedorFormId,
         tractorComentarioFieldId: extractPrimerCampoDeTipo(fieldsOf(tractorFormId), ["text", "textarea"]),
         tractorEvidenciaFieldId: extractPrimerCampoDeTipo(fieldsOf(tractorFormId), ["images"]),
-        // Se excluyen los 3 field_id de medidas — también son field_type "text"
-        // y no deben confundirse con un campo de comentario general.
-        contenedorComentarioFieldId: extractPrimerCampoDeTipo(
-          fieldsOf(contenedorFormId).filter((f) => !Object.values(CONTENEDOR_MEDIDA_FIELD_IDS).includes(f.field_id)),
-          ["text", "textarea"],
-        ),
-        contenedorEvidenciaFieldId: extractPrimerCampoDeTipo(fieldsOf(contenedorFormId), ["images"]),
+        contenedorPorSubtipo: {
+          caja_seca: resolverContenedor(contenedorFormIdPorSubtipo.caja_seca),
+          refrigerado: resolverContenedor(contenedorFormIdPorSubtipo.refrigerado),
+        },
       };
     },
     staleTime: 1000 * 60 * 30,
