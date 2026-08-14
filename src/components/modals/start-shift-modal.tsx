@@ -158,7 +158,7 @@ export const StartShiftModal: React.FC<StartShiftModalProps> = ({
                 {
                   employee_list: formattedGuards,
                   fotografia: evidencia,
-                  roles,
+                  roles: rolesConLabel.map((r) => r.label),
                   nombre_suplente: nombreSuplente,
                   checkin_id,
                 },

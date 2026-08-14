@@ -137,7 +137,7 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
               mutate(
                 {
                   fotografia: identificacion,
-                  roles: roles,
+                  roles: rolesConLabel.map((r) => r.label),
                   checkin_id: checkin_id,
                 },
                 {

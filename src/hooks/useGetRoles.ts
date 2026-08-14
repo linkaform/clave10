@@ -7,7 +7,7 @@ export const useCatalogoRoles = (enabled = true, account_id: number) => {
     queryFn: async () => {
       if (!enabled) return [];
       const data = await getCatalogoRoles({ account_id });
-      return data.response?.data;
+      return data.response?.data ?? [];
     },
     enabled,
     refetchOnMount: false,

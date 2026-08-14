@@ -317,7 +317,7 @@ const handleActualizar = () => {
     ? [grupoSeleccionado]
     : empleadosSeleccionados.length > 0
     ? empleadosSeleccionados
-    : "responsable_en_turno"; 
+    : "responsable_en_turno";
 
     editarRondinMutation.mutate({
       folio: rondin?.folio ?? "",
@@ -326,7 +326,7 @@ const handleActualizar = () => {
         tipo_rondin: tipoRondin,
         se_repite_cada: recurrenciaSeleccionada,
         area: areaSeleccionada,
-        roles: rolesSeleccionados,
+        roles: rolesSeleccionados.map((r) => ROLES_FALLBACK.find((rol) => rol.value === r)?.label ?? r),
         tipo_asignacion: tipoAsignado === "guardia" ? "responsable_en_turno" : tipoAsignado,
         asignado_a: asignadoA,
         fecha_hora_programada: fechaProgramada ? format(fechaProgramada, "yyyy-MM-dd HH:mm:ss") : "",

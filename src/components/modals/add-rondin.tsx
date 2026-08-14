@@ -431,7 +431,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       // en edición se conserva el valor real ya guardado en vez de mandar
       // siempre "" y borrarlo.
       area: values.area || (mode === "edit" ? rondinEfectivo?.area : "") || "",
-      roles: values.roles ?? [],
+      roles: (values.roles ?? []).map((r) => rolesLabelMap[r] ?? r),
     };
 
     if (mode == "edit" && folio) {

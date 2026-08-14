@@ -50,7 +50,7 @@ const mappers_list: Record<string, (raw: any, base: any) => ListRecord> = {
   concesionados: mapArticuloConcesionadoList,
   perdidos: mapArticuloPerdidoList,
   notas: mapNotaList,
-  area: mapAreaList
+  area: mapAreaList,
   bitacora_transportista: mapTransportistaBitacoraList,
 };
 
@@ -69,7 +69,7 @@ const mappers_grid: Record<string, (raw: any, base: any) => PhotoRecord> = {
   concesionados: mapArticuloConcesionadoGrid,
   perdidos: mapArticuloPerdidoGrid,
   notas: mapNotaGrid,
-  area: mapAreaGrid
+  area: mapAreaGrid,
   bitacora_transportista: mapTransportistaBitacoraGrid,
 };
 
@@ -90,7 +90,7 @@ export type RegistryType =
   | "concesionados"
   | "perdidos"
   | "notas"
-  | "area";
+  | "area"
   | "bitacora_transportista";
 
 
