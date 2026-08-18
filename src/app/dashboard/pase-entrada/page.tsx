@@ -43,6 +43,34 @@ import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
 
+const DIAS_SEMANA = [
+  "domingo",
+  "lunes",
+  "martes",
+  "miércoles",
+  "jueves",
+  "viernes",
+  "sábado",
+];
+
+const getDiasSemanaEnRango = (desdeStr?: string, hastaStr?: string) => {
+  if (!desdeStr || !hastaStr) return [];
+  const desde = new Date(desdeStr + "T00:00:00");
+  const hasta = new Date(hastaStr + "T00:00:00");
+  if (isNaN(desde.getTime()) || isNaN(hasta.getTime()) || desde > hasta) {
+    return [];
+  }
+  const dias = new Set<string>();
+  const cursor = new Date(desde);
+  let iteraciones = 0;
+  while (cursor <= hasta && iteraciones < 3660) {
+    dias.add(DIAS_SEMANA[cursor.getDay()]);
+    cursor.setDate(cursor.getDate() + 1);
+    iteraciones++;
+  }
+  return Array.from(dias);
+};
+
 const formSchema = z
   .object({
     selected_visita_a: z.string().optional(),
@@ -128,7 +156,11 @@ const formSchema = z
     }),
     todas_las_areas: z.boolean().optional(),
     habilitar_vehiculo: z.string(),
-    acompanantes: z.number().min(0).optional(),
+    acompanantes: z
+      .number()
+      .min(0)
+      .max(15, { message: "Solo puedes ingresar un máximo de 15 acompañantes." })
+      .optional(),
   })
   .refine(
     (data) => {
@@ -354,6 +386,9 @@ const PaseEntradaPage = () => {
   const [todasAreas, setTodasAreas] = useState(true);
   const today = new Date().toISOString().split("T")[0];
   const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
+  const [acompanantesError, setAcompanantesError] = useState(false);
+  const [diasVigenciaError, setDiasVigenciaError] = useState(false);
+  const [areasError, setAreasError] = useState(false);
   const [miembrosRowErrors, setMiembrosRowErrors] = useState<Record<string, { email: boolean; telefono: boolean }>>({});
 
 
@@ -430,6 +465,65 @@ const PaseEntradaPage = () => {
       return updatedDias;
     });
   };
+
+  const fechaDesdeVisitaWatch = useWatch({
+    control: form.control,
+    name: "fecha_desde_visita",
+  });
+  const fechaDesdeHastaWatch = useWatch({
+    control: form.control,
+    name: "fecha_desde_hasta",
+  });
+
+  // Si el rango de fechas no contiene ningún día de la semana permitido en
+  // "limitar días de acceso", el pase nunca podría usarse: se resetean las
+  // fechas para forzar a elegir un rango que sí incluya un día válido.
+  useEffect(() => {
+    const restriccionActiva =
+      tipoVisita === "rango_de_fechas" &&
+      config_dia_de_acceso === "limitar_días_de_acceso" &&
+      config_dias_acceso.length > 0;
+
+    if (!restriccionActiva) {
+      setDiasVigenciaError(false);
+      return;
+    }
+
+    if (!fechaDesdeVisitaWatch || !fechaDesdeHastaWatch) {
+      // Fechas vacías (puede ser por nuestro propio reset abajo): no
+      // limpiamos el error para que el mensaje siga visible hasta que
+      // se elija un rango válido.
+      return;
+    }
+
+    const diasEnRango = getDiasSemanaEnRango(
+      fechaDesdeVisitaWatch,
+      fechaDesdeHastaWatch,
+    );
+    const hayCoincidencia = config_dias_acceso.some((dia) =>
+      diasEnRango.includes(dia),
+    );
+    if (!hayCoincidencia) {
+      form.setValue("fecha_desde_visita", "");
+      form.setValue("fecha_desde_hasta", "");
+      setDiasVigenciaError(true);
+    } else {
+      setDiasVigenciaError(false);
+    }
+  }, [
+    tipoVisita,
+    config_dia_de_acceso,
+    config_dias_acceso,
+    fechaDesdeVisitaWatch,
+    fechaDesdeHastaWatch,
+    form,
+  ]);
+
+  useEffect(() => {
+    if (todasAreas || areasList.length > 0) {
+      setAreasError(false);
+    }
+  }, [todasAreas, areasList]);
 
   useEffect(() => {
     if (!ubicacionesSeleccionadas) return;
@@ -574,6 +668,8 @@ const PaseEntradaPage = () => {
         type: "manual",
         message: "Ambas fechas son requeridas",
       });
+    } else if (!todasAreas && areasList.length === 0) {
+      setAreasError(true);
     } else {
       // const miembrosFinales = [...miembros];
       if (data.nombre?.trim()) {
@@ -933,6 +1029,7 @@ const PaseEntradaPage = () => {
                             </FormLabel>
                             <FormControl>
                               <PhoneInput
+                                limitMaxLength={10}
                                 {...field}
                                 onChange={(value: string) => {
                                   form.setValue("telefono", value || "");
@@ -1008,12 +1105,19 @@ const PaseEntradaPage = () => {
                                 type="number"
                                 step={1}
                                 min={0}
+                                max={15}
                                 className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
                                 {...field}
                                 value={field.value === 0 || field.value === undefined ? "" : field.value}
                                 onChange={(e) => {
                                   const val = e.target.value;
-                                  field.onChange(val === "" ? 0 : Number(val));
+                                  const num = val === "" ? 0 : Number(val);
+                                  if (num > 15) {
+                                    setAcompanantesError(true);
+                                    return;
+                                  }
+                                  setAcompanantesError(false);
+                                  field.onChange(num);
                                 }}
                                 onFocus={(e) => e.target.select()}
                               />
@@ -1022,6 +1126,11 @@ const PaseEntradaPage = () => {
                               Número de personas adicionales que acompañan al visitante. Ve a la tab{" "}
                               <span className="font-semibold text-gray-500">Acompañantes</span> para completar sus datos.
                             </p>
+                            {acompanantesError && (
+                              <p className="text-sm font-medium text-red-500">
+                                Solo puedes ingresar un máximo de 15 acompañantes.
+                              </p>
+                            )}
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1269,6 +1378,14 @@ const PaseEntradaPage = () => {
                     </div>
                   </div>
                 )}
+
+                {diasVigenciaError && (
+                  <p className="text-sm font-medium text-red-500 mt-3">
+                    El rango de fechas seleccionado no incluye ningún día
+                    permitido. Se reiniciaron las fechas de vigencia: selecciona un nuevo
+                    rango que incluya al menos un día permitido.
+                  </p>
+                )}
               </div>
             )}
 
@@ -1361,6 +1478,12 @@ const PaseEntradaPage = () => {
                         existingAreas={false}
                       />
                     </div>
+                  )}
+                  {areasError && (
+                    <p className="text-sm font-medium text-red-500 mt-3">
+                      Selecciona al menos un área de acceso, o activa
+                      &quot;Todas las áreas&quot;.
+                    </p>
                   )}
                 </div>
               )}

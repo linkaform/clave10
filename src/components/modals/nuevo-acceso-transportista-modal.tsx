@@ -25,7 +25,7 @@ import {
   Unlink,
   X,
 } from "lucide-react";
-import { cn, reemplazarGuionMinuscula } from "@/lib/utils";
+import { cn, errorMsj, reemplazarGuionMinuscula } from "@/lib/utils";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { useCreateVisitTransportista } from "@/hooks/useCreateVisitTransportista";
 import { useBoothStore } from "@/store/useBoothStore";
@@ -353,6 +353,12 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
           .filter((d) => d.file_url)
           .map((d) => ({ file_url: d.file_url, file_name: d.file_name })),
       );
+      const hasError = !result?.success || (result?.response?.data?.status_code ?? 0) >= 400;
+      if (hasError) {
+        const textMsj = errorMsj(result);
+        toast.error(textMsj?.text || "Error al analizar los documentos con IA.");
+        return;
+      }
       const d = (result?.response?.data?.data ?? {}) as Partial<{
         vehiculo: Partial<{
           transportista: string; tipo_vehiculo: string; placa: string;
@@ -523,6 +529,9 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       if (d.vehiculo?.placa_tarjeta_circulacion) setPlacaTarjetaVehiculo(d.vehiculo.placa_tarjeta_circulacion);
 
       setAiFilledFields(filled);
+    } catch (err) {
+      const textMsj = errorMsj(err instanceof Error ? err.message : err);
+      toast.error(textMsj?.text || "Error al analizar los documentos con IA.");
     } finally {
       setAiAnalyzing(false);
     }
