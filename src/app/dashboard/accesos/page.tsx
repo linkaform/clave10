@@ -1,7 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, Suspense } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { ActivePassesModal } from "@/components/modals/active-passes-modal";
@@ -60,8 +61,13 @@ import { useBoothStore } from "@/store/useBoothStore";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { useScanPreference } from "@/hooks/scan";
 import { ConfirmarAccesoModal } from "@/components/modals/confirmar-acceso-modal";
+import { useAcompanantesPase } from "@/hooks/useAcompanantesPase";
 
-const AccesosPage = () => {
+const AccesosContent = () => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const actionParam = searchParams.get("action");
   const { isAuth, userParentId } = useAuthStore();
   const { area, location } = useBoothStore();
   const { excludes }= useMenuStore()
@@ -76,7 +82,24 @@ const AccesosPage = () => {
   // Antes de ejecutar el ingreso/salida se muestra un modal chico para
   // confirmar con quién más se hace el movimiento (ver ConfirmarAccesoModal).
   const [confirmModal, setConfirmModal] = useState<"ingreso" | "salida" | null>(null);
+  // Permite abrir el modal de "Nueva Visita" directo desde el menú, vía
+  // /accesos?action=nueva_visita (mismo patrón que articulos/page.tsx con
+  // "nuevo_articulo_concesionado").
+  const [isSuccessVisita, setIsSuccessVisita] = useState(false);
+  useEffect(() => {
+    if (actionParam === "nueva_visita") setIsSuccessVisita(true);
+  }, [actionParam]);
+  const handleOpenChangeVisita = (value: React.SetStateAction<boolean>) => {
+    const open = typeof value === "function" ? value(isSuccessVisita) : value;
+    setIsSuccessVisita(open);
+    if (!open && actionParam === "nueva_visita") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`${pathname}?${params.toString()}`);
+    }
+  };
   const { isLoading, loading:loadingSearchPass, searchPass } = useSearchPass(false);
+  const { tieneAcompanantes } = useAcompanantesPase(searchPass);
   const [inputValue, setInputValue] = useState("");
   const [openActivePases, setOpenActivePases] = useState(false);
   const queryClient = useQueryClient();
@@ -437,6 +460,10 @@ const AccesosPage = () => {
 							);
 							return;
 							}
+							if (!tieneAcompanantes) {
+							doAccess.mutate();
+							return;
+							}
 							setConfirmModal("ingreso");
 						}}
 						>
@@ -453,6 +480,11 @@ const AccesosPage = () => {
 							toast.error(
 								"¡Debes iniciar turno antes de registrar una salida!."
 							);
+							return;
+							}
+
+							if (!tieneAcompanantes) {
+							exitRegisterAccess.mutate();
 							return;
 							}
 
@@ -492,7 +524,10 @@ const AccesosPage = () => {
 						)}
 
 					{!passCode && isExcluded("nueva_visita", excludes?? undefined) && (
-						<AddVisitModal title="Nueva Visita">
+						<AddVisitModal
+							title="Nueva Visita"
+							isSuccess={isSuccessVisita}
+							setIsSuccess={handleOpenChangeVisita}>
 						<Button className="bg-green-600 hover:bg-green-700 text-white">
 							<Plus />
 							Nueva Visita
@@ -656,5 +691,11 @@ const AccesosPage = () => {
     </div>
   );
 };
+
+const AccesosPage = () => (
+  <Suspense fallback={<div className="p-6 text-slate-400 text-sm">Cargando...</div>}>
+    <AccesosContent />
+  </Suspense>
+);
 
 export default AccesosPage;

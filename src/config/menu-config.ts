@@ -22,7 +22,7 @@ export const menuStructure: MenuConfig = {
               key: "nuevo_acceso",
               label: "+ Nuevo Acceso",
               type: "link",
-              href: "/accesos",
+              href: "/accesos?action=nueva_visita",
               order: 1,
             },
             {

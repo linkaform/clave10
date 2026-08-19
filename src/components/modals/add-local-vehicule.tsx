@@ -24,7 +24,12 @@ import { z } from "zod";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import React from "react";
 import { toast } from "sonner";
-import { useGetLocalVehiculos } from "@/hooks/useLocalCatVehiculos";
+import {
+  useGetLocalVehiculos,
+  catalogVehiculosQueryKey,
+  fetchCatalogVehiculos,
+} from "@/hooks/useLocalCatVehiculos";
+import { useQueryClient } from "@tanstack/react-query";
 import { Vehiculo } from "@/lib/update-pass";
 import { useAccessStore } from "@/store/useAccessStore";
 import { useUpdateBitacora } from "@/hooks/useUpdateBitacora";
@@ -66,14 +71,17 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
   account_id
 }) => {
   const [open, setOpen] = useState(false);
+  const [confianzaOcr, setConfianzaOcr] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const { userParentId, userIdSoter } = useAuthStore();
 
   const [tipoVehiculoState, setTipoVehiculoState] = useState("");
   const [catalogSearch, setCatalogSearch] = useState("");
   const [marcaState, setMarcaState] = useState("");
-  const [tiposCat, setTiposCat] = useState<string[]>([]);
-  const [marcasCat, setMarcasCat] = useState<string[]>([]);
-  const [modelosCat, setModelosCat] = useState<string[]>([]);
+  type CatOption = { value: string; label: string };
+  const [tiposCat, setTiposCat] = useState<CatOption[]>([]);
+  const [marcasCat, setMarcasCat] = useState<CatOption[]>([]);
+  const [modelosCat, setModelosCat] = useState<CatOption[]>([]);
   const { data: dataVehiculosHook } = useGetVehiculos({
     account_id:userIdSoter || account_id || 0,
     tipo: tipoVehiculoState,
@@ -187,6 +195,7 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
       form.setValue("color", []);
       form.setValue("estado", []);
       form.setValue("placas", "");
+      setConfianzaOcr(null);
     }
   }, [open]);
 
@@ -198,49 +207,73 @@ const normalizar = (str: string) =>
     .trim();
 
 const handleOcrVehiculo = async (result: any) => {
-  const v = result?.data;
+  // ocrVehiculoMutation ya resuelve al objeto plano de campos (tipo_vehiculo,
+  // marca, modelo, placa, ...), no viene envuelto en otra llave "data".
+  const v = result;
   if (!v) return;
 
-    // 1. Tipo — dispara fetch de marcas
+  setConfianzaOcr(v.confianza ?? null);
+
+  try {
+    // Se usa queryClient.fetchQuery (misma key/queryFn que useGetLocalVehiculos)
+    // en vez de leer tiposCat/marcasCat/modelosCat del estado del componente:
+    // esos arreglos se llenan de forma asíncrona en cascada, y dentro de esta
+    // función quedaban "congelados" en el valor que tenían al momento de
+    // llamarla (closure), por más que se esperara con setTimeout. Así se
+    // obtiene siempre el dato fresco, y si el día de mañana esto pasa a
+    // pegarle a un backend real, sigue funcionando igual (fetchCatalogVehiculos
+    // es la misma función que usa el hook).
+    let tipoValue = "";
     if (v.tipo_vehiculo) {
+      const tipos = await queryClient.fetchQuery({
+        queryKey: catalogVehiculosQueryKey("", ""),
+        queryFn: () => fetchCatalogVehiculos({}),
+      });
       const tipoNorm = normalizar(v.tipo_vehiculo);
-      const tipoMatch = (tiposCat as any[]).find(
-        (t) => normalizar(t.value) === tipoNorm
+      const tipoMatch = (tipos as string[]).find(
+        (t) => normalizar(t) === tipoNorm
       );
       if (tipoMatch) {
-        form.setValue("tipo", [tipoMatch.value]);
-        setTipoVehiculoState(tipoMatch.value);
+        tipoValue = tipoMatch;
+        form.setValue("tipo", [tipoMatch]);
+        setTipoVehiculoState(tipoMatch);
         setCatalogSearch("marcas");
       }
     }
 
-    // 2. Esperar a que lleguen las marcas
-    if (v.marca) {
-      await new Promise((res) => setTimeout(res, 800));
+    let marcaValue = "";
+    if (tipoValue && v.marca) {
+      const marcas = await queryClient.fetchQuery({
+        queryKey: catalogVehiculosQueryKey(tipoValue, ""),
+        queryFn: () => fetchCatalogVehiculos({ tipo: tipoValue }),
+      });
+      const marcasOpts = (marcas as string[]).map((m) => ({ value: m, label: m }));
+      setMarcasCat(marcasOpts);
       const marcaNorm = normalizar(v.marca);
-      const marcaMatch = (marcasCat as any[]).find(
-        (m) => normalizar(m.value) === marcaNorm
-      );
+      const marcaMatch = marcasOpts.find((m) => normalizar(m.value) === marcaNorm);
       if (marcaMatch) {
+        marcaValue = marcaMatch.value;
         form.setValue("marca", [marcaMatch.value]);
         setMarcaState(marcaMatch.value);
         setCatalogSearch("modelos");
       }
     }
 
-    // 3. Esperar a que lleguen los modelos
-    if (v.modelo) {
-      await new Promise((res) => setTimeout(res, 800));
+    if (tipoValue && marcaValue && v.modelo) {
+      const modelos = await queryClient.fetchQuery({
+        queryKey: catalogVehiculosQueryKey(tipoValue, marcaValue),
+        queryFn: () => fetchCatalogVehiculos({ tipo: tipoValue, marca: marcaValue }),
+      });
+      const modelosOpts = (modelos as string[]).map((m) => ({ value: m, label: m }));
+      setModelosCat(modelosOpts);
       const modeloNorm = normalizar(v.modelo);
-      const modeloMatch = (modelosCat as any[]).find(
-        (m) => normalizar(m.value) === modeloNorm
-      );
+      const modeloMatch = modelosOpts.find((m) => normalizar(m.value) === modeloNorm);
       if (modeloMatch) {
         form.setValue("modelo", [modeloMatch.value]);
       }
     }
 
-    // 4. Color y placas — sin dependencia de catálogo
+    // Color y placas — sin dependencia de catálogo
     if (v.color_principal) {
       const colorNorm = normalizar(v.color_principal);
       const colorMatch = catColores.find(
@@ -250,6 +283,10 @@ const handleOcrVehiculo = async (result: any) => {
     }
 
     form.setValue("placas", v.placa ?? "");
+  } catch (err) {
+    console.error("Error al prellenar datos del vehículo desde OCR:", err);
+    toast.error("Error al prellenar datos del vehículo desde la IA.");
+  }
   };
 
   return (
@@ -332,6 +369,19 @@ const handleOcrVehiculo = async (result: any) => {
                       <span className="text-red-500 text-xs mt-1 block px-1">
                         {fieldState.error.message}
                       </span>
+                    )}
+
+                    {confianzaOcr && (
+                      <div
+                        className={`flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${
+                          ["fuerte", "alto"].includes(normalizar(confianzaOcr))
+                            ? "bg-green-100 text-green-700"
+                            : "bg-orange-100 text-orange-700"
+                        }`}
+                      >
+                        {["fuerte", "alto"].includes(normalizar(confianzaOcr)) ? "✅" : "⚡"}
+                        Confianza del análisis: {confianzaOcr.toUpperCase()}
+                      </div>
                     )}
                   </div>
                 )}
