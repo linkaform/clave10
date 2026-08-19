@@ -35,10 +35,15 @@ import LoadImage, { Imagen } from "../upload-Image";
 import { useBoothStore } from "@/store/useBoothStore";
 import { getRequerimientos, uniqueArray } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { registerIncoming } from "@/lib/access";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface Props {
   title: string;
   children: React.ReactNode;
+  isSuccess: boolean;
+  setIsSuccess: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const createSchema = (requireFoto: boolean, requireIden: boolean) =>
@@ -98,15 +103,21 @@ const createSchema = (requireFoto: boolean, requireIden: boolean) =>
 
 type formatData = z.infer<ReturnType<typeof createSchema>>;
 
-export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
-  const [openModal, setOpenModal] = useState(false);
+export const AddVisitModal: React.FC<Props> = ({
+  title,
+  children,
+  isSuccess: openModal,
+  setIsSuccess: setOpenModal,
+}) => {
   const [fotografia, setFotografia] = useState<Imagen[]>([]);
   const [identificacion, setIdentificacion] = useState<Imagen[]>([]);
   const [fotoError, setFotoError] = useState(false);
   const [idError, setIdError] = useState(false);
   const { assets, registerNewVisit, loading } = useSearchPass(openModal);
-  const { location } = useBoothStore();
+  const { area, location } = useBoothStore();
+  const queryClient = useQueryClient();
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [registrandoIngreso, setRegistrandoIngreso] = useState(false);
   const assetsUnique = uniqueArray(assets?.Visita_a);
 
   const requerimientos = getRequerimientos(location ?? "");
@@ -155,12 +166,43 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
     },
   });
 
+  // Se ejecuta tanto al abrir como al cerrar el modal, para que nunca quede
+  // información de una visita anterior visible en la siguiente apertura.
   useEffect(() => {
-    if (openModal) {
-      setFormSubmitted(false);
-      setFotoError(false);
-      setIdError(false);
-    }
+    const hoy = new Date().toISOString().split("T")[0];
+    form.reset({
+      nombre: "",
+      empresa: "",
+      foto: [],
+      identificacion: [],
+      area: "",
+      visita_a: "",
+      perfil_pase: "",
+      status_pase: "activo",
+      tipo_visita_pase: "rango_de_fechas",
+      fechaFija: "",
+      fecha_desde_visita: hoy,
+      fecha_desde_hasta: "",
+      config_dia_de_acceso: "cualquier_día",
+      config_dias_acceso: [],
+      config_limitar_acceso: 1,
+    });
+    setFotografia([]);
+    setIdentificacion([]);
+    setFormSubmitted(false);
+    setFotoError(false);
+    setIdError(false);
+    setIsActiveAdvanced(false);
+    setTipoVisita("rango_de_fechas");
+    setIsActiveFechaFija(false);
+    setIsActiveRangoFecha(true);
+    setIsActiveLimitarDias(true);
+    setIsActiveCualquierDia(true);
+    setIsActiveLimitarDiasSemana(false);
+    set_config_dia_de_acceso("cualquier_día");
+    set_config_dias_acceso([]);
+    setFechaDesde("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openModal]);
 
   useEffect(() => {
@@ -185,7 +227,7 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
     form,
   ]);
 
-  function onSubmit(data: formatData) {
+  async function onSubmit(data: formatData) {
     const access_pass = {
       nombre: data.nombre,
       empresa: data.empresa,
@@ -224,7 +266,67 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
 
     if (!valid) return;
 
-    registerNewVisit.mutate({ location: location ?? "", access_pass });
+    // Solo desde este modal: al crear la visita se registra el ingreso de
+    // inmediato, sin pasar por el flujo normal de escaneo. Se usa
+    // mutateAsync + await (no mutate + onSuccess) porque el callback del
+    // segundo argumento de mutate() solo corre si el observer de la
+    // mutación sigue teniendo listeners activos en el momento exacto en que
+    // resuelve — una condición interna de react-query que puede fallar por
+    // timing y hacía que este paso nunca se ejecutara.
+    let response: any;
+    try {
+      response = await registerNewVisit.mutateAsync({
+        location: location ?? "",
+        access_pass,
+      });
+    } catch (err: any) {
+      toast.error(
+        `Hubo un error al crear la visita: ${err?.message || err}`,
+      );
+      return;
+    }
+
+    const id = response?.response?.data?.json?.id;
+    if (!id) {
+      toast.error(
+        "La visita se creó, pero no se recibió el id del pase para registrar el ingreso",
+      );
+      return;
+    }
+
+    setRegistrandoIngreso(true);
+    try {
+      const ingresoResult = await registerIncoming({
+        area: area ?? "",
+        location: location ?? "",
+        qr_code: id,
+        // El backend espera objetos con "nombre" (usa c.get('nombre') en
+        // script_turnos.py), no strings sueltos.
+        visita_a: [{ nombre: data.visita_a }],
+        selected_pases: [],
+      });
+
+      if (!ingresoResult.success) {
+        toast.error(
+          ingresoResult.error?.exception?.msg?.[0] ||
+            "La visita se creó, pero hubo un error al registrar el ingreso",
+        );
+        return;
+      }
+
+      toast.success("Visita creada e ingreso registrado", {
+        style: { background: "#22c55e", color: "white" },
+      });
+      queryClient.invalidateQueries({ queryKey: ["serchPass"] });
+      queryClient.invalidateQueries({ queryKey: ["getStats"] });
+      setOpenModal(false);
+    } catch (err: any) {
+      toast.error(
+        `La visita se creó, pero hubo un error al registrar el ingreso: ${err?.message || err}`,
+      );
+    } finally {
+      setRegistrandoIngreso(false);
+    }
   }
 
   const handleToggleTipoVisitaPase = (
@@ -645,10 +747,14 @@ export const AddVisitModal: React.FC<Props> = ({ title, children }) => {
 
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || registrandoIngreso}
                 onClick={() => setFormSubmitted(true)}
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white">
-                {loading ? (
+                {registrandoIngreso ? (
+                  <>
+                    <Loader2 className="animate-spin" /> Realizando ingreso...
+                  </>
+                ) : loading ? (
                   <>
                     <Loader2 className="animate-spin" /> Cargando...
                   </>

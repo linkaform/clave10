@@ -100,7 +100,7 @@ const cronRegex =
   /^([\d*/,\-LW#?]+)\s+([\d*/,\-LW#?]+)\s+([\d*/,\-LW#?]+)\s+([\d*/,\-LW#?]+)\s+([\d*/,\-LW#?]+)$/;
 
 const formSchema = z.object({
-  nombre_rondin: z.string().optional(),
+  nombre_rondin: z.string().min(1, { message: "El nombre del rondín es requerido." }),
   duracion_estimada: z.string().optional(),
   ubicacion: z.string().optional(),
   areas: z.array(z.string().optional()).optional(),
@@ -1009,7 +1009,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                         </FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="Texto"
+                            placeholder="Nombre del recorrido"
                             className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300"
                             {...field}
                           />
