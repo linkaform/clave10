@@ -71,6 +71,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [openScan, setOpenScan] = useState(false);
+  const [confianzaOcr, setConfianzaOcr] = useState<string | null>(null);
   const setSelectedEquipos = useAccessStore(
     (state) => state.setSelectedEquipos,
   );
@@ -82,6 +83,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
     label: tipo,
   }));
   const { userIdSoter } = useAuthStore();
+  console.log(userId, userIdSoter)
   const { data: tiposEquiposData, isLoading: loadingTipos } = useGetTipoEquipos({
     account_id: Number(userId) || Number(userIdSoter) || 0,
     isModalOpen: open,
@@ -99,27 +101,37 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
       .trim();
 
  const handleOcrEquipo = async (result: any) => {
-  const v = result?.data;
+  // ocrEquipoMutation ya resuelve al objeto plano de campos (tipo, marca,
+  // modelo, num_serie, color, confianza...), no viene envuelto en otra
+  // llave "data".
+  const v = result;
   if (!v) return;
-  if (v.tipo) {
-    const tipoNorm = normalizar(String(v.tipo));
-    const tipoMatch = catTiposEquipos.find(
-      (t: any) => normalizar(String(t.value)) === tipoNorm
-    );
-    if (tipoMatch) form.setValue("tipo", tipoMatch.value);
-  }
 
-  if (v.marca) form.setValue("marca", v.marca);
-  if (v.modelo) form.setValue("modelo", v.modelo);
-  if (v.num_serie) form.setValue("serie", v.num_serie);
+  setConfianzaOcr(v.confianza ?? null);
 
-  if (v.color) {
-    const colorNorm = normalizar(String(v.color));
-    const colorMatch = catColores.find(
-      (c: any) => normalizar(String(c.value)) === colorNorm
-    );
-    console.log('colorMatch=', colorMatch);
-    if (colorMatch) form.setValue("color", colorMatch.value);
+  try {
+    if (v.tipo) {
+      const tipoNorm = normalizar(String(v.tipo));
+      const tipoMatch = catTiposEquipos.find(
+        (t: any) => normalizar(String(t.value)) === tipoNorm
+      );
+      if (tipoMatch) form.setValue("tipo", tipoMatch.value);
+    }
+
+    if (v.marca) form.setValue("marca", v.marca);
+    if (v.modelo) form.setValue("modelo", v.modelo);
+    if (v.num_serie) form.setValue("serie", v.num_serie);
+
+    if (v.color) {
+      const colorNorm = normalizar(String(v.color));
+      const colorMatch = catColores.find(
+        (c: any) => normalizar(String(c.value)) === colorNorm
+      );
+      if (colorMatch) form.setValue("color", colorMatch.value);
+    }
+  } catch (err) {
+    console.error("Error al prellenar datos del equipo desde OCR:", err);
+    toast.error("Error al prellenar datos del equipo desde la IA.");
   }
 };
 
@@ -198,13 +210,16 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
   }
 
   useEffect(() => {
-    if (!open) form.setValue("color", "");
-    form.setValue("marca", "");
-    form.setValue("modelo", "");
-    form.setValue("nombre", "");
-    form.setValue("serie", "");
-    form.setValue("tipo", "");
-    form.setValue("foto_equipo", []);
+    if (!open) {
+      form.setValue("color", "");
+      form.setValue("marca", "");
+      form.setValue("modelo", "");
+      form.setValue("nombre", "");
+      form.setValue("serie", "");
+      form.setValue("tipo", "");
+      form.setValue("foto_equipo", []);
+      setConfianzaOcr(null);
+    }
   }, [open]);
 
   const tipoValue = useWatch({
@@ -300,6 +315,19 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                         <span className="text-red-500 text-xs mt-1 block px-1">
                           {fieldState.error.message}
                         </span>
+                      )}
+
+                      {confianzaOcr && (
+                        <div
+                          className={`flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${
+                            ["fuerte", "alto"].includes(normalizar(confianzaOcr))
+                              ? "bg-green-100 text-green-700"
+                              : "bg-orange-100 text-orange-700"
+                          }`}
+                        >
+                          {["fuerte", "alto"].includes(normalizar(confianzaOcr)) ? "✅" : "⚡"}
+                          Confianza del análisis: {confianzaOcr.toUpperCase()}
+                        </div>
                       )}
                     </div>
                   )}

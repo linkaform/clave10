@@ -43,7 +43,7 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   showWebcamOption,
   facingMode,
   imgArray,
-  limit = 50,
+  limit = 15,
   onLoadingChange,
   onOcrResult,
   tipoOcr = "id",
