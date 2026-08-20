@@ -6,12 +6,24 @@ interface AvisoPrivacidadProps {
   setMostrarAviso: (mostrar: boolean) => void;
   radioSelected: string;
   setRadioSelected: (value: string) => void;
+  /** Razón social del Responsable. Si no se pasa, usa el valor por default. */
+  empresa?: string;
+  /** Domicilio convencional del Responsable (sin teléfono ni correo, esos van aparte). */
+  direccion?: string;
+  /** Correo de contacto del Responsable — se usa en todo el aviso (incl. Derechos ARCO). */
+  correo?: string;
+  /** Teléfono de contacto del Responsable. */
+  telefono?: string;
 }
 
 const AvisoPrivacidad: React.FC<AvisoPrivacidadProps> = ({
   setMostrarAviso,
   radioSelected,
   setRadioSelected,
+  empresa = "INFOSYNC, SAPI DE CV",
+  direccion = "José Maria Morelos Poniente no.177 int. 62, Colonia Monterrey Centro, Código Postal 64000",
+  correo = "info@linkaform.com",
+  telefono = "(81) 8192‑2973",
 }) => {
   const [language, setLanguage] = useState<"es" | "en">("es");
 
@@ -20,7 +32,7 @@ const AvisoPrivacidad: React.FC<AvisoPrivacidadProps> = ({
       title: "Aviso de Privacidad Integral",
       responsable: "Responsable",
       responsableText: `
-INFOSYNC, SAPI DE CV (en adelante, y de forma conjunta el “Responsable”) con domicilio convencional ubicado en José Maria Morelos Poniente no.177 int. 62, Colonia Monterrey Centro, Código Postal 64000, Teléfono (81) 8192‑2973, correo electrónico info@linkaform.com, estamos conscientes que usted como visitante de nuestras oficinas y/o sitio web, consumidor o potencial consumidor de nuestros productos y/o servicios tiene derecho a conocer qué información recabamos de usted y nuestras prácticas en relación con dicha información. Las condiciones contenidas en el presente son aplicables a la información que se recaba a nombre de y por el Responsable o cualquiera de sus empresas filiales o subsidiarias, por cualquier medio, incluyendo a través de o cualquier sitio web operado por el Responsable.`,
+${empresa} (en adelante, y de forma conjunta el “Responsable”) con domicilio convencional ubicado en ${direccion}, Teléfono ${telefono}, correo electrónico ${correo}, estamos conscientes que usted como visitante de nuestras oficinas y/o sitio web, consumidor o potencial consumidor de nuestros productos y/o servicios tiene derecho a conocer qué información recabamos de usted y nuestras prácticas en relación con dicha información. Las condiciones contenidas en el presente son aplicables a la información que se recaba a nombre de y por el Responsable o cualquiera de sus empresas filiales o subsidiarias, por cualquier medio, incluyendo a través de o cualquier sitio web operado por el Responsable.`,
       datosPersonales: "Datos Personales",
       datosPersonalesText: `
 Los datos personales que puede llegar a recabar el Responsable de forma directa o indirecta consisten en los siguientes: Los datos personales considerados como de identificación son todos los relativos a la identificación de la persona (nombre completo, dirección, teléfonos fijo y/o celular, empresa para la cual labora, huellas digitales, fecha de nacimiento, nacionalidad, lugar de nacimiento, ocupación y/o sus familiares directos). Nos comprometemos a que todos los datos obtenidos serán tratados bajo las más estrictas medidas de seguridad que garanticen su confidencialidad.`,
@@ -36,8 +48,8 @@ Asimismo, le informamos que sus datos personales podrán ser transferidos a terc
 (i) Diversos profesionales, técnicos y auxiliares..., (vii) Todas aquellas dependencias gubernamentales y/o judiciales... Si usted no manifiesta su oposición para que sus datos personales sean transferidos, se entenderá que ha otorgado su consentimiento para ello. El Responsable informa que todos los contratos de prestación de servicios con terceros que impliquen el tratamiento de su información personal... cumplirán la Ley Federal de Protección de Datos Personales en Posesión de Particulares.`,
       derechos: "Derechos ARCO",
       derechosText: `
-En el momento que lo estime oportuno podrá ejercer sus derechos ARCO (acceso, rectificación, cancelación y oposición)... deberá ponerse en contacto con nosotros a través del correo electrónico “info@linkaform.com”; el procedimiento y requisitos... son los siguientes:
-(1) Nombre y Domicilio... (4) Descripción de otros elementos... Para conocer el procedimiento, requisitos y plazos... info@linkform.com.`,
+En el momento que lo estime oportuno podrá ejercer sus derechos ARCO (acceso, rectificación, cancelación y oposición)... deberá ponerse en contacto con nosotros a través del correo electrónico “${correo}”; el procedimiento y requisitos... son los siguientes:
+(1) Nombre y Domicilio... (4) Descripción de otros elementos... Para conocer el procedimiento, requisitos y plazos... ${correo}.`,
       modificaciones: "Modificaciones al Aviso de Privacidad",
       modificacionesText: `
 El Responsable se reserva el derecho de efectuar en cualquier momento modificaciones o actualizaciones al presente aviso de privacidad... cualquier modificación al Aviso de Privacidad estará disponible a través de nuestro portal Web; sección “aviso de privacidad”.
@@ -51,7 +63,7 @@ El presente Aviso de Privacidad ha sido modificado el día 05 abril del 2019.`,
       title: "Integral Privacy Notice",
       responsable: "Controller",
       responsableText: `
-INFOSYNC, SAPI DE CV (hereinafter jointly referred to as the "Controller") with conventional address at José Maria Morelos Poniente no. 177 int. 62, Monterrey Centro, Postal Code 64000, Phone (81) 8192‑2973, email info@linkaform.com, hereby informs you, as a visitor to our offices and/or website, consumer or potential consumer of our products and/or services, that you have the right to know what information we collect about you and our practices regarding such information. The terms herein apply to information collected in the name of and by the Controller or any of its affiliate or subsidiary companies, by any means, including through or any website operated by the Controller.`,
+${empresa} (hereinafter jointly referred to as the "Controller") with conventional address at ${direccion}, Phone ${telefono}, email ${correo}, hereby informs you, as a visitor to our offices and/or website, consumer or potential consumer of our products and/or services, that you have the right to know what information we collect about you and our practices regarding such information. The terms herein apply to information collected in the name of and by the Controller or any of its affiliate or subsidiary companies, by any means, including through or any website operated by the Controller.`,
       datosPersonales: "Personal Data",
       datosPersonalesText: `
 The personal data that the Controller may collect, directly or indirectly, includes the following: Identification personal data are all data related to the identification of the person (full name, address, landline and/or mobile phone numbers, employer, fingerprints, date of birth, nationality, place of birth, occupation and/or direct relatives). We commit to treat all obtained data under the strictest security measures that ensure its confidentiality.`,
@@ -67,8 +79,8 @@ We also inform you that your personal data might be transferred to third parties
 (i) Various professionals, technicians, and auxiliary personnel..., (vii) All governmental and/or judicial bodies required by law... If you do not express your opposition to the transfer of your personal data, it will be understood that you have given your consent. The Controller informs that all service contracts with third parties involving processing of your personal data will include a clause ensuring they provide an adequate level of data protection, in accordance with applicable law.`,
       derechos: "ARCO Rights",
       derechosText: `
-At any time you deem appropriate, you may exercise your ARCO rights (access, rectification, cancellation, and opposition) regarding the processing of the personal data provided, as well as revoke your consent. To do so, you must contact us at “info@linkaform.com”; the request must meet the following requirements:
-(1) Name and Address... (4) Description of other elements... For procedures, requirements, and deadlines, contact info@linkform.com.`,
+At any time you deem appropriate, you may exercise your ARCO rights (access, rectification, cancellation, and opposition) regarding the processing of the personal data provided, as well as revoke your consent. To do so, you must contact us at “${correo}”; the request must meet the following requirements:
+(1) Name and Address... (4) Description of other elements... For procedures, requirements, and deadlines, contact ${correo}.`,
       modificaciones: "Privacy Notice Modifications",
       modificacionesText: `
 The Controller reserves the right to make modifications or updates to this privacy notice at any time to comply with legislative or jurisprudential changes, internal policies, or market practices. Any modification will be available on our website; “privacy notice” section.
