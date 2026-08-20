@@ -383,15 +383,19 @@ export const AddVisitModal: React.FC<Props> = ({
     <Dialog open={openModal} onOpenChange={setOpenModal}>
       <DialogTrigger asChild>{children}</DialogTrigger>
 
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-scroll">
-        <DialogHeader>
+      <DialogContent
+        className="max-w-xl max-h-[90vh] flex flex-col overflow-hidden mx-3"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl text-center font-bold my-5">
             {title}
           </DialogTitle>
         </DialogHeader>
 
+        <div className="overflow-y-auto flex-1 pr-4">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form id="add-visit-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {requireIden && (
               <>
                 <LoadImage
@@ -735,36 +739,38 @@ export const AddVisitModal: React.FC<Props> = ({
             )}
 
             <p className="text-gray-400">**Campos requeridos</p>
-
-            <div className="flex gap-5">
-              <DialogClose asChild>
-                <Button
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  onClick={() => form.reset()}>
-                  Cancelar
-                </Button>
-              </DialogClose>
-
-              <Button
-                type="submit"
-                disabled={loading || registrandoIngreso}
-                onClick={() => setFormSubmitted(true)}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white">
-                {registrandoIngreso ? (
-                  <>
-                    <Loader2 className="animate-spin" /> Realizando ingreso...
-                  </>
-                ) : loading ? (
-                  <>
-                    <Loader2 className="animate-spin" /> Cargando...
-                  </>
-                ) : (
-                  "Crear Visita"
-                )}
-              </Button>
-            </div>
           </form>
         </Form>
+        </div>
+
+        <div className="flex gap-5 flex-shrink-0 pt-4 border-t border-gray-100">
+          <DialogClose asChild>
+            <Button
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+              onClick={() => form.reset()}>
+              Cancelar
+            </Button>
+          </DialogClose>
+
+          <Button
+            type="submit"
+            form="add-visit-form"
+            disabled={loading || registrandoIngreso}
+            onClick={() => setFormSubmitted(true)}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white">
+            {registrandoIngreso ? (
+              <>
+                <Loader2 className="animate-spin" /> Realizando ingreso...
+              </>
+            ) : loading ? (
+              <>
+                <Loader2 className="animate-spin" /> Cargando...
+              </>
+            ) : (
+              "Crear Visita"
+            )}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

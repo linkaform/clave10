@@ -83,7 +83,7 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
   const [marcasCat, setMarcasCat] = useState<CatOption[]>([]);
   const [modelosCat, setModelosCat] = useState<CatOption[]>([]);
   const { data: dataVehiculosHook } = useGetVehiculos({
-    account_id:userIdSoter || account_id || 0,
+    account_id: account_id || userIdSoter  || 0,
     tipo: tipoVehiculoState,
     marca: marcaState,
     isModalOpen: open,

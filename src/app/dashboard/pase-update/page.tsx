@@ -906,6 +906,10 @@ const PaseUpdate = () => {
         setMostrarAviso={setMostrarAvisoConHistory}
         radioSelected={radioSelected}
         setRadioSelected={setRadioSelected}
+        empresa={dataCatalogos?.empresa?.nombre}
+        direccion={dataCatalogos?.ubicaciones?.[0]?.address}
+        correo={dataCatalogos?.empresa?.email}
+        telefono={dataCatalogos?.empresa?.telefono}
       />
     );
   }
