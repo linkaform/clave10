@@ -2,13 +2,19 @@ import { API_ENDPOINTS } from "@/config/api";
 import { getValidToken } from "./login/get-valid-token";
 
 export const getStats = async (
-    location: string | string[], area: string, page: string, month?: number, year?: number) => {
+    location: string | string[], area: string, page: string, month?: number, year?: number,
+    dateFrom?: string, dateTo?: string, filterDate?: string,
+    dynamicFilters?: { key: string; value: string }[]) => {
     const payload = {
         area,
         location,
         page,
         month,
         year,
+        dateFrom,
+        dateTo,
+        filterDate,
+        dynamic_filters: dynamicFilters,
         option: "get_stats",
         script_name: "get_stats.py",
     };
