@@ -48,6 +48,12 @@ export const useBitacoraData = ({
     selectedLocation,
     selectedArea === "todas" ? "" : selectedArea,
     "Bitacoras",
+    undefined,
+    undefined,
+    formattedDates[0],
+    formattedDates[1],
+    activeDateFilter,
+    appliedFilters,
   );
 
   const refreshData = async () => {
