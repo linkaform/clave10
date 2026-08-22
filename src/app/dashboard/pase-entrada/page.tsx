@@ -1,7 +1,7 @@
 //eslint-disable react-hooks/exhaustive-deps
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,6 +69,34 @@ const getDiasSemanaEnRango = (desdeStr?: string, hastaStr?: string) => {
     iteraciones++;
   }
   return Array.from(dias);
+};
+
+// Cuenta los días en los que el pase realmente se puede usar dentro del rango
+// (inclusivo: mismo día = 1). Si se limitaron los días de la semana, solo
+// cuenta los que caen en alguno de esos días.
+const contarDiasDeAccesoEnRango = (
+  desdeStr?: string,
+  hastaStr?: string,
+  diasPermitidos: string[] = [],
+) => {
+  if (!desdeStr || !hastaStr) return 0;
+  const desde = new Date(desdeStr + "T00:00:00");
+  const hasta = new Date(hastaStr + "T00:00:00");
+  if (isNaN(desde.getTime()) || isNaN(hasta.getTime()) || desde > hasta) {
+    return 0;
+  }
+  let total = 0;
+  const cursor = new Date(desde);
+  let iteraciones = 0;
+  while (cursor <= hasta && iteraciones < 3660) {
+    const dia = DIAS_SEMANA[cursor.getDay()];
+    if (!diasPermitidos.length || diasPermitidos.includes(dia)) {
+      total++;
+    }
+    cursor.setDate(cursor.getDate() + 1);
+    iteraciones++;
+  }
+  return total;
 };
 
 const formSchema = z
@@ -518,6 +546,37 @@ const PaseEntradaPage = () => {
     fechaDesdeHastaWatch,
     form,
   ]);
+
+  // El número máximo de accesos se calcula solo a partir de la vigencia: un
+  // acceso por cada día que el pase puede usarse (descontando los días de la
+  // semana no permitidos cuando se limitaron). Se recalcula al cambiar las
+  // fechas o los días permitidos; si después el usuario lo edita a mano, su
+  // valor se respeta hasta el siguiente cambio de vigencia.
+  const diasDeAcceso = useMemo(
+    () =>
+      tipoVisita === "rango_de_fechas"
+        ? contarDiasDeAccesoEnRango(
+            fechaDesdeVisitaWatch,
+            fechaDesdeHastaWatch,
+            config_dia_de_acceso === "limitar_días_de_acceso"
+              ? config_dias_acceso
+              : [],
+          )
+        : 0,
+    [
+      tipoVisita,
+      fechaDesdeVisitaWatch,
+      fechaDesdeHastaWatch,
+      config_dia_de_acceso,
+      config_dias_acceso,
+    ],
+  );
+
+  useEffect(() => {
+    if (diasDeAcceso > 0) {
+      form.setValue("config_limitar_acceso", diasDeAcceso);
+    }
+  }, [diasDeAcceso, form]);
 
   useEffect(() => {
     if (todasAreas || areasList.length > 0) {
@@ -1437,6 +1496,18 @@ const PaseEntradaPage = () => {
                                 }}
                               />
                             </FormControl>
+                            {diasDeAcceso > 0 && (
+                              <p className="text-xs text-gray-400 mt-1">
+                                Calculado por la vigencia: {diasDeAcceso}{" "}
+                                {diasDeAcceso === 1 ? "día" : "días"} de acceso
+                                {config_dia_de_acceso ===
+                                  "limitar_días_de_acceso" &&
+                                config_dias_acceso.length > 0
+                                  ? " (solo los días permitidos)"
+                                  : ""}
+                                . Puedes ajustarlo a mano.
+                              </p>
+                            )}
                             <FormMessage />
                           </FormItem>
                         )}
