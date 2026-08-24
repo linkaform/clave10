@@ -135,10 +135,10 @@ interface TakeModalProps {
     const [cameraError, setCameraError] = useState(false)
     const { uploadImageMutation, response, isLoading} = useUploadImage();
 	// const [open, setOpen] = useState(false)
-	const { userIdSoter } = useAuthStore();
+	const { userParentId } = useAuthStore();
 	const { data: dataRoles, isLoading: loadingRoles } = useCatalogoRoles(
 		open,
-		userIdSoter,
+		userParentId
 	);
 	// Si el catálogo real viene vacío (o aún está cargando), usamos el fallback estático
 	const rolesDisponibles =
