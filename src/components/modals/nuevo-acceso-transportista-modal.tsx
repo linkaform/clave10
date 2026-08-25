@@ -1405,6 +1405,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                       folio: result.folio ?? null,
                       tipo_operacion: tipoOperacion,
                       created_at: result.created_at ? String(result.created_at) : null,
+                      fecha_hora_ingreso: null,
                       estatus: null,
                       ubicacion: location || null,
                       area: area || null,

@@ -1640,12 +1640,14 @@ function InspeccionSelloModalContent({
 // ─── Progress bar ─────────────────────────────────────────────────────────────
 
 function ProgressBar({
+  programadoDone,
   arriboDone,
   entradaDone,
   cargaDone,
   salidaDone,
   etapasActivas,
 }: {
+  programadoDone: boolean;
   arriboDone: boolean;
   entradaDone: boolean;
   cargaDone: boolean;
@@ -1659,12 +1661,13 @@ function ProgressBar({
   // Los keys de las etapas opcionales deben coincidir con los value reales de las
   // opciones del checkbox `etapas_activas` en Linkaform (no con el valor de `estatus`).
   const defs = [
+    { key: "programado", label: "Programado", done: programadoDone },
     { key: "arribo", label: "Arribo", done: arriboDone },
     { key: "inspeccion_de_entrada", label: "Insp. entrada", done: entradaDone },
     { key: "carga_/_descarga", label: "Carga / Descarga", done: cargaDone },
     { key: "inspeccion_salida", label: "Insp. salida", done: salidaDone },
     { key: "terminado", label: "Terminado", done: false },
-  ].filter((d) => d.key === "arribo" || d.key === "terminado" || etapasActivas.includes(d.key));
+  ].filter((d) => d.key === "programado" || d.key === "arribo" || d.key === "terminado" || etapasActivas.includes(d.key));
   const activeIdx = defs.findIndex((d) => !d.done);
 
   const NODE_SIZE = 28;
@@ -2984,6 +2987,7 @@ export default function DetalleTransportistaPage() {
     inspeccion_salida: "inspeccion_salida",
   };
   const ORDEN_ESTATUS = [
+    "programado",
     "arribo",
     ...["inspeccion_de_entrada", "carga_/_descarga", "inspeccion_salida"]
       .filter((etapa) => etapasActivas.includes(etapa))
@@ -2996,14 +3000,17 @@ export default function DetalleTransportistaPage() {
     return ORDEN_ESTATUS[idx + 1] ?? actual;
   };
   const estatusIdx = ORDEN_ESTATUS.indexOf(estatus);
-  // "Locked" = ya se pasó la ventana editable de captura (documentos/materiales/
-  // vehículo). Normalmente esa ventana termina justo después de inspección de
-  // entrada; si esa etapa no está activa para la cuenta, cae a "arribo" en vez
-  // de romper con indexOf(-1) (que siempre sería mayor que cualquier índice real).
+  // "Locked" = todavía no se puede capturar: o el camión ni siquiera ha llegado
+  // (programado) o ya se pasó la ventana editable de captura (documentos/
+  // materiales/vehículo). Esa ventana normalmente termina justo después de
+  // inspección de entrada; si esa etapa no está activa para la cuenta, cae a
+  // "arribo" en vez de romper con indexOf(-1) (que siempre sería mayor que
+  // cualquier índice real).
   const indiceFinVentanaEditable = etapasActivas.includes("inspeccion_de_entrada")
     ? ORDEN_ESTATUS.indexOf("inspeccion_entrada")
     : ORDEN_ESTATUS.indexOf("arribo");
-  const isLocked = estatusIdx > indiceFinVentanaEditable;
+  const isLocked = estatus === "programado" || estatusIdx > indiceFinVentanaEditable;
+  const programadoDone = estatusIdx > ORDEN_ESTATUS.indexOf("programado");
   const arriboDone  = estatusIdx > ORDEN_ESTATUS.indexOf("arribo");
   const entradaDone = estatusIdx > indiceFinVentanaEditable;
   const cargaDone   = etapasActivas.includes("carga_/_descarga") && estatusIdx > ORDEN_ESTATUS.indexOf("carga_/_descarga");
@@ -3156,6 +3163,7 @@ export default function DetalleTransportistaPage() {
           {/* Row 3: progress */}
           <div className="pb-4 pt-0.5">
             <ProgressBar
+              programadoDone={programadoDone}
               arriboDone={arriboDone}
               entradaDone={entradaDone}
               cargaDone={cargaDone}
@@ -3171,6 +3179,19 @@ export default function DetalleTransportistaPage() {
         <div className="px-4 py-6 flex items-center justify-center">
           <div className="bg-red-50 border border-red-200 rounded-xl px-6 py-4 text-sm text-red-600">
             No se pudo cargar la información del pase. Intenta de nuevo.
+          </div>
+        </div>
+      )}
+
+      {/* ── Aviso: pase programado, el transportista aún no llega ───────────── */}
+      {!isLoading && estatus === "programado" && (
+        <div className="px-4 pt-4">
+          <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+            <Clock className="w-4 h-4 shrink-0" />
+            <span>
+              Este pase está <span className="font-semibold">programado</span> — el transportista aún no ha llegado.
+              Los datos de vehículo, conductor y carga se capturan al confirmar su arribo en caseta.
+            </span>
           </div>
         </div>
       )}
@@ -3395,9 +3416,9 @@ export default function DetalleTransportistaPage() {
                   mono
                 />
                 <Field
-                  label="Fecha y Hora de Ingreso"
+                  label={estatus === "programado" ? "Fecha Programada" : "Fecha y Hora de Ingreso"}
                   value={
-                    data?.created_at ? formatTimestamp(data.created_at) : null
+                    data?.fecha_hora_ingreso ? formatTimestamp(data.fecha_hora_ingreso) : null
                   }
                   icon={Clock}
                 />
@@ -3546,7 +3567,7 @@ export default function DetalleTransportistaPage() {
                     </div>
                     <button
                       type="button"
-                      disabled={isUploading}
+                      disabled={isUploading || isLocked}
                       onClick={() => triggerReqDocUpload(nombre)}
                       title="Tomar / subir nueva foto"
                       className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors disabled:opacity-60">
@@ -3556,7 +3577,7 @@ export default function DetalleTransportistaPage() {
                     </button>
                     <button
                       type="button"
-                      disabled={isUploading}
+                      disabled={isUploading || isLocked}
                       onClick={() => setDocAssignPicker(nombre)}
                       title="Asignar documento ya subido"
                       className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 flex items-center justify-center shrink-0 transition-colors disabled:opacity-60">

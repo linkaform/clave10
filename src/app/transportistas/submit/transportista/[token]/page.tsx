@@ -309,6 +309,7 @@ export default function SubmitTransportistaPage({
     conductorLicencia: "",
     conductorExpedicion: "",
     conductorVigencia: "",
+    conductorRfc: "",
     ayudanteNombre: "",
     ayudanteLicencia: "",
     ayudanteExpedicion: "",
@@ -321,6 +322,7 @@ export default function SubmitTransportistaPage({
     vehiculoPlacas: "",
     vehiculoEconomico: "",
     vehiculoNIV: "",
+    vehiculoColor: "",
   });
   const setField = (key: string, value: string) =>
     setForm((p) => ({ ...p, [key]: value }));
@@ -377,6 +379,10 @@ export default function SubmitTransportistaPage({
       updates.conductorVigencia = d.conductor_vigencia;
       locked.conductorVigencia = true;
     }
+    if (d.conductor_rfc) {
+      updates.conductorRfc = d.conductor_rfc;
+      locked.conductorRfc = true;
+    }
 
     if (d.ayudante_nombre) {
       updates.ayudanteNombre = d.ayudante_nombre;
@@ -426,6 +432,10 @@ export default function SubmitTransportistaPage({
     if (d.vehiculo_niv) {
       updates.vehiculoNIV = d.vehiculo_niv;
       locked.vehiculoNIV = true;
+    }
+    if (d.vehiculo_color) {
+      updates.vehiculoColor = d.vehiculo_color;
+      locked.vehiculoColor = true;
     }
 
     if (Object.keys(updates).length) setForm((p) => ({ ...p, ...updates }));
@@ -714,6 +724,13 @@ export default function SubmitTransportistaPage({
                   ia
                   disabled={lockedFields.conductorVigencia}
                 />
+                <FormField
+                  label="RFC"
+                  value={form.conductorRfc}
+                  onChange={(v) => setField("conductorRfc", v)}
+                  placeholder="RFC del conductor..."
+                  disabled={lockedFields.conductorRfc}
+                />
               </div>
             </div>
 
@@ -855,6 +872,14 @@ export default function SubmitTransportistaPage({
                     ia
                     disabled={lockedFields.vehiculoNIV}
                   />
+                  <FormField
+                    label="Color"
+                    value={form.vehiculoColor}
+                    onChange={(v) => setField("vehiculoColor", v)}
+                    placeholder="Extraído de tarjeta..."
+                    ia
+                    disabled={lockedFields.vehiculoColor}
+                  />
                 </div>
               </div>
             </div>
@@ -955,6 +980,7 @@ export default function SubmitTransportistaPage({
                         licencia: form.conductorLicencia || null,
                         lugar_expedicion: form.conductorExpedicion || null,
                         vigencia: form.conductorVigencia || null,
+                        rfc: form.conductorRfc || null,
                       },
                       ayudante: {
                         foto: photos.ayudante.file_url
@@ -983,6 +1009,7 @@ export default function SubmitTransportistaPage({
                         placas: form.vehiculoPlacas || null,
                         economico: form.vehiculoEconomico || null,
                         niv: form.vehiculoNIV || null,
+                        color: form.vehiculoColor || null,
                       },
                       foto_contenedores: photos.contenedores.file_url
                         ? {
