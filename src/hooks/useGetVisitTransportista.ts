@@ -89,6 +89,7 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
     folio: raw.folio,
     tipo_operacion: raw.tipo_de_operacion,
     created_at: raw.created_at,
+    fecha_hora_ingreso: raw.fecha_hora_ingreso,
     estatus: raw.estatus,
     ubicacion: raw.ubicacion,
     area: raw.area,
@@ -198,6 +199,7 @@ export interface VisitaTransportista {
   folio: string | null;
   tipo_operacion: string | null;
   created_at: string | null;
+  fecha_hora_ingreso: string | null;
   estatus: string | null;
   ubicacion: string | null;
   area: string | null;

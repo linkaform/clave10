@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { NuevoAccesoTransportistaModal } from "@/components/modals/nuevo-acceso-transportista-modal";
+import { RegistrarLlegadaPaseModal } from "@/components/modals/registrar-llegada-pase-modal";
 import {
   Plus,
   Calendar,
@@ -19,6 +20,7 @@ import {
   LayoutList,
   LayoutGrid,
   Sheet,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -304,6 +306,7 @@ export default function BitacorasTransportistasPage() {
   const [search, setSearch] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const [modalNuevoOpen, setModalNuevoOpen] = useState(false);
+  const [modalLlegadaOpen, setModalLlegadaOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list" | "grid" | "table">("kanban");
 
   const { isAuth } = useAuthStore();
@@ -423,6 +426,15 @@ export default function BitacorasTransportistasPage() {
           >
             <Plus size={16} />
             Nuevo Acceso Transportista
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => setModalLlegadaOpen(true)}
+            className="border-blue-200 text-blue-700 hover:bg-blue-50 gap-2 shrink-0"
+          >
+            <Search size={16} />
+            Registrar llegada de pase
           </Button>
 
           {/* Switcher de vistas */}
@@ -549,6 +561,10 @@ export default function BitacorasTransportistasPage() {
       <NuevoAccesoTransportistaModal
         open={modalNuevoOpen}
         onClose={() => setModalNuevoOpen(false)}
+      />
+      <RegistrarLlegadaPaseModal
+        open={modalLlegadaOpen}
+        onClose={() => setModalLlegadaOpen(false)}
       />
     </div>
   );

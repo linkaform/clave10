@@ -145,6 +145,9 @@ interface MaterialItem {
   cantidad: string;
   peso: string;
   volumen: string;
+  producto: string;
+  lote: string;
+  no_referencia: string;
 }
 
 // ── Constantes ─────────────────────────────────────────────────────────────────
@@ -270,6 +273,7 @@ const formSchema = z
       .min(1, { message: "El email es requerido." }),
     crea_el_pase_telefono: z.string().optional(),
     crea_el_pase_es_nuevo: z.boolean().optional(),
+    empresa_transportista: z.string().optional(),
 
     // Segunda persona
     recibe_el_pase_nombre: z.string().optional(),
@@ -777,6 +781,26 @@ function SeccionQuienRecibe({
           )}
         />
       </div>
+
+      <div className="mt-4">
+        <FormField
+          control={form.control}
+          name="empresa_transportista"
+          render={({ field }) => (
+            <FormItem>
+              <FieldLabel>Empresa Transportista</FieldLabel>
+              <FormControl>
+                <Input
+                  placeholder="Nombre de la empresa transportista"
+                  className="rounded-xl border-gray-200 bg-gray-50"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
     </div>
   );
 }
@@ -1044,6 +1068,9 @@ function SeccionMaterial({
               <tr className="border-b border-gray-100 bg-gray-50">
                 {(
                   [
+                    "Producto",
+                    "Lote",
+                    "No. Referencia",
                     "Contenedor",
                     "Sello",
                     "Tipo",
@@ -1068,6 +1095,9 @@ function SeccionMaterial({
                   className="border-b border-gray-100 last:border-0 group">
                   {(
                     [
+                      { field: "producto", placeholder: "Resina PET" },
+                      { field: "lote", placeholder: "L-2026-001" },
+                      { field: "no_referencia", placeholder: "REF-001" },
                       { field: "contenedor", placeholder: "CRLU1357272" },
                       { field: "sello", placeholder: "1905481" },
                       { field: "tipo", placeholder: "40HR" },
@@ -2074,6 +2104,9 @@ const PaseEntradaTransportistaPage = () => {
     cantidad: "",
     peso: "",
     volumen: "",
+    producto: "",
+    lote: "",
+    no_referencia: "",
   });
   const [materialItems, setMaterialItems] = useState<MaterialItem[]>([
     emptyMaterialItem(),
@@ -2183,6 +2216,7 @@ const PaseEntradaTransportistaPage = () => {
       crea_el_pase_nombre: "",
       crea_el_pase_email: "",
       crea_el_pase_telefono: "",
+      empresa_transportista: "",
       recibe_el_pase_nombre: "",
       recibe_el_pase_email: "",
       recibe_el_pase_telefono: "",
@@ -2231,6 +2265,7 @@ const PaseEntradaTransportistaPage = () => {
       telefono: data.crea_el_pase_telefono || null,
       es_nuevo: data.crea_el_pase_es_nuevo ?? false,
     },
+    empresa_transportista: data.empresa_transportista || null,
     recibe_el_pase: {
       nombre: data.recibe_el_pase_nombre || null,
       email: data.recibe_el_pase_email || null,
@@ -2247,7 +2282,10 @@ const PaseEntradaTransportistaPage = () => {
             m.tipo ||
             m.cantidad ||
             m.peso ||
-            m.volumen,
+            m.volumen ||
+            m.producto ||
+            m.lote ||
+            m.no_referencia,
         )
         .map((m) => ({
           contenedor: m.contenedor || null,
@@ -2256,6 +2294,9 @@ const PaseEntradaTransportistaPage = () => {
           cantidad: m.cantidad || null,
           peso: m.peso || null,
           volumen: m.volumen || null,
+          producto: m.producto || null,
+          lote: m.lote || null,
+          no_referencia: m.no_referencia || null,
         })),
       documentos: documentos
         .filter((d) => d.file_url)
