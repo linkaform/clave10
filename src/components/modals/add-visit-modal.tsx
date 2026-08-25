@@ -871,34 +871,6 @@ export const AddVisitModal: React.FC<Props> = ({
             )}
 
             <p className="text-gray-400">**Campos requeridos</p>
-
-            <div className="flex gap-5">
-              <DialogClose asChild>
-                <Button
-                  className="w-full rounded-lg bg-white border border-c10-border text-c10-text hover:bg-slate-50"
-                  onClick={() => form.reset()}>
-                  Cancelar
-                </Button>
-              </DialogClose>
-
-              <Button
-                type="submit"
-                disabled={loading || registrandoIngreso}
-                onClick={() => setFormSubmitted(true)}
-                className="w-full rounded-lg bg-green-600 hover:bg-green-700 text-white">
-                {registrandoIngreso ? (
-                  <>
-                    <Loader2 className="animate-spin" /> Realizando ingreso...
-                  </>
-                ) : loading ? (
-                  <>
-                    <Loader2 className="animate-spin" /> Cargando...
-                  </>
-                ) : (
-                  "Crear Visita"
-                )}
-              </Button>
-            </div>
           </form>
         </Form>
         </div>
@@ -906,7 +878,7 @@ export const AddVisitModal: React.FC<Props> = ({
         <div className="flex gap-5 flex-shrink-0 pt-4 border-t border-gray-100">
           <DialogClose asChild>
             <Button
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+              className="w-full rounded-lg bg-white border border-c10-border text-c10-text hover:bg-slate-50"
               onClick={() => form.reset()}>
               Cancelar
             </Button>
@@ -917,7 +889,7 @@ export const AddVisitModal: React.FC<Props> = ({
             form="add-visit-form"
             disabled={loading || registrandoIngreso}
             onClick={() => setFormSubmitted(true)}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white">
+            className="w-full rounded-lg bg-green-600 hover:bg-green-700 text-white">
             {registrandoIngreso ? (
               <>
                 <Loader2 className="animate-spin" /> Realizando ingreso...
