@@ -2299,7 +2299,7 @@ const PaseEntradaTransportistaPage = () => {
           no_referencia: m.no_referencia || null,
         })),
       documentos: documentos
-        .filter((d) => d.file_url)
+        .filter((d) => d.tipo || d.no_doc || d.file_url)
         .map((d) => ({
           tipo: d.tipo || null,
           no_doc: d.no_doc || null,
