@@ -4,7 +4,7 @@ import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from "re
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { useUploadImage } from "@/hooks/useUploadImage";
-import { Camera, Trash2, UploadCloud } from "lucide-react";
+import { Camera, SwitchCamera, Trash2, UploadCloud } from "lucide-react";
 import Webcam from "react-webcam";
 import { WebcamErrorBoundary } from "./webcam-error-boundary";
 import { base64ToFile, quitarAcentosYMinusculasYEspacios } from "@/lib/utils";
@@ -58,11 +58,16 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
   const [hideWebcam, setHideWebcam] = useState(true);
   const [hideButtonWebcam, setHideButtonWebcam] = useState(false);
   const [webcamReady, setWebcamReady] = useState(false);
+  const [cameraOptions, setCameraOptions] = useState<MediaDeviceInfo[]>([]);
+  const [showCameraSelector, setShowCameraSelector] = useState(false);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const { uploadImageMutation, isLoading } = useUploadImage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const webcamRef = useRef<Webcam | null>(null);
   const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const cameraStorageKey = `clave10-camara-${quitarAcentosYMinusculasYEspacios(id)}`;
 
   function stopWebcamStream() {
     try {
@@ -81,7 +86,9 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
       stopWebcamStream();
     };
   }, []);
-  const videoConstraints = { width: 320, height: 240, facingMode };
+  const videoConstraints = selectedDeviceId
+    ? { deviceId: { exact: selectedDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    : { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode };
   const reachedLimit = (imgArray?.length ?? 0) >= limit;
   const [activeIndex, setActiveIndex] = useState(0);
   const [carouselApi, setCarouselApi] = useState<any>(null);
@@ -196,21 +203,114 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
     else onClear?.();
   }
 
-  function handleOpenCamera() {
+  async function handleOpenCamera() {
     if (isMobile) {
       cameraInputRef.current?.click();
       return;
     }
+
     setWebcamReady(false);
+    setLoadingWebcam(true);
+    setCameraError(null);
+
+    try {
+      // enumerateDevices() no inicializa hardware (no es un getUserMedia),
+      // así que consultarlo en cada apertura es prácticamente gratis.
+      let videoInputs = (await navigator.mediaDevices.enumerateDevices()).filter(
+        (d) => d.kind === "videoinput"
+      );
+
+      // Si los "label" vienen vacíos es porque el navegador todavía no
+      // otorgó permiso de cámara en este origen: se pide un stream
+      // genérico solo para desbloquearlos y se libera de inmediato.
+      if (videoInputs.length > 0 && videoInputs.every((d) => !d.label)) {
+        const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        tempStream.getTracks().forEach((t) => t.stop());
+        videoInputs = (await navigator.mediaDevices.enumerateDevices()).filter(
+          (d) => d.kind === "videoinput"
+        );
+      }
+
+      setCameraOptions(videoInputs);
+
+      // La cámara elegida antes en esta sesión pudo haberse desconectado
+      // (otro cable USB, otro equipo, etc.): se valida que siga presente
+      // antes de reusarla directo con deviceId "exact".
+      const stored = sessionStorage.getItem(cameraStorageKey);
+      const storedIsValid = !!stored && videoInputs.some((d) => d.deviceId === stored);
+      if (stored && !storedIsValid) sessionStorage.removeItem(cameraStorageKey);
+
+      if (storedIsValid) {
+        setSelectedDeviceId(stored);
+        setHideWebcam(false);
+        return;
+      }
+
+      if (videoInputs.length > 1) {
+        setLoadingWebcam(false);
+        setShowCameraSelector(true);
+        return;
+      }
+
+      setSelectedDeviceId(videoInputs[0]?.deviceId ?? null);
+      setHideWebcam(false);
+    } catch {
+      // Sin permisos o sin soporte para enumerar dispositivos: se cae al
+      // comportamiento previo, dejando que facingMode elija la cámara.
+      setSelectedDeviceId(null);
+      setHideWebcam(false);
+    }
+  }
+
+  function handleSelectCamera(deviceId: string) {
+    sessionStorage.setItem(cameraStorageKey, deviceId);
+    setSelectedDeviceId(deviceId);
+    setShowCameraSelector(false);
     setLoadingWebcam(true);
     setHideWebcam(false);
   }
 
+  function handleChangeCamera() {
+    sessionStorage.removeItem(cameraStorageKey);
+    stopWebcamStream();
+    setHideWebcam(true);
+    setWebcamReady(false);
+    setShowCameraSelector(true);
+  }
+
   function handleUserMedia() {
-    setTimeout(() => {
-      setLoadingWebcam(false);
-      setTimeout(() => setWebcamReady(true), 400);
-    }, 1000);
+    // onUserMedia se dispara apenas se asigna el stream al <video>, antes
+    // de que llegue el primer frame decodificado (video.videoWidth sigue
+    // en 0). getScreenshot() falla mientras eso no pase, así que en vez de
+    // adivinar un tiempo fijo se sondea la condición real, con un tope de
+    // seguridad por si el video nunca reporta dimensiones.
+    const start = Date.now();
+    const checkReady = () => {
+      const video = webcamRef.current?.video;
+      const hasFrame = !!video && video.videoWidth > 0 && video.videoHeight > 0;
+      if (hasFrame || Date.now() - start > 4000) {
+        setLoadingWebcam(false);
+        setWebcamReady(true);
+        return;
+      }
+      requestAnimationFrame(checkReady);
+    };
+    requestAnimationFrame(checkReady);
+  }
+
+  function handleUserMediaError() {
+    // La cámara guardada puede ya no ser válida (desconectada, en uso por
+    // otra app, permiso revocado): se limpia para no volver a fallar en
+    // silencio la próxima vez, y se avisa en vez de dejar "Tomar foto"
+    // habilitado con un stream que nunca llegó.
+    stopWebcamStream();
+    setHideWebcam(true);
+    setHideButtonWebcam(false);
+    setWebcamReady(false);
+    setLoadingWebcam(false);
+    sessionStorage.removeItem(cameraStorageKey);
+    setSelectedDeviceId(null);
+    setCameraError("No se pudo acceder a la cámara. Intenta de nuevo o elige otra.");
   }
 
   async function takeAndSavePhoto() {
@@ -285,14 +385,22 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
 
           {showWebcamOption && !hideButtonWebcam && !reachedLimit && !isLoading && !ocrMutation.isPending && (
             <>
-              {hideWebcam && (
+              {hideWebcam && !showCameraSelector && (
                 <button
                   type="button"
                   title="Abrir cámara"
-                  className="bg-blue-500 hover:bg-blue-600 text-white w-7 h-7 rounded-lg flex items-center justify-center transition-colors shadow-sm"
+                  disabled={loadingWebcam}
+                  className="bg-blue-500 hover:bg-blue-600 text-white w-7 h-7 rounded-lg flex items-center justify-center transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleOpenCamera}
                 >
-                  <Camera size={13} />
+                  {loadingWebcam ? (
+                    <svg className="w-3 h-3 animate-spin text-white" viewBox="0 0 100 101" fill="none">
+                      <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor" opacity="0.3"/>
+                      <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"/>
+                    </svg>
+                  ) : (
+                    <Camera size={13} />
+                  )}
                 </button>
               )}
 
@@ -312,6 +420,17 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
                       Subiendo...
                     </>
                   ) : "Tomar foto"}
+                </button>
+              )}
+
+              {!hideWebcam && !loadingWebcam && webcamReady && cameraOptions.length > 1 && (
+                <button
+                  type="button"
+                  title="Cambiar cámara"
+                  onClick={handleChangeCamera}
+                  className="bg-slate-400 hover:bg-slate-500 text-white w-7 h-7 rounded-lg flex items-center justify-center transition-colors shadow-sm"
+                >
+                  <SwitchCamera size={13} />
                 </button>
               )}
             </>
@@ -352,6 +471,10 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
         </p>
       )}
 
+      {cameraError && (
+        <p className="text-red-500 text-xs mb-1">{cameraError}</p>
+      )}
+
       <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-2" />
       {showPlaceholder && imgArray?.length === 0 && !isLoading && hideWebcam && (
         <div className="border-2 border-dashed border-slate-200 rounded-2xl h-40 flex flex-col items-center justify-center gap-2 bg-slate-50">
@@ -370,6 +493,25 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
       </div>
     ) : (
         <>
+          {showCameraSelector && (
+            <div className="mt-1 w-56 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+              <p className="text-xs font-medium text-gray-600 mb-2">
+                Selecciona la cámara para {titulo || "esta foto"}
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {cameraOptions.map((device, index) => (
+                  <button
+                    key={device.deviceId}
+                    type="button"
+                    onClick={() => handleSelectCamera(device.deviceId)}
+                    className="text-left text-xs px-2 py-1.5 rounded-lg bg-gray-50 hover:bg-blue-50 hover:text-blue-600 border border-gray-100 transition-colors"
+                  >
+                    {device.label || `Cámara ${index + 1}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {!hideWebcam && (
             <div className="mt-1 w-48">
               {loadingWebcam && (
@@ -388,15 +530,18 @@ const LoadImage: React.FC<CalendarDaysProps> = ({
                   setLoadingWebcam(false);
                 }}>
                   <Webcam
+                    key={selectedDeviceId ?? "default"}
                     ref={webcamRef}
                     audio={false}
                     height={180}
                     width={192}
                     className="w-48 h-36 object-cover rounded-xl"
                     screenshotFormat="image/jpeg"
-                    mirrored={facingMode === "user"}
+                    screenshotQuality={0.92}
+                    forceScreenshotSourceSize
+                    mirrored={!selectedDeviceId && facingMode === "user"}
                     videoConstraints={videoConstraints}
-                    onUserMediaError={handleUserMedia}
+                    onUserMediaError={handleUserMediaError}
                     onUserMedia={handleUserMedia}
                   />
                 </WebcamErrorBoundary>

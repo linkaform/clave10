@@ -174,6 +174,7 @@ const TurnStatus = ({
 					modo="inicio"
 					open={openStartPhotoModal}
 					setOpen={setOpenStartPhotoModal}
+					onSkip={() => setOpenStartShift(true)}
 				>
 				</TakePhotoGuard>
 
@@ -233,6 +234,7 @@ const TurnStatus = ({
 					modo="cierre"
 					open={openClosePhotoModal}
 					setOpen={setOpenClosePhotoModal}
+					onSkip={() => setOpenCloseShift(true)}
 				>
 				</TakePhotoGuard>
 

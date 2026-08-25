@@ -14,7 +14,16 @@ const config: Config = {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			button: {
-  				primary: 'var(--button-primary)'
+  				primary: 'var(--button-primary)',
+  				'primary-hover': 'var(--button-primary-hover)'
+  			},
+  			// Sistema de diseño Clave 10 — migración parcial (ver comentario en
+  			// globals.css junto a --c10-border / --c10-text-primary). Continuar
+  			// agregando aquí conforme se importen más tokens de
+  			// lkf-claude/Design_System/tokens/colors.css.
+  			c10: {
+  				border: 'var(--c10-border)',
+  				text: 'var(--c10-text-primary)'
   			},
   			card: {
   				DEFAULT: 'hsl(var(--card))',

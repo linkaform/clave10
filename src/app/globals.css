@@ -36,7 +36,19 @@ body {
     --color-brand: #1e2d5a;
 
 
-    --button-primary: #2F80ED
+    --button-primary: #2F80ED;
+    --button-primary-hover: #1E6FDB;
+
+    /* Sistema de diseño Clave 10 — migración parcial, solo los tokens que se
+       han necesitado hasta ahora (border/text del botón secundario en
+       add-visit-modal.tsx). Para continuar importando el resto de la
+       paleta (verdes, rojos, ámbar, navy, etc.) ver la fuente de verdad en
+       lkf-claude/Design_System/tokens/colors.css y el resumen en
+       lkf-claude/knowledge/patterns/clave10_design_system.md — mismos
+       nombres de variable que ahí (prefijo c10-) para que sea fácil
+       relacionar uno a uno. */
+    --c10-border: #E2E8F0;
+    --c10-text-primary: #171717
 
   }
   .dark {

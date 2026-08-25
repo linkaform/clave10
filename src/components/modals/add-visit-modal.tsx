@@ -130,6 +130,7 @@ export const AddVisitModal: React.FC<Props> = ({
   );
 
   const [isActiveAdvanced, setIsActiveAdvanced] = useState(false);
+  const [showPerfilesModal, setShowPerfilesModal] = useState(false);
   const [tipoVisita, setTipoVisita] = useState<
     "fecha_fija" | "rango_de_fechas"
   >("rango_de_fechas");
@@ -142,7 +143,6 @@ export const AddVisitModal: React.FC<Props> = ({
   const [config_dia_de_acceso, set_config_dia_de_acceso] =
     useState("cualquier_día");
   const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>([]);
-  const [fechaDesde, setFechaDesde] = useState<string>("");
   const today = new Date().toISOString().split("T")[0];
 
   const form = useForm<formatData>({
@@ -193,6 +193,7 @@ export const AddVisitModal: React.FC<Props> = ({
     setFotoError(false);
     setIdError(false);
     setIsActiveAdvanced(false);
+    setShowPerfilesModal(false);
     setTipoVisita("rango_de_fechas");
     setIsActiveFechaFija(false);
     setIsActiveRangoFecha(true);
@@ -201,7 +202,6 @@ export const AddVisitModal: React.FC<Props> = ({
     setIsActiveLimitarDiasSemana(false);
     set_config_dia_de_acceso("cualquier_día");
     set_config_dias_acceso([]);
-    setFechaDesde("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openModal]);
 
@@ -239,11 +239,17 @@ export const AddVisitModal: React.FC<Props> = ({
       status_pase: "activo",
       ubicaciones: [location ?? ""],
       tipo_visita_pase: tipoVisita,
-      fechaFija: tipoVisita === "fecha_fija" ? (data.fechaFija ?? "") : "",
-      fecha_desde_visita:
-        tipoVisita === "rango_de_fechas" ? (data.fecha_desde_visita ?? "") : "",
-      fecha_desde_hasta:
-        tipoVisita === "rango_de_fechas" ? (data.fecha_desde_hasta ?? "") : "",
+      // "Fecha Fija" y "Rango de fechas" comparten los mismos campos de
+      // fecha (fecha_desde_visita/fecha_desde_hasta); fechaFija ya no se usa
+      // en la UI. Se manda "" explícito (no undefined) porque
+      // access.ts::addNewVisit decide con `fechaFija !== ""` si debe leer
+      // estos dos campos o derivarlos de fechaFija.
+      fechaFija: "",
+      fecha_desde_visita: data.fecha_desde_visita ?? "",
+      fecha_desde_hasta: data.fecha_desde_hasta ?? "",
+      // En "Fecha Fija" el día de acceso permitido ya se autoselecciona
+      // (aplicarDiaDeAccesoFijo) al elegir "Fecha:", así que config_dia_de_acceso
+      // y config_dias_acceso ya vienen correctos en el estado.
       config_dia_de_acceso: config_dia_de_acceso,
       config_dias_acceso: config_dias_acceso,
       config_limitar_acceso: isActivelimitarDias
@@ -329,21 +335,63 @@ export const AddVisitModal: React.FC<Props> = ({
     }
   }
 
+  // Restringe el acceso al único día de la semana que le corresponde a una
+  // visita de "Fecha Fija" (ej. si la fecha es viernes, solo puede entrar en
+  // viernes) — se autoselecciona, el usuario no tiene que elegir el día a
+  // mano en este modo.
+  const aplicarDiaDeAccesoFijo = (fecha: string) => {
+    if (!fecha) return;
+    const dia = getWeekdayEs(fecha);
+    form.setValue("config_dia_de_acceso", "limitar_días_de_acceso");
+    form.setValue("config_dias_acceso", [dia]);
+    set_config_dia_de_acceso("limitar_días_de_acceso");
+    set_config_dias_acceso([dia]);
+    setIsActiveCualquierDia(false);
+    setIsActiveLimitarDiasSemana(true);
+  };
+
   const handleToggleTipoVisitaPase = (
     tipo: "fecha_fija" | "rango_de_fechas",
   ) => {
+    const hoy = new Date().toISOString().split("T")[0];
     if (tipo === "fecha_fija") {
-      form.setValue("fecha_desde_hasta", "");
-      form.setValue("fecha_desde_visita", "");
+      // "Fecha desde" queda oculto en este modo: se deriva de "Fecha:"
+      // (fecha_desde_hasta) menos un día, así el usuario puede elegir
+      // cualquier fecha —incluido hoy— sin chocar con la regla de que
+      // desde tiene que ser anterior a hasta. Si ya había un valor de
+      // cuando el usuario estaba en "Vigencia", se recalcula con ese.
+      const hastaActual = form.getValues("fecha_desde_hasta");
+      if (hastaActual) {
+        form.setValue("fecha_desde_visita", getPreviousDay(hastaActual));
+        aplicarDiaDeAccesoFijo(hastaActual);
+      }
       setIsActiveFechaFija(true);
       setIsActiveRangoFecha(false);
     } else {
-      form.setValue("fechaFija", "");
+      // En "Vigencia", "Fecha desde" es de solo lectura, fija en hoy.
+      form.setValue("fecha_desde_visita", hoy);
       setIsActiveFechaFija(false);
       setIsActiveRangoFecha(true);
     }
     form.setValue("tipo_visita_pase", tipo);
     setTipoVisita(tipo);
+  };
+
+  // Calcula cuántos días cubre la visita (inclusivo: mismo día = 1) y lo usa
+  // como default de "Limitar número de accesos" — el usuario lo puede seguir
+  // editando a mano después, esto solo evita que se quede en 1 por defecto
+  // cuando en realidad la vigencia abarca varios días.
+  const recalcularLimiteAccesos = (desde: string, hasta: string) => {
+    if (!desde || !hasta) return;
+    const desdeDate = new Date(desde);
+    const hastaDate = new Date(hasta);
+    const diffDias =
+      Math.round(
+        (hastaDate.getTime() - desdeDate.getTime()) / (1000 * 60 * 60 * 24),
+      ) + 1;
+    if (diffDias > 0) {
+      form.setValue("config_limitar_acceso", diffDias);
+    }
   };
 
   const handleToggleDiasAcceso = (tipo: string) => {
@@ -368,30 +416,54 @@ export const AddVisitModal: React.FC<Props> = ({
     });
   };
 
-  const handleFechaDesdeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFechaDesde(e.target.value);
-    form.setValue("fecha_desde_hasta", "");
-  };
-
   function getNextDay(date: string | number | Date) {
     const currentDate = new Date(date);
     currentDate.setDate(currentDate.getDate() + 1);
     return currentDate.toISOString().split("T")[0];
   }
 
+  function getPreviousDay(date: string | number | Date) {
+    const currentDate = new Date(date);
+    currentDate.setDate(currentDate.getDate() - 1);
+    return currentDate.toISOString().split("T")[0];
+  }
+
+  // Recibe una fecha "YYYY-MM-DD" y devuelve el nombre del día en español,
+  // en minúsculas, con el mismo formato que usa config_dias_acceso
+  // ("miércoles", "sábado", etc.). Se arma con año/mes/día locales (no
+  // new Date("YYYY-MM-DD"), que Date interpreta en UTC) para que el día de
+  // la semana no se corra por el timezone del usuario.
+  function getWeekdayEs(fecha: string) {
+    const dias = [
+      "domingo",
+      "lunes",
+      "martes",
+      "miércoles",
+      "jueves",
+      "viernes",
+      "sábado",
+    ];
+    const [anio, mes, dia] = fecha.split("-").map(Number);
+    return dias[new Date(anio, mes - 1, dia).getDay()];
+  }
+
   return (
     <Dialog open={openModal} onOpenChange={setOpenModal}>
       <DialogTrigger asChild>{children}</DialogTrigger>
 
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-scroll">
-        <DialogHeader>
+      <DialogContent
+        className="max-w-xl max-h-[90vh] flex flex-col overflow-hidden mx-3"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl text-center font-bold my-5">
             {title}
           </DialogTitle>
         </DialogHeader>
 
+        <div className="overflow-y-auto flex-1 pr-4">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form id="add-visit-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {requireIden && (
               <>
                 <LoadImage
@@ -491,40 +563,96 @@ export const AddVisitModal: React.FC<Props> = ({
             <FormField
               control={form.control}
               name="perfil_pase"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>* Tipo de Visita</FormLabel>
-                  <Select onValueChange={(value) => field.onChange(value)}>
+              render={({ field }) => {
+                const opcionesPerfil: string[] = assets?.Perfiles ?? [];
+                const maxBotones = 9;
+                const mostrarVerMas = opcionesPerfil.length > maxBotones;
+                const botonesVisibles = mostrarVerMas
+                  ? opcionesPerfil.slice(0, maxBotones - 1)
+                  : opcionesPerfil;
+                const seleccionEnOtras =
+                  mostrarVerMas &&
+                  !!field.value &&
+                  !botonesVisibles.includes(field.value);
+
+                return (
+                  <FormItem>
+                    <FormLabel>* Tipo de Visita</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona una opción" />
-                      </SelectTrigger>
+                      <div className="grid grid-cols-3 gap-2">
+                        {botonesVisibles.map((item) => (
+                          <Button
+                            key={item}
+                            type="button"
+                            title={item}
+                            onClick={() => field.onChange(item)}
+                            className={`px-2 py-2 h-auto text-xs sm:text-sm rounded-lg transition-all duration-300 truncate ${
+                              field.value === item
+                                ? "bg-button-primary text-white"
+                                : "border-2 border-button-primary bg-transparent text-button-primary hover:bg-button-primary hover:text-white"
+                            }`}>
+                            {item}
+                          </Button>
+                        ))}
+                        {mostrarVerMas && (
+                          <Button
+                            type="button"
+                            onClick={() => setShowPerfilesModal(true)}
+                            className={`px-2 py-2 h-auto text-xs sm:text-sm rounded-lg transition-all duration-300 ${
+                              seleccionEnOtras
+                                ? "bg-button-primary text-white"
+                                : "border-2 border-button-primary bg-transparent text-button-primary hover:bg-button-primary hover:text-white"
+                            }`}>
+                            {seleccionEnOtras ? field.value : "Ver más"}
+                          </Button>
+                        )}
+                      </div>
                     </FormControl>
-                    <SelectContent>
-                      {assets?.Perfiles?.map((item: string) => (
-                        <SelectItem key={item} value={item}>
-                          {item}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+                    <FormMessage />
+
+                    <Dialog
+                      open={showPerfilesModal}
+                      onOpenChange={setShowPerfilesModal}>
+                      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Selecciona el tipo de visita</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          {opcionesPerfil.map((item) => (
+                            <Button
+                              key={item}
+                              type="button"
+                              title={item}
+                              onClick={() => {
+                                field.onChange(item);
+                                setShowPerfilesModal(false);
+                              }}
+                              className={`px-3 py-2 h-auto text-sm rounded-lg transition-all duration-300 truncate justify-start ${
+                                field.value === item
+                                  ? "bg-button-primary text-white"
+                                  : "border-2 border-button-primary bg-transparent text-button-primary hover:bg-button-primary hover:text-white"
+                              }`}>
+                              {item}
+                            </Button>
+                          ))}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </FormItem>
+                );
+              }}
             />
 
-            <Button
-              type="button"
-              onClick={() => setIsActiveAdvanced((prev) => !prev)}
-              className={`w-1/2 px-4 py-2 rounded-md transition-all duration-300 ${
-                isActiveAdvanced
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "border-2 border-blue-400 bg-transparent text-blue-600 hover:bg-blue-200"
-              }`}>
-              {isActiveAdvanced
-                ? "Opciones avanzadas"
-                : "Ver opciones avanzadas"}
-            </Button>
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                onClick={() => setIsActiveAdvanced((prev) => !prev)}
+                className="w-1/2 px-4 py-2 rounded-lg transition-all duration-300 bg-button-primary text-white hover:bg-button-primary-hover">
+                {isActiveAdvanced
+                  ? "Opciones avanzadas"
+                  : "Ver opciones avanzadas"}
+              </Button>
+            </div>
 
             {isActiveAdvanced && (
               <div className="space-y-6 p-4 border border-blue-100 rounded-md bg-blue-50">
@@ -535,62 +663,37 @@ export const AddVisitModal: React.FC<Props> = ({
                     onClick={() =>
                       handleToggleTipoVisitaPase("rango_de_fechas")
                     }
-                    className={`px-4 py-2 rounded-md transition-all duration-300 ${
+                    className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                       isActiveRangoFecha
-                        ? "bg-blue-600 text-white"
-                        : "border-2 border-blue-400 bg-transparent text-blue-600"
-                    } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
+                        ? "bg-button-primary text-white"
+                        : "border-2 border-button-primary bg-transparent text-button-primary hover:bg-button-primary hover:text-white"
+                    }`}>
                     Vigencia
                   </Button>
                   <Button
                     type="button"
                     onClick={() => handleToggleTipoVisitaPase("fecha_fija")}
-                    className={`px-4 py-2 rounded-md transition-all duration-300 ${
+                    className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                       isActiveFechaFija
-                        ? "bg-blue-600 text-white"
-                        : "border-2 border-blue-400 bg-transparent text-blue-600"
-                    } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
+                        ? "bg-button-primary text-white"
+                        : "border-2 border-button-primary bg-transparent text-button-primary hover:bg-button-primary hover:text-white"
+                    }`}>
                     Fecha Fija
                   </Button>
-                  {tipoVisita === "rango_de_fechas" && (
-                    <Button
-                      type="button"
-                      onClick={() => setIsActiveLimitarDias((prev) => !prev)}
-                      className={`px-4 py-2 rounded-md transition-all duration-300 ${
-                        isActivelimitarDias
-                          ? "bg-blue-600 text-white"
-                          : "border-2 border-blue-400 bg-transparent text-blue-600"
-                      } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
-                      Limitar Accesos
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    onClick={() => setIsActiveLimitarDias((prev) => !prev)}
+                    className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                      isActivelimitarDias
+                        ? "bg-button-primary text-white"
+                        : "border-2 border-button-primary bg-transparent text-button-primary hover:bg-button-primary hover:text-white"
+                    }`}>
+                    Limitar Accesos
+                  </Button>
                 </div>
 
-                {tipoVisita === "fecha_fija" && (
-                  <Controller
-                    control={form.control}
-                    name="fechaFija"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          <span className="text-red-500">*</span> Fecha y Hora
-                          de Visita:
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="datetime-local"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                {tipoVisita === "rango_de_fechas" && (
-                  <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-4">
+                  {tipoVisita === "rango_de_fechas" && (
                     <Controller
                       control={form.control}
                       name="fecha_desde_visita"
@@ -598,45 +701,78 @@ export const AddVisitModal: React.FC<Props> = ({
                         <FormItem>
                           <FormLabel>
                             <span className="text-red-500">*</span> Fecha desde:
+                            <span className="ml-1 font-normal text-gray-400">
+                              (hoy, informativo)
+                            </span>
                           </FormLabel>
                           <FormControl>
                             <Input
                               type="date"
                               {...field}
-                              min={today}
-                              onChange={(e) => {
-                                field.onChange(e);
-                                handleFechaDesdeChange(e);
-                              }}
+                              disabled
+                              readOnly
+                              tabIndex={-1}
+                              className="bg-gray-100 text-gray-500 cursor-not-allowed pointer-events-none"
+                              onKeyDown={(e) => e.preventDefault()}
+                              onChange={() => {}}
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <Controller
-                      control={form.control}
-                      name="fecha_desde_hasta"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            <span className="text-red-500">*</span> Vigencia
-                            hasta:
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="date"
-                              {...field}
-                              min={fechaDesde ? getNextDay(fechaDesde) : today}
-                              onChange={(e) => field.onChange(e)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
+                  )}
+                  <Controller
+                    control={form.control}
+                    name="fecha_desde_hasta"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          <span className="text-red-500">*</span>{" "}
+                          {tipoVisita === "fecha_fija"
+                            ? "Fecha:"
+                            : "Vigencia hasta:"}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            {...field}
+                            min={
+                              tipoVisita === "fecha_fija"
+                                ? today
+                                : getNextDay(today)
+                            }
+                            className="cursor-pointer"
+                            onClick={(e) => e.currentTarget.showPicker?.()}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              const nuevaHasta = e.target.value;
+                              if (tipoVisita === "fecha_fija") {
+                                // "Fecha desde" está oculto en este modo: se
+                                // fija un día antes de la fecha elegida para
+                                // que el usuario pueda escoger cualquier día
+                                // (incluido hoy) sin violar la regla de que
+                                // desde < hasta. El día de acceso permitido
+                                // se autoselecciona según el día de la
+                                // semana que le toque a esa fecha.
+                                if (nuevaHasta) {
+                                  form.setValue(
+                                    "fecha_desde_visita",
+                                    getPreviousDay(nuevaHasta),
+                                  );
+                                  aplicarDiaDeAccesoFijo(nuevaHasta);
+                                }
+                              } else {
+                                recalcularLimiteAccesos(today, nuevaHasta);
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 {tipoVisita === "rango_de_fechas" && (
                   <div className="space-y-4">
@@ -648,11 +784,11 @@ export const AddVisitModal: React.FC<Props> = ({
                           onClick={() =>
                             handleToggleDiasAcceso("cualquier_día")
                           }
-                          className={`px-4 py-2 rounded-md transition-all duration-300 ${
+                          className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                             isActiveCualquierDia
-                              ? "bg-blue-600 text-white"
-                              : "border-2 border-blue-400 bg-transparent text-blue-600"
-                          } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
+                              ? "bg-button-primary text-white"
+                              : "border-2 border-button-primary bg-transparent text-button-primary hover:bg-button-primary hover:text-white"
+                          }`}>
                           Cualquier Día
                         </Button>
                         <Button
@@ -660,11 +796,11 @@ export const AddVisitModal: React.FC<Props> = ({
                           onClick={() =>
                             handleToggleDiasAcceso("limitar_días_de_acceso")
                           }
-                          className={`px-4 py-2 rounded-md transition-all duration-300 ${
+                          className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                             isActivelimitarDiasSemana
-                              ? "bg-blue-600 text-white"
-                              : "border-2 border-blue-400 bg-transparent text-blue-600"
-                          } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
+                              ? "bg-button-primary text-white"
+                              : "border-2 border-button-primary bg-transparent text-button-primary hover:bg-button-primary hover:text-white"
+                          }`}>
                           Limitar Días
                         </Button>
                       </div>
@@ -687,48 +823,48 @@ export const AddVisitModal: React.FC<Props> = ({
                               key={dia}
                               type="button"
                               onClick={() => toggleDia(dia.toLowerCase())}
-                              className={`px-3 py-2 rounded-md transition-all duration-300 ${
+                              className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                                 config_dias_acceso.includes(dia.toLowerCase())
-                                  ? "bg-blue-600 text-white"
-                                  : "border-2 border-blue-400 bg-white text-blue-600"
-                              } hover:shadow-[0_3px_6px_rgba(0,0,0,0.2)]`}>
+                                  ? "bg-button-primary text-white"
+                                  : "border-2 border-button-primary bg-white text-button-primary hover:bg-button-primary hover:text-white"
+                              }`}>
                               {dia}
                             </Button>
                           ))}
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
 
-                    {isActivelimitarDias && (
-                      <div className="w-1/2">
-                        <Controller
-                          control={form.control}
-                          name="config_limitar_acceso"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Limitar número de accesos:</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="Ejemplo: 5"
-                                  min={0}
-                                  step={1}
-                                  value={field.value ? Number(field.value) : 0}
-                                  onChange={(e) =>
-                                    field.onChange(
-                                      e.target.value
-                                        ? Number(e.target.value)
-                                        : 0,
-                                    )
-                                  }
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    )}
+                {isActivelimitarDias && (
+                  <div className="w-1/2">
+                    <Controller
+                      control={form.control}
+                      name="config_limitar_acceso"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Limitar número de accesos:</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="Ejemplo: 5"
+                              min={0}
+                              step={1}
+                              value={field.value ? Number(field.value) : 0}
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value
+                                    ? Number(e.target.value)
+                                    : 0,
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 )}
               </div>
@@ -739,7 +875,7 @@ export const AddVisitModal: React.FC<Props> = ({
             <div className="flex gap-5">
               <DialogClose asChild>
                 <Button
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  className="w-full rounded-lg bg-white border border-c10-border text-c10-text hover:bg-slate-50"
                   onClick={() => form.reset()}>
                   Cancelar
                 </Button>
@@ -749,7 +885,7 @@ export const AddVisitModal: React.FC<Props> = ({
                 type="submit"
                 disabled={loading || registrandoIngreso}
                 onClick={() => setFormSubmitted(true)}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white">
+                className="w-full rounded-lg bg-green-600 hover:bg-green-700 text-white">
                 {registrandoIngreso ? (
                   <>
                     <Loader2 className="animate-spin" /> Realizando ingreso...
@@ -765,6 +901,36 @@ export const AddVisitModal: React.FC<Props> = ({
             </div>
           </form>
         </Form>
+        </div>
+
+        <div className="flex gap-5 flex-shrink-0 pt-4 border-t border-gray-100">
+          <DialogClose asChild>
+            <Button
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+              onClick={() => form.reset()}>
+              Cancelar
+            </Button>
+          </DialogClose>
+
+          <Button
+            type="submit"
+            form="add-visit-form"
+            disabled={loading || registrandoIngreso}
+            onClick={() => setFormSubmitted(true)}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white">
+            {registrandoIngreso ? (
+              <>
+                <Loader2 className="animate-spin" /> Realizando ingreso...
+              </>
+            ) : loading ? (
+              <>
+                <Loader2 className="animate-spin" /> Cargando...
+              </>
+            ) : (
+              "Crear Visita"
+            )}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

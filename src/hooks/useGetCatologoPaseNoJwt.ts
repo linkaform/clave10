@@ -23,6 +23,22 @@ export interface Data {
   url_de_condiciones_de_servicio: string;
   desc_condiciones_servicio:string;
   permisos_certificaciones?: PermisoCertificacion[];
+  /** Datos del Responsable para el Aviso de Privacidad (ver AvisoPrivacidad). */
+  empresa?: EmpresaInfo;
+  /** La dirección del Responsable para el Aviso de Privacidad sale de
+   * ubicaciones[0].address, no de `empresa`. */
+  ubicaciones?: UbicacionInfo[];
+}
+
+export interface EmpresaInfo {
+  nombre: string;
+  email: string;
+  telefono: string;
+}
+
+export interface UbicacionInfo {
+  address: string;
+  [key: string]: any;
 }
 
 export interface PermisoCertificacion {
