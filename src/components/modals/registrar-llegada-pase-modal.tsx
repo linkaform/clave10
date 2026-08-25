@@ -17,7 +17,6 @@ import {
   Trash2,
   Truck,
   User,
-  X,
 } from "lucide-react";
 import { cn, errorMsj } from "@/lib/utils";
 import { getPassTransportista, createVisitTransportista } from "@/services/endpoints";
