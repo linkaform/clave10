@@ -34,6 +34,7 @@ import { formatEquipos, formatVehiculos, isVehiculoHabilitado, prefijoToCountry 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
+import { useLogoPaseStore } from "@/store/useLogoPaseStore";
 // import { API_ENDPOINTS } from "@/config/api";
 import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
@@ -227,6 +228,7 @@ const PaseUpdate = () => {
     isLoading: loadingDataCatalogos,
     error,
   } = useGetCatalogoPaseNoJwt(account_id, id, enableInfo);
+  const setLogoUrl = useLogoPaseStore((s) => s.setLogoUrl);
   const [agregarEquiposActive, setAgregarEquiposActive] = useState(false);
   const [agregarVehiculosActive, setAgregarVehiculosActive] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -286,6 +288,15 @@ const PaseUpdate = () => {
       setTelefonoPaseEdit(dataCatalogos.pass_selected.telefono || "");
     }
   }, [dataCatalogos]);
+
+  // Si la cuenta trae su propio logo, HeaderPase (en el layout de esta ruta)
+  // lo muestra en vez del logo default de Clave10. Se limpia al desmontar
+  // para que no se quede pegado si se navega a otra ruta que use el mismo
+  // layout (registro-ingreso/reset) sin haber recibido su propio logo.
+  useEffect(() => {
+    setLogoUrl(dataCatalogos?.logotipo_pase?.file_url || null);
+    return () => setLogoUrl(null);
+  }, [dataCatalogos?.logotipo_pase?.file_url, setLogoUrl]);
 
   useEffect(() => {
     if (!dataCatalogos?.pass_selected?.ubicacion?.length || !grupoRequisitos?.length) return;

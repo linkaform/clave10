@@ -28,6 +28,9 @@ export interface Data {
   /** La dirección del Responsable para el Aviso de Privacidad sale de
    * ubicaciones[0].address, no de `empresa`. */
   ubicaciones?: UbicacionInfo[];
+  /** Logo propio de la cuenta para el pase — si viene vacío, se usa el logo
+   * default de Clave10 (ver HeaderPase / useLogoPaseStore). */
+  logotipo_pase?: Foto;
 }
 
 export interface EmpresaInfo {

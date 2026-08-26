@@ -817,6 +817,29 @@ export const imprimirYDescargarPDF = async (pdfUrl: string) => {
   }
 };
 
+// Iframe oculto: dispara el diálogo de impresión de una imagen/PDF sin salir
+// de la pestaña actual ni abrir una ventana nueva. A diferencia de
+// imprimirYDescargarPDF, esta NO fuerza una descarga — solo imprime.
+export const imprimirUrlEnIframe = (url: string, onLoaded?: () => void) => {
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "none";
+  iframe.src = url;
+  iframe.onload = () => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    onLoaded?.();
+  };
+  document.body.appendChild(iframe);
+  setTimeout(() => {
+    document.body.removeChild(iframe);
+  }, 60000);
+};
+
 type ToastVariant = "success" | "error";
 
 export function customToast(text: string, variant: ToastVariant) {
