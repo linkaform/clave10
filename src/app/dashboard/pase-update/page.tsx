@@ -272,12 +272,17 @@ const PaseUpdate = () => {
   const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
   // const [copiedPadre, setCopiedPadre] = useState(false);
 
-  // Estos tres solo se editan cuando el pase está "en proceso" Y es un pase
-  // vinculado (pertenece a un pase padre, o sea trae link_padre). En cualquier
-  // otro caso se sigue mostrando el texto normal, sin tocar nada más.
+  // Estos tres solo se editan cuando el pase está "en proceso" Y o bien es un
+  // pase vinculado (pertenece a un pase padre, o sea trae link_padre), o bien
+  // todavía no tiene nombre: un pase sin nombre está por completar y no se
+  // puede activar así, de modo que el invitado tiene que poder capturarlo.
+  // En cualquier otro caso se sigue mostrando el texto normal.
   const [nombrePaseEdit, setNombrePaseEdit] = useState("");
   const [emailPaseEdit, setEmailPaseEdit] = useState("");
   const [telefonoPaseEdit, setTelefonoPaseEdit] = useState("");
+  const puedeEditarDatosPase =
+    Boolean(dataCatalogos?.pass_selected?.link_padre) ||
+    !dataCatalogos?.pass_selected?.nombre?.trim();
 
   useEffect(() => {
     if (dataCatalogos?.pass_selected) {
@@ -690,6 +695,11 @@ const PaseUpdate = () => {
   // se guarda el payload en `pendingFormattedData` y se muestra el paso de
   // firma. El modal solo se abre una vez que esa firma se complete.
   const onSubmit = (data: z.infer<typeof formSchema>) => {
+    // Sin nombre el pase no se puede activar, se pide antes de continuar.
+    if (puedeEditarDatosPase && !nombrePaseEdit.trim()) {
+      toast.error("Escribe el nombre del visitante para continuar");
+      return;
+    }
     const formattedData = {
       grupo_vehiculos: vehicles,
       grupo_equipos: equipos,
@@ -1056,7 +1066,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               <p className="font-bold text-slate-800 whitespace-nowrap">
                 Nombre:
               </p>
-              {dataCatalogos?.pass_selected?.link_padre ? (
+              {puedeEditarDatosPase ? (
                 <input
                   type="text"
                   value={nombrePaseEdit}
@@ -1074,7 +1084,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               <p className="font-bold text-slate-800 whitespace-nowrap">
                 Email:
               </p>
-              {dataCatalogos?.pass_selected?.link_padre ? (
+              {puedeEditarDatosPase ? (
                 <input
                   type="email"
                   value={emailPaseEdit}
@@ -1088,12 +1098,12 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               )}
             </div>
 
-            {(dataCatalogos?.pass_selected?.telefono || dataCatalogos?.pass_selected?.link_padre) && (
+            {(dataCatalogos?.pass_selected?.telefono || puedeEditarDatosPase) && (
               <div className="flex gap-2">
                 <p className="font-bold text-slate-800 whitespace-nowrap">
                   Teléfono:
                 </p>
-                {dataCatalogos?.pass_selected?.link_padre ? (
+                {puedeEditarDatosPase ? (
                   <div className="w-full max-w-xs bg-white border border-gray-200 rounded-lg px-2 py-1 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400">
                     <PhoneInput
                       defaultCountry={defaultCountry}
