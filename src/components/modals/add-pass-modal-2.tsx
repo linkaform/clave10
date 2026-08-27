@@ -17,6 +17,7 @@ import {
 import { data_correo } from "@/lib/send_correo";
 import Image from "next/image";
 import { useUpdateAccessPass } from "@/hooks/useUpdatePass";
+import { getImgPassUrl } from "@/lib/endpoints";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
@@ -43,6 +44,11 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
   const [response, setResponse] = useState<any>(null);
   const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
   const [responseformated, setResponseFormated] = useState<data_correo | null>(null);
+  // Se pide en cuanto se crea el pase, y el modal de "Pase de Entrada
+  // Completado" no se abre hasta que esta imagen ya está lista — así nunca
+  // se ve el modal vacío ni con letrero de "cargando" adentro.
+  const [gafeteImgUrl, setGafeteImgUrl] = useState<string>("");
+  const [preparandoGafete, setPreparandoGafete] = useState(false);
   const { updatePassMutation, isLoadingUpdate } = useUpdateAccessPass();
   const onSubmit = async () => {
     updatePassMutation.mutate(
@@ -96,7 +102,22 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
           });
           setResponse(response);
           setIsSuccess(true);
-          setOpenGeneratedPass(true);
+
+          const record_id = response?.json?.id;
+          if (record_id) {
+            setPreparandoGafete(true);
+            getImgPassUrl(parentUserId, record_id)
+              .then((data) => setGafeteImgUrl(data?.response?.data || ""))
+              .catch((error) =>
+                console.error("Error al obtener la imagen del gafete:", error),
+              )
+              .finally(() => {
+                setPreparandoGafete(false);
+                setOpenGeneratedPass(true);
+              });
+          } else {
+            setOpenGeneratedPass(true);
+          }
         },
       },
     );
@@ -359,7 +380,7 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
             hasEmail={data?.email ? true : false}
             hasTelefono={data?.telefono ? true : false}
             setOpenGeneratedPass={setOpenGeneratedPass}
-            qr={response?.json?.qr_pase[0].file_url ?? "/nouser.svg"}
+            gafeteImgUrl={gafeteImgUrl}
             dataPass={responseformated}
             account_id={data?.account_id ?? 0}
             folio={response?.json?.id}
@@ -373,9 +394,11 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-5 font-bold uppercase text-[10px] tracking-widest h-auto shadow-lg shadow-blue-100"
             type="submit"
             onClick={onSubmit}
-            disabled={isLoadingUpdate}
+            disabled={isLoadingUpdate || preparandoGafete}
           >
-            {!isLoadingUpdate ? (
+            {preparandoGafete ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparando gafete...</>
+            ) : !isLoadingUpdate ? (
               "Confirmar pase"
             ) : (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Actualizando...</>

@@ -35,9 +35,6 @@ import LoadImage, { Imagen } from "../upload-Image";
 import { useBoothStore } from "@/store/useBoothStore";
 import { getRequerimientos, uniqueArray } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
-import { registerIncoming } from "@/lib/access";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 interface Props {
   title: string;
@@ -114,10 +111,8 @@ export const AddVisitModal: React.FC<Props> = ({
   const [fotoError, setFotoError] = useState(false);
   const [idError, setIdError] = useState(false);
   const { assets, registerNewVisit, loading } = useSearchPass(openModal);
-  const { area, location } = useBoothStore();
-  const queryClient = useQueryClient();
+  const { location } = useBoothStore();
   const [formSubmitted, setFormSubmitted] = useState(false);
-  const [registrandoIngreso, setRegistrandoIngreso] = useState(false);
   const assetsUnique = uniqueArray(assets?.Visita_a);
 
   const requerimientos = getRequerimientos(location ?? "");
@@ -227,7 +222,7 @@ export const AddVisitModal: React.FC<Props> = ({
     form,
   ]);
 
-  async function onSubmit(data: formatData) {
+  function onSubmit(data: formatData) {
     const access_pass = {
       nombre: data.nombre,
       empresa: data.empresa,
@@ -272,67 +267,16 @@ export const AddVisitModal: React.FC<Props> = ({
 
     if (!valid) return;
 
-    // Solo desde este modal: al crear la visita se registra el ingreso de
-    // inmediato, sin pasar por el flujo normal de escaneo. Se usa
-    // mutateAsync + await (no mutate + onSuccess) porque el callback del
-    // segundo argumento de mutate() solo corre si el observer de la
-    // mutación sigue teniendo listeners activos en el momento exacto en que
-    // resuelve — una condición interna de react-query que puede fallar por
-    // timing y hacía que este paso nunca se ejecutara.
-    let response: any;
-    try {
-      response = await registerNewVisit.mutateAsync({
-        location: location ?? "",
-        access_pass,
-      });
-    } catch (err: any) {
-      toast.error(
-        `Hubo un error al crear la visita: ${err?.message || err}`,
-      );
-      return;
-    }
-
-    const id = response?.response?.data?.json?.id;
-    if (!id) {
-      toast.error(
-        "La visita se creó, pero no se recibió el id del pase para registrar el ingreso",
-      );
-      return;
-    }
-
-    setRegistrandoIngreso(true);
-    try {
-      const ingresoResult = await registerIncoming({
-        area: area ?? "",
-        location: location ?? "",
-        qr_code: id,
-        // El backend espera objetos con "nombre" (usa c.get('nombre') en
-        // script_turnos.py), no strings sueltos.
-        visita_a: [{ nombre: data.visita_a }],
-        selected_pases: [],
-      });
-
-      if (!ingresoResult.success) {
-        toast.error(
-          ingresoResult.error?.exception?.msg?.[0] ||
-            "La visita se creó, pero hubo un error al registrar el ingreso",
-        );
-        return;
-      }
-
-      toast.success("Visita creada e ingreso registrado", {
-        style: { background: "#22c55e", color: "white" },
-      });
-      queryClient.invalidateQueries({ queryKey: ["serchPass"] });
-      queryClient.invalidateQueries({ queryKey: ["getStats"] });
-      setOpenModal(false);
-    } catch (err: any) {
-      toast.error(
-        `La visita se creó, pero hubo un error al registrar el ingreso: ${err?.message || err}`,
-      );
-    } finally {
-      setRegistrandoIngreso(false);
-    }
+    // mutateAsync (no mutate + onSuccess): el onSuccess del hook
+    // (useSearchPass) hace setPassCode(id) al crear la visita, lo que
+    // desmonta este modal de inmediato (el padre solo lo renderiza cuando
+    // !passCode). Si el modal se desmonta, el observer de la mutación
+    // pierde sus listeners y el onSuccess del segundo argumento de mutate()
+    // deja de dispararse — por eso no cerraba solo. mutateAsync resuelve
+    // por la promesa, no por ese mecanismo, así que sí corre siempre.
+    registerNewVisit.mutateAsync({ location: location ?? "", access_pass })
+      .then(() => setOpenModal(false))
+      .catch(() => {});
   }
 
   // Restringe el acceso al único día de la semana que le corresponde a una
@@ -452,7 +396,7 @@ export const AddVisitModal: React.FC<Props> = ({
       <DialogTrigger asChild>{children}</DialogTrigger>
 
       <DialogContent
-        className="max-w-xl max-h-[90vh] flex flex-col overflow-hidden mx-3"
+        className="max-w-xl max-h-[90vh] flex flex-col overflow-hidden"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="flex-shrink-0">
@@ -461,7 +405,7 @@ export const AddVisitModal: React.FC<Props> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="overflow-y-auto flex-1 pr-4">
+        <div className="overflow-y-auto flex-1 px-4 pb-4">
         <Form {...form}>
           <form id="add-visit-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {requireIden && (
@@ -887,14 +831,10 @@ export const AddVisitModal: React.FC<Props> = ({
           <Button
             type="submit"
             form="add-visit-form"
-            disabled={loading || registrandoIngreso}
+            disabled={loading}
             onClick={() => setFormSubmitted(true)}
-            className="w-full rounded-lg bg-green-600 hover:bg-green-700 text-white">
-            {registrandoIngreso ? (
-              <>
-                <Loader2 className="animate-spin" /> Realizando ingreso...
-              </>
-            ) : loading ? (
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white">
+            {loading ? (
               <>
                 <Loader2 className="animate-spin" /> Cargando...
               </>

@@ -15,7 +15,9 @@ import {
   Menu,
   PackageOpen,
   List,
+  Loader2,
   Plus,
+  Printer,
   Scan,
   RotateCcw,
   Search,
@@ -40,11 +42,12 @@ import { AddVisitModal } from "@/components/modals/add-visit-modal";
 import { toast } from "sonner";
 import { useGetShift } from "@/hooks/useGetShift";
 import { exitRegister, registerIncoming } from "@/lib/access";
+import { getImgPassUrl } from "@/lib/endpoints";
 import { PermisosTable } from "@/components/table/accesos/permisos-certificaciones/table";
 import useAuthStore from "@/store/useAuthStore";
 import {
   esHexadecimal,
-  imprimirYDescargarPDF,
+  imprimirUrlEnIframe,
   isExcluded,
   isVehiculoHabilitado,
 } from "@/lib/utils";
@@ -55,7 +58,6 @@ import Swal from "sweetalert2";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { UpdatePassModal } from "@/components/modals/complete-pass-accesos";
 import Image from "next/image";
-import { useGetPdf } from "@/hooks/usetGetPdf";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useMenuStore } from "@/store/useGetMenuStore";
@@ -87,16 +89,19 @@ const AccesosContent = () => {
   // "nuevo_articulo_concesionado").
   const [isSuccessVisita, setIsSuccessVisita] = useState(false);
   useEffect(() => {
-    if (actionParam === "nueva_visita") setIsSuccessVisita(true);
+    if (actionParam !== "nueva_visita") return;
+    setIsSuccessVisita(true);
+    // Se limpia el query param apenas se abre (no solo al cerrar): si se
+    // dejara ahí, volver a esta pantalla con el botón "atrás" del navegador
+    // reabriría el modal solo, sin que el usuario haya dado click en nada.
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("action");
+    router.replace(`${pathname}?${params.toString()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionParam]);
   const handleOpenChangeVisita = (value: React.SetStateAction<boolean>) => {
     const open = typeof value === "function" ? value(isSuccessVisita) : value;
     setIsSuccessVisita(open);
-    if (!open && actionParam === "nueva_visita") {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("action");
-      router.replace(`${pathname}?${params.toString()}`);
-    }
   };
   const { isLoading, loading:loadingSearchPass, searchPass } = useSearchPass(false);
   const { tieneAcompanantes } = useAcompanantesPase(searchPass);
@@ -117,7 +122,6 @@ const AccesosContent = () => {
   const [id, setId] = useState("");
   const [loading, setLoading] = useState(false);
   const { preference, setPreference, reset } = useScanPreference();
-  const { refetch } = useGetPdf(userParentId, id ?? "", false);
 
   useEffect(() => {
     if (searchPass) {
@@ -139,51 +143,30 @@ const AccesosContent = () => {
   const vehiculoHabilitado = isVehiculoHabilitado(
     searchPass?.habilitar_vehiculo,
   );
-  const handleGetPdf = async () => {
+
+  // Trae la imagen de la etiqueta/pase (servicio get_pass_img) y dispara la
+  // pantalla de impresión. Se usa tanto desde el botón "Imprimir Etiqueta"
+  // como automáticamente al registrar el ingreso (ver doAccess.onSuccess).
+  const imprimirEtiquetaDePase = async (recordId: string) => {
+    const data = await getImgPassUrl(userParentId ?? 0, recordId);
+    const url = data?.response?.data || "";
+    if (!url) {
+      toast.error("No se pudo obtener la etiqueta");
+      return;
+    }
+    imprimirUrlEnIframe(url);
+  };
+
+  const [imprimiendoEtiqueta, setImprimiendoEtiqueta] = useState(false);
+  const handleImprimirEtiqueta = async () => {
+    if (!searchPass?._id) return;
+    setImprimiendoEtiqueta(true);
     try {
-      const result = await refetch();
-
-      if (result.error) {
-        toast.error(`Error de red: ${result.error}`, {
-          style: {
-            backgroundColor: "#f44336",
-            color: "#fff",
-          },
-        });
-        return;
-      }
-
-      const data = result.data?.response?.data;
-
-      if (!data || data.status_code !== 200) {
-        const errorMsg =
-          data?.json?.error ||
-          result.data?.error ||
-          "Error desconocido del servidor";
-
-        toast.error(`Error de red: ${errorMsg}`, {
-          style: {
-            backgroundColor: "#f44336",
-            color: "#fff",
-          },
-        });
-        return;
-      }
-
-      const downloadUrl = data?.json?.download_url;
-
-      if (downloadUrl) {
-        imprimirYDescargarPDF(downloadUrl);
-      } else {
-        toast.warning("No se encontró URL de descarga");
-      }
+      await imprimirEtiquetaDePase(searchPass._id);
     } catch (err) {
-      toast.error(`Error inesperado: ${err}`, {
-        style: {
-          backgroundColor: "#f44336",
-          color: "#fff",
-        },
-      });
+      toast.error(`Error al obtener la etiqueta: ${err}`);
+    } finally {
+      setImprimiendoEtiqueta(false);
     }
   };
 
@@ -299,7 +282,7 @@ const AccesosContent = () => {
         },
       });
 
-      if (downloadPass.includes("impresion_de_pase")) {
+      if (downloadPass.includes("impresion_de_pase") && id) {
         Swal.fire({
           title: "Preparando documento",
           html: "Cargando PDF para imprimir...",
@@ -309,7 +292,9 @@ const AccesosContent = () => {
             Swal.showLoading();
           },
         });
-        handleGetPdf();
+        imprimirEtiquetaDePase(id)
+          .catch((err) => toast.error(`Error al obtener la etiqueta: ${err}`))
+          .finally(() => Swal.close());
       }
     },
     onError: (error) => {
@@ -493,6 +478,21 @@ const AccesosContent = () => {
 						>
 						<DoorOpen />
 						Registrar Salida
+						</Button>
+					)}
+
+					{searchPass?._id && (
+						<Button
+						className="bg-slate-600 hover:bg-slate-700 text-white"
+						onClick={handleImprimirEtiqueta}
+						disabled={imprimiendoEtiqueta}
+						>
+						{imprimiendoEtiqueta ? (
+							<Loader2 className="animate-spin" />
+						) : (
+							<Printer />
+						)}
+						Imprimir Etiqueta
 						</Button>
 					)}
 

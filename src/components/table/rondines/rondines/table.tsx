@@ -35,6 +35,7 @@ import { applyRondinesFilters } from "@/hooks/Rondines/rondines/useRondinesFilte
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { toast } from "sonner";
 import { errorMsj } from "@/lib/utils";
+import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 
 export interface BitacoraRondin {
   id: string;
@@ -99,7 +100,8 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   filtersConfig: filtersConfigProp,
   setTotalRegistros
 }) => {
-  const { listRondines, isLoadingListRondines: isLoading } = useGetListRondines(true, "", "", 100, 0);
+  const { selectedLocations } = useSelectedLocationsStore();
+  const { listRondines, isLoadingListRondines: isLoading } = useGetListRondines(true, "", "", 100, 0, selectedLocations);
   const [rowSelection, setRowSelection] = React.useState({});
 
 
