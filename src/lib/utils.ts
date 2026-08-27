@@ -940,6 +940,10 @@ export const isVehiculoHabilitado = (val: any): boolean => {
   return normalized === "si";
 };
 
+// Mismo normalizador que isVehiculoHabilitado (boolean o "si"/"no"), con nombre
+// generico para usarlo en otros flags "habilitar_*" (foto, identificacion, etc).
+export const isHabilitado = isVehiculoHabilitado;
+
 export function formatTo12Hour(fechaStr: string): string {
   if (!fechaStr) return "";
   const [fecha, hora] = fechaStr.split(" ");

@@ -282,7 +282,6 @@ const AccesosContent = () => {
         },
       });
 
-      console.log("[debug gafete] downloadPass:", downloadPass, "id:", id);
       if (downloadPass.includes("impresion_de_pase") && id) {
         Swal.fire({
           title: "Preparando documento",

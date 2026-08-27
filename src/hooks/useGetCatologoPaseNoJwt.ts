@@ -75,7 +75,9 @@ export interface PassSelected {
     latitude: number;
     longitude: number;
   }[];
-  habilitar_vehiculo?:boolean 
+  habilitar_vehiculo?:boolean
+  habilitar_fotografia?:boolean
+  habilitar_identificacion?:boolean
   acompanantes?:number;
   acompanantes_grupo:Miembro[]
   url_padre?:string;

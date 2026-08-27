@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
-import { List, UserRound, CalendarDays, Layers, Car } from "lucide-react";
+import { List, UserRound, CalendarDays, Layers, Car, Camera, IdCard } from "lucide-react";
 import { formatDateToString, formatFecha, isExcluded, prefijoToCountry } from "@/lib/utils";
 import { Areas } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
@@ -156,6 +156,8 @@ const formSchema = z
     }),
     todas_las_areas: z.boolean().optional(),
     habilitar_vehiculo: z.string(),
+    habilitar_fotografia: z.string(),
+    habilitar_identificacion: z.string(),
     acompanantes: z
       .number()
       .min(0)
@@ -219,6 +221,8 @@ const PaseEntradaPage = () => {
   const [modalData, setModalData] = useState<any>(null);
   const [defaultCountry, setDefaultCountry] = useState<any>("MX");
   const [habilitarVehiculo, setHabilitarVehiculo] = useState(true);
+  const [habilitarFoto, setHabilitarFoto] = useState(true);
+  const [habilitarIdentificacion, setHabilitarIdentificacion] = useState(true);
   const [toleranciaEntrada, setToleranciaEntrada] = useState<number>(0);
   const [toleranciaPrevia, setToleranciaPrevia] = useState<number>(15);
 
@@ -230,7 +234,11 @@ const PaseEntradaPage = () => {
     fetchAreas,
     loading: loadingUbicaciones,
     locationDetails,
+    roles,
   } = useAreasLocationStore();
+  // Las opciones "Habilitar foto"/"Habilitar identificación" solo se
+  // muestran a usuarios con el rol Admin (roles trae los del usuario actual).
+  const esAdmin = (roles ?? []).includes("Admin");
   console.log("----------------------------areas", areasStore);
   const pickerRef = useRef<any>(null);
 
@@ -368,6 +376,13 @@ const PaseEntradaPage = () => {
   const { dataConfigLocation, isLoadingConfigLocation } = usePaseEntrada(
     ubicacionesSeleccionadasLista ?? [],
   );
+  // Foto/Identificación solo se pueden ofrecer si vienen dentro de los
+  // requerimientos de la config del módulo de seguridad de la ubicación;
+  // el rol Admin únicamente decide si se muestran cuando SÍ vienen.
+  const requiereFotoModulo =
+    dataConfigLocation?.requerimientos?.includes("fotografia") ?? false;
+  const requiereIdentificacionModulo =
+    dataConfigLocation?.requerimientos?.includes("identificacion") ?? false;
 
   const [enviar_correo_pre_registro] = useState<string[]>([]);
   const [formatedDocs, setFormatedDocs] = useState<string[]>([]);
@@ -453,6 +468,8 @@ const PaseEntradaPage = () => {
       },
       todas_las_areas: todasAreas,
       habilitar_vehiculo:"sí",
+      habilitar_fotografia: "sí",
+      habilitar_identificacion: "sí",
       acompanantes: 0,
     },
   });
@@ -649,6 +666,9 @@ const PaseEntradaPage = () => {
       },
       todas_las_areas: todasAreas,
       habilitar_vehiculo: habilitarVehiculo ? "sí" : "no",
+      habilitar_fotografia: requiereFotoModulo && habilitarFoto ? "sí" : "no",
+      habilitar_identificacion:
+        requiereIdentificacionModulo && habilitarIdentificacion ? "sí" : "no",
       acompanantes: Number(data.acompanantes) || 0,
       acompanantes_grupo:miembrosAcompanantes|| []
     };
@@ -1506,6 +1526,48 @@ const PaseEntradaPage = () => {
                   />
                 </div>
               </div>
+
+              {esAdmin && requiereFotoModulo && (
+                <div className="bg-white rounded-2xl shadow-md border border-blue-60 p-6 mt-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-blue-50 rounded-xl">
+                        <Camera className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700">Foto</p>
+                        <p className="text-xs text-gray-400">Habilitar captura de fotografía</p>
+                      </div>
+                    </div>
+                    <Switch
+                      className="data-[state=checked]:bg-blue-600"
+                      checked={habilitarFoto}
+                      onCheckedChange={setHabilitarFoto}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {esAdmin && requiereIdentificacionModulo && (
+                <div className="bg-white rounded-2xl shadow-md border border-blue-60 p-6 mt-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-blue-50 rounded-xl">
+                        <IdCard className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700">Identificación</p>
+                        <p className="text-xs text-gray-400">Habilitar captura de identificación</p>
+                      </div>
+                    </div>
+                    <Switch
+                      className="data-[state=checked]:bg-blue-600"
+                      checked={habilitarIdentificacion}
+                      onCheckedChange={setHabilitarIdentificacion}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">

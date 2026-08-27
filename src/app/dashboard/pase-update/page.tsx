@@ -30,7 +30,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { EqipmentLocalPassModal } from "@/components/modals/add-local-equipo";
-import { formatEquipos, formatVehiculos, isVehiculoHabilitado, prefijoToCountry } from "@/lib/utils";
+import { formatEquipos, formatVehiculos, isHabilitado, isVehiculoHabilitado, prefijoToCountry } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
@@ -237,8 +237,12 @@ const PaseUpdate = () => {
   const [urlGooglePass, setUrlGooglePass] = useState<string>("");
   const [loadingImgPass, setLoadingImgPass] = useState(false);
   const downloadUrl = responsePdf?.response?.data?.data?.download_url;
-  const requireFoto = showIneIden?.includes("foto") ?? false;
-  const requireIden = showIneIden?.includes("iden") ?? false;
+  const requireFoto =
+    (showIneIden?.includes("foto") ?? false) &&
+    isHabilitado(dataCatalogos?.pass_selected?.habilitar_fotografia);
+  const requireIden =
+    (showIneIden?.includes("iden") ?? false) &&
+    isHabilitado(dataCatalogos?.pass_selected?.habilitar_identificacion);
   const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
   const [permisosCertificacionesFiles, setPermisosCertificacionesFiles] = useState<
     Record<string, PermisoCertificacionArchivos>
@@ -1156,7 +1160,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {showIneIden?.includes("foto") && (
+            {requireFoto && (
               <Controller
                 control={form.control}
                 name="walkin_fotografia"
@@ -1205,7 +1209,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               />
             )}
 
-            {showIneIden?.includes("iden") && (
+            {requireIden && (
               <Controller
                 control={form.control}
                 name="walkin_identificacion"
