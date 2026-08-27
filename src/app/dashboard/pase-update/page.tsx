@@ -1139,13 +1139,13 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                 {dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
                   <span className="text-blue-600 cursor-pointer ml-1 underline relative">
                     +{dataCatalogos?.pass_selected?.ubicacion.length - 1}
-                    <div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
+                    <span className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
                       {dataCatalogos?.pass_selected?.ubicacion
                         .slice(1)
                         .map((ubic: string, idx: number) => (
-                          <div key={idx}>{ubic}</div>
+                          <span key={idx} className="block">{ubic}</span>
                         ))}
-                    </div>
+                    </span>
                   </span>
                 )}
               </div>
@@ -1663,13 +1663,13 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                           {dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
                             <span className="text-blue-600 cursor-pointer ml-1.5 underline text-xs font-semibold">
                               +{dataCatalogos?.pass_selected?.ubicacion.length - 1} más
-                              <div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-lg group-hover:block">
+                              <span className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-lg group-hover:block">
                                 {dataCatalogos?.pass_selected?.ubicacion
                                   .slice(1)
                                   .map((ubic: string, idx: number) => (
-                                    <div key={idx} className="py-0.5">{ubic}</div>
+                                    <span key={idx} className="block py-0.5">{ubic}</span>
                                   ))}
-                              </div>
+                              </span>
                             </span>
                           )}
                         </p>
