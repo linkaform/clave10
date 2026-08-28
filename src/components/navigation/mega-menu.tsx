@@ -90,7 +90,9 @@ function MegaMenuItem({ module, basePath, isActive }: MegaMenuItemProps) {
               maxColumns === 1 && "w-[220px]",
               maxColumns === 2 && "w-[420px] grid-cols-2",
               maxColumns === 3 && "w-[580px] grid-cols-3",
-              maxColumns >= 4 && "w-[750px] grid-cols-4",
+              maxColumns === 4 && "w-[750px] grid-cols-4",
+              maxColumns === 5 && "w-[900px] grid-cols-5",
+              maxColumns >= 6 && "w-[1050px] grid-cols-6",
             )}>
             {populatedColumns.map((sections, i) => (
               <MenuColumn
