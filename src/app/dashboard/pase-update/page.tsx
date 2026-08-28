@@ -743,9 +743,12 @@ const PaseUpdate = () => {
         nombre: m.nombre,
         email: m.email,
         telefono: m.telefono,
-        foto: m.foto
-          ? [{ file_url: m.foto, file_name: `foto-${m.nombre || m.id}.jpg` }]
-          : [],
+        // m.foto / m.identificacion ya vienen como Imagen[] (normalizeImageField
+        // los arma así al leer dataCatalogos) — antes se re-envolvían como si
+        // m.foto fuera un string de URL, mandando el arreglo completo como
+        // file_url (por eso <Image> tronaba con "missing required src").
+        foto: m.foto ?? [],
+        identificacion: m.identificacion ?? [],
       })),
     };
 
