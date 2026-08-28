@@ -21,10 +21,19 @@ export interface GetPdfMultiError {
   error: string;
 }
 
-export type GetPdfMultiResponse =
+export type GetPdfMultiData =
   | GetPdfMultiSuccess
   | GetPdfMultiSinRegistros
   | GetPdfMultiError;
+
+// El backend envuelve el resultado en response.data (no viene plano, aunque
+// la doc del servicio lo describa así) — confirmado con la respuesta real:
+// { response: { data: { status, path, _id } }, success: true, log: "..." }.
+export interface GetPdfMultiResponse {
+  response?: { data: GetPdfMultiData };
+  success?: boolean;
+  log?: string;
+}
 
 export const getPdfMulti = async (
   record_ids: string[],

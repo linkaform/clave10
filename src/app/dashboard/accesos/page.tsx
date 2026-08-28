@@ -166,8 +166,12 @@ const AccesosContent = () => {
   // tardar hasta ~2 minutos, por eso el spinner en doAccess.onSuccess no se
   // cierra hasta que esta promesa resuelve.
   const imprimirPaseMultiple = async (recordIds: string[]) => {
-    const data = await getPdfMulti(recordIds);
+    const respuesta = await getPdfMulti(recordIds);
+    const data = respuesta.response?.data;
 
+    if (!data) {
+      throw new Error("No se pudo obtener el PDF combinado");
+    }
     if ("error" in data) {
       throw new Error(data.error);
     }
