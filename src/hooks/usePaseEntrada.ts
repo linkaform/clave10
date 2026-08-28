@@ -9,59 +9,7 @@ import { useMutation, useQuery ,useQueryClient} from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-export type Link = {
-  link: string;
-  docs: string[];
-  creado_por_id: number;
-  creado_por_email: string;
-};
-
-export type enviar_pre_sms={ 
-  from: string,
-  mensaje: string,
-  numero: string
-}
-
-export type Areas={
-  nombre_area: string,
-  commentario_area: string
-}
-
-export type Comentarios={
-  tipo_comentario: string,
-  comentario_pase: string
-}
-
-
-export type Access_pass={
-  created_from:string,
-    nombre:string,
-    empresa?:string,
-    email:string,
-    telefono:string,
-    ubicacion:string,
-    tema_cita:string,
-    descripcion:string,
-    perfil_pase: string,
-    status_pase:string,
-    visita_a: string,
-    custom: boolean,
-    link:Link,
-    enviar_correo_pre_registro?: string[], 
-    tipo_visita_pase: string,
-    fechaFija:string,
-    fecha_desde_visita:string,
-    fecha_desde_hasta:string,
-    config_dia_de_acceso: string,
-    config_dias_acceso?: string[],
-    config_limitar_acceso: number,
-    areas?: Areas[],
-    comentarios?: Comentarios[],
-    enviar_pre_sms:enviar_pre_sms,
-    habilitar_vehiculo:string;
-    acompanantes:number | any[];
-}
-
+import { Access_pass, Areas, Comentarios, enviar_pre_sms } from "@/hooks/useCreateAccessPass";
 
 export type Update_full_pass = {
       created_from:string,

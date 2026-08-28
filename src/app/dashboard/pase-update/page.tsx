@@ -30,10 +30,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { EqipmentLocalPassModal } from "@/components/modals/add-local-equipo";
-import { formatEquipos, formatVehiculos, isVehiculoHabilitado, prefijoToCountry } from "@/lib/utils";
+import { formatEquipos, formatVehiculos, isHabilitado, isVehiculoHabilitado, prefijoToCountry } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
+import { useLogoPaseStore } from "@/store/useLogoPaseStore";
 // import { API_ENDPOINTS } from "@/config/api";
 import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
@@ -227,6 +228,7 @@ const PaseUpdate = () => {
     isLoading: loadingDataCatalogos,
     error,
   } = useGetCatalogoPaseNoJwt(account_id, id, enableInfo);
+  const setLogoUrl = useLogoPaseStore((s) => s.setLogoUrl);
   const [agregarEquiposActive, setAgregarEquiposActive] = useState(false);
   const [agregarVehiculosActive, setAgregarVehiculosActive] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -235,8 +237,12 @@ const PaseUpdate = () => {
   const [urlGooglePass, setUrlGooglePass] = useState<string>("");
   const [loadingImgPass, setLoadingImgPass] = useState(false);
   const downloadUrl = responsePdf?.response?.data?.data?.download_url;
-  const requireFoto = showIneIden?.includes("foto") ?? false;
-  const requireIden = showIneIden?.includes("iden") ?? false;
+  const requireFoto =
+    (showIneIden?.includes("foto") ?? false) &&
+    isHabilitado(dataCatalogos?.pass_selected?.habilitar_fotografia);
+  const requireIden =
+    (showIneIden?.includes("iden") ?? false) &&
+    isHabilitado(dataCatalogos?.pass_selected?.habilitar_identificacion);
   const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
   const [permisosCertificacionesFiles, setPermisosCertificacionesFiles] = useState<
     Record<string, PermisoCertificacionArchivos>
@@ -272,12 +278,17 @@ const PaseUpdate = () => {
   const [defaultCountry, setDefaultCountry] = useState<CountryCode>("MX");
   // const [copiedPadre, setCopiedPadre] = useState(false);
 
-  // Estos tres solo se editan cuando el pase está "en proceso" Y es un pase
-  // vinculado (pertenece a un pase padre, o sea trae link_padre). En cualquier
-  // otro caso se sigue mostrando el texto normal, sin tocar nada más.
+  // Estos tres solo se editan cuando el pase está "en proceso" Y o bien es un
+  // pase vinculado (pertenece a un pase padre, o sea trae link_padre), o bien
+  // todavía no tiene nombre: un pase sin nombre está por completar y no se
+  // puede activar así, de modo que el invitado tiene que poder capturarlo.
+  // En cualquier otro caso se sigue mostrando el texto normal.
   const [nombrePaseEdit, setNombrePaseEdit] = useState("");
   const [emailPaseEdit, setEmailPaseEdit] = useState("");
   const [telefonoPaseEdit, setTelefonoPaseEdit] = useState("");
+  const puedeEditarDatosPase =
+    Boolean(dataCatalogos?.pass_selected?.link_padre) ||
+    !dataCatalogos?.pass_selected?.nombre?.trim();
 
   useEffect(() => {
     if (dataCatalogos?.pass_selected) {
@@ -286,6 +297,15 @@ const PaseUpdate = () => {
       setTelefonoPaseEdit(dataCatalogos.pass_selected.telefono || "");
     }
   }, [dataCatalogos]);
+
+  // Si la cuenta trae su propio logo, HeaderPase (en el layout de esta ruta)
+  // lo muestra en vez del logo default de Clave10. Se limpia al desmontar
+  // para que no se quede pegado si se navega a otra ruta que use el mismo
+  // layout (registro-ingreso/reset) sin haber recibido su propio logo.
+  useEffect(() => {
+    setLogoUrl(dataCatalogos?.logotipo_pase?.file_url || null);
+    return () => setLogoUrl(null);
+  }, [dataCatalogos?.logotipo_pase?.file_url, setLogoUrl]);
 
   useEffect(() => {
     if (!dataCatalogos?.pass_selected?.ubicacion?.length || !grupoRequisitos?.length) return;
@@ -690,6 +710,11 @@ const PaseUpdate = () => {
   // se guarda el payload en `pendingFormattedData` y se muestra el paso de
   // firma. El modal solo se abre una vez que esa firma se complete.
   const onSubmit = (data: z.infer<typeof formSchema>) => {
+    // Sin nombre el pase no se puede activar, se pide antes de continuar.
+    if (puedeEditarDatosPase && !nombrePaseEdit.trim()) {
+      toast.error("Escribe el nombre del visitante para continuar");
+      return;
+    }
     const formattedData = {
       grupo_vehiculos: vehicles,
       grupo_equipos: equipos,
@@ -1056,7 +1081,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               <p className="font-bold text-slate-800 whitespace-nowrap">
                 Nombre:
               </p>
-              {dataCatalogos?.pass_selected?.link_padre ? (
+              {puedeEditarDatosPase ? (
                 <input
                   type="text"
                   value={nombrePaseEdit}
@@ -1074,7 +1099,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               <p className="font-bold text-slate-800 whitespace-nowrap">
                 Email:
               </p>
-              {dataCatalogos?.pass_selected?.link_padre ? (
+              {puedeEditarDatosPase ? (
                 <input
                   type="email"
                   value={emailPaseEdit}
@@ -1088,12 +1113,12 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               )}
             </div>
 
-            {(dataCatalogos?.pass_selected?.telefono || dataCatalogos?.pass_selected?.link_padre) && (
+            {(dataCatalogos?.pass_selected?.telefono || puedeEditarDatosPase) && (
               <div className="flex gap-2">
                 <p className="font-bold text-slate-800 whitespace-nowrap">
                   Teléfono:
                 </p>
-                {dataCatalogos?.pass_selected?.link_padre ? (
+                {puedeEditarDatosPase ? (
                   <div className="w-full max-w-xs bg-white border border-gray-200 rounded-lg px-2 py-1 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400">
                     <PhoneInput
                       defaultCountry={defaultCountry}
@@ -1129,13 +1154,13 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                 {dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
                   <span className="text-blue-600 cursor-pointer ml-1 underline relative">
                     +{dataCatalogos?.pass_selected?.ubicacion.length - 1}
-                    <div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
+                    <span className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-sm text-white shadow-lg group-hover:block">
                       {dataCatalogos?.pass_selected?.ubicacion
                         .slice(1)
                         .map((ubic: string, idx: number) => (
-                          <div key={idx}>{ubic}</div>
+                          <span key={idx} className="block">{ubic}</span>
                         ))}
-                    </div>
+                    </span>
                   </span>
                 )}
               </div>
@@ -1145,7 +1170,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {showIneIden?.includes("foto") && (
+            {requireFoto && (
               <Controller
                 control={form.control}
                 name="walkin_fotografia"
@@ -1194,7 +1219,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               />
             )}
 
-            {showIneIden?.includes("iden") && (
+            {requireIden && (
               <Controller
                 control={form.control}
                 name="walkin_identificacion"
@@ -1653,13 +1678,13 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                           {dataCatalogos?.pass_selected?.ubicacion.length > 1 && (
                             <span className="text-blue-600 cursor-pointer ml-1.5 underline text-xs font-semibold">
                               +{dataCatalogos?.pass_selected?.ubicacion.length - 1} más
-                              <div className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-lg group-hover:block">
+                              <span className="absolute left-0 top-full z-10 mt-1 hidden w-max max-w-xs rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-lg group-hover:block">
                                 {dataCatalogos?.pass_selected?.ubicacion
                                   .slice(1)
                                   .map((ubic: string, idx: number) => (
-                                    <div key={idx} className="py-0.5">{ubic}</div>
+                                    <span key={idx} className="block py-0.5">{ubic}</span>
                                   ))}
-                              </div>
+                              </span>
                             </span>
                           )}
                         </p>

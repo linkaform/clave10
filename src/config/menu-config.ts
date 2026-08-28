@@ -869,7 +869,7 @@ export const menuStructure: MenuConfig = {
               order: 1,
             },
             {
-              key: "ubicaciones_todas",
+              key: "",
               label: "Todas",
               type: "option",
               order: 2,

@@ -14,34 +14,8 @@ import { Dispatch, SetStateAction } from "react";
 import { Imagen } from "../upload-Image";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { useBoothStore } from "@/store/useBoothStore";
-import { useCatalogoRoles } from "@/hooks/useGetRoles";
+import { useTurnoRoles } from "@/hooks/useTurnoRoles";
 import useAuthStore from "@/store/useAuthStore";
-
-// Fallback estático: se usa únicamente si el catálogo real (useCatalogoRoles)
-// regresa vacío, para poder resolver los labels de los roles igual que en
-// TakePhotoGuard / CloseShiftModal.
-const ROLES_FALLBACK = [
-  { value: "gerente", label: "Gerente" },
-  { value: "guardia_de_caseta_acceso", label: "Guardia de CasetaAcceso" },
-  { value: "jefe_de_seguridad", label: "Jefe de Seguridad" },
-  { value: "mantenimiento_electrico", label: "Mantenimiento Eléctrico" },
-  { value: "monitorista", label: "Monitorista" },
-  { value: "supervisor_de_mantenimiento", label: "Supervisor de Mantenimiento" },
-  { value: "supervisor_de_seguridad", label: "Supervisor de Seguridad" },
-  { value: "auditor_calidad", label: "Auditor Calidad" },
-  { value: "guardia_de_acceso", label: "Guardia de Acceso" },
-  { value: "guardia_de_patio", label: "Guardia de Patio" },
-  { value: "mantenimiento", label: "Mantenimiento" },
-  { value: "mantenimiento_mecanico", label: "Mantenimiento Mecánico" },
-  { value: "rondinero", label: "Rondinero" },
-  { value: "guardia", label: "Guardia" },
-  { value: "guardia_de_inspeccion", label: "Guardia de Inspeccion" },
-  { value: "jefe_de_turno", label: "Jefe de Turno" },
-  { value: "mantenimiento_general", label: "Mantenimiento General" },
-  { value: "produccion", label: "Produccion" },
-  { value: "supervisor_de_produccion", label: "Supervisor de Producción" },
-  { value: "supervisor_ehs", label: "Supervisor EHS" },
-];
 
 interface StartShiftModalProps {
   title: string;
@@ -70,9 +44,7 @@ export const StartShiftModal: React.FC<StartShiftModalProps> = ({
   const { mutate, isPending } = useStartShift();
 
   const { userIdSoter } = useAuthStore();
-  const { data: dataRoles } = useCatalogoRoles(open, userIdSoter);
-  const rolesDisponibles =
-    dataRoles && dataRoles.length > 0 ? dataRoles : ROLES_FALLBACK;
+  const { rolesDisponibles } = useTurnoRoles(open, userIdSoter);
 
   const rolesConLabel = (roles ?? []).map((r) => {
     const match = rolesDisponibles.find(

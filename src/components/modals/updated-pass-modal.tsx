@@ -28,7 +28,10 @@ interface updatedPassModalProps {
 	description: string;
 	openGeneratedPass:boolean;
 	setOpenGeneratedPass:Dispatch<SetStateAction<boolean>>;
-	qr:string;
+	/** Imagen del gafete (servicio get_pass_img) — se pide desde el padre en
+	 * cuanto se crea el pase, antes de abrir este modal, para que ya esté
+	 * lista cuando se muestre (sin letrero de "cargando"). */
+	gafeteImgUrl:string;
 	dataPass: data_correo|null;
 	account_id:number;
 	folio:string;
@@ -47,8 +50,8 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 	title,
 	openGeneratedPass,
 	setOpenGeneratedPass,
+	gafeteImgUrl,
 	dataPass,
-	qr,
 	account_id,
 	folio,
 	hasEmail,
@@ -406,16 +409,16 @@ return (
 						</div>
 					</div>
 						
-					{qr!=="" ?(
+					{gafeteImgUrl!=="" ?(
 						<>
 						<div className="w-full ">
 							<div className="w-full flex justify-center">
 								<Image
-								src={qr} 
-								alt="Imagen"
-								width={150}
-								height={150}
-								className="w-64 h-64 object-contain bg-gray-200 rounded-lg" 
+								src={gafeteImgUrl}
+								alt="Gafete"
+								width={350}
+								height={350}
+								className="w-full max-w-md aspect-square object-contain bg-gray-200 rounded-lg"
 								/>
 							</div>
 							<div className="flex flex-col gap-2 lg:flex-row lg:gap-6 justify-center items-center">

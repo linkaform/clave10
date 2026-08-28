@@ -102,12 +102,13 @@ import { getValidToken } from "./login/get-valid-token";
         const data = await response.json();
         return data;
     };
-    export const getListBitacoraRondines  = async (date1:string, date2:string, limit:number, offset:number ) => {
+    export const getListBitacoraRondines  = async (date1:string, date2:string, limit:number, offset:number, locations:string[] = [] ) => {
         const payload = {
             dateFom: date1,
             dateTo: date2,
             limit: limit,
             offset: offset,
+            locations,
             option: "get_bitacora",
             script_name: "rondines.py",
         };

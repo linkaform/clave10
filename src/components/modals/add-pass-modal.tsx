@@ -8,12 +8,13 @@ import {
 } from "../ui/dialog";
 import CalendarDays from "../calendar-days";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { CalendarClock, Car, Layers, Loader2, MessageSquare, ShieldCheck, UserRound } from "lucide-react";
+import { Camera, CalendarClock, Car, IdCard, Layers, Loader2, MessageSquare, ShieldCheck, UserRound } from "lucide-react";
 import { GeneratedPassModal } from "./generated-pass-modal";
 import { Access_pass, Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { usePaseEntrada } from "@/hooks/usePaseEntrada";
 import useAuthStore from "@/store/useAuthStore";
+import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { Badge } from "../ui/badge";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { Miembro } from "../miembros-del-pase";
@@ -56,6 +57,8 @@ interface EntryPassUpdateModalProps {
     enviar_pre_sms: enviar_pre_sms;
 	todas_las_areas:boolean;
 	habilitar_vehiculo:string;
+	habilitar_fotografia:string;
+	habilitar_identificacion:string;
 	acompanantes:number;
 	acompanantes_grupo:Miembro[];
   };
@@ -98,6 +101,8 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
   const [sendData, setSendData] = useState<Access_pass|null>(null)
   const [sendPreSms, setSendPreSms] = useState<enviar_pre_sms|null>(null)
   const {userIdSoter, userParentId}= useAuthStore()
+  const { roles } = useAreasLocationStore()
+  const esAdmin = (roles ?? []).includes("Admin")
   const { createPaseEntradaMutation , responseCreatePase} = usePaseEntrada([])
   const isLoading = createPaseEntradaMutation.isPending
   const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
@@ -145,6 +150,8 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
       },
 	  todas_las_areas:dataPass.todas_las_areas,
 	  habilitar_vehiculo:dataPass.habilitar_vehiculo,
+	  habilitar_fotografia:dataPass.habilitar_fotografia,
+	  habilitar_identificacion:dataPass.habilitar_identificacion,
 	  acompanantes:dataPass.acompanantes,
 	  acompanantes_grupo: dataPass.acompanantes_grupo ?? [],
     };
@@ -188,7 +195,8 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
           docs+="-"
         }
       })
-      setLink(`${hostPro.protocol}//${hostPro.host}/dashboard/pase-update?id=${responseCreatePase?.json.id}&user=${userParentId}&docs=${docs}`)
+      const backendLink = responseCreatePase?.json?.link
+      setLink(backendLink || `${hostPro.protocol}//${hostPro.host}/dashboard/pase-update?id=${responseCreatePase?.json.id}&user=${userParentId}&docs=${docs}`)
       setOpenGeneratedPass(true)
   },[responseCreatePase])
 
@@ -321,6 +329,45 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 					</Badge>
 				</div>
 				</div>
+				{/* Fotografía e Identificación (solo Admin) */}
+				{esAdmin && (
+				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-2">
+						<div className="bg-blue-50 p-1.5 rounded-lg">
+							<Camera size={16} className="text-blue-600" />
+						</div>
+						<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Habilitar fotografía</span>
+						</div>
+						<Badge
+						className={
+							dataPass?.habilitar_fotografia === "sí"
+							? "bg-green-100 text-green-700 hover:bg-green-100 border-none font-black text-[10px]"
+							: "bg-red-100 text-red-700 hover:bg-red-100 border-none font-black text-[10px]"
+						}
+						>
+						{dataPass?.habilitar_fotografia === "sí" ? "Habilitada" : "Deshabilitada"}
+						</Badge>
+					</div>
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-2">
+						<div className="bg-blue-50 p-1.5 rounded-lg">
+							<IdCard size={16} className="text-blue-600" />
+						</div>
+						<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Habilitar identificación</span>
+						</div>
+						<Badge
+						className={
+							dataPass?.habilitar_identificacion === "sí"
+							? "bg-green-100 text-green-700 hover:bg-green-100 border-none font-black text-[10px]"
+							: "bg-red-100 text-red-700 hover:bg-red-100 border-none font-black text-[10px]"
+						}
+						>
+						{dataPass?.habilitar_identificacion === "sí" ? "Habilitada" : "Deshabilitada"}
+						</Badge>
+					</div>
+				</div>
+				)}
 				{/* Acompañantes */}
 				{(dataPass?.acompanantes ?? 0) > 0 && (
 					<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
