@@ -3,7 +3,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Pencil, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { MenuItemAdmin } from "@/services/menus-admin";
 
 interface MenuItemRowProps {
@@ -37,13 +36,6 @@ export const MenuItemRow: React.FC<MenuItemRowProps> = ({
       {...listeners}>
       <GripVertical size={14} className="text-muted-foreground shrink-0" />
       <span className="flex-1 truncate">{item.elemento}</span>
-      {item.platforms === "mobile" ? (
-        <span className="text-[10px] text-muted-foreground/60 shrink-0">solo mobile</span>
-      ) : (
-        <Badge variant="outline" className="text-[10px] px-1 py-0">
-          {item.platforms}
-        </Badge>
-      )}
       <button
         title="Editar"
         className="text-blue-500 hover:text-blue-600 shrink-0"

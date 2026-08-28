@@ -28,8 +28,6 @@ export const MenuSectionCard: React.FC<MenuSectionCardProps> = ({
   onDeleteItem,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const allMobile =
-    section.items.length > 0 && section.items.every((i) => i.platforms === "mobile");
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({
@@ -58,11 +56,6 @@ export const MenuSectionCard: React.FC<MenuSectionCardProps> = ({
           className="flex-1 text-left font-semibold text-sm truncate flex items-center gap-1.5"
           onClick={() => setCollapsed((c) => !c)}>
           <span className="truncate">{section.seccion}</span>
-          {allMobile && (
-            <span className="text-[10px] font-normal text-muted-foreground/60 shrink-0">
-              (solo mobile)
-            </span>
-          )}
         </button>
         <button
           title="Editar sección"

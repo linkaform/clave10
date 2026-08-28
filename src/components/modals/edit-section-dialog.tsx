@@ -29,6 +29,7 @@ export interface SectionFormValues {
   seccionHref: string;
   seccionIcon: string;
   seccionIconColor: string;
+  seccionDescription: string;
 }
 
 interface EditSectionDialogProps {
@@ -45,6 +46,7 @@ const formSchema = z.object({
   seccionHref: z.string().optional(),
   seccionIcon: z.string().optional(),
   seccionIconColor: z.string().optional(),
+  seccionDescription: z.string().optional(),
 });
 
 const emptyValues: SectionFormValues = {
@@ -53,6 +55,7 @@ const emptyValues: SectionFormValues = {
   seccionHref: "",
   seccionIcon: "",
   seccionIconColor: "",
+  seccionDescription: "",
 };
 
 export const EditSectionDialog: React.FC<EditSectionDialogProps> = ({
@@ -80,6 +83,7 @@ export const EditSectionDialog: React.FC<EditSectionDialogProps> = ({
       seccionHref: values.seccionHref || "",
       seccionIcon: values.seccionIcon || "",
       seccionIconColor: values.seccionIconColor || "",
+      seccionDescription: values.seccionDescription || "",
     });
   };
 
@@ -156,6 +160,19 @@ export const EditSectionDialog: React.FC<EditSectionDialogProps> = ({
                   <FormLabel>Color del icono</FormLabel>
                   <FormControl>
                     <Input placeholder="#4CAF50" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="seccionDescription"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descripción (opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Gestión de pases de entrada" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

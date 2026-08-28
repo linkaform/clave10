@@ -90,9 +90,6 @@ export const MenuUserAssignmentTree: React.FC<MenuUserAssignmentTreeProps> = ({
                 const allChecked = seccion.items.every((i) =>
                   selectedSet.has(i.key),
                 );
-                const allMobile =
-                  seccion.items.length > 0 &&
-                  seccion.items.every((i) => i.platforms === "mobile");
                 return (
                   <div key={seccion.seccionKey} className="flex flex-col gap-1">
                     <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -103,11 +100,6 @@ export const MenuUserAssignmentTree: React.FC<MenuUserAssignmentTreeProps> = ({
                         }
                       />
                       {seccion.seccionLabel}
-                      {allMobile && (
-                        <span className="text-[10px] font-normal normal-case text-muted-foreground/60">
-                          (solo mobile)
-                        </span>
-                      )}
                     </label>
                     <div className="flex flex-col gap-1 pl-6">
                       {seccion.items.map((item) => (
@@ -121,11 +113,6 @@ export const MenuUserAssignmentTree: React.FC<MenuUserAssignmentTreeProps> = ({
                             }
                           />
                           {item.elemento}
-                          {item.platforms === "mobile" && (
-                            <span className="text-[10px] text-muted-foreground/60">
-                              solo mobile
-                            </span>
-                          )}
                         </label>
                       ))}
                     </div>

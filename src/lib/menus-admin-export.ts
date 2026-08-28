@@ -4,7 +4,6 @@ import { MenuItemAdmin, MenuItemPlatform, MenuItemType } from "@/services/menus-
 const PLATFORM_LABELS: Record<string, string> = {
   web: "web",
   mobile: "mobile",
-  both: "both",
 };
 
 export function exportMenuItemsToExcel(items: MenuItemAdmin[]) {
@@ -21,12 +20,14 @@ export function exportMenuItemsToExcel(items: MenuItemAdmin[]) {
     "Seccion Href": item.seccion_href || "",
     "Seccion Icon": item.seccion_icon || "",
     "Seccion Icon Color": item.seccion_icon_color || "",
+    "Seccion Description": item.seccion_description || "",
     "Elemento": item.elemento,
     "Key": item.key,
     "Type": item.type,
     "Item Order": item.item_order,
     "Href Web": item.href_web || "",
     "Route Mobile": item.route_mobile || "",
+    "Item Icon": item.item_icon || "",
     "Platforms": PLATFORM_LABELS[item.platforms] || item.platforms,
   }));
 
@@ -37,7 +38,7 @@ export function exportMenuItemsToExcel(items: MenuItemAdmin[]) {
 }
 
 const VALID_TYPES: MenuItemType[] = ["option", "config", "report", "action", "link"];
-const VALID_PLATFORMS: MenuItemPlatform[] = ["web", "mobile", "both"];
+const VALID_PLATFORMS: MenuItemPlatform[] = ["web", "mobile"];
 
 function str(value: unknown): string {
   return value === undefined || value === null ? "" : String(value).trim();
@@ -78,12 +79,14 @@ export async function parseMenuItemsFromExcel(file: File): Promise<MenuItemAdmin
         seccion_href: str(row["Seccion Href"]),
         seccion_icon: str(row["Seccion Icon"]),
         seccion_icon_color: str(row["Seccion Icon Color"]),
+        seccion_description: str(row["Seccion Description"]),
         elemento: str(row["Elemento"]),
         key: str(row["Key"]),
         type: (VALID_TYPES.includes(typeRaw as MenuItemType) ? typeRaw : "link") as MenuItemType,
         item_order: num(row["Item Order"], 0),
         href_web: str(row["Href Web"]),
         route_mobile: str(row["Route Mobile"]),
+        item_icon: str(row["Item Icon"]),
         platforms: (VALID_PLATFORMS.includes(platformsRaw as MenuItemPlatform)
           ? platformsRaw
           : "web") as MenuItemPlatform,

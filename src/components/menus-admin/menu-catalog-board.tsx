@@ -20,13 +20,17 @@ import { MenuItemAdmin } from "@/services/menus-admin";
 
 interface MenuCatalogBoardProps {
   items: MenuItemAdmin[];
+  platform: "web" | "mobile";
   onSave: (rows: MenuItemAdmin[], deletedIds: string[]) => void;
+  onDirtyChange?: (dirty: boolean) => void;
   isSaving: boolean;
 }
 
 export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
   items,
+  platform,
   onSave,
+  onDirtyChange,
   isSaving,
 }) => {
   const [modules, setModules] = useState<ModuleGroup[]>([]);
@@ -45,8 +49,15 @@ export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
 
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty]);
+
   const selectedModule = modules.find((m) => m.menuKey === selectedMenuKey) || null;
 
+  // las keys solo tienen que ser únicas DENTRO de esta plataforma - compartir
+  // key con el mismo item de la otra plataforma es válido a propósito
   const existingItemKeys = useMemo(() => new Set(items.map((i) => i.key)), [items]);
   const existingSectionKeys = useMemo(
     () => new Set(items.map((i) => i.seccion_key)),
@@ -151,6 +162,7 @@ export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
                         seccionHref: values.seccionHref,
                         seccionIcon: values.seccionIcon,
                         seccionIconColor: values.seccionIconColor,
+                        seccionDescription: values.seccionDescription,
                       }
                     : s,
                 ),
@@ -165,6 +177,7 @@ export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
         seccionHref: values.seccionHref,
         seccionIcon: values.seccionIcon,
         seccionIconColor: values.seccionIconColor,
+        seccionDescription: values.seccionDescription,
         column: newSectionColumn,
         items: [],
       };
@@ -242,13 +255,15 @@ export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
           seccion_href: target.seccionHref,
           seccion_icon: target.seccionIcon,
           seccion_icon_color: target.seccionIconColor,
+          seccion_description: target.seccionDescription,
           elemento: values.elemento,
           key,
           type: values.type,
           item_order: 0,
           href_web: values.href_web,
           route_mobile: values.route_mobile,
-          platforms: values.platforms,
+          item_icon: values.item_icon,
+          platforms: platform,
         };
         sections[targetIdx] = { ...target, items: [...target.items, newRow] };
         return { ...m, sections };
@@ -376,6 +391,7 @@ export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
                 seccionHref: editingSection.seccionHref,
                 seccionIcon: editingSection.seccionIcon,
                 seccionIconColor: editingSection.seccionIconColor,
+                seccionDescription: editingSection.seccionDescription,
               }
             : null
         }
@@ -389,6 +405,7 @@ export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
         initialValues={editingItem}
         defaultSeccionKey={editingItem?.seccion_key || newItemSectionKey}
         sectionOptions={sectionOptions}
+        platform={platform}
         isSaving={false}
         onSubmit={handleSubmitItem}
       />

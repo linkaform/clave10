@@ -6,6 +6,7 @@ export interface SectionGroup {
   seccionHref: string;
   seccionIcon: string;
   seccionIconColor: string;
+  seccionDescription: string;
   column: number;
   items: MenuItemAdmin[];
 }
@@ -40,6 +41,7 @@ export function groupByModule(items: MenuItemAdmin[]): ModuleGroup[] {
         seccionHref: item.seccion_href || "",
         seccionIcon: item.seccion_icon || "",
         seccionIconColor: item.seccion_icon_color || "",
+        seccionDescription: item.seccion_description || "",
         column: item.seccion_column || 1,
         items: [],
       };
@@ -128,6 +130,7 @@ export function flattenModule(module: ModuleGroup, menuOrder: number): MenuItemA
           seccion_href: section.seccionHref,
           seccion_icon: section.seccionIcon,
           seccion_icon_color: section.seccionIconColor,
+          seccion_description: section.seccionDescription,
           item_order: itemOrder,
         });
         itemOrder += 1;

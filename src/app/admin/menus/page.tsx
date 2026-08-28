@@ -29,6 +29,24 @@ export default function AdminMenusPage() {
     useMenuItems();
   const [importOpen, setImportOpen] = useState(false);
 
+  const [platformTab, setPlatformTab] = useState<"web" | "mobile">("web");
+  const [catalogDirty, setCatalogDirty] = useState(false);
+  const handlePlatformTabChange = (next: string) => {
+    if (next === platformTab) return;
+    if (catalogDirty) {
+      const confirmed = window.confirm(
+        "Tienes cambios sin guardar en el catálogo. ¿Descartarlos y cambiar de vista?",
+      );
+      if (!confirmed) return;
+      setCatalogDirty(false);
+    }
+    setPlatformTab(next as "web" | "mobile");
+  };
+  const filteredMenuItems = menuItems.filter((i) => i.platforms === platformTab);
+
+  const [assignmentPlatformTab, setAssignmentPlatformTab] = useState<"web" | "mobile">("web");
+  const assignmentMenuItems = menuItems.filter((i) => i.platforms === assignmentPlatformTab);
+
   const { users, isLoadingUsers } = useMenuUsers();
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const selectedUserIdsNum = selectedUserIds.map(Number);
@@ -89,18 +107,38 @@ export default function AdminMenusPage() {
         </TabsList>
 
         <TabsContent value="catalogo" className="mt-4">
+          <Tabs value={platformTab} onValueChange={handlePlatformTabChange} className="mb-4">
+            <TabsList>
+              <TabsTrigger value="web">Web</TabsTrigger>
+              <TabsTrigger value="mobile">Mobile</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           {isLoadingMenuItems ? (
             <div className="text-center py-10 text-muted-foreground">Cargando...</div>
           ) : (
             <MenuCatalogBoard
-              items={menuItems}
+              key={platformTab}
+              items={filteredMenuItems}
+              platform={platformTab}
               onSave={handleSaveBoard}
+              onDirtyChange={setCatalogDirty}
               isSaving={saveBoardMutation.isPending}
             />
           )}
         </TabsContent>
 
         <TabsContent value="asignacion" className="mt-4">
+          <Tabs
+            value={assignmentPlatformTab}
+            onValueChange={(v) => setAssignmentPlatformTab(v as "web" | "mobile")}
+            className="mb-4">
+            <TabsList>
+              <TabsTrigger value="web">Web</TabsTrigger>
+              <TabsTrigger value="mobile">Mobile</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <div className="mb-4 max-w-sm">
             <MultiSelect values={selectedUserIds} onValuesChange={handleSelectUsers}>
               <MultiSelectTrigger disabled={isLoadingUsers}>
@@ -132,7 +170,7 @@ export default function AdminMenusPage() {
                 </p>
               )}
               <MenuUserAssignmentTree
-                items={menuItems}
+                items={assignmentMenuItems}
                 selectedKeys={selectedKeys}
                 onChange={setPendingKeys}
               />
@@ -151,3 +189,4 @@ export default function AdminMenusPage() {
     </div>
   );
 }
+

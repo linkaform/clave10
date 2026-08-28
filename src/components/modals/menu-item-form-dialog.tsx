@@ -35,9 +35,9 @@ export interface ItemFormValues {
   elemento: string;
   key: string;
   type: "option" | "config" | "report" | "action" | "link";
-  platforms: "web" | "mobile" | "both";
   href_web: string;
   route_mobile: string;
+  item_icon: string;
   seccionKey: string;
 }
 
@@ -47,6 +47,7 @@ interface MenuItemFormDialogProps {
   initialValues?: MenuItemAdmin | null;
   defaultSeccionKey: string;
   sectionOptions: { seccionKey: string; seccion: string }[];
+  platform: "web" | "mobile";
   isSaving: boolean;
   onSubmit: (values: ItemFormValues) => void;
 }
@@ -55,9 +56,9 @@ const formSchema = z.object({
   elemento: z.string().min(1, "Requerido"),
   key: z.string().min(1, "Requerido"),
   type: z.enum(["option", "config", "report", "action", "link"]),
-  platforms: z.enum(["web", "mobile", "both"]),
   href_web: z.string().optional(),
   route_mobile: z.string().optional(),
+  item_icon: z.string().optional(),
   seccionKey: z.string().min(1, "Requerido"),
 });
 
@@ -67,6 +68,7 @@ export const MenuItemFormDialog: React.FC<MenuItemFormDialogProps> = ({
   initialValues,
   defaultSeccionKey,
   sectionOptions,
+  platform,
   isSaving,
   onSubmit,
 }) => {
@@ -76,9 +78,9 @@ export const MenuItemFormDialog: React.FC<MenuItemFormDialogProps> = ({
       elemento: "",
       key: "",
       type: "link",
-      platforms: "web",
       href_web: "",
       route_mobile: "",
+      item_icon: "",
       seccionKey: defaultSeccionKey,
     },
   });
@@ -91,18 +93,18 @@ export const MenuItemFormDialog: React.FC<MenuItemFormDialogProps> = ({
               elemento: initialValues.elemento,
               key: initialValues.key,
               type: initialValues.type,
-              platforms: initialValues.platforms,
               href_web: initialValues.href_web || "",
               route_mobile: initialValues.route_mobile || "",
+              item_icon: initialValues.item_icon || "",
               seccionKey: initialValues.seccion_key,
             }
           : {
               elemento: "",
               key: "",
               type: "link",
-              platforms: "web",
               href_web: "",
               route_mobile: "",
+              item_icon: "",
               seccionKey: defaultSeccionKey,
             },
       );
@@ -128,6 +130,7 @@ export const MenuItemFormDialog: React.FC<MenuItemFormDialogProps> = ({
                 ...values,
                 href_web: values.href_web || "",
                 route_mobile: values.route_mobile || "",
+                item_icon: values.item_icon || "",
               }),
             )}
             className="flex flex-col gap-4">
@@ -181,80 +184,74 @@ export const MenuItemFormDialog: React.FC<MenuItemFormDialogProps> = ({
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="link">link</SelectItem>
-                        <SelectItem value="option">option</SelectItem>
-                        <SelectItem value="config">config</SelectItem>
-                        <SelectItem value="report">report</SelectItem>
-                        <SelectItem value="action">action</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="platforms"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Platforms</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="web">web</SelectItem>
-                        <SelectItem value="mobile">mobile</SelectItem>
-                        <SelectItem value="both">both</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
             <FormField
               control={form.control}
-              name="href_web"
+              name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Href Web</FormLabel>
-                  <FormControl>
-                    <Input placeholder="/bitacoras?status=entrada" {...field} />
-                  </FormControl>
+                  <FormLabel>Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="link">link</SelectItem>
+                      <SelectItem value="option">option</SelectItem>
+                      <SelectItem value="config">config</SelectItem>
+                      <SelectItem value="report">report</SelectItem>
+                      <SelectItem value="action">action</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="route_mobile"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Route Mobile</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {platform === "web" ? (
+              <FormField
+                control={form.control}
+                name="href_web"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Href Web</FormLabel>
+                    <FormControl>
+                      <Input placeholder="/bitacoras?status=entrada" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              <>
+                <FormField
+                  control={form.control}
+                  name="route_mobile"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Route Mobile</FormLabel>
+                      <FormControl>
+                        <Input placeholder="/ListNotas?action=new" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="item_icon"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Icon (opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="plus-circle-outline" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
             <div className="flex gap-2 mt-2">
               <DialogClose asChild>
                 <Button type="button" className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700">

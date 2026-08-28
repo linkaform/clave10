@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from "@/config/api";
 import { ApiResponse } from "@/types/api";
 
 export type MenuItemType = "option" | "config" | "report" | "action" | "link";
-export type MenuItemPlatform = "web" | "mobile" | "both";
+export type MenuItemPlatform = "web" | "mobile";
 
 export interface MenuItemAdmin {
   _id?: string;
@@ -26,6 +26,8 @@ export interface MenuItemAdmin {
   href_web?: string;
   route_mobile?: string;
   platforms: MenuItemPlatform;
+  item_icon?: string;
+  seccion_description?: string;
 }
 
 export interface MenuUser {
