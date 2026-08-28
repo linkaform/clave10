@@ -27,6 +27,7 @@ import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
 import { Contacto } from "@/lib/get-user-contacts";
 import { usePaseEntrada } from "@/hooks/usePaseEntrada";
+import { useGetAreasByLocations } from "@/hooks/useCatalogoPaseAreaLocation";
 import {
   Select,
   SelectContent,
@@ -376,6 +377,16 @@ const PaseEntradaPage = () => {
   const { dataConfigLocation, isLoadingConfigLocation } = usePaseEntrada(
     ubicacionesSeleccionadasLista ?? [],
   );
+
+  // TEMP: probando getAreasByLocations para ver si trae el catálogo completo
+  // de áreas (vs. catalogos_pase_location, que solo trae 1).
+  const { data: dataAreasByLocations } = useGetAreasByLocations(
+    (ubicacionesSeleccionadasLista?.length ?? 0) > 0,
+    ubicacionesSeleccionadasLista ?? [],
+  );
+  useEffect(() => {
+    console.log("TEMP getAreasByLocations ->", dataAreasByLocations);
+  }, [dataAreasByLocations]);
   // Foto/Identificación solo se pueden ofrecer si vienen dentro de los
   // requerimientos de la config del módulo de seguridad de la ubicación;
   // el rol Admin únicamente decide si se muestran cuando SÍ vienen.
@@ -383,6 +394,16 @@ const PaseEntradaPage = () => {
     dataConfigLocation?.requerimientos?.includes("fotografia") ?? false;
   const requiereIdentificacionModulo =
     dataConfigLocation?.requerimientos?.includes("identificacion") ?? false;
+
+  // Cada vez que el toggle (re)aparece debe arrancar activado — si no, al
+  // cambiar de ubicación podría arrastrar un "no" que el admin dejó puesto
+  // en una ubicación anterior donde el toggle ni se mostraba.
+  useEffect(() => {
+    if (requiereFotoModulo) setHabilitarFoto(true);
+  }, [requiereFotoModulo]);
+  useEffect(() => {
+    if (requiereIdentificacionModulo) setHabilitarIdentificacion(true);
+  }, [requiereIdentificacionModulo]);
 
   const [enviar_correo_pre_registro] = useState<string[]>([]);
   const [formatedDocs, setFormatedDocs] = useState<string[]>([]);
@@ -666,9 +687,16 @@ const PaseEntradaPage = () => {
       },
       todas_las_areas: todasAreas,
       habilitar_vehiculo: habilitarVehiculo ? "sí" : "no",
-      habilitar_fotografia: requiereFotoModulo && habilitarFoto ? "sí" : "no",
-      habilitar_identificacion:
-        requiereIdentificacionModulo && habilitarIdentificacion ? "sí" : "no",
+      // Si el módulo de seguridad no pide fotografia/identificacion, el
+      // toggle ni se muestra (ver esAdmin && requiereFotoModulo en el JSX) —
+      // en ese caso no se manda la llave al back. Si sí la pide, se manda
+      // "sí"/"no" según el toggle (que el admin puede apagar).
+      ...(requiereFotoModulo && {
+        habilitar_fotografia: habilitarFoto ? "sí" : "no",
+      }),
+      ...(requiereIdentificacionModulo && {
+        habilitar_identificacion: habilitarIdentificacion ? "sí" : "no",
+      }),
       acompanantes: Number(data.acompanantes) || 0,
       acompanantes_grupo:miembrosAcompanantes|| []
     };
