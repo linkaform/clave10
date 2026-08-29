@@ -855,13 +855,15 @@ const PaseUpdate = () => {
   }, [dataCatalogos]);
 
   useEffect(() => {
-    // No precargar vehicles/equipos con lo que el pase ya trae: esta
-    // sección solo agrega registros nuevos — si se manda de vuelta lo que
-    // ya existe, el back lo duplica en update_pass. Lo ya cargado se
-    // muestra aparte, solo en la lista de lectura (dataCatalogos directo).
+    // El back ya no duplica grupo_vehiculos/grupo_equipos en update_pass, así
+    // que se puede precargar directo lo que el pase ya trae en la lista
+    // editable (con el formato correcto, que difiere del shape crudo).
+    // Siempre resetea (con ?? [] si no hay datos) — si solo se llamara
+    // setEquipos/setVehiculos cuando el campo viene con datos, un refetch
+    // sin grupo_equipos/grupo_vehiculos dejaría el estado anterior pegado.
     if (dataCatalogos?.pass_selected?.estatus === "activo") {
-      setEquipos([]);
-      setVehiculos([]);
+      setEquipos(formatEquipos(dataCatalogos.pass_selected.grupo_equipos ?? []));
+      setVehiculos(formatVehiculos(dataCatalogos.pass_selected.grupo_vehiculos ?? []));
     }
   }, [dataCatalogos?.pass_selected]);
 
@@ -1565,56 +1567,6 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                           Ver y agregar equipos o vehículos
                         </AccordionTrigger>
                         <AccordionContent>
-                          {/* Vehículos/equipos ya cargados en el pase — solo
-                              lectura, no es la misma lista editable de abajo. */}
-                          {((dataCatalogos?.pass_selected?.grupo_vehiculos?.length ?? 0) > 0 ||
-                            (dataCatalogos?.pass_selected?.grupo_equipos?.length ?? 0) > 0) && (
-                            <div className="w-full flex flex-col gap-4 mb-6">
-                              {(dataCatalogos?.pass_selected?.grupo_vehiculos?.length ?? 0) > 0 && (
-                                <div className="space-y-2">
-                                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                                    Vehículos ya registrados
-                                  </span>
-                                  <div className="max-h-[168px] overflow-y-auto pr-1.5 space-y-2">
-                                    {formatVehiculos(dataCatalogos!.pass_selected!.grupo_vehiculos).map((v, i) => (
-                                      <div
-                                        key={i}
-                                        className="rounded-lg border border-sky-100 bg-sky-50 px-3 py-2 text-xs text-slate-600 grid grid-cols-2 gap-x-3 gap-y-0.5">
-                                        <p><strong>Tipo:</strong> {v.tipo || "—"}</p>
-                                        <p><strong>Marca:</strong> {v.marca || "—"}</p>
-                                        <p><strong>Modelo:</strong> {v.modelo || "—"}</p>
-                                        <p><strong>Placas:</strong> {v.placas || "—"}</p>
-                                        <p><strong>Estado:</strong> {v.estado || "—"}</p>
-                                        <p><strong>Color:</strong> {v.color || "—"}</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              {(dataCatalogos?.pass_selected?.grupo_equipos?.length ?? 0) > 0 && (
-                                <div className="space-y-2">
-                                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                                    Equipos ya registrados
-                                  </span>
-                                  <div className="max-h-[168px] overflow-y-auto pr-1.5 space-y-2">
-                                    {formatEquipos(dataCatalogos!.pass_selected!.grupo_equipos).map((e, i) => (
-                                      <div
-                                        key={i}
-                                        className="rounded-lg border border-sky-100 bg-sky-50 px-3 py-2 text-xs text-slate-600 grid grid-cols-2 gap-x-3 gap-y-0.5">
-                                        <p><strong>Tipo:</strong> {e.tipo || "—"}</p>
-                                        <p><strong>Nombre:</strong> {e.nombre || "—"}</p>
-                                        <p><strong>Marca:</strong> {e.marca || "—"}</p>
-                                        <p><strong>Modelo:</strong> {e.modelo || "—"}</p>
-                                        <p><strong>No. Serie:</strong> {e.serie || "—"}</p>
-                                        <p><strong>Color:</strong> {e.color || "—"}</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
                           <div className="w-full flex flex-col gap-6">
                             {vehiculoHabilitado && (
                               <PaseVehiculosSection
