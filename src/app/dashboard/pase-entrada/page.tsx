@@ -804,6 +804,15 @@ const PaseEntradaPage = () => {
   };
   const acompanantesValue = useWatch({ control: form.control, name: "acompanantes" });
 
+  const handleAcompanantesChange = (num: number) => {
+    if (num > 15) {
+      setAcompanantesError(true);
+      return;
+    }
+    setAcompanantesError(false);
+    form.setValue("acompanantes", num, { shouldValidate: true, shouldDirty: true });
+  };
+
   useEffect(() => {
       const target = acompanantesValue || 0;
 
@@ -1219,12 +1228,7 @@ const PaseEntradaPage = () => {
                                 onChange={(e) => {
                                   const val = e.target.value;
                                   const num = val === "" ? 0 : Number(val);
-                                  if (num > 15) {
-                                    setAcompanantesError(true);
-                                    return;
-                                  }
-                                  setAcompanantesError(false);
-                                  field.onChange(num);
+                                  handleAcompanantesChange(num);
                                 }}
                                 onFocus={(e) => e.target.select()}
                               />
@@ -1255,6 +1259,7 @@ const PaseEntradaPage = () => {
                     title="Acompañantes"
                     useIA
                     acompantes={acompanantesValue || 0}
+                    onAcompantesChange={handleAcompanantesChange}
                     defaultCountry={defaultCountry}
                     showFotoColumn={false}
                   />

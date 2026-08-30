@@ -43,6 +43,7 @@ interface MiembrosPaseProps {
   title?: string;
   useIA?: boolean;
   acompantes?: number;
+  onAcompantesChange?: (value: number) => void;
   showDownload?: boolean;
   showCreatePass?: boolean;
   showShare?: boolean;
@@ -111,6 +112,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   title = "Listado de Acompañantes",
   useIA = false,
   acompantes,
+  onAcompantesChange,
   showDownload = false,
   showCreatePass = false,
   showShare = false,
@@ -451,6 +453,23 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
               <Users className="w-4 h-4 text-blue-600" />
             </div>
             <h1 className="font-semibold text-gray-700 text-sm">{title}</h1>
+            {onAcompantesChange && (
+              <input
+                type="number"
+                step={1}
+                min={0}
+                max={15}
+                placeholder="0"
+                className="flex h-8 w-16 rounded-xl border border-gray-200 bg-gray-50 px-2 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
+                value={!acompantes ? "" : acompantes}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const num = val === "" ? 0 : Number(val);
+                  onAcompantesChange(num);
+                }}
+                onFocus={(e) => e.target.select()}
+              />
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {efectivoUseIA &&  miembrosEditables.length>0 && (
