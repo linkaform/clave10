@@ -71,6 +71,9 @@ function MegaMenuItem({ module, basePath, isActive }: MegaMenuItemProps) {
     .map(([, sections]) => sections);
   const maxColumns = populatedColumns.length || 1;
   const hasSidebar = module.sidebar && module.sidebar.items.length > 0;
+  // Con más de 4 columnas el menú ya no cabe centrado bajo su trigger sin
+  // salirse de la ventana, así que se vuelve una barra de ancho completo.
+  const isFullWidth = maxColumns > 4;
 
   return (
     <NavigationMenuItem>
@@ -81,17 +84,28 @@ function MegaMenuItem({ module, basePath, isActive }: MegaMenuItemProps) {
         )}>
         {module.label}
       </NavigationMenuTrigger>
-      <NavigationMenuContent className="md:left-1/2 md:-translate-x-1/2">
-        <div className="flex">
+      <NavigationMenuContent
+        className={
+          isFullWidth
+            ? "md:!fixed md:!top-[57px] md:!left-0 md:!right-0 md:!mt-0 md:!w-screen md:!translate-x-0"
+            : "md:left-1/2 md:-translate-x-1/2"
+        }>
+        <div className={cn("flex", isFullWidth && "mx-auto max-w-[1400px] px-6 lg:px-12")}>
           {/* Contenido principal del menú */}
           <div
             className={cn(
               "grid gap-6 p-6",
-              maxColumns === 1 && "w-[220px]",
-              maxColumns === 2 && "w-[420px] grid-cols-2",
-              maxColumns === 3 && "w-[580px] grid-cols-3",
-              maxColumns >= 4 && "w-[750px] grid-cols-4",
-            )}>
+              !isFullWidth && maxColumns === 1 && "w-[220px]",
+              !isFullWidth && maxColumns === 2 && "w-[420px] grid-cols-2",
+              !isFullWidth && maxColumns === 3 && "w-[580px] grid-cols-3",
+              !isFullWidth && maxColumns === 4 && "w-[750px] grid-cols-4",
+              isFullWidth && "w-full",
+            )}
+            style={
+              isFullWidth
+                ? { gridTemplateColumns: `repeat(${maxColumns}, minmax(160px, 1fr))` }
+                : undefined
+            }>
             {populatedColumns.map((sections, i) => (
               <MenuColumn
                 key={i}

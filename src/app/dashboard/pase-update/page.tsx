@@ -15,21 +15,22 @@ import { toast } from "sonner";
 import { useGetCatalogoPaseNoJwt, PermisoCertificacion } from "@/hooks/useGetCatologoPaseNoJwt";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { EntryPassModal2 } from "@/components/modals/add-pass-modal-2";
+import { useUpdateAccessPass } from "@/hooks/useUpdatePass";
 import LoadImage, { Imagen } from "@/components/upload-Image";
 import LoadFile from "@/components/upload-file";
 import { Switch } from "@/components/ui/switch";
-import { Car, Check, Laptop, Loader2, X, ArrowLeft } from "lucide-react";
+import { Check, Loader2, ArrowLeft } from "lucide-react";
 import { useGetPdf } from "@/hooks/usetGetPdf";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import Image from "next/image";
-import { VehicleLocalPassModal } from "@/components/modals/add-local-vehicule";
+import { PaseVehiculosSection } from "@/components/pase-vehiculos-section";
+import { PaseEquiposSection } from "@/components/pase-equipos-section";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { EqipmentLocalPassModal } from "@/components/modals/add-local-equipo";
 import { formatEquipos, formatVehiculos, isHabilitado, isVehiculoHabilitado, prefijoToCountry } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -37,7 +38,6 @@ import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
 import { useLogoPaseStore } from "@/store/useLogoPaseStore";
 // import { API_ENDPOINTS } from "@/config/api";
 import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
-import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
 import type { CountryCode } from "libphonenumber-js";
 import PhoneInput from "react-phone-number-input";
@@ -223,14 +223,14 @@ const PaseUpdate = () => {
   const [enablePdf, setEnablePdf] = useState(false);
   const [enableInfo, setEnableInfo] = useState(false);
   const { data: responsePdf } = useGetPdf(account_id, id, enablePdf);
+  const { updatePassMutation, isLoadingUpdate } = useUpdateAccessPass();
   const {
     data: dataCatalogos,
     isLoading: loadingDataCatalogos,
     error,
+    refetch: refetchDataCatalogos,
   } = useGetCatalogoPaseNoJwt(account_id, id, enableInfo);
   const setLogoUrl = useLogoPaseStore((s) => s.setLogoUrl);
-  const [agregarEquiposActive, setAgregarEquiposActive] = useState(false);
-  const [agregarVehiculosActive, setAgregarVehiculosActive] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [modalData, setModalData] = useState<any>(null);
   const [urlImgPass, setUrlImgPass] = useState<string>("");
@@ -352,9 +352,6 @@ const PaseUpdate = () => {
   const [errorFotografia, setErrorFotografia] = useState("");
   const [errorIdentificacion, setErrorIdentificacion] = useState("");
 
-  const [isActualizarOpen, setIsActualizarOpen] = useState<string | boolean>(
-    false,
-  );
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [vehicles, setVehiculos] = useState<Vehiculo[]>([]);
 
@@ -743,9 +740,12 @@ const PaseUpdate = () => {
         nombre: m.nombre,
         email: m.email,
         telefono: m.telefono,
-        foto: m.foto
-          ? [{ file_url: m.foto, file_name: `foto-${m.nombre || m.id}.jpg` }]
-          : [],
+        // m.foto / m.identificacion ya vienen como Imagen[] (normalizeImageField
+        // los arma así al leer dataCatalogos) — antes se re-envolvían como si
+        // m.foto fuera un string de URL, mandando el arreglo completo como
+        // file_url (por eso <Image> tronaba con "missing required src").
+        foto: m.foto ?? [],
+        identificacion: m.identificacion ?? [],
       })),
     };
 
@@ -774,20 +774,35 @@ const PaseUpdate = () => {
     setIsSuccess(true);
   };
 
-  const updateInfoActivePass = () => {
-    const formattedData = {
-      grupo_vehiculos: vehicles,
-      grupo_equipos: equipos,
-      walkin_fotografia: dataCatalogos?.pass_selected?.foto ?? [],
-      walkin_identificacion: dataCatalogos?.pass_selected?.identificacion ?? [],
-      folio: id,
-      account_id: account_id,
-      email: dataCatalogos?.pass_selected?.email || "",
-      telefono: dataCatalogos?.pass_selected?.telefono || "",
-      nombre: dataCatalogos?.pass_selected?.nombre || "",
-    };
-    setIsSuccess(true);
-    setModalData(formattedData);
+  // Actualiza solo grupo_vehiculos/grupo_equipos, directo al servicio
+  // update_pass — a diferencia del flujo de "completar pase" (onSubmit),
+  // este botón no abre el modal de confirmación ni manda el resto de los
+  // campos del pase.
+  const handleActualizarVehiculosEquipos = () => {
+    updatePassMutation.mutate(
+      {
+        access_pass: {
+          grupo_vehiculos: vehicles,
+          grupo_equipos: equipos,
+        },
+        id,
+        account_id,
+      },
+      {
+        onSuccess: () => {
+          // Ya se guardaron — vaciar el colapse para que no se vuelvan a
+          // mandar como si fueran nuevos en el siguiente "Actualizar".
+          setVehiculos([]);
+          setEquipos([]);
+          // useGetCatalogoPaseNoJwt queda enabled:false después de la carga
+          // inicial (ver el efecto que hace setEnableInfo(false)) —
+          // invalidateQueries no fuerza refetch en una query deshabilitada,
+          // por eso "ya registrados" no se actualizaba. refetch() sí ignora
+          // enabled y trae los datos frescos.
+          refetchDataCatalogos();
+        },
+      },
+    );
   };
 
   useEffect(() => {
@@ -840,15 +855,17 @@ const PaseUpdate = () => {
   }, [dataCatalogos]);
 
   useEffect(() => {
-    if (isActualizarOpen && dataCatalogos?.pass_selected?.grupo_equipos) {
-      setEquipos(formatEquipos(dataCatalogos?.pass_selected?.grupo_equipos));
+    // El back ya no duplica grupo_vehiculos/grupo_equipos en update_pass, así
+    // que se puede precargar directo lo que el pase ya trae en la lista
+    // editable (con el formato correcto, que difiere del shape crudo).
+    // Siempre resetea (con ?? [] si no hay datos) — si solo se llamara
+    // setEquipos/setVehiculos cuando el campo viene con datos, un refetch
+    // sin grupo_equipos/grupo_vehiculos dejaría el estado anterior pegado.
+    if (dataCatalogos?.pass_selected?.estatus === "activo") {
+      setEquipos(formatEquipos(dataCatalogos.pass_selected.grupo_equipos ?? []));
+      setVehiculos(formatVehiculos(dataCatalogos.pass_selected.grupo_vehiculos ?? []));
     }
-    if (isActualizarOpen && dataCatalogos?.pass_selected?.grupo_vehiculos) {
-      setVehiculos(
-        formatVehiculos(dataCatalogos?.pass_selected?.grupo_vehiculos),
-      );
-    }
-  }, [isActualizarOpen, dataCatalogos?.pass_selected]);
+  }, [dataCatalogos?.pass_selected]);
 
   useEffect(() => {
     if (errorFotografia === "-" && errorIdentificacion === "-") {
@@ -857,14 +874,6 @@ const PaseUpdate = () => {
       setIsSuccess(false);
     }
   }, [errorFotografia, errorIdentificacion]);
-
-  const handleCheckboxChange = (name: string) => {
-    if (name === "agregar-equipos") {
-      setAgregarEquiposActive(!agregarEquiposActive);
-    } else if (name === "agregar-vehiculos") {
-      setAgregarVehiculosActive(!agregarVehiculosActive);
-    }
-  };
 
   useEffect(() => {
     if (downloadUrl) {
@@ -915,14 +924,6 @@ const PaseUpdate = () => {
     setErrorFotografia("");
     setErrorIdentificacion("");
     setIsSuccess(false); // Reinicia el estado para que el modal no se quede abierto.
-  };
-
-  const handleRemove = (index: number) => {
-    setVehiculos((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleRemoveEq = (index: number) => {
-    setEquipos((prev) => prev.filter((_, i) => i !== index));
   };
 
   if (mostrarAviso) {
@@ -1319,227 +1320,18 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
           })()}
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
-          <div className="space-y-2">
-            {vehiculoHabilitado && 
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-700">Vehículos</span>
-              <VehicleLocalPassModal
-                title="Nuevo Vehiculo"
-                vehicles={vehicles}
-                setVehiculos={setVehiculos}
-                isAccesos={false}
-                fetch={false}
-                account_id={account_id}>
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors">
-                  <Car size={15} />
-                  <span className="hidden sm:block">Agregar</span>
-                  <span className="sm:hidden font-bold">+</span>
-                </button>
-              </VehicleLocalPassModal>
-            </div>}
-            {vehiculoHabilitado && 
-            <Accordion type="multiple" className="w-full">
-              {vehicles.map((vehiculo, index) => (
-                <AccordionPrimitive.Item
-                  key={index}
-                  value={`vehiculo-${index}`}
-                  className="border-b border-gray-100 my-2">
-                  <div className="flex items-center justify-between bg-gray-50 hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors">
-                    <AccordionPrimitive.Trigger className="flex items-center gap-2 text-sm font-medium text-slate-700 flex-1 text-left">
-                      <Car size={14} className="text-blue-400 shrink-0" />
-                      <span>{vehiculo.tipo || "Vehículo sin tipo"}</span>
-                    </AccordionPrimitive.Trigger>
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(index)}
-                      className="w-5 h-5 rounded-full bg-red-200 hover:bg-red-300 flex items-center justify-center transition-colors shrink-0 ml-2"
-                      title="Eliminar">
-                      <X size={11} className="text-red-600" />
-                    </button>
-                  </div>
-
-                  <AccordionPrimitive.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                    <div className="px-3 pt-1 pb-3 text-xs text-slate-600">
-                      {(vehiculo.foto_vehiculo?.length ?? 0) > 0 ? (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1">
-                            <p>
-                              <strong>Tipo:</strong> {vehiculo.tipo}
-                            </p>
-                            <p>
-                              <strong>Marca:</strong> {vehiculo.marca}
-                            </p>
-                            <p>
-                              <strong>Modelo:</strong> {vehiculo.modelo}
-                            </p>
-                            <p>
-                              <strong>Placas:</strong> {vehiculo.placas}
-                            </p>
-                            <p>
-                              <strong>Estado:</strong> {vehiculo.estado}
-                            </p>
-                            <p>
-                              <strong>Color:</strong> {vehiculo.color}
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-center justify-center border rounded-md p-1 bg-white">
-                            <Image
-                              src={
-                                vehiculo.foto_vehiculo?.[0]?.file_url ||
-                                "/nouser.svg"
-                              }
-                              alt="Foto vehículo"
-                              width={100}
-                              height={100}
-                              className="rounded-sm object-cover max-h-[80px] w-auto"
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                          <p>
-                            <strong>Tipo:</strong> {vehiculo.tipo}
-                          </p>
-                          <p>
-                            <strong>Marca:</strong> {vehiculo.marca}
-                          </p>
-                          <p>
-                            <strong>Modelo:</strong> {vehiculo.modelo}
-                          </p>
-                          <p>
-                            <strong>Placas:</strong> {vehiculo.placas}
-                          </p>
-                          <p>
-                            <strong>Estado:</strong> {vehiculo.estado}
-                          </p>
-                          <p>
-                            <strong>Color:</strong> {vehiculo.color}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </AccordionPrimitive.Content>
-                </AccordionPrimitive.Item>
-              ))}
-
-              {vehicles.length === 0 && (
-                <p className="text-xs text-gray-400 py-2">
-                  No se han agregado vehículos.
-                </p>
-              )}
-            </Accordion>}
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-700">Equipos</span>
-              <EqipmentLocalPassModal
-                title="Nuevo Equipo"
-                equipos={equipos}
-                setEquipos={setEquipos}
-                isAccesos={false}
-                userId={account_id}>
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors">
-                  <Laptop size={15} />
-                  <span className="hidden sm:block">Agregar</span>
-                  <span className="sm:hidden font-bold">+</span>
-                </button>
-              </EqipmentLocalPassModal>
-            </div>
-            <Accordion type="multiple" className="w-full ">
-              {equipos.map((equipo, index) => (
-                <AccordionPrimitive.Item
-                  key={index}
-                  value={`equipo-${index}`}
-                  className="border-b border-gray-100 my-2">
-                  <div className="flex items-center justify-between bg-gray-50 hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors">
-                    <AccordionPrimitive.Trigger className="flex items-center gap-2 text-sm font-medium text-slate-700 flex-1 text-left">
-                      <Laptop size={14} className="text-blue-400 shrink-0" />
-                      <span>{equipo.tipo || "Equipo sin tipo"}</span>
-                    </AccordionPrimitive.Trigger>
-
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveEq(index)}
-                      className="w-5 h-5 rounded-full bg-red-200 hover:bg-red-300 flex items-center justify-center transition-colors shrink-0 ml-2"
-                      title="Eliminar">
-                      <X size={11} className="text-red-600" />
-                    </button>
-                  </div>
-
-                  <AccordionPrimitive.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                    <div className="px-3 pt-1 pb-3 text-xs text-slate-600">
-                      {equipo.foto_equipo && equipo.foto_equipo.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1">
-                            <p>
-                              <strong>Tipo:</strong> {equipo.tipo}
-                            </p>
-                            <p>
-                              <strong>Nombre:</strong> {equipo.nombre}
-                            </p>
-                            <p>
-                              <strong>Marca:</strong> {equipo.marca}
-                            </p>
-                            <p>
-                              <strong>Modelo:</strong> {equipo.modelo}
-                            </p>
-                            <p>
-                              <strong>No. Serie:</strong> {equipo.serie}
-                            </p>
-                            <p>
-                              <strong>Color:</strong> {equipo.color}
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-center justify-center border rounded-md p-1 bg-white">
-                            <Image
-                              src={
-                                equipo.foto_equipo[0].file_url || "/nouser.svg"
-                              }
-                              alt="Foto equipo"
-                              width={100}
-                              height={100}
-                              className="rounded-sm object-cover max-h-[80px] w-auto"
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                          <p>
-                            <strong>Tipo:</strong> {equipo.tipo}
-                          </p>
-                          <p>
-                            <strong>Nombre:</strong> {equipo.nombre}
-                          </p>
-                          <p>
-                            <strong>Marca:</strong> {equipo.marca}
-                          </p>
-                          <p>
-                            <strong>Modelo:</strong> {equipo.modelo}
-                          </p>
-                          <p>
-                            <strong>No. Serie:</strong> {equipo.serie}
-                          </p>
-                          <p>
-                            <strong>Color:</strong> {equipo.color}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </AccordionPrimitive.Content>
-                </AccordionPrimitive.Item>
-              ))}
-
-              {equipos.length === 0 && (
-                <p className="text-xs text-gray-400 py-2">
-                  No se han agregado equipos.
-                </p>
-              )}
-            </Accordion>
-          </div>
+          {vehiculoHabilitado && (
+            <PaseVehiculosSection
+              vehicles={vehicles}
+              setVehiculos={setVehiculos}
+              account_id={account_id}
+            />
+          )}
+          <PaseEquiposSection
+            equipos={equipos}
+            setEquipos={setEquipos}
+            userId={account_id}
+          />
 
 
           {dataCatalogos?.pass_selected?.walkin?.toLowerCase() === "no" &&
@@ -1764,19 +1556,54 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                       </>
                     )}
                   </Button>
-
-                  <Button
-                    className={`hidden h-11 px-6 font-semibold rounded-xl ${
-                      isActualizarOpen
-                        ? "bg-red-500 hover:bg-red-600"
-                        : "bg-blue-500 hover:bg-blue-600"
-                    }`}
-                    type="button"
-                    onClick={() => setIsActualizarOpen(!isActualizarOpen)}
-                    disabled={loadingDataCatalogos}>
-                    {isActualizarOpen ? "Cerrar" : "Actualizar información"}
-                  </Button>
                 </div>
+
+                {/* Ver/agregar vehículo/equipo — colapsado por default */}
+                {!loadingDataCatalogos && dataCatalogos?.pass_selected?.estatus === "activo" && (
+                  <div className="w-full bg-white border border-slate-200 rounded-2xl px-4">
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="agregar-vehiculo-equipo" className="border-b-0">
+                        <AccordionTrigger className="text-sm font-semibold text-slate-700">
+                          Ver y agregar equipos o vehículos
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="w-full flex flex-col gap-6">
+                            {vehiculoHabilitado && (
+                              <PaseVehiculosSection
+                                vehicles={vehicles}
+                                setVehiculos={setVehiculos}
+                                account_id={account_id}
+                              />
+                            )}
+                            <PaseEquiposSection
+                              equipos={equipos}
+                              setEquipos={setEquipos}
+                              userId={account_id}
+                            />
+                          </div>
+
+                          <div className="flex flex-col items-center gap-1.5 mt-4">
+                            <Button
+                              className="w-full sm:w-1/2 h-11 bg-slate-900 hover:bg-slate-800 rounded-xl font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                              type="button"
+                              disabled={
+                                (vehicles.length === 0 && equipos.length === 0) ||
+                                isLoadingUpdate
+                              }
+                              onClick={handleActualizarVehiculosEquipos}>
+                              {isLoadingUpdate ? "Actualizando..." : "Actualizar"}
+                            </Button>
+                            {vehicles.length === 0 && equipos.length === 0 && (
+                              <p className="text-xs text-slate-400">
+                                Debes agregar al menos un registro para habilitar el botón.
+                              </p>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
+                )}
 
                 {/* BADGE: pase hijo vinculado a un padre */}
                 <div className="w-full">
@@ -1826,210 +1653,10 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                   );
                 })()}
 
-                {loadingDataCatalogos ? (
+                {loadingDataCatalogos && (
                   <div className="flex justify-center items-center h-screen">
                     <div className="w-24 h-24 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
                   </div>
-                ) : (
-                  <>
-                    {isActualizarOpen == true ? (
-                      <div className="w-full flex flex-col items-center justify-start gap-6">
-
-                        {/* fotos actuales en cards */}
-                        <div className="w-full flex flex-col sm:flex-row gap-3">
-                          <div className="flex-1 bg-white border border-slate-200 rounded-2xl p-3 flex flex-col items-center">
-                            <p className="text-xs font-semibold text-slate-500 mb-2">Fotografía actual</p>
-                            <Image
-                              width={160}
-                              height={160}
-                              src={dataCatalogos?.pass_selected?.foto?.[0]?.file_url || "/nouser.svg"}
-                              alt="Imagen"
-                              className="w-40 h-40 object-cover bg-gray-100 rounded-xl"
-                            />
-                          </div>
-                          <div className="flex-1 bg-white border border-slate-200 rounded-2xl p-3 flex flex-col items-center">
-                            <p className="text-xs font-semibold text-slate-500 mb-2">Identificación actual</p>
-                            <Image
-                              width={160}
-                              height={160}
-                              src={
-                                dataCatalogos?.pass_selected?.identificacion
-                                  ? dataCatalogos?.pass_selected?.identificacion[0]?.file_url
-                                  : "/nouser.svg"
-                              }
-                              alt="Imagen"
-                              className="w-40 h-40 object-cover bg-gray-100 rounded-xl"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="w-full flex flex-col gap-6">
-                          {/* Vehículos */}
-                          <div className="bg-white border border-slate-200 rounded-2xl p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                <Car size={18} className="text-blue-500" />
-                                Vehículos
-                              </span>
-                              <VehicleLocalPassModal
-                                title="Nuevo Vehiculo"
-                                vehicles={vehicles}
-                                setVehiculos={setVehiculos}
-                                isAccesos={false}
-                                fetch={false}
-                                account_id={account_id}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCheckboxChange("agregar-vehiculos")}
-                                  className="px-3 py-1.5 rounded-lg text-sm font-semibold border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-1.5">
-                                  <span className="text-base leading-none">+</span>
-                                  <span className="hidden sm:inline">Agregar</span>
-                                </button>
-                              </VehicleLocalPassModal>
-                            </div>
-
-                            <Accordion type="multiple" className="w-full">
-                              {vehicles.map((vehiculo, index) => (
-                                <AccordionItem key={index} value={`vehiculo-${index}`} className="border-slate-100">
-                                  <AccordionTrigger className="text-sm font-medium text-slate-700 hover:no-underline">
-                                    {vehiculo.tipo}
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <div className="p-3 text-sm bg-slate-50 rounded-xl">
-                                      {(vehiculo.foto_vehiculo?.length ?? 0) > 0 ? (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                          <div className="space-y-1">
-                                            <p><strong>Tipo:</strong> {vehiculo.tipo}</p>
-                                            <p><strong>Marca:</strong> {vehiculo.marca}</p>
-                                            <p><strong>Modelo:</strong> {vehiculo.modelo}</p>
-                                            <p><strong>Placas:</strong> {vehiculo.placas}</p>
-                                            <p><strong>Estado:</strong> {vehiculo.estado}</p>
-                                            <p><strong>Color:</strong> {vehiculo.color}</p>
-                                          </div>
-                                          <div className="flex flex-col items-center justify-center border rounded-lg p-2 bg-white">
-                                            <p className="text-xs font-bold mb-2">Foto del Vehículo</p>
-                                            <Image
-                                              src={vehiculo.foto_vehiculo?.[0]?.file_url || "/nouser.svg"}
-                                              alt="Foto vehículo"
-                                              width={150}
-                                              height={150}
-                                              className="rounded-lg object-cover w-full max-h-[150px]"
-                                            />
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                          <p><strong>Tipo:</strong> {vehiculo.tipo}</p>
-                                          <p><strong>Marca:</strong> {vehiculo.marca}</p>
-                                          <p><strong>Modelo:</strong> {vehiculo.modelo}</p>
-                                          <p><strong>Placas:</strong> {vehiculo.placas}</p>
-                                          <p><strong>Estado:</strong> {vehiculo.estado}</p>
-                                          <p><strong>Color:</strong> {vehiculo.color}</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="flex justify-end pt-3">
-                                      <Button variant="destructive" size="sm" onClick={() => handleRemove(index)}>
-                                        Eliminar
-                                      </Button>
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              ))}
-                              {vehicles.length == 0 && (
-                                <p className="text-sm text-slate-400 py-2">No se han agregado vehículos.</p>
-                              )}
-                            </Accordion>
-                          </div>
-
-                          {/* Equipos */}
-                          <div className="bg-white border border-slate-200 rounded-2xl p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                <Laptop size={18} className="text-blue-500" />
-                                Equipos
-                              </span>
-                              <EqipmentLocalPassModal
-                                title="Nuevo Equipo"
-                                equipos={equipos}
-                                setEquipos={setEquipos}
-                                isAccesos={false}
-                                fetch={false}
-                                userId={account_id}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCheckboxChange("agregar-equipos")}
-                                  className="px-3 py-1.5 rounded-lg text-sm font-semibold border-2 border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-1.5">
-                                  <span className="text-base leading-none">+</span>
-                                  <span className="hidden sm:inline">Agregar</span>
-                                </button>
-                              </EqipmentLocalPassModal>
-                            </div>
-
-                            <Accordion type="multiple" className="w-full">
-                              {equipos.map((equipo, index) => (
-                                <AccordionItem key={index} value={`equipo-${index}`} className="border-slate-100">
-                                  <AccordionTrigger className="text-sm font-medium text-slate-700 hover:no-underline">
-                                    {equipo.tipo}
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <div className="p-3 text-sm bg-slate-50 rounded-xl">
-                                      {equipo.foto_equipo && equipo.foto_equipo.length > 0 ? (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                          <div className="space-y-1">
-                                            <p><strong>Tipo:</strong> {equipo.tipo}</p>
-                                            <p><strong>Nombre:</strong> {equipo.nombre}</p>
-                                            <p><strong>Marca:</strong> {equipo.marca}</p>
-                                            <p><strong>Modelo:</strong> {equipo.modelo}</p>
-                                            <p><strong>No. Serie:</strong> {equipo.serie}</p>
-                                            <p><strong>Color:</strong> {equipo.color}</p>
-                                          </div>
-                                          <div className="flex flex-col items-center justify-center border rounded-lg p-2 bg-white">
-                                            <p className="text-xs font-bold mb-2">Foto del Equipo</p>
-                                            <Image
-                                              src={equipo.foto_equipo[0].file_url || "/nouser.svg"}
-                                              alt="Foto equipo"
-                                              width={150}
-                                              height={150}
-                                              className="rounded-lg object-cover w-full max-h-[150px]"
-                                            />
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                          <p><strong>Tipo:</strong> {equipo.tipo}</p>
-                                          <p><strong>Nombre:</strong> {equipo.nombre}</p>
-                                          <p><strong>Marca:</strong> {equipo.marca}</p>
-                                          <p><strong>Modelo:</strong> {equipo.modelo}</p>
-                                          <p><strong>No. Serie:</strong> {equipo.serie}</p>
-                                          <p><strong>Color:</strong> {equipo.color}</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="flex justify-end pt-3">
-                                      <Button variant="destructive" size="sm" onClick={() => handleRemoveEq(index)}>
-                                        Eliminar
-                                      </Button>
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              ))}
-                              {equipos.length == 0 && (
-                                <p className="text-sm text-slate-400 py-2">No se han agregado equipos.</p>
-                              )}
-                            </Accordion>
-                          </div>
-                        </div>
-
-                        <Button
-                          className="w-full sm:w-1/2 h-11 bg-slate-900 hover:bg-slate-800 rounded-xl font-semibold"
-                          type="submit"
-                          onClick={updateInfoActivePass}>
-                          Actualizar
-                        </Button>
-                      </div>
-                    ) : null}
-                  </>
                 )}
               </div>
             </>

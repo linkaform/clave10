@@ -755,7 +755,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                                   <button
                                     type="button"
                                     title="Copiar link"
-                                    className="flex items-center justify-center w-7 h-7 mb-3 rounded-lg bg-green-600 text-white shadow-sm hover:bg-green-700 transition-colors"
+                                    className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-600 text-white shadow-sm hover:bg-green-700 transition-colors"
                                     onClick={() => handleCopyLink(m)}
                                   >
                                     {copiedId === m.id ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
@@ -765,7 +765,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                                     <button
                                       type="button"
                                       title="Abrir link"
-                                      className="flex items-center justify-center w-7 h-7 mb-3 rounded-lg bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition-colors"
+                                      className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition-colors"
                                       onClick={() => window.open(m.link, "_blank", "noopener,noreferrer")}
                                     >
                                       <ExternalLink className="w-3.5 h-3.5" />
