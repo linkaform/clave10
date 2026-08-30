@@ -99,7 +99,7 @@ export interface RegisterIncomingProps {
   vehiculo?: any[];
   visita_a?: any[];
   gafete?: any;
-  selected_pases:string[];
+  selected_passes: string[];
 }
 
 export const registerIncoming = async (props: RegisterIncomingProps) => {
@@ -114,7 +114,7 @@ export const registerIncoming = async (props: RegisterIncomingProps) => {
     gafete: props.gafete || {},
     visita_a: props.visita_a || [],
     option: "do_access",
-    selected_pases: props.selected_pases || [],
+    selected_passes: props.selected_passes || [],
     script_name: "script_turnos.py",
   };
 
@@ -139,7 +139,7 @@ export const exitRegister = async (
   location: string,
   qr_code: string,
   gafete_id?: "",
-  selected_pases?: string[]
+  selected_passes?: string[]
 ) => {
   const payload = {
     area,
@@ -147,7 +147,7 @@ export const exitRegister = async (
     gafete_id,
     qr_code,
     option: "do_out",
-    selected_pases: selected_pases || [],
+    selected_passes: selected_passes || [],
     script_name: "script_turnos.py",
   };
 
