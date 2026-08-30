@@ -2,7 +2,7 @@ export interface Miembro {
   // Id real del pase de este acompañante (viene de qr_code). Es el
   // identificador que se usa para sincronizar la selección entre las
   // distintas vistas (carrusel, modal de listado, modal de confirmación),
-  // y el que se expone hacia afuera en selected_pases.
+  // y el que se expone hacia afuera en selected_passes.
   id: string;
   nombre: string;
   foto?: string;

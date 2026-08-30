@@ -254,7 +254,7 @@ const AccesosContent = () => {
         comentario_pase: allComments,
         // Ids de los pases de acompañantes seleccionados para dar ingreso
         // junto con el titular (vienen de MembersCarousel, via prop local).
-        selected_pases: selectedPasses,
+        selected_passes: selectedPasses,
       });
 
       if (!data.success) {
