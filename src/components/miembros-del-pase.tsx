@@ -14,6 +14,7 @@ import ViewImage from "./modals/view-image";
 import type { CountryCode } from "libphonenumber-js";
 import { toast } from "sonner";
 import Image from "next/image";
+import { EquipoVehiculoBadges } from "./equipo-vehiculo-badges";
 
 export interface Miembro {
   id: string;
@@ -31,6 +32,8 @@ export interface Miembro {
   qr_code?: string;
   email_acompanante?: string;
   identificacion?: Imagen[];
+  /** Lo que el propio acompañante declaró que trae ("vehiculo"/"equipo"), solo informativo. */
+  equipoVehiculo?: string[];
 }
 
 type ModoMiembrosPase = 'crear' | 'ver' | 'completar';
@@ -553,6 +556,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                       {[a.email, a.telefono].filter(Boolean).join(" · ") || "Sin datos de contacto"}
                     </p>
                   </div>
+                  <EquipoVehiculoBadges equipoVehiculo={a.equipoVehiculo} />
                   <EstatusBadge estatus={a.estatus} />
                   {a.link && (
                     <button
@@ -711,7 +715,10 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                     )}
                     {(esVista || esCompletar) && (
                       <td className={td +` pb-4`} style={{ width: 110 }}>
-                        <EstatusBadge estatus={m.estatus} />
+                        <div className="flex items-center gap-1.5">
+                          <EstatusBadge estatus={m.estatus} />
+                          <EquipoVehiculoBadges equipoVehiculo={m.equipoVehiculo} />
+                        </div>
                       </td>
                     )}
                     {efectivoUseIA && (

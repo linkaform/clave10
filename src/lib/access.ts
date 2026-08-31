@@ -99,7 +99,8 @@ export interface RegisterIncomingProps {
   vehiculo?: any[];
   visita_a?: any[];
   gafete?: any;
-  selected_passes: string[];
+  /** Ids de acompañantes seleccionados + equipo/vehículo que el guardia confirmó para cada uno. */
+  selected_passes: Array<{ id: string; equipo_vehiculo?: string[] }>;
 }
 
 export const registerIncoming = async (props: RegisterIncomingProps) => {

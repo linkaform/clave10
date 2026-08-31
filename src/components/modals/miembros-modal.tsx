@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { QRCodeSVG } from "qrcode.react";
 import { useAccessStore } from "@/store/useAccessStore";
+import { EquipoVehiculoBadges } from "@/components/equipo-vehiculo-badges";
 
 interface Miembro {
   // Id real del pase de este acompañante (viene de qr_code en MembersCarousel),
@@ -20,6 +21,8 @@ interface Miembro {
   estatus?: string;
   link?: string;
   es_padre?: boolean;
+  /** Lo que el propio acompañante declaró que trae ("vehiculo"/"equipo"), solo informativo. */
+  equipoVehiculo?: string[];
 }
 
 interface MembersModalProps {
@@ -253,6 +256,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                   <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide border-b border-gray-100">Email</th>
                   <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide border-b border-gray-100">Teléfono</th>
                   <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide border-b border-gray-100">Estatus</th>
+                  <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide border-b border-gray-100">Equipo/Vehículo</th>
                   <th className="text-right px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide border-b border-gray-100">Acciones</th>
                 </tr>
               </thead>
@@ -314,6 +318,9 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                           {miembro.estatus ?? "—"}
                         </span>
                       </td>
+                      <td className="px-4 py-2.5">
+                        <EquipoVehiculoBadges equipoVehiculo={miembro.equipoVehiculo} />
+                      </td>
                       <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-1.5 justify-end">
                           <button
@@ -347,7 +354,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                 })}
                 {paginated.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center text-sm text-slate-400 py-8">No se encontraron miembros</td>
+                    <td colSpan={8} className="text-center text-sm text-slate-400 py-8">No se encontraron miembros</td>
                   </tr>
                 )}
               </tbody>

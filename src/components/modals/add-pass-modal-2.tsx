@@ -59,6 +59,7 @@ export const EntryPassModal2: React.FC<EntryPassModal2Props> = ({
           telefono_pase: data?.telefono_pase,
           grupo_vehiculos: data.grupo_vehiculos,
           grupo_equipos: data.grupo_equipos,
+          equipo_vehiculo_acompanante: data?.equipo_vehiculo_acompanante ?? [],
           status_pase: data.status_pase,
           walkin_fotografia: data?.walkin_fotografia,
           walkin_identificacion: data?.walkin_identificacion,

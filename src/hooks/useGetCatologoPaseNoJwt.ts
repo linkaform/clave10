@@ -80,6 +80,8 @@ export interface PassSelected {
   habilitar_identificacion?:boolean
   acompanantes?:number;
   acompanantes_grupo:Miembro[]
+  /** Lo que el propio acompañante declaró que trae ("vehiculo"/"equipo"), solo informativo. */
+  equipo_vehiculo_acompanante?: string[];
   url_padre?:string;
   link_padre?:string;
   estatus_pase_padre?:string;

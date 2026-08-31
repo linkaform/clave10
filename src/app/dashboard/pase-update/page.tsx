@@ -354,6 +354,9 @@ const PaseUpdate = () => {
 
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [vehicles, setVehiculos] = useState<Vehiculo[]>([]);
+  // Nota informativa que declara el propio acompañante: qué trae consigo
+  // ("vehiculo"/"equipo"), solo para que el guardia lo tenga como referencia.
+  const [equipoVehiculoAcompanante, setEquipoVehiculoAcompanante] = useState<string[]>([]);
 
   const [mostrarAviso, setMostrarAviso] = useState(false);
   const [radioSelected, setRadioSelected] = useState("3 meses");
@@ -416,6 +419,13 @@ const PaseUpdate = () => {
   );
 
   const vehiculoHabilitado = isVehiculoHabilitado(dataCatalogos?.pass_selected?.habilitar_vehiculo);
+
+  // Detecta si la nota "El acompañante trae:" cambió respecto a lo ya
+  // guardado, para poder habilitar el botón "Actualizar" del pase activo
+  // aunque no se hayan agregado vehículos/equipos con detalle.
+  const equipoVehiculoAcompananteCambio =
+    JSON.stringify([...equipoVehiculoAcompanante].sort()) !==
+    JSON.stringify([...(dataCatalogos?.pass_selected?.equipo_vehiculo_acompanante ?? [])].sort());
 
   // "Reglas de acceso" tiene dos fuentes independientes que regresa el
   // backend: el PDF (documento_de_condiciones_de_servicio, llega como array
@@ -484,6 +494,7 @@ const PaseUpdate = () => {
     if (dataCatalogos) {
       setEquipos(dataCatalogos.pass_selected?.grupo_equipos ?? []);
       setVehiculos(dataCatalogos.pass_selected?.grupo_vehiculos ?? []);
+      setEquipoVehiculoAcompanante(dataCatalogos.pass_selected?.equipo_vehiculo_acompanante ?? []);
     }
   }, [dataCatalogos]);
 
@@ -715,6 +726,7 @@ const PaseUpdate = () => {
     const formattedData = {
       grupo_vehiculos: vehicles,
       grupo_equipos: equipos,
+      equipo_vehiculo_acompanante: equipoVehiculoAcompanante,
       status_pase: data.status_pase || "",
       walkin_fotografia: data.walkin_fotografia ?? [],
       walkin_identificacion: data.walkin_identificacion ?? [],
@@ -784,6 +796,7 @@ const PaseUpdate = () => {
         access_pass: {
           grupo_vehiculos: vehicles,
           grupo_equipos: equipos,
+          equipo_vehiculo_acompanante: equipoVehiculoAcompanante,
         },
         id,
         account_id,
@@ -1320,6 +1333,43 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
           })()}
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-slate-700">El acompañante trae:</p>
+            <p className="text-xs text-slate-400">
+              Solo como nota para el guardia — no reemplaza el detalle de vehículos/equipos de abajo.
+            </p>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="equipo-vehiculo-vehiculo"
+                  checked={equipoVehiculoAcompanante.includes("vehiculo")}
+                  onCheckedChange={(checked) =>
+                    setEquipoVehiculoAcompanante((prev) =>
+                      checked ? [...prev, "vehiculo"] : prev.filter((v) => v !== "vehiculo")
+                    )
+                  }
+                />
+                <Label htmlFor="equipo-vehiculo-vehiculo" className="text-sm text-slate-600">
+                  Vehículo
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="equipo-vehiculo-equipo"
+                  checked={equipoVehiculoAcompanante.includes("equipo")}
+                  onCheckedChange={(checked) =>
+                    setEquipoVehiculoAcompanante((prev) =>
+                      checked ? [...prev, "equipo"] : prev.filter((v) => v !== "equipo")
+                    )
+                  }
+                />
+                <Label htmlFor="equipo-vehiculo-equipo" className="text-sm text-slate-600">
+                  Equipo
+                </Label>
+              </div>
+            </div>
+          </div>
+
           {vehiculoHabilitado && (
             <PaseVehiculosSection
               vehicles={vehicles}
@@ -1568,6 +1618,36 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                         </AccordionTrigger>
                         <AccordionContent>
                           <div className="w-full flex flex-col gap-6">
+                            <div className="flex items-center gap-6">
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  id="equipo-vehiculo-vehiculo-activo"
+                                  checked={equipoVehiculoAcompanante.includes("vehiculo")}
+                                  onCheckedChange={(checked) =>
+                                    setEquipoVehiculoAcompanante((prev) =>
+                                      checked ? [...prev, "vehiculo"] : prev.filter((v) => v !== "vehiculo")
+                                    )
+                                  }
+                                />
+                                <Label htmlFor="equipo-vehiculo-vehiculo-activo" className="text-sm text-slate-600">
+                                  Trae vehículo
+                                </Label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  id="equipo-vehiculo-equipo-activo"
+                                  checked={equipoVehiculoAcompanante.includes("equipo")}
+                                  onCheckedChange={(checked) =>
+                                    setEquipoVehiculoAcompanante((prev) =>
+                                      checked ? [...prev, "equipo"] : prev.filter((v) => v !== "equipo")
+                                    )
+                                  }
+                                />
+                                <Label htmlFor="equipo-vehiculo-equipo-activo" className="text-sm text-slate-600">
+                                  Trae equipo
+                                </Label>
+                              </div>
+                            </div>
                             {vehiculoHabilitado && (
                               <PaseVehiculosSection
                                 vehicles={vehicles}
@@ -1587,13 +1667,13 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                               className="w-full sm:w-1/2 h-11 bg-slate-900 hover:bg-slate-800 rounded-xl font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                               type="button"
                               disabled={
-                                (vehicles.length === 0 && equipos.length === 0) ||
+                                (vehicles.length === 0 && equipos.length === 0 && !equipoVehiculoAcompananteCambio) ||
                                 isLoadingUpdate
                               }
                               onClick={handleActualizarVehiculosEquipos}>
                               {isLoadingUpdate ? "Actualizando..." : "Actualizar"}
                             </Button>
-                            {vehicles.length === 0 && equipos.length === 0 && (
+                            {vehicles.length === 0 && equipos.length === 0 && !equipoVehiculoAcompananteCambio && (
                               <p className="text-xs text-slate-400">
                                 Debes agregar al menos un registro para habilitar el botón.
                               </p>

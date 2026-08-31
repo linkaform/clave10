@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ComentariosAccesosTable } from "@/components/table/accesos/comentarios/table";
 import Credentials from "@/components/pages/accesos/credential";
+import { SeleccionMiembro } from "@/components/carrousel-miembros";
 import { AccesosPermitidosTable } from "@/components/table/accesos/accesos-permitidos/table";
 import { UltimosAccesosTable } from "@/components/table/accesos/ultimos-accesos/table";
 import { VehiculosAutorizadosTable } from "@/components/table/accesos/vehiculos-autorizados/table";
@@ -83,6 +84,14 @@ const AccesosContent = () => {
   // al mismo nivel donde se arma la petición de doAccess — no en un store
   // global — y se pasa hacia abajo por props.
   const [selectedPasses, setSelectedPasses] = useState<string[]>([]);
+  // Equipo/vehículo que el guardia confirmó por acompañante (id -> valores
+  // confirmados), independiente de selectedPasses — solo aplica al armar el
+  // payload de doAccess, nunca se usa para decidir quién entra.
+  const [equipoVehiculoConfirmado, setEquipoVehiculoConfirmado] = useState<Record<string, string[]>>({});
+  const handleSeleccionAcompanantes = (seleccion: SeleccionMiembro[]) => {
+    setSelectedPasses(seleccion.map((s) => s.id));
+    setEquipoVehiculoConfirmado(Object.fromEntries(seleccion.map((s) => [s.id, s.equipo_vehiculo ?? []])));
+  };
   // Antes de ejecutar el ingreso/salida se muestra un modal chico para
   // confirmar con quién más se hace el movimiento (ver ConfirmarAccesoModal).
   const [confirmModal, setConfirmModal] = useState<"ingreso" | "salida" | null>(null);
@@ -210,6 +219,7 @@ const AccesosContent = () => {
     onSuccess: () => {
       setPassCode("");
       setSelectedPasses([]);
+      setEquipoVehiculoConfirmado({});
 
       toast.success("Salida Exitosa", {
         style: {
@@ -277,8 +287,12 @@ const AccesosContent = () => {
         comentario_acceso: [],
         comentario_pase: allComments,
         // Ids de los pases de acompañantes seleccionados para dar ingreso
-        // junto con el titular (vienen de MembersCarousel, via prop local).
-        selected_passes: selectedPasses,
+        // junto con el titular (vienen de MembersCarousel, via prop local),
+        // más el equipo/vehículo que el guardia confirmó para cada uno.
+        selected_passes: selectedPasses.map((id) => ({
+          id,
+          equipo_vehiculo: equipoVehiculoConfirmado[id] ?? [],
+        })),
       });
 
       if (!data.success) {
@@ -305,6 +319,7 @@ const AccesosContent = () => {
 
       setPassCode("");
       setSelectedPasses([]);
+      setEquipoVehiculoConfirmado({});
 
       toast.success("Entrada Exitosa", {
         style: {
@@ -614,7 +629,7 @@ const AccesosContent = () => {
 			<>
 				<div className="grid grid-cols-1 md:grid-cols-3">
 					<div className="row-span-3 flex flex-col p-4 ">
-						<Credentials searchPass={searchPass} onSeleccionPases={setSelectedPasses} />
+						<Credentials searchPass={searchPass} onSeleccionPases={handleSeleccionAcompanantes} />
 					</div>
 					<div className="flex flex-col pl-0 p-4 gap-3 ">
 						<ComentariosAccesosTable allComments={allComments} />
