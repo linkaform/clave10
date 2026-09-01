@@ -53,7 +53,7 @@ export const getListArticulosCon = async (location:string, area:string,status:st
 
 export const getTipoConcesion = async (location:string, tipo:string) => {
     const payload = {
-        location,
+        // location,
         tipo,
         option: "catalogo_tipo_concesion",
         script_name: "articulos_consecionados.py",
