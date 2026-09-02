@@ -75,7 +75,7 @@ export const EditarArticuloModal: React.FC<EditarFallaModalProps> = ({
 }) => {
 	const [isSuccess, setIsSuccess] =useState(false)
 	const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(data.ubicacion_perdido);
-	const { dataAreas:areas, dataLocations:ubicaciones, isLoadingLocations, isLoadingAreas} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, showLoadingModal|| isSuccess,  ubicacionSeleccionada?true:false);
+	const { dataAreas:areas, dataLocations:ubicaciones, isLoadingLocations, isLoadingAreas} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, showLoadingModal|| isSuccess,  ubicacionSeleccionada?true:false, { uso: "articulos_perdidos" });
 	const { data:dataAreaEmpleado, isLoading:loadingAreaEmpleado } = useCatalogoAreaEmpleado(showLoadingModal|| isSuccess, ubicacionSeleccionada, "Objetos Perdidos");
     const [tipoArt, setTipoArt] = useState<string>(data.tipo_articulo_perdido);
 	

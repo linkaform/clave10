@@ -149,7 +149,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	const [config_dia_de_acceso, set_config_dia_de_acceso] = useState(dataPass.config_dia_de_acceso || "cualquier_día");
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [modalData, setModalData] = useState<any>(null);
-	const { ubicacionesDefaultFormatted, dataLocations: ubicaciones, isLoadingAreas: loadingCatAreas } = useCatalogoPaseAreaLocation(location ?? "", true, location ? true : false);
+	const { ubicacionesDefaultFormatted, dataLocations: ubicaciones, isLoadingAreas: loadingCatAreas } = useCatalogoPaseAreaLocation(location ?? "", true, false);
 	const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<any[]>(ubicacionesDefaultFormatted ?? []);
 	const userEmailSoter = typeof window !== "undefined" ? localStorage.getItem("userEmail_soter") || "" : "";
 	const userIdSoter = typeof window !== "undefined" ? parseInt(localStorage.getItem("userId_soter") || "0", 10) : 0;
@@ -245,7 +245,8 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 		const fetchAreasTodas = async () => {
 			const resultados = await Promise.all(
 				ubicacionesSeleccionadas.map(async (ubicacion) => {
-					const res = await getCatalogoPasesAreaNoApi(ubicacion.id);
+					// mismo filtro que al crear el pase: marca "Pases" + permisos
+					const res = await getCatalogoPasesAreaNoApi(ubicacion.id, "pases");
 					const areas = res?.response?.data?.areas_by_location ?? [];
 					return areas.map((area: string) => ({ nombre: area, locationId: ubicacion.id, nombreUbicacion: ubicacion.nombre }));
 				})

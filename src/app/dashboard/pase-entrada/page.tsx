@@ -27,7 +27,6 @@ import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
 import { Contacto } from "@/lib/get-user-contacts";
 import { usePaseEntrada } from "@/hooks/usePaseEntrada";
-import { useGetAreasByLocations } from "@/hooks/useCatalogoPaseAreaLocation";
 import {
   Select,
   SelectContent,
@@ -258,9 +257,7 @@ const PaseEntradaPage = () => {
   const {
     locations: ubicacionesStore,
     defaultLocations,
-    areas: areasStore,
     fetchLocations,
-    fetchAreas,
     loading: loadingUbicaciones,
     locationDetails,
     roles,
@@ -268,7 +265,6 @@ const PaseEntradaPage = () => {
   // Las opciones "Habilitar foto"/"Habilitar identificación" solo se
   // muestran a usuarios con el rol Admin (roles trae los del usuario actual).
   const esAdmin = (roles ?? []).includes("Admin");
-  console.log("----------------------------areas", areasStore);
   const pickerRef = useRef<any>(null);
 
   
@@ -300,17 +296,9 @@ const PaseEntradaPage = () => {
     fetchLocations();
   }, [fetchLocations]);
 
-  // Cargar areas cuando cambien las ubicaciones seleccionadas
-  useEffect(() => {
-    if (ubicacionesSeleccionadas?.length) {
-      const ubicacion =
-        ubicacionesSeleccionadas[0]?.id ??
-        ubicacionesSeleccionadas[0]?.name ??
-        "";
-      if (ubicacion) fetchAreas(ubicacion);
-    }
-  }, [fetchAreas, ubicacionesSeleccionadas]);
-  
+  // Las areas del pase salen de locationDetails (ver areasDisponiblesPorUbicacion),
+  // que ya viene filtrado por permisos y por la marca "Pases" desde el back.
+
   useEffect(() => {
     if (!ubicacionesSeleccionadas?.length || !grupoRequisitos?.length) return;
   
@@ -406,15 +394,6 @@ const PaseEntradaPage = () => {
     ubicacionesSeleccionadasLista ?? [],
   );
 
-  // TEMP: probando getAreasByLocations para ver si trae el catálogo completo
-  // de áreas (vs. catalogos_pase_location, que solo trae 1).
-  const { data: dataAreasByLocations } = useGetAreasByLocations(
-    (ubicacionesSeleccionadasLista?.length ?? 0) > 0,
-    ubicacionesSeleccionadasLista ?? [],
-  );
-  useEffect(() => {
-    console.log("TEMP getAreasByLocations ->", dataAreasByLocations);
-  }, [dataAreasByLocations]);
   // Foto/Identificación solo se pueden ofrecer si vienen dentro de los
   // requerimientos de la config del módulo de seguridad de la ubicación;
   // el rol Admin únicamente decide si se muestran cuando SÍ vienen.

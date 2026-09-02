@@ -98,6 +98,7 @@ export const AddArticuloModal: React.FC<AddFallaModalProps> = ({
     ubicacionSeleccionada,
     true,
     ubicacionSeleccionada ? true : false,
+    { uso: "articulos_perdidos" },
   );
 
   const {

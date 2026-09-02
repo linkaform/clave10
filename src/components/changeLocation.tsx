@@ -3,8 +3,9 @@
 
 import React, { useEffect } from "react";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
-
+import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import dynamic from "next/dynamic";
+
 const Select = dynamic(() => import("react-select"), { ssr: false });
 
 interface InputChangeLocation {
@@ -22,19 +23,23 @@ const ChangeLocation: React.FC<InputChangeLocation> = ({
   setAreaSeleccionada,
   ubicacion,
 }) => {
-  const { areas, locations, fetchAreas, fetchLocations } = useAreasLocationStore();
+  const { locations, fetchLocations } = useAreasLocationStore();
+
+  // Este selector lista casetas: usa la marca "Utilizar Area en: Casetas".
+  // Si la ubicacion no tiene ninguna marcada, el back regresa todas.
+  const { dataAreas } = useCatalogoPaseAreaLocation(
+    ubicacionSeleccionada ?? "",
+    false,
+    Boolean(ubicacionSeleccionada),
+    { uso: "casetas" },
+  );
+  const areas: string[] = dataAreas ?? [];
 
   useEffect(() => {
     if (locations.length == 0) {
       fetchLocations();
     }
   }, []);
-
-  useEffect(() => {
-    if (ubicacionSeleccionada) {
-      fetchAreas(ubicacionSeleccionada);
-    }
-  }, [ubicacionSeleccionada]);
 
   const locationOptions = locations.map((loc: string) => ({
     value: loc,

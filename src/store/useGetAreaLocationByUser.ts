@@ -1,5 +1,4 @@
-import { getCatalogoPasesArea, getCatalogoPasesLocation } from "@/lib/get-catalogos-pase-area-location";
-import { errorMsj } from "@/lib/utils";
+import { getCatalogoPasesLocation } from "@/lib/get-catalogos-pase-area-location";
 import { toast } from "sonner";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
@@ -15,18 +14,24 @@ interface UbicacionDetalle {
   areas: AreaDetalle[];
 }
 
+/** Clave del cache de areas: una lista distinta por ubicacion y por modulo. */
+export const areasKey = (location: string, uso?: string) =>
+  `${location ?? ""}|${uso ?? ""}`;
+
 interface locationAreaStore {
-  areas: string[];
+  /** Cache de areas indexado por `ubicacion|uso`. Se usa como valor inicial
+   *  mientras react-query revalida; nunca para saltarse la peticion. */
+  areasPorUso: Record<string, string[]>;
   locations: string[];
   defaultLocations: string[];
   locationDetails: UbicacionDetalle[];
   roles: string[];
   loading: boolean;
-  setAreas: (items: string[]) => void;
+  setAreasPorUso: (location: string, uso: string | undefined, items: string[]) => void;
+  getAreasPorUso: (location: string, uso?: string) => string[] | undefined;
   setLocations: (items: string[]) => void;
   setRoles: (items: string[]) => void;
   clearAreasLocation: () => void;
-  fetchAreas: (location: string) => Promise<void>;
   fetchLocations: () => Promise<void>;
   setLoading: (value: boolean) => void;
   getDefaultLocation: () => string;
@@ -36,7 +41,7 @@ interface locationAreaStore {
 export const useAreasLocationStore = create(
   persist<locationAreaStore>(
     (set, get) => ({
-      areas: [],
+      areasPorUso: {},
       locations: [],
       defaultLocations: [],
       locationDetails: [],
@@ -44,51 +49,24 @@ export const useAreasLocationStore = create(
       loading: false,
 
       setLoading: (value) => set({ loading: value }),
-      setAreas: (items) => set({ areas: items }),
       setLocations: (items) => set({ locations: items }),
       setRoles: (items) => set({ roles: items }),
 
+      setAreasPorUso: (location, uso, items) =>
+        set((state) => ({
+          areasPorUso: { ...state.areasPorUso, [areasKey(location, uso)]: items },
+        })),
+
+      getAreasPorUso: (location, uso) => get().areasPorUso[areasKey(location, uso)],
+
       clearAreasLocation: () =>
-        set({ areas: [], locations: [], defaultLocations: [], locationDetails: [], roles: [] }),
-
-      fetchAreas: async (location: string) => {
-        set({ loading: true });
-        try {
-          const { locationDetails } = get();
-
-          const detalle = locationDetails.find(
-            (d) => d.ubicacion?.toLowerCase() === location?.toLowerCase()
-          );
-
-          if (detalle) {
-            const nombresAreas = detalle.areas
-              .map((a) => a.nombre_area)
-              .filter((n): n is string => Boolean(n));
-
-            const orderedAreas = [...new Set(nombresAreas)].sort((a, b) =>
-              a.localeCompare(b, "es", { sensitivity: "base" })
-            );
-
-            set({ areas: orderedAreas });
-            return;
-          }
-
-          // Fallback al endpoint viejo si no hay detalle cargado para esa ubicación
-          const fetched = await getCatalogoPasesArea({ location });
-          const error = errorMsj(fetched);
-          if (error) throw new Error(error.text);
-
-          const orderedAreas = (fetched?.response?.data?.areas_by_location ?? [])
-            .slice()
-            .sort((a: string, b: any) => a.localeCompare(b, "es", { sensitivity: "base" }));
-
-          set({ areas: fetched ? orderedAreas : [] });
-        } catch (err) {
-          toast.error("Ocurrio un error al cargar las areas: " + err);
-        } finally {
-          set({ loading: false });
-        }
-      },
+        set({
+          areasPorUso: {},
+          locations: [],
+          defaultLocations: [],
+          locationDetails: [],
+          roles: [],
+        }),
 
       fetchLocations: async () => {
         const { locations } = get();
@@ -142,6 +120,13 @@ export const useAreasLocationStore = create(
       name: "areaLocation-store",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
+      // v1: `areas` era un solo array global compartido por todas las pantallas.
+      // Se tira: ahora el cache va indexado por `ubicacion|uso`.
+      version: 1,
+      migrate: (persisted: any) => {
+        if (persisted && "areas" in persisted) delete persisted.areas;
+        return { ...persisted, areasPorUso: {} };
+      },
     }
   )
 );

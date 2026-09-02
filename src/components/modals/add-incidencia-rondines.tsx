@@ -28,7 +28,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Select } from "@radix-ui/react-select";
@@ -201,11 +200,8 @@ export const AddIncidenciaRondinesModal: React.FC<AddIncidenciaModalProps> = ({
 	const [evidencia , setEvidencia] = useState<Imagen[]>([]);
 	const [documento , setDocumento] = useState<Imagen[]>([]);
 
-	const[ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location??"")
-	const { dataAreas:areas, dataLocations:ubicaciones} = useCatalogoPaseAreaLocation(ubicacionSeleccionada, isSuccess,  location?true:false);
+	const[, setUbicacionSeleccionada] = useState(location??"")
 	const { createIncidenciaMutation, isLoading } = useCreateIncidenciaRondin();
-
-	console.log(areas, ubicaciones)
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),

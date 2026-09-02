@@ -227,14 +227,13 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
   // const [mostrarArea, setMostrarArea] = useState(false);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState<string>("");
   const [asignacionError, setAsignacionError] = useState<string>("");
-  const { locations: ubicaciones, fetchLocations, fetchAreas, locationDetails } = useAreasLocationStore();
+  const { locations: ubicaciones, fetchLocations, locationDetails } = useAreasLocationStore();
 
   useEffect(() => {
     if (isSuccess) {
       fetchLocations();
-      if (ubicacionSeleccionada) fetchAreas(ubicacionSeleccionada);
     }
-  }, [isSuccess, ubicacionSeleccionada]);
+  }, [isSuccess]);
   const { data: catalogAreasRondin, isLoading: isLoadingAreas } =
     useCatalogAreasRondin(ubicacionSeleccionada ?? "", isSuccess);
 

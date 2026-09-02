@@ -119,6 +119,7 @@ export const AddFallaModal: React.FC<AddFallaModalProps> = ({
       ubicacionSeleccionada,
       isSuccess,
       ubicacionSeleccionada ? true : false,
+      { uso: "fallas" },
     );
   const { data: dataAreaEmpleado, refetch: refetchAreaEmpleado } =
     useCatalogoAreaEmpleado(isSuccess, location ?? "", "Incidencias");

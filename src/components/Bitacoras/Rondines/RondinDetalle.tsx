@@ -78,7 +78,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const { data: recorridoFetched, isLoadingRondin } = useGetRondinById(needsFetch ? id : "");
   const rondin = needsFetch ? recorridoFetched : recorridoSeleccionado;
 
-  const { locations, areas: areasStore, fetchLocations, fetchAreas } = useAreasLocationStore();
+  const { locations, fetchLocations } = useAreasLocationStore();
   const {actualizarInspeccionMutation}= useActualizarInspeccion();
   const [duracion, setDuracion] = useState("");
   const [tipoRondin, setTipoRondin] = useState("");
@@ -86,7 +86,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const [rolesSeleccionados, setRolesSeleccionados] = useState<string[]>([]);
 
   const { dataAreas } = useCatalogoPaseAreaLocation(
-    rondin?.ubicacion ?? "", true, !!rondin?.ubicacion
+    rondin?.ubicacion ?? "", true, !!rondin?.ubicacion, { uso: "rondines" }
   );
   const { editarRondinMutation } = useEditarRondin();
   const router = useRouter();
@@ -164,13 +164,6 @@ const RondinDetalle = ({ id }: { id: string }) => {
     if (!locations?.length) fetchLocations();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (rondin?.ubicacion && !areasStore?.length) {
-      fetchAreas(rondin.ubicacion);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rondin?.ubicacion]);
 
   useEffect(() => {
     try {
@@ -475,7 +468,7 @@ const handleActualizar = () => {
               indicatorsContainer: (base) => ({ ...base, height: "32px" }),
             }}
             value={areaSeleccionada ? { value: areaSeleccionada, label: areaSeleccionada } : null}
-            options={formatForMultiselect(areasStore?.length ? areasStore : dataAreas ?? [])}
+            options={formatForMultiselect(dataAreas ?? [])}
             onChange={(opt: any) => setAreaSeleccionada(opt ? opt.value : "")}
             isClearable
           />
@@ -863,7 +856,7 @@ const handleActualizar = () => {
                         isMulti
                         isDisabled={areaInspeccion === "todas"}
                         placeholder="Selecciona áreas..."
-                        options={(areasStore?.length ? areasStore : dataAreas ?? []).map((a: string) => ({ value: a, label: a }))}
+                        options={(dataAreas ?? []).map((a: string) => ({ value: a, label: a }))}
                         value={
                           areaInspeccion === "todas" || !areaInspeccion
                             ? []
