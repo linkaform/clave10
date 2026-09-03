@@ -82,7 +82,7 @@ export const ImportCatalogDialog: React.FC<ImportCatalogDialogProps> = ({
 
         <div className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">
-            Sube un .xlsx exportado con el botón "Exportar Excel" (de esta cuenta o de otra)
+            Sube un .xlsx exportado con el botón &quot;Exportar Excel&quot; (de esta cuenta o de otra)
             para restaurar el catálogo completo de menús.
           </p>
 

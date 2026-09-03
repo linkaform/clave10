@@ -95,7 +95,7 @@ export const EditSectionDialog: React.FC<EditSectionDialogProps> = ({
             {initialValues ? "Editar sección" : "Nueva sección"}
           </DialogTitle>
           <p className="text-xs text-muted-foreground text-center">
-            Esto no se guarda todavía — hace falta "Guardar cambios" en el tablero.
+            Esto no se guarda todavía — hace falta &quot;Guardar cambios&quot; en el tablero.
           </p>
         </DialogHeader>
         <Form {...form}>

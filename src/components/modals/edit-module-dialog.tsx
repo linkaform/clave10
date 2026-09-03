@@ -22,7 +22,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { ModuleGroup } from "@/lib/menus-admin-tree";
 
 interface EditModuleDialogProps {
   open: boolean;
@@ -72,7 +71,7 @@ export const EditModuleDialog: React.FC<EditModuleDialogProps> = ({
             {initialValues ? "Editar módulo" : "Nuevo módulo"}
           </DialogTitle>
           <p className="text-xs text-muted-foreground text-center">
-            Esto no se guarda todavía — hace falta "Guardar cambios" en el tablero.
+            Esto no se guarda todavía — hace falta &quot;Guardar cambios&quot; en el tablero.
           </p>
         </DialogHeader>
         <Form {...form}>

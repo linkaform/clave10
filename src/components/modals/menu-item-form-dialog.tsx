@@ -119,7 +119,7 @@ export const MenuItemFormDialog: React.FC<MenuItemFormDialogProps> = ({
             {initialValues ? "Editar item" : "Nuevo item"}
           </DialogTitle>
           <p className="text-xs text-muted-foreground text-center">
-            Esto no se guarda todavía — hace falta "Guardar cambios" en el tablero.
+            Esto no se guarda todavía — hace falta &quot;Guardar cambios&quot; en el tablero.
           </p>
         </DialogHeader>
 

@@ -32,8 +32,8 @@ export function groupByModule(items: MenuItemAdmin[]): ModuleGroup[] {
         sections: [],
       });
     }
-    const module = modules.get(item.menu_key)!;
-    let section = module.sections.find((s) => s.seccionKey === item.seccion_key);
+    const moduleGroup = modules.get(item.menu_key)!;
+    let section = moduleGroup.sections.find((s) => s.seccionKey === item.seccion_key);
     if (!section) {
       section = {
         seccionKey: item.seccion_key,
@@ -45,15 +45,15 @@ export function groupByModule(items: MenuItemAdmin[]): ModuleGroup[] {
         column: item.seccion_column || 1,
         items: [],
       };
-      module.sections.push(section);
+      moduleGroup.sections.push(section);
     }
     section.items.push(item);
   }
 
   const result = Array.from(modules.values());
-  for (const module of result) {
-    module.sections.sort((a, b) => a.column - b.column);
-    for (const section of module.sections) {
+  for (const moduleGroup of result) {
+    moduleGroup.sections.sort((a, b) => a.column - b.column);
+    for (const section of moduleGroup.sections) {
       section.items.sort((a, b) => a.item_order - b.item_order);
     }
   }
