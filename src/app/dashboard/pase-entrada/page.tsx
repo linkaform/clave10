@@ -20,13 +20,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
-import { List, UserRound, CalendarDays, Layers, Car } from "lucide-react";
+import { List, UserRound, CalendarDays, Layers, Car, Camera, IdCard } from "lucide-react";
 import { formatDateToString, formatFecha, isExcluded, prefijoToCountry } from "@/lib/utils";
 import { Areas } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
 import { Contacto } from "@/lib/get-user-contacts";
 import { usePaseEntrada } from "@/hooks/usePaseEntrada";
+import { useGetAreasByLocations } from "@/hooks/useCatalogoPaseAreaLocation";
 import {
   Select,
   SelectContent,
@@ -99,7 +100,11 @@ const contarDiasDeAccesoEnRango = (
   return total;
 };
 
-const formSchema = z
+const createFormSchema = (
+  requiereEmailModulo: boolean,
+  requiereTelefonoModulo: boolean,
+) =>
+  z
   .object({
     selected_visita_a: z.string().optional(),
     nombre: z.string().min(2, {
@@ -184,6 +189,8 @@ const formSchema = z
     }),
     todas_las_areas: z.boolean().optional(),
     habilitar_vehiculo: z.string(),
+    habilitar_fotografia: z.string(),
+    habilitar_identificacion: z.string(),
     acompanantes: z
       .number()
       .min(0)
@@ -226,14 +233,26 @@ const formSchema = z
   )
   .refine(
     (data) => {
-      if (!data.email && !data.telefono) {
+      if (requiereEmailModulo && !data.email?.trim()) {
         return false;
       }
       return true;
     },
     {
-      message: "Se requiere un email o teléfono.",
+      message: "El correo es requerido.",
       path: ["email"],
+    },
+  )
+  .refine(
+    (data) => {
+      if (requiereTelefonoModulo && !data.telefono?.trim()) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "El teléfono es requerido.",
+      path: ["telefono"],
     },
   );
 
@@ -247,6 +266,8 @@ const PaseEntradaPage = () => {
   const [modalData, setModalData] = useState<any>(null);
   const [defaultCountry, setDefaultCountry] = useState<any>("MX");
   const [habilitarVehiculo, setHabilitarVehiculo] = useState(true);
+  const [habilitarFoto, setHabilitarFoto] = useState(true);
+  const [habilitarIdentificacion, setHabilitarIdentificacion] = useState(true);
   const [toleranciaEntrada, setToleranciaEntrada] = useState<number>(0);
   const [toleranciaPrevia, setToleranciaPrevia] = useState<number>(15);
 
@@ -258,7 +279,11 @@ const PaseEntradaPage = () => {
     fetchAreas,
     loading: loadingUbicaciones,
     locationDetails,
+    roles,
   } = useAreasLocationStore();
+  // Las opciones "Habilitar foto"/"Habilitar identificación" solo se
+  // muestran a usuarios con el rol Admin (roles trae los del usuario actual).
+  const esAdmin = (roles ?? []).includes("Admin");
   console.log("----------------------------areas", areasStore);
   const pickerRef = useRef<any>(null);
 
@@ -397,6 +422,46 @@ const PaseEntradaPage = () => {
     ubicacionesSeleccionadasLista ?? [],
   );
 
+  // TEMP: probando getAreasByLocations para ver si trae el catálogo completo
+  // de áreas (vs. catalogos_pase_location, que solo trae 1).
+  const { data: dataAreasByLocations } = useGetAreasByLocations(
+    (ubicacionesSeleccionadasLista?.length ?? 0) > 0,
+    ubicacionesSeleccionadasLista ?? [],
+  );
+  useEffect(() => {
+    console.log("TEMP getAreasByLocations ->", dataAreasByLocations);
+  }, [dataAreasByLocations]);
+  // Foto/Identificación solo se pueden ofrecer si vienen dentro de los
+  // requerimientos de la config del módulo de seguridad de la ubicación;
+  // el rol Admin únicamente decide si se muestran cuando SÍ vienen.
+  const requiereFotoModulo =
+    dataConfigLocation?.requerimientos?.includes("fotografia") ?? false;
+  const requiereIdentificacionModulo =
+    dataConfigLocation?.requerimientos?.includes("identificacion") ?? false;
+
+  // Igual con email/teléfono: si el módulo de seguridad de la ubicación
+  // pide envío por "correo" y/o "sms", ese campo se vuelve requerido en el
+  // formulario. Si no pide ninguno de los dos, ninguno es requerido.
+  const requiereEmailModulo =
+    dataConfigLocation?.envios?.includes("correo") ?? false;
+  const requiereTelefonoModulo =
+    dataConfigLocation?.envios?.includes("sms") ?? false;
+
+  const formSchema = useMemo(
+    () => createFormSchema(requiereEmailModulo, requiereTelefonoModulo),
+    [requiereEmailModulo, requiereTelefonoModulo],
+  );
+
+  // Cada vez que el toggle (re)aparece debe arrancar activado — si no, al
+  // cambiar de ubicación podría arrastrar un "no" que el admin dejó puesto
+  // en una ubicación anterior donde el toggle ni se mostraba.
+  useEffect(() => {
+    if (requiereFotoModulo) setHabilitarFoto(true);
+  }, [requiereFotoModulo]);
+  useEffect(() => {
+    if (requiereIdentificacionModulo) setHabilitarIdentificacion(true);
+  }, [requiereIdentificacionModulo]);
+
   const [enviar_correo_pre_registro] = useState<string[]>([]);
   const [formatedDocs, setFormatedDocs] = useState<string[]>([]);
   const [formatedEnvio, setFormatedEnvio] = useState<string[]>([]);
@@ -481,6 +546,8 @@ const PaseEntradaPage = () => {
       },
       todas_las_areas: todasAreas,
       habilitar_vehiculo:"sí",
+      habilitar_fotografia: "sí",
+      habilitar_identificacion: "sí",
       acompanantes: 0,
     },
   });
@@ -708,6 +775,16 @@ const PaseEntradaPage = () => {
       },
       todas_las_areas: todasAreas,
       habilitar_vehiculo: habilitarVehiculo ? "sí" : "no",
+      // Si el módulo de seguridad no pide fotografia/identificacion, el
+      // toggle ni se muestra (ver esAdmin && requiereFotoModulo en el JSX) —
+      // en ese caso no se manda la llave al back. Si sí la pide, se manda
+      // "sí"/"no" según el toggle (que el admin puede apagar).
+      ...(requiereFotoModulo && {
+        habilitar_fotografia: habilitarFoto ? "sí" : "no",
+      }),
+      ...(requiereIdentificacionModulo && {
+        habilitar_identificacion: habilitarIdentificacion ? "sí" : "no",
+      }),
       acompanantes: Number(data.acompanantes) || 0,
       acompanantes_grupo:miembrosAcompanantes|| []
     };
@@ -755,6 +832,15 @@ const PaseEntradaPage = () => {
     setIsActiveAdvancedOptions(!isActiveAdvancedOptions);
   };
   const acompanantesValue = useWatch({ control: form.control, name: "acompanantes" });
+
+  const handleAcompanantesChange = (num: number) => {
+    if (num > 15) {
+      setAcompanantesError(true);
+      return;
+    }
+    setAcompanantesError(false);
+    form.setValue("acompanantes", num, { shouldValidate: true, shouldDirty: true });
+  };
 
   useEffect(() => {
       const target = acompanantesValue || 0;
@@ -1059,7 +1145,7 @@ const PaseEntradaPage = () => {
                         render={({ field }: any) => (
                           <FormItem>
                             <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                              <span className="text-red-400">*</span> Email
+                              {requiereEmailModulo && <span className="text-red-400">*</span>} Email
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -1084,7 +1170,7 @@ const PaseEntradaPage = () => {
                         render={({ field }: any) => (
                           <FormItem>
                             <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                              Teléfono
+                              {requiereTelefonoModulo && <span className="text-red-400">*</span>} Teléfono
                             </FormLabel>
                             <FormControl>
                               <PhoneInput
@@ -1171,12 +1257,7 @@ const PaseEntradaPage = () => {
                                 onChange={(e) => {
                                   const val = e.target.value;
                                   const num = val === "" ? 0 : Number(val);
-                                  if (num > 15) {
-                                    setAcompanantesError(true);
-                                    return;
-                                  }
-                                  setAcompanantesError(false);
-                                  field.onChange(num);
+                                  handleAcompanantesChange(num);
                                 }}
                                 onFocus={(e) => e.target.select()}
                               />
@@ -1207,6 +1288,7 @@ const PaseEntradaPage = () => {
                     title="Acompañantes"
                     useIA
                     acompantes={acompanantesValue || 0}
+                    onAcompantesChange={handleAcompanantesChange}
                     defaultCountry={defaultCountry}
                     showFotoColumn={false}
                   />
@@ -1577,6 +1659,48 @@ const PaseEntradaPage = () => {
                   />
                 </div>
               </div>
+
+              {esAdmin && requiereFotoModulo && (
+                <div className="bg-white rounded-2xl shadow-md border border-blue-60 p-6 mt-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-blue-50 rounded-xl">
+                        <Camera className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700">Foto</p>
+                        <p className="text-xs text-gray-400">Habilitar captura de fotografía</p>
+                      </div>
+                    </div>
+                    <Switch
+                      className="data-[state=checked]:bg-blue-600"
+                      checked={habilitarFoto}
+                      onCheckedChange={setHabilitarFoto}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {esAdmin && requiereIdentificacionModulo && (
+                <div className="bg-white rounded-2xl shadow-md border border-blue-60 p-6 mt-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-blue-50 rounded-xl">
+                        <IdCard className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700">Identificación</p>
+                        <p className="text-xs text-gray-400">Habilitar captura de identificación</p>
+                      </div>
+                    </div>
+                    <Switch
+                      className="data-[state=checked]:bg-blue-600"
+                      checked={habilitarIdentificacion}
+                      onCheckedChange={setHabilitarIdentificacion}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">

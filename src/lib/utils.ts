@@ -817,6 +817,91 @@ export const imprimirYDescargarPDF = async (pdfUrl: string) => {
   }
 };
 
+const MIME_POR_EXTENSION: Record<string, string> = {
+  pdf: "application/pdf",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+};
+
+// Iframe oculto: dispara el diálogo de impresión de una imagen/PDF sin salir
+// de la pestaña actual ni abrir una ventana nueva. A diferencia de
+// imprimirYDescargarPDF, esta NO fuerza una descarga — solo imprime.
+// La URL se trae primero como blob (igual que imprimirYDescargarPDF): si se
+// usa la URL remota directo como src del iframe, el navegador bloquea
+// contentWindow.print() por ser un origen distinto ("cross-origin object").
+export const imprimirUrlEnIframe = async (url: string, onLoaded?: () => void) => {
+  try {
+    const response = await fetch(url, { mode: "cors" });
+    if (!response.ok) throw new Error("No se pudo cargar el archivo");
+    const blobCrudo = await response.blob();
+    // Algunos hosts (ej. Backblaze) no mandan un Content-Type usable —
+    // sin un tipo MIME válido de imagen/pdf, el navegador muestra el iframe
+    // en blanco en vez de renderizar el archivo. Se fuerza según la
+    // extensión de la URL en vez de confiar en el header del servidor.
+    const extension = url.split("?")[0].split(".").pop()?.toLowerCase() ?? "";
+    const tipoForzado = MIME_POR_EXTENSION[extension];
+    const blob =
+      tipoForzado && blobCrudo.type !== tipoForzado
+        ? new Blob([blobCrudo], { type: tipoForzado })
+        : blobCrudo;
+    const blobUrl = URL.createObjectURL(blob);
+    const esImagen = blob.type.startsWith("image/");
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "none";
+    iframe.onload = () => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      onLoaded?.();
+    };
+
+    // srcdoc/src se asigna ANTES de meter el iframe al DOM: si se hace al
+    // revés (appendChild primero), el iframe carga "about:blank" de
+    // entrada y dispara onload/print() para esa página vacía; luego, al
+    // terminar de cargar el contenido real, onload se vuelve a disparar y
+    // se abre un SEGUNDO diálogo de impresión — el primero siempre sale en
+    // blanco.
+    if (esImagen) {
+      // Navegar el iframe directo al blob de una imagen (sin HTML/CSS
+      // alrededor) hace que Chrome calcule mal el escalado de impresión con
+      // imágenes grandes y la manda a "Escalado (0%)" — página en blanco.
+      // Envolviéndola en un documento mínimo con la imagen ajustada a la
+      // hoja, el escalado se calcula bien.
+      iframe.srcdoc = `<html><head><style>
+        html, body { margin: 0; padding: 0; }
+        img { display: block; width: 100%; height: auto; }
+        @page { margin: 0; }
+      </style></head><body><img src="${blobUrl}" /></body></html>`;
+    } else {
+      iframe.src = blobUrl;
+    }
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+      URL.revokeObjectURL(blobUrl);
+    }, 60000);
+  } catch (error) {
+    console.error("Error al imprimir:", error);
+    toast.error("No se pudo abrir el diálogo de impresión", {
+      style: {
+        backgroundColor: "#f44336",
+        color: "#fff",
+      },
+    });
+  }
+};
+
 type ToastVariant = "success" | "error";
 
 export function customToast(text: string, variant: ToastVariant) {
@@ -916,6 +1001,10 @@ export const isVehiculoHabilitado = (val: any): boolean => {
   const normalized = String(val).toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return normalized === "si";
 };
+
+// Mismo normalizador que isVehiculoHabilitado (boolean o "si"/"no"), con nombre
+// generico para usarlo en otros flags "habilitar_*" (foto, identificacion, etc).
+export const isHabilitado = isVehiculoHabilitado;
 
 export function formatTo12Hour(fechaStr: string): string {
   if (!fechaStr) return "";

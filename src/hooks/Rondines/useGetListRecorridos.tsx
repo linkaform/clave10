@@ -1,5 +1,4 @@
-import { getListBitacoraRondines } from "@/lib/create-incidencia-rondin";
-import { getListRecorridos } from "@/lib/rondines";
+import { getListRecorridos, getListBitacoraRondines } from "@/lib/rondines";
 import { errorMsj } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
@@ -68,14 +67,15 @@ export const useGetListRondines = (
   date1: string,
   date2: string,
   limit: number,
-  offset: number
+  offset: number,
+  locations: string[] = []
 ) => {
   const { data: listRondines, isLoading: isLoadingListRondines, error: errorListRondines } =
     useQuery<BitacoraRondin[]>({
-      queryKey: ["getListRondines", date1, date2, limit, offset],
+      queryKey: ["getListRondines", date1, date2, limit, offset, locations],
       enabled: enableList,
       queryFn: async () => {
-        const data = await getListBitacoraRondines(date1, date2, limit, offset);
+        const data = await getListBitacoraRondines(date1, date2, limit, offset, locations);
         const textMsj = errorMsj(data);
         if (textMsj) {
           throw new Error(`Error al obtener lista de rondines, Error: ${data.error}`);

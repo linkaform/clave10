@@ -15,7 +15,9 @@ import {
   Menu,
   PackageOpen,
   List,
+  Loader2,
   Plus,
+  Printer,
   Scan,
   RotateCcw,
   Search,
@@ -40,10 +42,13 @@ import { AddVisitModal } from "@/components/modals/add-visit-modal";
 import { toast } from "sonner";
 import { useGetShift } from "@/hooks/useGetShift";
 import { exitRegister, registerIncoming } from "@/lib/access";
+import { getImgPassUrl } from "@/lib/endpoints";
+import { getPdfMulti } from "@/lib/get-pdf-multi";
 import { PermisosTable } from "@/components/table/accesos/permisos-certificaciones/table";
 import useAuthStore from "@/store/useAuthStore";
 import {
   esHexadecimal,
+  imprimirUrlEnIframe,
   imprimirYDescargarPDF,
   isExcluded,
   isVehiculoHabilitado,
@@ -55,7 +60,6 @@ import Swal from "sweetalert2";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { UpdatePassModal } from "@/components/modals/complete-pass-accesos";
 import Image from "next/image";
-import { useGetPdf } from "@/hooks/usetGetPdf";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useMenuStore } from "@/store/useGetMenuStore";
@@ -87,16 +91,19 @@ const AccesosContent = () => {
   // "nuevo_articulo_concesionado").
   const [isSuccessVisita, setIsSuccessVisita] = useState(false);
   useEffect(() => {
-    if (actionParam === "nueva_visita") setIsSuccessVisita(true);
+    if (actionParam !== "nueva_visita") return;
+    setIsSuccessVisita(true);
+    // Se limpia el query param apenas se abre (no solo al cerrar): si se
+    // dejara ahí, volver a esta pantalla con el botón "atrás" del navegador
+    // reabriría el modal solo, sin que el usuario haya dado click en nada.
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("action");
+    router.replace(`${pathname}?${params.toString()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionParam]);
   const handleOpenChangeVisita = (value: React.SetStateAction<boolean>) => {
     const open = typeof value === "function" ? value(isSuccessVisita) : value;
     setIsSuccessVisita(open);
-    if (!open && actionParam === "nueva_visita") {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("action");
-      router.replace(`${pathname}?${params.toString()}`);
-    }
   };
   const { isLoading, loading:loadingSearchPass, searchPass } = useSearchPass(false);
   const { tieneAcompanantes } = useAcompanantesPase(searchPass);
@@ -117,7 +124,6 @@ const AccesosContent = () => {
   const [id, setId] = useState("");
   const [loading, setLoading] = useState(false);
   const { preference, setPreference, reset } = useScanPreference();
-  const { refetch } = useGetPdf(userParentId, id ?? "", false);
 
   useEffect(() => {
     if (searchPass) {
@@ -139,51 +145,52 @@ const AccesosContent = () => {
   const vehiculoHabilitado = isVehiculoHabilitado(
     searchPass?.habilitar_vehiculo,
   );
-  const handleGetPdf = async () => {
+
+  // Trae la imagen de la etiqueta/pase (servicio get_pass_img) y dispara la
+  // pantalla de impresión. Se usa tanto desde el botón "Imprimir Etiqueta"
+  // como automáticamente al registrar el ingreso (ver doAccess.onSuccess).
+  const imprimirEtiquetaDePase = async (recordId: string) => {
+    const data = await getImgPassUrl(userParentId ?? 0, recordId);
+    const url = data?.response?.data || "";
+    if (!url) {
+      toast.error("No se pudo obtener la etiqueta");
+      return;
+    }
+    await imprimirUrlEnIframe(url);
+  };
+
+  // Cuando el ingreso incluye acompañantes, la etiqueta de un solo pase
+  // (get_pass_img/imprimirEtiquetaDePase) no sirve — se necesita el PDF
+  // mergeado de get_pdf_multi con el _id de Mongo del titular + cada
+  // acompañante seleccionado. El backend lo arma de forma asíncrona y puede
+  // tardar hasta ~2 minutos, por eso el spinner en doAccess.onSuccess no se
+  // cierra hasta que esta promesa resuelve.
+  const imprimirPaseMultiple = async (recordIds: string[]) => {
+    const respuesta = await getPdfMulti(recordIds);
+    const data = respuesta.response?.data;
+
+    if (!data) {
+      throw new Error("No se pudo obtener el PDF combinado");
+    }
+    if ("error" in data) {
+      throw new Error(data.error);
+    }
+    if ("status_code" in data) {
+      throw new Error(data.data || "No hay registros para ser descargados.");
+    }
+    await imprimirYDescargarPDF(data.path);
+  };
+
+  const [imprimiendoEtiqueta, setImprimiendoEtiqueta] = useState(false);
+  const handleImprimirEtiqueta = async () => {
+    if (!searchPass?._id) return;
+    setImprimiendoEtiqueta(true);
     try {
-      const result = await refetch();
-
-      if (result.error) {
-        toast.error(`Error de red: ${result.error}`, {
-          style: {
-            backgroundColor: "#f44336",
-            color: "#fff",
-          },
-        });
-        return;
-      }
-
-      const data = result.data?.response?.data;
-
-      if (!data || data.status_code !== 200) {
-        const errorMsg =
-          data?.json?.error ||
-          result.data?.error ||
-          "Error desconocido del servidor";
-
-        toast.error(`Error de red: ${errorMsg}`, {
-          style: {
-            backgroundColor: "#f44336",
-            color: "#fff",
-          },
-        });
-        return;
-      }
-
-      const downloadUrl = data?.json?.download_url;
-
-      if (downloadUrl) {
-        imprimirYDescargarPDF(downloadUrl);
-      } else {
-        toast.warning("No se encontró URL de descarga");
-      }
+      await imprimirEtiquetaDePase(searchPass._id);
     } catch (err) {
-      toast.error(`Error inesperado: ${err}`, {
-        style: {
-          backgroundColor: "#f44336",
-          color: "#fff",
-        },
-      });
+      toast.error(`Error al obtener la etiqueta: ${err}`);
+    } finally {
+      setImprimiendoEtiqueta(false);
     }
   };
 
@@ -271,7 +278,7 @@ const AccesosContent = () => {
         comentario_pase: allComments,
         // Ids de los pases de acompañantes seleccionados para dar ingreso
         // junto con el titular (vienen de MembersCarousel, via prop local).
-        selected_pases: selectedPasses,
+        selected_passes: selectedPasses,
       });
 
       if (!data.success) {
@@ -286,6 +293,13 @@ const AccesosContent = () => {
       setLoading(true);
     },
     onSuccess: () => {
+      // Se calcula antes de limpiar selectedPasses: en este backend el
+      // "qr_code" de cada acompañante (m.id) YA ES su _id de Mongo — no hay
+      // un campo _id separado en el objeto crudo, así que selectedPasses ya
+      // trae directamente lo que necesita get_pdf_multi (confirmado en vivo:
+      // los valores de selectedPasses tienen formato de ObjectId de Mongo).
+      const idsAcompanantesIngreso = [...selectedPasses];
+
       queryClient.invalidateQueries({ queryKey: ["serchPass"] });
       queryClient.invalidateQueries({ queryKey: ["getStats"] });
 
@@ -299,17 +313,28 @@ const AccesosContent = () => {
         },
       });
 
-      if (downloadPass.includes("impresion_de_pase")) {
+      if (downloadPass.includes("impresion_de_pase") && id) {
+        const tieneAcompanantesEnEsteIngreso = idsAcompanantesIngreso.length > 0;
+
         Swal.fire({
           title: "Preparando documento",
-          html: "Cargando PDF para imprimir...",
+          html: tieneAcompanantesEnEsteIngreso
+            ? "Generando PDF con acompañantes, esto puede tardar hasta 2 minutos..."
+            : "Cargando PDF para imprimir...",
           allowOutsideClick: false,
           allowEscapeKey: false,
           didOpen: () => {
             Swal.showLoading();
           },
         });
-        handleGetPdf();
+
+        const impresion = tieneAcompanantesEnEsteIngreso
+          ? imprimirPaseMultiple([id, ...idsAcompanantesIngreso])
+          : imprimirEtiquetaDePase(id);
+
+        impresion
+          .catch((err) => toast.error(`Error al obtener el documento: ${err}`))
+          .finally(() => Swal.close());
       }
     },
     onError: (error) => {
@@ -493,6 +518,21 @@ const AccesosContent = () => {
 						>
 						<DoorOpen />
 						Registrar Salida
+						</Button>
+					)}
+
+					{searchPass?._id && (
+						<Button
+						className="bg-slate-600 hover:bg-slate-700 text-white"
+						onClick={handleImprimirEtiqueta}
+						disabled={imprimiendoEtiqueta}
+						>
+						{imprimiendoEtiqueta ? (
+							<Loader2 className="animate-spin" />
+						) : (
+							<Printer />
+						)}
+						Imprimir Etiqueta
 						</Button>
 					)}
 

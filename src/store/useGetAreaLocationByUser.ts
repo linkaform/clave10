@@ -20,9 +20,11 @@ interface locationAreaStore {
   locations: string[];
   defaultLocations: string[];
   locationDetails: UbicacionDetalle[];
+  roles: string[];
   loading: boolean;
   setAreas: (items: string[]) => void;
   setLocations: (items: string[]) => void;
+  setRoles: (items: string[]) => void;
   clearAreasLocation: () => void;
   fetchAreas: (location: string) => Promise<void>;
   fetchLocations: () => Promise<void>;
@@ -38,14 +40,16 @@ export const useAreasLocationStore = create(
       locations: [],
       defaultLocations: [],
       locationDetails: [],
+      roles: [],
       loading: false,
 
       setLoading: (value) => set({ loading: value }),
       setAreas: (items) => set({ areas: items }),
       setLocations: (items) => set({ locations: items }),
+      setRoles: (items) => set({ roles: items }),
 
       clearAreasLocation: () =>
-        set({ areas: [], locations: [], defaultLocations: [], locationDetails: [] }),
+        set({ areas: [], locations: [], defaultLocations: [], locationDetails: [], roles: [] }),
 
       fetchAreas: async (location: string) => {
         set({ loading: true });
@@ -103,11 +107,13 @@ export const useAreasLocationStore = create(
             .sort((a: string, b: any) => a.localeCompare(b, "es", { sensitivity: "base" }));
 
           const detalle: UbicacionDetalle[] = fetched?.response?.data?.ubicaciones_detalle ?? [];
+          const roles: string[] = fetched?.response?.data?.roles_usuario ?? [];
 
           set({
             locations: fetched ? orderedLocation : [],
             defaultLocations: fetched ? orderedDefault : [],
             locationDetails: fetched ? detalle : [],
+            roles: fetched ? roles : [],
           });
         } catch (err) {
           toast.error("Ocurrio un error al cargar las ubicaciones: " + err);

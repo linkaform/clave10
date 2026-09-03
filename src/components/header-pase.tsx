@@ -2,9 +2,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import React from "react";
+import { useLogoPaseStore } from "@/store/useLogoPaseStore";
 
+const DEFAULT_LOGO_URL =
+  "https://f001.backblazeb2.com/file/app-linkaform/public-client-126/71202/60b81349bde5588acca320e1/694ace05f1bef74262302cc9.png";
 
 export const HeaderPase = () => {
+  const logoUrl = useLogoPaseStore((s) => s.logoUrl);
+
   return (
     <header className="w-full shadow py-3 px-12 sticky top-0 left-0 bg-white z-50">
       <div className="mx-auto flex flex-col lg:flex-row items-center justify-between">
@@ -12,8 +17,8 @@ export const HeaderPase = () => {
             <Link href="/">
               <Image
                 className="dark:invert"
-                src="https://f001.backblazeb2.com/file/app-linkaform/public-client-126/71202/60b81349bde5588acca320e1/694ace05f1bef74262302cc9.png"
-                alt="Next.js logo"
+                src={logoUrl || DEFAULT_LOGO_URL}
+                alt="Logo"
                 width={150}
                 height={50}
                 priority

@@ -339,6 +339,10 @@ const RegistroIngresoPage = () => {
         setMostrarAviso={setMostrarAvisoConHistory}
         radioSelected={radioSelected}
         setRadioSelected={setRadioSelected}
+        empresa={confData?.empresa?.nombre}
+        direccion={confData?.ubicaciones?.[0]?.address}
+        correo={confData?.empresa?.email}
+        telefono={confData?.empresa?.telefono}
       />
     );
   }
