@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import debounce from "lodash.debounce";
 
@@ -10,6 +10,8 @@ interface PageHeaderProps {
   onSearch: (value: string) => void;
   searchPlaceholder?: string;
   children?: React.ReactNode;
+  /** Cambia este valor (ej. un contador) para limpiar el input de búsqueda desde afuera. */
+  resetSignal?: number | string;
 }
 
 export const PageHeader = ({
@@ -18,8 +20,13 @@ export const PageHeader = ({
   onSearch,
   searchPlaceholder = "Buscar...",
   children,
+  resetSignal,
 }: PageHeaderProps) => {
   const [searchInput, setSearchInput] = useState("");
+
+  useEffect(() => {
+    if (resetSignal !== undefined) setSearchInput("");
+  }, [resetSignal]);
 
   const debouncedSearch = useMemo(
     () => debounce((val: string) => onSearch(val), 400),

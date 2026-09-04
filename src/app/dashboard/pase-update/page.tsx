@@ -237,12 +237,12 @@ const PaseUpdate = () => {
   const [urlGooglePass, setUrlGooglePass] = useState<string>("");
   const [loadingImgPass, setLoadingImgPass] = useState(false);
   const downloadUrl = responsePdf?.response?.data?.data?.download_url;
+  const showFoto = showIneIden?.includes("foto") ?? false;
+  const showIden = showIneIden?.includes("iden") ?? false;
   const requireFoto =
-    (showIneIden?.includes("foto") ?? false) &&
-    isHabilitado(dataCatalogos?.pass_selected?.habilitar_fotografia);
+    showFoto && isHabilitado(dataCatalogos?.pass_selected?.habilitar_fotografia);
   const requireIden =
-    (showIneIden?.includes("iden") ?? false) &&
-    isHabilitado(dataCatalogos?.pass_selected?.habilitar_identificacion);
+    showIden && isHabilitado(dataCatalogos?.pass_selected?.habilitar_identificacion);
   const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
   const [permisosCertificacionesFiles, setPermisosCertificacionesFiles] = useState<
     Record<string, PermisoCertificacionArchivos>
@@ -1184,13 +1184,13 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {requireFoto && (
+            {showFoto && (
               <Controller
                 control={form.control}
                 name="walkin_fotografia"
                 render={({ field, fieldState }) => (
                   <div className="flex gap-1">
-                    <span className="text-red-500 mt-1">*</span>
+                    {requireFoto && <span className="text-red-500 mt-1">*</span>}
                     <div className="w-full">
                       <LoadImage
                         id="fotografia"
@@ -1233,13 +1233,13 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               />
             )}
 
-            {requireIden && (
+            {showIden && (
               <Controller
                 control={form.control}
                 name="walkin_identificacion"
                 render={({ field, fieldState }) => (
                   <div className="flex gap-1">
-                    <span className="text-red-500 mt-1">*</span>
+                    {requireIden && <span className="text-red-500 mt-1">*</span>}
                     <div className="w-full">
                       <LoadImage
                         id="identificacion"

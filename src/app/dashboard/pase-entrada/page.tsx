@@ -99,7 +99,11 @@ const contarDiasDeAccesoEnRango = (
   return total;
 };
 
-const formSchema = z
+const createFormSchema = (
+  requiereEmailModulo: boolean,
+  requiereTelefonoModulo: boolean,
+) =>
+  z
   .object({
     selected_visita_a: z.string().optional(),
     nombre: z.string().min(2, {
@@ -228,14 +232,26 @@ const formSchema = z
   )
   .refine(
     (data) => {
-      if (!data.email && !data.telefono) {
+      if (requiereEmailModulo && !data.email?.trim()) {
         return false;
       }
       return true;
     },
     {
-      message: "Se requiere un email o teléfono.",
+      message: "El correo es requerido.",
       path: ["email"],
+    },
+  )
+  .refine(
+    (data) => {
+      if (requiereTelefonoModulo && !data.telefono?.trim()) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "El teléfono es requerido.",
+      path: ["telefono"],
     },
   );
 
@@ -401,6 +417,19 @@ const PaseEntradaPage = () => {
     dataConfigLocation?.requerimientos?.includes("fotografia") ?? false;
   const requiereIdentificacionModulo =
     dataConfigLocation?.requerimientos?.includes("identificacion") ?? false;
+
+  // Igual con email/teléfono: si el módulo de seguridad de la ubicación
+  // pide envío por "correo" y/o "sms", ese campo se vuelve requerido en el
+  // formulario. Si no pide ninguno de los dos, ninguno es requerido.
+  const requiereEmailModulo =
+    dataConfigLocation?.envios?.includes("correo") ?? false;
+  const requiereTelefonoModulo =
+    dataConfigLocation?.envios?.includes("sms") ?? false;
+
+  const formSchema = useMemo(
+    () => createFormSchema(requiereEmailModulo, requiereTelefonoModulo),
+    [requiereEmailModulo, requiereTelefonoModulo],
+  );
 
   // Cada vez que el toggle (re)aparece debe arrancar activado — si no, al
   // cambiar de ubicación podría arrastrar un "no" que el admin dejó puesto
@@ -1095,7 +1124,7 @@ const PaseEntradaPage = () => {
                         render={({ field }: any) => (
                           <FormItem>
                             <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                              <span className="text-red-400">*</span> Email
+                              {requiereEmailModulo && <span className="text-red-400">*</span>} Email
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -1120,7 +1149,7 @@ const PaseEntradaPage = () => {
                         render={({ field }: any) => (
                           <FormItem>
                             <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                              Teléfono
+                              {requiereTelefonoModulo && <span className="text-red-400">*</span>} Teléfono
                             </FormLabel>
                             <FormControl>
                               <PhoneInput
