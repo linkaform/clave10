@@ -15,11 +15,12 @@ export const normalizeText = (text: any) =>
   String(text ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
 
 /**
- * La `ubicacion` de un grupo de requisitos no siempre llega como string: el back
- * la pasa por `unlist`, que colapsa la lista sólo si trae elementos, así que un
- * requisito sin ubicación capturada llega como `[]` y uno con varias puede
- * llegar como arreglo. Normaliza cualquiera de esas formas a una lista de
- * nombres en minúsculas para poder comparar sin reventar con `.toLowerCase`.
+ * La `ubicacion` de un grupo de requisitos llega como lista de nombres (un
+ * requisito puede aplicar a varias ubicaciones, o a ninguna). Las sesiones con
+ * el menú viejo en localStorage todavía la traen como string o como `[]`,
+ * porque el store se persiste con `staleTime: Infinity`. Normaliza cualquiera
+ * de esas formas a una lista en minúsculas para comparar sin reventar con
+ * `.toLowerCase`.
  */
 export const ubicacionesDeRequisito = (ubicacion: unknown): string[] =>
   (Array.isArray(ubicacion) ? ubicacion : [ubicacion])
