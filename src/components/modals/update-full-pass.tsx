@@ -9,7 +9,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import Multiselect from 'multiselect-react-dropdown';
 import { useMenuStore } from "@/store/useGetMenuStore";
-import { prefijoToCountry } from "@/lib/utils";
+import { prefijoToCountry, requisitoAplicaA } from "@/lib/utils";
 import type { CountryCode } from "libphonenumber-js";
 import { Button } from "@/components/ui/button";
 import {
@@ -211,8 +211,8 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 
 	const ubicacionNombre = ubicacionesSeleccionadas[0]?.name ?? ubicacionesSeleccionadas[0]?.id ?? "";
 
-	const requisito = grupoRequisitos.find(
-		(r) => r.ubicacion?.toLowerCase() === ubicacionNombre?.toLowerCase()
+	const requisito = grupoRequisitos.find((r) =>
+		requisitoAplicaA(r.ubicacion, ubicacionNombre)
 	);
 
 	if (requisito?.prefijo_telefonico) {

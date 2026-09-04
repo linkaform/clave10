@@ -24,7 +24,7 @@ import { VehicleLocalPassModal } from "./add-local-vehicule";
 import { EqipmentLocalPassModal } from "./add-local-equipo";
 import { toast } from "sonner";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
-import { isVehiculoHabilitado, uniqueArray, prefijoToCountry } from "@/lib/utils";
+import { isVehiculoHabilitado, uniqueArray, prefijoToCountry, requisitoAplicaA } from "@/lib/utils";
 import { useSearchPass } from "@/hooks/useSearchPass";
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { DialogTitle } from "../ui/dialog";
@@ -90,8 +90,8 @@ export const UpdatePassModal: React.FC<Props> = ({ title, children, id, dataCata
       const ubicacionNombre: string = parsed?.state?.location ?? "";
       if (!ubicacionNombre || !grupoRequisitos?.length) return;
 
-      const requisito = grupoRequisitos.find(
-        (r) => r.ubicacion?.toLowerCase() === ubicacionNombre.toLowerCase()
+      const requisito = grupoRequisitos.find((r) =>
+        requisitoAplicaA(r.ubicacion, ubicacionNombre)
       );
 
       if (requisito?.prefijo_telefonico) {

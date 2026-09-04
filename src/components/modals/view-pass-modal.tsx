@@ -20,7 +20,7 @@ import Image from "next/image";
 import useAuthStore from "@/store/useAuthStore";
 import { AddEmailModal } from "./add-mail";
 import { AddSmsModal } from "./add-sms";
-import { capitalizeFirstLetter } from "@/lib/utils";
+import { capitalizeFirstLetter, requisitoAplicaA } from "@/lib/utils";
 import ModalDescargarPase from "./download-pase-options";
 import { Imagen } from "../upload-Image";
 import { Equipo } from "@/lib/update-pass";
@@ -199,8 +199,8 @@ export const ViewPassModal: React.FC<ViewPassModalProps> = ({ title, data, child
     : typeof data?.ubicacion === "string" && data.ubicacion
     ? [data.ubicacion]
     : [];
-  const requisitoUbicacion = grupoRequisitos?.find(
-    (r) => r.ubicacion?.toLowerCase() === ubicaciones[0]?.toLowerCase()
+  const requisitoUbicacion = grupoRequisitos?.find((r) =>
+    requisitoAplicaA(r.ubicacion, ubicaciones[0])
   );
 
   const toleranciaPrevia = requisitoUbicacion?.tolerancia_de_entrada_previa ?? 0;

@@ -14,6 +14,26 @@ export type ViewMode = "table" | "photos" | "list";
 export const normalizeText = (text: any) =>
   String(text ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
 
+/**
+ * La `ubicacion` de un grupo de requisitos no siempre llega como string: el back
+ * la pasa por `unlist`, que colapsa la lista sólo si trae elementos, así que un
+ * requisito sin ubicación capturada llega como `[]` y uno con varias puede
+ * llegar como arreglo. Normaliza cualquiera de esas formas a una lista de
+ * nombres en minúsculas para poder comparar sin reventar con `.toLowerCase`.
+ */
+export const ubicacionesDeRequisito = (ubicacion: unknown): string[] =>
+  (Array.isArray(ubicacion) ? ubicacion : [ubicacion])
+    .flat(Infinity)
+    .filter((u): u is string => typeof u === "string" && u.trim() !== "")
+    .map((u) => u.trim().toLowerCase());
+
+/** True si el grupo de requisitos aplica a la ubicación dada. */
+export const requisitoAplicaA = (ubicacion: unknown, nombre?: unknown): boolean => {
+  const target = String(nombre ?? "").trim().toLowerCase();
+  if (!target) return false;
+  return ubicacionesDeRequisito(ubicacion).includes(target);
+};
+
 export const isExcluded = (
   key: string,
   excludes?: { pases?: string[] },

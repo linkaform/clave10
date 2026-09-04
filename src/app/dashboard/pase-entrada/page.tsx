@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
 import { List, UserRound, CalendarDays, Layers, Car, Camera, IdCard } from "lucide-react";
-import { formatDateToString, formatFecha, isExcluded, prefijoToCountry } from "@/lib/utils";
+import { formatDateToString, formatFecha, isExcluded, prefijoToCountry, requisitoAplicaA } from "@/lib/utils";
 import { Areas } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
@@ -320,8 +320,8 @@ const PaseEntradaPage = () => {
   
     const ubicacionNombre = ubicacionesSeleccionadas[0]?.name ?? ubicacionesSeleccionadas[0]?.id ?? "";
   
-    const requisito = grupoRequisitos.find(
-      (r) => r.ubicacion?.toLowerCase() === ubicacionNombre?.toLowerCase()
+    const requisito = grupoRequisitos.find((r) =>
+      requisitoAplicaA(r.ubicacion, ubicacionNombre)
     );
   
     if (requisito?.prefijo_telefonico) {
@@ -395,8 +395,8 @@ const PaseEntradaPage = () => {
 
     const ubicacionNombre = ubicacionesSeleccionadas[0]?.name ?? ubicacionesSeleccionadas[0]?.id ?? "";
 
-    const requisito = grupoRequisitos.find(
-      (r) => r.ubicacion?.toLowerCase() === ubicacionNombre?.toLowerCase()
+    const requisito = grupoRequisitos.find((r) =>
+      requisitoAplicaA(r.ubicacion, ubicacionNombre)
     );
 
     setToleranciaEntrada(requisito?.tolerancia_de_entrada_posterior ?? 0);

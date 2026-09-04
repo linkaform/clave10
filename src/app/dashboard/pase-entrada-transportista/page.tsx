@@ -50,7 +50,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
 import { useUploadImage } from "@/hooks/useUploadImage";
-import { reemplazarGuionMinuscula } from "@/lib/utils";
+import { reemplazarGuionMinuscula, requisitoAplicaA } from "@/lib/utils";
 import { useCreatePaseTransportista } from "@/hooks/useCreatePaseTransportista";
 import { ConfirmPaseTransportistaModal } from "@/components/modals/confirm-pase-transportista-modal";
 import { PaseTransportistaSuccessModal } from "@/components/modals/pase-transportista-success-modal";
@@ -2167,7 +2167,9 @@ const PaseEntradaTransportistaPage = () => {
   const primeraLocation = selectedLocations[0] ?? "";
 
   const { grupoRequisitos } = useMenuStore();
-  const grupoReq = grupoRequisitos.find((g) => g.ubicacion === primeraLocation);
+  const grupoReq = grupoRequisitos.find((g) =>
+    requisitoAplicaA(g.ubicacion, primeraLocation)
+  );
   const defaultCountry = prefijoToCountry(grupoReq?.prefijo_telefonico);
 
   const { data: usersData } = useQuery({

@@ -12,7 +12,13 @@ export type Excludes = Record<string, string[]>;
 
 export interface GrupoRequisito {
   datos_requeridos: string[];
-  ubicacion: string;
+  /**
+   * Puede llegar como string, como lista (requisito con varias ubicaciones) o
+   * como [] si no se capturó ninguna: el back la pasa por `unlist`, que sólo
+   * colapsa listas no vacías. Compárala con `requisitoAplicaA`, nunca con
+   * `.toLowerCase()` directo.
+   */
+  ubicacion: string | string[];
   envio_por: string[];
   prefijo_telefonico: number;
   tolerancia_de_entrada_previa: number;

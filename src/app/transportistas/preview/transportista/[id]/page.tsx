@@ -28,7 +28,7 @@ import {
   generateSubmitTokenTransportista,
   updateInformationTransportista,
 } from "@/services/endpoints";
-import { cn, reemplazarGuionMinuscula } from "@/lib/utils";
+import { cn, reemplazarGuionMinuscula, requisitoAplicaA } from "@/lib/utils";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { useMenuStore } from "@/store/useGetMenuStore";
@@ -320,7 +320,9 @@ export default function PaseEntradaPreviewPage({
     56: "CL",
   };
   const primeraLocation = selectedLocations?.[0];
-  const grupoReq = grupoRequisitos.find((g) => g.ubicacion === primeraLocation);
+  const grupoReq = grupoRequisitos.find((g) =>
+    requisitoAplicaA(g.ubicacion, primeraLocation)
+  );
   const defaultCountry =
     (grupoReq?.prefijo_telefonico != null &&
       PHONE_PREFIX_TO_COUNTRY[grupoReq.prefijo_telefonico]) ||
