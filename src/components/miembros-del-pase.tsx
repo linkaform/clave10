@@ -14,6 +14,7 @@ import ViewImage from "./modals/view-image";
 import type { CountryCode } from "libphonenumber-js";
 import { toast } from "sonner";
 import Image from "next/image";
+import { EquipoVehiculoBadges } from "./equipo-vehiculo-badges";
 
 export interface Miembro {
   id: string;
@@ -31,6 +32,8 @@ export interface Miembro {
   qr_code?: string;
   email_acompanante?: string;
   identificacion?: Imagen[];
+  /** Lo que el propio acompañante declaró que trae ("vehiculo"/"equipo"), solo informativo. */
+  equipoVehiculo?: string[];
 }
 
 type ModoMiembrosPase = 'crear' | 'ver' | 'completar';
@@ -43,6 +46,7 @@ interface MiembrosPaseProps {
   title?: string;
   useIA?: boolean;
   acompantes?: number;
+  onAcompantesChange?: (value: number) => void;
   showDownload?: boolean;
   showCreatePass?: boolean;
   showShare?: boolean;
@@ -111,6 +115,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   title = "Listado de Acompañantes",
   useIA = false,
   acompantes,
+  onAcompantesChange,
   showDownload = false,
   showCreatePass = false,
   showShare = false,
@@ -451,6 +456,23 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
               <Users className="w-4 h-4 text-blue-600" />
             </div>
             <h1 className="font-semibold text-gray-700 text-sm">{title}</h1>
+            {onAcompantesChange && (
+              <input
+                type="number"
+                step={1}
+                min={0}
+                max={15}
+                placeholder="0"
+                className="flex h-8 w-16 rounded-xl border border-gray-200 bg-gray-50 px-2 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
+                value={!acompantes ? "" : acompantes}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const num = val === "" ? 0 : Number(val);
+                  onAcompantesChange(num);
+                }}
+                onFocus={(e) => e.target.select()}
+              />
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {efectivoUseIA &&  miembrosEditables.length>0 && (
@@ -534,6 +556,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                       {[a.email, a.telefono].filter(Boolean).join(" · ") || "Sin datos de contacto"}
                     </p>
                   </div>
+                  <EquipoVehiculoBadges equipoVehiculo={a.equipoVehiculo} />
                   <EstatusBadge estatus={a.estatus} />
                   {a.link && (
                     <button
@@ -692,7 +715,10 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                     )}
                     {(esVista || esCompletar) && (
                       <td className={td +` pb-4`} style={{ width: 110 }}>
-                        <EstatusBadge estatus={m.estatus} />
+                        <div className="flex items-center gap-1.5">
+                          <EstatusBadge estatus={m.estatus} />
+                          <EquipoVehiculoBadges equipoVehiculo={m.equipoVehiculo} />
+                        </div>
                       </td>
                     )}
                     {efectivoUseIA && (
@@ -755,7 +781,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                                   <button
                                     type="button"
                                     title="Copiar link"
-                                    className="flex items-center justify-center w-7 h-7 mb-3 rounded-lg bg-green-600 text-white shadow-sm hover:bg-green-700 transition-colors"
+                                    className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-600 text-white shadow-sm hover:bg-green-700 transition-colors"
                                     onClick={() => handleCopyLink(m)}
                                   >
                                     {copiedId === m.id ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
@@ -765,7 +791,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                                     <button
                                       type="button"
                                       title="Abrir link"
-                                      className="flex items-center justify-center w-7 h-7 mb-3 rounded-lg bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition-colors"
+                                      className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition-colors"
                                       onClick={() => window.open(m.link, "_blank", "noopener,noreferrer")}
                                     >
                                       <ExternalLink className="w-3.5 h-3.5" />

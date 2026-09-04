@@ -29,12 +29,12 @@ import { capitalizeFirstLetter } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 
 import { Tooltip } from "@/components/ui/tooltip";
-import MembersCarousel from "@/components/carrousel-miembros";
+import MembersCarousel, { SeleccionMiembro } from "@/components/carrousel-miembros";
 
 interface Props {
 	searchPass: SearchAccessPass | undefined;
-	/** Recibe los ids de los pases de acompañantes seleccionados (desde MembersCarousel), para que AccesosPage los use al armar el payload de doAccess. */
-	onSeleccionPases?: (ids: string[]) => void;
+	/** Recibe los ids (+ equipo/vehículo confirmado) de los acompañantes seleccionados (desde MembersCarousel), para que AccesosPage los use al armar el payload de doAccess. */
+	onSeleccionPases?: (seleccion: SeleccionMiembro[]) => void;
 }
 
 const Credentials: React.FC<Props> = ({ searchPass, onSeleccionPases }) => {
@@ -328,9 +328,7 @@ const Credentials: React.FC<Props> = ({ searchPass, onSeleccionPases }) => {
 
 								<MembersCarousel
 									searchPass={searchPass}
-									onSeleccionMiembros={(miembros) =>
-										onSeleccionPases?.(miembros.map((m) => m.id))
-									}
+									onSeleccionMiembros={(seleccion) => onSeleccionPases?.(seleccion)}
 								/>
 							</div>
 						)}

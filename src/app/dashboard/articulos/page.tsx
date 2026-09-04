@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Tabs as TabsOuter, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutGrid, LayoutList, Plus, Sheet } from "lucide-react";
+import { LayoutGrid, LayoutList, Plus, RotateCcw, Sheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useArticulosPerdidos } from "@/hooks/useArticulosPerdidos";
 import ArticulosPerdidosTable from "@/components/table/articulos/perdidos/table";
@@ -20,6 +20,7 @@ import { useBoothStore } from "@/store/useBoothStore";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { AddArticuloConModal } from "@/components/modals/add-article.con";
 import { PageHeader } from "@/components/common/PageHeader";
+import { SearchFieldsFilter, SearchFieldOption } from "@/components/common/SearchFieldsFilter";
 import { usePaqueteriaFilters } from "@/hooks/Paqueteria/usePaqueteriaFilters";
 import { useArticulosConcesionadosFilters } from "@/hooks/Concesionados/useConcesionadosFilters";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
@@ -37,6 +38,18 @@ const TAB_TITLES: Record<string, string> = {
   Concecionados: "Artículos Concesionados",
   Perdidos: "Artículos Perdidos",
 };
+
+// Campos por los que se puede acotar la búsqueda de texto en Concesionados.
+// key = nombre real del campo en el registro, tal cual lo espera el back en
+// search_fields (contrato ya confirmado e implementado).
+const CONCESIONADOS_SEARCH_FIELDS: SearchFieldOption[] = [
+  { key: "folio", label: "Folio" },
+  { key: "nombre_equipo", label: "Nombre del equipo" },
+  { key: "categoria_equipo_concesion", label: "Categoría" },
+  { key: "status_concesion", label: "Estado" },
+  { key: "persona_nombre_concesion", label: "Empleado" },
+  { key: "creado_por", label: "Creado por" },
+];
 
 const ArticulosPage = () => (
   <Suspense fallback={<div className="p-6 text-slate-400 text-sm">Cargando...</div>}>
@@ -67,6 +80,12 @@ const ArticulosContent = () => {
   const [statusConcesionados, setStatusConcesionados] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string[]>([]);
   // const [ setSearchQuery] = useState<string[]>([]);
+  // Campos a los que se acota la búsqueda en Concesionados (vacío = buscar
+  // como hoy, en todos los campos que ya cubra el back).
+  const [searchFieldsCon, setSearchFieldsCon] = useState<string[]>([]);
+  // Se incrementa al resetear filtros, para forzar a PageHeader a limpiar
+  // el texto del buscador (PageHeader maneja ese input internamente).
+  const [resetSignalCon, setResetSignalCon] = useState(0);
   const [totalRegistros, setTotalRegistros] = useState(0);
   const [limitCon, setLimitCon] = useState(25);
   const [skipCon, setSkipCon] = useState(0);
@@ -98,11 +117,14 @@ const ArticulosContent = () => {
   const concesionadosDateTo = concesionadosFilters.date2
     ? dateToString(new Date(concesionadosFilters.date2))
     : "";
+  // Con campos elegidos en "Buscar en" pero sin texto todavía, no tiene
+  // sentido mandar la petición — se espera a que escriba algo.
+  const puedeBuscarCon = searchFieldsCon.length === 0 || searchConcesionados.trim() !== "";
   const { listArticulosCon: articulosConData, isLoadingListArticulosCon } = useArticulosConcesionados(
     ubicacionSeleccionada,
     areaSeleccionada === "todas" ? "" : areaSeleccionada,
-    statusConcesionados, true, concesionadosDateFrom, concesionadosDateTo, concesionadosFilters.dateFilter ?? "",
-    limitCon, skipCon, selectedLocations, searchConcesionados,
+    statusConcesionados, puedeBuscarCon, concesionadosDateFrom, concesionadosDateTo, concesionadosFilters.dateFilter ?? "",
+    limitCon, skipCon, selectedLocations, searchConcesionados, searchFieldsCon,
   );
   const {
     records: listArticulosCon = [],
@@ -205,7 +227,7 @@ const ArticulosContent = () => {
   useEffect(() => { setTotalRegistros(0); }, [selectedTab]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setSkipCon(0); }, [searchConcesionados]);
+  useEffect(() => { setSkipCon(0); }, [searchConcesionados, searchFieldsCon]);
 
   const handleOpenChange = (value: React.SetStateAction<boolean>) => {
     const open = typeof value === "function" ? value(isSuccess) : value;
@@ -250,6 +272,15 @@ const ArticulosContent = () => {
     setDateFilter("");
   };
 
+  // Limpia buscador (texto y campos) + filtros del sidebar (Estatus,
+  // Solicitante, Fecha) de la pestaña Concesionados.
+  const resetFiltrosConcesionados = () => {
+    setSearchQuery([]);
+    setSearchFieldsCon([]);
+    onConcesionadosFiltersChange({ dynamic: {}, dateFilter: "" });
+    setResetSignalCon((n) => n + 1);
+  };
+
   return (
     <div className="w-full relative">
       {viewMode === "table" && selectedTab === "Paqueteria" && (
@@ -291,7 +322,28 @@ const ArticulosContent = () => {
             title={TAB_TITLES[selectedTab] || "Artículos"}
             totalRecords={totalRegistros}
             onSearch={(val) => setSearchQuery(val ? [val] : [])}
-            searchPlaceholder="Buscar...">
+            searchPlaceholder="Buscar..."
+            resetSignal={resetSignalCon}>
+
+            {selectedTab === "Concecionados" && (
+              <>
+                <SearchFieldsFilter
+                  options={CONCESIONADOS_SEARCH_FIELDS}
+                  selected={searchFieldsCon}
+                  onChange={setSearchFieldsCon}
+                  searchTerm={searchConcesionados}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 gap-1.5 text-slate-500 hover:text-slate-700"
+                  onClick={resetFiltrosConcesionados}>
+                  <RotateCcw size={14} />
+                  Resetear busqueda
+                </Button>
+              </>
+            )}
 
             {selectedTab === "Paqueteria" && (
               <Button

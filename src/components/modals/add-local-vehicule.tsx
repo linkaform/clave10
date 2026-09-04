@@ -125,11 +125,13 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
   });
 
   useEffect(() => {
-    setTiposCat(dataVehiculos);
-  }, []);
-
-  useEffect(() => {
-    if (!tiposCat && dataVehiculos) {
+    // dataVehiculos trae tipos/marcas/modelos según la etapa (catalogSearch)
+    // en la que estemos — "" es la etapa inicial, antes de elegir tipo.
+    // Antes esto se mandaba directo a setTiposCat sin mapear a
+    // {value, label}, lo que le pasaba strings crudos a <Select> y
+    // reventaba con "cannot use 'in' operator" al abrir el modal con el
+    // catálogo ya en caché.
+    if (dataVehiculos && catalogSearch === "") {
       const opcionesTipos = dataVehiculos.map((tipo: any) => ({
         value: tipo,
         label: tipo,
@@ -155,7 +157,7 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
       }));
       setModelosCat(opcionesModelos);
     }
-  }, [dataVehiculos]);
+  }, [dataVehiculos, catalogSearch]);
 
   function onSubmit(data: z.infer<typeof formSchema>) {
     addNewVehicle(data);

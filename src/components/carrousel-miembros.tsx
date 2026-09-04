@@ -5,13 +5,20 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight, CheckCircle2, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MembersModal } from "./modals/miembros-modal";
-import { Miembro, AcompanantesSearchPass, useAcompanantesPase } from "@/hooks/useAcompanantesPase";
+import { AcompanantesSearchPass, useAcompanantesPase } from "@/hooks/useAcompanantesPase";
+import { EquipoVehiculoBadges } from "./equipo-vehiculo-badges";
+
+export interface SeleccionMiembro {
+  id: string;
+  /** Equipo/vehículo que el guardia confirmó que sí se presentó — apagado por default. */
+  equipo_vehiculo?: string[];
+}
 
 interface MembersCarouselProps {
   /** Pásale directo el objeto que te regresa el servicio, sin transformar nada. */
   searchPass?: AcompanantesSearchPass | null;
-  /** Se llama cada vez que cambia la selección (desde el carrusel o desde el modal), con los miembros actualmente seleccionados. */
-  onSeleccionMiembros?: (miembros: Miembro[]) => void;
+  /** Se llama cada vez que cambia la selección o la confirmación de equipo/vehículo (desde el carrusel o desde el modal). */
+  onSeleccionMiembros?: (seleccion: SeleccionMiembro[]) => void;
 }
 
 const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass, onSeleccionMiembros }) => {
@@ -31,6 +38,11 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass, onSelecci
   // así ambas vistas siempre están viendo/editando el mismo estado, y lo
   // que se expone hacia afuera ya son ids de pase listos para usarse.
   const [selectedPases, setSelectedPases] = useState<Set<string>>(new Set());
+  // Confirmación del guardia de qué equipo/vehículo declarado sí se presentó
+  // al momento de entrar — apagada por default, independiente de la
+  // selección de ingreso (selectedPases). Solo tiene efecto para miembros
+  // que además estén seleccionados para entrar.
+  const [confirmados, setConfirmados] = useState<Record<string, Set<string>>>({});
   const [openModal, setOpenModal] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -53,21 +65,40 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass, onSelecci
     });
   };
 
+  const toggleConfirmado = (id: string, valor: string) => {
+    setConfirmados((prev) => {
+      const actual = new Set(prev[id] ?? []);
+      if (actual.has(valor)) {
+        actual.delete(valor);
+      } else {
+        actual.add(valor);
+      }
+      return { ...prev, [id]: actual };
+    });
+  };
+
   // Si el pase pasa a estar en proceso mientras hay una selección activa,
   // la limpiamos (ya no aplica "ingreso" pendiente válido).
   useEffect(() => {
     if (paseEnProceso) {
       setSelectedPases(new Set());
+      setConfirmados({});
     }
   }, [paseEnProceso]);
 
   // Avisa hacia arriba (si el consumidor de MembersCarousel lo necesita)
-  // cada vez que cambia la selección, con los objetos Miembro completos.
+  // cada vez que cambia la selección o la confirmación, con ids + equipo/
+  // vehículo confirmado — esto es lo que termina viajando en el POST de
+  // registro de ingreso.
   useEffect(() => {
     if (!onSeleccionMiembros) return;
-    onSeleccionMiembros(data.filter((m) => selectedPases.has(m.id)));
+    onSeleccionMiembros(
+      data
+        .filter((m) => selectedPases.has(m.id))
+        .map((m) => ({ id: m.id, equipo_vehiculo: Array.from(confirmados[m.id] ?? []) }))
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPases]);
+  }, [selectedPases, confirmados]);
 
   // No renderiza nada si el pase no tiene acompañantes ni es un pase hijo
   if (!tieneAcompanantes && !esPaseHijo) return null;
@@ -169,13 +200,14 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass, onSelecci
               style={{ scrollbarWidth: "none" }}
             >
               {data.map((miembro) => (
-                <button
+                <div
                   key={miembro.id}
-                  type="button"
+                  role="button"
+                  tabIndex={esSeleccionable(miembro) ? 0 : -1}
                   onClick={() => togglePase(miembro.id)}
-                  disabled={!esSeleccionable(miembro)}
+                  aria-disabled={!esSeleccionable(miembro)}
                   className={`flex flex-col items-center gap-2 p-4 pt-5 mt-1 rounded-xl border transition-all shrink-0 w-32 relative ${
-                    !esSeleccionable(miembro) ? "cursor-not-allowed" : "hover:shadow-sm"
+                    !esSeleccionable(miembro) ? "cursor-not-allowed" : "cursor-pointer hover:shadow-sm"
                   } ${
                     !esSeleccionable(miembro)
                       ? "bg-slate-50 border-slate-200 opacity-60 grayscale"
@@ -223,7 +255,24 @@ const MembersCarousel: React.FC<MembersCarouselProps> = ({ searchPass, onSelecci
                   >
                     {miembro.nombre}
                   </p>
-                </button>
+                  {(miembro.equipoVehiculo?.length ?? 0) > 0 && (
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <EquipoVehiculoBadges
+                        equipoVehiculo={miembro.equipoVehiculo}
+                        confirmados={
+                          esSeleccionable(miembro) && selectedPases.has(miembro.id)
+                            ? confirmados[miembro.id] ?? new Set()
+                            : undefined
+                        }
+                        onToggle={
+                          esSeleccionable(miembro) && selectedPases.has(miembro.id)
+                            ? (valor) => toggleConfirmado(miembro.id, valor)
+                            : undefined
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
 

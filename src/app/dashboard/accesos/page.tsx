@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ComentariosAccesosTable } from "@/components/table/accesos/comentarios/table";
 import Credentials from "@/components/pages/accesos/credential";
+import { SeleccionMiembro } from "@/components/carrousel-miembros";
 import { AccesosPermitidosTable } from "@/components/table/accesos/accesos-permitidos/table";
 import { UltimosAccesosTable } from "@/components/table/accesos/ultimos-accesos/table";
 import { VehiculosAutorizadosTable } from "@/components/table/accesos/vehiculos-autorizados/table";
@@ -43,11 +44,13 @@ import { toast } from "sonner";
 import { useGetShift } from "@/hooks/useGetShift";
 import { exitRegister, registerIncoming } from "@/lib/access";
 import { getImgPassUrl } from "@/lib/endpoints";
+import { getPdfMulti } from "@/lib/get-pdf-multi";
 import { PermisosTable } from "@/components/table/accesos/permisos-certificaciones/table";
 import useAuthStore from "@/store/useAuthStore";
 import {
   esHexadecimal,
   imprimirUrlEnIframe,
+  imprimirYDescargarPDF,
   isExcluded,
   isVehiculoHabilitado,
 } from "@/lib/utils";
@@ -81,6 +84,14 @@ const AccesosContent = () => {
   // al mismo nivel donde se arma la petición de doAccess — no en un store
   // global — y se pasa hacia abajo por props.
   const [selectedPasses, setSelectedPasses] = useState<string[]>([]);
+  // Equipo/vehículo que el guardia confirmó por acompañante (id -> valores
+  // confirmados), independiente de selectedPasses — solo aplica al armar el
+  // payload de doAccess, nunca se usa para decidir quién entra.
+  const [equipoVehiculoConfirmado, setEquipoVehiculoConfirmado] = useState<Record<string, string[]>>({});
+  const handleSeleccionAcompanantes = (seleccion: SeleccionMiembro[]) => {
+    setSelectedPasses(seleccion.map((s) => s.id));
+    setEquipoVehiculoConfirmado(Object.fromEntries(seleccion.map((s) => [s.id, s.equipo_vehiculo ?? []])));
+  };
   // Antes de ejecutar el ingreso/salida se muestra un modal chico para
   // confirmar con quién más se hace el movimiento (ver ConfirmarAccesoModal).
   const [confirmModal, setConfirmModal] = useState<"ingreso" | "salida" | null>(null);
@@ -154,7 +165,29 @@ const AccesosContent = () => {
       toast.error("No se pudo obtener la etiqueta");
       return;
     }
-    imprimirUrlEnIframe(url);
+    await imprimirUrlEnIframe(url);
+  };
+
+  // Cuando el ingreso incluye acompañantes, la etiqueta de un solo pase
+  // (get_pass_img/imprimirEtiquetaDePase) no sirve — se necesita el PDF
+  // mergeado de get_pdf_multi con el _id de Mongo del titular + cada
+  // acompañante seleccionado. El backend lo arma de forma asíncrona y puede
+  // tardar hasta ~2 minutos, por eso el spinner en doAccess.onSuccess no se
+  // cierra hasta que esta promesa resuelve.
+  const imprimirPaseMultiple = async (recordIds: string[]) => {
+    const respuesta = await getPdfMulti(recordIds);
+    const data = respuesta.response?.data;
+
+    if (!data) {
+      throw new Error("No se pudo obtener el PDF combinado");
+    }
+    if ("error" in data) {
+      throw new Error(data.error);
+    }
+    if ("status_code" in data) {
+      throw new Error(data.data || "No hay registros para ser descargados.");
+    }
+    await imprimirYDescargarPDF(data.path);
   };
 
   const [imprimiendoEtiqueta, setImprimiendoEtiqueta] = useState(false);
@@ -186,6 +219,7 @@ const AccesosContent = () => {
     onSuccess: () => {
       setPassCode("");
       setSelectedPasses([]);
+      setEquipoVehiculoConfirmado({});
 
       toast.success("Salida Exitosa", {
         style: {
@@ -253,8 +287,12 @@ const AccesosContent = () => {
         comentario_acceso: [],
         comentario_pase: allComments,
         // Ids de los pases de acompañantes seleccionados para dar ingreso
-        // junto con el titular (vienen de MembersCarousel, via prop local).
-        selected_pases: selectedPasses,
+        // junto con el titular (vienen de MembersCarousel, via prop local),
+        // más el equipo/vehículo que el guardia confirmó para cada uno.
+        selected_passes: selectedPasses.map((id) => ({
+          id,
+          equipo_vehiculo: equipoVehiculoConfirmado[id] ?? [],
+        })),
       });
 
       if (!data.success) {
@@ -269,11 +307,19 @@ const AccesosContent = () => {
       setLoading(true);
     },
     onSuccess: () => {
+      // Se calcula antes de limpiar selectedPasses: en este backend el
+      // "qr_code" de cada acompañante (m.id) YA ES su _id de Mongo — no hay
+      // un campo _id separado en el objeto crudo, así que selectedPasses ya
+      // trae directamente lo que necesita get_pdf_multi (confirmado en vivo:
+      // los valores de selectedPasses tienen formato de ObjectId de Mongo).
+      const idsAcompanantesIngreso = [...selectedPasses];
+
       queryClient.invalidateQueries({ queryKey: ["serchPass"] });
       queryClient.invalidateQueries({ queryKey: ["getStats"] });
 
       setPassCode("");
       setSelectedPasses([]);
+      setEquipoVehiculoConfirmado({});
 
       toast.success("Entrada Exitosa", {
         style: {
@@ -283,17 +329,26 @@ const AccesosContent = () => {
       });
 
       if (downloadPass.includes("impresion_de_pase") && id) {
+        const tieneAcompanantesEnEsteIngreso = idsAcompanantesIngreso.length > 0;
+
         Swal.fire({
           title: "Preparando documento",
-          html: "Cargando PDF para imprimir...",
+          html: tieneAcompanantesEnEsteIngreso
+            ? "Generando PDF con acompañantes, esto puede tardar hasta 2 minutos..."
+            : "Cargando PDF para imprimir...",
           allowOutsideClick: false,
           allowEscapeKey: false,
           didOpen: () => {
             Swal.showLoading();
           },
         });
-        imprimirEtiquetaDePase(id)
-          .catch((err) => toast.error(`Error al obtener la etiqueta: ${err}`))
+
+        const impresion = tieneAcompanantesEnEsteIngreso
+          ? imprimirPaseMultiple([id, ...idsAcompanantesIngreso])
+          : imprimirEtiquetaDePase(id);
+
+        impresion
+          .catch((err) => toast.error(`Error al obtener el documento: ${err}`))
           .finally(() => Swal.close());
       }
     },
@@ -574,7 +629,7 @@ const AccesosContent = () => {
 			<>
 				<div className="grid grid-cols-1 md:grid-cols-3">
 					<div className="row-span-3 flex flex-col p-4 ">
-						<Credentials searchPass={searchPass} onSeleccionPases={setSelectedPasses} />
+						<Credentials searchPass={searchPass} onSeleccionPases={handleSeleccionAcompanantes} />
 					</div>
 					<div className="flex flex-col pl-0 p-4 gap-3 ">
 						<ComentariosAccesosTable allComments={allComments} />

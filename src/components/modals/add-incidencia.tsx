@@ -325,6 +325,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
       ubicacionSeleccionada,
       isSuccess,
       location ? true : false,
+      { uso: "incidencias" },
     );
   const [personasInvolucradas, setPersonasInvolucradas] = useState<
     PersonasInvolucradas[]

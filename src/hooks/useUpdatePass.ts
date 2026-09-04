@@ -37,6 +37,8 @@ config_dias_acceso?: string,
 config_limitar_acceso?: number,
 grupo_vehiculos?:Vehiculo[],
 grupo_equipos?:Equipo[],
+/** Lo que el propio acompañante declaró que trae ("vehiculo"/"equipo"), solo informativo. */
+equipo_vehiculo_acompanante?: string[],
 autorizado_por?: string,
 walkin_fotografia?: Imagen[],
 walkin_identificacion?:Imagen[],

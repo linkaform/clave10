@@ -2,7 +2,7 @@ export interface Miembro {
   // Id real del pase de este acompañante (viene de qr_code). Es el
   // identificador que se usa para sincronizar la selección entre las
   // distintas vistas (carrusel, modal de listado, modal de confirmación),
-  // y el que se expone hacia afuera en selected_pases.
+  // y el que se expone hacia afuera en selected_passes.
   id: string;
   nombre: string;
   foto?: string;
@@ -12,6 +12,8 @@ export interface Miembro {
   estatus?: string;
   link?: string;
   es_padre?: boolean;
+  /** Lo que el propio acompañante declaró que trae ("vehiculo"/"equipo"), solo informativo. */
+  equipoVehiculo?: string[];
 }
 
 interface AcompananteRaw {
@@ -27,6 +29,8 @@ interface AcompananteRaw {
   _id?: string;
   /** Presente cuando este elemento en realidad es el registro completo del pase padre. */
   es_padre?: boolean;
+  /** Declarado por el acompañante en su propio pase ("vehiculo"/"equipo"), inyectado por _hidratar_acompanantes. */
+  equipo_vehiculo?: string[];
   [key: string]: any;
 }
 
@@ -72,6 +76,7 @@ const mapAcompanantes = (acompanantes: AcompananteRaw[] = []): Miembro[] =>
     estatus:
       a?.estatus === "activo" ? "Activo" : a?.estatus === "proceso" ? "En proceso" : a?.estatus,
     es_padre: !!a?.es_padre,
+    equipoVehiculo: Array.isArray(a?.equipo_vehiculo) ? a.equipo_vehiculo : [],
   }));
 
 // Deriva la lista de acompañantes y las reglas de selección a partir del

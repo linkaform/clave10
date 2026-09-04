@@ -99,7 +99,11 @@ const contarDiasDeAccesoEnRango = (
   return total;
 };
 
-const formSchema = z
+const createFormSchema = (
+  requiereEmailModulo: boolean,
+  requiereTelefonoModulo: boolean,
+) =>
+  z
   .object({
     selected_visita_a: z.string().optional(),
     nombre: z.string().min(2, {
@@ -228,14 +232,26 @@ const formSchema = z
   )
   .refine(
     (data) => {
-      if (!data.email && !data.telefono) {
+      if (requiereEmailModulo && !data.email?.trim()) {
         return false;
       }
       return true;
     },
     {
-      message: "Se requiere un email o teléfono.",
+      message: "El correo es requerido.",
       path: ["email"],
+    },
+  )
+  .refine(
+    (data) => {
+      if (requiereTelefonoModulo && !data.telefono?.trim()) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "El teléfono es requerido.",
+      path: ["telefono"],
     },
   );
 
@@ -257,9 +273,7 @@ const PaseEntradaPage = () => {
   const {
     locations: ubicacionesStore,
     defaultLocations,
-    areas: areasStore,
     fetchLocations,
-    fetchAreas,
     loading: loadingUbicaciones,
     locationDetails,
     roles,
@@ -267,7 +281,6 @@ const PaseEntradaPage = () => {
   // Las opciones "Habilitar foto"/"Habilitar identificación" solo se
   // muestran a usuarios con el rol Admin (roles trae los del usuario actual).
   const esAdmin = (roles ?? []).includes("Admin");
-  console.log("----------------------------areas", areasStore);
   const pickerRef = useRef<any>(null);
 
   
@@ -299,17 +312,9 @@ const PaseEntradaPage = () => {
     fetchLocations();
   }, [fetchLocations]);
 
-  // Cargar areas cuando cambien las ubicaciones seleccionadas
-  useEffect(() => {
-    if (ubicacionesSeleccionadas?.length) {
-      const ubicacion =
-        ubicacionesSeleccionadas[0]?.id ??
-        ubicacionesSeleccionadas[0]?.name ??
-        "";
-      if (ubicacion) fetchAreas(ubicacion);
-    }
-  }, [fetchAreas, ubicacionesSeleccionadas]);
-  
+  // Las areas del pase salen de locationDetails (ver areasDisponiblesPorUbicacion),
+  // que ya viene filtrado por permisos y por la marca "Pases" desde el back.
+
   useEffect(() => {
     if (!ubicacionesSeleccionadas?.length || !grupoRequisitos?.length) return;
   
@@ -404,6 +409,7 @@ const PaseEntradaPage = () => {
   const { dataConfigLocation, isLoadingConfigLocation } = usePaseEntrada(
     ubicacionesSeleccionadasLista ?? [],
   );
+
   // Foto/Identificación solo se pueden ofrecer si vienen dentro de los
   // requerimientos de la config del módulo de seguridad de la ubicación;
   // el rol Admin únicamente decide si se muestran cuando SÍ vienen.
@@ -411,6 +417,29 @@ const PaseEntradaPage = () => {
     dataConfigLocation?.requerimientos?.includes("fotografia") ?? false;
   const requiereIdentificacionModulo =
     dataConfigLocation?.requerimientos?.includes("identificacion") ?? false;
+
+  // Igual con email/teléfono: si el módulo de seguridad de la ubicación
+  // pide envío por "correo" y/o "sms", ese campo se vuelve requerido en el
+  // formulario. Si no pide ninguno de los dos, ninguno es requerido.
+  const requiereEmailModulo =
+    dataConfigLocation?.envios?.includes("correo") ?? false;
+  const requiereTelefonoModulo =
+    dataConfigLocation?.envios?.includes("sms") ?? false;
+
+  const formSchema = useMemo(
+    () => createFormSchema(requiereEmailModulo, requiereTelefonoModulo),
+    [requiereEmailModulo, requiereTelefonoModulo],
+  );
+
+  // Cada vez que el toggle (re)aparece debe arrancar activado — si no, al
+  // cambiar de ubicación podría arrastrar un "no" que el admin dejó puesto
+  // en una ubicación anterior donde el toggle ni se mostraba.
+  useEffect(() => {
+    if (requiereFotoModulo) setHabilitarFoto(true);
+  }, [requiereFotoModulo]);
+  useEffect(() => {
+    if (requiereIdentificacionModulo) setHabilitarIdentificacion(true);
+  }, [requiereIdentificacionModulo]);
 
   const [enviar_correo_pre_registro] = useState<string[]>([]);
   const [formatedDocs, setFormatedDocs] = useState<string[]>([]);
@@ -725,9 +754,16 @@ const PaseEntradaPage = () => {
       },
       todas_las_areas: todasAreas,
       habilitar_vehiculo: habilitarVehiculo ? "sí" : "no",
-      habilitar_fotografia: requiereFotoModulo && habilitarFoto ? "sí" : "no",
-      habilitar_identificacion:
-        requiereIdentificacionModulo && habilitarIdentificacion ? "sí" : "no",
+      // Si el módulo de seguridad no pide fotografia/identificacion, el
+      // toggle ni se muestra (ver esAdmin && requiereFotoModulo en el JSX) —
+      // en ese caso no se manda la llave al back. Si sí la pide, se manda
+      // "sí"/"no" según el toggle (que el admin puede apagar).
+      ...(requiereFotoModulo && {
+        habilitar_fotografia: habilitarFoto ? "sí" : "no",
+      }),
+      ...(requiereIdentificacionModulo && {
+        habilitar_identificacion: habilitarIdentificacion ? "sí" : "no",
+      }),
       acompanantes: Number(data.acompanantes) || 0,
       acompanantes_grupo:miembrosAcompanantes|| []
     };
@@ -775,6 +811,15 @@ const PaseEntradaPage = () => {
     setIsActiveAdvancedOptions(!isActiveAdvancedOptions);
   };
   const acompanantesValue = useWatch({ control: form.control, name: "acompanantes" });
+
+  const handleAcompanantesChange = (num: number) => {
+    if (num > 15) {
+      setAcompanantesError(true);
+      return;
+    }
+    setAcompanantesError(false);
+    form.setValue("acompanantes", num, { shouldValidate: true, shouldDirty: true });
+  };
 
   useEffect(() => {
       const target = acompanantesValue || 0;
@@ -1079,7 +1124,7 @@ const PaseEntradaPage = () => {
                         render={({ field }: any) => (
                           <FormItem>
                             <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                              <span className="text-red-400">*</span> Email
+                              {requiereEmailModulo && <span className="text-red-400">*</span>} Email
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -1104,7 +1149,7 @@ const PaseEntradaPage = () => {
                         render={({ field }: any) => (
                           <FormItem>
                             <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                              Teléfono
+                              {requiereTelefonoModulo && <span className="text-red-400">*</span>} Teléfono
                             </FormLabel>
                             <FormControl>
                               <PhoneInput
@@ -1191,12 +1236,7 @@ const PaseEntradaPage = () => {
                                 onChange={(e) => {
                                   const val = e.target.value;
                                   const num = val === "" ? 0 : Number(val);
-                                  if (num > 15) {
-                                    setAcompanantesError(true);
-                                    return;
-                                  }
-                                  setAcompanantesError(false);
-                                  field.onChange(num);
+                                  handleAcompanantesChange(num);
                                 }}
                                 onFocus={(e) => e.target.select()}
                               />
@@ -1227,6 +1267,7 @@ const PaseEntradaPage = () => {
                     title="Acompañantes"
                     useIA
                     acompantes={acompanantesValue || 0}
+                    onAcompantesChange={handleAcompanantesChange}
                     defaultCountry={defaultCountry}
                     showFotoColumn={false}
                   />
