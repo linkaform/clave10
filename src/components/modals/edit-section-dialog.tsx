@@ -74,6 +74,7 @@ export const EditSectionDialog: React.FC<EditSectionDialogProps> = ({
     if (open) {
       form.reset(initialValues || emptyValues);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialValues]);
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {

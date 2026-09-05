@@ -31,11 +31,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-<<<<<<< HEAD
-import { formatEquipos, formatVehiculos, isHabilitado, isVehiculoHabilitado, prefijoToCountry, requisitoAplicaA } from "@/lib/utils";
-=======
 import { formatEquipos, formatVehiculos, isHabilitado, isVehiculoHabilitado, normalizeText, prefijoToCountry } from "@/lib/utils";
->>>>>>> develop
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
@@ -316,13 +312,8 @@ const PaseUpdate = () => {
 
     const ubicacionNombre = dataCatalogos.pass_selected.ubicacion[0] ?? "";
 
-<<<<<<< HEAD
-    const requisito = grupoRequisitos.find((r) =>
-      requisitoAplicaA(r.ubicacion, ubicacionNombre)
-=======
     const requisito = grupoRequisitos.find(
       (r) => normalizeText(r.ubicacion) === normalizeText(ubicacionNombre)
->>>>>>> develop
     );
 
     if (requisito?.prefijo_telefonico) {
