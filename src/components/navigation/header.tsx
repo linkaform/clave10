@@ -160,7 +160,7 @@ export function Header({
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 focus:outline-none">
                 <span className="hidden sm:block text-xs text-muted-foreground max-w-[140px] truncate">
-                  {user?.email || "Usuario"}
+                  {user?.name || "Usuario"}
                 </span>
                 <Avatar className="h-9 w-9 shadow-sm ring-2 ring-border hover:ring-primary transition-all cursor-pointer">
                   <AvatarImage

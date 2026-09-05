@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Tabs as TabsOuter, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutGrid, LayoutList, Plus, RotateCcw, Sheet } from "lucide-react";
+import { LayoutGrid, LayoutList, Plus, Sheet, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useArticulosPerdidos } from "@/hooks/useArticulosPerdidos";
 import ArticulosPerdidosTable from "@/components/table/articulos/perdidos/table";
@@ -49,6 +49,26 @@ const CONCESIONADOS_SEARCH_FIELDS: SearchFieldOption[] = [
   { key: "status_concesion", label: "Estado" },
   { key: "persona_nombre_concesion", label: "Empleado" },
   { key: "creado_por", label: "Creado por" },
+];
+
+// Mismo selector "Buscar en" para Paquetería y Perdidos, pero deshabilitado:
+// el backend de estas dos secciones aún no soporta acotar por search_fields
+// (a diferencia de Concesionados, ya confirmado e implementado). Se deja
+// visible en gris para anticipar la UI mientras se agrega ese soporte.
+const PAQUETERIA_SEARCH_FIELDS: SearchFieldOption[] = [
+  { key: "folio", label: "Folio" },
+  { key: "quien_recibe_paqueteria", label: "Destinatario" },
+  { key: "proveedor", label: "Proveedor" },
+  { key: "estatus_paqueteria", label: "Estatus" },
+  { key: "guardado_en_paqueteria", label: "Locker" },
+];
+
+const PERDIDOS_SEARCH_FIELDS: SearchFieldOption[] = [
+  { key: "folio", label: "Folio" },
+  { key: "articulo_perdido", label: "Nombre" },
+  { key: "articulo_seleccion", label: "Artículo" },
+  { key: "tipo_articulo_perdido", label: "Categoría" },
+  { key: "estatus_perdido", label: "Estatus" },
 ];
 
 const ArticulosPage = () => (
@@ -335,23 +355,31 @@ const ArticulosContent = () => {
                 />
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-10 gap-1.5 text-slate-500 hover:text-slate-700"
+                  size="icon"
+                  title="Resetear búsqueda"
+                  className="h-10 w-10 bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 hover:text-red-600 shadow-sm"
                   onClick={resetFiltrosConcesionados}>
-                  <RotateCcw size={14} />
-                  Resetear busqueda
+                  <X size={16} />
                 </Button>
               </>
             )}
 
             {selectedTab === "Paqueteria" && (
-              <Button
-                className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                onClick={() => setIsSuccessPaq(true)}>
-                <Plus size={16} />
-                Nuevo Paquete
-              </Button>
+              <>
+                <SearchFieldsFilter
+                  options={PAQUETERIA_SEARCH_FIELDS}
+                  selected={[]}
+                  onChange={() => {}}
+                  searchTerm={searchConcesionados}
+                  disabled
+                />
+                <Button
+                  className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                  onClick={() => setIsSuccessPaq(true)}>
+                  <Plus size={16} />
+                  Nuevo Paquete
+                </Button>
+              </>
             )}
             {selectedTab === "Concecionados" && (
               <Button
@@ -362,12 +390,21 @@ const ArticulosContent = () => {
               </Button>
             )}
             {selectedTab === "Perdidos" && (
-              <Button
-                className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                onClick={() => setIsSuccess(true)}>
-                <Plus size={16} />
-                Nuevo Artículo Perdido
-              </Button>
+              <>
+                <SearchFieldsFilter
+                  options={PERDIDOS_SEARCH_FIELDS}
+                  selected={[]}
+                  onChange={() => {}}
+                  searchTerm={searchConcesionados}
+                  disabled
+                />
+                <Button
+                  className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                  onClick={() => setIsSuccess(true)}>
+                  <Plus size={16} />
+                  Nuevo Artículo Perdido
+                </Button>
+              </>
             )}
 
             <TabsOuter

@@ -8,6 +8,7 @@ import { Equipo, Vehiculo } from "./update-pass";
 import { toast } from "sonner";
 import catalogo from "../app/catalogo.json";
 import Swal from "sweetalert2";
+import { Row } from "@tanstack/react-table";
 
 export type ViewMode = "table" | "photos" | "list";
 
@@ -21,18 +22,25 @@ export const normalizeText = (text: any) =>
  * llegar como arreglo. Normaliza cualquiera de esas formas a una lista de
  * nombres en minúsculas para poder comparar sin reventar con `.toLowerCase`.
  */
-export const ubicacionesDeRequisito = (ubicacion: unknown): string[] =>
+  export const ubicacionesDeRequisito = (ubicacion: unknown): string[] =>
   (Array.isArray(ubicacion) ? ubicacion : [ubicacion])
     .flat(Infinity)
     .filter((u): u is string => typeof u === "string" && u.trim() !== "")
     .map((u) => u.trim().toLowerCase());
 
-/** True si el grupo de requisitos aplica a la ubicación dada. */
-export const requisitoAplicaA = (ubicacion: unknown, nombre?: unknown): boolean => {
-  const target = String(nombre ?? "").trim().toLowerCase();
-  if (!target) return false;
-  return ubicacionesDeRequisito(ubicacion).includes(target);
-};
+  /** True si el grupo de requisitos aplica a la ubicación dada. */
+  export const requisitoAplicaA = (ubicacion: unknown, nombre?: unknown): boolean => {
+    const target = String(nombre ?? "").trim().toLowerCase();
+    if (!target) return false;
+    return ubicacionesDeRequisito(ubicacion).includes(target);
+  };
+// Comparador de texto seguro para columnas ordenables: nunca truena sin
+// importar el tipo de dato (undefined, arreglos, objetos), porque todo se
+// normaliza a string antes de comparar. \u00dasalo solo en columnas de texto \u2014
+// las columnas de foto/arreglos de varios registros deben llevar
+// enableSorting: false en vez de este comparador.
+export const safeTextSortingFn = <T,>(rowA: Row<T>, rowB: Row<T>, columnId: string) =>
+  normalizeText(rowA.getValue(columnId)).localeCompare(normalizeText(rowB.getValue(columnId)));
 
 export const isExcluded = (
   key: string,

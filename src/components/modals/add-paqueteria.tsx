@@ -22,6 +22,7 @@ import { useCatalogoProveedores } from "@/hooks/useCatalogoProveedores";
 import { useGetLockers } from "@/hooks/useGetLockers";
 import { useBoothStore } from "@/store/useBoothStore";
 import { cn } from "@/lib/utils";
+import { generarYDescargarComprobante } from "@/lib/generar-comprobante";
 
 interface AddFallaModalProps {
   title: string;
@@ -44,14 +45,14 @@ const formSchema = z.object({
   receptor: z.string().optional(),
   remitente: z.string().optional(),
   direccion_remitente: z.string().optional(),
-  notificacion: z.enum(["ninguna", "correo", "sms"]).optional(),
+  notificacion: z.array(z.enum(["correo", "sms"])).optional(),
   email_receptor: z.string().optional(),
   tipo_paquete: z.string().optional(),
   telefono_receptor: z.string().optional(),
   telefono_remitente: z.string().optional()
 });
 
-// ── Generador de comprobante con Canvas ──────────────────────────────────────
+// ── Comprobante de recepción de paquete (usa el generador genérico) ─────────
 interface ComprobanteData {
   ubicacion: string;
   area: string;
@@ -67,195 +68,33 @@ interface ComprobanteData {
   telefono_remitente: string;
   email_receptor: string;
   telefono_receptor: string;
+  notificacion: string;
 }
 
-const generarYDescargarComprobante = (data: ComprobanteData) => {
-  const W = 800;
-  const PADDING = 40;
-  const COL = (W - PADDING * 2) / 2 - 10;
-
-  // ── helpers de medida ──
-  const tmpCanvas = document.createElement("canvas");
-  const tmpCtx = tmpCanvas.getContext("2d")!;
-
-  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number, font: string): string[] => {
-    ctx.font = font;
-    const words = (text || "—").split(" ");
-    const lines: string[] = [];
-    let cur = "";
-    for (const w of words) {
-      const test = cur ? `${cur} ${w}` : w;
-      if (ctx.measureText(test).width > maxWidth && cur) { lines.push(cur); cur = w; }
-      else cur = test;
-    }
-    if (cur) lines.push(cur);
-    return lines;
-  };
-
-  // ── calcular campos ──
-  const campos = [
-    { label: "Destinatario", value: data.destinatario },
-    { label: "Ubicación", value: data.ubicacion },
-    { label: "Área", value: data.area },
-    { label: "Guardado en", value: data.guardado_en },
-    { label: "Fecha de recepción", value: data.fecha },
-    { label: "Proveedor / Paquetería", value: data.proveedor },
-    { label: "No. Guía", value: data.no_guia },
-    { label: "Tipo de paquete", value: data.tipo_paquete },
-    { label: "Descripción", value: data.descripcion },
-    { label: "Remitente", value: data.remitente },
-    { label: "Dirección remitente", value: data.direccion_remitente },
-    { label: "Teléfono remitente", value: data.telefono_remitente },
-    { label: "Email destinatario", value: data.email_receptor },
-    { label: "Teléfono destinatario", value: data.telefono_receptor },
-  ];
-
-  const FONT_LABEL = "bold 11px system-ui, sans-serif";
-  const FONT_VALUE = "13px system-ui, sans-serif";
-  const LINE_H = 18;
-  const CELL_PAD = 14;
-  const CELL_GAP = 10;
-
-  // Pre-calcular alturas de cada celda
-  const cellHeights = campos.map(({ value }) => {
-    const lines = wrapText(tmpCtx, value || "—", COL - CELL_PAD * 2, FONT_VALUE);
-    return CELL_PAD * 2 + LINE_H + lines.length * LINE_H + 4;
+const generarComprobantePaqueteria = (data: ComprobanteData) => {
+  generarYDescargarComprobante({
+    titulo: "Comprobante de Recepción",
+    badge: "✓ GUARDADO",
+    footerText: "Sistema de Paquetería  ·  Documento generado automáticamente",
+    filenamePrefix: "comprobante_paquete",
+    campos: [
+      { label: "Destinatario", value: data.destinatario },
+      { label: "Ubicación", value: data.ubicacion },
+      { label: "Área", value: data.area },
+      { label: "Guardado en", value: data.guardado_en },
+      { label: "Fecha de recepción", value: data.fecha },
+      { label: "Proveedor / Paquetería", value: data.proveedor },
+      { label: "No. Guía", value: data.no_guia },
+      { label: "Tipo de paquete", value: data.tipo_paquete },
+      { label: "Descripción", value: data.descripcion },
+      { label: "Remitente", value: data.remitente },
+      { label: "Dirección remitente", value: data.direccion_remitente },
+      { label: "Teléfono remitente", value: data.telefono_remitente },
+      { label: "Email destinatario", value: data.email_receptor },
+      { label: "Teléfono destinatario", value: data.telefono_receptor },
+      { label: "Notificación", value: data.notificacion },
+    ],
   });
-
-  // Layout en 2 columnas
-  interface Cell { campo: typeof campos[0]; x: number; y: number; h: number }
-  const cells: Cell[] = [];
-  let yL = 0, yR = 0;
-  campos.forEach((campo, i) => {
-    const h = cellHeights[i];
-    if (yL <= yR) {
-      cells.push({ campo, x: PADDING, y: yL, h });
-      yL += h + CELL_GAP;
-    } else {
-      cells.push({ campo, x: PADDING + COL + 20, y: yR, h });
-      yR += h + CELL_GAP;
-    }
-  });
-
-  const HEADER_H = 110;
-  const FOOTER_H = 60;
-  const GRID_H = Math.max(yL, yR);
-  const H = HEADER_H + GRID_H + FOOTER_H + PADDING;
-
-  // ── dibujar ──
-  const canvas = document.createElement("canvas");
-  canvas.width = W * 2;   // retina
-  canvas.height = H * 2;
-  const ctx = canvas.getContext("2d")!;
-  ctx.scale(2, 2);
-
-  // Fondo
-  ctx.fillStyle = "#f8fafc";
-  ctx.fillRect(0, 0, W, H);
-
-  // Header
-  const grad = ctx.createLinearGradient(0, 0, W, 0);
-  grad.addColorStop(0, "#1d4ed8");
-  grad.addColorStop(1, "#3b82f6");
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.roundRect(0, 0, W, HEADER_H - 10, [0, 0, 24, 24]);
-  ctx.fill();
-
-  // Ícono caja (simple)
-  ctx.fillStyle = "rgba(255,255,255,0.15)";
-  ctx.beginPath();
-  ctx.roundRect(PADDING, 18, 52, 52, 12);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.6)";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(PADDING + 12, 28, 28, 28);
-  ctx.beginPath();
-  ctx.moveTo(PADDING + 12, 34);
-  ctx.lineTo(PADDING + 40, 34);
-  ctx.stroke();
-
-  // Título
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 22px system-ui, sans-serif";
-  ctx.fillText("Comprobante de Recepción", PADDING + 64, 38);
-  ctx.font = "13px system-ui, sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.75)";
-  ctx.fillText(`Generado el ${format(new Date(), "dd/MM/yyyy 'a las' HH:mm")} hrs`, PADDING + 64, 58);
-
-  // Badge "GUARDADO"
-  ctx.fillStyle = "rgba(255,255,255,0.2)";
-  ctx.beginPath();
-  ctx.roundRect(W - PADDING - 90, 24, 90, 28, 8);
-  ctx.fill();
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 11px system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("✓ GUARDADO", W - PADDING - 45, 43);
-  ctx.textAlign = "left";
-
-  // ── Celdas ──
-  const OY = HEADER_H + 14;
-
-  cells.forEach(({ campo, x, y, h }) => {
-    const absY = y + OY;
-
-    // Sombra suave
-    ctx.shadowColor = "rgba(0,0,0,0.06)";
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetY = 2;
-
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.roundRect(x, absY, COL, h, 10);
-    ctx.fill();
-
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-
-    // Borde izquierdo accent
-    ctx.fillStyle = "#3b82f6";
-    ctx.beginPath();
-    ctx.roundRect(x, absY + 8, 3, h - 16, 2);
-    ctx.fill();
-
-    // Label
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = FONT_LABEL;
-    ctx.fillText(campo.label.toUpperCase(), x + CELL_PAD, absY + CELL_PAD + 11);
-
-    // Value (multiline)
-    ctx.fillStyle = "#1e293b";
-    ctx.font = FONT_VALUE;
-    const lines = wrapText(ctx, campo.value || "—", COL - CELL_PAD * 2, FONT_VALUE);
-    lines.forEach((line, li) => {
-      ctx.fillText(line, x + CELL_PAD, absY + CELL_PAD + 11 + LINE_H + li * LINE_H);
-    });
-
-    // Dash si vacío
-    if (!campo.value) {
-      ctx.fillStyle = "#cbd5e1";
-      ctx.font = "italic 13px system-ui, sans-serif";
-      ctx.fillText("Sin información", x + CELL_PAD, absY + CELL_PAD + 11 + LINE_H);
-    }
-  });
-
-  // ── Footer ──
-  const footerY = HEADER_H + GRID_H + PADDING + 10;
-  ctx.fillStyle = "#e2e8f0";
-  ctx.fillRect(PADDING, footerY, W - PADDING * 2, 1);
-  ctx.fillStyle = "#94a3b8";
-  ctx.font = "11px system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("Sistema de Paquetería  ·  Documento generado automáticamente", W / 2, footerY + 20);
-  ctx.textAlign = "left";
-
-  // ── Descargar ──
-  const link = document.createElement("a");
-  link.download = `comprobante_paquete_${format(new Date(), "yyyyMMdd_HHmm")}.png`;
-  link.href = canvas.toDataURL("image/png");
-  link.click();
 };
 
 // ── InputOrSelect (sin cambios) ───────────────────────────────────────────────
@@ -310,6 +149,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
   const [evidencia, setEvidencia] = useState<Imagen[]>([]);
   const [etiqueta, setEtiqueta] = useState<Imagen[]>([]);
   const [ocrDone, setOcrDone] = useState(false);
+  const [tipoDestinatario, setTipoDestinatario] = useState<"empleado" | "externo">("empleado");
 
   // Guardamos snapshot de los valores para el comprobante
   const comprobanteRef = useRef<ComprobanteData | null>(null);
@@ -330,7 +170,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
       receptor: "",
       remitente: "",
       direccion_remitente: "",
-      notificacion: "ninguna",
+      notificacion: [],
       email_receptor: "",
       telefono_receptor: "",
       tipo_paquete: "",
@@ -350,8 +190,9 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
       setOcrDone(false);
       setEvidencia([]);
       setEtiqueta([]);
+      setTipoDestinatario("empleado");
       comprobanteRef.current = null;
-      reset({ ubicacion_paqueteria: location, area_paqueteria: area, notificacion: "ninguna" });
+      reset({ ubicacion_paqueteria: location, area_paqueteria: area, notificacion: [] });
     }
   }, [isSuccess]);
 
@@ -384,6 +225,9 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
       telefono_remitente: values.telefono_remitente ?? "",
       email_receptor: values.email_receptor ?? "",
       telefono_receptor: values.telefono_receptor ?? "",
+      notificacion: (values.notificacion ?? []).length > 0
+        ? (values.notificacion ?? []).map((n) => (n === "correo" ? "Correo" : "SMS")).join(", ")
+        : "Ninguna",
     };
 
     const formatData = {
@@ -398,6 +242,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
       entregado_a_paqueteria: "",
       estatus_paqueteria: ["guardado"],
       proveedor: values.proveedor ?? "",
+      notificacion_paqueteria: values.notificacion ?? [],
     };
 
     createPaqueteriaMutation.mutate(
@@ -406,7 +251,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
         onSuccess: () => {
           // Generar y descargar comprobante al éxito
           if (comprobanteRef.current) {
-            generarYDescargarComprobante(comprobanteRef.current);
+            generarComprobantePaqueteria(comprobanteRef.current);
           }
         },
       }
@@ -418,7 +263,13 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
     const data = result?.data ?? result;
     if (!data) return;
     if (data?.no_guia) form.setValue("no_guia", data.no_guia);
-    if (data?.receptor) form.setValue("quien_recibe_paqueteria", data.receptor);
+    if (data?.receptor) {
+      form.setValue("quien_recibe_paqueteria", data.receptor);
+      const esEmpleado = (dataAreaEmpleadoApoyo ?? []).some(
+        (o: string) => o?.toLowerCase() === data.receptor?.toLowerCase()
+      );
+      setTipoDestinatario(esEmpleado ? "empleado" : "externo");
+    }
     if (data?.remitente) form.setValue("remitente", data.remitente);
     if (data?.direccion_remitente) form.setValue("direccion_remitente", data.direccion_remitente);
     if (data?.descripcion) form.setValue("descripcion_paqueteria", data.descripcion);
@@ -527,11 +378,36 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
                         <FormField control={form.control} name="quien_recibe_paqueteria"
                           render={({ field }: any) => (
                             <FormItem className="col-span-2">
-                              <FormLabel className="text-xs text-slate-500">Destinatario</FormLabel>
+                              <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Destinatario</FormLabel>
+                              <div className="flex gap-2 mb-2">
+                                {[
+                                  { value: "empleado", label: "Empleado" },
+                                  { value: "externo", label: "Otro" },
+                                ].map((opt) => (
+                                  <button key={opt.value} type="button"
+                                    onClick={() => setTipoDestinatario(opt.value as "empleado" | "externo")}
+                                    className={cn("px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 border",
+                                      tipoDestinatario === opt.value
+                                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                        : "bg-white text-blue-600 border-blue-400 hover:bg-blue-50")}>
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
                               <FormControl>
-                                <InputOrSelect value={field.value} onChange={field.onChange}
-                                  options={dataAreaEmpleadoApoyo ?? []} placeholder="Selecciona o escribe..."
-                                  isLoading={loadingAreaEmpleadoApoyo} />
+                                {tipoDestinatario === "empleado" ? (
+                                  <Select value={field.value} onValueChange={field.onChange}>
+                                    <SelectTrigger className="h-9 text-sm">
+                                      {loadingAreaEmpleadoApoyo ? <SelectValue placeholder="Cargando..." /> : <SelectValue placeholder="Selecciona empleado..." />}
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {(dataAreaEmpleadoApoyo ?? []).map((item: string, i: number) => <SelectItem key={i} value={item}>{item}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Input value={field.value} onChange={(e) => field.onChange(e.target.value)}
+                                    placeholder="Nombre del destinatario" className="h-9 text-sm" />
+                                )}
                               </FormControl>
                               <div className="flex gap-3 mt-1 px-1">
                                 {form.watch("email_receptor") ? (
@@ -682,35 +558,44 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
                     </div>
                   </div>
 
-                  {(form.watch("email_receptor") || form.watch("telefono_receptor")) && (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-blue-500" />
-                        <span className="text-sm font-semibold text-slate-700">Notificación a destinatario</span>
-                      </div>
-                      <FormField control={form.control} name="notificacion"
-                        render={({ field }: any) => (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-blue-500" />
+                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Notificar al destinatario</span>
+                    </div>
+                    <FormField control={form.control} name="notificacion"
+                      render={({ field }: any) => {
+                        const seleccionados: string[] = field.value ?? [];
+                        const toggle = (val: string) => {
+                          field.onChange(
+                            seleccionados.includes(val)
+                              ? seleccionados.filter((v: string) => v !== val)
+                              : [...seleccionados, val]
+                          );
+                        };
+                        return (
                           <FormItem>
                             <FormControl>
-                              <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-1 w-fit">
+                              <div className="flex gap-2">
                                 {[
-                                  { value: "ninguna", label: "Ninguna" },
-                                  ...(form.watch("email_receptor") ? [{ value: "correo", label: "Correo" }] : []),
-                                  ...(form.watch("telefono_receptor") ? [{ value: "sms", label: "SMS" }] : []),
+                                  { value: "correo", label: "Correo" },
+                                  { value: "sms", label: "SMS" },
                                 ].map((opt) => (
-                                  <button key={opt.value} type="button" onClick={() => field.onChange(opt.value)}
-                                    className={cn("px-4 py-1.5 rounded-lg text-xs font-semibold transition-all",
-                                      field.value === opt.value ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
+                                  <button key={opt.value} type="button" onClick={() => toggle(opt.value)}
+                                    className={cn("px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 border",
+                                      seleccionados.includes(opt.value)
+                                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                        : "bg-white text-blue-600 border-blue-400 hover:bg-blue-50")}>
                                     {opt.label}
                                   </button>
                                 ))}
                               </div>
                             </FormControl>
                           </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
+                        );
+                      }}
+                    />
+                  </div>
 
                   {/* Resumen IA — igual que antes */}
                   {ocrDone && (

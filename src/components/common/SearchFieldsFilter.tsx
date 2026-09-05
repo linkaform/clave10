@@ -23,6 +23,8 @@ interface SearchFieldsFilterProps {
   onChange: (selected: string[]) => void;
   /** Texto actual del buscador — sin esto no tiene sentido acotar campos. */
   searchTerm: string;
+  /** Muestra el botón deshabilitado/en gris, ej. mientras el backend de esta sección no soporte search_fields. */
+  disabled?: boolean;
 }
 
 // Selector "Buscar en" para acotar el buscador de texto a campos específicos
@@ -33,6 +35,7 @@ export const SearchFieldsFilter: React.FC<SearchFieldsFilterProps> = ({
   selected,
   onChange,
   searchTerm,
+  disabled = false,
 }) => {
   const sinTermino = !searchTerm.trim();
 
@@ -47,6 +50,21 @@ export const SearchFieldsFilter: React.FC<SearchFieldsFilterProps> = ({
         : [...selected, key],
     );
   };
+
+  if (disabled) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled
+        title="Próximamente: en desarrollo por el equipo de backend."
+        className="h-10 gap-1.5 font-semibold border-slate-200 bg-slate-100 text-slate-400 disabled:opacity-100">
+        <ListFilter size={14} />
+        Buscar en
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>

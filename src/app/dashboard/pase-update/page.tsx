@@ -31,7 +31,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+<<<<<<< HEAD
 import { formatEquipos, formatVehiculos, isHabilitado, isVehiculoHabilitado, prefijoToCountry, requisitoAplicaA } from "@/lib/utils";
+=======
+import { formatEquipos, formatVehiculos, isHabilitado, isVehiculoHabilitado, normalizeText, prefijoToCountry } from "@/lib/utils";
+>>>>>>> develop
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import AvisoPrivacidad from "@/components/modals/aviso-priv-eng";
@@ -43,7 +47,7 @@ import type { CountryCode } from "libphonenumber-js";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { useMenuStore } from "@/store/useGetMenuStore";
-import { MapPin, CalendarDays, User, Users, QrCode, Download } from "lucide-react";
+import { MapPin, CalendarDays, User, Users, QrCode, Download, Info } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import FirmaReglasAcceso, { FirmaValue } from "@/components/reglas-de-acceso";
 const grupoEquipos = z
@@ -312,8 +316,13 @@ const PaseUpdate = () => {
 
     const ubicacionNombre = dataCatalogos.pass_selected.ubicacion[0] ?? "";
 
+<<<<<<< HEAD
     const requisito = grupoRequisitos.find((r) =>
       requisitoAplicaA(r.ubicacion, ubicacionNombre)
+=======
+    const requisito = grupoRequisitos.find(
+      (r) => normalizeText(r.ubicacion) === normalizeText(ubicacionNombre)
+>>>>>>> develop
     );
 
     if (requisito?.prefijo_telefonico) {
@@ -828,8 +837,9 @@ const PaseUpdate = () => {
     if (typeof window !== "undefined") {
       const valores = window.location.search;
       const urlParams = new URLSearchParams(valores);
-      const docs = urlParams.get("docs") !== null ? urlParams.get("docs") : "";
-      setShowIneIden(docs?.split("-"));
+      const docsRaw = urlParams.get("docs") ?? "";
+      const docs = docsRaw.replace(/[^a-zA-Z-]/g, "");
+      setShowIneIden(docs.split("-").filter(Boolean));
       const getId= urlParams.get("id") ?? ""
       setUserId(getId);
       let acc = parseInt(urlParams.get("user") ?? "") || 0;
@@ -1182,6 +1192,24 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
           </div>
 
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+
+          {requireFoto ? (
+            <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
+              <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-blue-700">
+                <span className="font-semibold">Recomendación para la fotografia: </span>
+                El rostro del titular debe verse con claridad y con vestimenta adecuada. Evita fotos con el torso descubierto o con prendas que dificulten identificarte.
+              </p>
+            </div>
+          ) : requireIden ? (
+            <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
+              <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-blue-700">
+                <span className="font-semibold">Recomendación para la identificación: </span>
+                La imagen debe verse legible y completa, sin reflejos, dobleces ni partes cubiertas que impidan leer los datos del documento.
+              </p>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {showFoto && (
