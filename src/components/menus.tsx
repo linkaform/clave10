@@ -9,7 +9,7 @@ import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 
 export default function Menus() {
   const queryClient = useQueryClient();
-  const { logout, userPhoto, userNameSoter, userEmailSoter } = useAuthStore();
+  const { logout, userPhoto, userNameSoter, userEmailSoter, newUserUsername } = useAuthStore();
   const { clearMenu } = useMenuStore();
   const { menuConfig } = useGetMenus();
   const { clearSelectedLocations } = useSelectedLocationsStore();
@@ -26,7 +26,7 @@ export default function Menus() {
     <Header
       menuConfig={menuConfig ?? { modules: [] }}
       user={{
-        name: userNameSoter || "Usuario",
+        name: newUserUsername || userNameSoter || "Usuario",
         email: userEmailSoter || "usuario@empresa.com",
         avatar: userPhoto || undefined,
       }}

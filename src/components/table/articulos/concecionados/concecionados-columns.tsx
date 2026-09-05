@@ -9,6 +9,7 @@ import { useState } from "react";
 import { ConcesionadosVerEquipo } from "@/components/modals/concesionados-ver-equipo";
 import { DetalleDelSeguimiento } from "@/components/modals/concesionados-detalle-del-seguimiento";
 import { EstatusBadge } from "@/components/estatus-badge";
+import { normalizeText, safeTextSortingFn } from "@/lib/utils";
 
 export interface Articulo_con_record {
     _id:string,
@@ -107,6 +108,7 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
         <div className="capitalize">{row.getValue("folio")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "persona_nombre_concesion",
@@ -120,6 +122,11 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
         );
       },
       enableSorting: true,
+      sortingFn: (rowA, rowB) => {
+        const a = rowA.original.persona_nombre_concesion || rowA.original.persona_nombre_otro || "";
+        const b = rowB.original.persona_nombre_concesion || rowB.original.persona_nombre_otro || "";
+        return normalizeText(a).localeCompare(normalizeText(b));
+      },
     },
     // {
     //   accessorKey: "ubicacion_concesion",
@@ -136,6 +143,7 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
         <div className="capitalize">{row.getValue("caseta_concesion")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "grupo_equipos",
@@ -148,6 +156,7 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
       header: "Estado",
       cell: ({ row }) => <EstatusBadge estatus={row.getValue("status_concesion")} />,
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "fecha_concesion",
@@ -156,6 +165,7 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
         <div>{row.getValue("fecha_concesion")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "fecha_cierre_concesion",
@@ -164,5 +174,6 @@ export const conColumns: ColumnDef<Articulo_con_record>[] = [
         <div>{row.getValue("fecha_cierre_concesion")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
 ];

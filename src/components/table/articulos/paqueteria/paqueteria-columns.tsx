@@ -12,6 +12,7 @@ import { EstatusBadge } from "@/components/estatus-badge";
 import { PhotoGridCardModal } from "@/components/Bitacoras/PhotoGrid/PhotoGridCardModal";
 import { mapPaqueteriaGrid } from "@/mappers/paqueteria.grid.mapper";
 import { PaqueteriaActionButtons } from "@/components/Bitacoras/Paqueteria/customAction";
+import { safeTextSortingFn } from "@/lib/utils";
 
 
 export interface Paquete_record {
@@ -87,6 +88,7 @@ export const paqueteriaColumns: ColumnDef<Paquete_record>[] = [
       <div className="capitalize">{row.getValue("folio")}</div>
     ),
     enableSorting: true,
+    sortingFn: safeTextSortingFn,
   },
   {
     accessorKey: "quien_recibe_paqueteria",
@@ -95,6 +97,7 @@ export const paqueteriaColumns: ColumnDef<Paquete_record>[] = [
       <div className="capitalize">{row.getValue("quien_recibe_paqueteria")}</div>
     ),
     enableSorting: true,
+    sortingFn: safeTextSortingFn,
   },
     {
       accessorKey: "descripcion_paqueteria",
@@ -103,6 +106,7 @@ export const paqueteriaColumns: ColumnDef<Paquete_record>[] = [
         <div className="capitalize truncate max-w-xs w-44">{row.getValue("descripcion_paqueteria")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey:"foto_perdido",
@@ -113,7 +117,8 @@ export const paqueteriaColumns: ColumnDef<Paquete_record>[] = [
           foto = row.original?.fotografia_paqueteria.length==0 ? [{file_url:"/package.svg", file_name:""}]: row.original.fotografia_paqueteria
         }
         return <ViewImage imageUrl={foto?? []} />;
-      }
+      },
+      enableSorting: false,
     },
     {
       accessorKey: "guardado_en_paqueteria",
@@ -122,12 +127,14 @@ export const paqueteriaColumns: ColumnDef<Paquete_record>[] = [
         <div className="capitalize">{row.getValue("guardado_en_paqueteria")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "estatus_paqueteria",
       header: "Estatus",
       cell: ({ row }) => <EstatusBadge estatus={row.getValue("estatus_paqueteria")} />,
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "fecha_recibido_paqueteria",
@@ -136,6 +143,7 @@ export const paqueteriaColumns: ColumnDef<Paquete_record>[] = [
         <div className="capitalize">{row.getValue("fecha_recibido_paqueteria")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "fecha_entregado_paqueteria",
@@ -144,6 +152,7 @@ export const paqueteriaColumns: ColumnDef<Paquete_record>[] = [
         <div>{row.getValue("fecha_entregado_paqueteria")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
  	{
 		accessorKey: "proveedor",
@@ -152,6 +161,7 @@ export const paqueteriaColumns: ColumnDef<Paquete_record>[] = [
 		  <div className="capitalize">{row.getValue("proveedor")}</div>
 		),
 		enableSorting: true,
+		sortingFn: safeTextSortingFn,
 	  },
 
   ];

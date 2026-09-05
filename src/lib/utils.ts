@@ -8,11 +8,20 @@ import { Equipo, Vehiculo } from "./update-pass";
 import { toast } from "sonner";
 import catalogo from "../app/catalogo.json";
 import Swal from "sweetalert2";
+import { Row } from "@tanstack/react-table";
 
 export type ViewMode = "table" | "photos" | "list";
 
 export const normalizeText = (text: any) =>
   String(text ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
+
+// Comparador de texto seguro para columnas ordenables: nunca truena sin
+// importar el tipo de dato (undefined, arreglos, objetos), porque todo se
+// normaliza a string antes de comparar. \u00dasalo solo en columnas de texto \u2014
+// las columnas de foto/arreglos de varios registros deben llevar
+// enableSorting: false en vez de este comparador.
+export const safeTextSortingFn = <T,>(rowA: Row<T>, rowB: Row<T>, columnId: string) =>
+  normalizeText(rowA.getValue(columnId)).localeCompare(normalizeText(rowB.getValue(columnId)));
 
 export const isExcluded = (
   key: string,

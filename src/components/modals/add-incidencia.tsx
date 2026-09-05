@@ -91,6 +91,7 @@ import Select from "react-select";
 import { ViewSeg } from "./view-seguimiento";
 import EvidenciaCarousel from "../view-images-videos";
 import { useBoothStore } from "@/store/useBoothStore";
+import { generarComprobanteIncidencia } from "@/lib/generar-comprobante";
 
 interface AddIncidenciaModalProps {
   title: string;
@@ -611,6 +612,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
         { data_incidencia: formatData },
         {
           onSuccess: () => {
+            generarComprobanteIncidencia(formatData);
             handleClose();
           },
         },

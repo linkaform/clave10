@@ -12,6 +12,7 @@ import { EstatusBadge } from "@/components/estatus-badge";
 import { PhotoGridCardModal } from "@/components/Bitacoras/PhotoGrid/PhotoGridCardModal";
 import { PerdidosActionButtons } from "@/components/Bitacoras/Perdidos/customActions";
 import { mapArticuloPerdidoGrid } from "@/mappers/perdidos.grid.mapper";
+import { safeTextSortingFn } from "@/lib/utils";
 
 
 export interface Articulo_perdido_record {
@@ -97,6 +98,7 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
         <div className="capitalize">{row.getValue("folio")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "articulo_perdido",
@@ -105,6 +107,7 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
         <div className="capitalize">{row.getValue("articulo_perdido")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "articulo_seleccion",
@@ -113,11 +116,14 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
         <div className="capitalize">{row.getValue("articulo_seleccion")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "estatus_perdido",
       header: "Estatus",
       cell: ({ row }) => <EstatusBadge estatus={row.getValue("estatus_perdido")} />,
+      enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey:"foto_perdido",
@@ -125,7 +131,8 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
       cell: ({ row }) => {
         const foto = row.original.foto_perdido.length==0 ? [{file_url:"/noarticle.svg", file_name:""}]:row.original.foto_perdido;
           return <ViewImage imageUrl={foto} />;
-      }
+      },
+      enableSorting: false,
     },
     {
       accessorKey: "color_perdido",
@@ -134,6 +141,7 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
         <div className="capitalize">{row.getValue("color_perdido")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "tipo_articulo_perdido",
@@ -142,6 +150,7 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
         <div className="capitalize">{row.getValue("tipo_articulo_perdido")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "date_hallazgo_perdido",
@@ -150,6 +159,7 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
         <div>{row.getValue("date_hallazgo_perdido")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "locker_perdido",
@@ -158,6 +168,7 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
         <div className="capitalize">{row.getValue("locker_perdido")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "quien_entrega_externo",
@@ -168,6 +179,7 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
 		  )
 	  },
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "date_entrega_perdido",
@@ -176,6 +188,7 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
         <div>{row.getValue("date_entrega_perdido")}</div>
       ),
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
     {
       accessorKey: "comentario_perdido",
@@ -197,6 +210,7 @@ export const pendientesColumns: ColumnDef<Articulo_perdido_record>[] = [
         );
       },
       enableSorting: true,
+      sortingFn: safeTextSortingFn,
     },
   ];
   
