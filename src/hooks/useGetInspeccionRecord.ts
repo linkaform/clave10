@@ -31,7 +31,7 @@ export interface InspeccionRecord {
 }
 
 // ─── Meta fields to skip ───────────────────────────────────────────────────────
-const META_KEYS = new Set(["_id", "created_at", "folio"]);
+const META_KEYS = new Set(["_id", "created_at", "folio", "form_id"]);
 
 // ─── Labels legibles para campos específicos ───────────────────────────────────
 export const FIELD_LABELS: Record<string, string> = {

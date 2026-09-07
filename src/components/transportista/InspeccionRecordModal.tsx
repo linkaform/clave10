@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useGetInspeccionRecord, InspeccionSection, FieldValue, EvidenciaFile } from "@/hooks/useGetInspeccionRecord";
@@ -16,6 +17,20 @@ function tipoLabel(tipo: string): string {
   if (base === "remolque") return `${prefix} · Remolque${suffix}`;
   if (base === "contenedor") return `${prefix} · Contenedor${suffix}`;
   if (base === "sello") return "Inspección de sello";
+  return tipo;
+}
+
+// Etiqueta corta para las pestañas cuando se ven varias secciones a la vez
+// (ej. "Tractor / Cabezal", "Contenedor · Unidad 2") — sin el prefijo
+// "Inspección de entrada/salida" que sí lleva el título del modal.
+function tipoLabelCorto(tipo: string): string {
+  const base = tipo.replace(/^salida_/, "").replace(/_\d+$/, "");
+  const unit = tipo.match(/_(\d+)$/)?.[1];
+  const suffix = unit ? ` · Unidad ${unit}` : "";
+  if (base === "tractor") return "Tractor / Cabezal";
+  if (base === "remolque") return `Remolque${suffix}`;
+  if (base === "contenedor") return `Contenedor${suffix}`;
+  if (base === "sello") return "Sello";
   return tipo;
 }
 
@@ -48,15 +63,15 @@ export function InspeccionRecordContent({ url, tipo }: { url: string; tipo: stri
 }
 
 export function InspeccionRecordModal({
-  url,
-  tipo,
+  records,
   onClose,
 }: {
-  url: string;
-  tipo: string;
+  records: { url: string; tipo: string }[];
   onClose: () => void;
 }) {
-  const { data } = useGetInspeccionRecord(url, tipo);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const active = records[Math.min(activeIdx, records.length - 1)];
+  const { data } = useGetInspeccionRecord(active.url, active.tipo);
   useBodyScrollLock(true);
 
   return createPortal(
@@ -73,7 +88,7 @@ export function InspeccionRecordModal({
               </svg>
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">{tipoLabel(tipo)}</p>
+              <p className="text-sm font-bold text-gray-900">{tipoLabel(active.tipo)}</p>
               {data?.folio && (
                 <p className="text-[10px] text-gray-400 mt-0.5">Folio {data.folio} · {data.createdAt?.split(" ")[0] ?? ""}</p>
               )}
@@ -86,9 +101,30 @@ export function InspeccionRecordModal({
           </button>
         </div>
 
+        {/* Pestañas — solo cuando la inspección tiene más de una sección
+            (ej. tractor + varios contenedores) capturada en el mismo pase */}
+        {records.length > 1 && (
+          <div className="flex items-center gap-1 px-6 pt-3 border-b border-gray-100 shrink-0 overflow-x-auto">
+            {records.map((r, i) => (
+              <button
+                key={`${r.tipo}-${i}`}
+                type="button"
+                onClick={() => setActiveIdx(i)}
+                className={cn(
+                  "px-3 py-1.5 rounded-t-lg text-xs font-semibold whitespace-nowrap transition-colors border-b-2",
+                  i === activeIdx
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-gray-400 hover:text-gray-600",
+                )}>
+                {tipoLabelCorto(r.tipo)}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
-          <InspeccionRecordContent url={url} tipo={tipo} />
+          <InspeccionRecordContent url={active.url} tipo={active.tipo} />
         </div>
 
         {/* Footer */}

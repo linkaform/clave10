@@ -81,6 +81,17 @@ import {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// Orden estable para listar/pestañear inspecciones: Tractor / Cabezal primero
+// (sin número de unidad), luego Contenedor · Unidad 1, 2, 3... ascendente —
+// en vez del orden de captura real (`data.inspecciones`), que no es fiable.
+function numeroDeUnidad(tipo: string): number {
+  const m = tipo.match(/_(\d+)$/);
+  return m ? parseInt(m[1], 10) : -1;
+}
+function ordenarPorUnidad<T extends { tipo: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => numeroDeUnidad(a.tipo) - numeroDeUnidad(b.tipo));
+}
+
 function formatTimestamp(ts: string | number): string {
   const d = typeof ts === "number" ? new Date(ts * 1000) : new Date(ts);
   const months = [
@@ -2221,7 +2232,7 @@ export default function DetalleTransportistaPage() {
   const [showInspeccionSalida, setShowInspeccionSalida] = useState(false);
   const [showInspeccionCarga, setShowInspeccionCarga] = useState<false | "edit" | "readonly">(false);
   const [showDesgloseMateriales, setShowDesgloseMateriales] = useState(false);
-  const [viewingInspeccion, setViewingInspeccion] = useState<{ url: string; tipo: string } | null>(null);
+  const [viewingInspeccion, setViewingInspeccion] = useState<{ url: string; tipo: string }[] | null>(null);
   const [showInspeccionSello, setShowInspeccionSello] = useState(false);
   const [showInspeccionSelloSalida, setShowInspeccionSelloSalida] = useState(false);
   const [showGaleria, setShowGaleria] = useState(false);
@@ -4423,7 +4434,7 @@ export default function DetalleTransportistaPage() {
                     </div>
                     {hayAlguna && (
                       <div className="space-y-1">
-                        {inspecsDone.map((ins, i) => (
+                        {ordenarPorUnidad(inspecsDone).map((ins, i) => (
                           <div key={i} className="flex items-center gap-2">
                             <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
                             <span className="text-xs text-gray-600 capitalize flex-1">
@@ -4431,14 +4442,21 @@ export default function DetalleTransportistaPage() {
                                 ? "Tractor / Cabezal"
                                 : `Contenedor · Unidad ${ins.tipo.split("_")[1] ?? ""}`}
                             </span>
-                            {ins.url && (
-                              <button type="button" onClick={() => ins.url && setViewingInspeccion({ url: ins.url, tipo: ins.tipo })} className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</button>
-                            )}
                           </div>
                         ))}
                       </div>
                     )}
-                    {!todasDone && !isLocked && (
+                    {todasDone ? (
+                      <button
+                        onClick={() => setViewingInspeccion(
+                          ordenarPorUnidad(inspecsDone.filter((ins) => ins.url)).map((ins) => ({ url: ins.url as string, tipo: ins.tipo }))
+                        )}
+                        className="w-full h-9 rounded-xl text-xs font-semibold bg-white border border-teal-200 text-teal-700 hover:bg-teal-50 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <ClipboardCheck className="w-3.5 h-3.5" />
+                        Ver inspección
+                      </button>
+                    ) : !isLocked && (
                       <button
                         onClick={() => setShowInspeccion(true)}
                         className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
@@ -4491,7 +4509,7 @@ export default function DetalleTransportistaPage() {
                         if (selloTodasDone) {
                           const sellosDone = (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("sello_"));
                           if (sellosDone.length === 1 && sellosDone[0].url) {
-                            setViewingInspeccion({ url: sellosDone[0].url, tipo: sellosDone[0].tipo });
+                            setViewingInspeccion([{ url: sellosDone[0].url, tipo: sellosDone[0].tipo }]);
                           } else {
                             setShowInspeccionSello(true);
                           }
@@ -4599,7 +4617,7 @@ export default function DetalleTransportistaPage() {
                     </div>
                     {hayAlguna && (
                       <div className="space-y-1">
-                        {inspecsDone.map((ins, i) => (
+                        {ordenarPorUnidad(inspecsDone).map((ins, i) => (
                           <div key={i} className="flex items-center gap-2">
                             <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
                             <span className="text-xs text-gray-600 capitalize flex-1">
@@ -4607,14 +4625,21 @@ export default function DetalleTransportistaPage() {
                                 ? "Tractor / Cabezal"
                                 : `Contenedor · Unidad ${ins.tipo.replace("salida_contenedor_", "")}`}
                             </span>
-                            {ins.url && (
-                              <button type="button" onClick={() => ins.url && setViewingInspeccion({ url: ins.url, tipo: ins.tipo })} className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</button>
-                            )}
                           </div>
                         ))}
                       </div>
                     )}
-                    {!todasDone && (
+                    {todasDone ? (
+                      <button
+                        onClick={() => setViewingInspeccion(
+                          ordenarPorUnidad(inspecsDone.filter((ins) => ins.url)).map((ins) => ({ url: ins.url as string, tipo: ins.tipo }))
+                        )}
+                        className="w-full h-9 rounded-xl text-xs font-semibold bg-white border border-teal-200 text-teal-700 hover:bg-teal-50 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <ClipboardCheck className="w-3.5 h-3.5" />
+                        Ver inspección
+                      </button>
+                    ) : (
                       <button
                         onClick={() => setShowInspeccionSalida(true)}
                         className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
@@ -4669,7 +4694,7 @@ export default function DetalleTransportistaPage() {
                         if (selloSalidaTodasDone) {
                           const sellosDone = (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("salida_sello_"));
                           if (sellosDone.length === 1 && sellosDone[0].url) {
-                            setViewingInspeccion({ url: sellosDone[0].url, tipo: sellosDone[0].tipo });
+                            setViewingInspeccion([{ url: sellosDone[0].url, tipo: sellosDone[0].tipo }]);
                           } else {
                             setShowInspeccionSelloSalida(true);
                           }
@@ -4819,7 +4844,7 @@ export default function DetalleTransportistaPage() {
           ubicacion={data?.ubicacion}
           onClose={() => setShowInspeccionSello(false)}
           onSaved={refetch}
-          onViewRecord={(url, tipo) => setViewingInspeccion({ url, tipo })}
+          onViewRecord={(url, tipo) => setViewingInspeccion([{ url, tipo }])}
         />
       )}
       {showInspeccionSelloSalida && (
@@ -4832,7 +4857,7 @@ export default function DetalleTransportistaPage() {
           ubicacion={data?.ubicacion}
           onClose={() => setShowInspeccionSelloSalida(false)}
           onSaved={refetch}
-          onViewRecord={(url, tipo) => setViewingInspeccion({ url, tipo })}
+          onViewRecord={(url, tipo) => setViewingInspeccion([{ url, tipo }])}
         />
       )}
       {showAgregarUnidad && (
@@ -4848,8 +4873,7 @@ export default function DetalleTransportistaPage() {
       )}
       {viewingInspeccion && (
         <InspeccionRecordModal
-          url={viewingInspeccion.url}
-          tipo={viewingInspeccion.tipo}
+          records={viewingInspeccion}
           onClose={() => setViewingInspeccion(null)}
         />
       )}
