@@ -404,6 +404,26 @@ function InspeccionEntradaModalContent({
     return null;
   };
 
+  // Un punto solo se exige (comentario/evidencia requeridos en Linkaform) si el
+  // usuario YA lo contestó (value !== null) — un punto sin tocar nunca bloquea
+  // el guardado de los demás. Linkaform rechaza el POST completo de la sección
+  // si algún punto tocado le falta un campo requerido (ver "Answer N was
+  // rejected" en la respuesta), así que hay que detectarlo antes de mandar.
+  const validarPuntosRequeridos = (puntos: PuntoConId[], respuestas: PuntoInsp[], seccion: string): string[] => {
+    const faltantes: string[] = [];
+    puntos.forEach((punto, i) => {
+      const r = respuestas[i];
+      if (!r || r.value === null) return;
+      if (punto.evidenciaRequired && r.fotos.length === 0) {
+        faltantes.push(`${seccion} · "${punto.label}": falta subir evidencia`);
+      }
+      if (punto.comentarioRequired && !r.comentario.trim()) {
+        faltantes.push(`${seccion} · "${punto.label}": falta el comentario`);
+      }
+    });
+    return faltantes;
+  };
+
   const buildPayload = () => {
     const inspecciones: unknown[] = [];
 
@@ -476,6 +496,20 @@ function InspeccionEntradaModalContent({
   };
 
   const handleGuardar = async () => {
+    const faltantes: string[] = [
+      ...validarPuntosRequeridos(puntosTractor, tractorPuntos, "Tractor / Cabezal"),
+      ...unidades.flatMap((u, i) => {
+        const d = unitsData[i];
+        if (u.config !== "remolque_contenedor" || !d?.contenedor) return [];
+        const cfg = contenedorCfg(u);
+        if (cfg.modo !== "puntos") return [];
+        return validarPuntosRequeridos(cfg.puntos, d.contenedor.puntos, `Unidad ${i + 1} · Contenedor`);
+      }),
+    ];
+    if (faltantes.length > 0) {
+      toast.error(faltantes.length === 1 ? faltantes[0] : `${faltantes[0]} (+${faltantes.length - 1} más)`);
+      return;
+    }
     setSaving(true);
     try {
       await saveInspeccionesTransportista(recordId, buildPayload());
@@ -4322,7 +4356,10 @@ export default function DetalleTransportistaPage() {
             );
             const totalSecciones = 1 + unidades.filter(u => u.config === "remolque_contenedor").length;
             const entradaCompleta = inspecsDone.length >= totalSecciones;
-            const selloCompleto = inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total;
+            // Solo Recolección: el sello no se pide en entrada (ver cardSello), así
+            // que no debe bloquear el avance a la siguiente etapa. Tampoco se exige
+            // sin remolques registrados — no hay nada que sellar todavía.
+            const selloCompleto = esRecoleccion || unidades.length === 0 || (inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total);
             if (!entradaCompleta || !selloCompleto) return null;
             const materialesRegistrados = (data?.materiales ?? []).some((m) => m.producto && m.producto.trim() !== "");
             const cargaDescargaActiva = etapasActivas.includes("carga_/_descarga");
@@ -4449,6 +4486,9 @@ export default function DetalleTransportistaPage() {
             })();
 
             const cardSello = (() => {
+              // Solo Recolección: la unidad llega vacía, sin sello que inspeccionar
+              // todavía — el sello se coloca hasta la salida (ver cardSelloSalida).
+              if (esRecoleccion) return null;
               const selloTodasDone = inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total;
               const sinUnidades = unidades.length === 0;
               return (
