@@ -184,6 +184,15 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
   const { area, location } = useBoothStore();
 
   const [tab, setTab] = useState<Tab>("vehiculo");
+  // La confirmación de cierre solo aplica DESPUÉS de encontrar un pase (una
+  // vez que hay datos capturados que se perderían) — antes de buscar, el
+  // modal solo tiene el buscador vacío, así que cerrar sin avisar es correcto.
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const requestClose = () => {
+    if (paseInfo) setShowCancelConfirm(true);
+    else { resetForm(); onClose(); }
+  };
+  const confirmCancel = () => { setShowCancelConfirm(false); resetForm(); onClose(); };
   const [busqueda, setBusqueda] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [numDePase, setNumDePase] = useState<string | null>(null);
@@ -789,9 +798,16 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        if (!v) { resetForm(); onClose(); }
+        // Solo llega aquí por la X del Dialog (outside-click y Escape se
+        // bloquean antes, en DialogContent, solo cuando ya hay un pase
+        // encontrado) — mismo criterio que el botón Cancelar.
+        if (!v) requestClose();
       }}>
-      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
+      <DialogContent
+        onPointerDownOutside={(e) => { if (paseInfo) e.preventDefault(); }}
+        onInteractOutside={(e) => { if (paseInfo) e.preventDefault(); }}
+        onEscapeKeyDown={(e) => { if (paseInfo) e.preventDefault(); }}
+        className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
         <DialogTitle className="sr-only">Registrar llegada de pase</DialogTitle>
 
         <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
@@ -1369,7 +1385,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              onClick={() => { resetForm(); onClose(); }}
+              onClick={requestClose}
               className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-100">
               Cancelar
             </Button>
@@ -1385,6 +1401,31 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
             </Button>
           </div>
         </div>
+
+        {showCancelConfirm && (
+          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-3 text-center">
+              <p className="text-sm font-semibold text-gray-800">¿Cancelar el registro de llegada?</p>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Se perderá la información capturada en este formulario.
+              </p>
+              <div className="flex items-center gap-3 w-full mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="flex-1 h-9 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors">
+                  Seguir editando
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmCancel}
+                  className="flex-1 h-9 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors">
+                  Sí, cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

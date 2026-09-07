@@ -178,6 +178,11 @@ const TABS: { key: Tab; label: string }[] = [
 export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   const [tab, setTab] = useState<Tab>("vehiculo");
   const [showValidation, setShowValidation] = useState(false);
+  // Cerrar el modal (por cualquier vía: botón Cancelar, la X, o un intento de
+  // cerrar accidental) siempre pasa por aquí — nunca se cierra directo, para
+  // no perder lo capturado sin que el usuario lo confirme explícitamente.
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const confirmCancel = () => { setShowCancelConfirm(false); resetForm(); onClose(); };
   const { uploadImageMutation } = useUploadImage();
   const { mutate: createVisit, isPending } = useCreateVisitTransportista();
   const { area, location } = useBoothStore();
@@ -564,9 +569,16 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        if (!v) { resetForm(); onClose(); }
+        // Solo llega aquí por la X del Dialog (outside-click y Escape se
+        // bloquean antes, en DialogContent) — pide confirmación igual que
+        // el botón Cancelar, nunca cierra directo.
+        if (!v) setShowCancelConfirm(true);
       }}>
-      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
+      <DialogContent
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
         <DialogTitle className="sr-only">
           Nuevo acceso de transportista
         </DialogTitle>
@@ -1371,7 +1383,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
           <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            onClick={() => { resetForm(); onClose(); }}
+            onClick={() => setShowCancelConfirm(true)}
             className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-100">
             Cancelar
           </Button>
@@ -1502,6 +1514,31 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
           </Button>
           </div>
         </div>
+
+        {showCancelConfirm && (
+          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-3 text-center">
+              <p className="text-sm font-semibold text-gray-800">¿Cancelar el nuevo acceso?</p>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Se perderá la información capturada en este formulario.
+              </p>
+              <div className="flex items-center gap-3 w-full mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="flex-1 h-9 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors">
+                  Seguir editando
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmCancel}
+                  className="flex-1 h-9 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors">
+                  Sí, cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
