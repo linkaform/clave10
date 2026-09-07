@@ -43,6 +43,7 @@ import {
   UnidadEditorCard,
   serializeUnidades,
 } from "@/components/transportista/agregar-unidad-modal";
+import { TIPOS_DOCUMENTO_TRANSPORTISTA } from "@/config/documentos-transportista";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -76,15 +77,14 @@ const TIPOS_OPERACION = [
 
 // ─── Document upload types ────────────────────────────────────────────────────
 
-const DOC_TYPES_LABELS = [
-  "Foto de placa del vehículo",
-  "Foto del conductor",
-  "Licencia del conductor",
-  "Tarjeta de circulación - Vehículo",
-  "Tarjeta de circulación - Remolque",
-  "OC / BL / Materiales",
-  "Contenedor / Doc. contenedor",
-];
+// Tipo de documento — selección OPCIONAL antes de "Analizar con IA": darle este
+// hint al análisis evita que la IA interprete un archivo como lo que no es
+// (ej. confundir una carta porte con una tarjeta de circulación). El `value`
+// es el mismo slug compartido con el detalle de la visita y "Registrar llegada
+// de pase" (config/documentos-transportista.ts) — así un documento etiquetado
+// aquí se reconoce igual en los demás flujos.
+const DOC_TYPES = TIPOS_DOCUMENTO_TRANSPORTISTA.filter((t) => !t.soloRecoleccion);
+const DOC_TYPES_LABELS = DOC_TYPES.map((t) => t.label);
 
 interface DocItem {
   id:        string;
@@ -93,6 +93,9 @@ interface DocItem {
   uploading: boolean;
   preview:   string | null;
   tipo?:     string;
+  // true cuando el usuario asignó el tipo a mano — evita que el resultado de
+  // "Analizar con IA" lo sobrescriba con su propia detección automática.
+  tipoManual?: boolean;
 }
 
 // El navegador no puede pintar un PDF dentro de un <img> — se muestra un ícono
@@ -344,6 +347,8 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
     }
   };
   const removeDocumento = (id: string) => setDocumentos((p) => p.filter((d) => d.id !== id));
+  const setTipoDocumento = (id: string, tipo: string) =>
+    setDocumentos((p) => p.map((d) => d.id === id ? { ...d, tipo: tipo || undefined, tipoManual: !!tipo } : d));
 
   const analyzePhotosWithAI = async () => {
     setAiAnalyzing(true);
@@ -351,7 +356,11 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       const result = await ocrAccesoTransportista(
         documentos
           .filter((d) => d.file_url)
-          .map((d) => ({ file_url: d.file_url, file_name: d.file_name })),
+          .map((d) => ({
+            file_url: d.file_url,
+            file_name: d.file_name,
+            tipo_hint: d.tipo ? DOC_TYPES.find((t) => t.value === d.tipo)?.label : undefined,
+          })),
       );
       const hasError = !result?.success || (result?.response?.data?.status_code ?? 0) >= 400;
       if (hasError) {
@@ -419,7 +428,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       if (Array.isArray(d.documentos_detectados) && d.documentos_detectados.length) {
         const byUrl = new Map(d.documentos_detectados.map((dd) => [dd.url, dd.tipo]));
         setDocumentos((prev) =>
-          prev.map((doc) => byUrl.has(doc.file_url) ? { ...doc, tipo: byUrl.get(doc.file_url) } : doc),
+          prev.map((doc) => byUrl.has(doc.file_url) && !doc.tipoManual ? { ...doc, tipo: byUrl.get(doc.file_url) } : doc),
         );
         setDocumentosDetectados([...new Set(d.documentos_detectados.map((dd) => dd.tipo))]);
       }
@@ -698,30 +707,44 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                         </div>
                       </label>
                     ) : (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="space-y-1.5">
                         {documentos.map((doc) => (
-                          <div key={doc.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex-shrink-0">
-                            {doc.uploading ? (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                              </div>
-                            ) : esPdf(doc.file_name) ? (
-                              <div className="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-red-50">
-                                <FileText className="w-6 h-6 text-red-400" />
-                                <span className="text-[8px] font-semibold text-red-400">PDF</span>
-                              </div>
-                            ) : doc.preview ? (
-                              <Image src={doc.preview} fill className="object-cover" alt="" unoptimized />
-                            ) : null}
+                          <div key={doc.id} className="flex items-center gap-2.5 rounded-lg border border-gray-200 bg-white p-1.5">
+                            <div className="relative w-11 h-11 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
+                              {doc.uploading ? (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                                </div>
+                              ) : esPdf(doc.file_name) ? (
+                                <div className="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-red-50">
+                                  <FileText className="w-4 h-4 text-red-400" />
+                                </div>
+                              ) : doc.preview ? (
+                                <Image src={doc.preview} fill className="object-cover" alt="" unoptimized />
+                              ) : null}
+                            </div>
+                            <p className="text-[11px] text-gray-500 truncate w-24 shrink-0" title={doc.file_name}>
+                              {doc.file_name || "Subiendo…"}
+                            </p>
+                            <select
+                              value={doc.tipo ?? ""}
+                              disabled={doc.uploading}
+                              onChange={(e) => setTipoDocumento(doc.id, e.target.value)}
+                              className="flex-1 min-w-0 h-8 rounded-lg border border-gray-200 px-2 text-[11px] bg-white focus:outline-none focus:border-blue-400 disabled:opacity-50">
+                              <option value="">Tipo de documento (opcional)</option>
+                              {DOC_TYPES.map(({ value, label }) => (
+                                <option key={value} value={value}>{label}</option>
+                              ))}
+                            </select>
                             <button
                               type="button"
                               onClick={() => removeDocumento(doc.id)}
-                              className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-                              <X className="w-2.5 h-2.5" />
+                              className="w-6 h-6 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors shrink-0">
+                              <X className="w-3 h-3" />
                             </button>
                           </div>
                         ))}
-                        <label className="cursor-pointer flex-shrink-0">
+                        <label className="cursor-pointer block">
                           <input
                             type="file"
                             accept="image/*,application/pdf"
@@ -732,9 +755,9 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                               e.target.value = "";
                             }}
                           />
-                          <div className={`w-16 h-16 rounded-lg border-2 border-dashed transition-all flex flex-col items-center justify-center gap-0.5 ${isDragging ? "border-blue-400 bg-blue-50/60" : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"}`}>
-                            <Camera className={`w-4 h-4 ${isDragging ? "text-blue-400" : "text-gray-300"}`} />
-                            <span className="text-[9px] text-gray-300 font-medium leading-tight text-center px-1">{isDragging ? "Suelta" : "Agregar"}</span>
+                          <div className={`w-full rounded-lg border-2 border-dashed transition-all flex items-center justify-center gap-1.5 py-2 ${isDragging ? "border-blue-400 bg-blue-50/60" : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"}`}>
+                            <Camera className={`w-3.5 h-3.5 ${isDragging ? "text-blue-400" : "text-gray-300"}`} />
+                            <span className="text-[11px] text-gray-300 font-medium">{isDragging ? "Suelta aquí" : "Agregar más archivos"}</span>
                           </div>
                         </label>
                       </div>

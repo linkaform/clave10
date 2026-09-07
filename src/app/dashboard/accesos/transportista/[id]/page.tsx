@@ -71,6 +71,13 @@ import {
 import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
 import { InspeccionRecordModal, InspeccionRecordContent } from "@/components/transportista/InspeccionRecordModal";
 import { DesgloseMaterialesModal } from "@/components/transportista/desglose-materiales-modal";
+import {
+  TIPOS_DOCUMENTO_TRANSPORTISTA,
+  IDENTIFICACION_CHOFER_LABEL,
+  FOTO_CAJA_VACIA_LABEL,
+  tipoRequeridoSlug,
+  labelDeTipoRequerido,
+} from "@/config/documentos-transportista";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -2028,57 +2035,17 @@ function Skeleton({ className }: { className?: string }) {
 }
 
 // ─── Documentos requeridos ──────────────────────────────────────────────────
-// El servicio de guardado normaliza el `tipo` (minúsculas, espacios → guion
-// bajo) antes de persistirlo, ej. "Foto de placa de vehículo" vuelve como
-// "foto_de_placa_de_vehículo". El cruce contra lo ya subido se hace comparando
-// ambos lados normalizados con `tipoSlug`.
-const tipoSlug = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "_");
+// Vocabulario de "tipo de documento" (labels, slugs, descripciones) vive en
+// config/documentos-transportista.ts — compartido con Nuevo Acceso Transportista
+// y Registrar llegada de pase, para que un documento subido desde cualquiera
+// de los 3 flujos se reconozca igual en los demás (mismo campo real en Mongo).
+const documentosRequeridosNombres = TIPOS_DOCUMENTO_TRANSPORTISTA
+  .filter((t) => !t.soloRecoleccion)
+  .map((t) => t.label);
 
-// Una identificación válida puede ser INE, pasaporte, gafete o licencia de
-// conducir — es un único requisito, no dos. Tanto el botón "Identificación"
-// de la tarjeta del conductor como este renglón de pendientes comparten el
-// mismo tipo (vía tipoSlug) para no duplicar el documento con dos etiquetas.
-const IDENTIFICACION_CHOFER_LABEL = "Identificación del chofer";
-
-const FOTO_CONDUCTOR_LABEL = "Foto del conductor";
-
-// Solo aplica a Recolección: la unidad debe llegar vacía, así que se pide
-// evidencia de la caja/contenedor vacío antes de cargarla.
-const FOTO_CAJA_VACIA_LABEL = "Foto de caja vacía";
-
-const DOCUMENTOS_REQUERIDOS_DESCRIPCION: Record<string, string> = {
-  [IDENTIFICACION_CHOFER_LABEL]: "INE, pasaporte, licencia de conducir o gafete de empresa",
-  [FOTO_CONDUCTOR_LABEL]: "Fotografía reciente del rostro del conductor",
-  [FOTO_CAJA_VACIA_LABEL]: "Evidencia de que la caja/contenedor llegó vacío, antes de cargarlo",
-};
-
-const documentosRequeridosNombres = [
-  IDENTIFICACION_CHOFER_LABEL,
-  FOTO_CONDUCTOR_LABEL,
-  "Tarjeta de circulación - Vehículo",
-  "Carta porte",
-  "Factura / Orden de compra",
-  "Foto de placa de vehículo",
-  "Evidencia de carga",
-  "Conocimiento del embarque (BL)",
-];
-
-// Slugs fijos acordados con el back para el servicio de OCR — no se derivan
-// del label (acentos, "/", "()" no son seguros como identificador que debe
-// generar un servicio de texto libre). tipoRequeridoSlug cae a tipoSlug(nombre)
-// solo como red de seguridad si algún día se agrega un requerido sin slug fijo.
-const DOCUMENTOS_REQUERIDOS_SLUGS: Record<string, string> = {
-  [IDENTIFICACION_CHOFER_LABEL]: "identificacion_chofer",
-  [FOTO_CONDUCTOR_LABEL]: "foto_conductor",
-  "Tarjeta de circulación - Vehículo": "tarjeta_circulacion_vehiculo",
-  "Carta porte": "carta_porte",
-  "Factura / Orden de compra": "factura_orden_compra",
-  "Foto de placa de vehículo": "foto_placa_vehiculo",
-  "Evidencia de carga": "evidencia_carga",
-  "Conocimiento del embarque (BL)": "conocimiento_embarque_bl",
-  [FOTO_CAJA_VACIA_LABEL]: "foto_caja_vacia",
-};
-const tipoRequeridoSlug = (nombre: string) => DOCUMENTOS_REQUERIDOS_SLUGS[nombre] ?? tipoSlug(nombre);
+const DOCUMENTOS_REQUERIDOS_DESCRIPCION: Record<string, string> = Object.fromEntries(
+  TIPOS_DOCUMENTO_TRANSPORTISTA.filter((t) => t.descripcion).map((t) => [t.label, t.descripcion as string]),
+);
 
 const ESTATUS_CON_DOCS_COLAPSADOS = ["carga_/_descarga", "inspeccion_salida", "terminado"];
 
@@ -2686,8 +2653,8 @@ export default function DetalleTransportistaPage() {
          ?? data?.documentos_adicionales
          ?? []);
     const source = usingStaged
-      ? stagedDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name }))
-      : subidosDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name }));
+      ? stagedDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo_hint: d.asignadoA }))
+      : subidosDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo_hint: d.tipo ? labelDeTipoRequerido(d.tipo) : undefined }));
     if (!source.length) return;
     setAnalyzingDocs(true);
     try {
@@ -3072,7 +3039,7 @@ export default function DetalleTransportistaPage() {
     (data?.documentos_adicionales ?? [])
       .map((d) => d.tipo)
       .filter((t): t is string => !!t)
-      .map(tipoSlug),
+      .map(tipoRequeridoSlug),
   );
   const docsPendientesReq = documentosRequeridosNombresRecord.filter((nombre) => !tiposSubidos.has(tipoRequeridoSlug(nombre)));
 

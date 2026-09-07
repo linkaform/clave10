@@ -30,6 +30,7 @@ import { cn, errorMsj, reemplazarGuionMinuscula } from "@/lib/utils";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { useBoothStore } from "@/store/useBoothStore";
 import { getPassTransportista, createVisitTransportista, ocrAccesoTransportista } from "@/services/endpoints";
+import { TIPOS_DOCUMENTO_TRANSPORTISTA } from "@/config/documentos-transportista";
 import { toast } from "sonner";
 import {
   type UnidadItem,
@@ -139,18 +140,11 @@ function SectionDivider({ label, icon }: { label: string; icon?: React.ReactNode
   );
 }
 
-// ─── Documentos — mismos tipos sugeridos que Nuevo Acceso, pero sin IA: el
-// guardia sube el archivo y elige el tipo manualmente. ────────────────────────
+// ─── Documentos — mismo vocabulario que Nuevo Acceso y el detalle de la visita
+// (config/documentos-transportista.ts). El guardia sube el archivo y elige el
+// tipo manualmente; también puede analizarse con IA usando ese tipo como hint. ──
 
-const DOC_TYPES = [
-  "Foto de placa del vehículo",
-  "Foto del conductor",
-  "Licencia del conductor",
-  "Tarjeta de circulación - Vehículo",
-  "Tarjeta de circulación - Remolque",
-  "OC / BL / Materiales",
-  "Contenedor / Doc. contenedor",
-];
+const DOC_TYPES = TIPOS_DOCUMENTO_TRANSPORTISTA.filter((t) => !t.soloRecoleccion);
 
 interface DocItem {
   id: string;
@@ -159,6 +153,9 @@ interface DocItem {
   uploading: boolean;
   preview: string | null;
   tipo: string;
+  // true cuando el guardia asignó el tipo a mano — evita que el resultado de
+  // "Analizar con IA" lo sobrescriba con su propia detección automática.
+  tipoManual?: boolean;
 }
 
 // Documento capturado al crear el pase (BL, factura, etc.) — de solo lectura
@@ -362,7 +359,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
   };
   const removeDocumento = (id: string) => setDocumentos((p) => p.filter((d) => d.id !== id));
   const setDocumentoTipo = (id: string, tipo: string) =>
-    setDocumentos((p) => p.map((d) => d.id === id ? { ...d, tipo } : d));
+    setDocumentos((p) => p.map((d) => d.id === id ? { ...d, tipo, tipoManual: !!tipo } : d));
 
   const analyzePhotosWithAI = async () => {
     setAiAnalyzing(true);
@@ -370,7 +367,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
       const result = await ocrAccesoTransportista(
         documentos
           .filter((d) => d.file_url)
-          .map((d) => ({ file_url: d.file_url, file_name: d.file_name })),
+          .map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo_hint: d.tipo ? DOC_TYPES.find((t) => t.value === d.tipo)?.label : undefined })),
       );
       const hasError = !result?.success || (result?.response?.data?.status_code ?? 0) >= 400;
       if (hasError) {
@@ -438,7 +435,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
       if (Array.isArray(d.documentos_detectados) && d.documentos_detectados.length) {
         const byUrl = new Map(d.documentos_detectados.map((dd) => [dd.url, dd.tipo]));
         setDocumentos((prev) =>
-          prev.map((doc) => byUrl.has(doc.file_url) ? { ...doc, tipo: byUrl.get(doc.file_url) ?? doc.tipo } : doc),
+          prev.map((doc) => byUrl.has(doc.file_url) && !doc.tipoManual ? { ...doc, tipo: byUrl.get(doc.file_url) ?? doc.tipo } : doc),
         );
         setDocumentosDetectados([...new Set(d.documentos_detectados.map((dd) => dd.tipo))]);
       }
@@ -982,7 +979,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
                               onChange={(e) => setDocumentoTipo(doc.id, e.target.value)}
                               className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-700 outline-none focus:ring-2 focus:ring-blue-200">
                               <option value="">Selecciona tipo de documento...</option>
-                              {DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                              {DOC_TYPES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
                             </select>
                             <button
                               type="button"
