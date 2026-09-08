@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { ScanQrCameraModal } from "@/components/modals/scan-qr-camera-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -195,6 +196,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
   const confirmCancel = () => { setShowCancelConfirm(false); resetForm(); onClose(); };
   const [busqueda, setBusqueda] = useState("");
   const [buscando, setBuscando] = useState(false);
+  const [showScanQr, setShowScanQr] = useState(false);
   const [numDePase, setNumDePase] = useState<string | null>(null);
   const [paseInfo, setPaseInfo] = useState<{
     folio: string | null;
@@ -562,8 +564,8 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
     }
   };
 
-  const handleBuscar = async () => {
-    const id = busqueda.trim();
+  const handleBuscar = async (idOverride?: string) => {
+    const id = (idOverride ?? busqueda).trim();
     if (!id) return;
     setBuscando(true);
     try {
@@ -795,6 +797,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
   });
 
   return (
+    <>
     <Dialog
       open={open}
       onOpenChange={(v) => {
@@ -842,8 +845,17 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
               />
               <Button
                 type="button"
+                variant="outline"
+                onClick={() => setShowScanQr(true)}
+                title="Escanear código QR"
+                aria-label="Escanear código QR"
+                className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0">
+                <Camera className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                type="button"
                 disabled={buscando || !busqueda.trim()}
-                onClick={handleBuscar}
+                onClick={() => handleBuscar()}
                 className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-1.5 shrink-0">
                 {buscando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                 {buscando ? "Buscando..." : "Buscar"}
@@ -1428,5 +1440,15 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
         )}
       </DialogContent>
     </Dialog>
+    <ScanQrCameraModal
+      open={showScanQr}
+      onClose={() => setShowScanQr(false)}
+      onScan={(decodedText) => {
+        setShowScanQr(false);
+        setBusqueda(decodedText);
+        handleBuscar(decodedText);
+      }}
+    />
+    </>
   );
 }

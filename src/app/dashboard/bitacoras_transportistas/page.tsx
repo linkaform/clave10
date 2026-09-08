@@ -20,7 +20,7 @@ import {
   LayoutList,
   LayoutGrid,
   Sheet,
-  Search,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -411,7 +411,7 @@ export default function BitacorasTransportistasPage() {
         >
           {/* Leyenda tiempo en etapa — solo en kanban */}
           {viewMode === "kanban" && (
-            <div className="hidden md:flex items-center gap-3 text-xs text-gray-500 border border-gray-200 rounded-full px-4 py-1.5 bg-white shrink-0">
+            <div className="hidden xl:flex items-center gap-3 text-xs text-gray-500 border border-gray-200 rounded-full px-4 py-1.5 bg-white shrink-0">
               <span className="text-gray-400">Tiempo En Etapa</span>
               <span className="w-px h-3 bg-gray-200" />
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />A tiempo</span>
@@ -430,11 +430,13 @@ export default function BitacorasTransportistasPage() {
 
           <Button
             variant="outline"
+            size="icon"
             onClick={() => setModalLlegadaOpen(true)}
-            className="border-blue-200 text-blue-700 hover:bg-blue-50 gap-2 shrink-0"
+            title="Registrar llegada de pase"
+            aria-label="Registrar llegada de pase"
+            className="border-blue-200 text-blue-700 hover:bg-blue-50 shrink-0"
           >
-            <Search size={16} />
-            Registrar llegada de pase
+            <QrCode size={16} />
           </Button>
 
           {/* Switcher de vistas */}
