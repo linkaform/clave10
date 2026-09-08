@@ -1438,6 +1438,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                     const cacheData: VisitaTransportista = {
                       id: result.id,
                       folio: result.folio ?? null,
+                      num_de_pase: null,
                       tipo_operacion: tipoOperacion,
                       created_at: result.created_at ? String(result.created_at) : null,
                       fecha_hora_ingreso: null,

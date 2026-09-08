@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -59,6 +59,11 @@ interface RawMaterialAI {
 interface Props {
   open: boolean;
   onClose: () => void;
+  // Cuando ya se sabe a qué pase corresponde (ej. desde el detalle de una
+  // bitácora "programada", que ya trae su num_de_pase) se salta el buscador
+  // manual y se busca este pase directo al abrir.
+  initialPaseId?: string;
+  onLlegadaConfirmada?: (bitacoraId: string) => void;
 }
 
 // ─── Shared field UI — mismo look que Nuevo Acceso Transportista ─────────────
@@ -171,6 +176,24 @@ interface DocumentoDelPase {
 
 const esPdf = (fileName: string) => fileName.toLowerCase().endsWith(".pdf");
 
+// El QR del pase codifica la URL completa del preview público
+// (/transportistas/preview/transportista/{id}?p_id=...), no el id en texto
+// plano — se extrae el último segmento de la ruta antes de buscar. Si el
+// texto escaneado no es una URL (compatibilidad con QRs antiguos o folio
+// tecleado a mano), se usa tal cual.
+const extraerIdDePase = (raw: string): string => {
+  const texto = raw.trim();
+  try {
+    const url = new URL(texto);
+    const segmentos = url.pathname.split("/").filter(Boolean);
+    const ultimo = segmentos.at(-1);
+    if (ultimo) return decodeURIComponent(ultimo);
+  } catch {
+    // no es una URL válida — se usa el texto tal cual
+  }
+  return texto;
+};
+
 type Tab = "vehiculo" | "remolques" | "materiales";
 
 const TABS: { key: Tab; label: string }[] = [
@@ -179,7 +202,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "materiales", label: "Materiales" },
 ];
 
-export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
+export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLlegadaConfirmada }: Props) {
   const router = useRouter();
   const { uploadImageMutation } = useUploadImage();
   const { area, location } = useBoothStore();
@@ -565,7 +588,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
   };
 
   const handleBuscar = async (idOverride?: string) => {
-    const id = (idOverride ?? busqueda).trim();
+    const id = extraerIdDePase(idOverride ?? busqueda);
     if (!id) return;
     setBuscando(true);
     try {
@@ -710,6 +733,16 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
     }
   };
 
+  // Se abre ya sabiendo a qué pase corresponde (ej. desde el detalle de una
+  // bitácora "programada") — se busca directo, sin pasar por el buscador manual.
+  useEffect(() => {
+    if (open && initialPaseId && !numDePase) {
+      setBusqueda(initialPaseId);
+      handleBuscar(initialPaseId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialPaseId]);
+
   const camposFaltantes = [
     !transportista.trim() && "Transportista",
     !procedencia.trim() && "Procedencia",
@@ -783,7 +816,8 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
       toast.success("Llegada registrada correctamente.");
       resetForm();
       onClose();
-      if (bitacoraId) router.push(`/dashboard/accesos/transportista/${bitacoraId}`);
+      if (bitacoraId && onLlegadaConfirmada) onLlegadaConfirmada(bitacoraId);
+      else if (bitacoraId) router.push(`/dashboard/accesos/transportista/${bitacoraId}`);
     } catch {
       toast.error("No se pudo registrar la llegada.");
     } finally {
@@ -1445,8 +1479,9 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
       onClose={() => setShowScanQr(false)}
       onScan={(decodedText) => {
         setShowScanQr(false);
-        setBusqueda(decodedText);
-        handleBuscar(decodedText);
+        const id = extraerIdDePase(decodedText);
+        setBusqueda(id);
+        handleBuscar(id);
       }}
     />
     </>

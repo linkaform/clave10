@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { cn, capitalizeOnlyFirstLetter } from "@/lib/utils";
 import { GaleriaFotosModal, toThumbnailUrl } from "@/components/modals/galeria-fotos-modal";
+import { RegistrarLlegadaPaseModal } from "@/components/modals/registrar-llegada-pase-modal";
 import { useGetVisitTransportista } from "@/hooks/useGetVisitTransportista";
 import { useGetFotografiasTransportista, buildRegistrosFotografias } from "@/hooks/useGetFotografiasTransportista";
 import {
@@ -2349,6 +2350,7 @@ export default function DetalleTransportistaPage() {
   const [showInspeccionSelloSalida, setShowInspeccionSelloSalida] = useState(false);
   const [showGaleria, setShowGaleria] = useState(false);
   const [showAndenModal, setShowAndenModal] = useState(false);
+  const [showRegistrarLlegada, setShowRegistrarLlegada] = useState(false);
   const [vehicleExpanded, setVehicleExpanded] = useState(true);
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
 
@@ -4517,6 +4519,28 @@ export default function DetalleTransportistaPage() {
           })()}
 
           {(() => {
+            const cardRegistrarLlegada = estatus === "programado" ? (
+              <div key="registrar-llegada" className="bg-amber-50/60 rounded-xl border border-amber-200 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-amber-100">
+                  <LogIn className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm font-bold text-amber-800">Llegada del transportista</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  <p className="text-xs text-amber-700/80 leading-relaxed">
+                    Cuando el transportista llegue a la caseta, registra su llegada para capturar los datos de vehículo, conductor y carga.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowRegistrarLlegada(true)}
+                    className="w-full h-9 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white transition-colors flex items-center justify-center gap-2"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    Registrar llegada
+                  </button>
+                </div>
+              </div>
+            ) : null;
+
             const cardEntrada = (() => {
               const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
                 i.tipo === "tractor" || i.tipo.startsWith("contenedor_")
@@ -4881,7 +4905,7 @@ export default function DetalleTransportistaPage() {
                 ? [cardMateriales, cardEntrada, cardSello, cardSalida, cardSelloSalida]
                 : estatus === "inspeccion_salida" || estatus === "terminado"
                 ? [cardGaleria, cardSalida, cardSelloSalida, cardEntrada, cardSello, cardMateriales]
-                : [cardEntrada, cardSello, cardMateriales, cardSalida, cardSelloSalida];
+                : [cardRegistrarLlegada, cardEntrada, cardSello, cardMateriales, cardSalida, cardSelloSalida];
 
             return <>{ordered}</>;
           })()}
@@ -4995,6 +5019,14 @@ export default function DetalleTransportistaPage() {
         onClose={() => setShowGaleria(false)}
         fotos={galeriaFotos}
       />
+      {showRegistrarLlegada && (
+        <RegistrarLlegadaPaseModal
+          open={showRegistrarLlegada}
+          onClose={() => setShowRegistrarLlegada(false)}
+          initialPaseId={data?.num_de_pase ?? undefined}
+          onLlegadaConfirmada={() => refetch()}
+        />
+      )}
       {editingUnit && (
         <AgregarUnidadModal
           initialData={editingUnit}

@@ -44,6 +44,7 @@ interface RawRecord {
   _id: string;
   folio: string | null;
   estatus: string | null;
+  num_de_pase: string | null;
   tipo_de_operacion: string | null;
   created_at: string | null;
   fecha_hora_ingreso: string | null;
@@ -89,6 +90,7 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
   return {
     id: raw._id,
     folio: raw.folio,
+    num_de_pase: raw.num_de_pase,
     tipo_operacion: raw.tipo_de_operacion,
     created_at: raw.created_at,
     fecha_hora_ingreso: raw.fecha_hora_ingreso,
@@ -203,6 +205,7 @@ export interface MaterialVisita {
 export interface VisitaTransportista {
   id: string;
   folio: string | null;
+  num_de_pase: string | null;
   tipo_operacion: string | null;
   created_at: string | null;
   fecha_hora_ingreso: string | null;
