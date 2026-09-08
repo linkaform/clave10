@@ -13,7 +13,8 @@ export interface InputPaqueteria {
     fecha_entregado_paqueteria?: string,
     estatus_paqueteria?: string[],
     entregado_a_paqueteria:string,
-    proveedor:string
+    proveedor:string,
+    notificacion_paqueteria?: string[]
 }
 
 export interface InputPaqueteriaDevolver {

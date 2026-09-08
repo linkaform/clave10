@@ -7,7 +7,7 @@ import {
   flexRender, getCoreRowModel, getFilteredRowModel,
   getSortedRowModel, useReactTable,
 } from "@tanstack/react-table";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { Articulo_con_record, conColumns } from "./concecionados-columns";
 import { useEffect, useMemo } from "react";
 import { ViewMode } from "@/lib/utils";
@@ -19,6 +19,7 @@ import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { CustomSpinner } from "@/components/custom-spinner";
 import { applyArticulosConcesionadosFilters } from "@/hooks/Concesionados/useConcesionadosFilters";
 import { ConcesionadosActionButtons } from "@/components/Bitacoras/Concesionados/customActions";
+import { SortableTableHead } from "@/components/table/SortableTableHead";
 
 interface ListProps {
   data: Articulo_con_record[];
@@ -149,10 +150,9 @@ const ArticulosConTable: React.FC<ListProps> = ({
                     {table.getHeaderGroups().map((headerGroup) => (
                       <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
                         {headerGroup.headers.map((header) => (
-                          <TableHead key={header.id}
-                            className="text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none">
-                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                          </TableHead>
+                          <SortableTableHead key={header.id}
+                            header={header}
+                            className="text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none" />
                         ))}
                       </TableRow>
                     ))}

@@ -197,7 +197,9 @@ export const createVisitTransportista = (payload: unknown) =>
     payload,
   });
 
-export const ocrAccesoTransportista = (image_source: { file_url: string; file_name: string }[]) =>
+export const ocrAccesoTransportista = (
+  image_source: { file_url: string; file_name: string; tipo_hint?: string }[],
+) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "ocr_docs_2.py",
     option: "ocr_acceso_transportista",

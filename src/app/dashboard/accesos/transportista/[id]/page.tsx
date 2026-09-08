@@ -71,8 +71,26 @@ import {
 import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
 import { InspeccionRecordModal, InspeccionRecordContent } from "@/components/transportista/InspeccionRecordModal";
 import { DesgloseMaterialesModal } from "@/components/transportista/desglose-materiales-modal";
+import {
+  TIPOS_DOCUMENTO_TRANSPORTISTA,
+  IDENTIFICACION_CHOFER_LABEL,
+  FOTO_CAJA_VACIA_LABEL,
+  tipoRequeridoSlug,
+  labelDeTipoRequerido,
+} from "@/config/documentos-transportista";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Orden estable para listar/pestañear inspecciones: Tractor / Cabezal primero
+// (sin número de unidad), luego Contenedor · Unidad 1, 2, 3... ascendente —
+// en vez del orden de captura real (`data.inspecciones`), que no es fiable.
+function numeroDeUnidad(tipo: string): number {
+  const m = tipo.match(/_(\d+)$/);
+  return m ? parseInt(m[1], 10) : -1;
+}
+function ordenarPorUnidad<T extends { tipo: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => numeroDeUnidad(a.tipo) - numeroDeUnidad(b.tipo));
+}
 
 function formatTimestamp(ts: string | number): string {
   const d = typeof ts === "number" ? new Date(ts * 1000) : new Date(ts);
@@ -404,6 +422,26 @@ function InspeccionEntradaModalContent({
     return null;
   };
 
+  // Un punto solo se exige (comentario/evidencia requeridos en Linkaform) si el
+  // usuario YA lo contestó (value !== null) — un punto sin tocar nunca bloquea
+  // el guardado de los demás. Linkaform rechaza el POST completo de la sección
+  // si algún punto tocado le falta un campo requerido (ver "Answer N was
+  // rejected" en la respuesta), así que hay que detectarlo antes de mandar.
+  const validarPuntosRequeridos = (puntos: PuntoConId[], respuestas: PuntoInsp[], seccion: string): string[] => {
+    const faltantes: string[] = [];
+    puntos.forEach((punto, i) => {
+      const r = respuestas[i];
+      if (!r || r.value === null) return;
+      if (punto.evidenciaRequired && r.fotos.length === 0) {
+        faltantes.push(`${seccion} · "${punto.label}": falta subir evidencia`);
+      }
+      if (punto.comentarioRequired && !r.comentario.trim()) {
+        faltantes.push(`${seccion} · "${punto.label}": falta el comentario`);
+      }
+    });
+    return faltantes;
+  };
+
   const buildPayload = () => {
     const inspecciones: unknown[] = [];
 
@@ -476,6 +514,20 @@ function InspeccionEntradaModalContent({
   };
 
   const handleGuardar = async () => {
+    const faltantes: string[] = [
+      ...validarPuntosRequeridos(puntosTractor, tractorPuntos, "Tractor / Cabezal"),
+      ...unidades.flatMap((u, i) => {
+        const d = unitsData[i];
+        if (u.config !== "remolque_contenedor" || !d?.contenedor) return [];
+        const cfg = contenedorCfg(u);
+        if (cfg.modo !== "puntos") return [];
+        return validarPuntosRequeridos(cfg.puntos, d.contenedor.puntos, `Unidad ${i + 1} · Contenedor`);
+      }),
+    ];
+    if (faltantes.length > 0) {
+      toast.error(faltantes.length === 1 ? faltantes[0] : `${faltantes[0]} (+${faltantes.length - 1} más)`);
+      return;
+    }
     setSaving(true);
     try {
       await saveInspeccionesTransportista(recordId, buildPayload());
@@ -1994,57 +2046,17 @@ function Skeleton({ className }: { className?: string }) {
 }
 
 // ─── Documentos requeridos ──────────────────────────────────────────────────
-// El servicio de guardado normaliza el `tipo` (minúsculas, espacios → guion
-// bajo) antes de persistirlo, ej. "Foto de placa de vehículo" vuelve como
-// "foto_de_placa_de_vehículo". El cruce contra lo ya subido se hace comparando
-// ambos lados normalizados con `tipoSlug`.
-const tipoSlug = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "_");
+// Vocabulario de "tipo de documento" (labels, slugs, descripciones) vive en
+// config/documentos-transportista.ts — compartido con Nuevo Acceso Transportista
+// y Registrar llegada de pase, para que un documento subido desde cualquiera
+// de los 3 flujos se reconozca igual en los demás (mismo campo real en Mongo).
+const documentosRequeridosNombres = TIPOS_DOCUMENTO_TRANSPORTISTA
+  .filter((t) => !t.soloRecoleccion)
+  .map((t) => t.label);
 
-// Una identificación válida puede ser INE, pasaporte, gafete o licencia de
-// conducir — es un único requisito, no dos. Tanto el botón "Identificación"
-// de la tarjeta del conductor como este renglón de pendientes comparten el
-// mismo tipo (vía tipoSlug) para no duplicar el documento con dos etiquetas.
-const IDENTIFICACION_CHOFER_LABEL = "Identificación del chofer";
-
-const FOTO_CONDUCTOR_LABEL = "Foto del conductor";
-
-// Solo aplica a Recolección: la unidad debe llegar vacía, así que se pide
-// evidencia de la caja/contenedor vacío antes de cargarla.
-const FOTO_CAJA_VACIA_LABEL = "Foto de caja vacía";
-
-const DOCUMENTOS_REQUERIDOS_DESCRIPCION: Record<string, string> = {
-  [IDENTIFICACION_CHOFER_LABEL]: "INE, pasaporte, licencia de conducir o gafete de empresa",
-  [FOTO_CONDUCTOR_LABEL]: "Fotografía reciente del rostro del conductor",
-  [FOTO_CAJA_VACIA_LABEL]: "Evidencia de que la caja/contenedor llegó vacío, antes de cargarlo",
-};
-
-const documentosRequeridosNombres = [
-  IDENTIFICACION_CHOFER_LABEL,
-  FOTO_CONDUCTOR_LABEL,
-  "Tarjeta de circulación - Vehículo",
-  "Carta porte",
-  "Factura / Orden de compra",
-  "Foto de placa de vehículo",
-  "Evidencia de carga",
-  "Conocimiento del embarque (BL)",
-];
-
-// Slugs fijos acordados con el back para el servicio de OCR — no se derivan
-// del label (acentos, "/", "()" no son seguros como identificador que debe
-// generar un servicio de texto libre). tipoRequeridoSlug cae a tipoSlug(nombre)
-// solo como red de seguridad si algún día se agrega un requerido sin slug fijo.
-const DOCUMENTOS_REQUERIDOS_SLUGS: Record<string, string> = {
-  [IDENTIFICACION_CHOFER_LABEL]: "identificacion_chofer",
-  [FOTO_CONDUCTOR_LABEL]: "foto_conductor",
-  "Tarjeta de circulación - Vehículo": "tarjeta_circulacion_vehiculo",
-  "Carta porte": "carta_porte",
-  "Factura / Orden de compra": "factura_orden_compra",
-  "Foto de placa de vehículo": "foto_placa_vehiculo",
-  "Evidencia de carga": "evidencia_carga",
-  "Conocimiento del embarque (BL)": "conocimiento_embarque_bl",
-  [FOTO_CAJA_VACIA_LABEL]: "foto_caja_vacia",
-};
-const tipoRequeridoSlug = (nombre: string) => DOCUMENTOS_REQUERIDOS_SLUGS[nombre] ?? tipoSlug(nombre);
+const DOCUMENTOS_REQUERIDOS_DESCRIPCION: Record<string, string> = Object.fromEntries(
+  TIPOS_DOCUMENTO_TRANSPORTISTA.filter((t) => t.descripcion).map((t) => [t.label, t.descripcion as string]),
+);
 
 const ESTATUS_CON_DOCS_COLAPSADOS = ["carga_/_descarga", "inspeccion_salida", "terminado"];
 
@@ -2220,7 +2232,7 @@ export default function DetalleTransportistaPage() {
   const [showInspeccionSalida, setShowInspeccionSalida] = useState(false);
   const [showInspeccionCarga, setShowInspeccionCarga] = useState<false | "edit" | "readonly">(false);
   const [showDesgloseMateriales, setShowDesgloseMateriales] = useState(false);
-  const [viewingInspeccion, setViewingInspeccion] = useState<{ url: string; tipo: string } | null>(null);
+  const [viewingInspeccion, setViewingInspeccion] = useState<{ url: string; tipo: string }[] | null>(null);
   const [showInspeccionSello, setShowInspeccionSello] = useState(false);
   const [showInspeccionSelloSalida, setShowInspeccionSelloSalida] = useState(false);
   const [showGaleria, setShowGaleria] = useState(false);
@@ -2652,8 +2664,8 @@ export default function DetalleTransportistaPage() {
          ?? data?.documentos_adicionales
          ?? []);
     const source = usingStaged
-      ? stagedDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name }))
-      : subidosDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name }));
+      ? stagedDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo_hint: d.asignadoA }))
+      : subidosDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo_hint: d.tipo ? labelDeTipoRequerido(d.tipo) : undefined }));
     if (!source.length) return;
     setAnalyzingDocs(true);
     try {
@@ -3038,7 +3050,7 @@ export default function DetalleTransportistaPage() {
     (data?.documentos_adicionales ?? [])
       .map((d) => d.tipo)
       .filter((t): t is string => !!t)
-      .map(tipoSlug),
+      .map(tipoRequeridoSlug),
   );
   const docsPendientesReq = documentosRequeridosNombresRecord.filter((nombre) => !tiposSubidos.has(tipoRequeridoSlug(nombre)));
 
@@ -4322,7 +4334,10 @@ export default function DetalleTransportistaPage() {
             );
             const totalSecciones = 1 + unidades.filter(u => u.config === "remolque_contenedor").length;
             const entradaCompleta = inspecsDone.length >= totalSecciones;
-            const selloCompleto = inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total;
+            // Solo Recolección: el sello no se pide en entrada (ver cardSello), así
+            // que no debe bloquear el avance a la siguiente etapa. Tampoco se exige
+            // sin remolques registrados — no hay nada que sellar todavía.
+            const selloCompleto = esRecoleccion || unidades.length === 0 || (inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total);
             if (!entradaCompleta || !selloCompleto) return null;
             const materialesRegistrados = (data?.materiales ?? []).some((m) => m.producto && m.producto.trim() !== "");
             const cargaDescargaActiva = etapasActivas.includes("carga_/_descarga");
@@ -4419,7 +4434,7 @@ export default function DetalleTransportistaPage() {
                     </div>
                     {hayAlguna && (
                       <div className="space-y-1">
-                        {inspecsDone.map((ins, i) => (
+                        {ordenarPorUnidad(inspecsDone).map((ins, i) => (
                           <div key={i} className="flex items-center gap-2">
                             <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
                             <span className="text-xs text-gray-600 capitalize flex-1">
@@ -4427,14 +4442,21 @@ export default function DetalleTransportistaPage() {
                                 ? "Tractor / Cabezal"
                                 : `Contenedor · Unidad ${ins.tipo.split("_")[1] ?? ""}`}
                             </span>
-                            {ins.url && (
-                              <button type="button" onClick={() => ins.url && setViewingInspeccion({ url: ins.url, tipo: ins.tipo })} className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</button>
-                            )}
                           </div>
                         ))}
                       </div>
                     )}
-                    {!todasDone && !isLocked && (
+                    {todasDone ? (
+                      <button
+                        onClick={() => setViewingInspeccion(
+                          ordenarPorUnidad(inspecsDone.filter((ins) => ins.url)).map((ins) => ({ url: ins.url as string, tipo: ins.tipo }))
+                        )}
+                        className="w-full h-9 rounded-xl text-xs font-semibold bg-white border border-teal-200 text-teal-700 hover:bg-teal-50 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <ClipboardCheck className="w-3.5 h-3.5" />
+                        Ver inspección
+                      </button>
+                    ) : !isLocked && (
                       <button
                         onClick={() => setShowInspeccion(true)}
                         className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
@@ -4449,6 +4471,9 @@ export default function DetalleTransportistaPage() {
             })();
 
             const cardSello = (() => {
+              // Solo Recolección: la unidad llega vacía, sin sello que inspeccionar
+              // todavía — el sello se coloca hasta la salida (ver cardSelloSalida).
+              if (esRecoleccion) return null;
               const selloTodasDone = inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total;
               const sinUnidades = unidades.length === 0;
               return (
@@ -4484,7 +4509,7 @@ export default function DetalleTransportistaPage() {
                         if (selloTodasDone) {
                           const sellosDone = (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("sello_"));
                           if (sellosDone.length === 1 && sellosDone[0].url) {
-                            setViewingInspeccion({ url: sellosDone[0].url, tipo: sellosDone[0].tipo });
+                            setViewingInspeccion([{ url: sellosDone[0].url, tipo: sellosDone[0].tipo }]);
                           } else {
                             setShowInspeccionSello(true);
                           }
@@ -4592,7 +4617,7 @@ export default function DetalleTransportistaPage() {
                     </div>
                     {hayAlguna && (
                       <div className="space-y-1">
-                        {inspecsDone.map((ins, i) => (
+                        {ordenarPorUnidad(inspecsDone).map((ins, i) => (
                           <div key={i} className="flex items-center gap-2">
                             <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
                             <span className="text-xs text-gray-600 capitalize flex-1">
@@ -4600,14 +4625,21 @@ export default function DetalleTransportistaPage() {
                                 ? "Tractor / Cabezal"
                                 : `Contenedor · Unidad ${ins.tipo.replace("salida_contenedor_", "")}`}
                             </span>
-                            {ins.url && (
-                              <button type="button" onClick={() => ins.url && setViewingInspeccion({ url: ins.url, tipo: ins.tipo })} className="text-[10px] text-blue-500 hover:underline shrink-0">Ver</button>
-                            )}
                           </div>
                         ))}
                       </div>
                     )}
-                    {!todasDone && (
+                    {todasDone ? (
+                      <button
+                        onClick={() => setViewingInspeccion(
+                          ordenarPorUnidad(inspecsDone.filter((ins) => ins.url)).map((ins) => ({ url: ins.url as string, tipo: ins.tipo }))
+                        )}
+                        className="w-full h-9 rounded-xl text-xs font-semibold bg-white border border-teal-200 text-teal-700 hover:bg-teal-50 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <ClipboardCheck className="w-3.5 h-3.5" />
+                        Ver inspección
+                      </button>
+                    ) : (
                       <button
                         onClick={() => setShowInspeccionSalida(true)}
                         className="w-full h-9 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2"
@@ -4662,7 +4694,7 @@ export default function DetalleTransportistaPage() {
                         if (selloSalidaTodasDone) {
                           const sellosDone = (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("salida_sello_"));
                           if (sellosDone.length === 1 && sellosDone[0].url) {
-                            setViewingInspeccion({ url: sellosDone[0].url, tipo: sellosDone[0].tipo });
+                            setViewingInspeccion([{ url: sellosDone[0].url, tipo: sellosDone[0].tipo }]);
                           } else {
                             setShowInspeccionSelloSalida(true);
                           }
@@ -4812,7 +4844,7 @@ export default function DetalleTransportistaPage() {
           ubicacion={data?.ubicacion}
           onClose={() => setShowInspeccionSello(false)}
           onSaved={refetch}
-          onViewRecord={(url, tipo) => setViewingInspeccion({ url, tipo })}
+          onViewRecord={(url, tipo) => setViewingInspeccion([{ url, tipo }])}
         />
       )}
       {showInspeccionSelloSalida && (
@@ -4825,7 +4857,7 @@ export default function DetalleTransportistaPage() {
           ubicacion={data?.ubicacion}
           onClose={() => setShowInspeccionSelloSalida(false)}
           onSaved={refetch}
-          onViewRecord={(url, tipo) => setViewingInspeccion({ url, tipo })}
+          onViewRecord={(url, tipo) => setViewingInspeccion([{ url, tipo }])}
         />
       )}
       {showAgregarUnidad && (
@@ -4841,8 +4873,7 @@ export default function DetalleTransportistaPage() {
       )}
       {viewingInspeccion && (
         <InspeccionRecordModal
-          url={viewingInspeccion.url}
-          tipo={viewingInspeccion.tipo}
+          records={viewingInspeccion}
           onClose={() => setViewingInspeccion(null)}
         />
       )}

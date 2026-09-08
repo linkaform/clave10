@@ -34,7 +34,7 @@ import { RondinActionButtons } from "../rondinActionButtons";
 import { applyRondinesFilters } from "@/hooks/Rondines/rondines/useRondinesFilters";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { toast } from "sonner";
-import { errorMsj } from "@/lib/utils";
+import { errorMsj, imprimirUrlEnIframe } from "@/lib/utils";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 
 export interface BitacoraRondin {
@@ -150,20 +150,8 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
       const downloadUrl = result.data?.response?.data?.json?.download_url;
   
       if (downloadUrl) {
-        const blob = await (await fetch(downloadUrl)).blob();
-        const blobUrl = URL.createObjectURL(blob);
+        await imprimirUrlEnIframe(downloadUrl, () => Swal.close());
         Swal.close();
-        const iframe = document.createElement("iframe");
-        iframe.style.display = "none";
-        iframe.src = blobUrl;
-        document.body.appendChild(iframe);
-        iframe.onload = () => {
-          iframe.contentWindow?.print();
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-            URL.revokeObjectURL(blobUrl);
-          }, 2000);
-        };
       } else {
         await new Promise(resolve => setTimeout(resolve, 600));
         Swal.close();

@@ -32,6 +32,7 @@ interface ApiFormField {
   label: string;
   field_type: string;
   options: { label: string; value: string }[];
+  required?: boolean;
 }
 
 interface ApiFormPage {
@@ -80,6 +81,12 @@ export interface PuntoConId {
   // por opciones reales del campo, no por texto fijo (ver resolverSiNo).
   siValue?: string;
   noValue?: string;
+  // `required` real del campo en Linkaform (get_form_fields) — si el punto ya
+  // fue contestado, el comentario/evidencia marcado como requerido debe
+  // exigirse antes de guardar (ver validarPuntosRequeridos en page.tsx). Un
+  // punto sin tocar nunca se bloquea por esto.
+  comentarioRequired?: boolean;
+  evidenciaRequired?: boolean;
 }
 
 // Normaliza quitando acentos/mayúsculas para comparar "Sí"/"si"/"SI" como iguales.
@@ -160,13 +167,17 @@ function extractPuntos(fields: ApiFormField[]): PuntoConId[] {
     if (f.field_type !== "radio") return;
     let comentarioFieldId: string | undefined;
     let evidenciaFieldId: string | undefined;
+    let comentarioRequired = false;
+    let evidenciaRequired = false;
     let cursor = i + 1;
     if (fields[cursor]?.field_type === "textarea") {
       comentarioFieldId = fields[cursor].field_id;
+      comentarioRequired = !!fields[cursor].required;
       cursor += 1;
     }
     if (fields[cursor]?.field_type === "images") {
       evidenciaFieldId = fields[cursor].field_id;
+      evidenciaRequired = !!fields[cursor].required;
     }
     const { siValue, noValue } = resolverSiNo(f.options ?? []);
     puntos.push({
@@ -176,6 +187,8 @@ function extractPuntos(fields: ApiFormField[]): PuntoConId[] {
       evidenciaFieldId,
       siValue,
       noValue,
+      comentarioRequired,
+      evidenciaRequired,
     });
   });
   return puntos;

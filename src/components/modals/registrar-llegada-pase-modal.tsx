@@ -30,6 +30,7 @@ import { cn, errorMsj, reemplazarGuionMinuscula } from "@/lib/utils";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { useBoothStore } from "@/store/useBoothStore";
 import { getPassTransportista, createVisitTransportista, ocrAccesoTransportista } from "@/services/endpoints";
+import { TIPOS_DOCUMENTO_TRANSPORTISTA } from "@/config/documentos-transportista";
 import { toast } from "sonner";
 import {
   type UnidadItem,
@@ -139,18 +140,11 @@ function SectionDivider({ label, icon }: { label: string; icon?: React.ReactNode
   );
 }
 
-// ─── Documentos — mismos tipos sugeridos que Nuevo Acceso, pero sin IA: el
-// guardia sube el archivo y elige el tipo manualmente. ────────────────────────
+// ─── Documentos — mismo vocabulario que Nuevo Acceso y el detalle de la visita
+// (config/documentos-transportista.ts). El guardia sube el archivo y elige el
+// tipo manualmente; también puede analizarse con IA usando ese tipo como hint. ──
 
-const DOC_TYPES = [
-  "Foto de placa del vehículo",
-  "Foto del conductor",
-  "Licencia del conductor",
-  "Tarjeta de circulación - Vehículo",
-  "Tarjeta de circulación - Remolque",
-  "OC / BL / Materiales",
-  "Contenedor / Doc. contenedor",
-];
+const DOC_TYPES = TIPOS_DOCUMENTO_TRANSPORTISTA.filter((t) => !t.soloRecoleccion);
 
 interface DocItem {
   id: string;
@@ -159,6 +153,9 @@ interface DocItem {
   uploading: boolean;
   preview: string | null;
   tipo: string;
+  // true cuando el guardia asignó el tipo a mano — evita que el resultado de
+  // "Analizar con IA" lo sobrescriba con su propia detección automática.
+  tipoManual?: boolean;
 }
 
 // Documento capturado al crear el pase (BL, factura, etc.) — de solo lectura
@@ -187,6 +184,15 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
   const { area, location } = useBoothStore();
 
   const [tab, setTab] = useState<Tab>("vehiculo");
+  // La confirmación de cierre solo aplica DESPUÉS de encontrar un pase (una
+  // vez que hay datos capturados que se perderían) — antes de buscar, el
+  // modal solo tiene el buscador vacío, así que cerrar sin avisar es correcto.
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const requestClose = () => {
+    if (paseInfo) setShowCancelConfirm(true);
+    else { resetForm(); onClose(); }
+  };
+  const confirmCancel = () => { setShowCancelConfirm(false); resetForm(); onClose(); };
   const [busqueda, setBusqueda] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [numDePase, setNumDePase] = useState<string | null>(null);
@@ -362,7 +368,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
   };
   const removeDocumento = (id: string) => setDocumentos((p) => p.filter((d) => d.id !== id));
   const setDocumentoTipo = (id: string, tipo: string) =>
-    setDocumentos((p) => p.map((d) => d.id === id ? { ...d, tipo } : d));
+    setDocumentos((p) => p.map((d) => d.id === id ? { ...d, tipo, tipoManual: !!tipo } : d));
 
   const analyzePhotosWithAI = async () => {
     setAiAnalyzing(true);
@@ -370,7 +376,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
       const result = await ocrAccesoTransportista(
         documentos
           .filter((d) => d.file_url)
-          .map((d) => ({ file_url: d.file_url, file_name: d.file_name })),
+          .map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo_hint: d.tipo ? DOC_TYPES.find((t) => t.value === d.tipo)?.label : undefined })),
       );
       const hasError = !result?.success || (result?.response?.data?.status_code ?? 0) >= 400;
       if (hasError) {
@@ -438,7 +444,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
       if (Array.isArray(d.documentos_detectados) && d.documentos_detectados.length) {
         const byUrl = new Map(d.documentos_detectados.map((dd) => [dd.url, dd.tipo]));
         setDocumentos((prev) =>
-          prev.map((doc) => byUrl.has(doc.file_url) ? { ...doc, tipo: byUrl.get(doc.file_url) ?? doc.tipo } : doc),
+          prev.map((doc) => byUrl.has(doc.file_url) && !doc.tipoManual ? { ...doc, tipo: byUrl.get(doc.file_url) ?? doc.tipo } : doc),
         );
         setDocumentosDetectados([...new Set(d.documentos_detectados.map((dd) => dd.tipo))]);
       }
@@ -792,9 +798,16 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        if (!v) { resetForm(); onClose(); }
+        // Solo llega aquí por la X del Dialog (outside-click y Escape se
+        // bloquean antes, en DialogContent, solo cuando ya hay un pase
+        // encontrado) — mismo criterio que el botón Cancelar.
+        if (!v) requestClose();
       }}>
-      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
+      <DialogContent
+        onPointerDownOutside={(e) => { if (paseInfo) e.preventDefault(); }}
+        onInteractOutside={(e) => { if (paseInfo) e.preventDefault(); }}
+        onEscapeKeyDown={(e) => { if (paseInfo) e.preventDefault(); }}
+        className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
         <DialogTitle className="sr-only">Registrar llegada de pase</DialogTitle>
 
         <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
@@ -982,7 +995,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
                               onChange={(e) => setDocumentoTipo(doc.id, e.target.value)}
                               className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-700 outline-none focus:ring-2 focus:ring-blue-200">
                               <option value="">Selecciona tipo de documento...</option>
-                              {DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                              {DOC_TYPES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
                             </select>
                             <button
                               type="button"
@@ -1372,7 +1385,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              onClick={() => { resetForm(); onClose(); }}
+              onClick={requestClose}
               className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-100">
               Cancelar
             </Button>
@@ -1388,6 +1401,31 @@ export function RegistrarLlegadaPaseModal({ open, onClose }: Props) {
             </Button>
           </div>
         </div>
+
+        {showCancelConfirm && (
+          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-3 text-center">
+              <p className="text-sm font-semibold text-gray-800">¿Cancelar el registro de llegada?</p>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Se perderá la información capturada en este formulario.
+              </p>
+              <div className="flex items-center gap-3 w-full mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="flex-1 h-9 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors">
+                  Seguir editando
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmCancel}
+                  className="flex-1 h-9 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors">
+                  Sí, cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

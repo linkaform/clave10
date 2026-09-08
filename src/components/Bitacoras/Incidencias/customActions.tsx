@@ -1,7 +1,8 @@
 import React from "react";
 import { PhotoGridActionButtons } from "@/components/Bitacoras/PhotoGrid/PhotoGridActionButtons";
-import { Trash2, ListChecks, Edit } from "lucide-react";
+import { Trash2, ListChecks, Edit, Download } from "lucide-react";
 import { Incidencia_record } from "@/components/table/incidencias/incidencias-columns";
+import { generarComprobanteIncidencia } from "@/lib/generar-comprobante";
 
 interface IncidenciasActionButtonsProps {
   incidencia: Incidencia_record;
@@ -39,6 +40,13 @@ export const IncidenciasActionButtons = ({
           title="Seguimiento"
           onClick={() => handleSeguimiento(incidencia)}>
           <ListChecks className="w-4 h-4" />
+        </div>,
+        <div
+          key="comprobante"
+          className={iconClass(false)}
+          title="Descargar comprobante"
+          onClick={() => generarComprobanteIncidencia(incidencia)}>
+          <Download className="w-4 h-4" />
         </div>,
         <div
           key="delete"

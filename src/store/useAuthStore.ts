@@ -11,6 +11,7 @@ interface AuthState {
   userId: string | null;
   userNameSoter : string | null;
   userEmailSoter : string | null;
+  newUserUsername: string | null;
   userIdSoter: number;
   userPhoto:string| null;
   userParentId:number | null;
@@ -18,6 +19,7 @@ interface AuthState {
   setToken: (token: string) => void;
   setAuth: (token: string, userId: string, userNameSoter: string, userEmailSoter: string, userIdSoter: number, userPhoto:string, userParentId:number) => void;
   setUserPhoto: (photoUrl: string) => void;
+  setNewUserUsername: (newUserUsername: string) => void;
   logout: (queryClient?: any) => void;
 }
 
@@ -27,6 +29,7 @@ const useAuthStore = create<AuthState>((set) => {
   const userId = typeof window !== "undefined" ? localStorage.getItem("user_id") : null;
   const userNameSoter = typeof window !== "undefined" ? localStorage.getItem("userName_soter") : null;
   const userEmailSoter = typeof window !== "undefined" ? localStorage.getItem("userEmail_soter") : null;
+  const newUserUsername = typeof window !== "undefined" ? localStorage.getItem("newUserUsername_soter") : null;
   const userPhoto = typeof window !== "undefined" ? localStorage.getItem("userPhoto_soter") : null;
   const userIdSoter = typeof window !== "undefined" ? parseInt(localStorage.getItem("userId_soter") || "") : 0;
   const userParentId = typeof window !== "undefined" ? parseInt(localStorage.getItem("userParentId_soter") || "") : 0;
@@ -37,6 +40,7 @@ const useAuthStore = create<AuthState>((set) => {
     userId,
     userNameSoter,
     userEmailSoter,
+    newUserUsername,
     userIdSoter,
     userPhoto,
     userParentId,
@@ -55,13 +59,19 @@ const useAuthStore = create<AuthState>((set) => {
       useSelectedLocationsStore.getState().clearSelectedLocations();
       useAreasLocationStore.getState().clearAreasLocation();
       useMenuStore.getState().clearMenu();
+      localStorage.removeItem("newUserUsername_soter");
       // Actualiza el estado
-      set({ token, userId, userNameSoter, userEmailSoter, userIdSoter,isAuth: true , userPhoto, userParentId });
+      set({ token, userId, userNameSoter, userEmailSoter, newUserUsername: null, userIdSoter,isAuth: true , userPhoto, userParentId });
     },
 
     setUserPhoto: (photoUrl: string) => {
       localStorage.setItem("userPhoto_soter", photoUrl);
       set({ userPhoto: photoUrl });
+    },
+
+    setNewUserUsername: (newUserUsername: string) => {
+      localStorage.setItem("newUserUsername_soter", newUserUsername);
+      set({ newUserUsername });
     },
     setToken: (token: string) => {
         localStorage.setItem("access_token", token);
@@ -78,11 +88,12 @@ const useAuthStore = create<AuthState>((set) => {
     
       localStorage.removeItem("userName_soter");
       localStorage.removeItem("userEmail_soter");
+      localStorage.removeItem("newUserUsername_soter");
       localStorage.removeItem("userId_soter" );
       localStorage.removeItem("userPhoto_soter");
       localStorage.removeItem("userParentId_soter");
- 
-      set({ token: null, userId: null,userNameSoter: null, userEmailSoter: null, userIdSoter: 0 ,isAuth: false , userPhoto:null, userParentId:null});
+
+      set({ token: null, userId: null,userNameSoter: null, userEmailSoter: null, newUserUsername: null, userIdSoter: 0 ,isAuth: false , userPhoto:null, userParentId:null});
       useAccessStore.getState().clearPassCode();
       useAreasLocationStore.getState().clearAreasLocation();
       useMenuStore.getState().clearMenu();

@@ -8,7 +8,7 @@ import {
   getPaginationRowModel, getSortedRowModel, useReactTable,
 } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { Articulo_perdido_record, pendientesColumns } from "./pendientes-columns";
 import { useEffect, useMemo } from "react";
 import { ViewMode } from "@/lib/utils";
@@ -20,6 +20,7 @@ import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { CustomSpinner } from "@/components/custom-spinner";
 import { applyArticulosPerdidosFilters } from "@/hooks/Perdidos/usePerdidosFilters";
 import { PerdidosActionButtons } from "@/components/Bitacoras/Perdidos/customActions";
+import { SortableTableHead } from "@/components/table/SortableTableHead";
 
 interface ListProps {
   data: Articulo_perdido_record[];
@@ -161,11 +162,10 @@ const ArticulosPerdidosTable: React.FC<ListProps> = ({
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
                     {headerGroup.headers.map((header) => (
-                      <TableHead
+                      <SortableTableHead
                         key={header.id}
-                        className="text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none">
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
+                        header={header}
+                        className="text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none" />
                     ))}
                   </TableRow>
                 ))}

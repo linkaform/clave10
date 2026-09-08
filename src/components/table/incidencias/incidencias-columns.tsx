@@ -1,6 +1,7 @@
 import { LoadingModal } from "@/components/modals/loading-modal";
 import { AccionesTomadas, AfectacionPatrimonial, Depositos, PersonasInvolucradas } from "@/lib/incidencias";
-import { Edit, Eye, ListChecks, Trash2 } from "lucide-react";
+import { generarComprobanteIncidencia } from "@/lib/generar-comprobante";
+import { Download, Edit, Eye, ListChecks, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ColumnDef, Row, Table as TanstackTable } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -99,6 +100,9 @@ export const OptionsCell: React.FC<{
       </div>
       <div className="cursor-pointer" onClick={() => onSeguimientoClick(incidencia)} title="Seguimiento Incidencia">
         <ListChecks className="w-5 h-5" />
+      </div>
+      <div className="cursor-pointer" title="Descargar Comprobante" onClick={() => generarComprobanteIncidencia(incidencia)}>
+        <Download className="w-5 h-5" />
       </div>
       <div className="cursor-pointer" title="Eliminar Incidencia" onClick={() => onEliminarClick(incidencia)}>
         <Trash2 className="w-5 h-5" />

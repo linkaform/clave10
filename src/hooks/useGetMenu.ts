@@ -1,6 +1,7 @@
 import { getMenu } from "@/lib/login/get-menu";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { useMenuStore } from "@/store/useGetMenuStore";
+import useAuthStore from "@/store/useAuthStore";
 import { useQuery } from "@tanstack/react-query";
 
 export const useGetMenu = () => {
@@ -28,6 +29,10 @@ export const useGetMenu = () => {
         setLabels(dataRaw);
         setExcludes(excludeInputs);
         setGrupoRequisitos(data.response?.data.requisitos || []);
+
+        if (data.response?.data.new_user_username) {
+          useAuthStore.getState().setNewUserUsername(data.response.data.new_user_username);
+        }
 
         const transformedData = dataRaw.map((item: string) => {
           let text = item;

@@ -19,7 +19,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -35,6 +34,7 @@ import { applyPaqueteriaFilters } from "@/hooks/Paqueteria/usePaqueteriaFilters"
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { CustomSpinner } from "@/components/custom-spinner";
 import { PaqueteriaActionButtons } from "@/components/Bitacoras/Paqueteria/customAction";
+import { SortableTableHead } from "@/components/table/SortableTableHead";
 
 interface ListProps {
   data: Paquete_record[];
@@ -57,7 +57,6 @@ interface ListProps {
   onExternalFiltersChange?: (filters: any) => void;
   filtersConfig?: any[];
   setTotalRegistros?: React.Dispatch<React.SetStateAction<number>>;
-  
 }
 
 // const articulosColumnsCSV = [
@@ -207,11 +206,10 @@ const PaqueteriaTable:React.FC<ListProps> = ({
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
                       {headerGroup.headers.map((header) => (
-                        <TableHead
+                        <SortableTableHead
                           key={header.id}
-                          className="text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none">
-                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                        </TableHead>
+                          header={header}
+                          className="text-slate-600 h-10 font-medium uppercase tracking-wider py-2 px-3 shadow-none" />
                       ))}
                     </TableRow>
                   ))}
