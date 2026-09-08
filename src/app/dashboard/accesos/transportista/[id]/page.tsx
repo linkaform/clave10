@@ -2992,10 +2992,45 @@ export default function DetalleTransportistaPage() {
           await saveBitacoraTransportistaRecord(id, "remolques", serializeUnidades(newUnidades));
           unidadesInitialized.current = false;
           camposLlenados += count;
+        } else if (unidades.length === 1 && (aiRems.length > 0 || aiCons.length > 0 || aiMats.length > 0)) {
+          // Reintento sobre una unidad ya existente: si un análisis previo (con
+          // el modelo IA, que no siempre acierta a la primera) creó el
+          // remolque/contenedor pero sin material — o el usuario lo agregó a
+          // mano y aún no le puso material —, un segundo "Analizar con IA" ya
+          // puede rellenarlo, sin obligar a borrar la unidad para reintentar.
+          // Solo toca el material, nunca los demás campos de la unidad — y
+          // solo si sigue vacío, para no pisar algo que el usuario ya llenó.
+          const existente = unidades[0];
+          const esRC = existente.config === "remolque_contenedor";
+          const materialesActuales = esRC ? existente.contenedor.materiales : existente.remolque.materiales;
+          const siguenVacios = materialesActuales.every((m) => !m.producto.trim() && !m.cantEsperada.trim());
+          if (siguenVacios) {
+            const aiMatsEntidad = esRC ? aiCons[0]?.materiales : aiRems[0]?.materiales;
+            const nuevosMateriales = aiMatsEntidad?.length
+              ? toMaterialesCarga(aiMatsEntidad)
+              : (aiMats.length > 0 ? toMaterialesCarga(aiMats) : null);
+            if (nuevosMateriales?.length) {
+              const actualizada: UnidadItem = esRC
+                ? { ...existente, contenedor: { ...existente.contenedor, materiales: nuevosMateriales } }
+                : { ...existente, remolque: { ...existente.remolque, materiales: nuevosMateriales } };
+              const newUnidades = [actualizada];
+              setUnidades(newUnidades);
+              await saveBitacoraTransportistaRecord(id, "remolques", serializeUnidades(newUnidades));
+              unidadesInitialized.current = false;
+              camposLlenados += nuevosMateriales.length;
+            }
+          }
         }
 
         if (camposLlenados > 0) {
-          refetch();
+          // Esperar a que el refetch resuelva ANTES de que termine el análisis
+          // (y se rehabiliten los botones) — si el usuario alcanza a borrar una
+          // unidad recién creada por la IA antes de este refetch, sus materiales
+          // seguirían con apiIndex null y la eliminación no mandaría el índice
+          // real al backend, dejando un huérfano en grupo_materiales para
+          // siempre (el guardado incremental de save_bitac_transportista_record
+          // nunca borra filas por su cuenta).
+          await refetch();
           const abrioFormularios = Object.keys(vehiculoDraftAI).length > 0 || Object.keys(materialDraftAI).length > 0;
           toast.success(
             abrioFormularios
