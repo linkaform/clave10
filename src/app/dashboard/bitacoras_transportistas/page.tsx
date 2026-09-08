@@ -36,6 +36,7 @@ import { formatPhotoRecord, formatListRecord } from "@/utils/formatRecords";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import TransportistasTable from "@/components/table/transportistas/table";
+import PaginationTransportistas from "@/components/pages/transportistas/PaginationTransportistas";
 import {
   useTransportistaFilters,
   applyTransportistaFilters,
@@ -308,6 +309,8 @@ export default function BitacorasTransportistasPage() {
   const [modalNuevoOpen, setModalNuevoOpen] = useState(false);
   const [modalLlegadaOpen, setModalLlegadaOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list" | "grid" | "table">("kanban");
+  const [skip, setSkip] = useState(0);
+  const [limit, setLimit] = useState(25);
 
   const { isAuth } = useAuthStore();
   const { area, location } = useBoothStore();
@@ -340,10 +343,28 @@ export default function BitacorasTransportistasPage() {
     return () => { document.body.style.overflow = prev; };
   }, [viewMode, isSidebarOpen]);
 
-  const { data: records, isLoading } = useGetBitacoraTransportistaRecords(fecha, {
+  const isKanban = viewMode === "kanban";
+
+  const { data: records, pagination, isLoading } = useGetBitacoraTransportistaRecords(fecha, {
     date_from: dateRange.date_from,
     date_to: dateRange.date_to,
-    ...serverFilters,
+    tipo_de_vehiculo: serverFilters.tipo_de_vehiculo,
+    proveedor_cliente: serverFilters.proveedor_cliente,
+    anden_asignado: serverFilters.anden_asignado,
+    // El Kanban trae siempre el dataset completo del día (sin paginar ni filtrar en
+    // servidor) porque necesita agrupar/contar TODOS los registros por estatus.
+    // Tabla/Lista/Grid sí paginan y filtran en servidor, igual que Pases de Entrada.
+    ...(isKanban
+      ? {}
+      : {
+          skip,
+          limit,
+          search: search || undefined,
+          estatus: serverFilters.estatus,
+          tipo_de_operacion: serverFilters.tipo_de_operacion,
+          conductor: serverFilters.conductor,
+          material: serverFilters.material,
+        }),
   });
 
   // Oculta del kanban las columnas de etapas desactivadas para esta cuenta.
@@ -356,6 +377,19 @@ export default function BitacorasTransportistasPage() {
     return configFlujo.etapasActivas.includes(slug);
   });
 
+  // Resetea a la primera página cuando cambian fecha/filtros/búsqueda/vista,
+  // para no quedar "colgado" en una página fuera de rango.
+  useEffect(() => {
+    setSkip(0);
+  }, [fecha, dateRange.date_from, dateRange.date_to, JSON.stringify(serverFilters), search, viewMode]);
+
+  const handlePageChange = (newSkip: number, newLimit: number) => {
+    setSkip(newSkip);
+    setLimit(newLimit);
+  };
+
+  // Kanban: filtra client-side sobre el dataset completo del día (comportamiento sin cambios).
+  // Tabla/Lista/Grid: `records` ya viene filtrado y paginado desde el servidor.
   const searchFiltered = records.filter((r) => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -367,7 +401,7 @@ export default function BitacorasTransportistasPage() {
     );
   });
 
-  const filtered = applyTransportistaFilters(searchFiltered, externalFilters);
+  const filtered = isKanban ? applyTransportistaFilters(searchFiltered, externalFilters) : records;
 
   const byEstatus = (key: string) => filtered.filter((r) => r.estatus === key);
 
@@ -405,7 +439,7 @@ export default function BitacorasTransportistasPage() {
       <div className="px-6 border-b border-gray-100 shrink-0">
         <PageHeader
           title="Bitácoras Transportistas"
-          totalRecords={records.length}
+          totalRecords={isKanban ? records.length : pagination.total_records}
           onSearch={(val) => setSearch(val)}
           searchPlaceholder="Buscar folio, placas, chofer..."
         >
@@ -502,7 +536,14 @@ export default function BitacorasTransportistasPage() {
           <TransportistasTable
             data={filtered}
             isLoading={isLoading}
-            globalSearch={search ? [search] : []}
+          />
+          <PaginationTransportistas
+            actual_page={pagination.actual_page}
+            records_on_page={pagination.records_on_page}
+            total_pages={pagination.total_pages}
+            total_records={pagination.total_records}
+            limit={limit}
+            onPageChange={handlePageChange}
           />
         </div>
       ) : (
@@ -556,6 +597,14 @@ export default function BitacorasTransportistasPage() {
                 }}
               />
             )}
+            <PaginationTransportistas
+              actual_page={pagination.actual_page}
+              records_on_page={pagination.records_on_page}
+              total_pages={pagination.total_pages}
+              total_records={pagination.total_records}
+              limit={limit}
+              onPageChange={handlePageChange}
+            />
           </div>
         </div>
       )}

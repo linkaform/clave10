@@ -144,8 +144,15 @@ export function useTransportistaFilters() {
       tipo_de_vehiculo: asArray(dynamicFilters.tipo_de_vehiculo),
       proveedor_cliente: asArray(dynamicFilters.proveedor_cliente),
       anden_asignado: asArray(dynamicFilters.anden_asignado),
+      estatus: asArray(dynamicFilters.estatus),
+      tipo_de_operacion: asArray(dynamicFilters.tipo_de_operacion),
+      conductor: asArray(dynamicFilters.conductor),
+      material: asArray(dynamicFilters.material),
     }),
-    [dynamicFilters.tipo_de_vehiculo, dynamicFilters.proveedor_cliente, dynamicFilters.anden_asignado]
+    [
+      dynamicFilters.tipo_de_vehiculo, dynamicFilters.proveedor_cliente, dynamicFilters.anden_asignado,
+      dynamicFilters.estatus, dynamicFilters.tipo_de_operacion, dynamicFilters.conductor, dynamicFilters.material,
+    ]
   );
 
   const onExternalFiltersChange = (newFilters: any) => {

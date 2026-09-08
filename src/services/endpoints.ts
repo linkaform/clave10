@@ -237,6 +237,13 @@ export interface BitacoraTransportistaRecordsParams {
   tipo_de_vehiculo?: string[];
   proveedor_cliente?: string[];
   anden_asignado?: string[];
+  estatus?: string[];
+  tipo_de_operacion?: string[];
+  conductor?: string[];
+  material?: string[];
+  search?: string;
+  skip?: number;
+  limit?: number;
 }
 
 export const getBitacoraTransportistaRecords = (
@@ -251,6 +258,13 @@ export const getBitacoraTransportistaRecords = (
     ...(params.tipo_de_vehiculo?.length && { tipo_de_vehiculo: params.tipo_de_vehiculo }),
     ...(params.proveedor_cliente?.length && { proveedor_cliente: params.proveedor_cliente }),
     ...(params.anden_asignado?.length && { anden_asignado: params.anden_asignado }),
+    ...(params.estatus?.length && { estatus: params.estatus }),
+    ...(params.tipo_de_operacion?.length && { tipo_de_operacion: params.tipo_de_operacion }),
+    ...(params.conductor?.length && { conductor: params.conductor }),
+    ...(params.material?.length && { material: params.material }),
+    ...(params.search && { search: params.search }),
+    ...(params.skip !== undefined && { skip: params.skip }),
+    ...(params.limit !== undefined && { limit: params.limit }),
   });
 
 export const saveInspeccionesTransportista = (record_id: string, inspecciones: unknown[]) =>
