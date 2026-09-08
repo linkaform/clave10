@@ -57,10 +57,7 @@ export const EditModuleDialog: React.FC<EditModuleDialogProps> = ({
           : { menu: "", menuKey: "", menuIcon: "" },
       );
     }
-<<<<<<< HEAD
-=======
   // eslint-disable-next-line react-hooks/exhaustive-deps
->>>>>>> develop
   }, [open, initialValues]);
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
