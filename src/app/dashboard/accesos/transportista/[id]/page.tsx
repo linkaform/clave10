@@ -39,6 +39,7 @@ import {
   IdCard,
   Images,
   Mail,
+  AlertTriangle,
 } from "lucide-react";
 import { cn, capitalizeOnlyFirstLetter } from "@/lib/utils";
 import { GaleriaFotosModal, toThumbnailUrl } from "@/components/modals/galeria-fotos-modal";
@@ -1806,6 +1807,8 @@ interface FilaCarga {
   cantidad_buena: string;
   cantidad_danada: string;
   cantidad_faltante: string;
+  comentario: string;
+  evidencia: { file_url: string; file_name?: string }[];
   desglose: import("@/hooks/useGetVisitTransportista").DesgloseRenglonVisita[];
 }
 
@@ -1823,7 +1826,7 @@ function InspeccionCargaModal({
   onSaved: () => void;
 }) {
   useBodyScrollLock(true);
-  const [filas, setFilas] = useState<FilaCarga[]>(() =>
+  const initFilas = (): FilaCarga[] =>
     materiales.map((m) => ({
       producto:          m.producto ?? "",
       lote:              m.lote ?? "",
@@ -1832,20 +1835,61 @@ function InspeccionCargaModal({
       cantidad_buena:    m.cantidad_buena ?? "",
       cantidad_danada:   m.cantidad_danada ?? "",
       cantidad_faltante: m.cantidad_faltante ?? "",
+      comentario:        m.comentario ?? "",
+      evidencia:         m.evidencia ?? [],
       desglose:          m.desglose ?? [],
-    }))
-  );
+    }));
+  const [filas, setFilas] = useState<FilaCarga[]>(initFilas);
+  // Snapshot de lo último guardado — comparado contra `filas` para saber si
+  // hay cambios reales. Se actualiza tras cada guardado exitoso, así que se
+  // puede volver a editar y guardar cuantas veces se quiera en la misma
+  // sesión, pero "Guardar" queda deshabilitado hasta que se toque algo de nuevo.
+  const [lastSaved, setLastSaved] = useState<FilaCarga[]>(initFilas);
   const [saving, setSaving] = useState(false);
+  const [uploadingRow, setUploadingRow] = useState<number | null>(null);
+  const evidenciaInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  const hasChanges = useMemo(
+    () => JSON.stringify(filas) !== JSON.stringify(lastSaved),
+    [filas, lastSaved],
+  );
 
   const setFila = (i: number, patch: Partial<FilaCarga>) =>
     setFilas((p) => p.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
 
-  // La física ya no se captura a mano: es la suma de buenas + dañadas, para
-  // que no pueda quedar inconsistente contra ese desglose.
+  // La física ya no se captura a mano: es todo lo que se pudo contabilizar en
+  // la inspección — buenas + dañadas + faltantes — para que una discrepancia
+  // real (ni buena, ni dañada, ni marcada como faltante) sea visible al
+  // comparar contra "Esperada", en vez de quedar oculta.
   const fisicaCalculada = (f: FilaCarga) => {
-    if (!f.cantidad_buena.trim() && !f.cantidad_danada.trim()) return "";
-    return String((Number(f.cantidad_buena) || 0) + (Number(f.cantidad_danada) || 0));
+    if (!f.cantidad_buena.trim() && !f.cantidad_danada.trim() && !f.cantidad_faltante.trim()) return "";
+    return String(
+      (Number(f.cantidad_buena) || 0) + (Number(f.cantidad_danada) || 0) + (Number(f.cantidad_faltante) || 0)
+    );
   };
+
+  const handleEvidenciaFileChange = async (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingRow(i);
+    try {
+      const res = await uploadImage(file);
+      if (!res?.file) throw new Error("upload failed");
+      setFilas((p) => p.map((f, idx) => idx === i
+        ? { ...f, evidencia: [...f.evidencia, { file_url: res.file, file_name: res.file_name ?? file.name }] }
+        : f));
+    } catch {
+      toast.error("Error al subir la evidencia");
+    } finally {
+      setUploadingRow(null);
+    }
+  };
+
+  const removeEvidencia = (i: number, evIdx: number) =>
+    setFilas((p) => p.map((f, idx) => idx === i
+      ? { ...f, evidencia: f.evidencia.filter((_, j) => j !== evIdx) }
+      : f));
 
   const handleGuardar = async () => {
     setSaving(true);
@@ -1873,11 +1917,14 @@ function InspeccionCargaModal({
             peso:          materiales[i]?.peso ?? null,
             volumen:       materiales[i]?.volumen ?? null,
             resultado,
+            comentario:    f.comentario,
+            evidencia:     f.evidencia,
           };
         }),
       };
       await saveBitacoraTransportistaRecord(recordId, "remolques", payload);
       toast.success("Inspección de material guardada");
+      setLastSaved(filas);
       onSaved();
       onClose();
     } catch {
@@ -1956,9 +2003,23 @@ function InspeccionCargaModal({
               <div className="grid grid-cols-4 gap-2 mt-3">
                 <div>
                   <label className="text-[10px] text-gray-400 block mb-1">Cant. física</label>
-                  <span className="block text-center text-xs font-semibold text-gray-700 h-9 flex items-center justify-center bg-white rounded-lg border border-gray-100">
-                    {fisicaCalculada(f) || "—"}
-                  </span>
+                  {(() => {
+                    const fisica = fisicaCalculada(f);
+                    const coincide = fisica !== "" && Number(fisica) === Number(f.cantidad_esperada || 0);
+                    return (
+                      <span className={cn(
+                        "flex items-center justify-center gap-1 text-center text-xs font-semibold h-9 rounded-lg border",
+                        fisica === "" ? "text-gray-700 bg-white border-gray-100"
+                          : coincide ? "text-green-700 bg-green-50 border-green-200"
+                          : "text-red-700 bg-red-50 border-red-200",
+                      )}>
+                        {fisica !== "" && (coincide
+                          ? <CheckCircle2 className="w-3 h-3 shrink-0" />
+                          : <AlertTriangle className="w-3 h-3 shrink-0" />)}
+                        {fisica || "—"}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div>
                   <label className="text-[10px] text-blue-500 block mb-1">Buenas</label>
@@ -2006,6 +2067,56 @@ function InspeccionCargaModal({
                   )}
                 </div>
               </div>
+
+              {Number(f.cantidad_danada || 0) > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">
+                    Evidencia y comentario · Dañadas
+                  </p>
+                  {readOnly ? (
+                    <p className="text-xs text-gray-600 leading-relaxed">{f.comentario || "Sin comentario"}</p>
+                  ) : (
+                    <textarea
+                      value={f.comentario}
+                      onChange={(e) => setFila(i, { comentario: e.target.value })}
+                      placeholder="Describe el daño encontrado..."
+                      rows={2}
+                      className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-2 focus:outline-none focus:border-red-400 resize-none"
+                    />
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {f.evidencia.map((ev, evIdx) => (
+                      <div key={evIdx} className="relative w-14 h-14 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shrink-0">
+                        <Image src={ev.file_url} fill className="object-cover" alt="" unoptimized />
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => removeEvidencia(i, evIdx)}
+                            className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {!readOnly && (
+                      <label className="cursor-pointer flex-shrink-0">
+                        <input
+                          ref={(el) => { evidenciaInputRefs.current[i] = el; }}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleEvidenciaFileChange(i, e)}
+                        />
+                        <div className="w-14 h-14 rounded-lg border-2 border-dashed border-gray-200 hover:border-red-300 hover:bg-red-50/40 transition-all flex items-center justify-center">
+                          {uploadingRow === i
+                            ? <span className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                            : <Camera className="w-4 h-4 text-gray-300" />}
+                        </div>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -2023,7 +2134,8 @@ function InspeccionCargaModal({
                 className="flex-1 h-11 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
                 Cancelar
               </button>
-              <button type="button" onClick={handleGuardar} disabled={saving}
+              <button type="button" onClick={handleGuardar} disabled={saving || !hasChanges}
+                title={!hasChanges ? "No hay cambios por guardar" : undefined}
                 className="flex-1 h-11 rounded-xl text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                 {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 {saving ? "Guardando..." : "Guardar"}
@@ -4566,9 +4678,10 @@ export default function DetalleTransportistaPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        todasDone
-                          ? setShowInspeccionCarga("readonly")
-                          : desgloseListo
+                        // Una vez completada, siempre se puede volver a editar sin
+                        // que un desglose faltante (ej. registros viejos, previos a
+                        // esa feature) bloquee la reapertura.
+                        todasDone || desgloseListo
                           ? setShowInspeccionCarga("edit")
                           : setShowDesgloseMateriales(true)
                       }
