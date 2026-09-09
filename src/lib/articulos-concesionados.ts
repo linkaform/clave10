@@ -77,6 +77,50 @@ export const getTipoConcesion = async (location:string, tipo:string) => {
     return data;
   };
 
+// NOTA PARA BACKEND: opción nueva pendiente de implementar en articulos_consecionados.py.
+// Dado un `nombre_equipo` (y opcionalmente `location`), debe buscar si existe una
+// concesión con status_concesion en ["abierto", "parcial"] que lo contenga dentro de
+// su grupo_equipos, y devolver:
+//   { disponible: boolean, concesion_abierta?: { record_id, folio, persona_nombre_concesion, fecha_concesion, id_movimiento } }
+// `record_id` e `id_movimiento` son los que se necesitan para poder forzar la
+// devolución de ese equipo puntual vía `devolucionEquipoConcesionado` (ver
+// src/lib/devolucion-concesion.ts) sin tener que devolver la concesión completa.
+export interface ConcesionAbierta {
+    record_id: string;
+    folio: string;
+    id_movimiento: string;
+    persona_nombre_concesion: string;
+    fecha_concesion: string;
+}
+
+export interface DisponibilidadEquipo {
+    disponible: boolean;
+    concesion_abierta?: ConcesionAbierta;
+}
+
+export const checkDisponibilidadEquipo = async (location: string, nombre_equipo: string): Promise<{ response: { data: DisponibilidadEquipo } }> => {
+    const payload = {
+        location,
+        nombre_equipo,
+        option: "check_disponibilidad_equipo",
+        script_name: "articulos_consecionados.py",
+    };
+
+    const userJwt = await getValidToken();
+
+    const response = await fetch(API_ENDPOINTS.runScript, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${userJwt}`,
+        },
+        body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    return data;
+};
+
 export const crearArticuloCon = async (data_article: InputArticuloCon | null)=> {
     const payload = {
         data_article,
