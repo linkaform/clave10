@@ -28,19 +28,19 @@ export const HOME_MENU_CARDS: HomeMenuCardConfig[] = [
   { id: "reportes", label: "Reportes", moduleKey: "caseta", sectionKeys: ["turno_reportes"] },
 ];
 
-function moduleHasAnySection(module: MenuModule, sectionKeys: string[]): boolean {
-  return module.sections.some((section) => sectionKeys.includes(section.key));
+function moduleHasAnySection(menuModule: MenuModule, sectionKeys: string[]): boolean {
+  return menuModule.sections.some((section) => sectionKeys.includes(section.key));
 }
 
 export function buildHomeMenuCards(menuConfig: MenuConfig | null | undefined): { id: string; label: string; excludes: Record<string, never> }[] {
   if (!menuConfig?.modules?.length) return [];
-  const modulesByKey = new Map(menuConfig.modules.map((module) => [module.key, module]));
+  const modulesByKey = new Map(menuConfig.modules.map((menuModule) => [menuModule.key, menuModule]));
 
   const cards: { id: string; label: string; excludes: Record<string, never> }[] = [];
   for (const card of HOME_MENU_CARDS) {
-    const module = modulesByKey.get(card.moduleKey);
-    if (!module) continue;
-    if (card.sectionKeys && !moduleHasAnySection(module, card.sectionKeys)) continue;
+    const menuModule = modulesByKey.get(card.moduleKey);
+    if (!menuModule) continue;
+    if (card.sectionKeys && !moduleHasAnySection(menuModule, card.sectionKeys)) continue;
     cards.push({ id: card.id, label: card.label, excludes: {} });
   }
   return cards;
