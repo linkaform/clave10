@@ -244,6 +244,10 @@ export interface BitacoraTransportistaRecordsParams {
   search?: string;
   skip?: number;
   limit?: number;
+  /** Activa el shape paginado {records, total_records, ...} en el backend.
+   * Gate temporal mientras la app móvil no soporta este shape (sigue recibiendo
+   * la lista plana de siempre si esta key no se manda o es false). */
+  pagination?: boolean;
 }
 
 export const getBitacoraTransportistaRecords = (
@@ -265,6 +269,7 @@ export const getBitacoraTransportistaRecords = (
     ...(params.search && { search: params.search }),
     ...(params.skip !== undefined && { skip: params.skip }),
     ...(params.limit !== undefined && { limit: params.limit }),
+    ...(params.pagination && { pagination: true }),
   });
 
 export const saveInspeccionesTransportista = (record_id: string, inspecciones: unknown[]) =>

@@ -357,6 +357,7 @@ export default function BitacorasTransportistasPage() {
     ...(isKanban
       ? {}
       : {
+          pagination: true,
           skip,
           limit,
           search: search || undefined,
