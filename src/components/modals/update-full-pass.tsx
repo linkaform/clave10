@@ -124,8 +124,12 @@ interface updatedFullPassModalProps {
 }
 
 interface AreaAcceso {
-	incidente_area: string;
+	nombre_area?: string;
 	commentario_area: string;
+	// TODO: quitar 'note_booth' cuando todas las cuentas corran el backend
+	// actualizado (self.mf ya resuelve 'nombre_area'; cuentas con app.py viejo
+	// todavia devuelven la colision de id con self.notes_fields['note_booth']).
+	note_booth?: string;
 }
 
 function SectionCard({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
@@ -164,8 +168,8 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	const [miembrosRowErrors, setMiembrosRowErrors] = useState<Record<string, { email: boolean; telefono: boolean }>>({});
 	const [acompanantesActivos, setAcompanantesActivos] = useState<Miembro[]>([]);
 	const [existingIds, setExistingIds] = useState<Set<string>>(new Set());
-	const areasFormateadas = dataPass?.areas?.map(({ incidente_area, commentario_area }: AreaAcceso) => ({
-		nombre_area: incidente_area,
+	const areasFormateadas = dataPass?.areas?.map(({ nombre_area, note_booth, commentario_area }: AreaAcceso) => ({
+		nombre_area: nombre_area || note_booth || "",
 		commentario_area,
 	})) || [];
 

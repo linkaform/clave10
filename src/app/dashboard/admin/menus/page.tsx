@@ -146,8 +146,12 @@ export default function AdminMenusPage() {
               </MultiSelectTrigger>
               <MultiSelectContent>
                 {users.map((user) => (
-                  <MultiSelectItem key={user.user_id} value={String(user.user_id)}>
-                    {user.nombre || user.username} ({user.user_id})
+                  <MultiSelectItem
+                    key={user.user_id}
+                    value={String(user.user_id)}
+                    keywords={[user.username, user.nombre]}
+                  >
+                    {user.username} ({user.user_id})
                   </MultiSelectItem>
                 ))}
               </MultiSelectContent>
