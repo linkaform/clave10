@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Upload } from "lucide-react";
+import { Download, RefreshCw, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,11 +16,13 @@ import {
 import { useMenuItems } from "@/hooks/menus-admin/useMenuItems";
 import {
   useMenuUsers,
+  useResyncAllPermissions,
   useUserMenuAssignment,
 } from "@/hooks/menus-admin/useUserMenuAssignment";
 import { MenuUserAssignmentTree } from "@/components/menus-admin/menu-user-assignment-tree";
 import { MenuCatalogBoard } from "@/components/menus-admin/menu-catalog-board";
 import { ImportCatalogDialog } from "@/components/modals/import-catalog-dialog";
+import { ResyncPermissionsDialog } from "@/components/modals/resync-permissions-dialog";
 import { MenuItemAdmin } from "@/services/menus-admin";
 import { exportMenuItemsToExcel } from "@/lib/menus-admin-export";
 
@@ -53,6 +55,14 @@ export default function AdminMenusPage() {
   const { assignedKeys, isLoadingAssignedKeys, saveAssignmentMutation } =
     useUserMenuAssignment(selectedUserIdsNum);
   const [pendingKeys, setPendingKeys] = useState<string[] | null>(null);
+  const { resyncMutation } = useResyncAllPermissions();
+  const [resyncOpen, setResyncOpen] = useState(false);
+
+  const handleConfirmResync = () => {
+    resyncMutation.mutate(undefined, {
+      onSuccess: () => setResyncOpen(false),
+    });
+  };
 
   const selectedKeys = pendingKeys ?? assignedKeys;
 
@@ -76,6 +86,13 @@ export default function AdminMenusPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Configuración de Menús</h1>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setResyncOpen(true)}
+            disabled={resyncMutation.isPending}>
+            <RefreshCw size={16} className={resyncMutation.isPending ? "animate-spin" : ""} />
+            Resincronizar permisos
+          </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload size={16} /> Importar Excel
           </Button>
@@ -87,6 +104,13 @@ export default function AdminMenusPage() {
           </Button>
         </div>
       </div>
+
+      <ResyncPermissionsDialog
+        open={resyncOpen}
+        onOpenChange={setResyncOpen}
+        isResyncing={resyncMutation.isPending}
+        onConfirm={handleConfirmResync}
+      />
 
       <ImportCatalogDialog
         open={importOpen}

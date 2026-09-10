@@ -1,7 +1,9 @@
 import {
   MenuUser,
+  ResyncPermissionsResult,
   getUserMenuItems,
   listMenuUsers,
+  resyncAllPermissions,
   saveUserMenuItems,
 } from "@/services/menus-admin";
 import { errorMsj } from "@/lib/utils";
@@ -83,4 +85,49 @@ export const useUserMenuAssignment = (userIds: number[]) => {
     errorAssignedKeys,
     saveAssignmentMutation,
   };
+};
+
+export const useResyncAllPermissions = () => {
+  const resyncMutation = useMutation({
+    mutationFn: async () => {
+      // No se espera la respuesta: en cuentas con muchos usuarios la corrida
+      // completa puede tardar varios minutos y el proxy/gateway corta la
+      // conexión antes de que llegue la respuesta (se ve como error de CORS
+      // en consola aunque el backend siga corriendo y sí termine). Se dispara
+      // la petición y se sigue en segundo plano; si sí llega la respuesta a
+      // tiempo, se muestra el resultado real -- si no, se queda solo el aviso.
+      resyncAllPermissions()
+        .then((response) => {
+          if (!response?.success) {
+            console.warn("resync_all_permissions: respuesta sin exito", response);
+            return;
+          }
+          const data = response.response?.data as ResyncPermissionsResult | undefined;
+          const skippedCount = data?.skipped?.length ?? 0;
+          const skippedMsj = skippedCount
+            ? ` (${skippedCount} omitido${skippedCount === 1 ? "" : "s"}, ver consola)`
+            : "";
+          if (skippedCount) {
+            console.warn("resync_all_permissions: registros omitidos", data?.skipped);
+          }
+          toast.success(
+            `Permisos resincronizados: ${data?.updated ?? 0} de ${data?.total ?? 0} usuarios${skippedMsj}.`,
+          );
+        })
+        .catch((err: Error) => {
+          console.warn(
+            "resync_all_permissions: no se pudo confirmar el resultado (probable timeout de gateway en cuentas con muchos usuarios, el backend puede haber terminado igual)",
+            err,
+          );
+        });
+    },
+    onSuccess: () => {
+      toast.message("Resincronizando permisos en segundo plano...", {
+        description:
+          "Puede tardar varios minutos según la cantidad de usuarios. Los cambios se reflejan solos, sin necesidad de dejar esta pantalla abierta.",
+      });
+    },
+  });
+
+  return { resyncMutation };
 };

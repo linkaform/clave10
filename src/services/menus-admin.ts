@@ -93,3 +93,15 @@ export const saveUserMenuItems = (user_id: number, item_keys: string[]) =>
     user_id,
     item_keys,
   });
+
+export interface ResyncPermissionsResult {
+  updated: number;
+  skipped: { record_id: string; user_id?: number; reason: string }[];
+  total: number;
+}
+
+export const resyncAllPermissions = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "resync_all_permissions",
+  });
