@@ -2351,6 +2351,13 @@ export default function DetalleTransportistaPage() {
   const [showGaleria, setShowGaleria] = useState(false);
   const [showAndenModal, setShowAndenModal] = useState(false);
   const [showRegistrarLlegada, setShowRegistrarLlegada] = useState(false);
+  const [showCierreAnimacion, setShowCierreAnimacion] = useState(false);
+
+  useEffect(() => {
+    if (!showCierreAnimacion) return;
+    const timer = setTimeout(() => router.back(), 2400);
+    return () => clearTimeout(timer);
+  }, [showCierreAnimacion]);
   const [vehicleExpanded, setVehicleExpanded] = useState(true);
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
 
@@ -4437,6 +4444,27 @@ export default function DetalleTransportistaPage() {
 
         {/* ── RIGHT SIDEBAR ────────────────────────────────────────────────── */}
         <div className="space-y-3">
+          {/* Terminado — visible una vez que el proceso está completo; misma
+              acción que "Volver al control", solo que aquí da la sensación
+              explícita de cierre del proceso. */}
+          {estatus === "terminado" && (
+            <div className="rounded-xl overflow-hidden shadow-md bg-emerald-50 border border-emerald-100">
+              <div className="px-4 py-3 flex items-center gap-2 border-b border-emerald-100">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-bold text-emerald-800">Transporte verificado</span>
+              </div>
+              <div className="p-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCierreAnimacion(true)}
+                  className="w-full h-11 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2 shadow-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Cerrar proceso
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Aviso por correo — visible una vez que el proceso está terminado */}
           {estatus === "terminado" && <AvisoCorreoCard recordId={id} />}
 
@@ -5061,6 +5089,17 @@ export default function DetalleTransportistaPage() {
           initialPaseId={data?.num_de_pase ?? undefined}
           onLlegadaConfirmada={() => refetch()}
         />
+      )}
+      {showCierreAnimacion && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-emerald-600 animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-4 animate-in zoom-in-50 fade-in duration-500">
+            <div className="w-24 h-24 rounded-full bg-white/15 flex items-center justify-center">
+              <CheckCircle2 className="w-14 h-14 text-white" />
+            </div>
+            <p className="text-white text-lg font-bold">Transporte verificado</p>
+          </div>
+        </div>,
+        document.body
       )}
       {editingUnit && (
         <AgregarUnidadModal
