@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useBoothStore } from "@/store/useBoothStore";
 import { useShiftStore } from "@/store/useShiftStore";
+import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { getBitacoraFilters } from "@/services/endpoints";
 import { useFilters } from "./useFilters";
 import { dateToString } from "@/lib/utils";
@@ -8,9 +8,9 @@ import { useQueryParams } from "@/hooks/useQueryParams";
 
 export const useBitacoraFilters = () => {
   const { filter, option } = useShiftStore();
-  const { location } = useBoothStore();
+  const { selectedLocations } = useSelectedLocationsStore();
 
-  // Estado de ubicación (sincronizado con BoothStore)
+  // Estado de ubicación (sincronizado con el selector de la barra superior)
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<
     string | string[]
   >("");
@@ -86,12 +86,12 @@ export const useBitacoraFilters = () => {
     endpoint: getBitacoraFilters,
   });
 
-  // Sincronización inicial con Session/Auth
+  // Sincronizado con el selector de ubicaciones de la barra superior
+  // (useSelectedLocationsStore) — antes leía useBoothStore().location, que es
+  // el puesto activo y no reacciona al dropdown del header.
   useEffect(() => {
-    if (location) {
-      setUbicacionSeleccionada(location);
-    }
-  }, [location]);
+    setUbicacionSeleccionada(selectedLocations);
+  }, [selectedLocations]);
 
   return {
     // State
