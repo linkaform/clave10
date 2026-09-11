@@ -1,6 +1,8 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { ArrowRightLeft, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,20 +13,43 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useMenuConfigDiagnostics } from "@/hooks/menus-admin/useUserMenuAssignment";
+import {
+  useMenuConfigDiagnostics,
+  useMigrateLegacyMenus,
+} from "@/hooks/menus-admin/useUserMenuAssignment";
 import { MenuUser } from "@/services/menus-admin";
+import { MigrateLegacyMenusDialog } from "@/components/modals/migrate-legacy-menus-dialog";
 
 export const MenuConfigDiagnosticsPanel = () => {
   const {
     missingConfig,
     isLoadingMissingConfig,
+    isFetchingMissingConfig,
     errorMissingConfig,
     refetchMissingConfig,
     onlyLegacy,
     isLoadingOnlyLegacy,
+    isFetchingOnlyLegacy,
     errorOnlyLegacy,
     refetchOnlyLegacy,
   } = useMenuConfigDiagnostics();
+
+  const { migrateMutation, isRunning: isMigrateRunning } = useMigrateLegacyMenus();
+  const [migrateOpen, setMigrateOpen] = useState(false);
+
+  const handleRefetch = async (
+    refetch: () => Promise<{ data?: MenuUser[] }>,
+  ) => {
+    const result = await refetch();
+    toast.success(`Actualizado: ${result.data?.length ?? 0} usuario(s) encontrados.`);
+  };
+
+  const handleConfirmMigrate = () => {
+    migrateMutation.mutate(
+      onlyLegacy.map((u) => u.user_id),
+      { onSuccess: () => setMigrateOpen(false) },
+    );
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -40,9 +65,9 @@ export const MenuConfigDiagnosticsPanel = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => refetchMissingConfig()}
-            disabled={isLoadingMissingConfig}>
-            <RefreshCw size={14} className={isLoadingMissingConfig ? "animate-spin" : ""} />
+            onClick={() => handleRefetch(refetchMissingConfig)}
+            disabled={isFetchingMissingConfig}>
+            <RefreshCw size={14} className={isFetchingMissingConfig ? "animate-spin" : ""} />
             Actualizar
           </Button>
         </div>
@@ -66,14 +91,24 @@ export const MenuConfigDiagnosticsPanel = () => {
               desactualizados.
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetchOnlyLegacy()}
-            disabled={isLoadingOnlyLegacy}>
-            <RefreshCw size={14} className={isLoadingOnlyLegacy ? "animate-spin" : ""} />
-            Actualizar
-          </Button>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleRefetch(refetchOnlyLegacy)}
+              disabled={isFetchingOnlyLegacy}>
+              <RefreshCw size={14} className={isFetchingOnlyLegacy ? "animate-spin" : ""} />
+              Actualizar
+            </Button>
+            <Button
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => setMigrateOpen(true)}
+              disabled={onlyLegacy.length === 0 || isMigrateRunning}>
+              <ArrowRightLeft size={14} className={isMigrateRunning ? "animate-spin" : ""} />
+              {isMigrateRunning ? "Migrando..." : `Migrar (${onlyLegacy.length})`}
+            </Button>
+          </div>
         </div>
         <UsersDiagnosticTable
           users={onlyLegacy}
@@ -82,6 +117,14 @@ export const MenuConfigDiagnosticsPanel = () => {
           emptyMessage="Ningún usuario quedó solo en Configuración Accesos."
         />
       </section>
+
+      <MigrateLegacyMenusDialog
+        open={migrateOpen}
+        onOpenChange={setMigrateOpen}
+        userCount={onlyLegacy.length}
+        isMigrating={isMigrateRunning}
+        onConfirm={handleConfirmMigrate}
+      />
     </div>
   );
 };

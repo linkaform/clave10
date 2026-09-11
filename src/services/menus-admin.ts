@@ -117,3 +117,20 @@ export const listUsersOnlyInLegacyAccesos = () =>
     script_name: SCRIPT_NAME,
     option: "list_users_only_in_legacy_accesos",
   });
+
+export interface MigrateLegacyMenusResult {
+  user_id: number;
+  username: string;
+  action: "create" | "update" | "error";
+  status_code?: number;
+  menu_count?: number;
+  error?: unknown;
+}
+
+export const migrateLegacyMenus = (user_ids: number[], dry_run = false) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "migrate_legacy_menus.py",
+    option: "migrate",
+    user_ids,
+    dry_run,
+  });

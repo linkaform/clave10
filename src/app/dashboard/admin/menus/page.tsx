@@ -56,7 +56,7 @@ export default function AdminMenusPage() {
   const { assignedKeys, isLoadingAssignedKeys, saveAssignmentMutation } =
     useUserMenuAssignment(selectedUserIdsNum);
   const [pendingKeys, setPendingKeys] = useState<string[] | null>(null);
-  const { resyncMutation } = useResyncAllPermissions();
+  const { resyncMutation, isRunning: isResyncRunning } = useResyncAllPermissions();
   const [resyncOpen, setResyncOpen] = useState(false);
 
   const handleConfirmResync = () => {
@@ -90,9 +90,9 @@ export default function AdminMenusPage() {
           <Button
             variant="outline"
             onClick={() => setResyncOpen(true)}
-            disabled={resyncMutation.isPending}>
-            <RefreshCw size={16} className={resyncMutation.isPending ? "animate-spin" : ""} />
-            Resincronizar permisos
+            disabled={isResyncRunning}>
+            <RefreshCw size={16} className={isResyncRunning ? "animate-spin" : ""} />
+            {isResyncRunning ? "Resincronizando..." : "Resincronizar permisos"}
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload size={16} /> Importar Excel
@@ -109,7 +109,7 @@ export default function AdminMenusPage() {
       <ResyncPermissionsDialog
         open={resyncOpen}
         onOpenChange={setResyncOpen}
-        isResyncing={resyncMutation.isPending}
+        isResyncing={isResyncRunning}
         onConfirm={handleConfirmResync}
       />
 
