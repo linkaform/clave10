@@ -105,3 +105,15 @@ export const resyncAllPermissions = () =>
     script_name: SCRIPT_NAME,
     option: "resync_all_permissions",
   });
+
+export const listUsersMissingMenuConfig = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "list_users_missing_menu_config",
+  });
+
+export const listUsersOnlyInLegacyAccesos = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "list_users_only_in_legacy_accesos",
+  });

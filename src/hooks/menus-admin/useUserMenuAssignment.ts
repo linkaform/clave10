@@ -3,6 +3,8 @@ import {
   ResyncPermissionsResult,
   getUserMenuItems,
   listMenuUsers,
+  listUsersMissingMenuConfig,
+  listUsersOnlyInLegacyAccesos,
   resyncAllPermissions,
   saveUserMenuItems,
 } from "@/services/menus-admin";
@@ -130,4 +132,49 @@ export const useResyncAllPermissions = () => {
   });
 
   return { resyncMutation };
+};
+
+export const useMenuConfigDiagnostics = () => {
+  const {
+    data: missingConfig,
+    isLoading: isLoadingMissingConfig,
+    error: errorMissingConfig,
+    refetch: refetchMissingConfig,
+  } = useQuery<MenuUser[]>({
+    queryKey: ["menuAdminUsersMissingConfig"],
+    queryFn: async () => {
+      const data = await listUsersMissingMenuConfig();
+      if (!data?.success) {
+        throw new Error("Error al obtener los usuarios sin configuración");
+      }
+      return Array.isArray(data.response?.data) ? data.response?.data : [];
+    },
+  });
+
+  const {
+    data: onlyLegacy,
+    isLoading: isLoadingOnlyLegacy,
+    error: errorOnlyLegacy,
+    refetch: refetchOnlyLegacy,
+  } = useQuery<MenuUser[]>({
+    queryKey: ["menuAdminUsersOnlyLegacyAccesos"],
+    queryFn: async () => {
+      const data = await listUsersOnlyInLegacyAccesos();
+      if (!data?.success) {
+        throw new Error("Error al obtener los usuarios solo en Configuración Accesos");
+      }
+      return Array.isArray(data.response?.data) ? data.response?.data : [];
+    },
+  });
+
+  return {
+    missingConfig: missingConfig ?? [],
+    isLoadingMissingConfig,
+    errorMissingConfig,
+    refetchMissingConfig,
+    onlyLegacy: onlyLegacy ?? [],
+    isLoadingOnlyLegacy,
+    errorOnlyLegacy,
+    refetchOnlyLegacy,
+  };
 };

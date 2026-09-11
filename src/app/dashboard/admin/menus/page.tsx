@@ -21,6 +21,7 @@ import {
 } from "@/hooks/menus-admin/useUserMenuAssignment";
 import { MenuUserAssignmentTree } from "@/components/menus-admin/menu-user-assignment-tree";
 import { MenuCatalogBoard } from "@/components/menus-admin/menu-catalog-board";
+import { MenuConfigDiagnosticsPanel } from "@/components/menus-admin/menu-config-diagnostics";
 import { ImportCatalogDialog } from "@/components/modals/import-catalog-dialog";
 import { ResyncPermissionsDialog } from "@/components/modals/resync-permissions-dialog";
 import { MenuItemAdmin } from "@/services/menus-admin";
@@ -128,6 +129,7 @@ export default function AdminMenusPage() {
         <TabsList>
           <TabsTrigger value="catalogo">Catálogo de Menús</TabsTrigger>
           <TabsTrigger value="asignacion">Asignación por Usuario</TabsTrigger>
+          <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="catalogo" className="mt-4">
@@ -212,6 +214,10 @@ export default function AdminMenusPage() {
               </div>
             </>
           )}
+        </TabsContent>
+
+        <TabsContent value="diagnostico" className="mt-4">
+          <MenuConfigDiagnosticsPanel />
         </TabsContent>
       </Tabs>
     </div>
