@@ -554,13 +554,23 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
       // anexan a la primera unidad con contenedor (o a la primera unidad).
       // Si ya llegaron ligados por entidad (ver arriba), este bloque no hace nada.
       if (!materialesYaLigadosPorEntidad && d.materiales?.length) {
-        if (!unidadesFromAI.length) unidadesFromAI.push(emptyUnidad());
-        const targetIdx = Math.max(unidadesFromAI.findIndex((u) => u.config === "remolque_contenedor"), 0);
         const materialesCarga = toMaterialesCarga(d.materiales);
-        const target = unidadesFromAI[targetIdx];
-        unidadesFromAI[targetIdx] = target.config === "remolque_contenedor"
-          ? { ...target, contenedor: { ...target.contenedor, materiales: materialesCarga } }
-          : { ...target, remolque: { ...target.remolque, materiales: materialesCarga } };
+        if (!unidadesFromAI.length && !contenedoresParaLigar.length) {
+          // Ni remolque ni contenedor detectados: el material va directo
+          // sobre el vehículo (pickup, caja integrada) en vez de crear un
+          // remolque fantasma para sostenerlo.
+          const u = emptyUnidad();
+          u.config = "solo_vehiculo";
+          u.vehiculo = { materiales: materialesCarga };
+          unidadesFromAI.push(u);
+        } else {
+          if (!unidadesFromAI.length) unidadesFromAI.push(emptyUnidad());
+          const targetIdx = Math.max(unidadesFromAI.findIndex((u) => u.config === "remolque_contenedor"), 0);
+          const target = unidadesFromAI[targetIdx];
+          unidadesFromAI[targetIdx] = target.config === "remolque_contenedor"
+            ? { ...target, contenedor: { ...target.contenedor, materiales: materialesCarga } }
+            : { ...target, remolque: { ...target.remolque, materiales: materialesCarga } };
+        }
         filled.add("carga");
       } else if (materialesYaLigadosPorEntidad) {
         filled.add("carga");

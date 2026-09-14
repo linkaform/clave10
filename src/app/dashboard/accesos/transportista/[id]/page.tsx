@@ -2973,7 +2973,7 @@ export default function DetalleTransportistaPage() {
         const aiMats = aiData.materiales ?? [];
         const materialesPorEntidad = aiRems.some((r) => r.materiales?.length) || aiCons.some((c) => c.materiales?.length);
         const serverHasUnidades = (fresh?.remolques?.length ?? 0) > 0;
-        if (unidades.length === 0 && !serverHasUnidades && (aiRems.length > 0 || aiCons.length > 0)) {
+        if (unidades.length === 0 && !serverHasUnidades && (aiRems.length > 0 || aiCons.length > 0 || aiMats.length > 0)) {
           // Si se detectó un único remolque real y hay más contenedores que
           // remolques, se duplica la info de ese remolque para cada contenedor
           // sobrante — el usuario la ajusta después si en realidad corresponde
@@ -2985,6 +2985,20 @@ export default function DetalleTransportistaPage() {
           }
           const count = Math.max(rems.length, aiCons.length);
           const newUnidades: UnidadItem[] = [];
+          if (count === 0 && aiMats.length > 0) {
+            // Ni remolque ni contenedor detectados: el material va directo
+            // sobre el vehículo (pickup, caja integrada) en vez de crear un
+            // remolque fantasma para sostenerlo.
+            newUnidades.push({
+              id: Math.random().toString(36).slice(2),
+              config: "solo_vehiculo",
+              remolqueApiIndex: null,
+              contenedorApiIndex: null,
+              remolque: emptyRemolqueData(),
+              contenedor: emptyContenedorData(),
+              vehiculo: { materiales: toMaterialesCarga(aiMats) },
+            });
+          }
           for (let i = 0; i < count; i++) {
             const r = rems[i];
             const con = aiCons[i];
@@ -3026,7 +3040,7 @@ export default function DetalleTransportistaPage() {
           setUnidades(newUnidades);
           await saveBitacoraTransportistaRecord(id, "remolques", serializeUnidades(newUnidades));
           unidadesInitialized.current = false;
-          camposLlenados += count;
+          camposLlenados += newUnidades.length;
         } else if (unidades.length === 1 && (aiRems.length > 0 || aiCons.length > 0 || aiMats.length > 0)) {
           // Reintento sobre una unidad ya existente: si un análisis previo (con
           // el modelo IA, que no siempre acierta a la primera) creó el
@@ -3037,16 +3051,22 @@ export default function DetalleTransportistaPage() {
           // solo si sigue vacío, para no pisar algo que el usuario ya llenó.
           const existente = unidades[0];
           const esRC = existente.config === "remolque_contenedor";
-          const materialesActuales = esRC ? existente.contenedor.materiales : existente.remolque.materiales;
+          const esVehiculo = existente.config === "solo_vehiculo";
+          const materialesActuales = materialesDeUnidad(existente);
           const siguenVacios = materialesActuales.every((m) => !m.producto.trim() && !m.cantEsperada.trim());
           if (siguenVacios) {
-            const aiMatsEntidad = esRC ? aiCons[0]?.materiales : aiRems[0]?.materiales;
+            // "solo_vehiculo" no tiene entidad propia en la respuesta de la IA
+            // (remolque/contenedor) — solo puede rellenarse desde el arreglo
+            // plano legado.
+            const aiMatsEntidad = esVehiculo ? null : esRC ? aiCons[0]?.materiales : aiRems[0]?.materiales;
             const nuevosMateriales = aiMatsEntidad?.length
               ? toMaterialesCarga(aiMatsEntidad)
               : (aiMats.length > 0 ? toMaterialesCarga(aiMats) : null);
             if (nuevosMateriales?.length) {
               const actualizada: UnidadItem = esRC
                 ? { ...existente, contenedor: { ...existente.contenedor, materiales: nuevosMateriales } }
+                : esVehiculo
+                ? { ...existente, vehiculo: { ...existente.vehiculo, materiales: nuevosMateriales } }
                 : { ...existente, remolque: { ...existente.remolque, materiales: nuevosMateriales } };
               const newUnidades = [actualizada];
               setUnidades(newUnidades);
