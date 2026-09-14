@@ -405,15 +405,26 @@ export default function BitacorasTransportistasPage() {
         }),
   });
 
-  // Oculta del kanban las columnas de etapas desactivadas para esta cuenta.
-  // El value real de la opción de Linkaform para "entrada" es "inspeccion_de_entrada"
-  // (no coincide con el key de la columna, que sí es el valor real de `estatus`).
+  // Oculta del kanban las columnas de etapas desactivadas para esta cuenta, y las que
+  // la cuenta desmarcó en "Kanban View" (puramente visual — no afecta el flujo real).
+  // Los value reales de las opciones en Linkaform no siempre coinciden con el key de
+  // la columna (que es el valor real de `estatus`): "inspeccion_de_entrada" en vez de
+  // "inspeccion_entrada", "terminados" (plural) en vez de "terminado".
   const { data: configFlujo } = useConfigFlujoTransportista();
+  const COL_KEY_A_KANBAN_VIEW_SLUG: Record<string, string> = {
+    arribo: "arribo",
+    inspeccion_entrada: "inspeccion_de_entrada",
+    "carga_/_descarga": "carga_/_descarga",
+    inspeccion_salida: "inspeccion_salida",
+    terminado: "terminados",
+  };
   const columnasVisibles = COLUMNAS.filter((col) => {
+    if (!configFlujo.kanbanView.includes(COL_KEY_A_KANBAN_VIEW_SLUG[col.key])) return false;
     if (col.key === "arribo" || col.key === "terminado") return true;
     const slug = col.key === "inspeccion_entrada" ? "inspeccion_de_entrada" : col.key;
     return configFlujo.etapasActivas.includes(slug);
   });
+  const mostrarProgramados = configFlujo.kanbanView.includes("programados");
 
   // Resetea a la primera página cuando cambian fecha/filtros/búsqueda/vista,
   // para no quedar "colgado" en una página fuera de rango.
@@ -558,7 +569,9 @@ export default function BitacorasTransportistasPage() {
       ) : viewMode === "kanban" ? (
         <div className="flex-1 min-h-0 overflow-hidden">
           <div className="flex gap-3 p-4 h-full w-full">
-            <ProgramadosColumn records={byEstatus("programado")} fecha={fecha} now={now} onChangeDay={changeDay} />
+            {mostrarProgramados && (
+              <ProgramadosColumn records={byEstatus("programado")} fecha={fecha} now={now} onChangeDay={changeDay} />
+            )}
             {columnasVisibles.map((col) => (
               <KanbanColumn
                 key={col.key}
