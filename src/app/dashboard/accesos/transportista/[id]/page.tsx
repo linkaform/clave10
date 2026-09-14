@@ -64,7 +64,12 @@ import {
   type MaterialCarga,
   type UnidadItem,
   emptyMaterial,
+  emptyRemolqueData,
   emptyContenedorData,
+  emptyVehiculoData,
+  materialesDeUnidad,
+  refDeUnidad,
+  labelDeUnidad,
   resolveColorSwatch,
   AgregarUnidadModal,
   serializeUnidades,
@@ -2259,7 +2264,8 @@ export default function DetalleTransportistaPage() {
 
   useEffect(() => {
     if (!data || unidadesInitialized.current) return;
-    if (!data.remolques.length) return;
+    const materialesVehiculo = (data.materiales ?? []).filter((m) => m.lugar === "vehiculo");
+    if (!data.remolques.length && !materialesVehiculo.length) return;
     unidadesInitialized.current = true;
 
     type RV = import("@/hooks/useGetVisitTransportista").RemolqueVisita;
@@ -2331,11 +2337,32 @@ export default function DetalleTransportistaPage() {
           comentarios:   rawCont.comentarios   ?? "",
           materiales:    conMats.length ? conMats : [emptyMaterial()],
         } : emptyContenedorData(),
+        vehiculo: emptyVehiculoData(),
       };
     });
 
-    setUnidades(mapped);
-    setExpandedUnits(new Set(mapped.map((u) => u.id)));
+    // Materiales capturados directo sobre el vehículo (sin remolque/contenedor,
+    // lugar_material === "vehiculo") no tienen fila propia en grupo_remolques —
+    // se agrupan en una unidad sintética "solo_vehiculo" para poder editarlos.
+    const vehiculoMats = (data.materiales ?? [])
+      .map((m, i) => ({ m, i }))
+      .filter(({ m }) => m.lugar === "vehiculo")
+      .map(({ m, i }) => toMaterial(m, i));
+
+    const finalUnidades = vehiculoMats.length
+      ? [...mapped, {
+          id: Math.random().toString(36).slice(2),
+          config: "solo_vehiculo" as UnidadConfig,
+          remolqueApiIndex: null,
+          contenedorApiIndex: null,
+          remolque: emptyRemolqueData(),
+          contenedor: emptyContenedorData(),
+          vehiculo: { materiales: vehiculoMats },
+        }]
+      : mapped;
+
+    setUnidades(finalUnidades);
+    setExpandedUnits(new Set(finalUnidades.map((u) => u.id)));
   }, [data]);
 
   const [unidades, setUnidades] = useState<UnidadItem[]>([]);
@@ -2478,7 +2505,7 @@ export default function DetalleTransportistaPage() {
   });
 
   const deletionsFromUnit = (u: UnidadItem): Deletions => {
-    const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
+    const mats = materialesDeUnidad(u);
     return {
       delete_remolques:    u.remolqueApiIndex   !== null ? [u.remolqueApiIndex]   : [],
       delete_contenedores: u.config === "remolque_contenedor" && u.contenedorApiIndex !== null
@@ -2488,8 +2515,8 @@ export default function DetalleTransportistaPage() {
   };
 
   const deletionsFromMaterialDiff = (oldUnit: UnidadItem, updated: UnidadItem): Deletions => {
-    const oldMats = oldUnit.config === "remolque_contenedor" ? oldUnit.contenedor.materiales : oldUnit.remolque.materiales;
-    const newMats = updated.config === "remolque_contenedor" ? updated.contenedor.materiales : updated.remolque.materiales;
+    const oldMats = materialesDeUnidad(oldUnit);
+    const newMats = materialesDeUnidad(updated);
     const kept = new Set(newMats.map((m) => m.id));
     return {
       ...emptyDeletions(),
@@ -2993,6 +3020,7 @@ export default function DetalleTransportistaPage() {
                 comentarios: con?.comentarios ?? "",
                 materiales: matsContenedor ?? (isRC ? (matsLegado ?? [emptyMaterial()]) : [emptyMaterial()]),
               },
+              vehiculo: emptyVehiculoData(),
             });
           }
           setUnidades(newUnidades);
@@ -4200,15 +4228,12 @@ export default function DetalleTransportistaPage() {
                   <Field label="Procedencia" value={data?.vehiculo?.procedencia} />
                 </div>
               )}
-              {unidades.some((u) => {
-                const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
-                return mats.some((m) => m.producto);
-              }) && (
+              {unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto)) && (
                 <div className="space-y-2 pt-1 border-t border-gray-50">
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por contenedor</p>
                   {unidades.map((u, idx) => {
-                    const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
-                    const ref = u.config === "remolque_contenedor" ? u.contenedor.noContenedor : u.remolque.noCaja;
+                    const mats = materialesDeUnidad(u);
+                    const ref = refDeUnidad(u);
                     const withProduct = mats.filter((m) => m.producto);
                     if (!withProduct.length) return null;
                     return (
@@ -4347,7 +4372,7 @@ export default function DetalleTransportistaPage() {
                           className="flex items-center gap-2 flex-1 text-left">
                           <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
                           <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                            {u.config === "remolque_contenedor" ? "Remolque + Contenedor" : "Solo remolque"}
+                            {labelDeUnidad(u)}
                           </span>
                         </button>
                         <div className="flex items-center gap-2 shrink-0">
@@ -4376,6 +4401,27 @@ export default function DetalleTransportistaPage() {
                       </div>
                       {/* card body */}
                       {isUnitExpanded && <div className="p-4 space-y-3 bg-white divide-y divide-gray-50">
+                        {u.config === "solo_vehiculo" ? (
+                        /* Vehículo — sin campos propios de unidad, solo material de carga */
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5">
+                            <Truck className="w-3 h-3 text-emerald-500" />
+                            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Vehículo</span>
+                          </div>
+                          {u.vehiculo.materiales.some((m) => m.producto) ? (
+                            <div>
+                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
+                              <div className="flex flex-wrap gap-1">
+                                {u.vehiculo.materiales.filter((m) => m.producto).map((m) => (
+                                  <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : <p className="text-xs text-gray-300 italic">Sin material capturado</p>}
+                        </div>
+                        ) : (<>
                         {/* Remolque */}
                         <div className="space-y-2">
                           <div className="flex items-center gap-1.5">
@@ -4456,6 +4502,7 @@ export default function DetalleTransportistaPage() {
                             )}
                           </div>
                         )}
+                        </>)}
                       </div>}
                     </div>
                     );
@@ -5068,7 +5115,7 @@ export default function DetalleTransportistaPage() {
       {showInspeccionSello && (
         <InspeccionSelloModal
           recordId={id}
-          unidades={unidades}
+          unidades={unidades.filter((u) => u.config !== "solo_vehiculo")}
           inspeccionesDone={data?.inspecciones ?? []}
           documentosAdicionales={data?.documentos_adicionales}
           ubicacion={data?.ubicacion}
@@ -5080,7 +5127,7 @@ export default function DetalleTransportistaPage() {
       {showInspeccionSelloSalida && (
         <InspeccionSelloModal
           recordId={id}
-          unidades={unidades}
+          unidades={unidades.filter((u) => u.config !== "solo_vehiculo")}
           inspeccionesDone={data?.inspecciones ?? []}
           documentosAdicionales={data?.documentos_adicionales}
           tipoPrefix="salida"

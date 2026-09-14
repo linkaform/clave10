@@ -40,6 +40,9 @@ import {
   emptyUnidad,
   emptyMaterial,
   emptyContenedorData,
+  materialesDeUnidad,
+  refDeUnidad,
+  labelDeUnidad,
   resolveColorSwatch,
   UnidadEditorCard,
   serializeUnidades,
@@ -825,10 +828,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
     }
   };
 
-  const unidadesConMaterial = unidades.some((u) => {
-    const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
-    return mats.some((m) => m.producto);
-  });
+  const unidadesConMaterial = unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto));
 
   return (
     <>
@@ -1210,8 +1210,8 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
                     <div className="space-y-2 pt-1 border-t border-gray-50">
                       <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por contenedor</p>
                       {unidades.map((u, idx) => {
-                        const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
-                        const ref = u.config === "remolque_contenedor" ? u.contenedor.noContenedor : u.remolque.noCaja;
+                        const mats = materialesDeUnidad(u);
+                        const ref = refDeUnidad(u);
                         const withProduct = mats.filter((m) => m.producto);
                         if (!withProduct.length) return null;
                         return (
@@ -1265,7 +1265,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
                               {idx + 1}
                             </span>
                             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                              {u.config === "remolque_contenedor" ? "Remolque + Contenedor" : "Solo remolque"}
+                              {labelDeUnidad(u)}
                             </span>
                           </button>
                           <div className="flex items-center gap-2 shrink-0">
@@ -1284,6 +1284,26 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
                         </div>
                         {isUnitExpanded && (
                           <div className="p-4 space-y-3 bg-white divide-y divide-gray-50">
+                            {u.config === "solo_vehiculo" ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-1.5">
+                                <Truck className="w-3 h-3 text-emerald-500" />
+                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Vehículo</span>
+                              </div>
+                              {u.vehiculo.materiales.some((m) => m.producto) ? (
+                                <div className="pt-1">
+                                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {u.vehiculo.materiales.filter((m) => m.producto).map((m) => (
+                                      <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
+                                        <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : <p className="text-xs text-gray-300 italic">Sin material capturado</p>}
+                            </div>
+                            ) : (<>
                             <div className="space-y-2">
                               <div className="flex items-center gap-1.5">
                                 <Truck className="w-3 h-3 text-blue-500" />
@@ -1356,6 +1376,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
                                 )}
                               </div>
                             )}
+                            </>)}
                           </div>
                         )}
                       </div>
