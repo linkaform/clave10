@@ -17,6 +17,7 @@ const ESTATUS_LABELS: Record<string, string> = {
   "carga_/_descarga": "Carga / Descarga",
   inspeccion_salida:  "Insp. Salida",
   terminado:          "Terminado",
+  descartado:         "Descartado",
 };
 
 function estatusToStatus(estatus: string) {

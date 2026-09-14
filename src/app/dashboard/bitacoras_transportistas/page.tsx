@@ -29,7 +29,8 @@ import { useGetBitacoraTransportistaRecords, BitacoraTransportistaRecord } from 
 import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
 import { saveBitacoraTransportistaRecord } from "@/services/endpoints";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Pencil, X } from "lucide-react";
+import { ConfirmModal } from "@/components/confirm-modal";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { formatPhotoRecord, formatListRecord } from "@/utils/formatRecords";
@@ -121,6 +122,24 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
   const [showAndenModal, setShowAndenModal] = useState(false);
   const [savingAnden, setSavingAnden] = useState(false);
 
+  const puedeDescartar = !["terminado", "descartado"].includes(record.estatus);
+  const [showDescartarConfirm, setShowDescartarConfirm] = useState(false);
+  const [descartando, setDescartando] = useState(false);
+
+  const handleDescartarConfirm = async () => {
+    setDescartando(true);
+    try {
+      await saveBitacoraTransportistaRecord(record._id, "estatus", { estatus: "descartado" });
+      queryClient.invalidateQueries({ queryKey: ["bitacoraTransportistaRecords"] });
+      toast.success("Registro descartado");
+      setShowDescartarConfirm(false);
+    } catch {
+      toast.error("Error al descartar el registro");
+    } finally {
+      setDescartando(false);
+    }
+  };
+
   const handleAndenConfirm = async (anden: string | null) => {
     setShowAndenModal(false);
     const prev = localAnden;
@@ -140,8 +159,17 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
 
   return (
     <>
-      <Link href={`/dashboard/accesos/transportista/${record._id}`} className="block bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 space-y-2.5 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer">
-        <div className="flex items-start justify-between gap-2">
+      <Link href={`/dashboard/accesos/transportista/${record._id}`} className="relative block bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 space-y-2.5 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer">
+        {puedeDescartar && (
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDescartarConfirm(true); }}
+            className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+            title="Descartar registro">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <div className="flex items-start justify-between gap-2 pr-5">
           {sinPase
             ? <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">SIN PASE</span>
             : <span className="text-[10px] font-bold text-gray-400 tracking-wide">{record.folio}</span>
@@ -213,6 +241,15 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
           onConfirm={handleAndenConfirm}
         />
       )}
+      <ConfirmModal
+        open={showDescartarConfirm}
+        onClose={() => setShowDescartarConfirm(false)}
+        onConfirm={handleDescartarConfirm}
+        title="¿Descartar este registro?"
+        description="El registro pasará a estatus Descartado y saldrá del Kanban. Podrás seguir viéndolo en Lista, Cuadrícula o Tabla."
+        confirmText="Descartar"
+        isLoading={descartando}
+      />
     </>
   );
 }

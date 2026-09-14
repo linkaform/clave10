@@ -19,6 +19,7 @@ const STATIC_FILTERS_CONFIG: FilterConfig[] = [
       { label: "Carga / Descarga", value: "carga_/_descarga" },
       { label: "Insp. salida",     value: "inspeccion_salida" },
       { label: "Terminado",        value: "terminado" },
+      { label: "Descartado",       value: "descartado" },
     ],
   },
   {
