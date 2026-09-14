@@ -197,12 +197,11 @@ const extraerIdDePase = (raw: string): string => {
   return texto;
 };
 
-type Tab = "vehiculo" | "remolques" | "materiales";
+type Tab = "vehiculo" | "remolques";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "vehiculo", label: "Vehículo" },
-  { key: "remolques", label: "Remolques" },
-  { key: "materiales", label: "Materiales" },
+  { key: "remolques", label: "Carga" },
 ];
 
 export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLlegadaConfirmada }: Props) {
@@ -1178,12 +1177,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
                       aiFilled={aiFilledFields.has("acompanante")}
                     />
                   </div>
-                </>
-              )}
 
-              {/* ══ TAB: MATERIALES ══════════════════════ */}
-              {tab === "materiales" && (
-                <>
                   <SectionDivider label="Proveedor / Cliente" />
                   <div className="grid grid-cols-2 gap-4">
                     <Field
@@ -1201,24 +1195,30 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
                   <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-3 flex items-start gap-2.5">
                     <Package className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                     <p className="text-xs text-gray-500 leading-relaxed">
-                      El material de carga se captura por cada remolque o contenedor —
-                      revísalo o ajústalo en la pestaña <span className="font-semibold text-gray-600">Remolques</span>.
+                      El material de carga se captura por cada remolque, contenedor o vehículo —
+                      agrégalo en la pestaña <span className="font-semibold text-gray-600">Carga</span>.
                     </p>
                   </div>
 
                   {unidadesConMaterial && (
                     <div className="space-y-2 pt-1 border-t border-gray-50">
-                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por contenedor</p>
-                      {unidades.map((u, idx) => {
+                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Resumen de material capturado</p>
+                      {unidades.map((u) => {
                         const mats = materialesDeUnidad(u);
                         const ref = refDeUnidad(u);
                         const withProduct = mats.filter((m) => m.producto);
                         if (!withProduct.length) return null;
+                        const UnidadIcon = u.config === "remolque_contenedor" ? Package : Truck;
+                        const badgeColor = u.config === "remolque_contenedor"
+                          ? "text-violet-600 bg-violet-50 border-violet-100"
+                          : u.config === "solo_vehiculo"
+                          ? "text-emerald-600 bg-emerald-50 border-emerald-100"
+                          : "text-blue-600 bg-blue-50 border-blue-100";
                         return (
                           <div key={u.id} className="flex flex-wrap items-center gap-1.5">
-                            <span className="flex items-center gap-1 text-[11px] font-semibold text-violet-600 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5 shrink-0">
-                              <Package className="w-2.5 h-2.5" />
-                              Unidad {idx + 1}{ref ? ` · ${ref}` : ""}
+                            <span className={cn("flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 shrink-0 border", badgeColor)}>
+                              <UnidadIcon className="w-2.5 h-2.5" />
+                              {labelDeUnidad(u)}{ref ? ` · ${ref}` : ""}
                             </span>
                             {withProduct.map((m) => (
                               <span key={m.id} className="flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-100 rounded-full px-2 py-0.5">
@@ -1433,7 +1433,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
                       onClick={() => setShowAgregarUnidad(true)}
                       className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
                       <Plus className="w-4 h-4" />
-                      Agregar remolque
+                      Agregar unidad
                     </button>
                   )}
                 </div>
@@ -1446,7 +1446,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
           {contenedoresSueltos.length > 0 && (
             <p className="text-[11px] font-medium text-violet-600 flex items-center gap-1.5">
               <Link2 className="w-3 h-3" />
-              Liga {contenedoresSueltos.length === 1 ? "el contenedor pendiente" : "los contenedores pendientes"} en la pestaña Remolques antes de registrar.
+              Liga {contenedoresSueltos.length === 1 ? "el contenedor pendiente" : "los contenedores pendientes"} en la pestaña Carga antes de registrar.
             </p>
           )}
           <div className="flex items-center gap-3">
