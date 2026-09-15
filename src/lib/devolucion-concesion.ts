@@ -29,6 +29,10 @@ export interface InputDevolucionTotal {
   evidencia?: { file_url: string; file_name?: string }[];
   comentario_entrega?:string
   firma?:Imagen[]
+  /** Solo se manda en true cuando la devolución viene del botón "Forzar
+   * devolución" (equipo ya prestado detectado al crear otra concesión) —
+   * en una devolución normal esta key ni siquiera se incluye. */
+  forzar_dev?: boolean
 }
 export interface InputDevolucionEquipo {
   record_id: string;
