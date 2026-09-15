@@ -77,32 +77,27 @@ export const getTipoConcesion = async (location:string, tipo:string) => {
     return data;
   };
 
-// NOTA PARA BACKEND: opción nueva pendiente de implementar en articulos_consecionados.py.
-// Dado un `nombre_equipo` (y opcionalmente `location`), debe buscar si existe una
-// concesión con status_concesion en ["abierto", "parcial"] que lo contenga dentro de
-// su grupo_equipos, y devolver:
-//   { disponible: boolean, concesion_abierta?: { record_id, folio, persona_nombre_concesion, fecha_concesion, id_movimiento } }
-// `record_id` e `id_movimiento` son los que se necesitan para poder forzar la
-// devolución de ese equipo puntual vía `devolucionEquipoConcesionado` (ver
-// src/lib/devolucion-concesion.ts) sin tener que devolver la concesión completa.
+// Dado un `nombre_equipo` (y `location`), busca TODAS las concesiones con
+// status_concesion en ["abierto", "parcial"] que lo contengan dentro de su
+// grupo_equipos. `response.data` es directamente el arreglo de concesiones
+// abiertas (el registro completo, mismo shape que getListArticulosCon) — un
+// arreglo vacío significa que el equipo está disponible. `_id` es lo que se
+// necesita para forzar la devolución total de esa concesión vía
+// `devolucionEquipoConcesionado` (ver src/lib/devolucion-concesion.ts).
 export interface ConcesionAbierta {
-    record_id: string;
+    _id: string;
     folio: string;
-    id_movimiento: string;
+    status_concesion: string;
     persona_nombre_concesion: string;
+    persona_nombre_otro: string;
     fecha_concesion: string;
 }
 
-export interface DisponibilidadEquipo {
-    disponible: boolean;
-    concesion_abierta?: ConcesionAbierta;
-}
-
-export const checkDisponibilidadEquipo = async (location: string, nombre_equipo: string): Promise<{ response: { data: DisponibilidadEquipo } }> => {
+export const revisarDisponibilidadArtConcesionado = async (location: string, nombre_equipo: string): Promise<{ response: { data: ConcesionAbierta[] } }> => {
     const payload = {
         location,
         nombre_equipo,
-        option: "check_disponibilidad_equipo",
+        option: "revisar_disponibilidad_art_concesionado",
         script_name: "articulos_consecionados.py",
     };
 
