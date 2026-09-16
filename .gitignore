@@ -41,3 +41,8 @@ next-env.d.ts
 
 # claude code (personal overrides, no compartir)
 .claude/settings.local.json
+
+# playwright (todo vive dentro de tests/, ver playwright.config.ts)
+/tests/test_logs/
+/tests/playwright-report/
+/tests/.auth/
