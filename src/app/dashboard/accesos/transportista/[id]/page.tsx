@@ -39,9 +39,11 @@ import {
   IdCard,
   Images,
   Mail,
+  AlertTriangle,
 } from "lucide-react";
 import { cn, capitalizeOnlyFirstLetter } from "@/lib/utils";
 import { GaleriaFotosModal, toThumbnailUrl } from "@/components/modals/galeria-fotos-modal";
+import { RegistrarLlegadaPaseModal } from "@/components/modals/registrar-llegada-pase-modal";
 import { useGetVisitTransportista } from "@/hooks/useGetVisitTransportista";
 import { useGetFotografiasTransportista, buildRegistrosFotografias } from "@/hooks/useGetFotografiasTransportista";
 import {
@@ -62,7 +64,12 @@ import {
   type MaterialCarga,
   type UnidadItem,
   emptyMaterial,
+  emptyRemolqueData,
   emptyContenedorData,
+  emptyVehiculoData,
+  materialesDeUnidad,
+  refDeUnidad,
+  labelDeUnidad,
   resolveColorSwatch,
   AgregarUnidadModal,
   serializeUnidades,
@@ -1806,6 +1813,8 @@ interface FilaCarga {
   cantidad_buena: string;
   cantidad_danada: string;
   cantidad_faltante: string;
+  comentario: string;
+  evidencia: { file_url: string; file_name?: string }[];
   desglose: import("@/hooks/useGetVisitTransportista").DesgloseRenglonVisita[];
 }
 
@@ -1823,7 +1832,7 @@ function InspeccionCargaModal({
   onSaved: () => void;
 }) {
   useBodyScrollLock(true);
-  const [filas, setFilas] = useState<FilaCarga[]>(() =>
+  const initFilas = (): FilaCarga[] =>
     materiales.map((m) => ({
       producto:          m.producto ?? "",
       lote:              m.lote ?? "",
@@ -1832,20 +1841,61 @@ function InspeccionCargaModal({
       cantidad_buena:    m.cantidad_buena ?? "",
       cantidad_danada:   m.cantidad_danada ?? "",
       cantidad_faltante: m.cantidad_faltante ?? "",
+      comentario:        m.comentario ?? "",
+      evidencia:         m.evidencia ?? [],
       desglose:          m.desglose ?? [],
-    }))
-  );
+    }));
+  const [filas, setFilas] = useState<FilaCarga[]>(initFilas);
+  // Snapshot de lo último guardado — comparado contra `filas` para saber si
+  // hay cambios reales. Se actualiza tras cada guardado exitoso, así que se
+  // puede volver a editar y guardar cuantas veces se quiera en la misma
+  // sesión, pero "Guardar" queda deshabilitado hasta que se toque algo de nuevo.
+  const [lastSaved, setLastSaved] = useState<FilaCarga[]>(initFilas);
   const [saving, setSaving] = useState(false);
+  const [uploadingRow, setUploadingRow] = useState<number | null>(null);
+  const evidenciaInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  const hasChanges = useMemo(
+    () => JSON.stringify(filas) !== JSON.stringify(lastSaved),
+    [filas, lastSaved],
+  );
 
   const setFila = (i: number, patch: Partial<FilaCarga>) =>
     setFilas((p) => p.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
 
-  // La física ya no se captura a mano: es la suma de buenas + dañadas, para
-  // que no pueda quedar inconsistente contra ese desglose.
+  // La física ya no se captura a mano: es todo lo que se pudo contabilizar en
+  // la inspección — buenas + dañadas + faltantes — para que una discrepancia
+  // real (ni buena, ni dañada, ni marcada como faltante) sea visible al
+  // comparar contra "Esperada", en vez de quedar oculta.
   const fisicaCalculada = (f: FilaCarga) => {
-    if (!f.cantidad_buena.trim() && !f.cantidad_danada.trim()) return "";
-    return String((Number(f.cantidad_buena) || 0) + (Number(f.cantidad_danada) || 0));
+    if (!f.cantidad_buena.trim() && !f.cantidad_danada.trim() && !f.cantidad_faltante.trim()) return "";
+    return String(
+      (Number(f.cantidad_buena) || 0) + (Number(f.cantidad_danada) || 0) + (Number(f.cantidad_faltante) || 0)
+    );
   };
+
+  const handleEvidenciaFileChange = async (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingRow(i);
+    try {
+      const res = await uploadImage(file);
+      if (!res?.file) throw new Error("upload failed");
+      setFilas((p) => p.map((f, idx) => idx === i
+        ? { ...f, evidencia: [...f.evidencia, { file_url: res.file, file_name: res.file_name ?? file.name }] }
+        : f));
+    } catch {
+      toast.error("Error al subir la evidencia");
+    } finally {
+      setUploadingRow(null);
+    }
+  };
+
+  const removeEvidencia = (i: number, evIdx: number) =>
+    setFilas((p) => p.map((f, idx) => idx === i
+      ? { ...f, evidencia: f.evidencia.filter((_, j) => j !== evIdx) }
+      : f));
 
   const handleGuardar = async () => {
     setSaving(true);
@@ -1873,11 +1923,14 @@ function InspeccionCargaModal({
             peso:          materiales[i]?.peso ?? null,
             volumen:       materiales[i]?.volumen ?? null,
             resultado,
+            comentario:    f.comentario,
+            evidencia:     f.evidencia,
           };
         }),
       };
       await saveBitacoraTransportistaRecord(recordId, "remolques", payload);
       toast.success("Inspección de material guardada");
+      setLastSaved(filas);
       onSaved();
       onClose();
     } catch {
@@ -1956,9 +2009,23 @@ function InspeccionCargaModal({
               <div className="grid grid-cols-4 gap-2 mt-3">
                 <div>
                   <label className="text-[10px] text-gray-400 block mb-1">Cant. física</label>
-                  <span className="block text-center text-xs font-semibold text-gray-700 h-9 flex items-center justify-center bg-white rounded-lg border border-gray-100">
-                    {fisicaCalculada(f) || "—"}
-                  </span>
+                  {(() => {
+                    const fisica = fisicaCalculada(f);
+                    const coincide = fisica !== "" && Number(fisica) === Number(f.cantidad_esperada || 0);
+                    return (
+                      <span className={cn(
+                        "flex items-center justify-center gap-1 text-center text-xs font-semibold h-9 rounded-lg border",
+                        fisica === "" ? "text-gray-700 bg-white border-gray-100"
+                          : coincide ? "text-green-700 bg-green-50 border-green-200"
+                          : "text-red-700 bg-red-50 border-red-200",
+                      )}>
+                        {fisica !== "" && (coincide
+                          ? <CheckCircle2 className="w-3 h-3 shrink-0" />
+                          : <AlertTriangle className="w-3 h-3 shrink-0" />)}
+                        {fisica || "—"}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div>
                   <label className="text-[10px] text-blue-500 block mb-1">Buenas</label>
@@ -2006,6 +2073,56 @@ function InspeccionCargaModal({
                   )}
                 </div>
               </div>
+
+              {Number(f.cantidad_danada || 0) > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">
+                    Evidencia y comentario · Dañadas
+                  </p>
+                  {readOnly ? (
+                    <p className="text-xs text-gray-600 leading-relaxed">{f.comentario || "Sin comentario"}</p>
+                  ) : (
+                    <textarea
+                      value={f.comentario}
+                      onChange={(e) => setFila(i, { comentario: e.target.value })}
+                      placeholder="Describe el daño encontrado..."
+                      rows={2}
+                      className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-2 focus:outline-none focus:border-red-400 resize-none"
+                    />
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {f.evidencia.map((ev, evIdx) => (
+                      <div key={evIdx} className="relative w-14 h-14 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shrink-0">
+                        <Image src={ev.file_url} fill className="object-cover" alt="" unoptimized />
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => removeEvidencia(i, evIdx)}
+                            className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {!readOnly && (
+                      <label className="cursor-pointer flex-shrink-0">
+                        <input
+                          ref={(el) => { evidenciaInputRefs.current[i] = el; }}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleEvidenciaFileChange(i, e)}
+                        />
+                        <div className="w-14 h-14 rounded-lg border-2 border-dashed border-gray-200 hover:border-red-300 hover:bg-red-50/40 transition-all flex items-center justify-center">
+                          {uploadingRow === i
+                            ? <span className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                            : <Camera className="w-4 h-4 text-gray-300" />}
+                        </div>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -2023,7 +2140,8 @@ function InspeccionCargaModal({
                 className="flex-1 h-11 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
                 Cancelar
               </button>
-              <button type="button" onClick={handleGuardar} disabled={saving}
+              <button type="button" onClick={handleGuardar} disabled={saving || !hasChanges}
+                title={!hasChanges ? "No hay cambios por guardar" : undefined}
                 className="flex-1 h-11 rounded-xl text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                 {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 {saving ? "Guardando..." : "Guardar"}
@@ -2146,7 +2264,8 @@ export default function DetalleTransportistaPage() {
 
   useEffect(() => {
     if (!data || unidadesInitialized.current) return;
-    if (!data.remolques.length) return;
+    const materialesVehiculo = (data.materiales ?? []).filter((m) => m.lugar === "vehiculo");
+    if (!data.remolques.length && !materialesVehiculo.length) return;
     unidadesInitialized.current = true;
 
     type RV = import("@/hooks/useGetVisitTransportista").RemolqueVisita;
@@ -2218,11 +2337,32 @@ export default function DetalleTransportistaPage() {
           comentarios:   rawCont.comentarios   ?? "",
           materiales:    conMats.length ? conMats : [emptyMaterial()],
         } : emptyContenedorData(),
+        vehiculo: emptyVehiculoData(),
       };
     });
 
-    setUnidades(mapped);
-    setExpandedUnits(new Set(mapped.map((u) => u.id)));
+    // Materiales capturados directo sobre el vehículo (sin remolque/contenedor,
+    // lugar_material === "vehiculo") no tienen fila propia en grupo_remolques —
+    // se agrupan en una unidad sintética "solo_vehiculo" para poder editarlos.
+    const vehiculoMats = (data.materiales ?? [])
+      .map((m, i) => ({ m, i }))
+      .filter(({ m }) => m.lugar === "vehiculo")
+      .map(({ m, i }) => toMaterial(m, i));
+
+    const finalUnidades = vehiculoMats.length
+      ? [...mapped, {
+          id: Math.random().toString(36).slice(2),
+          config: "solo_vehiculo" as UnidadConfig,
+          remolqueApiIndex: null,
+          contenedorApiIndex: null,
+          remolque: emptyRemolqueData(),
+          contenedor: emptyContenedorData(),
+          vehiculo: { materiales: vehiculoMats },
+        }]
+      : mapped;
+
+    setUnidades(finalUnidades);
+    setExpandedUnits(new Set(finalUnidades.map((u) => u.id)));
   }, [data]);
 
   const [unidades, setUnidades] = useState<UnidadItem[]>([]);
@@ -2237,6 +2377,14 @@ export default function DetalleTransportistaPage() {
   const [showInspeccionSelloSalida, setShowInspeccionSelloSalida] = useState(false);
   const [showGaleria, setShowGaleria] = useState(false);
   const [showAndenModal, setShowAndenModal] = useState(false);
+  const [showRegistrarLlegada, setShowRegistrarLlegada] = useState(false);
+  const [showCierreAnimacion, setShowCierreAnimacion] = useState(false);
+
+  useEffect(() => {
+    if (!showCierreAnimacion) return;
+    const timer = setTimeout(() => router.back(), 2400);
+    return () => clearTimeout(timer);
+  }, [showCierreAnimacion]);
   const [vehicleExpanded, setVehicleExpanded] = useState(true);
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
 
@@ -2357,7 +2505,7 @@ export default function DetalleTransportistaPage() {
   });
 
   const deletionsFromUnit = (u: UnidadItem): Deletions => {
-    const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
+    const mats = materialesDeUnidad(u);
     return {
       delete_remolques:    u.remolqueApiIndex   !== null ? [u.remolqueApiIndex]   : [],
       delete_contenedores: u.config === "remolque_contenedor" && u.contenedorApiIndex !== null
@@ -2367,8 +2515,8 @@ export default function DetalleTransportistaPage() {
   };
 
   const deletionsFromMaterialDiff = (oldUnit: UnidadItem, updated: UnidadItem): Deletions => {
-    const oldMats = oldUnit.config === "remolque_contenedor" ? oldUnit.contenedor.materiales : oldUnit.remolque.materiales;
-    const newMats = updated.config === "remolque_contenedor" ? updated.contenedor.materiales : updated.remolque.materiales;
+    const oldMats = materialesDeUnidad(oldUnit);
+    const newMats = materialesDeUnidad(updated);
     const kept = new Set(newMats.map((m) => m.id));
     return {
       ...emptyDeletions(),
@@ -2825,7 +2973,7 @@ export default function DetalleTransportistaPage() {
         const aiMats = aiData.materiales ?? [];
         const materialesPorEntidad = aiRems.some((r) => r.materiales?.length) || aiCons.some((c) => c.materiales?.length);
         const serverHasUnidades = (fresh?.remolques?.length ?? 0) > 0;
-        if (unidades.length === 0 && !serverHasUnidades && (aiRems.length > 0 || aiCons.length > 0)) {
+        if (unidades.length === 0 && !serverHasUnidades && (aiRems.length > 0 || aiCons.length > 0 || aiMats.length > 0)) {
           // Si se detectó un único remolque real y hay más contenedores que
           // remolques, se duplica la info de ese remolque para cada contenedor
           // sobrante — el usuario la ajusta después si en realidad corresponde
@@ -2837,6 +2985,20 @@ export default function DetalleTransportistaPage() {
           }
           const count = Math.max(rems.length, aiCons.length);
           const newUnidades: UnidadItem[] = [];
+          if (count === 0 && aiMats.length > 0) {
+            // Ni remolque ni contenedor detectados: el material va directo
+            // sobre el vehículo (pickup, caja integrada) en vez de crear un
+            // remolque fantasma para sostenerlo.
+            newUnidades.push({
+              id: Math.random().toString(36).slice(2),
+              config: "solo_vehiculo",
+              remolqueApiIndex: null,
+              contenedorApiIndex: null,
+              remolque: emptyRemolqueData(),
+              contenedor: emptyContenedorData(),
+              vehiculo: { materiales: toMaterialesCarga(aiMats) },
+            });
+          }
           for (let i = 0; i < count; i++) {
             const r = rems[i];
             const con = aiCons[i];
@@ -2872,16 +3034,58 @@ export default function DetalleTransportistaPage() {
                 comentarios: con?.comentarios ?? "",
                 materiales: matsContenedor ?? (isRC ? (matsLegado ?? [emptyMaterial()]) : [emptyMaterial()]),
               },
+              vehiculo: emptyVehiculoData(),
             });
           }
           setUnidades(newUnidades);
           await saveBitacoraTransportistaRecord(id, "remolques", serializeUnidades(newUnidades));
           unidadesInitialized.current = false;
-          camposLlenados += count;
+          camposLlenados += newUnidades.length;
+        } else if (unidades.length === 1 && (aiRems.length > 0 || aiCons.length > 0 || aiMats.length > 0)) {
+          // Reintento sobre una unidad ya existente: si un análisis previo (con
+          // el modelo IA, que no siempre acierta a la primera) creó el
+          // remolque/contenedor pero sin material — o el usuario lo agregó a
+          // mano y aún no le puso material —, un segundo "Analizar con IA" ya
+          // puede rellenarlo, sin obligar a borrar la unidad para reintentar.
+          // Solo toca el material, nunca los demás campos de la unidad — y
+          // solo si sigue vacío, para no pisar algo que el usuario ya llenó.
+          const existente = unidades[0];
+          const esRC = existente.config === "remolque_contenedor";
+          const esVehiculo = existente.config === "solo_vehiculo";
+          const materialesActuales = materialesDeUnidad(existente);
+          const siguenVacios = materialesActuales.every((m) => !m.producto.trim() && !m.cantEsperada.trim());
+          if (siguenVacios) {
+            // "solo_vehiculo" no tiene entidad propia en la respuesta de la IA
+            // (remolque/contenedor) — solo puede rellenarse desde el arreglo
+            // plano legado.
+            const aiMatsEntidad = esVehiculo ? null : esRC ? aiCons[0]?.materiales : aiRems[0]?.materiales;
+            const nuevosMateriales = aiMatsEntidad?.length
+              ? toMaterialesCarga(aiMatsEntidad)
+              : (aiMats.length > 0 ? toMaterialesCarga(aiMats) : null);
+            if (nuevosMateriales?.length) {
+              const actualizada: UnidadItem = esRC
+                ? { ...existente, contenedor: { ...existente.contenedor, materiales: nuevosMateriales } }
+                : esVehiculo
+                ? { ...existente, vehiculo: { ...existente.vehiculo, materiales: nuevosMateriales } }
+                : { ...existente, remolque: { ...existente.remolque, materiales: nuevosMateriales } };
+              const newUnidades = [actualizada];
+              setUnidades(newUnidades);
+              await saveBitacoraTransportistaRecord(id, "remolques", serializeUnidades(newUnidades));
+              unidadesInitialized.current = false;
+              camposLlenados += nuevosMateriales.length;
+            }
+          }
         }
 
         if (camposLlenados > 0) {
-          refetch();
+          // Esperar a que el refetch resuelva ANTES de que termine el análisis
+          // (y se rehabiliten los botones) — si el usuario alcanza a borrar una
+          // unidad recién creada por la IA antes de este refetch, sus materiales
+          // seguirían con apiIndex null y la eliminación no mandaría el índice
+          // real al backend, dejando un huérfano en grupo_materiales para
+          // siempre (el guardado incremental de save_bitac_transportista_record
+          // nunca borra filas por su cuenta).
+          await refetch();
           const abrioFormularios = Object.keys(vehiculoDraftAI).length > 0 || Object.keys(materialDraftAI).length > 0;
           toast.success(
             abrioFormularios
@@ -3146,6 +3350,36 @@ export default function DetalleTransportistaPage() {
               Turnos
             </Button>
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Registro descartado: no completó el flujo real, así que no se muestra la
+  // vista normal (barra de progreso, card de "Transporte verificado", etc.)
+  // — solo una pantalla informativa.
+  if (!isLoading && estatus === "descartado") {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm px-4 py-2.5 flex items-center justify-between">
+          <span className="text-[11px] text-gray-400">
+            Accesos <ChevronRight className="w-3 h-3 inline" /> Transportistas <ChevronRight className="w-3 h-3 inline" /> <span className="text-gray-700 font-semibold">Detalle del pase</span>
+          </span>
+          <button
+            onClick={() => router.back()}
+            className="h-7 px-3 text-[11px] font-medium border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1.5 text-gray-600 shrink-0">
+            <ArrowLeft className="w-3 h-3" />
+            Volver al control
+          </button>
+        </div>
+        <div className="flex justify-center items-center overflow-hidden mt-32">
+          <div className="flex items-center flex-col gap-3">
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+              <X className="w-8 h-8 text-gray-400" />
+            </div>
+            <div className="text-xl font-bold text-gray-700">Registro descartado</div>
+            <p className="text-gray-500 text-sm">Folio: {data?.folio ?? "Sin asignar"}</p>
+          </div>
         </div>
       </div>
     );
@@ -4014,15 +4248,12 @@ export default function DetalleTransportistaPage() {
                   <Field label="Procedencia" value={data?.vehiculo?.procedencia} />
                 </div>
               )}
-              {unidades.some((u) => {
-                const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
-                return mats.some((m) => m.producto);
-              }) && (
+              {unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto)) && (
                 <div className="space-y-2 pt-1 border-t border-gray-50">
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por contenedor</p>
                   {unidades.map((u, idx) => {
-                    const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
-                    const ref = u.config === "remolque_contenedor" ? u.contenedor.noContenedor : u.remolque.noCaja;
+                    const mats = materialesDeUnidad(u);
+                    const ref = refDeUnidad(u);
                     const withProduct = mats.filter((m) => m.producto);
                     if (!withProduct.length) return null;
                     return (
@@ -4161,7 +4392,7 @@ export default function DetalleTransportistaPage() {
                           className="flex items-center gap-2 flex-1 text-left">
                           <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
                           <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                            {u.config === "remolque_contenedor" ? "Remolque + Contenedor" : "Solo remolque"}
+                            {labelDeUnidad(u)}
                           </span>
                         </button>
                         <div className="flex items-center gap-2 shrink-0">
@@ -4190,6 +4421,27 @@ export default function DetalleTransportistaPage() {
                       </div>
                       {/* card body */}
                       {isUnitExpanded && <div className="p-4 space-y-3 bg-white divide-y divide-gray-50">
+                        {u.config === "solo_vehiculo" ? (
+                        /* Vehículo — sin campos propios de unidad, solo material de carga */
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5">
+                            <Truck className="w-3 h-3 text-emerald-500" />
+                            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Vehículo</span>
+                          </div>
+                          {u.vehiculo.materiales.some((m) => m.producto) ? (
+                            <div>
+                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
+                              <div className="flex flex-wrap gap-1">
+                                {u.vehiculo.materiales.filter((m) => m.producto).map((m) => (
+                                  <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : <p className="text-xs text-gray-300 italic">Sin material capturado</p>}
+                        </div>
+                        ) : (<>
                         {/* Remolque */}
                         <div className="space-y-2">
                           <div className="flex items-center gap-1.5">
@@ -4270,6 +4522,7 @@ export default function DetalleTransportistaPage() {
                             )}
                           </div>
                         )}
+                        </>)}
                       </div>}
                     </div>
                     );
@@ -4288,6 +4541,27 @@ export default function DetalleTransportistaPage() {
 
         {/* ── RIGHT SIDEBAR ────────────────────────────────────────────────── */}
         <div className="space-y-3">
+          {/* Terminado — visible una vez que el proceso está completo; misma
+              acción que "Volver al control", solo que aquí da la sensación
+              explícita de cierre del proceso. */}
+          {estatus === "terminado" && (
+            <div className="rounded-xl overflow-hidden shadow-md bg-emerald-50 border border-emerald-100">
+              <div className="px-4 py-3 flex items-center gap-2 border-b border-emerald-100">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-bold text-emerald-800">Transporte verificado</span>
+              </div>
+              <div className="p-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCierreAnimacion(true)}
+                  className="w-full h-11 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2 shadow-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Cerrar proceso
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Aviso por correo — visible una vez que el proceso está terminado */}
           {estatus === "terminado" && <AvisoCorreoCard recordId={id} />}
 
@@ -4405,6 +4679,28 @@ export default function DetalleTransportistaPage() {
           })()}
 
           {(() => {
+            const cardRegistrarLlegada = estatus === "programado" ? (
+              <div key="registrar-llegada" className="bg-amber-50/60 rounded-xl border border-amber-200 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-amber-100">
+                  <LogIn className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm font-bold text-amber-800">Llegada del transportista</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  <p className="text-xs text-amber-700/80 leading-relaxed">
+                    Cuando el transportista llegue a la caseta, registra su llegada para capturar los datos de vehículo, conductor y carga.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowRegistrarLlegada(true)}
+                    className="w-full h-9 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white transition-colors flex items-center justify-center gap-2"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    Registrar llegada
+                  </button>
+                </div>
+              </div>
+            ) : null;
+
             const cardEntrada = (() => {
               const inspecsDone = (data?.inspecciones ?? []).filter((i) =>
                 i.tipo === "tractor" || i.tipo.startsWith("contenedor_")
@@ -4566,9 +4862,10 @@ export default function DetalleTransportistaPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        todasDone
-                          ? setShowInspeccionCarga("readonly")
-                          : desgloseListo
+                        // Una vez completada, siempre se puede volver a editar sin
+                        // que un desglose faltante (ej. registros viejos, previos a
+                        // esa feature) bloquee la reapertura.
+                        todasDone || desgloseListo
                           ? setShowInspeccionCarga("edit")
                           : setShowDesgloseMateriales(true)
                       }
@@ -4768,7 +5065,7 @@ export default function DetalleTransportistaPage() {
                 ? [cardMateriales, cardEntrada, cardSello, cardSalida, cardSelloSalida]
                 : estatus === "inspeccion_salida" || estatus === "terminado"
                 ? [cardGaleria, cardSalida, cardSelloSalida, cardEntrada, cardSello, cardMateriales]
-                : [cardEntrada, cardSello, cardMateriales, cardSalida, cardSelloSalida];
+                : [cardRegistrarLlegada, cardEntrada, cardSello, cardMateriales, cardSalida, cardSelloSalida];
 
             return <>{ordered}</>;
           })()}
@@ -4838,7 +5135,7 @@ export default function DetalleTransportistaPage() {
       {showInspeccionSello && (
         <InspeccionSelloModal
           recordId={id}
-          unidades={unidades}
+          unidades={unidades.filter((u) => u.config !== "solo_vehiculo")}
           inspeccionesDone={data?.inspecciones ?? []}
           documentosAdicionales={data?.documentos_adicionales}
           ubicacion={data?.ubicacion}
@@ -4850,7 +5147,7 @@ export default function DetalleTransportistaPage() {
       {showInspeccionSelloSalida && (
         <InspeccionSelloModal
           recordId={id}
-          unidades={unidades}
+          unidades={unidades.filter((u) => u.config !== "solo_vehiculo")}
           inspeccionesDone={data?.inspecciones ?? []}
           documentosAdicionales={data?.documentos_adicionales}
           tipoPrefix="salida"
@@ -4882,6 +5179,25 @@ export default function DetalleTransportistaPage() {
         onClose={() => setShowGaleria(false)}
         fotos={galeriaFotos}
       />
+      {showRegistrarLlegada && (
+        <RegistrarLlegadaPaseModal
+          open={showRegistrarLlegada}
+          onClose={() => setShowRegistrarLlegada(false)}
+          initialPaseId={data?.num_de_pase ?? undefined}
+          onLlegadaConfirmada={() => refetch()}
+        />
+      )}
+      {showCierreAnimacion && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-emerald-600 animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-4 animate-in zoom-in-50 fade-in duration-500">
+            <div className="w-24 h-24 rounded-full bg-white/15 flex items-center justify-center">
+              <CheckCircle2 className="w-14 h-14 text-white" />
+            </div>
+            <p className="text-white text-lg font-bold">Transporte verificado</p>
+          </div>
+        </div>,
+        document.body
+      )}
       {editingUnit && (
         <AgregarUnidadModal
           initialData={editingUnit}

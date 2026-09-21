@@ -7,6 +7,7 @@ import "react-phone-number-input/style.css";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
+import { toast } from "sonner";
 import Multiselect from 'multiselect-react-dropdown';
 import { useMenuStore } from "@/store/useGetMenuStore";
 import { prefijoToCountry, requisitoAplicaA } from "@/lib/utils";
@@ -124,8 +125,12 @@ interface updatedFullPassModalProps {
 }
 
 interface AreaAcceso {
-	incidente_area: string;
+	nombre_area?: string;
 	commentario_area: string;
+	// TODO: quitar 'note_booth' cuando todas las cuentas corran el backend
+	// actualizado (self.mf ya resuelve 'nombre_area'; cuentas con app.py viejo
+	// todavia devuelven la colision de id con self.notes_fields['note_booth']).
+	note_booth?: string;
 }
 
 function SectionCard({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
@@ -164,8 +169,8 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	const [miembrosRowErrors, setMiembrosRowErrors] = useState<Record<string, { email: boolean; telefono: boolean }>>({});
 	const [acompanantesActivos, setAcompanantesActivos] = useState<Miembro[]>([]);
 	const [existingIds, setExistingIds] = useState<Set<string>>(new Set());
-	const areasFormateadas = dataPass?.areas?.map(({ incidente_area, commentario_area }: AreaAcceso) => ({
-		nombre_area: incidente_area,
+	const areasFormateadas = dataPass?.areas?.map(({ nombre_area, note_booth, commentario_area }: AreaAcceso) => ({
+		nombre_area: nombre_area || note_booth || "",
 		commentario_area,
 	})) || [];
 
@@ -338,7 +343,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			comentarios: comentariosList,
 			enviar_pre_sms: { from: "enviar_pre_sms", mensaje: "prueba", numero: dataPass.telefono },
 			todas_las_areas: todasAreas,
-			habilitar_vehiculo: dataPass.habilitar_vehiculo || "sí",
+			habilitar_vehiculo: (dataPass.habilitar_vehiculo === "sí" || dataPass.habilitar_vehiculo === true) ? "sí" : (dataPass.habilitar_vehiculo === "no" || dataPass.habilitar_vehiculo === false) ? "no" : "sí",
 			acompanantes: Number(dataPass.acompanantes) || 0,
 			acompanantes_grupo: dataPass.acompanantes_grupo || [],
 		},
@@ -441,7 +446,13 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 
 	const handleFechaDesdeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setFechaDesde(e.target.value);
-		form.setValue('fecha_desde_hasta', '');
+		// Solo se limpia "vigencia hasta" si con la nueva fecha desde quedó
+		// inválida (anterior a ella) — si sigue siendo posterior, no hay razón
+		// para perder lo que el usuario ya capturó.
+		const vigenciaActual = form.getValues('fecha_desde_hasta');
+		if (vigenciaActual && e.target.value && vigenciaActual < e.target.value) {
+			form.setValue('fecha_desde_hasta', '');
+		}
 	};
 
 	// function getNextDay(date: string | number | Date) {
@@ -1055,7 +1066,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 					</Button>
 					<Button
 						type="button"
-						onClick={form.handleSubmit(onSubmit)}
+						onClick={form.handleSubmit(onSubmit, () => toast.error("No se pudo guardar. Revisa los campos del formulario."))}
 						className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 font-semibold"
 						disabled={loadingCatAreas || loadingConfigLocation}>
 						{loadingCatAreas || loadingConfigLocation ? (

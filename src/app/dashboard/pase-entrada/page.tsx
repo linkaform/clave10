@@ -20,8 +20,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
-import { List, UserRound, CalendarDays, Layers, Car, Camera, IdCard } from "lucide-react";
-import { formatDateToString, formatFecha, isExcluded, prefijoToCountry, requisitoAplicaA } from "@/lib/utils";
+import { List, UserRound, CalendarDays, Layers, Car, Camera, IdCard, Pencil } from "lucide-react";
+import { cn, formatDateToString, formatFecha, isExcluded, prefijoToCountry, requisitoAplicaA } from "@/lib/utils";
+
 import { Areas } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";
@@ -306,6 +307,8 @@ const PaseEntradaPage = () => {
   const [visitaASeleccionadas, setVisitaASeleccionadas] = useState<any[]>([
     { name: "Usuario Actual", label: "Usuario Actual" },
   ]);
+  const [mostrarOtroVisitaA, setMostrarOtroVisitaA] = useState(false);
+  const [otroVisitaATexto, setOtroVisitaATexto] = useState("");
 
   // Cargar ubicaciones al montar — el store evita la petición si locations ya existe
   useEffect(() => {
@@ -323,7 +326,7 @@ const PaseEntradaPage = () => {
     const requisito = grupoRequisitos.find((r) =>
       requisitoAplicaA(r.ubicacion, ubicacionNombre)
     );
-  
+
     if (requisito?.prefijo_telefonico) {
       const country = prefijoToCountry[String(requisito.prefijo_telefonico)] ?? "MX";
       setDefaultCountry(country);
@@ -965,28 +968,59 @@ const PaseEntradaPage = () => {
                     name="visita_a"
                     render={() => (
                       <FormItem>
-                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          <span className="text-red-400">*</span> Responsable
-                          (Visita a)
-                        </FormLabel>
-                        <Multiselect
-                          options={visitas ?? []}
-                          selectedValues={visitaASeleccionadas}
-                          onSelect={setVisitaASeleccionadas}
-                          onRemove={setVisitaASeleccionadas}
-                          displayValue="name"
-                          style={{
-                            chips: {
-                              background: "#2563eb",
-                              borderRadius: "20px",
-                            },
-                            searchBox: {
-                              borderRadius: "12px",
-                              border: "1px solid #e5e7eb",
-                              background: "#f9fafb",
-                            },
-                          }}
-                        />
+                        <div className="flex items-center justify-between gap-2">
+                          <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            <span className="text-red-400">*</span> Responsable
+                            (Visita a)
+                          </FormLabel>
+                          <button
+                            type="button"
+                            onClick={() => setMostrarOtroVisitaA((prev) => !prev)}
+                            title={mostrarOtroVisitaA ? "Ver lista" : "Escribir manualmente"}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 shrink-0",
+                              mostrarOtroVisitaA
+                                ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                : "bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100"
+                            )}>
+                            {mostrarOtroVisitaA ? <List className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
+                            {mostrarOtroVisitaA ? "Ver lista" : "Otro"}
+                          </button>
+                        </div>
+                        {mostrarOtroVisitaA ? (
+                          <Input
+                            autoFocus
+                            value={otroVisitaATexto}
+                            onChange={(e) => {
+                              const nombre = e.target.value;
+                              setOtroVisitaATexto(nombre);
+                              setVisitaASeleccionadas(
+                                nombre.trim() ? [{ id: nombre, name: nombre }] : [],
+                              );
+                            }}
+                            placeholder="Escribe el nombre..."
+                            className="h-9 text-sm"
+                          />
+                        ) : (
+                          <Multiselect
+                            options={visitas ?? []}
+                            selectedValues={visitaASeleccionadas}
+                            onSelect={setVisitaASeleccionadas}
+                            onRemove={setVisitaASeleccionadas}
+                            displayValue="name"
+                            style={{
+                              chips: {
+                                background: "#2563eb",
+                                borderRadius: "20px",
+                              },
+                              searchBox: {
+                                borderRadius: "12px",
+                                border: "1px solid #e5e7eb",
+                                background: "#f9fafb",
+                              },
+                            }}
+                          />
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -996,9 +1030,17 @@ const PaseEntradaPage = () => {
                     name="tema_cita"
                     render={({ field }: any) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          Motivo de visita
-                        </FormLabel>
+                        <div className="flex items-center justify-between gap-2">
+                          <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Motivo de visita
+                          </FormLabel>
+                          {/* Placeholder invisible del mismo tamaño que el botón "Otro" de Visita a, para que ambos inputs queden a la misma altura. */}
+                          <span
+                            aria-hidden
+                            className="invisible flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border shrink-0">
+                            <Pencil className="w-3.5 h-3.5" /> Otro
+                          </span>
+                        </div>
                         <FormControl>
                           <Input
                             placeholder=""

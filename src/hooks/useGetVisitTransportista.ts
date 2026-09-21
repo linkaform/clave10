@@ -28,6 +28,8 @@ interface RawMaterial {
   cantidad_faltante: string | null;
   peso: string | null;
   volumen: string | null;
+  evidencia: { file_url: string; file_name?: string }[];
+  comentario: string | null;
 }
 
 interface RawDesgloseRenglon {
@@ -42,6 +44,7 @@ interface RawRecord {
   _id: string;
   folio: string | null;
   estatus: string | null;
+  num_de_pase: string | null;
   tipo_de_operacion: string | null;
   created_at: string | null;
   fecha_hora_ingreso: string | null;
@@ -87,6 +90,7 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
   return {
     id: raw._id,
     folio: raw.folio,
+    num_de_pase: raw.num_de_pase,
     tipo_operacion: raw.tipo_de_operacion,
     created_at: raw.created_at,
     fecha_hora_ingreso: raw.fecha_hora_ingreso,
@@ -138,6 +142,8 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
       cantidad_faltante: strOrNull(m.cantidad_faltante),
       peso:            m.peso,
       volumen:         m.volumen,
+      evidencia:       Array.isArray(m.evidencia) ? m.evidencia : [],
+      comentario:      m.comentario,
       // no_referencia_material del desglose guarda el índice del material (ver desglose-materiales-modal.tsx)
       desglose: (raw.desglose_empaque ?? [])
         .filter((d) => Number(d.no_referencia_material) === matIdx)
@@ -191,12 +197,15 @@ export interface MaterialVisita {
   cantidad_faltante: string | null;
   peso:            string | null;
   volumen:         string | null;
+  evidencia:       { file_url: string; file_name?: string }[];
+  comentario:      string | null;
   desglose:        DesgloseRenglonVisita[];
 }
 
 export interface VisitaTransportista {
   id: string;
   folio: string | null;
+  num_de_pase: string | null;
   tipo_operacion: string | null;
   created_at: string | null;
   fecha_hora_ingreso: string | null;

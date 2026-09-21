@@ -22,6 +22,9 @@ import Image from "next/image";
 import { useSendCorreoSms } from "@/hooks/useSendCorreo";
 // import { API_ENDPOINTS } from "@/config/api";
 import { getGoogleWalletPassUrl, getImgPassUrl } from "@/lib/endpoints";
+import { getPdfMulti } from "@/lib/get-pdf-multi";
+import { imprimirYDescargarPDF } from "@/lib/utils";
+import Swal from "sweetalert2";
 
 interface updatedPassModalProps {
 	title: string;
@@ -236,8 +239,52 @@ export const UpdatedPassModal: React.FC<updatedPassModalProps> = ({
 	// 	}
 	// }
 
+	// Mismo servicio usado en accesos/page.tsx cuando el ingreso trae
+	// acompañantes: get_pdf_multi regresa un solo PDF ya mergeado (titular +
+	// acompañantes), armado de forma asíncrona por el backend (hasta ~2 min).
+	const imprimirPaseMultiple = async (recordIds: string[]) => {
+		const respuesta = await getPdfMulti(recordIds);
+		const data = respuesta.response?.data;
+		if (!data) throw new Error("No se pudo obtener el PDF combinado");
+		if ("error" in data) throw new Error(data.error);
+		if ("status_code" in data) throw new Error(data.data || "No hay registros para ser descargados.");
+		await imprimirYDescargarPDF(data.path);
+	};
+
 	const handleClickImgButton = async () => {
 		const record_id = passData?.pass_selected?._id;
+		const acompanantesGrupo = passData?.pass_selected?.acompanantes_grupo ?? [];
+		const idsAcompanantes = acompanantesGrupo
+			.map((a: any) => a.qr_code)
+			.filter((qr: any): qr is string => !!qr);
+		// Solo se usa el PDF combinado si TODOS los acompañantes tienen un
+		// qr_code real (= _id de Mongo); si falta alguno, se cae al flujo normal
+		// (PNG del titular) en vez de mandar un record_id inválido a get_pdf_multi.
+		const tieneAcompanantesDescargables =
+			acompanantesGrupo.length > 0 && idsAcompanantes.length === acompanantesGrupo.length;
+
+		if (tieneAcompanantesDescargables && record_id) {
+			setLoadingImgPass(true);
+			Swal.fire({
+				title: "Preparando documento",
+				html: "Generando PDF con acompañantes, esto puede tardar hasta 2 minutos...",
+				allowOutsideClick: false,
+				allowEscapeKey: false,
+				didOpen: () => Swal.showLoading(),
+			});
+			try {
+				await imprimirPaseMultiple([record_id, ...idsAcompanantes]);
+			} catch (error) {
+				toast.error(`Error al obtener el documento: ${error}`, {
+					style: { background: "#dc2626", color: "#fff", border: "none" },
+				});
+			} finally {
+				Swal.close();
+				setLoadingImgPass(false);
+			}
+			return;
+		}
+
 		if (urlImgPass) {
 			onDescargarPNG(urlImgPass);
 			return;
@@ -444,7 +491,7 @@ return (
 					</DialogClose>
 					<Button
 						className="w-full bg-blue-500 hover:bg-blue-600 text-white" onClick={()=>handleClickImgButton()} disabled={loadingImgPass}>
-						{loadingImgPass ? ("Cargando..."): ("Descargar Pase")}
+						{loadingImgPass ? ("Cargando..."): ("Descargar pase(s)")}
 					</Button>
 					</div> 
 		</DialogContent>

@@ -386,7 +386,7 @@ const ArticulosContent = () => {
                 className="bg-green-600 hover:bg-green-700 text-white gap-2"
                 onClick={() => setIsSuccessCon(true)}>
                 <Plus size={16} />
-                Nuevo Artículo
+                Nueva Concesión
               </Button>
             )}
             {selectedTab === "Perdidos" && (

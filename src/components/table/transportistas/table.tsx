@@ -7,7 +7,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -19,23 +18,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { BitacoraTransportistaRecord } from "@/hooks/useGetBitacoraTransportistaRecords";
 import { getTransportistasColumns } from "./transportistas-columns";
 
 interface TransportistasTableProps {
   data: BitacoraTransportistaRecord[];
   isLoading?: boolean;
-  globalSearch?: string[];
 }
 
 const TransportistasTable: React.FC<TransportistasTableProps> = ({
   data,
   isLoading = false,
-  globalSearch = [],
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
 
   const columns = useMemo(() => getTransportistasColumns(), []);
   const memoizedData = useMemo(() => data || [], [data]);
@@ -44,24 +39,11 @@ const TransportistasTable: React.FC<TransportistasTableProps> = ({
     data: memoizedData,
     columns,
     onSortingChange: setSorting,
-    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    globalFilterFn: (row, _columnId, filterValues: string[]) => {
-      if (!filterValues || filterValues.length === 0) return true;
-      const tags = filterValues.map((v) => v.toLowerCase());
-      const allValues = row
-        .getAllCells()
-        .map((cell) => String(cell.getValue() || "").toLowerCase())
-        .join(" ");
-      return tags.some((tag) => allValues.includes(tag));
-    },
     state: {
       sorting,
-      pagination,
-      globalFilter: globalSearch,
     },
   });
 
@@ -117,7 +99,6 @@ const TransportistasTable: React.FC<TransportistasTableProps> = ({
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination table={table} />
     </div>
   );
 };

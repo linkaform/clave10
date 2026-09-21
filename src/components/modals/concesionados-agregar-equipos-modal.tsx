@@ -23,10 +23,12 @@ import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
-import { Calculator } from "lucide-react";
+import { AlertTriangle, Calculator, Loader2 } from "lucide-react";
 import LoadImage from "../upload-Image";
 import { EquipoConcesionado } from "../concesionados-tab-datos";
-import { formatCurrency } from "@/lib/utils";
+import { errorMsj, formatCurrency } from "@/lib/utils";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { devolucionEquipoConcesionado } from "@/lib/devolucion-concesion";
 import { equipoSchema } from "./add-article.con";
 import { format } from "date-fns";
 import { useCatalogoConcesion } from "@/hooks/useCatalogoConcesion";
@@ -34,6 +36,8 @@ import { useBoothStore } from "@/store/useBoothStore";
 import { getTipoConcesion } from "@/lib/articulos-concesionados";
 import Image from "next/image";
 import { SearchSelect } from "../custom-search-select";
+import { useDisponibilidadEquipo } from "@/hooks/Concesionados/useDisponibilidadEquipo";
+import { ForzarDevolucionEquipoModal } from "./forzar-devolucion-equipo-modal";
 
 interface AgregarEquiposModalProps {
   title: string;
@@ -72,6 +76,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
   const [loadingEquipos, setLoadingEquipos] = useState(false);
   const [isLoadingImage,setLoadingImage]=useState(false)
   const equiposCache = useRef<Record<string, Equipo[]>>({});
+  const [mostrarForzarModal, setMostrarForzarModal] = useState(false);
 
   const form = useForm<z.infer<typeof equipoSchema>>({
     resolver: zodResolver(equipoSchema),
@@ -79,7 +84,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
       id_movimiento: "",
       categoria_equipo_concesion: "",
       nombre_equipo: "",
-      cantidad_equipo_concesion: 0,
+      cantidad_equipo_concesion: 1,
       comentario_entrega: "",
       imagen_equipo_concesion: [],
       costo_equipo_concesion: 0,
@@ -116,6 +121,75 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
   const equipoCompleto = equiposCatalogo?.find((eq) => eq.article_name === equipoSeleccionadoNombre);
   const subtotal = equipoCompleto && cantidad ? (equipoCompleto.article_cost ?? 0) * cantidad : 0;
 
+  // Solo se valida disponibilidad al AGREGAR un equipo nuevo — si se está
+  // editando un equipo que ya estaba en la lista local de esta concesión
+  // (aún no guardada), no tiene sentido validarlo contra sí mismo.
+  const { disponibilidad, isCheckingDisponibilidad, checkDisponibilidad } =
+    useDisponibilidadEquipo(location ?? "", equipoSeleccionadoNombre);
+  const [forzandoRecordId, setForzandoRecordId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  // Mutación propia (no el hook compartido useDevolucionEquipo): ese hook usa
+  // el `isLoading` global de useShiftStore, y "Nueva Concesión" (el modal
+  // padre) tiene un efecto que cierra TODO el modal en cuanto ese mismo
+  // isLoading global vuelve a false — forzar una devolución desde aquí
+  // adentro terminaba cerrando la concesión completa que se estaba creando.
+  // Con una mutación local, forzar devolución solo afecta este sub-modal.
+  const forzarDevolucionMutation = useMutation({
+    mutationFn: async (data: Parameters<typeof devolucionEquipoConcesionado>[0]) => {
+      const response = await devolucionEquipoConcesionado(data);
+      const hasError = !response?.success || response?.response?.data?.status_code === 400;
+      if (hasError) {
+        const textMsj = errorMsj(response);
+        throw new Error(`Error al forzar devolución, Error: ${textMsj?.text}`);
+      }
+      return response.response?.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["getListArticulosCon"] });
+      toast.success("Equipo devuelto correctamente.");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Hubo un error al devolver el equipo");
+    },
+  });
+
+  useEffect(() => {
+    if (!equipoSeleccionadoNombre || editarAgregarEquiposModal) return;
+    checkDisponibilidad();
+  }, [equipoSeleccionadoNombre, editarAgregarEquiposModal]);
+
+  const concesionesAbiertas = disponibilidad?.concesionesAbiertas ?? [];
+
+  const equipoNoDisponible = !editarAgregarEquiposModal && disponibilidad?.disponible === false;
+
+  // En cuanto el servicio confirma que el equipo está prestado, se abre el
+  // modal directo con el/los folio(s) — no hace falta que el usuario dé click
+  // en nada más para verlo.
+  useEffect(() => {
+    if (equipoNoDisponible) setMostrarForzarModal(true);
+  }, [equipoNoDisponible]);
+
+  // Cada concesión de la lista tiene su propio botón "Forzar devolución" — se
+  // fuerza una a la vez, no todas juntas. Al terminar se vuelve a validar; si
+  // ya no queda ninguna concesión abierta, el modal se cierra solo.
+  const handleForzarConcesion = async (concesion: (typeof concesionesAbiertas)[number]) => {
+    setForzandoRecordId(concesion._id);
+    try {
+      await forzarDevolucionMutation.mutateAsync({
+        record_id: concesion._id,
+        status: "total",
+        state: "complete",
+        quien_entrega: concesion.persona_nombre_concesion || concesion.persona_nombre_otro || "",
+        comentario_entrega: "Devolución forzada al reasignar el equipo a una nueva concesión.",
+        forzar_dev: true,
+      });
+      const { data: actualizada } = await checkDisponibilidad();
+      if (actualizada?.disponible !== false) setMostrarForzarModal(false);
+    } finally {
+      setForzandoRecordId(null);
+    }
+  };
+
   useEffect(() => {
     if (!dataCon?.length) return;
     if (categoriaSeleccionada === "") {
@@ -131,7 +205,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         id_movimiento: "",
         categoria_equipo_concesion: "",
         nombre_equipo: "",
-        cantidad_equipo_concesion: 0,
+        cantidad_equipo_concesion: 1,
         comentario_entrega: "",
         imagen_equipo_concesion: [],
         costo_equipo_concesion: 0,
@@ -153,6 +227,10 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
   }, [isSuccess, reset, editarAgregarEquiposModal, agregarEquiposSeleccion]);
 
   function onSubmit(values: z.infer<typeof equipoSchema>) {
+    if (equipoNoDisponible) {
+      toast.error("Este equipo ya tiene una concesión abierta. Debes forzar su devolución antes de continuar.");
+      return;
+    }
     const id_movimiento = `MOV-${format(new Date(), "yyyyMMddHHmmss")}`;
     console.log("id_movimiento", id_movimiento);
     const formatData = {
@@ -289,6 +367,19 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                     </div>
                   );
                 })()}
+
+                {!editarAgregarEquiposModal && equipoSeleccionado && isCheckingDisponibilidad && (
+                  <div className="flex items-center gap-2 text-xs text-gray-400 mt-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Verificando disponibilidad...
+                  </div>
+                )}
+
+                {equipoNoDisponible && (
+                  <div className="flex items-center gap-2 text-xs text-red-500 mt-2">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    Este equipo tiene una concesión abierta sin devolver.
+                  </div>
+                )}
               </div>
 
               <div className="p-5 py-0 space-y-4">
@@ -382,7 +473,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
           <Button
             onClick={form.handleSubmit(onSubmit)}
             className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium flex items-center justify-center gap-2"
-            disabled={isLoadingImage}
+            disabled={isLoadingImage || equipoNoDisponible || isCheckingDisponibilidad}
           >
             {isLoadingImage ? (
               <>
@@ -397,6 +488,15 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
           </Button>
         </div>
       </DialogContent>
+
+      <ForzarDevolucionEquipoModal
+        open={mostrarForzarModal}
+        onClose={() => setMostrarForzarModal(false)}
+        onForzarConcesion={handleForzarConcesion}
+        nombreEquipo={equipoSeleccionadoNombre}
+        concesionesAbiertas={concesionesAbiertas}
+        forzandoRecordId={forzandoRecordId}
+      />
     </Dialog>
   );
 };

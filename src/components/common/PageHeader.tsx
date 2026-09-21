@@ -39,7 +39,7 @@ export const PageHeader = ({
   };
 
   return (
-    <div className="flex items-center justify-between w-full gap-4 sticky top-[57px] z-40 bg-white py-2">
+    <div className="flex flex-wrap items-center justify-between w-full gap-x-4 gap-y-2 sticky top-[57px] z-40 bg-white py-2">
       <div className="flex items-baseline gap-2 min-w-fit">
         <h1 className="text-xl font-bold text-slate-900 whitespace-nowrap">
           {title}
@@ -49,7 +49,7 @@ export const PageHeader = ({
         </span>
       </div>
 
-      <div className="flex items-center gap-3 min-w-0 justify-end flex-shrink-0">
+      <div className="flex flex-wrap items-center gap-3 min-w-0 justify-start">
         <div className="flex p-1 rounded-lg items-center border border-slate-200 w-[220px] overflow-hidden focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 bg-white transition-all">
           <Search
             className="ml-2 mr-1 flex-shrink-0 text-slate-400"

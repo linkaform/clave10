@@ -20,7 +20,7 @@ import {
   LayoutList,
   LayoutGrid,
   Sheet,
-  Search,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -29,13 +29,15 @@ import { useGetBitacoraTransportistaRecords, BitacoraTransportistaRecord } from 
 import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
 import { saveBitacoraTransportistaRecord } from "@/services/endpoints";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Pencil, X } from "lucide-react";
+import { ConfirmModal } from "@/components/confirm-modal";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { formatPhotoRecord, formatListRecord } from "@/utils/formatRecords";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import TransportistasTable from "@/components/table/transportistas/table";
+import PaginationTransportistas from "@/components/pages/transportistas/PaginationTransportistas";
 import {
   useTransportistaFilters,
   applyTransportistaFilters,
@@ -120,6 +122,24 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
   const [showAndenModal, setShowAndenModal] = useState(false);
   const [savingAnden, setSavingAnden] = useState(false);
 
+  const puedeDescartar = !["terminado", "descartado"].includes(record.estatus);
+  const [showDescartarConfirm, setShowDescartarConfirm] = useState(false);
+  const [descartando, setDescartando] = useState(false);
+
+  const handleDescartarConfirm = async () => {
+    setDescartando(true);
+    try {
+      await saveBitacoraTransportistaRecord(record._id, "estatus", { estatus: "descartado" });
+      queryClient.invalidateQueries({ queryKey: ["bitacoraTransportistaRecords"] });
+      toast.success("Registro descartado");
+      setShowDescartarConfirm(false);
+    } catch {
+      toast.error("Error al descartar el registro");
+    } finally {
+      setDescartando(false);
+    }
+  };
+
   const handleAndenConfirm = async (anden: string | null) => {
     setShowAndenModal(false);
     const prev = localAnden;
@@ -139,8 +159,17 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
 
   return (
     <>
-      <Link href={`/dashboard/accesos/transportista/${record._id}`} className="block bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 space-y-2.5 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer">
-        <div className="flex items-start justify-between gap-2">
+      <Link href={`/dashboard/accesos/transportista/${record._id}`} className="relative block bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 space-y-2.5 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer">
+        {puedeDescartar && (
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDescartarConfirm(true); }}
+            className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+            title="Descartar registro">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <div className="flex items-start justify-between gap-2 pr-5">
           {sinPase
             ? <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">SIN PASE</span>
             : <span className="text-[10px] font-bold text-gray-400 tracking-wide">{record.folio}</span>
@@ -212,6 +241,15 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
           onConfirm={handleAndenConfirm}
         />
       )}
+      <ConfirmModal
+        open={showDescartarConfirm}
+        onClose={() => setShowDescartarConfirm(false)}
+        onConfirm={handleDescartarConfirm}
+        title="¿Descartar este registro?"
+        description="El registro pasará a estatus Descartado y saldrá del Kanban. Podrás seguir viéndolo en Lista, Cuadrícula o Tabla."
+        confirmText="Descartar"
+        isLoading={descartando}
+      />
     </>
   );
 }
@@ -308,6 +346,8 @@ export default function BitacorasTransportistasPage() {
   const [modalNuevoOpen, setModalNuevoOpen] = useState(false);
   const [modalLlegadaOpen, setModalLlegadaOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list" | "grid" | "table">("kanban");
+  const [skip, setSkip] = useState(0);
+  const [limit, setLimit] = useState(25);
 
   const { isAuth } = useAuthStore();
   const { area, location } = useBoothStore();
@@ -340,22 +380,65 @@ export default function BitacorasTransportistasPage() {
     return () => { document.body.style.overflow = prev; };
   }, [viewMode, isSidebarOpen]);
 
-  const { data: records, isLoading } = useGetBitacoraTransportistaRecords(fecha, {
+  const isKanban = viewMode === "kanban";
+
+  const { data: records, pagination, isLoading } = useGetBitacoraTransportistaRecords(fecha, {
     date_from: dateRange.date_from,
     date_to: dateRange.date_to,
-    ...serverFilters,
+    tipo_de_vehiculo: serverFilters.tipo_de_vehiculo,
+    proveedor_cliente: serverFilters.proveedor_cliente,
+    anden_asignado: serverFilters.anden_asignado,
+    // El Kanban trae siempre el dataset completo del día (sin paginar ni filtrar en
+    // servidor) porque necesita agrupar/contar TODOS los registros por estatus.
+    // Tabla/Lista/Grid sí paginan y filtran en servidor, igual que Pases de Entrada.
+    ...(isKanban
+      ? {}
+      : {
+          pagination: true,
+          skip,
+          limit,
+          search: search || undefined,
+          estatus: serverFilters.estatus,
+          tipo_de_operacion: serverFilters.tipo_de_operacion,
+          conductor: serverFilters.conductor,
+          material: serverFilters.material,
+        }),
   });
 
-  // Oculta del kanban las columnas de etapas desactivadas para esta cuenta.
-  // El value real de la opción de Linkaform para "entrada" es "inspeccion_de_entrada"
-  // (no coincide con el key de la columna, que sí es el valor real de `estatus`).
+  // Oculta del kanban las columnas de etapas desactivadas para esta cuenta, y las que
+  // la cuenta desmarcó en "Kanban View" (puramente visual — no afecta el flujo real).
+  // Los value reales de las opciones en Linkaform no siempre coinciden con el key de
+  // la columna (que es el valor real de `estatus`): "inspeccion_de_entrada" en vez de
+  // "inspeccion_entrada", "terminados" (plural) en vez de "terminado".
   const { data: configFlujo } = useConfigFlujoTransportista();
+  const COL_KEY_A_KANBAN_VIEW_SLUG: Record<string, string> = {
+    arribo: "arribo",
+    inspeccion_entrada: "inspeccion_de_entrada",
+    "carga_/_descarga": "carga_/_descarga",
+    inspeccion_salida: "inspeccion_salida",
+    terminado: "terminados",
+  };
   const columnasVisibles = COLUMNAS.filter((col) => {
+    if (!configFlujo.kanbanView.includes(COL_KEY_A_KANBAN_VIEW_SLUG[col.key])) return false;
     if (col.key === "arribo" || col.key === "terminado") return true;
     const slug = col.key === "inspeccion_entrada" ? "inspeccion_de_entrada" : col.key;
     return configFlujo.etapasActivas.includes(slug);
   });
+  const mostrarProgramados = configFlujo.kanbanView.includes("programados");
 
+  // Resetea a la primera página cuando cambian fecha/filtros/búsqueda/vista,
+  // para no quedar "colgado" en una página fuera de rango.
+  useEffect(() => {
+    setSkip(0);
+  }, [fecha, dateRange.date_from, dateRange.date_to, JSON.stringify(serverFilters), search, viewMode]);
+
+  const handlePageChange = (newSkip: number, newLimit: number) => {
+    setSkip(newSkip);
+    setLimit(newLimit);
+  };
+
+  // Kanban: filtra client-side sobre el dataset completo del día (comportamiento sin cambios).
+  // Tabla/Lista/Grid: `records` ya viene filtrado y paginado desde el servidor.
   const searchFiltered = records.filter((r) => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -367,7 +450,7 @@ export default function BitacorasTransportistasPage() {
     );
   });
 
-  const filtered = applyTransportistaFilters(searchFiltered, externalFilters);
+  const filtered = isKanban ? applyTransportistaFilters(searchFiltered, externalFilters) : records;
 
   const byEstatus = (key: string) => filtered.filter((r) => r.estatus === key);
 
@@ -405,13 +488,13 @@ export default function BitacorasTransportistasPage() {
       <div className="px-6 border-b border-gray-100 shrink-0">
         <PageHeader
           title="Bitácoras Transportistas"
-          totalRecords={records.length}
+          totalRecords={isKanban ? records.length : pagination.total_records}
           onSearch={(val) => setSearch(val)}
           searchPlaceholder="Buscar folio, placas, chofer..."
         >
           {/* Leyenda tiempo en etapa — solo en kanban */}
           {viewMode === "kanban" && (
-            <div className="hidden md:flex items-center gap-3 text-xs text-gray-500 border border-gray-200 rounded-full px-4 py-1.5 bg-white shrink-0">
+            <div className="hidden xl:flex items-center gap-3 text-xs text-gray-500 border border-gray-200 rounded-full px-4 py-1.5 bg-white shrink-0">
               <span className="text-gray-400">Tiempo En Etapa</span>
               <span className="w-px h-3 bg-gray-200" />
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />A tiempo</span>
@@ -430,11 +513,13 @@ export default function BitacorasTransportistasPage() {
 
           <Button
             variant="outline"
+            size="icon"
             onClick={() => setModalLlegadaOpen(true)}
-            className="border-blue-200 text-blue-700 hover:bg-blue-50 gap-2 shrink-0"
+            title="Registrar llegada de pase"
+            aria-label="Registrar llegada de pase"
+            className="border-blue-200 text-blue-700 hover:bg-blue-50 shrink-0"
           >
-            <Search size={16} />
-            Registrar llegada de pase
+            <QrCode size={16} />
           </Button>
 
           {/* Switcher de vistas */}
@@ -484,7 +569,9 @@ export default function BitacorasTransportistasPage() {
       ) : viewMode === "kanban" ? (
         <div className="flex-1 min-h-0 overflow-hidden">
           <div className="flex gap-3 p-4 h-full w-full">
-            <ProgramadosColumn records={byEstatus("programado")} fecha={fecha} now={now} onChangeDay={changeDay} />
+            {mostrarProgramados && (
+              <ProgramadosColumn records={byEstatus("programado")} fecha={fecha} now={now} onChangeDay={changeDay} />
+            )}
             {columnasVisibles.map((col) => (
               <KanbanColumn
                 key={col.key}
@@ -500,7 +587,14 @@ export default function BitacorasTransportistasPage() {
           <TransportistasTable
             data={filtered}
             isLoading={isLoading}
-            globalSearch={search ? [search] : []}
+          />
+          <PaginationTransportistas
+            actual_page={pagination.actual_page}
+            records_on_page={pagination.records_on_page}
+            total_pages={pagination.total_pages}
+            total_records={pagination.total_records}
+            limit={limit}
+            onPageChange={handlePageChange}
           />
         </div>
       ) : (
@@ -554,6 +648,14 @@ export default function BitacorasTransportistasPage() {
                 }}
               />
             )}
+            <PaginationTransportistas
+              actual_page={pagination.actual_page}
+              records_on_page={pagination.records_on_page}
+              total_pages={pagination.total_pages}
+              total_records={pagination.total_records}
+              limit={limit}
+              onPageChange={handlePageChange}
+            />
           </div>
         </div>
       )}
