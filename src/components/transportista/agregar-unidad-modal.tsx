@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Truck, Package, Plus, Trash2, X } from "lucide-react";
+import { Truck, Package, Car, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── Unidades types & helpers ────────────────────────────────────────────────
@@ -344,6 +344,11 @@ export function UnidadEditorCard({
       <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-100 bg-gray-50/60">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Configuración:</span>
           <div className="flex gap-2">
+            <button type="button" onClick={() => setConfig("solo_vehiculo")}
+              className={cn("h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all",
+                config === "solo_vehiculo" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300")}>
+              <Car className="w-3.5 h-3.5" /> Solo vehículo
+            </button>
             <button type="button" onClick={() => { setConfig("solo_remolque"); setActiveTab("remolque"); }}
               className={cn("h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all",
                 config === "solo_remolque" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300")}>
@@ -353,11 +358,6 @@ export function UnidadEditorCard({
               className={cn("h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all",
                 config === "remolque_contenedor" ? "bg-violet-600 text-white border-violet-600" : "bg-white text-gray-600 border-gray-200 hover:border-violet-300")}>
               <Package className="w-3.5 h-3.5" /> Remolque + Contenedor
-            </button>
-            <button type="button" onClick={() => setConfig("solo_vehiculo")}
-              className={cn("h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all",
-                config === "solo_vehiculo" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300")}>
-              <Truck className="w-3.5 h-3.5" /> Solo vehículo
             </button>
           </div>
         </div>
