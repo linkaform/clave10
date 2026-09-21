@@ -4531,7 +4531,7 @@ export default function DetalleTransportistaPage() {
                     title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
                     onClick={() => setShowAgregarUnidad(true)}
                     className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <Plus className="w-4 h-4" /> Agregar remolque
+                    <Plus className="w-4 h-4" /> Agregar unidad
                   </button>
                 </div>
               )}
