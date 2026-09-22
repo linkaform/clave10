@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogOverlay,
   DialogTitle,
 } from "@/components/ui/dialog";
 
@@ -30,7 +29,6 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogOverlay className="pointer-events-auto" />
       <DialogContent
         className="max-w-sm rounded-2xl p-0 gap-0 border-none pointer-events-auto bg-white"
         onInteractOutside={(e) => e.preventDefault()}
