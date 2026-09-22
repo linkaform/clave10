@@ -4513,7 +4513,7 @@ export default function DetalleTransportistaPage() {
               )}
               {unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto)) && (
                 <div className="space-y-2 pt-1 border-t border-gray-50">
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por contenedor</p>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por unidad</p>
                   {unidades.map((u, idx) => {
                     const mats = materialesDeUnidad(u);
                     const ref = refDeUnidad(u);
