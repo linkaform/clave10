@@ -146,7 +146,7 @@ export const ViewDetalleArea: React.FC<ViewRondinesDetalleAreaProps> = ({
                                                             <Image
                                                             height={160}
                                                             width={160}
-                                                            src={a.file_url || "/mountain.svg"}
+                                                            src={/^https?:\/\//.test(a.file_url || "") ? a.file_url! : "/mountain.svg"}
                                                             alt="Imagen"
                                                             className="w-full h-40 object-cover rounded-lg"
                                                             />
@@ -294,7 +294,7 @@ export const ViewDetalleArea: React.FC<ViewRondinesDetalleAreaProps> = ({
                                         <Image
                                         height={160}
                                         width={160}
-                                        src={a.file_url || "/mountain.svg"}
+                                        src={/^https?:\/\//.test(a.file_url || "") ? a.file_url! : "/mountain.svg"}
                                         alt="Imagen"
                                         className="w-full h-40 object-cover rounded-lg"
                                         />

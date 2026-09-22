@@ -105,7 +105,7 @@ export function PhotoGridCard({
         onMouseLeave={handleMouseLeave}>
         {record.images.length > 0 ? (
           <Image
-            src={record.images[currentImageIndex] || "sin_imagen_rondin.svg"}
+            src={/^https?:\/\//.test(record.images[currentImageIndex] || "") ? record.images[currentImageIndex] : "/sin_imagen_rondin.svg"}
             alt={record.title}
             fill={true}
             className={`object-cover transition-all duration-500 ${
