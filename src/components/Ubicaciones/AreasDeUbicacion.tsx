@@ -15,7 +15,10 @@ interface AreasDeUbicacionProps {
 }
 
 export function AreasDeUbicacion({ ubicacion }: AreasDeUbicacionProps) {
-  const { areas, isLoading } = useAreasCatalog([ubicacion]);
+  // limit=0: esta vista lista y busca en memoria todas las áreas de la
+  // ubicación (no pagina), a diferencia del explorador de /dashboard/areas.
+  const { areasCatalog, isLoading } = useAreasCatalog([ubicacion], [], 0);
+  const areas = areasCatalog.records;
   const { handleToggleAreaEstado } = useAreaActions();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");

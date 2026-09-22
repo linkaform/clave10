@@ -24,6 +24,8 @@ import { normalizeArea } from "@/lib/areas";
 import { AreaDisponibilidadMenu } from "@/components/table/areas-explorer/AreaDisponibilidadMenu";
 import { ChecksAreaDashboard } from "./ChecksAreaDashboard";
 import { FallasAreaDashboard } from "./FallasAreaDashboard";
+import { RondinesAreaDashboard } from "./RondinesAreaDashboard";
+import { IncidenciasAreaDashboard } from "./IncidenciasAreaDashboard";
 
 type AreaTab = "rondines" | "checks" | "inspecciones" | "incidencias" | "fallas" | "configuracion";
 
@@ -233,7 +235,11 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
         </div>
 
         <div className="px-2 pb-2">
-          {activeTab === "checks" ? (
+          {activeTab === "rondines" ? (
+            <RondinesAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
+          ) : activeTab === "incidencias" ? (
+            <IncidenciasAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
+          ) : activeTab === "checks" ? (
             <ChecksAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
           ) : activeTab === "fallas" ? (
             <FallasAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />

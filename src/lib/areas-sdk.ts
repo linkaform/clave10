@@ -1,20 +1,30 @@
 import { API_ENDPOINTS } from "@/config/api";
 import { getValidToken } from "./login/get-valid-token";
 
-// Llamadas al SDK nuevo (lkf-sanic-apps) para el explorador de Áreas del
-// front web — mismo endpoint/shape que el resto del script-runner, solo
-// cambia el script_name para que la plataforma lo corra en el contenedor
-// de Sanic en vez del legacy. Ver knowledge/patterns/clave10_front_explorer_screen.md.
+// Llamadas para el explorador de Áreas del front web — mismo endpoint/shape
+// que el resto del script-runner. get_catalog_areas_formatted apunta
+// temporalmente a rondines.py (back legacy) porque el SDK nuevo
+// (lkf-sanic-apps) no se pudo levantar; revertir a rondines_sdk.py cuando
+// Sanic esté disponible. Ver knowledge/patterns/clave10_front_explorer_screen.md.
 
 export const getAreasCatalogSdk = async (
-  ubicacion: string,
+  locations: string[],
   dynamicFilters: { key: string; value: any }[] = [],
+  limit: number = 25,
+  skip: number = 0,
+  search: string = "",
+  searchFields: string[] = [],
 ) => {
   const payload = {
-    ubicacion,
+    locations,
     dynamic_filters: dynamicFilters,
+    limit,
+    // El dispatcher de rondines.py lee "offset", no "skip".
+    offset: skip,
+    search,
+    search_fields: searchFields,
     option: "get_catalog_areas_formatted",
-    script_name: "rondines_sdk.py",
+    script_name: "rondines.py",
   };
 
   const userJwt = await getValidToken();
