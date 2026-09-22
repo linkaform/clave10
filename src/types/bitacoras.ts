@@ -118,6 +118,7 @@ export interface AreaItem {
   area_status?: string;
   folio?: string;
   record_id?: string;
+  ubicacion?: string;
 }
 
 export interface CardConfiguration {

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ColumnFiltersState,
   SortingState,
@@ -9,11 +9,9 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -53,7 +51,6 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
   areas,
   isLoading,
   viewMode,
-  searchTags,
   filtersConfig,
   externalFilters,
   onExternalFiltersChange,
@@ -64,12 +61,7 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
   const [globalFilter, setGlobalFilter] = useState("");
-
-  useEffect(() => {
-    setGlobalFilter(searchTags && searchTags.length > 0 ? searchTags.join("|") : "");
-  }, [searchTags]);
 
   const normalizedAreas = useMemo(
     () => areas.map((area, index) => normalizeArea(area, index)),
@@ -151,24 +143,11 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
-    globalFilterFn: (row, _columnId, filterValue: string) => {
-      if (!filterValue) return true;
-      const normalize = (str: string) =>
-        str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const tags = filterValue.split("|").filter(Boolean).map(normalize);
-      const allValues = row
-        .getAllCells()
-        .map((cell) => normalize(String(cell.getValue() || "")))
-        .join(" ");
-      return tags.some((tag) => allValues.includes(tag));
-    },
-    state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
+    state: { sorting, columnFilters, columnVisibility, rowSelection, globalFilter },
   });
 
   const photoRecords: PhotoRecord[] = useMemo(
@@ -202,7 +181,6 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
             <PhotoGridView
               isLoading={isLoading}
               records={photoRecords}
-              globalSearch={searchTags}
               onRecordClick={handleRecordClick}
             >
               {renderAreaActions}
@@ -211,7 +189,6 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
             <PhotoListView
               isLoading={isLoading}
               records={listRecords}
-              globalSearch={searchTags}
               onRecordClick={handleRecordClick}
             >
               {renderAreaActions}
@@ -277,16 +254,6 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
                     )}
                   </TableBody>
                 </Table>
-              </div>
-              <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-                    Anterior
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-                    Siguiente
-                  </Button>
-                </div>
               </div>
             </>
           )}

@@ -109,6 +109,7 @@ export const MenuItemFormDialog: React.FC<MenuItemFormDialogProps> = ({
             },
       );
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialValues, defaultSeccionKey]);
 
   return (
