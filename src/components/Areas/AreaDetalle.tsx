@@ -145,9 +145,9 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
         <h3 className="font-semibold text-gray-800 text-sm mb-3">Foto del área</h3>
         <div className="flex flex-col md:flex-row gap-6">
-          {normalized.foto ? (
+          {/^https?:\/\//.test(normalized.foto || "") ? (
             <div className="relative w-full max-w-md aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
-              <Image src={normalized.foto} alt={normalized.nombre} fill className="object-cover" />
+              <Image src={normalized.foto as string} alt={normalized.nombre} fill className="object-cover" />
             </div>
           ) : (
             <div className="w-full max-w-md aspect-video rounded-xl flex items-center justify-center bg-slate-100 text-slate-300 text-sm shrink-0">

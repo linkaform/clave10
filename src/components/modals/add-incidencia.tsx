@@ -47,6 +47,14 @@ import {
   Trash2,
   List,
   Eye,
+  Tag,
+  KeyRound,
+  Forklift,
+  Building2,
+  UserCheck,
+  HardHat,
+  ShieldCheck,
+  Truck,
 } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -163,6 +171,51 @@ export const categoriasConIconos = [
     icon: <Cctv />,
     id: 12,
   },
+  {
+    nombre: "Acceso y control",
+    icon: <KeyRound />,
+    id: 13,
+  },
+  {
+    nombre: "Carga y descarga",
+    icon: <Forklift />,
+    id: 14,
+  },
+  {
+    nombre: "CCTV y tecnología",
+    icon: <Cctv />,
+    id: 15,
+  },
+  {
+    nombre: "Emergencias",
+    icon: <Siren />,
+    id: 16,
+  },
+  {
+    nombre: "Instalaciones",
+    icon: <Building2 />,
+    id: 17,
+  },
+  {
+    nombre: "Personal y cumplimiento",
+    icon: <UserCheck />,
+    id: 18,
+  },
+  {
+    nombre: "Seguridad e higiene operativa",
+    icon: <HardHat />,
+    id: 19,
+  },
+  {
+    nombre: "Seguridad patrimonial",
+    icon: <ShieldCheck />,
+    id: 20,
+  },
+  {
+    nombre: "Unidades y transporte",
+    icon: <Truck />,
+    id: 21,
+  },
 ];
 export const subCategoriasConIconos = [
   {
@@ -226,6 +279,24 @@ export const subCategoriasConIconos = [
     id: 12,
   },
 ];
+
+// Normaliza para comparar nombres sin importar acentos, mayusculas o espacios.
+const normalizarNombre = (texto: string) =>
+  texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+
+// La lista la manda el back; el catalogo local solo aporta el icono.
+// Si una categoria no esta en el catalogo, se muestra con un icono generico.
+export const asignarIconos = (
+  nombres: string[],
+  catalogo: { nombre: string; icon: JSX.Element }[],
+) =>
+  nombres.map((nombre) => ({
+    id: nombre,
+    nombre,
+    icon: catalogo.find(
+      (cat) => normalizarNombre(cat.nombre) === normalizarNombre(nombre),
+    )?.icon ?? <Tag />,
+  }));
 
 export const formSchema = z.object({
   reporta_incidencia: z.string().optional(),
@@ -402,8 +473,9 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
     setSubCategoria("");
     setCategoria("");
     setSelectedIncidencia("");
-    const catIncidenciasIcons = categoriasConIconos?.filter((cat) =>
-      catIncidencias?.data.includes(cat.nombre),
+    const catIncidenciasIcons = asignarIconos(
+      catIncidencias?.data ?? [],
+      categoriasConIconos,
     );
 
     setCatCategorias(catIncidenciasIcons);
@@ -436,8 +508,9 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
   useEffect(() => {
     if (catIncidencias) {
       if (search == "") {
-        const catIncidenciasIcons = categoriasConIconos.filter((cat) =>
-          catIncidencias.data.includes(cat.nombre),
+        const catIncidenciasIcons = asignarIconos(
+          catIncidencias.data,
+          categoriasConIconos,
         );
         if (catIncidenciasIcons.length > 0) {
           setCatCategorias(catIncidenciasIcons);
@@ -455,8 +528,9 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
           setSubCatCategorias([]);
           setCatSubIncidences(formattedSubIncidentes);
         } else if (catIncidencias.type == "sub_catalog") {
-          const subCatIncidenciasIcons = subCategoriasConIconos.filter((cat) =>
-            catIncidencias.data.includes(cat.nombre),
+          const subCatIncidenciasIcons = asignarIconos(
+            catIncidencias.data,
+            subCategoriasConIconos,
           );
           setSearch("cat");
           setSubCatCategorias(subCatIncidenciasIcons);

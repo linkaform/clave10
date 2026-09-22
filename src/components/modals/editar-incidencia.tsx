@@ -35,7 +35,6 @@ import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation
 import { PersonaExtraviadaFields } from "./persona-extraviada";
 import { RoboDeCableado } from "./robo-de-cableado";
 import { RoboDeVehiculo } from "./robo-de-vehiculo";
-import { categoriasConIconos } from "./add-incidencia";
 import { useCatalogoInciencias } from "@/hooks/useCatalogoIncidencias";
 import { Slider } from "../slider";
 import { Switch } from "@/components/ui/switch"
@@ -298,15 +297,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 
 	useEffect(()=>{
 		if(catIncidencias){
-			if(search==""){
-				const catIncidenciasIcons = categoriasConIconos.filter((cat) =>
-					catIncidencias.data.includes(cat.nombre)
-					);
-				if(catIncidenciasIcons.length>0){
-					console.log("catIncidenciasIcons",catIncidenciasIcons)
-					// setCatCategorias(catIncidenciasIcons)
-				}
-			}else if(search=="cat" || search=="subCat"){
+			if(search=="cat" || search=="subCat"){
 					if(catIncidencias.type=="incidence"){
 						// const formattedSubIncidentes = catIncidencias.data.map((nombre:string) => ({
 						// 	id: nombre,
