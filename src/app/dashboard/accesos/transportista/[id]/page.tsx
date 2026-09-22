@@ -4613,7 +4613,8 @@ export default function DetalleTransportistaPage() {
             // sin remolques registrados — no hay nada que sellar todavía.
             const selloCompleto = esRecoleccion || unidades.length === 0 || (inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total);
             if (!entradaCompleta || !selloCompleto) return null;
-            const materialesRegistrados = (data?.materiales ?? []).some((m) => m.producto && m.producto.trim() !== "");
+            const requiereInspeccionMateriales = etapasActivas.includes("inspeccion_materiales");
+            const materialesRegistrados = !requiereInspeccionMateriales || (data?.materiales ?? []).some((m) => m.producto && m.producto.trim() !== "");
             const cargaDescargaActiva = etapasActivas.includes("carga_/_descarga");
             return (
               <div className="space-y-1.5">
