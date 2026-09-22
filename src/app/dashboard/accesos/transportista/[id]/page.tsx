@@ -2367,7 +2367,9 @@ export default function DetalleTransportistaPage() {
 
   const [unidades, setUnidades] = useState<UnidadItem[]>([]);
   const [showAgregarUnidad, setShowAgregarUnidad] = useState(false);
+  const [agregarUnidadDefaultConfig, setAgregarUnidadDefaultConfig] = useState<UnidadConfig | undefined>(undefined);
   const [editingUnit, setEditingUnit] = useState<UnidadItem | null>(null);
+  const [pickingUnidadMaterial, setPickingUnidadMaterial] = useState(false);
   const [showInspeccion, setShowInspeccion] = useState(false);
   const [showInspeccionSalida, setShowInspeccionSalida] = useState(false);
   const [showInspeccionCarga, setShowInspeccionCarga] = useState<false | "edit" | "readonly">(false);
@@ -4440,7 +4442,7 @@ export default function DetalleTransportistaPage() {
                   })}
                   <button type="button" disabled={savingUnidades || isLocked || analyzingDocs}
                     title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
-                    onClick={() => setShowAgregarUnidad(true)}
+                    onClick={() => { setAgregarUnidadDefaultConfig(undefined); setShowAgregarUnidad(true); }}
                     className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <Plus className="w-4 h-4" /> Agregar unidad
                   </button>
@@ -4511,7 +4513,9 @@ export default function DetalleTransportistaPage() {
                   <Field label="Procedencia" value={data?.vehiculo?.procedencia} />
                 </div>
               )}
-              {unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto)) && (
+              {(() => {
+                const hayMaterialCapturado = unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto));
+                return hayMaterialCapturado && (
                 <div className="space-y-2 pt-1 border-t border-gray-50">
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por unidad</p>
                   {unidades.map((u, idx) => {
@@ -4534,7 +4538,50 @@ export default function DetalleTransportistaPage() {
                     );
                   })}
                 </div>
-              )}
+                );
+              })()}
+              {(() => {
+                const hayMaterialCapturado = unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto));
+                const abrirAgregarMaterial = () => {
+                  if (unidades.length === 0) {
+                    // Sin unidades todavía: abre "Agregar unidad" directo en la
+                    // pestaña de vehículo, que captura material sin pedir datos
+                    // de remolque/contenedor — se ve como agregar material.
+                    setAgregarUnidadDefaultConfig("solo_vehiculo");
+                    setShowAgregarUnidad(true);
+                  } else if (unidades.length === 1) {
+                    setEditingUnit(unidades[0]);
+                  } else {
+                    setPickingUnidadMaterial((v) => !v);
+                  }
+                };
+                return !hayMaterialCapturado && (
+                <div className="pt-1 border-t border-gray-50 relative">
+                  <button
+                    type="button"
+                    disabled={savingUnidades || isLocked || analyzingDocs}
+                    onClick={abrirAgregarMaterial}
+                    className="w-full h-8 rounded-lg border border-dashed border-blue-200 text-xs font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <Plus className="w-3.5 h-3.5" /> Agregar material
+                  </button>
+                  {pickingUnidadMaterial && unidades.length > 1 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg overflow-hidden">
+                      <p className="px-3 pt-2 pb-1 text-[9px] font-bold text-gray-400 uppercase tracking-widest">¿A qué unidad?</p>
+                      {unidades.map((u, idx) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => { setEditingUnit(u); setPickingUnidadMaterial(false); }}
+                          className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 flex items-center gap-1.5">
+                          <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
+                          Unidad {idx + 1}{refDeUnidad(u) ? ` · ${refDeUnidad(u)}` : ""}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -5160,12 +5207,14 @@ export default function DetalleTransportistaPage() {
       )}
       {showAgregarUnidad && (
         <AgregarUnidadModal
-          onClose={() => setShowAgregarUnidad(false)}
+          defaultConfig={agregarUnidadDefaultConfig}
+          onClose={() => { setShowAgregarUnidad(false); setAgregarUnidadDefaultConfig(undefined); }}
           onSave={(u) => {
             const next = [...unidades, u];
             setUnidades(next);
             setExpandedUnits((prev) => new Set(prev).add(u.id));
             persistUnidades(next);
+            setAgregarUnidadDefaultConfig(undefined);
           }}
         />
       )}

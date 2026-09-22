@@ -238,14 +238,16 @@ export function UnidadEditorCard({
   onCancel,
   onSave,
   initialData,
+  defaultConfig,
   className,
 }: {
   onCancel: () => void;
   onSave: (unidad: UnidadItem) => void;
   initialData?: UnidadItem;
+  defaultConfig?: UnidadConfig;
   className?: string;
 }) {
-  const [config, setConfig] = useState<UnidadConfig>(initialData?.config ?? "solo_remolque");
+  const [config, setConfig] = useState<UnidadConfig>(initialData?.config ?? defaultConfig ?? "solo_remolque");
   const [activeTab, setActiveTab] = useState<"remolque" | "contenedor">("remolque");
   const [remolque, setRemolque] = useState<RemolqueData>(initialData?.remolque ?? emptyRemolqueData());
   const [contenedor, setContenedor] = useState<ContenedorData>(initialData?.contenedor ?? emptyContenedorData());
@@ -489,16 +491,19 @@ export function AgregarUnidadModal({
   onClose,
   onSave,
   initialData,
+  defaultConfig,
 }: {
   onClose: () => void;
   onSave: (unidad: UnidadItem) => void;
   initialData?: UnidadItem;
+  defaultConfig?: UnidadConfig;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <UnidadEditorCard
         className="w-full max-w-3xl max-h-[90vh] shadow-2xl"
         initialData={initialData}
+        defaultConfig={defaultConfig}
         onCancel={onClose}
         onSave={(u) => { onSave(u); onClose(); }}
       />
