@@ -4186,95 +4186,6 @@ export default function DetalleTransportistaPage() {
             </>}
           </div>
 
-          {/* Material Carga / Descarga */}
-          <div className={cn("bg-white rounded-xl border shadow-sm overflow-hidden", materialEditMode ? "border-orange-300 ring-2 ring-orange-100" : "border-gray-100")}>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-gray-400" />
-                <span className="text-sm font-bold text-gray-800">Material Carga / Descarga</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {data?.tipo_operacion && (
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-600 uppercase tracking-wide">
-                    {data.tipo_operacion} de material
-                  </span>
-                )}
-                {!materialEditMode && !isLocked && (
-                  <button type="button" onClick={startMaterialEdit} disabled={analyzingDocs}
-                    title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
-                    className="w-6 h-6 rounded-md hover:bg-orange-50 flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
-                    <Pencil className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="p-4 space-y-3">
-              {materialEditMode ? (
-                <>
-                  <div className="grid grid-cols-3 gap-3">
-                    {(
-                      [
-                        { key: "proveedor_cliente", label: "Proveedor / Cliente" },
-                        { key: "no_orden_compra",   label: "Orden de Compra",     mono: true },
-                        { key: "procedencia",       label: "Procedencia" },
-                      ] as { key: keyof typeof materialDraft; label: string; mono?: boolean }[]
-                    ).map(({ key, label, mono }) => (
-                      <div key={key}>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-                        <input
-                          className={cn("w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100", mono && "font-mono")}
-                          value={materialDraft[key]}
-                          onChange={(e) => setMaterialDraft((p) => ({ ...p, [key]: e.target.value }))}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
-                    <button type="button" onClick={cancelMaterialEdit}
-                      className="h-8 px-3 rounded-lg border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors">
-                      Cancelar
-                    </button>
-                    <button type="button" onClick={saveMaterial} disabled={savingRegistroCompartido}
-                      title={!savingMaterial && savingRegistroCompartido ? "Espera a que termine el otro guardado en curso" : undefined}
-                      className="h-8 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:cursor-not-allowed">
-                      <Save className="w-3 h-3" /> {savingMaterial ? "Guardando…" : "Guardar cambios"}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="grid grid-cols-3 gap-4">
-                  <Field label="Proveedor / Cliente" value={data?.embarque?.proveedor_cliente} />
-                  <Field label="Orden de Compra" value={data?.embarque?.no_orden_compra} mono />
-                  <Field label="Procedencia" value={data?.vehiculo?.procedencia} />
-                </div>
-              )}
-              {unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto)) && (
-                <div className="space-y-2 pt-1 border-t border-gray-50">
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por contenedor</p>
-                  {unidades.map((u, idx) => {
-                    const mats = materialesDeUnidad(u);
-                    const ref = refDeUnidad(u);
-                    const withProduct = mats.filter((m) => m.producto);
-                    if (!withProduct.length) return null;
-                    return (
-                      <div key={u.id} className="flex flex-wrap items-center gap-1.5">
-                        <span className="flex items-center gap-1 text-[11px] font-semibold text-violet-600 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5 shrink-0">
-                          <Package className="w-2.5 h-2.5" />
-                          Unidad {idx + 1}{ref ? ` · ${ref}` : ""}
-                        </span>
-                        {withProduct.map((m) => (
-                          <span key={m.id} className="flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-100 rounded-full px-2 py-0.5">
-                            <CheckCircle2 className="w-2.5 h-2.5" /> {m.producto}
-                          </span>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Vehículo & Remolques */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
@@ -4533,6 +4444,95 @@ export default function DetalleTransportistaPage() {
                     className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <Plus className="w-4 h-4" /> Agregar unidad
                   </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Material Carga / Descarga */}
+          <div className={cn("bg-white rounded-xl border shadow-sm overflow-hidden", materialEditMode ? "border-orange-300 ring-2 ring-orange-100" : "border-gray-100")}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Package className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-bold text-gray-800">Material Carga / Descarga</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {data?.tipo_operacion && (
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-600 uppercase tracking-wide">
+                    {data.tipo_operacion} de material
+                  </span>
+                )}
+                {!materialEditMode && !isLocked && (
+                  <button type="button" onClick={startMaterialEdit} disabled={analyzingDocs}
+                    title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
+                    className="w-6 h-6 rounded-md hover:bg-orange-50 flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="p-4 space-y-3">
+              {materialEditMode ? (
+                <>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(
+                      [
+                        { key: "proveedor_cliente", label: "Proveedor / Cliente" },
+                        { key: "no_orden_compra",   label: "Orden de Compra",     mono: true },
+                        { key: "procedencia",       label: "Procedencia" },
+                      ] as { key: keyof typeof materialDraft; label: string; mono?: boolean }[]
+                    ).map(({ key, label, mono }) => (
+                      <div key={key}>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+                        <input
+                          className={cn("w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100", mono && "font-mono")}
+                          value={materialDraft[key]}
+                          onChange={(e) => setMaterialDraft((p) => ({ ...p, [key]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+                    <button type="button" onClick={cancelMaterialEdit}
+                      className="h-8 px-3 rounded-lg border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors">
+                      Cancelar
+                    </button>
+                    <button type="button" onClick={saveMaterial} disabled={savingRegistroCompartido}
+                      title={!savingMaterial && savingRegistroCompartido ? "Espera a que termine el otro guardado en curso" : undefined}
+                      className="h-8 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:cursor-not-allowed">
+                      <Save className="w-3 h-3" /> {savingMaterial ? "Guardando…" : "Guardar cambios"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-3 gap-4">
+                  <Field label="Proveedor / Cliente" value={data?.embarque?.proveedor_cliente} />
+                  <Field label="Orden de Compra" value={data?.embarque?.no_orden_compra} mono />
+                  <Field label="Procedencia" value={data?.vehiculo?.procedencia} />
+                </div>
+              )}
+              {unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto)) && (
+                <div className="space-y-2 pt-1 border-t border-gray-50">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por contenedor</p>
+                  {unidades.map((u, idx) => {
+                    const mats = materialesDeUnidad(u);
+                    const ref = refDeUnidad(u);
+                    const withProduct = mats.filter((m) => m.producto);
+                    if (!withProduct.length) return null;
+                    return (
+                      <div key={u.id} className="flex flex-wrap items-center gap-1.5">
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-violet-600 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5 shrink-0">
+                          <Package className="w-2.5 h-2.5" />
+                          Unidad {idx + 1}{ref ? ` · ${ref}` : ""}
+                        </span>
+                        {withProduct.map((m) => (
+                          <span key={m.id} className="flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-100 rounded-full px-2 py-0.5">
+                            <CheckCircle2 className="w-2.5 h-2.5" /> {m.producto}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
