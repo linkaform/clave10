@@ -4,7 +4,7 @@ import { API_ENDPOINTS } from "@/config/api";
 import { getValidToken } from "./login/get-valid-token";
 
 export const getListIncidencias = async (
-  location: string,
+  location: string | string[],
   area: string,
   prioridades: string[],
   dateFrom: string,
