@@ -199,7 +199,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 
 	const openModalAgregarSeg = () =>{
 		setSeguimientoSeleccionado(data)
-		setOpenModal(!openModal)
+		setOpenModal(true)
 	}
 
 	const form = useForm<z.infer<typeof formSchema>>({
@@ -209,7 +209,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 			fecha_hora_incidencia: data.fecha_hora_incidencia||"",
 			ubicacion_incidencia: data.ubicacion_incidencia||"",
 			area_incidencia:  data.area_incidencia||"",
-			incidencia: data.incidencia||"",
+			incidencia: data.incidencia || data.incidente || "",
 			comentario_incidencia: data.comentario_incidencia||"",
 			// tipo_dano_incidencia: data.tipo_dano_incidencia ||"",
 			dano_incidencia: data.dano_incidencia||"",
@@ -223,7 +223,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 			//Categoria
 			categoria:data.categoria||"",
 			sub_categoria:data.sub_categoria||"",
-			incidente:data.incidencia||"",
+			incidente: data.incidencia || data.incidente || "",
 
 			//Grupos repetitivos
 			personas_involucradas_incidencia:personasInvolucradas,
@@ -328,7 +328,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 			console.log("data.categoria", data.categoria)
 			setCategoria(data.categoria)
 			setSubCategoria(data.sub_categoria)
-			setSelectedIncidencia(data.incidente)
+			setSelectedIncidencia(data.incidencia || data.incidente || "")
 			setDepositos(data.datos_deposito_incidencia	)
 			handleOpenModal()
 		}

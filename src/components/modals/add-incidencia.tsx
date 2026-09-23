@@ -706,7 +706,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
   };
 
   const openModalAgregarSeg = () => {
-    setOpenModal(!openModal);
+    setOpenModal(true);
   };
 
   const handleEdit = (item: any, index: number) => {

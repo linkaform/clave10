@@ -80,7 +80,7 @@ export function applyIncidenciasFilters(
 
     // Incidente
     if (dynamic.tipo_incidencia) {
-      const incidenciaFilter = Array.isArray(dynamic.incidencia)
+      const incidenciaFilter = Array.isArray(dynamic.tipo_incidencia)
         ? dynamic.tipo_incidencia : [dynamic.tipo_incidencia];
       const itemIncidencia = normalize(item.incidencia);
       if (!incidenciaFilter.some((i: string) => normalize(i) === itemIncidencia)) return false;
