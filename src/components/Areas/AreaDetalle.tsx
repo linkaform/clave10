@@ -74,7 +74,7 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
     : null;
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 min-h-screen px-4 pt-2">
+    <div className="flex flex-col bg-gray-50 min-h-screen px-4 pt-2">
       {/* Header */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-5 mb-4">
         <div className="flex items-center justify-between">
@@ -236,9 +236,9 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
 
         <div className="px-2 pb-2">
           {activeTab === "rondines" ? (
-            <RondinesAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
+            <RondinesAreaDashboard areaId={normalized.recordId} />
           ) : activeTab === "incidencias" ? (
-            <IncidenciasAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
+            <IncidenciasAreaDashboard areaId={normalized.recordId} />
           ) : activeTab === "checks" ? (
             <ChecksAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
           ) : activeTab === "fallas" ? (

@@ -2,7 +2,7 @@
 
 import React, { Suspense, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LayoutGrid, LayoutList, Sheet, X } from "lucide-react";
+import { LayoutGrid, LayoutList, Plus, Sheet, X } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { AreasUbicacionesTabs } from "@/components/common/AreasUbicacionesTabs";
@@ -14,6 +14,7 @@ import { AreasExplorerTable } from "@/components/table/areas-explorer/table";
 import { ViewMode } from "@/lib/utils";
 import { SearchFieldsFilter, SearchFieldOption } from "@/components/common/SearchFieldsFilter";
 import PaginationPases from "@/components/pages/pases/PaginationPases";
+import { NuevaAreaModal } from "@/components/Areas/NuevaAreaModal";
 
 // Campos por los que se puede acotar la búsqueda en el explorador de Áreas.
 // key = tal cual lo espera el back en search_fields (get_areas_details).
@@ -36,6 +37,7 @@ const AreasContent = () => {
   const [selectedAreaId, setSelectedAreaId] = React.useState<string | null>(idParam);
   const [searchFieldsAreas, setSearchFieldsAreas] = React.useState<string[]>([]);
   const [resetSignalAreas, setResetSignalAreas] = React.useState(0);
+  const [nuevaAreaOpen, setNuevaAreaOpen] = React.useState(false);
   const [limitAreas, setLimitAreas] = React.useState(25);
   const [skipAreas, setSkipAreas] = React.useState(0);
 
@@ -148,6 +150,14 @@ const AreasContent = () => {
             <X size={16} />
           </Button>
 
+          <Button
+            onClick={() => setNuevaAreaOpen(true)}
+            className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+          >
+            <Plus size={16} />
+            Nueva área
+          </Button>
+
           <AreasUbicacionesTabs active="areas" />
 
           <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
@@ -185,6 +195,8 @@ const AreasContent = () => {
           />
         )}
       </div>
+
+      <NuevaAreaModal open={nuevaAreaOpen} onOpenChange={setNuevaAreaOpen} />
     </div>
   );
 };

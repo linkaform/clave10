@@ -131,13 +131,14 @@ export function FallasAreaDashboard({ ubicacion, area }: { ubicacion: string; ar
           <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
             Últimos comentarios
           </h4>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col divide-y divide-gray-100">
             {kpis.ultimosComentarios.map((falla) => (
-              <div key={falla.folio} className="text-sm text-gray-600 flex items-start justify-between gap-3">
-                <span className="flex-1">{falla.falla_comentarios}</span>
-                <span className="text-xs text-gray-400 whitespace-nowrap">
-                  {falla.falla_fecha_hora || falla.created_at}
-                </span>
+              <div key={falla.folio} className="flex flex-col gap-1 py-2 first:pt-0 last:pb-0 min-w-0">
+                <div className="flex items-center justify-between gap-3 text-xs text-gray-400">
+                  <span className="font-medium text-gray-500 truncate min-w-0">{falla.falla || "Falla"}</span>
+                  <span className="whitespace-nowrap shrink-0">{falla.falla_fecha_hora || falla.created_at}</span>
+                </div>
+                <p className="text-sm text-gray-600 break-words whitespace-pre-line">{falla.falla_comentarios}</p>
               </div>
             ))}
           </div>
@@ -246,7 +247,9 @@ function FallaCard({ falla }: { falla: AreaFallaItem }) {
         {falla.falla_reporta_nombre && <span>{falla.falla_reporta_nombre}</span>}
       </div>
 
-      {falla.falla_comentarios && <p className="text-sm text-gray-600">{falla.falla_comentarios}</p>}
+      {falla.falla_comentarios && (
+        <p className="text-sm text-gray-600 break-words whitespace-pre-line">{falla.falla_comentarios}</p>
+      )}
 
       {falla.falla_responsable_solucionar_nombre && (
         <p className="text-xs text-gray-500">
