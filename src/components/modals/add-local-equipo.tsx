@@ -82,10 +82,10 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
     value: tipo,
     label: tipo,
   }));
-  const { userIdSoter } = useAuthStore();
-  console.log(userId, userIdSoter)
+  const { userParentId } = useAuthStore();
   const { data: tiposEquiposData, isLoading: loadingTipos } = useGetTipoEquipos({
-    account_id: Number(userId) || Number(userIdSoter) || 0,
+    // Los tipos de equipo son de la cuenta: se manda el id del padre, no el del usuario hijo.
+    account_id: Number(userId) || Number(userParentId) || 0,
     isModalOpen: open,
   });
   const catTiposEquipos = (Array.isArray(tiposEquiposData) ? tiposEquiposData : tiposEquiposData?.data ?? []).map((tipo: string) => ({
