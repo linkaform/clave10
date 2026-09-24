@@ -30,18 +30,18 @@ Esto va a arrancar el proyecto algo asi:
 $ docker compose up
 WARN[0000] Found orphan containers ([lkf-addons]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up. 
 [+] Running 1/1
- ✔ Container soter  Created                                                                                                                                                              0.0s 
-Attaching to soter
+ ✔ Container clave10  Created                                                                                                                                                              0.0s 
+Attaching to clave10
 yarn run v1.22.22
 $ next dev --turbopack
-soter  |    ▲ Next.js 15.0.2 (Turbopack)
-soter  |    - Local:        http://localhost:3000
-soter  | 
-soter  |  ✓ Starting...
-soter  | Attention: Next.js now collects completely anonymous telemetry regarding usage.
-soter  | This information is used to shape Next.js' roadmap and prioritize features.
-soter  | You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
-soter  | https://nextjs.org/telemetry
+clave10  |    ▲ Next.js 15.0.2 (Turbopack)
+clave10  |    - Local:        http://localhost:3000
+clave10  | 
+clave10  |  ✓ Starting...
+clave10  | Attention: Next.js now collects completely anonymous telemetry regarding usage.
+clave10  | This information is used to shape Next.js' roadmap and prioritize features.
+clave10  | You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+clave10  | https://nextjs.org/telemetry
 ```
 
 Una vez que saga esto, ingresa en tu navegador a `http://localhost:3000`

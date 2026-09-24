@@ -32,7 +32,7 @@ COPY *.config.* /srv/
 ####################################
 # Image for Production                #
 ####################################
-FROM linkaform/soter:develop as prod
+FROM linkaform/clave10:develop as prod
 
 
 USER node
