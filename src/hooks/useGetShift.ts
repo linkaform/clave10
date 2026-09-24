@@ -55,7 +55,8 @@ export const useGetShift = (area?: string,
     if (shift?.location?.name || shift?.guard?.location) {
       setBooth(
         shift?.location?.area || shift?.guard?.area,
-        shift?.location?.name || shift?.guard?.location
+        shift?.location?.name || shift?.guard?.location,
+        shift?.location?.extra_locations ?? []
       );
     }
 

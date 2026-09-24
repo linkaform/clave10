@@ -31,11 +31,11 @@ export const ActivePassesModal: React.FC<ActivePassesModalProps> = ({
   setOpen,
   input,
 }) => {
-  const { location } = useBoothStore();
+  const { location, area } = useBoothStore();
   const { setPassCode, passCode } = useAccessStore();
   const [searchText, setSearchText] = useState("");
 
-  const { data: activePasses, isLoadingPasses } = usePasses(location??"");
+  const { data: activePasses, isLoadingPasses } = usePasses(location??"", area??"");
 
   useEffect(() => {
     if (open) {

@@ -65,9 +65,12 @@ export const fetchTemporalPasses = async ({
 
 export const fetchPasesActivos = async ({
   location = "",
+  area = "",
 }) => {
   const payload = {
     location,
+    // El backend arma con el área las ubicaciones de una caseta multiubicación.
+    area,
     option: "lista_pases",
     script_name: "script_turnos.py",
   };

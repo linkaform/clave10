@@ -74,7 +74,7 @@ const AccesosContent = () => {
   const pathname = usePathname();
   const actionParam = searchParams.get("action");
   const { isAuth, userParentId } = useAuthStore();
-  const { area, location } = useBoothStore();
+  const { area, location, extra_locations } = useBoothStore();
   const { excludes }= useMenuStore()
   const { shift, isLoading:loadingShift, turno, downloadPass} = useGetShift(area,location);
   const {setTab, setFilter, setOption} = useShiftStore();
@@ -119,7 +119,10 @@ const AccesosContent = () => {
   const [inputValue, setInputValue] = useState("");
   const [openActivePases, setOpenActivePases] = useState(false);
   const queryClient = useQueryClient();
-  const [debouncedValue, setDebouncedValue] = useState("");
+  // Objeto (no string) para que buscar el mismo QR dos veces seguidas vuelva a disparar
+  // la búsqueda: un string igual no cambia el estado y el efecto no corre.
+  const [debounced, setDebounced] = useState<{ value: string }>({ value: "" });
+  const debouncedValue = debounced.value;
   const { data: stats } = useGetStats(
     true,
     location ?? "",
@@ -373,7 +376,7 @@ const AccesosContent = () => {
   useEffect(() => {
     if (inputValue) {
       const handler = setTimeout(() => {
-        setDebouncedValue(inputValue);
+        setDebounced({ value: inputValue });
       }, 700);
       return () => clearTimeout(handler);
     }
@@ -395,7 +398,7 @@ const AccesosContent = () => {
       setPassCode("");
       setInputValue("");
     }
-  }, [debouncedValue]);
+  }, [debounced]);
 
   function setTabAndFilter(tab: string, filter: string, option: string[]) {
     setTab(tab);
@@ -604,7 +607,7 @@ const AccesosContent = () => {
 					<Button
 						className="bg-red-500 hover:bg-red-600 text-white"
 						variant="secondary"
-						onClick={() =>{ setDebouncedValue(""); clearPassCode(); }}
+						onClick={() =>{ setDebounced({ value: "" }); clearPassCode(); }}
 					>
 						<Eraser className="text-white" />
 
@@ -663,7 +666,14 @@ const AccesosContent = () => {
 		{!searchPass ?
 	  	<div className="flex flex-col justify-center items-center gap-10 mt-20 overflow-hidden">
 				<div className="flex flex-col justify-center w-1/6 gap-2">
-					<Input placeholder="Ubicacion" value={location} disabled/>
+					{/* Caseta multiubicación: resumen como en el selector del header, nombres en el title. */}
+					<div title={extra_locations?.length > 0 ? [location, ...extra_locations].join(", ") : undefined}>
+						<Input
+							placeholder="Ubicacion"
+							value={extra_locations?.length > 0 ? `${extra_locations.length + 1} ubicaciones` : location}
+							disabled
+						/>
+					</div>
 					<Input placeholder="Area" value={area} disabled/>
 				</div>
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-5">

@@ -24,6 +24,7 @@ import { MegaMenu } from "./mega-menu";
 import { MobileMenu } from "./mobile-menu";
 import type { MenuConfig } from "@/types/menu-types";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
+import { useLocationOptions } from "@/hooks/useLocationOptions";
 
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { cn } from "@/lib/utils";
@@ -57,7 +58,8 @@ export function Header({
   },
   onLogout,
 }: HeaderProps) {
-  const { locations, fetchLocations } = useAreasLocationStore();
+  const { fetchLocations } = useAreasLocationStore();
+  const locations = useLocationOptions();
   const { selectedLocations, toggleLocation } = useSelectedLocationsStore();
 
   useEffect(() => {

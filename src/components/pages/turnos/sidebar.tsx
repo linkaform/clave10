@@ -19,7 +19,7 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { userEmailSoter, userNameSoter, userPhoto, userIdSoter , setUserPhoto} = useAuthStore();
   const [openNombreSuplenteModal, setOpenNombreSuplenteModal] = useState(false)
-  const { location, area} = useBoothStore()
+  const { location, area, extra_locations } = useBoothStore()
   const getInitials = (name: string | null) => {
     if (!name) return "N/A";
     return name
@@ -144,6 +144,19 @@ const Sidebar = ({shift, nombreSuplente, setNombreSuplente, onSuplenteConfirmado
             <p className="font-bold">{area || "---"}</p>
           </div>
         </div>
+
+        {extra_locations?.length > 0 && (
+          <div className="flex flex-col">
+            <p>Ubicaciones adicionales:</p>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {extra_locations.map((loc) => (
+                <Badge key={loc} variant="secondary" className="font-bold">
+                  {loc}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
 
         <ChangeBoothModal title="Cambiar caseta">
           <Button

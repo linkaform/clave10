@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { MenuModule } from "@/types/menu-types";
-import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
+import { useLocationOptions } from "@/hooks/useLocationOptions";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 
 interface MobileMenuProps {
@@ -50,7 +50,7 @@ export function MobileMenu({ modules, basePath = "/dashboard" }: MobileMenuProps
   const [open, setOpen] = React.useState(false);
   const sortedModules = [...modules].sort((a, b) => a.order - b.order);
 
-  const { locations } = useAreasLocationStore();
+  const locations = useLocationOptions();
   const { selectedLocations, toggleLocation } = useSelectedLocationsStore();
   const locationLabel =
     selectedLocations.length === 0
