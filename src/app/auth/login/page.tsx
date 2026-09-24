@@ -82,7 +82,11 @@ export default function LoginPage() {
             shiftData?.response?.data?.location?.name ||
             shiftData?.response?.data?.guard?.location;
 
-          setBooth(area, location);
+          setBooth(
+            area,
+            location,
+            shiftData?.response?.data?.location?.extra_locations ?? []
+          );
 
           queryClient.setQueryData(["getShift"], shiftData?.response?.data);
         }

@@ -29,11 +29,11 @@ export const useSelectedLocationsStore = create<SelectedLocationsState>()(
         if (state) {
           state.selectedLocations = state.selectedLocations.filter(Boolean);
           if (state.selectedLocations.length === 0) {
-            const boothLocation = JSON.parse(
+            const booth = JSON.parse(
               localStorage.getItem("booth-storage") ?? "{}"
-            )?.state?.location;
-            if (boothLocation) {
-              state.selectedLocations = [boothLocation];
+            )?.state;
+            if (booth?.location) {
+              state.selectedLocations = [booth.location, ...(booth.extra_locations ?? [])];
             }
           }
         }

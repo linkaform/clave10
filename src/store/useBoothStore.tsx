@@ -32,7 +32,7 @@ export const useBoothStore = create<BoothState>()(
         if (location && involvesMulti && (boothChanged || extrasChanged)) {
           setSelectedLocations([location, ...extra_locations]);
         } else if (selectedLocations.length === 0 && location) {
-          setSelectedLocations([location]);
+          setSelectedLocations([location, ...extra_locations]);
         }
       },
 
