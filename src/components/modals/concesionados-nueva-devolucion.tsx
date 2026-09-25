@@ -33,7 +33,7 @@ import LoadImage from "../upload-Image";
 import { EquipoConcesionado } from "../concesionados-tab-datos";
 import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
 import { useDevolucionEquipo } from "@/hooks/Concesionados/useDevolverConcesionado";
-import { Loader2 } from "lucide-react";
+import { Loader2, Package, User } from "lucide-react";
 
 interface NuevaDevolucionModalProps {
   title: string;
@@ -48,12 +48,20 @@ const formSchema = z.object({
   entrega_tipo: z.string().min(1, { message: "Este campo es obligatorio" }),
   entrega_concesion: z.string().optional(),
   entrega_concesion_otro: z.string().optional(),
+  entrega_company: z.string().optional(),
   estatus: z.string().min(1, { message: "Este campo es obligatorio" }),
   unidades: z.coerce.number().min(0).optional(),
   comentarios: z.string().optional(),
   evidencia: z.array(z.any()).optional(),
   precio: z.number().optional(), 
   identificacion_entrega: z.array(z.any()).optional(),
+}).superRefine((values, ctx) => {
+  if (values.entrega_tipo === "empleado" && !values.entrega_concesion?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["entrega_concesion"], message: "Selecciona a la persona que devuelve" });
+  }
+  if (values.entrega_tipo === "otro" && !values.entrega_concesion_otro?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["entrega_concesion_otro"], message: "Escribe el nombre de la persona que devuelve" });
+  }
 });
 
 export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = ({
@@ -73,14 +81,16 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      entrega_tipo: "",
+      entrega_tipo: "empleado",
       entrega_concesion: "",
       entrega_concesion_otro: "",
+      entrega_company: "",
       estatus: "",
       unidades: 0,
       comentarios: "",
       evidencia: [],
       precio: 0,
+      identificacion_entrega: [],
     },
   });
 
@@ -89,7 +99,11 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
   useEffect(() => {
     if (isSuccess) {
       reset({
-        entrega_tipo: "",
+        entrega_tipo: "empleado",
+        entrega_concesion: "",
+        entrega_concesion_otro: "",
+        entrega_company: "",
+        identificacion_entrega: [],
         estatus: "",
         unidades: 0,
         evidencia: [],
@@ -125,7 +139,7 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
         quien_entrega: values.entrega_tipo === "empleado"
           ? values.entrega_concesion ?? ""
           : values.entrega_concesion_otro ?? "",
-        quien_entrega_company: "",
+        quien_entrega_company: values.entrega_tipo === "otro" ? values.entrega_company ?? "" : "",
         identificacion_entrega: values.identificacion_entrega ? values.identificacion_entrega[0] : [],
         equipos: [{
           id_movimiento: equipoSelecionado?.id_movimiento ?? "",
@@ -142,10 +156,11 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
         record_id: dataConcesion?._id ?? "",
         status: "total",
         state: traducirEstatus(values.estatus) ?? "complete",
+        entregado_por: values.entrega_tipo as "empleado" | "otro",
         quien_entrega: values.entrega_tipo === "empleado"
           ? values.entrega_concesion ?? ""
           : values.entrega_concesion_otro ?? "",
-        company: values.entrega_concesion_otro ?? "",
+        company: values.entrega_tipo === "otro" ? values.entrega_company ?? "" : "",
         identificacion_entrega: values.identificacion_entrega?.[0] ?? undefined,
         comentario_entrega: values.comentarios ?? "",
         evidencia: values.evidencia ?? [],
@@ -166,176 +181,180 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
   
   const handleClose = () => setIsSuccess(false);
   const tipoCon = form.watch("entrega_tipo");
+
+  const labelClass = "text-xs font-semibold text-gray-500 uppercase tracking-wide";
+  const optionClass = (active: boolean) =>
+    `px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+      active
+        ? "bg-blue-600 text-white shadow-sm"
+        : "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50"
+    }`;
+
   return (
     <Dialog onOpenChange={setIsSuccess} open={isSuccess} modal>
       <DialogTrigger>{children}</DialogTrigger>
 
       <DialogContent
-        className="max-w-lg max-h-[90vh] flex flex-col bg-white p-0 overflow-hidden"
+        className="max-w-3xl max-h-[90vh] flex flex-col bg-white p-0 overflow-hidden"
         onInteractOutside={(e) => e.preventDefault()}
         aria-describedby=""
       >
         <DialogHeader className="flex-shrink-0 bg-white px-6 py-5 border-b">
           <DialogTitle className="text-2xl text-center font-bold text-gray-800">
-            {equipoSelecionado ? title:"Devolución Total"}
+            {equipoSelecionado ? title : "Devolución Total"}
           </DialogTitle>
           <p className="text-center text-sm text-gray-400">Registra la devolución del equipo</p>
         </DialogHeader>
 
-        <div className="flex-grow overflow-y-auto px-6  ">
-
-
+        <div className="flex-grow overflow-y-auto px-6 pb-2">
           <Form {...form}>
-            <form >
-              <div className=" py-2">
-                <FormField
-                  control={form.control}
-                  name="entrega_tipo"
-                  defaultValue="si"
-                  render={({ field }: any) => (
-                    <FormItem>
-                      <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Entrega
-                      </FormLabel>
-                      <FormControl>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => { field.onChange("empleado"); form.setValue("entrega_concesion", ""); }}
-                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                              field.value === "empleado"
-                                ? "bg-blue-600 text-white shadow-sm"
-                                : "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50"
-                            }`}
-                          >
-                            Empleado
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { field.onChange("otro"); form.setValue("entrega_concesion_otro", ""); }}
-                            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                              field.value === "otro"
-                                ? "bg-blue-600 text-white shadow-sm"
-                                : "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50"
-                            }`}
-                          >
-                            Otro
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-               <div className="mt-2 ">
-               {tipoCon === "otro" && (
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 pb-2">
+              <div className="flex flex-col order-1 md:order-none">
+                <div className="flex items-center gap-2 pt-3 pb-1">
+                  <User className="text-blue-500 w-5 h-5" />
+                  <h3 className="font-semibold text-gray-700">Información de quien devuelve</h3>
+                </div>
+                <div className="py-2">
                   <FormField
                     control={form.control}
-                    name="entrega_concesion_otro"
+                    name="entrega_tipo"
                     render={({ field }: any) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          Persona
-                        </FormLabel>
+                        <FormLabel className={labelClass}>¿Quién devuelve?</FormLabel>
                         <FormControl>
-                          <Input placeholder="Nombre de la persona" className="bg-white border-gray-200" {...field} />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => { field.onChange("empleado"); form.setValue("entrega_concesion", ""); }}
+                              className={optionClass(field.value === "empleado")}
+                            >
+                              Empleado
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { field.onChange("otro"); form.setValue("entrega_concesion_otro", ""); }}
+                              className={optionClass(field.value === "otro")}
+                            >
+                              Otro
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                )}
-               </div>
-      
-
-                {/* {tipoCon === "otro" && (
-                  <Controller
-                    control={form.control}
-                    name="evidencia"
-                    render={({ field, fieldState }) => (
-                      <div className="flex flex-col">
-                        <LoadImage
-                          id="identificacion"
-                          titulo="Identificación"
-                          imgArray={field.value || []}
-                          setImg={field.onChange}
-                          showWebcamOption={true}
-                          facingMode="environment"
-                          limit={10}
-                        />
-                        {fieldState.error && (
-                          <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>
-                        )}
-                      </div>
-                    )}
-                  />
-                )} */}
+                </div>
 
                 {tipoCon === "empleado" && (
-                  <><FormField
-                    control={form.control}
-                    name="entrega_concesion"
-                    render={({ field }: any) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          Persona
-                        </FormLabel>
-                        <Select {...field} onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="bg-white border-gray-200">
-                              <SelectValue placeholder={loadingAreaEmpleadoApoyo ? "Cargando empleados..." :
-                                dataAreaEmpleadoApoyo?.length > 0 ? "Selecciona una opción..." :
-                                  "Sin opciones disponibles"} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {dataAreaEmpleadoApoyo?.length > 0
-                              ? dataAreaEmpleadoApoyo.map((item: string, index: number) => (
-                                <SelectItem key={index} value={item}>{item}</SelectItem>
-                              ))
-                              : <SelectItem disabled value="no opciones">No hay opciones disponibles</SelectItem>}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </>
+                  <div className="py-2">
+                    <FormField
+                      control={form.control}
+                      name="entrega_concesion"
+                      render={({ field }: any) => (
+                        <FormItem>
+                          <FormLabel className={labelClass}>Persona</FormLabel>
+                          <Select {...field} onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-white border-gray-200">
+                                <SelectValue placeholder={loadingAreaEmpleadoApoyo ? "Cargando empleados..." :
+                                  dataAreaEmpleadoApoyo?.length > 0 ? "Selecciona una opción..." :
+                                    "Sin opciones disponibles"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {dataAreaEmpleadoApoyo?.length > 0
+                                ? dataAreaEmpleadoApoyo.map((item: string, index: number) => (
+                                  <SelectItem key={index} value={item}>{item}</SelectItem>
+                                ))
+                                : <SelectItem disabled value="no opciones">No hay opciones disponibles</SelectItem>}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 )}
-              </div>
 
-              <div className="  py-2">
-                      <h3 className="font-semibold text-gray-500 mb-3 text-xs uppercase">Fotografia</h3>
-                      <Controller
+                {tipoCon === "otro" && (
+                  <>
+                    <div className="py-2">
+                      <FormField
                         control={form.control}
-                        name="identificacion_entrega"
-                        render={({ field, fieldState }) => (
-                          <div className="flex flex-col">
-                            <LoadImage
-                              id="fotografia"
-                              titulo="Fotografía de la persona"
-                              showWebcamOption={true}
-                              imgArray={field.value || []}
-                              setImg={(imgs) => field.onChange(imgs)}
-                              facingMode="user"
-                              limit={10} />
-                            {fieldState.error && (
-                              <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>
-                            )}
-                          </div>
-                        )} />
-                    </div>
-                    {equipoSelecionado!==null &&
-                    <div className=" py-0">
-                        <FormField
-                        control={form.control}
-                        name="unidades"
+                        name="entrega_concesion_otro"
                         render={({ field }: any) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                              Unidades entregadas
-                            </FormLabel>
+                            <FormLabel className={labelClass}>Persona</FormLabel>
                             <FormControl>
+                              <Input placeholder="Nombre de la persona" className="bg-white border-gray-200" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="py-2">
+                      <FormField
+                        control={form.control}
+                        name="entrega_company"
+                        render={({ field }: any) => (
+                          <FormItem>
+                            <FormLabel className={labelClass}>Empresa</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Empresa (opcional)" className="bg-white border-gray-200" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </>
+                )}
+
+              </div>
+
+              {/* Columna derecha: datos de la devolución */}
+              <div className="flex flex-col order-3 md:order-none">
+                <div className="flex items-center gap-2 pt-3 pb-1">
+                  <Package className="text-blue-500 w-5 h-5" />
+                  <h3 className="font-semibold text-gray-700">Detalle de la devolución</h3>
+                </div>
+                <div className="py-2">
+                  <FormField
+                    control={form.control}
+                    name="estatus"
+                    render={({ field }: any) => (
+                      <FormItem>
+                        <FormLabel className={labelClass}>Estado</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-2 flex-wrap">
+                            {["completo", "perdido", "dañado"].map((val) => (
+                              <button
+                                key={val}
+                                type="button"
+                                onClick={() => field.onChange(val)}
+                                className={optionClass(field.value === val).replace("px-6", "px-5")}
+                              >
+                                {val.charAt(0).toUpperCase() + val.slice(1)}
+                              </button>
+                            ))}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {equipoSelecionado !== null && (
+                  <div className="py-2">
+                    <FormField
+                      control={form.control}
+                      name="unidades"
+                      render={({ field }: any) => (
+                        <FormItem>
+                          <FormLabel className={labelClass}>Unidades entregadas</FormLabel>
+                          <FormControl>
                             <Input
                               type="number"
                               placeholder="0"
@@ -352,7 +371,6 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                                 } else {
                                   field.onChange(val);
                                 }
-                                console.log("value", val)
                               }}
                               onBlur={(e) => {
                                 const pendientes = Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
@@ -361,104 +379,76 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                                 field.onChange(clamped);
                               }}
                             />
-                            </FormControl>
-                            <p className="text-xs text-gray-400 mt-1">
-                            {(() => {
-                              const devueltos = typeof equipoSelecionado?.cantidad_equipo_devuelto === "object"
-                                ? (equipoSelecionado?.cantidad_equipo_devuelto as any)?.parsedValue ?? 0
-                                : Number(equipoSelecionado?.cantidad_equipo_devuelto ?? 0);
-
-                              const total = typeof equipoSelecionado?.cantidad_equipo_concesion === "object"
-                                ? (equipoSelecionado?.cantidad_equipo_concesion as any)?.parsedValue ?? 0
-                                : Number(equipoSelecionado?.cantidad_equipo_concesion ?? 0);
-
-                              const pendientes = typeof equipoSelecionado?.cantidad_equipo_pendiente === "object"
-                                ? (equipoSelecionado?.cantidad_equipo_pendiente as any)?.parsedValue ?? 0
-                                : Number(equipoSelecionado?.cantidad_equipo_pendiente ?? 0);
-
-                              const pendientesReal = pendientes === 0 ? total - devueltos : pendientes;
-
-                              return `${devueltos} de ${total} devueltos — Pendientes: ${pendientesReal}`;
-                            })()}
+                          </FormControl>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {devueltos} de {total} devueltos — Pendientes: {pendientes}
                           </p>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
 
-               <div className="py-2">
-               <FormField
-                  control={form.control}
-                  name="estatus"
-                  defaultValue="completo"
-                  render={({ field }: any) => (
-                    <FormItem>
-                      <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Estado
-                      </FormLabel>
-                      <FormControl>
-                        <div className="flex gap-2 flex-wrap">
-                          {["completo", "perdido", "dañado"].map((val) => (
-                            <button
-                              key={val}
-                              type="button"
-                              onClick={() => field.onChange(val)}
-                              className={`px-5 py-2 rounded-lg text-sm font-medium capitalize transition-all duration-200 ${
-                                field.value === val
-                                  ? "bg-blue-600 text-white shadow-sm"
-                                  : "border border-blue-400 text-blue-600 bg-white hover:bg-blue-50"
-                              }`}
-                            >
-                              {val.charAt(0).toUpperCase() + val.slice(1)}
-                            </button>
-                          ))}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-               </div>
+                <div className="py-2">
+                  <FormField
+                    control={form.control}
+                    name="comentarios"
+                    render={({ field }: any) => (
+                      <FormItem>
+                        <FormLabel className={labelClass}>Comentarios</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Escribe un comentario..."
+                            className="resize-none bg-white border-gray-200"
+                            onChange={(e) => field.onChange(e)}
+                            value={field.value || ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                <div className="mt-2">
-				        <FormField
-                  control={form.control}
-                  name="comentarios"
-                  render={({ field }: any) => (
-                    <FormItem>
-                      <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Comentarios
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Escribe un comentario..."
-                          className="resize-none bg-white border-gray-200"
-                          onChange={(e) => field.onChange(e)}
-                          value={field.value || ""}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
-              <div className=" mt-3">
-              <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Evidencia de la devolución
-                      </FormLabel>
+
+              {/* Fila de imágenes: misma altura en ambas columnas */}
+              <div className="py-2 order-2 md:order-none">
+                <span className={`${labelClass} block mb-2`}>Fotografía de la persona que devuelve</span>
+                <Controller
+                  control={form.control}
+                  name="identificacion_entrega"
+                  render={({ field, fieldState }) => (
+                    <div className="flex flex-col">
+                      <LoadImage
+                        id="fotografia"
+                        titulo="Fotografía"
+                        showWebcamOption={true}
+                        imgArray={field.value || []}
+                        setImg={(imgs) => field.onChange(imgs)}
+                        facingMode="user"
+                        limit={10} />
+                      {fieldState.error && (
+                        <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>
+                      )}
+                    </div>
+                  )} />
+              </div>
+              <div className="py-2 order-4 md:order-none">
+                <span className={`${labelClass} block mb-2`}>Evidencia de la devolución</span>
                 <Controller
                   control={form.control}
                   name="evidencia"
                   render={({ field, fieldState }) => (
                     <div className="flex flex-col">
                       <LoadImage
-                        id="fotografia"
-                        titulo="Cargar evidencia..."
+                        id="evidencia_devolucion"
+                        titulo="Evidencia"
                         showWebcamOption={true}
                         imgArray={field.value || []}
                         setImg={(imgs) => field.onChange(imgs)}
-                        facingMode="user"
+                        facingMode="environment"
                         limit={10}
                       />
                       {fieldState.error && (
@@ -468,7 +458,6 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
                   )}
                 />
               </div>
-
             </form>
           </Form>
         </div>
@@ -479,17 +468,17 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
               Cancelar
             </Button>
           </DialogClose>
-		  <Button
-			onClick={form.handleSubmit(onSubmit)}
-			disabled={isLoading}
-			className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
-			>
-			{isLoading ? (
-				<><Loader2 className="animate-spin mr-2" /> Realizando devolución...</>
-			) : (
-				"Devolver"
-			)}
-			</Button>
+          <Button
+            onClick={form.handleSubmit(onSubmit)}
+            disabled={isLoading}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
+          >
+            {isLoading ? (
+              <><Loader2 className="animate-spin mr-2" /> Realizando devolución...</>
+            ) : (
+              "Devolver"
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

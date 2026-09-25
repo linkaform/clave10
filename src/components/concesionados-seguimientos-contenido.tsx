@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, PackageCheck, RotateCcw } from "lucide-react";
+import { Loader2, Package, PackageCheck, RotateCcw, User } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -31,6 +31,7 @@ const formSchema = z.object({
   entrega_tipo: z.string().optional(),
   entrega_concesion: z.string().optional(),
   entrega_concesion_otro: z.string().optional(),
+  entrega_company: z.string().optional(),
   identificacion_entrega: z.array(z.any()).optional(),
   firma: z.any().optional(),
 });
@@ -106,6 +107,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
       entrega_tipo: "empleado",
       entrega_concesion: "",
       entrega_concesion_otro: "",
+      entrega_company: "",
       identificacion_entrega: [],
       firma: undefined,
     },
@@ -137,6 +139,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
     quien_entrega: formValues.entrega_tipo === "empleado"
       ? formValues.entrega_concesion ?? ""
       : formValues.entrega_concesion_otro ?? "",
+    quien_entrega_company: formValues.entrega_tipo === "otro" ? formValues.entrega_company ?? "" : "",
     identificacion_entrega: formValues.identificacion_entrega ?? [],
     firma: formValues.firma,
   };
@@ -163,7 +166,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
 
   function handleDevolver() {
     setIntentoEnvio(true);
-    if (errores.persona) { toast.warning("Selecciona o escribe la persona que entrega."); return; }
+    if (errores.persona) { toast.warning("Selecciona o escribe la persona que devuelve."); return; }
     if (errores.firmaSubiendo) { toast.warning("Espera a que termine de subir la firma."); return; }
     if (errores.firma) { toast.warning("Escribe tu firma para continuar."); return; }
     if (errores.identificacion) { toast.warning("Agrega la fotografía de identificación."); return; }
@@ -190,7 +193,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
       status: "parcial",
       entregado_por: dataDevolucion.entrega_tipo as string,
       quien_entrega: dataDevolucion.quien_entrega,
-      quien_entrega_company: dataDevolucion.entrega_tipo === "otro" ? dataDevolucion.quien_entrega : undefined,
+      quien_entrega_company: dataDevolucion.quien_entrega_company || undefined,
       identificacion_entrega: dataDevolucion.identificacion_entrega?.[0] ?? undefined,
       firma: dataDevolucion.firma,
       equipos: equiposMutate,
@@ -205,6 +208,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
           entrega_tipo: "empleado",
           entrega_concesion: "",
           entrega_concesion_otro: "",
+          entrega_company: "",
           identificacion_entrega: [],
           firma: undefined,
         });
@@ -218,6 +222,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
       entrega_tipo: "empleado",
       entrega_concesion: "",
       entrega_concesion_otro: "",
+      entrega_company: "",
       identificacion_entrega: [],
       firma: undefined,
     });
@@ -240,13 +245,23 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
   return (
     <>
       <div className="flex-grow overflow-y-auto px-6">
-        <div className="p-5 border-b space-y-4">
+        <div
+          className={
+            data.status_concesion !== "devuelto"
+              ? "mt-5 p-5 space-y-4 rounded-xl border border-blue-200 bg-blue-100/40"
+              : "p-5 border-b space-y-4"
+          }
+        >
 
           {data.status_concesion !== "devuelto" ? (
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-gray-500 uppercase font-semibold">
-                Rellena los datos para realizar la devolución
-              </p>
+            <div className="flex flex-wrap justify-between items-center gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <User className="text-blue-500 w-5 h-5" />
+                  <h3 className="font-semibold text-gray-700">Información de quien devuelve</h3>
+                </div>
+                <p className="text-sm text-gray-400 mt-0.5">Rellena los datos para realizar la devolución</p>
+              </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-1.5">
                   <span className="text-xs font-semibold text-red-500">Pendientes:</span>
@@ -282,13 +297,13 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
                     render={({ field }: any) => (
                       <FormItem>
                         <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          Entrega
+                          ¿Quién devuelve?
                         </FormLabel>
                         <FormControl>
                           <div className="flex gap-2">
                             <button
                               type="button"
-                              onClick={() => { field.onChange("empleado"); form.setValue("entrega_concesion_otro", ""); }}
+                              onClick={() => { field.onChange("empleado"); form.setValue("entrega_concesion_otro", ""); form.setValue("entrega_company", ""); }}
                               className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                                 field.value === "empleado"
                                   ? "bg-blue-600 text-white shadow-sm"
@@ -317,8 +332,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
 
                 {(tipoCon === "empleado" || tipoCon === "otro") && (
                   <>
-                    <div className="col-span-1 flex flex-col gap-3">
-
+                    <div className="col-start-1 row-start-2">
                       {tipoCon === "empleado" && (
                           <FormField
                             control={form.control}
@@ -326,7 +340,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
                             render={({ field }: any) => (
                               <FormItem>
                                 <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                  Nombre de la persona que devuelve
+                                  Persona
                                 </FormLabel>
                                 <FormControl>
                                   <SearchSelect
@@ -348,7 +362,7 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
                                   />
                                 </FormControl>
                                 {intentoEnvio && errores.persona && (
-                                  <p className="text-xs text-red-500 mt-1">Selecciona la persona que entrega</p>
+                                  <p className="text-xs text-red-500 mt-1">Selecciona la persona que devuelve</p>
                                 )}
                               </FormItem>
                             )}
@@ -378,7 +392,58 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
                           )}
                         />
                       )}
+                    </div>
 
+                    <div className="col-start-2 row-start-2 flex flex-col gap-2">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Identificación de la persona que devuelve
+                      </span>
+                      <Controller
+                        control={form.control}
+                        name="identificacion_entrega"
+                        render={({ field, fieldState }) => (
+                          <div className="flex flex-col">
+                            <LoadImage
+                              id="fotografia-seguimiento"
+                              titulo="Fotografía"
+                              showWebcamOption={true}
+                              imgArray={field.value || []}
+                              setImg={(imgs) => field.onChange(imgs)}
+                              facingMode="user"
+                              limit={10}
+                              onLoadingChange={setIsLoadingFoto}
+                            />
+                            {fieldState.error && (
+                              <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>
+                            )}
+                            {intentoEnvio && errores.identificacion && (
+                              <p className="text-xs text-red-500 mt-1">Agrega la fotografía de identificación</p>
+                            )}
+                          </div>
+                        )}
+                      />
+                    </div>
+
+                    {tipoCon === "otro" && (
+                    <div className="col-start-1 row-start-3">
+                        <FormField
+                          control={form.control}
+                          name="entrega_company"
+                          render={({ field }: any) => (
+                            <FormItem>
+                              <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Empresa
+                              </FormLabel>
+                              <FormControl>
+                                <Input placeholder="Empresa (opcional)" className="bg-white border-gray-200" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                    </div>
+                    )}
+
+                    <div className={`${tipoCon === "otro" ? "col-start-2" : "col-start-1"} row-start-3`}>
                       <FormField
                         control={form.control}
                         name="firma"
@@ -426,33 +491,6 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
                         )}
                       />
                     </div>
-
-                    <div className="col-span-1">
-                      <Controller
-                        control={form.control}
-                        name="identificacion_entrega"
-                        render={({ field, fieldState }) => (
-                          <div className="flex flex-col">
-                            <LoadImage
-                              id="fotografia-seguimiento"
-                              titulo="Identificación de la persona"
-                              showWebcamOption={true}
-                              imgArray={field.value || []}
-                              setImg={(imgs) => field.onChange(imgs)}
-                              facingMode="user"
-                              limit={10}
-                              onLoadingChange={setIsLoadingFoto}
-                            />
-                            {fieldState.error && (
-                              <span className="text-red-500 text-sm mt-1">{fieldState.error.message}</span>
-                            )}
-                            {intentoEnvio && errores.identificacion && (
-                              <p className="text-xs text-red-500 mt-1">Agrega la fotografía de identificación</p>
-                            )}
-                          </div>
-                        )}
-                      />
-                    </div>
                   </>
                 )}
 
@@ -467,6 +505,10 @@ export const ConcesionadosSeguimientoContenido: React.FC<ConcesionadosSeguimient
         </div>
 
         <div className="p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Package className="text-blue-500 w-5 h-5" />
+            <h3 className="font-semibold text-gray-700">Equipos</h3>
+          </div>
           <DetalleSeguimientoTable
             equipos={equipos}
             setEquipos={setEquipos}
