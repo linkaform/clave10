@@ -80,10 +80,10 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
                 <p className="text-sm text-gray-700">{data?.cantidad_equipo_devuelto??0} / {data?.cantidad_equipo_concesion ?? "—"}</p>
               </div>
 
-              {data?.comentario_entrega && (
+              {data?.comentario_prestamo && (
                 <div className="col-span-2">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Comentario</p>
-                  <p className="text-sm text-gray-700">{data.comentario_entrega}</p>
+                  <p className="text-sm text-gray-700">{data.comentario_prestamo}</p>
                 </div>
               )}
             </div>

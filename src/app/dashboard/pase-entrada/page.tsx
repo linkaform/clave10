@@ -21,12 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
 import { List, UserRound, CalendarDays, Layers, Car, Camera, IdCard, Pencil } from "lucide-react";
-<<<<<<< Updated upstream
 import { cn, formatDateToString, formatFecha, isExcluded, normalizeText, prefijoToCountry } from "@/lib/utils";
-
-=======
-import { cn, formatDateToString, formatFecha, isExcluded, prefijoToCountry, requisitoAplicaA } from "@/lib/utils";
->>>>>>> Stashed changes
 import { Areas } from "@/hooks/useCreateAccessPass";
 import { MisContactosModal } from "@/components/modals/user-contacts";
 import Image from "next/image";

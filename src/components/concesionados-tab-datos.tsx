@@ -28,8 +28,8 @@ export interface EquipoConcesionado {
   costo_equipo_concesion?: number;
   imagen_equipo_concesion?: Imagen[];
   cantidad_equipo_concesion?: number;
-  evidencia_entrega?: Imagen[];
-  comentario_entrega?: string | undefined;
+  evidencia_prestamo?: Imagen[];
+  comentario_prestamo?: string | undefined;
   status_concesion_equipo?: string;
   devoluciones?: DevolucionItem[];
   total?: number;

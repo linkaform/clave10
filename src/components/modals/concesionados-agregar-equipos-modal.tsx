@@ -85,7 +85,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
       categoria_equipo_concesion: "",
       nombre_equipo: "",
       cantidad_equipo_concesion: 1,
-      comentario_entrega: "",
+      comentario_prestamo: "",
       imagen_equipo_concesion: [],
       costo_equipo_concesion: 0,
     },
@@ -206,7 +206,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         categoria_equipo_concesion: "",
         nombre_equipo: "",
         cantidad_equipo_concesion: 1,
-        comentario_entrega: "",
+        comentario_prestamo: "",
         imagen_equipo_concesion: [],
         costo_equipo_concesion: 0,
       });
@@ -218,7 +218,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         categoria_equipo_concesion: agregarEquiposSeleccion.categoria_equipo_concesion,
         nombre_equipo: agregarEquiposSeleccion.nombre_equipo,
         cantidad_equipo_concesion: agregarEquiposSeleccion.cantidad_equipo_concesion,
-        comentario_entrega: agregarEquiposSeleccion.comentario_entrega,
+        comentario_prestamo: agregarEquiposSeleccion.comentario_prestamo,
         imagen_equipo_concesion: agregarEquiposSeleccion.imagen_equipo_concesion,
         costo_equipo_concesion: agregarEquiposSeleccion.costo_equipo_concesion,
       });
@@ -237,7 +237,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
       categoria_equipo_concesion: values.categoria_equipo_concesion,
       nombre_equipo: values.nombre_equipo,
       cantidad_equipo_concesion: values.cantidad_equipo_concesion,
-      comentario_entrega: values.comentario_entrega,
+      comentario_prestamo: values.comentario_prestamo,
       imagen_equipo_concesion: values.imagen_equipo_concesion,
       costo_equipo_concesion: values.costo_equipo_concesion,
     };
@@ -407,7 +407,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
 
                 <FormField
                   control={form.control}
-                  name="comentario_entrega"
+                  name="comentario_prestamo"
                   render={({ field }: any) => (
                     <FormItem>
                       <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">

@@ -199,26 +199,8 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
               <h3 className="font-semibold text-gray-700">Geolocalización</h3>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className={labelClass}>Selecciona el punto en el mapa</Label>
+              <Label className={labelClass}>Geolocalización del área</Label>
               <MapaSelectorPunto value={geolocalizacion} onChange={setGeolocalizacion} />
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                {geolocalizacion ? (
-                  <>
-                    <span>
-                      {geolocalizacion.latitude.toFixed(6)}, {geolocalizacion.longitude.toFixed(6)}
-                    </span>
-                    <button
-                      type="button"
-                      className="text-red-500 hover:underline"
-                      onClick={() => setGeolocalizacion(null)}
-                    >
-                      Quitar
-                    </button>
-                  </>
-                ) : (
-                  <span>Haz clic en el mapa para colocar el punto; puedes arrastrarlo para ajustarlo.</span>
-                )}
-              </div>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className={labelClass}>Dirección</Label>
