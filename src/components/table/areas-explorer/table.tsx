@@ -30,7 +30,7 @@ import { FilterConfig, ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { AreaRow, NormalizedArea, normalizeArea } from "@/lib/areas";
 import { AreasExternalFilters } from "@/hooks/Areas/useAreasFilters";
 import { useAreaActions } from "@/hooks/Areas/useAreaActions";
-import { ViewMode } from "@/lib/utils";
+import { ViewMode, cn } from "@/lib/utils";
 import { getAreasColumns } from "./columns";
 import { AreaDisponibilidadMenu } from "./AreaDisponibilidadMenu";
 import { AreaDetallePanel } from "@/components/Areas/AreaDetallePanel";
@@ -115,7 +115,12 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
             </div>,
             <div
               key="toggle-estado"
-              className={`${iconButtonClass} ${esActiva ? "text-green-600" : "text-slate-400"}`}
+              className={cn(
+                iconButtonClass,
+                esActiva
+                  ? "bg-green-50 hover:bg-green-100 border-green-200 text-green-600 hover:text-green-700"
+                  : "bg-red-50 hover:bg-red-100 border-red-200 text-red-500 hover:text-red-600",
+              )}
               title={esActiva ? "Desactivar área" : "Activar área"}
               onClick={() => handleToggleAreaEstado(recordId, estadoActual)}
             >
@@ -160,8 +165,6 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
     [normalizedAreas],
   );
 
-  const gridContainerRef = React.useRef<HTMLDivElement>(null);
-
   return (
     <div className="w-full">
       <div className="flex gap-4 items-start">
@@ -176,7 +179,7 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
           </aside>
         )}
 
-        <div ref={gridContainerRef} className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0">
           {viewMode === "photos" ? (
             <PhotoGridView
               isLoading={isLoading}
@@ -263,7 +266,6 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
       <AreaDetallePanel
         recordId={selectedAreaId}
         onOpenChange={(open) => !open && onSelectedAreaIdChange(null)}
-        allowOutsideRef={gridContainerRef}
       />
     </div>
   );

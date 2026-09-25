@@ -13,13 +13,13 @@ export const useCreateArea = () => {
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
 
-  const { data: tiposDeArea } = useQuery<FilterOption[]>({
-    queryKey: ["filtersAreas", "tipo"],
+  const { data: filtros } = useQuery<{ tipo: FilterOption[]; disponibilidad: FilterOption[] }>({
+    queryKey: ["filtersAreas", "crear"],
     queryFn: async () => {
       const result = await getFiltersAreasSdk();
       const filters = result?.response?.data ?? [];
-      const tipoFilter = filters.find((f: any) => f.key === "tipo");
-      return tipoFilter?.options ?? [];
+      const opciones = (key: string) => filters.find((f: any) => f.key === key)?.options ?? [];
+      return { tipo: opciones("tipo"), disponibilidad: opciones("disponibilidad") };
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -31,6 +31,13 @@ export const useCreateArea = () => {
       const textMsj = errorMsj(result);
       if (textMsj) {
         toast.error(`Error al crear el área: ${textMsj.text}`);
+        return false;
+      }
+      // create_new_area no crea nada si ya hay un área con ese nombre en la
+      // ubicación: responde { status_comment: "El area ya existe. ..." }.
+      const statusComment: string = result?.response?.data?.status_comment ?? "";
+      if (statusComment.toLowerCase().includes("ya existe")) {
+        toast.warning("Ya existe un área con ese nombre en esta ubicación.");
         return false;
       }
       toast.success("Área creada correctamente.");
@@ -45,5 +52,10 @@ export const useCreateArea = () => {
     }
   };
 
-  return { tiposDeArea: tiposDeArea ?? [], handleCreateArea, isCreating };
+  return {
+    tiposDeArea: filtros?.tipo ?? [],
+    disponibilidadOptions: filtros?.disponibilidad ?? [],
+    handleCreateArea,
+    isCreating,
+  };
 };

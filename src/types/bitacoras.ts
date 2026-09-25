@@ -36,6 +36,8 @@ export interface PhotoRecord {
   images: string[];
   status: PhotoStatus;
   statusLabel?: string;
+  /** Clases para el badge de estatus de la tarjeta; pisa el color de EstatusBadge. */
+  statusClassName?: string;
   detailsList?: DetailsListItem[];
   modalDetailsList?: DetailsListItem[];
   rawData?: any;

@@ -79,8 +79,8 @@ export const equipoSchema = z.object({
   costo_equipo_concesion: z.union([z.number(), z.array(z.number())]).optional(),
   imagen_equipo_concesion: z.array(imagenSchema).optional(),
   cantidad_equipo_concesion: z.number(),
-  evidencia_entrega: z.array(imagenSchema).optional(),
-  comentario_entrega: z.string().optional(),
+  evidencia_prestamo: z.array(imagenSchema).optional(),
+  comentario_prestamo: z.string().optional(),
 });
 
 const formSchema = z.object({

@@ -382,10 +382,10 @@ const setEvidenciaLoading = (key: string, val: boolean) =>
                       </div>
                     </div>
 
-                    {item.comentario_entrega && (
+                    {item.comentario_prestamo && (
                       <div className="flex items-start gap-2">
                         <MessageSquare className="w-3.5 h-3.5 text-purple-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-xs text-gray-600">{item.comentario_entrega}</span>
+                        <span className="text-xs text-gray-600">{item.comentario_prestamo}</span>
                       </div>
                     )}
                     <div className="w-full">

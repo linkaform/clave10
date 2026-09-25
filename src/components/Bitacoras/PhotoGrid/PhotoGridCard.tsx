@@ -105,7 +105,7 @@ export function PhotoGridCard({
         onMouseLeave={handleMouseLeave}>
         {record.images.length > 0 ? (
           <Image
-            src={/^https?:\/\//.test(record.images[currentImageIndex] || "") ? record.images[currentImageIndex] : "/sin_imagen_rondin.svg"}
+            src={/^https?:\/\//.test(record.images[currentImageIndex] || "") ? record.images[currentImageIndex] : "/sin_imagen_rondines.png"}
             alt={record.title}
             fill={true}
             className={`object-cover transition-all duration-500 ${
@@ -152,6 +152,7 @@ export function PhotoGridCard({
         {(record.statusLabel || record.status) && (record.status as string) !== "none" && (
           <EstatusBadge
             estatus={(record as any).statusLabel || record.status || ""}
+            className={record.statusClassName}
             // className="text-[0.65rem] py-0 px-2 h-5 rounded-lg"
           />
         )}
