@@ -304,12 +304,21 @@ const AccesosContent = () => {
         );
       }
 
-      return data.response?.data || [];
+      // Ingreso grupal: el backend regresa un resultado por pase y cada uno
+      // puede fallar por separado (ej. un campo requerido de la bitácora).
+      const accesos: { qr_code: string; status: string; msg?: string }[] =
+        data.response?.data?.accesos ?? [];
+      const fallidos = accesos.filter((a) => a.status !== "success");
+      if (accesos.length && fallidos.length === accesos.length) {
+        throw new Error(fallidos[0].msg || "Hubo un error en el Ingreso");
+      }
+
+      return { data: data.response?.data || [], fallidos };
     },
     onMutate: () => {
       setLoading(true);
     },
-    onSuccess: () => {
+    onSuccess: ({ fallidos }) => {
       // Se calcula antes de limpiar selectedPasses: en este backend el
       // "qr_code" de cada acompañante (m.id) YA ES su _id de Mongo — no hay
       // un campo _id separado en el objeto crudo, así que selectedPasses ya
@@ -324,12 +333,19 @@ const AccesosContent = () => {
       setSelectedPasses([]);
       setEquipoVehiculoConfirmado({});
 
-      toast.success("Entrada Exitosa", {
-        style: {
-          background: "#22c55e",
-          color: "white",
-        },
-      });
+      if (fallidos.length) {
+        toast.warning(
+          `Ingreso parcial: ${fallidos.length} pase(s) no se registraron`,
+          { description: fallidos[0].msg, duration: 10000 },
+        );
+      } else {
+        toast.success("Entrada Exitosa", {
+          style: {
+            background: "#22c55e",
+            color: "white",
+          },
+        });
+      }
 
       if (downloadPass.includes("impresion_de_pase") && id) {
         const tieneAcompanantesEnEsteIngreso = idsAcompanantesIngreso.length > 0;
