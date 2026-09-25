@@ -4,19 +4,18 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  FileText,
+  ImageOff,
   Loader2,
-  MessageSquare,
   Package,
   PackageCheck,
+  PackagePlus,
   Search,
 } from "lucide-react";
 import { ConcesionadosVerEquipo } from "./modals/concesionados-ver-equipo";
 import { capitalizeFirstLetter, formatCurrency } from "@/lib/utils";
 import { NuevaDevolucionMiniEquipoModal } from "./modals/concesionados-nueva-devolucion-mini";
 import LoadImage, { Imagen } from "./upload-Image";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
-import Image from "next/image";
+import ViewImage from "./modals/view-image";
 import { Button } from "./ui/button";
 import { VerDetalleDevolucion } from "./modals/concesionados-ver-detalle-devolucion";
 import { HistorialDevolucionesList } from "./concesionados-historial-devoluciones-list";
@@ -209,34 +208,38 @@ const setEvidenciaLoading = (key: string, val: boolean) =>
 
   return (
     <div>
-      <ConcesionadosVerEquipo
-        title="Equipo"
-        setIsSuccess={setOpenVerEquiposModal}
-        isSuccess={openVerEquiposModal}
-        data={agregarEquipoSeleccion as any}
-        dataConcesion={data}
-      >
-        <div />
-      </ConcesionadosVerEquipo>
+      {/* Solo los disparadores de los modales: el contenido se abre por estado en un portal,
+          así que ocultarlos evita que el botón vacío empuje los filtros hacia abajo */}
+      <div className="hidden">
+        <ConcesionadosVerEquipo
+          title="Equipo"
+          setIsSuccess={setOpenVerEquiposModal}
+          isSuccess={openVerEquiposModal}
+          data={agregarEquipoSeleccion as any}
+          dataConcesion={data}
+        >
+          <div />
+        </ConcesionadosVerEquipo>
 
-      <NuevaDevolucionMiniEquipoModal
-        title="Devolución de Equipos"
-        setIsSuccess={setOpenDevolucionMiniEquiposModal}
-        isSuccess={openDevolucionMiniEquiposModal}
-        equipoSelecionado={agregarEquipoSeleccion}
-        dataConcesion={data}
-        dataDevolucion={dataDevolucion}
-      >
-        <div />
-      </NuevaDevolucionMiniEquipoModal>
+        <NuevaDevolucionMiniEquipoModal
+          title="Devolución de Equipos"
+          setIsSuccess={setOpenDevolucionMiniEquiposModal}
+          isSuccess={openDevolucionMiniEquiposModal}
+          equipoSelecionado={agregarEquipoSeleccion}
+          dataConcesion={data}
+          dataDevolucion={dataDevolucion}
+        >
+          <div />
+        </NuevaDevolucionMiniEquipoModal>
 
-      <VerDetalleDevolucion
-        devolucion={devolucionSeleccionada}
-        isSuccess={verDevolucionModal}
-        setIsSuccess={setVerDevolucionModal}
-      >
-        <div />
-      </VerDetalleDevolucion>
+        <VerDetalleDevolucion
+          devolucion={devolucionSeleccionada}
+          isSuccess={verDevolucionModal}
+          setIsSuccess={setVerDevolucionModal}
+        >
+          <div />
+        </VerDetalleDevolucion>
+      </div>
 
       <div className="flex gap-2 flex-wrap justify-between mb-4">
         <div className="flex gap-2 flex-wrap items-center">
@@ -282,6 +285,22 @@ const setEvidenciaLoading = (key: string, val: boolean) =>
 
       {equipos && equipos.length > 0 ? (
         <div className="max-h-[460px] overflow-y-auto space-y-3 pr-1 mb-5">
+         {equiposFiltrados.length === 0 && (
+          // Misma altura que la tarjeta de un equipo cerrada, para que no salte al cambiar de filtro
+          <div className="flex items-center justify-center h-24 bg-white border border-gray-200 rounded-xl text-gray-400 gap-2">
+            <Package className="w-6 h-6 text-gray-300" />
+            <p className="text-sm">
+              {busqueda.trim()
+                ? `No hay registros que coincidan con "${busqueda.trim()}".`
+                : `No hay registros ${
+                    filtroActivo === "abierto" ? "pendientes"
+                    : filtroActivo === "en proceso" ? "en proceso"
+                    : filtroActivo === "devuelto" ? "completados"
+                    : ""
+                  }.`.replace(" .", ".")}
+            </p>
+          </div>
+         )}
          {equiposFiltrados.map((item) => {
             const key = String(item.id_movimiento ?? equipos.indexOf(item));
             
@@ -382,75 +401,83 @@ const setEvidenciaLoading = (key: string, val: boolean) =>
                       </div>
                     </div>
 
-                    {item.comentario_prestamo && (
-                      <div className="flex items-start gap-2">
-                        <MessageSquare className="w-3.5 h-3.5 text-purple-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-xs text-gray-600">{item.comentario_prestamo}</span>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Comentario del préstamo</p>
+                      {item.comentario_prestamo?.trim() ? (
+                        <p className="text-sm text-gray-700">{item.comentario_prestamo}</p>
+                      ) : (
+                        <p className="text-xs italic text-gray-400">Sin comentario disponible</p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Imagen del equipo</p>
+                        {item.imagen_equipo_concesion && item.imagen_equipo_concesion.length > 0 ? (
+                          <div className="flex justify-center">
+                            <div className={`inline-flex items-center rounded-xl border bg-gray-50 overflow-hidden ${item.imagen_equipo_concesion.length > 1 ? "pr-2" : ""}`}>
+                              <ViewImage imageUrl={item.imagen_equipo_concesion} size="lg" />
+                            </div>
+                          </div>
+                        ) : (
+<div className="flex justify-center">
+                            <div className="w-24 h-24 rounded-xl border border-dashed border-gray-200 bg-gray-50 flex flex-col gap-1 items-center justify-center text-center px-2">
+                              <ImageOff className="w-5 h-5 text-gray-300" />
+                              <p className="text-xs text-gray-400">Sin imagen</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Evidencia del préstamo</p>
+                        {item.evidencia_prestamo && item.evidencia_prestamo.length > 0 ? (
+                          <div className="flex justify-center">
+                            <div className={`inline-flex items-center rounded-xl border bg-gray-50 overflow-hidden ${item.evidencia_prestamo.length > 1 ? "pr-2" : ""}`}>
+                              <ViewImage imageUrl={item.evidencia_prestamo} size="lg" />
+                            </div>
+                          </div>
+                        ) : (
+<div className="flex justify-center">
+                            <div className="w-24 h-24 rounded-xl border border-dashed border-gray-200 bg-gray-50 flex flex-col gap-1 items-center justify-center text-center px-2">
+                              <ImageOff className="w-5 h-5 text-gray-300" />
+                              <p className="text-xs text-gray-400">Sin evidencia</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="w-full">
                       <HistorialDevolucionesList devoluciones={item?.devoluciones ?? []} />
                     </div>
 
-                    {item.imagen_equipo_concesion && item.imagen_equipo_concesion.length > 0 && (
-                      <div className="flex items-start gap-2">
-                        <FileText className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                        <div className="w-full">
-                          <p className="text-xs text-gray-400 mb-2">Evidencia de Entrega del Equipo</p>
-                          <div className="flex justify-center">
-                            <Carousel className="w-52">
-                              <CarouselContent>
-                                {item.imagen_equipo_concesion.map((a, i) => (
-                                  <CarouselItem key={i}>
-                                    <div className="p-1">
-                                      <div className="rounded-xl overflow-hidden border bg-gray-50 aspect-square flex items-center justify-center">
-                                        <Image
-                                          width={280} height={280}
-                                          src={a.file_url || "/nouser.svg"}
-                                          alt={`Evidencia ${i + 1}`}
-                                          className="w-full h-full object-contain"
-                                          unoptimized
-                                        />
-                                      </div>
-                                    </div>
-                                  </CarouselItem>
-                                ))}
-                              </CarouselContent>
-                              {item.imagen_equipo_concesion.length > 1 && (
-                                <>
-                                  <CarouselPrevious type="button" />
-                                  <CarouselNext type="button" />
-                                </>
-                              )}
-                            </Carousel>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
                     {!yaDevuelto && (
                       <>
-                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-                          <div className="flex flex-col gap-3">
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <p className="text-xs text-gray-400 mb-0.5">Unidades totales</p>
-                                <p className="text-sm font-medium text-gray-700">
-                                  {item.cantidad_equipo_concesion ?? "—"}
-                                </p>
-                              </div>
-                              {enProceso && (
-                                <div>
-                                  <p className="text-xs text-gray-400 mb-0.5">Ya devueltas</p>
-                                  <p className="text-sm font-medium text-yellow-600">
-                                    {item.cantidad_equipo_devuelto ?? 0}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
+                        <div className="pt-3 border-t border-gray-100 flex flex-col gap-4">
+                          <div className="flex items-center gap-2">
+                            <PackagePlus className="text-blue-500 w-5 h-5" />
+                            <h4 className="font-semibold text-gray-700">Agregar a la devolución</h4>
+                          </div>
 
+                          <div className="grid grid-cols-3 gap-3 pb-4 border-b border-gray-200">
                             <div>
-                              <p className="text-xs text-gray-400 mb-1">Unidades a devolver</p>
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Unidades totales</p>
+                              <p className="text-sm font-medium text-gray-700">{item.cantidad_equipo_concesion ?? "—"}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Ya devueltas</p>
+                              <p className={`text-sm font-medium ${enProceso ? "text-yellow-600" : "text-gray-700"}`}>
+                                {item.cantidad_equipo_devuelto ?? 0}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Pendientes</p>
+                              <p className="text-sm font-medium text-red-500">{pendientes}</p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Unidades a devolver</p>
                               <div className="flex gap-2 items-center">
                                 <input
                                   type="number"
@@ -477,19 +504,17 @@ const setEvidenciaLoading = (key: string, val: boolean) =>
                                   Agregar todo
                                 </button>
                               </div>
-                              <p className="text-xs text-gray-400 mt-1">Pendientes: {pendientes}</p>
                             </div>
-
                             <div>
-                              <p className="text-xs text-gray-400 mb-1">Estado</p>
-                              <div className="flex gap-1 flex-wrap">
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Estado</p>
+                              <div className="flex gap-2 flex-wrap">
                                 {["completo", "perdido", "dañado"].map((val) => (
                                   <button
                                     key={val}
                                     type="button"
                                     disabled={form.agregado}
                                     onClick={() => setForm(key, "estatus", val)}
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    className={`px-3 h-9 rounded-md text-xs font-medium capitalize transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                                       form.estatus === val
                                         ? "bg-blue-600 text-white shadow-sm"
                                         : "border border-blue-300 text-blue-600 bg-white hover:bg-blue-50"
@@ -502,7 +527,7 @@ const setEvidenciaLoading = (key: string, val: boolean) =>
                             </div>
 
                             <div>
-                              <p className="text-xs text-gray-400 mb-1">Comentario</p>
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Comentario</p>
                               <textarea
                                 disabled={form.agregado}
                                 value={form.comentario_entrega ?? ""}
@@ -512,12 +537,11 @@ const setEvidenciaLoading = (key: string, val: boolean) =>
                                 className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-blue-300"
                               />
                             </div>
-                          </div>
-
-                          <div>
+                            <div>
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Evidencia de la devolución</p>
                             <LoadImage
                               id={`evidencia-equipo-${key}`}
-                              titulo="Evidencia de entrega"
+                              titulo="Evidencia"
                               showWebcamOption={true}
                               imgArray={form.evidencia_entrega || []}
                               setImg={(imgs) => setForm(key, "evidencia_entrega", imgs)}
@@ -525,10 +549,12 @@ const setEvidenciaLoading = (key: string, val: boolean) =>
                               limit={5}
                               onLoadingChange={(val) => setEvidenciaLoading(key, val)}
                             />
+                            </div>
                           </div>
                         </div>
 
-                        <div className={`pt-3 border-t flex flex-col gap-2 ${form.agregado ? "border-green-200" : "border-red-100"}`}>
+                        <div className={`pt-3 border-t flex flex-wrap items-center justify-between gap-2 ${form.agregado ? "border-green-200" : "border-red-100"}`}>
+                          <div className="flex flex-col gap-1">
                           {!form.agregado && (form.unidades <= 0 || !form.estatus) && (
                             <p className="text-xs text-red-400">
                               {form.unidades <= 0 && !form.estatus
@@ -543,7 +569,8 @@ const setEvidenciaLoading = (key: string, val: boolean) =>
                               <Loader2 className="animate-spin w-3 h-3" /> Subiendo evidencia...
                             </p>
                           )}
-                          <div className="flex justify-end gap-2">
+                          </div>
+                          <div className="flex justify-end gap-2 ml-auto">
                             {form.agregado && (
                               <button
                                 type="button"

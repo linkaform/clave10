@@ -19,6 +19,7 @@ export interface InputDevolucionTotal {
   record_id: string;
   status: "total";
   state: "complete" | "lost" | "damage";
+  entregado_por?: "empleado" | "otro";
   quien_entrega: string;
   company?: string;
   identificacion_entrega?: {

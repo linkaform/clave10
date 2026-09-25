@@ -86,7 +86,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
       nombre_equipo: "",
       cantidad_equipo_concesion: 1,
       comentario_prestamo: "",
-      imagen_equipo_concesion: [],
+      evidencia_prestamo: [],
       costo_equipo_concesion: 0,
     },
   });
@@ -179,6 +179,8 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         record_id: concesion._id,
         status: "total",
         state: "complete",
+        // Entrega quien tiene la concesión: empleado si viene del catálogo, si no "otro".
+        entregado_por: concesion.persona_nombre_concesion ? "empleado" : "otro",
         quien_entrega: concesion.persona_nombre_concesion || concesion.persona_nombre_otro || "",
         comentario_entrega: "Devolución forzada al reasignar el equipo a una nueva concesión.",
         forzar_dev: true,
@@ -207,7 +209,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         nombre_equipo: "",
         cantidad_equipo_concesion: 1,
         comentario_prestamo: "",
-        imagen_equipo_concesion: [],
+        evidencia_prestamo: [],
         costo_equipo_concesion: 0,
       });
       setCategoriaSeleccionada("");
@@ -219,7 +221,7 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         nombre_equipo: agregarEquiposSeleccion.nombre_equipo,
         cantidad_equipo_concesion: agregarEquiposSeleccion.cantidad_equipo_concesion,
         comentario_prestamo: agregarEquiposSeleccion.comentario_prestamo,
-        imagen_equipo_concesion: agregarEquiposSeleccion.imagen_equipo_concesion,
+        evidencia_prestamo: agregarEquiposSeleccion.evidencia_prestamo,
         costo_equipo_concesion: agregarEquiposSeleccion.costo_equipo_concesion,
       });
       setCategoriaSeleccionada(agregarEquiposSeleccion.categoria_equipo_concesion ?? "");
@@ -238,7 +240,12 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
       nombre_equipo: values.nombre_equipo,
       cantidad_equipo_concesion: values.cantidad_equipo_concesion,
       comentario_prestamo: values.comentario_prestamo,
-      imagen_equipo_concesion: values.imagen_equipo_concesion,
+      evidencia_prestamo: values.evidencia_prestamo,
+      // Foto del catálogo de activos fijos (la misma que muestra la tarjeta del equipo)
+      imagen_equipo_concesion:
+        equipoCompleto?.article_image ??
+        (editarAgregarEquiposModal ? agregarEquiposSeleccion?.imagen_equipo_concesion : undefined) ??
+        [],
       costo_equipo_concesion: values.costo_equipo_concesion,
     };
     if (editarAgregarEquiposModal) {
@@ -436,15 +443,15 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
               </div>
 
               <div className="p-5 py-0">
-                <h3 className="text-xs font-semibold uppercase text-gray-500 mb-3 tracking-wide">Evidencia</h3>
+                <h3 className="text-xs font-semibold uppercase text-gray-500 mb-3 tracking-wide">Evidencia del préstamo</h3>
                 <Controller
                   control={form.control}
-                  name="imagen_equipo_concesion"
+                  name="evidencia_prestamo"
                   render={({ field, fieldState }) => (
                     <div className="flex flex-col">
                       <LoadImage
                         id="fotografia"
-                        titulo="Fotografía del equipo"
+                        titulo="Evidencia"
                         showWebcamOption={true}
                         imgArray={field.value || []}
                         setImg={(imgs) => field.onChange(imgs)}

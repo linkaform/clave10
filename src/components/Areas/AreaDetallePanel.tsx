@@ -17,7 +17,7 @@ export function AreaDetallePanel({ recordId, onOpenChange }: AreaDetallePanelPro
     <Sheet open={!!recordId} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="p-0 flex flex-col sm:max-w-3xl w-full"
+        className="p-0 flex flex-col sm:max-w-5xl w-full"
         overlayClassName="bg-black/40"
       >
         <SheetTitle className="sr-only">Detalle del área</SheetTitle>
