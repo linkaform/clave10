@@ -415,15 +415,15 @@ export const NuevaDevolucionEquipoModal: React.FC<NuevaDevolucionModalProps> = (
 
               {/* Fila de imágenes: misma altura en ambas columnas */}
               <div className="py-2 order-2 md:order-none">
-                <span className={`${labelClass} block mb-2`}>Fotografía de la persona que devuelve</span>
+                <span className={`${labelClass} block mb-2`}>Identificación de quien devuelve</span>
                 <Controller
                   control={form.control}
                   name="identificacion_entrega"
                   render={({ field, fieldState }) => (
                     <div className="flex flex-col">
                       <LoadImage
-                        id="fotografia"
-                        titulo="Fotografía"
+                        id="identificacion"
+                        titulo="Identificación"
                         showWebcamOption={true}
                         imgArray={field.value || []}
                         setImg={(imgs) => field.onChange(imgs)}
