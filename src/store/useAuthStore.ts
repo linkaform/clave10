@@ -17,7 +17,7 @@ interface AuthState {
   userParentId:number | null;
   isAuth: boolean;
   setToken: (token: string) => void;
-  setAuth: (token: string, userId: string, userNameSoter: string, userEmailSoter: string, userIdSoter: number, userPhoto:string, userParentId:number) => void;
+  setAuth: (token: string, userId: string, userNameSoter: string, userEmailSoter: string, userIdSoter: number, userPhoto:string, userParentId:number, userTimezone?: string) => void;
   setUserPhoto: (photoUrl: string) => void;
   setNewUserUsername: (newUserUsername: string) => void;
   logout: (queryClient?: any) => void;
@@ -46,7 +46,7 @@ const useAuthStore = create<AuthState>((set) => {
     userParentId,
     isAuth,
 
-    setAuth: (token: string, userId: string, userNameSoter: string, userEmailSoter: string, userIdSoter:number, userPhoto:string, userParentId:number) => {
+    setAuth: (token: string, userId: string, userNameSoter: string, userEmailSoter: string, userIdSoter:number, userPhoto:string, userParentId:number, userTimezone?: string) => {
       // Guarda los valores en localStorage
       localStorage.setItem("access_token", token);
       localStorage.setItem("user_id", userId);
@@ -55,6 +55,8 @@ const useAuthStore = create<AuthState>((set) => {
       localStorage.setItem("userId_soter", userIdSoter.toString() );
       localStorage.setItem("userPhoto_soter", userPhoto);
       localStorage.setItem("userParentId_soter", userParentId.toString() );
+      if (userTimezone) localStorage.setItem("userTimezone_soter", userTimezone);
+      else localStorage.removeItem("userTimezone_soter");
       // Limpia stores del usuario anterior antes de setear el nuevo
       useSelectedLocationsStore.getState().clearSelectedLocations();
       useAreasLocationStore.getState().clearAreasLocation();
@@ -92,6 +94,7 @@ const useAuthStore = create<AuthState>((set) => {
       localStorage.removeItem("userId_soter" );
       localStorage.removeItem("userPhoto_soter");
       localStorage.removeItem("userParentId_soter");
+      localStorage.removeItem("userTimezone_soter");
 
       set({ token: null, userId: null,userNameSoter: null, userEmailSoter: null, newUserUsername: null, userIdSoter: 0 ,isAuth: false , userPhoto:null, userParentId:null});
       useAccessStore.getState().clearPassCode();

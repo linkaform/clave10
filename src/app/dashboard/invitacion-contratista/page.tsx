@@ -184,6 +184,7 @@ export default function InvitacionContratistaPage() {
         res.user.id,
         res.user.thumb,
         res.user.parent_info.id,
+        res.user.timezone,
       );
       setJwt(res.jwt);
       setPassword("");
@@ -216,6 +217,7 @@ export default function InvitacionContratistaPage() {
       res.user.id,
       res.user.thumb,
       res.user.parent_info.id,
+      res.user.timezone,
     );
     setJwt(res.jwt);
     return res.jwt;

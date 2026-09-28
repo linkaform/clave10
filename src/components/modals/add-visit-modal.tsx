@@ -33,7 +33,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchPass } from "@/hooks/useSearchPass";
 import LoadImage, { Imagen } from "../upload-Image";
 import { useBoothStore } from "@/store/useBoothStore";
-import { getRequerimientos, uniqueArray } from "@/lib/utils";
+import { getRequerimientos, todayInUserTz, uniqueArray } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -148,7 +148,7 @@ export const AddVisitModal: React.FC<Props> = ({
   const [config_dia_de_acceso, set_config_dia_de_acceso] =
     useState("cualquier_día");
   const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>([]);
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayInUserTz();
 
   const form = useForm<formatData>({
     resolver: zodResolver(formSchema),
@@ -174,7 +174,7 @@ export const AddVisitModal: React.FC<Props> = ({
   // Se ejecuta tanto al abrir como al cerrar el modal, para que nunca quede
   // información de una visita anterior visible en la siguiente apertura.
   useEffect(() => {
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = todayInUserTz();
     form.reset({
       nombre: "",
       empresa: "",
@@ -307,7 +307,7 @@ export const AddVisitModal: React.FC<Props> = ({
   const handleToggleTipoVisitaPase = (
     tipo: "fecha_fija" | "rango_de_fechas",
   ) => {
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = todayInUserTz();
     if (tipo === "fecha_fija") {
       // "Fecha desde" queda oculto en este modo: se deriva de "Fecha:"
       // (fecha_desde_hasta) menos un día, así el usuario puede elegir

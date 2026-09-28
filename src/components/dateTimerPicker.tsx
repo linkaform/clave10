@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { DayPicker } from "react-day-picker";
 import { es } from "date-fns/locale";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, nowInUserTz } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, X } from "lucide-react";
 
@@ -356,7 +356,7 @@ export default function DateTimePicker({
 
   useEffect(() => {
     setMounted(true);
-    setToday(new Date());
+    setToday(nowInUserTz());
   }, []);
 
   useEffect(() => {
@@ -505,6 +505,7 @@ export default function DateTimePicker({
               selected={selected}
               onSelect={handleDaySelect}
               locale={es}
+              today={today}
               // ── Fix: usar estado inicializado en cliente ──
               disabled={effectiveMin ? { before: effectiveMin } : undefined}
               classNames={{

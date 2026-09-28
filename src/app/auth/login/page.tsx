@@ -66,6 +66,7 @@ export default function LoginPage() {
           response.user.id,
           response.user.thumb,
           response.user.parent_info.id,
+          response.user.timezone,
         );
         const shiftData = await getShift({});
         const hasError =

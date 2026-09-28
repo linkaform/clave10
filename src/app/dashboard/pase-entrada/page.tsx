@@ -23,7 +23,7 @@ import { EntryPassModal } from "@/components/modals/add-pass-modal";
 import { List, UserRound, CalendarDays, Layers, Car, Camera, IdCard, Pencil } from "lucide-react";
 
 
-import { cn, formatDateToString, formatFecha, isExcluded, prefijoToCountry } from "@/lib/utils";
+import { cn, formatDateToString, formatFecha, isExcluded, nowInUserTz, prefijoToCountry, todayInUserTz } from "@/lib/utils";
 import { requisitoAplicaA } from "@/lib/utils";
 
 
@@ -463,7 +463,7 @@ const PaseEntradaPage = () => {
   const [selected, setSelected] = useState<Contacto | null>(null);
   const [isOpenModal, setOpenModal] = useState(false);
   const [todasAreas, setTodasAreas] = useState(true);
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayInUserTz();
   const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
   const [acompanantesError, setAcompanantesError] = useState(false);
   const [diasVigenciaError, setDiasVigenciaError] = useState(false);
@@ -854,12 +854,12 @@ const PaseEntradaPage = () => {
     if (tipo == "fecha_fija") {
       form.setValue("fecha_desde_hasta", "");
       form.setValue("fecha_desde_visita", "");
-      setDate(new Date());
+      setDate(nowInUserTz());
       setIsActiveFechaFija(true);
       setIsActiveRangoFecha(false);
     } else {
       form.setValue("fechaFija", "");
-      form.setValue("fecha_desde_visita", formatDateToLocalISO(new Date())); 
+      form.setValue("fecha_desde_visita", todayInUserTz());
       setDate(undefined);
       setIsActiveFechaFija(false);
       setIsActiveRangoFecha(true);

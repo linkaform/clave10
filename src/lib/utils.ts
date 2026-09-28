@@ -144,6 +144,43 @@ export function reemplazarGuionMinuscula(str: string | null | undefined) {
   return str.replace(/_/g, " ").toLowerCase();
 }
 
+// Zona horaria del usuario en Linkaform (se guarda al iniciar sesión). Las horas de
+// los pases se guardan como texto sin zona y el backend las interpreta en esta zona,
+// así que el "ahora" de los formularios debe salir de aquí y no del reloj del equipo.
+export const getUserTimezone = (): string => {
+  const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (typeof window === "undefined") return deviceTz;
+  const tz = localStorage.getItem("userTimezone_soter");
+  if (!tz) return deviceTz;
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return tz;
+  } catch {
+    return deviceTz;
+  }
+};
+
+// Fecha/hora actual en la zona del usuario, como Date cuyos campos locales
+// (getHours, getDate...) son la hora de pared de esa zona. Sirve para
+// formatDateToString y para los pickers, que trabajan con campos locales.
+export const nowInUserTz = (): Date => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: getUserTimezone(),
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return new Date(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+};
+
+// Fecha de hoy ("YYYY-MM-DD") en la zona del usuario.
+export const todayInUserTz = (): string => formatDateToString(nowInUserTz()).split(" ")[0];
+
 export const formatDateToString = (date: Date): string => {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
