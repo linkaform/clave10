@@ -361,6 +361,7 @@ const handleOcrVehiculo = async (result: any) => {
                         showWebcamOption={true}
                         facingMode="environment"
                         tipoOcr="vehiculo"
+                        accountId={account_id || undefined}
                         onOcrResult={handleOcrVehiculo}
                         showPlaceholder
                         limit={5}

@@ -308,6 +308,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                           facingMode="environment"
                           showPlaceholder
                           tipoOcr="equipo"
+                          accountId={Number(userId) || undefined}
                           onOcrResult={handleOcrEquipo}
                         />
                       </FormControl>

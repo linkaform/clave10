@@ -52,7 +52,7 @@ export const useOcr = (accountId?: number) => {
 
   const ocrVehiculoMutation = useMutation({
     mutationFn: async (imageUrls: string[]) => {
-      const response = await runOcrVehiculo(imageUrls);
+      const response = await runOcrVehiculo(imageUrls, accountId);
       const hasError = (!response?.success) || (response?.response?.data?.status_code === 400);
       if (hasError) {
         const textMsj = errorMsj(response);
@@ -67,7 +67,7 @@ export const useOcr = (accountId?: number) => {
   
     const ocrEquipoMutation = useMutation({
     mutationFn: async (imageUrls: string[]) => {
-      const response = await runOcrEquipo(imageUrls);
+      const response = await runOcrEquipo(imageUrls, accountId);
       const hasError = (!response?.success) || (response?.response?.data?.status_code === 400);
       if (hasError) {
         const textMsj = errorMsj(response);

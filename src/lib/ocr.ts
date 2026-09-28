@@ -15,7 +15,7 @@ export const runOcrId = async (imageUrls: string[], accountId?: number) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${userJwt}`,
+        ...(userJwt ? { Authorization: `Bearer ${userJwt}` } : {}),
       },
       body: JSON.stringify(payload),
     });
@@ -66,21 +66,24 @@ export const runOcrId = async (imageUrls: string[], accountId?: number) => {
     return data;
   };
 
-  export const runOcrVehiculo = async (imageUrls: string[]) => {
+  export const runOcrVehiculo = async (imageUrls: string[], accountId?: number) => {
     const payload = {
       script_name: "ocr_docs.py",
       image_source: imageUrls,
       option: "ocr_vehiculo",
+      ...(accountId ? { account_id: accountId } : {}),
     };
 
     console.log("payload", JSON.stringify(payload));
 
+    // Sin sesión (visitante en pase-update) no se manda Authorization: un
+    // "Bearer null" hace que el script truene al decodificar el JWT.
     const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${userJwt}`,
+        ...(userJwt ? { Authorization: `Bearer ${userJwt}` } : {}),
       },
       body: JSON.stringify(payload),
     });
@@ -89,21 +92,24 @@ export const runOcrId = async (imageUrls: string[], accountId?: number) => {
     return data;
   };
 
-    export const runOcrEquipo = async (imageUrls: string[]) => {
+    export const runOcrEquipo = async (imageUrls: string[], accountId?: number) => {
     const payload = {
       script_name: "ocr_docs.py",
       image_source: imageUrls,
       option: "ocr_equipo",
+      ...(accountId ? { account_id: accountId } : {}),
     };
 
     console.log("payload", JSON.stringify(payload));
 
+    // Sin sesión (visitante en pase-update) no se manda Authorization: un
+    // "Bearer null" hace que el script truene al decodificar el JWT.
     const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${userJwt}`,
+        ...(userJwt ? { Authorization: `Bearer ${userJwt}` } : {}),
       },
       body: JSON.stringify(payload),
     });
@@ -127,7 +133,7 @@ export const runOcrId = async (imageUrls: string[], accountId?: number) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${userJwt}`,
+        ...(userJwt ? { Authorization: `Bearer ${userJwt}` } : {}),
       },
       body: JSON.stringify(payload),
     });
