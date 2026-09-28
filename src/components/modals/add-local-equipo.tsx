@@ -352,7 +352,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                         placeholder={loadingTipos ? "Cargando..." : "Selecciona un tipo"}
                         onChange={(selectedOption) => {
                           field.onChange(selectedOption ? selectedOption.value : "");
-                          if (selectedOption?.value === "otros") {
+                          if (selectedOption?.value === "Otra") {
                             setTimeout(() => nombreInputRef.current?.focus(), 0);
                           }
                         }}
@@ -362,6 +362,10 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                             : null
                         }
                         isClearable
+                        // Dentro del modal (un portal hace que el Dialog cierre el menú antes
+                        // del clic); altura acotada y "auto" para que quepa o abra hacia arriba.
+                        menuPlacement="auto"
+                        maxMenuHeight={200}
                         styles={{
                           menu: (base) => ({ ...base, zIndex: 9999 }),
                           menuPortal: (base) => ({ ...base, zIndex: 9999 }),
@@ -372,8 +376,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                   )}
                 />
 
-              {tipoValue === "Otra" && (
-                <FormField
+              <FormField
                   control={form.control}
                   name="nombre"
                   render={({ field }) => (
@@ -390,7 +393,6 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                     </FormItem>
                   )}
                 />
-              )}
                 <FormField
                   control={form.control}
                   name="marca"
