@@ -1,5 +1,5 @@
 import { getStats } from "@/lib/get-stats";
-import { crearPaqueteria, editarPaqueteria, getListPaqueteria, InputPaqueteria, InputPaqueteriaDevolver } from "@/lib/paqueteria";
+import { crearPaqueteria, editarPaqueteria, getListPaqueteria, InputPaqueteria, InputPaqueteriaDevolver, NotificacionPaquete } from "@/lib/paqueteria";
 import { errorMsj } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -27,8 +27,8 @@ export const usePaqueteria = (location:string, area:string, status:string, enabl
 
      //Crear Paquetes
      const createPaqueteriaMutation = useMutation({
-        mutationFn: async ({ data_paquete} : { data_paquete: InputPaqueteria }) => {
-            const response = await crearPaqueteria(data_paquete);
+        mutationFn: async ({ data_paquete, notificacion } : { data_paquete: InputPaqueteria, notificacion?: NotificacionPaquete }) => {
+            const response = await crearPaqueteria(data_paquete, notificacion);
             const hasError= response.response.data.status_code
 
             if(hasError == 400|| hasError == 401){
@@ -41,10 +41,16 @@ export const usePaqueteria = (location:string, area:string, status:string, enabl
         onMutate: () => {
           setLoading(true);
         },
-        onSuccess: () => {
+        onSuccess: (data: any) => {
           queryClient.invalidateQueries({ queryKey: ["getListPaqueteria"] });
           queryClient.invalidateQueries({ queryKey: ["getStatsArticulos"] });
-          toast.success("Paqueteria creado creado correctamente.");
+          toast.success("Paquete registrado correctamente.");
+          // El paquete ya quedó guardado; un aviso fallido solo se informa.
+          const etiquetas: Record<string, string> = { correo: "correo", sms: "SMS" };
+          Object.entries(data?.notificaciones ?? {}).forEach(([canal, r]: [string, any]) => {
+            if (r?.ok) toast.success(`Aviso por ${etiquetas[canal] ?? canal} enviado al destinatario.`);
+            else toast.warning(`No se envió el aviso por ${etiquetas[canal] ?? canal}: ${r?.error ?? "error desconocido"}`);
+          });
         },
         onError: (err) => {
           console.error("Error al crear paqueteria:", err);

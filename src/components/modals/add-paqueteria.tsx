@@ -9,10 +9,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { format } from 'date-fns';
-import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
+import { useDestinatariosPaqueteria } from "@/hooks/Paqueteria/useDestinatariosPaqueteria";
 import DateTime from "../dateTime";
 import { ArrowLeft, ArrowRight, Bell, Bot, CheckCircle2, List, Loader2, MapPin, Package, Pencil, ScanLine, Sparkles } from "lucide-react";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
@@ -141,7 +143,8 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
   const [conSelected, setConSelected] = useState<string>(area ?? "");
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(location ?? "");
   const { dataAreas: areas, dataLocations: ubicaciones, isLoadingAreas: loadingAreas, isLoadingLocations: loadingUbicaciones } = useCatalogoPaseAreaLocation(ubicacionSeleccionada, true, ubicacionSeleccionada ? true : false, { uso: "paqueteria" });
-  const { data: dataAreaEmpleadoApoyo, isLoading: loadingAreaEmpleadoApoyo } = useCatalogoAreaEmpleadoApoyo(isSuccess);
+  const { data: destinatarios, isLoading: loadingAreaEmpleadoApoyo } = useDestinatariosPaqueteria(isSuccess);
+  const dataAreaEmpleadoApoyo = destinatarios.map((d) => d.nombre);
   const { dataProveedores } = useCatalogoProveedores(isSuccess);
   const { createPaqueteriaMutation, isLoading } = usePaqueteria(ubicacionSeleccionada, area ?? "", "", false, "", "", "");
   const { data: responseGetLockers, isLoading: loadingGetLockers } = useGetLockers(ubicacionSeleccionada ?? false, "", "Disponible", isSuccess);
@@ -180,6 +183,28 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
 
   const { reset } = form;
 
+  // Si la lista llega (o se refresca) con un empleado ya elegido, completar el contacto
+  // que falte; elegir el mismo empleado otra vez no dispara onValueChange.
+  useEffect(() => {
+    const actual = form.getValues("quien_recibe_paqueteria");
+    if (tipoDestinatario === "empleado" && actual) aplicarContactoEmpleado(actual, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinatarios]);
+
+  // Llena el contacto del aviso con el del empleado elegido. soloVacios: no pisar lo
+  // que ya detectó la IA en la etiqueta o lo que capturó el guardia.
+  const aplicarContactoEmpleado = (nombre: string, soloVacios = false) => {
+    const emp = destinatarios.find((d) => d.nombre === nombre);
+    if (!emp) return;
+    if (emp.email && (!soloVacios || !form.getValues("email_receptor"))) {
+      form.setValue("email_receptor", emp.email, { shouldValidate: true });
+    }
+    if (emp.telefono && (!soloVacios || !form.getValues("telefono_receptor"))) {
+      const tel = emp.telefono.replace(/[^\d+]/g, "");
+      form.setValue("telefono_receptor", tel.startsWith("+") ? tel : `+52${tel.slice(-10)}`, { shouldValidate: true });
+    }
+  };
+
   useEffect(() => {
     if (isSuccess) {
       reset();
@@ -205,6 +230,18 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
       form.setError("fecha_recibido_paqueteria", { type: "manual", message: "Fecha es un campo requerido." });
       return;
     }
+
+    const canales = values.notificacion ?? [];
+    let faltaContacto = false;
+    if (canales.includes("correo") && !values.email_receptor?.trim()) {
+      form.setError("email_receptor", { type: "manual", message: "Captura el email para enviar el aviso por correo." });
+      faltaContacto = true;
+    }
+    if (canales.includes("sms") && !values.telefono_receptor?.trim()) {
+      form.setError("telefono_receptor", { type: "manual", message: "Captura el teléfono para enviar el aviso por SMS." });
+      faltaContacto = true;
+    }
+    if (faltaContacto) return;
 
     const formattedDate = format(new Date(date), 'yyyy-MM-dd HH:mm:ss');
     const allImages = [...evidencia, ...etiqueta];
@@ -235,18 +272,28 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
       area_paqueteria: values.area_paqueteria ?? "",
       fotografia_paqueteria: allImages ?? [],
       descripcion_paqueteria: values.descripcion_paqueteria ?? "",
-      quien_recibe_paqueteria: values.quien_recibe_paqueteria ?? "",
+      ...(tipoDestinatario === "externo"
+        ? { quien_recibe_otro: values.quien_recibe_paqueteria ?? "" }
+        : { quien_recibe_paqueteria: values.quien_recibe_paqueteria ?? "" }),
       guardado_en_paqueteria: values.guardado_en_paqueteria ?? "",
       fecha_recibido_paqueteria: formattedDate ?? "",
       fecha_entregado_paqueteria: "",
       entregado_a_paqueteria: "",
       estatus_paqueteria: ["guardado"],
       proveedor: values.proveedor ?? "",
-      notificacion_paqueteria: values.notificacion ?? [],
     };
 
     createPaqueteriaMutation.mutate(
-      { data_paquete: formatData },
+      {
+        data_paquete: formatData,
+        notificacion: {
+          canales,
+          email: values.email_receptor?.trim() ?? "",
+          telefono: values.telefono_receptor ?? "",
+          destinatario: values.quien_recibe_paqueteria ?? "",
+          no_guia: values.no_guia ?? "",
+        },
+      },
       {
         onSuccess: () => {
           // Generar y descargar comprobante al éxito
@@ -269,6 +316,10 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
         (o: string) => o?.toLowerCase() === data.receptor?.toLowerCase()
       );
       setTipoDestinatario(esEmpleado ? "empleado" : "externo");
+      if (esEmpleado) {
+        const nombre = (dataAreaEmpleadoApoyo ?? []).find((o: string) => o?.toLowerCase() === data.receptor?.toLowerCase());
+        if (nombre) aplicarContactoEmpleado(nombre, true);
+      }
     }
     if (data?.remitente) form.setValue("remitente", data.remitente);
     if (data?.direccion_remitente) form.setValue("direccion_remitente", data.direccion_remitente);
@@ -396,7 +447,7 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
                               </div>
                               <FormControl>
                                 {tipoDestinatario === "empleado" ? (
-                                  <Select value={field.value} onValueChange={field.onChange}>
+                                  <Select value={field.value} onValueChange={(v) => { field.onChange(v); aplicarContactoEmpleado(v); }}>
                                     <SelectTrigger className="h-9 text-sm">
                                       {loadingAreaEmpleadoApoyo ? <SelectValue placeholder="Cargando..." /> : <SelectValue placeholder="Selecciona empleado..." />}
                                     </SelectTrigger>
@@ -409,18 +460,35 @@ export const AddPaqueteriaModal: React.FC<AddFallaModalProps> = ({ title, isSucc
                                     placeholder="Nombre del destinatario" className="h-9 text-sm" />
                                 )}
                               </FormControl>
-                              <div className="flex gap-3 mt-1 px-1">
-                                {form.watch("email_receptor") ? (
-                                  <span className="text-[11px] text-slate-400"><span className="font-mono">{form.watch("email_receptor")}</span></span>
-                                ) : (
-                                  <span className="text-[11px] text-amber-400">No se detectó email del destinatario.</span>
-                                )}
-                                {form.watch("telefono_receptor") ? (
-                                  <span className="text-[11px] text-slate-400"><span className="font-mono">{form.watch("telefono_receptor")}</span></span>
-                                ) : (
-                                  <span className="text-[11px] text-amber-400">No se detectó teléfono del destinatario.</span>
-                                )}
-                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        {/* Contacto del destinatario: lo llena la IA si viene en la etiqueta y
+                            se puede corregir; es a donde se manda el aviso de "paquete recibido". */}
+                        <FormField control={form.control} name="email_receptor"
+                          render={({ field }: any) => (
+                            <FormItem>
+                              <FormLabel className="text-xs text-slate-500">Email destinatario</FormLabel>
+                              <FormControl><Input {...field} type="email" className="h-9 text-sm" placeholder="correo@ejemplo.com" /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField control={form.control} name="telefono_receptor"
+                          render={({ field }: any) => (
+                            <FormItem>
+                              <FormLabel className="text-xs text-slate-500">Teléfono destinatario</FormLabel>
+                              <FormControl>
+                                <PhoneInput
+                                  value={field.value || undefined}
+                                  onChange={(value) => field.onChange(value || "")}
+                                  defaultCountry="MX"
+                                  placeholder="Teléfono"
+                                  containerComponentProps={{ className: "flex h-9 w-full rounded-md border border-input bg-background pl-3 text-sm" }}
+                                  numberInputProps={{ className: "pl-2 bg-transparent outline-none" }}
+                                />
+                              </FormControl>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
