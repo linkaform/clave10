@@ -1405,12 +1405,9 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
           })()}
           <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-=======
+
           {!esPaseIndividual && (
->>>>>>> Stashed changes
+
           <div className="space-y-2">
             <p className="text-sm font-semibold text-slate-700">El acompañante trae:</p>
             <p className="text-xs text-slate-400">
@@ -1447,13 +1444,10 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
               </div>
             </div>
           </div>
-<<<<<<< Updated upstream
 
-=======
           )}
 
->>>>>>> Stashed changes
->>>>>>> Stashed changes
+
           {vehiculoHabilitado && (
             <PaseVehiculosSection
               vehicles={vehicles}
@@ -1702,12 +1696,8 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                         </AccordionTrigger>
                         <AccordionContent>
                           <div className="w-full flex flex-col gap-6">
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-=======
+
                             {!esPaseIndividual && (
->>>>>>> Stashed changes
                             <div className="flex items-center gap-6">
                               <div className="flex items-center gap-2">
                                 <Checkbox
@@ -1738,11 +1728,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                                 </Label>
                               </div>
                             </div>
-<<<<<<< Updated upstream
-=======
                             )}
->>>>>>> Stashed changes
->>>>>>> Stashed changes
                             {vehiculoHabilitado && (
                               <PaseVehiculosSection
                                 vehicles={vehicles}
