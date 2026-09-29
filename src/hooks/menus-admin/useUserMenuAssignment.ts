@@ -1,7 +1,11 @@
 import {
   MenuUser,
   MigrateLegacyMenusResult,
+  PermissionGapsResult,
+  ReapplyPermissionsResult,
   ResyncPermissionsResult,
+  getMenuPermissionGaps,
+  reapplyMenuPermissions,
   getUserMenuItems,
   listMenuUsers,
   listUsersMissingMenuConfig,
@@ -202,6 +206,52 @@ export const useMigrateLegacyMenus = () => {
   });
 
   return { migrateMutation, isRunning };
+};
+
+// Usuarios con configuración de menús pero permisos compartidos incompletos. Solo se
+// consulta con el botón "Analizar": son 3 llamadas a LinkaForm por usuario.
+export const usePermissionGaps = () => {
+  const { data, isFetching, error, refetch } = useQuery<PermissionGapsResult>({
+    queryKey: ["menuAdminPermissionGaps"],
+    enabled: false,
+    queryFn: async () => {
+      const res = await getMenuPermissionGaps();
+      if (!res?.success) {
+        throw new Error("Error al analizar los permisos");
+      }
+      return res.response?.data as PermissionGapsResult;
+    },
+  });
+  return { gaps: data, isAnalyzing: isFetching, error, analyze: refetch };
+};
+
+export const useReapplyPermissions = () => {
+  const reapplyMutation = useMutation({
+    mutationFn: async (userIds: number[]) => {
+      const res = await reapplyMenuPermissions(userIds);
+      if (!res?.success) {
+        throw new Error("No se pudieron reaplicar los permisos.");
+      }
+      return (res.response?.data ?? []) as ReapplyPermissionsResult[];
+    },
+    onSuccess: (results) => {
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length) {
+        console.warn("reapply_menu_permissions: usuarios con error", failed);
+        toast.warning(
+          `Permisos reaplicados a ${results.length - failed.length} de ${results.length} usuario(s); ${failed.length} con error.`,
+          {
+            description: failed.slice(0, 3).map((r) => `Usuario ${r.user_id}: ${r.error}`).join("\n"),
+            duration: 15000,
+          },
+        );
+      } else {
+        toast.success(`Permisos reaplicados a ${results.length} usuario(s).`);
+      }
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  return { reapplyMutation, isReapplying: reapplyMutation.isPending };
 };
 
 export const useMenuConfigDiagnostics = () => {

@@ -118,6 +118,49 @@ export const listUsersOnlyInLegacyAccesos = () =>
     option: "list_users_only_in_legacy_accesos",
   });
 
+export type PermissionItemType = "form" | "catalog" | "script";
+
+export interface PermissionGapItem {
+  id: number;
+  nombre: string;
+}
+
+export interface PermissionGapUser {
+  user_id: number;
+  username: string;
+  faltan: Partial<Record<PermissionItemType, PermissionGapItem[]>>;
+  // Compartidos que sus menús ya no piden: reaplicar los descomparte.
+  sobran: Partial<Record<PermissionItemType, PermissionGapItem[]>>;
+  total: number;
+  total_sobran: number;
+}
+
+export interface PermissionGapsResult {
+  usuarios: PermissionGapUser[];
+  revisados: number;
+  borrados: number;
+  errores: { user_id: number; error: string }[];
+}
+
+export interface ReapplyPermissionsResult {
+  user_id: number;
+  ok: boolean;
+  error: string | null;
+}
+
+export const getMenuPermissionGaps = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "get_menu_permission_gaps",
+  });
+
+export const reapplyMenuPermissions = (user_ids: number[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "reapply_menu_permissions",
+    user_ids,
+  });
+
 export interface MigrateLegacyMenusResult {
   user_id: number;
   username: string;
