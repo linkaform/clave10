@@ -18,17 +18,20 @@ import {
   Settings,
   Navigation,
   Info,
+  Pencil,
 } from "lucide-react";
 import { useGetAreaById } from "@/hooks/Areas/useGetAreaById";
 import { useAreaActions } from "@/hooks/Areas/useAreaActions";
 import { normalizeArea } from "@/lib/areas";
 import { AreaDisponibilidadMenu } from "@/components/table/areas-explorer/AreaDisponibilidadMenu";
+import { EditarAreaForm } from "./EditarAreaForm";
 import { ChecksAreaDashboard } from "./ChecksAreaDashboard";
+import { InspeccionesAreaDashboard } from "./InspeccionesAreaDashboard";
 import { FallasAreaDashboard } from "./FallasAreaDashboard";
 import { RondinesAreaDashboard } from "./RondinesAreaDashboard";
 import { IncidenciasAreaDashboard } from "./IncidenciasAreaDashboard";
 
-type AreaTab = "general" | "rondines" | "checks" | "inspecciones" | "incidencias" | "fallas" | "configuracion";
+export type AreaTab = "general" | "rondines" | "checks" | "inspecciones" | "incidencias" | "fallas" | "configuracion";
 
 const TABS: { key: AreaTab; label: string; icon: typeof Route }[] = [
   { key: "general", label: "General", icon: Info },
@@ -40,11 +43,20 @@ const TABS: { key: AreaTab; label: string; icon: typeof Route }[] = [
   { key: "configuracion", label: "Configuración", icon: Settings },
 ];
 
-const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
+const AreaDetalle = ({
+  id,
+  onClose,
+  initialTab = "general",
+}: {
+  id: string;
+  onClose?: () => void;
+  /** Tab con el que abre; el lápiz de editar abre en "configuracion". */
+  initialTab?: AreaTab;
+}) => {
   const router = useRouter();
   const { area, isLoadingArea } = useGetAreaById(id);
   const { handlePrintAreaQR, handleToggleAreaEstado } = useAreaActions();
-  const [activeTab, setActiveTab] = useState<AreaTab>("general");
+  const [activeTab, setActiveTab] = useState<AreaTab>(initialTab);
 
   const normalized = useMemo(() => (area ? normalizeArea(area, 0) : null), [area]);
 
@@ -113,6 +125,15 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
         </div>
 
         <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
+          <button
+            onClick={() => setActiveTab("configuracion")}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all shadow-sm"
+            title="Editar área"
+          >
+            <Pencil className="w-4 h-4" />
+            Editar
+          </button>
+
           <button
             onClick={() => handlePrintAreaQR(normalized.recordId)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all shadow-sm"
@@ -242,17 +263,13 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
             <IncidenciasAreaDashboard areaId={normalized.recordId} />
           ) : activeTab === "checks" ? (
             <ChecksAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
+          ) : activeTab === "inspecciones" ? (
+            <InspeccionesAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
           ) : activeTab === "fallas" ? (
             <FallasAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
           ) : activeTab === "configuracion" ? (
-            <div className="flex flex-col gap-4 max-w-sm">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                  Tipo de área
-                </label>
-                <span className="text-base font-medium text-gray-800 capitalize">{normalized.tipo || "-"}</span>
-              </div>
-              <p className="text-sm text-gray-400">Edición de área — próximamente.</p>
+            <div className="max-w-2xl">
+              <EditarAreaForm area={normalized} />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-48 text-center text-gray-400 gap-2">

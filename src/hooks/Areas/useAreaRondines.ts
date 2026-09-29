@@ -4,10 +4,16 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 export interface AreaRondinItem {
   record_id: string;
+  // record_id de la configuración del recorrido (lo que abre ver-recorrido).
+  recorrido_id: string;
   folio: string;
   nombre_recorrido: string;
   ubicacion: string;
+  asignado_a: string;
   estatus_rondin: string;
+  fecha_programacion: string;
+  fecha_inicio: string;
+  fecha_fin: string;
 }
 
 export interface AreaRondinesPage {

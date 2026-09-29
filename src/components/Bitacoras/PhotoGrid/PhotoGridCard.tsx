@@ -97,6 +97,7 @@ export function PhotoGridCard({
         isSelected
           ? "border-[#2A7EFF] shadow-md bg-primary/5"
           : "border-gray-100 hover:border-primary/30",
+        !isSelected && record.cardClassName,
       )}
       onClick={() => onClick?.(record)}>
       <div

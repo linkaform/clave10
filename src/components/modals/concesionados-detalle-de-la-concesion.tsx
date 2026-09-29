@@ -14,6 +14,7 @@ import { Imagen } from "../upload-Image";
 import { Building2, Calendar, CircleDot, ClipboardList, IdCard, PenLine, User } from "lucide-react";
 import TabSeguimientos from "../concesionados-tab-seguimientos";
 import ViewImage from "./view-image";
+import { DescargarPdfConcesionButton } from "@/components/Bitacoras/Concesionados/DescargarPdfConcesionButton";
 
 export type Concesion = {
   _id: string;
@@ -182,6 +183,17 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                 </div>
               </div>
             </div>
+
+              {/* Descargar PDF de la concesión, antes de la lista de equipos */}
+              <div className="px-5 flex justify-end">
+                <DescargarPdfConcesionButton
+                  recordId={data._id}
+                  folio={data.folio}
+                  label="Descargar PDF"
+                  iconClassName="w-4 h-4"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all shadow-sm"
+                />
+              </div>
 
               <div className="p-5 py-0">
                 <TabDatos equipos={equipos} setEquipos={setEquipos} mode="vista" dataConcesion={data}/>

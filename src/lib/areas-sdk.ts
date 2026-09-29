@@ -242,20 +242,22 @@ export interface CreateAreaData {
   usos?: AreaUso[];
   /** Default []. */
   foto_area?: ArchivoArea[];
+  /** Campo "Multiple Ubicacion" (6ab3fced40b43d0734afd473). Default "no". */
+  multiple_ubicacion?: "si" | "no";
 }
 
 /**
- * Payload tal cual lo recibe create_area (rondines_sdk.py → /accesos/create_area
+ * Payload tal cual lo recibe create_area (update_area_sdk.py → /accesos/create_area
  * → create_new_area).
  *
  * Qué guarda hoy el back:
  * - Sí: nombre, ubicacion, tipo_de_area, foto_area, qr_area (Tag ID →
- *   area_tag_id) y geolocalizacion.
+ *   area_tag_id), geolocalizacion, multiple_ubicacion, usos (checkbox
+ *   "Utilizar Area en:") y direccion (nombre_direccion del catálogo de
+ *   contacto; si va vacía se usa el contacto de la ubicación).
  * - Todavía no: area_state/area_status (create_new_area los tiene fijos en
- *   "activa"/"disponible"), direccion (sale del contacto de la ubicación) y
- *   usos (no hay campo). Además el wrapper create_area de rondines_sdk.py
- *   solo reenvía los campos del primer grupo. Se mandan igual para que el
- *   front no cambie cuando el back los reciba.
+ *   "activa"/"disponible"). Se mandan igual para que el front no cambie
+ *   cuando el back los reciba.
  */
 export interface CreateAreaPayload {
   nombre: string;
@@ -269,6 +271,7 @@ export interface CreateAreaPayload {
   geolocalizacion?: GeolocalizacionArea;
   usos: AreaUso[];
   foto_area: ArchivoArea[];
+  multiple_ubicacion: "si" | "no";
 }
 
 export const buildCreateAreaPayload = (data: CreateAreaData): CreateAreaPayload => ({
@@ -282,12 +285,87 @@ export const buildCreateAreaPayload = (data: CreateAreaData): CreateAreaPayload 
   ...(data.geolocalizacion ? { geolocalizacion: data.geolocalizacion } : {}),
   usos: data.usos ?? [],
   foto_area: (data.foto_area ?? []).filter((f) => f.file_url),
+  multiple_ubicacion: data.multiple_ubicacion === "si" ? "si" : "no",
 });
 
 export const createAreaSdk = async (data: CreateAreaData) => {
   const payload = {
     ...buildCreateAreaPayload(data),
     option: "create_area",
+    script_name: "update_area_sdk.py",
+  };
+
+  const userJwt = await getValidToken();
+  const response = await fetch(API_ENDPOINTS.runScript, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${userJwt}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return response.json();
+};
+
+/**
+ * Cambios del modal de edición (update_area_sdk.py → /accesos/update_full_area).
+ * Solo se mandan las llaves que cambiaron: el back parcha esas y deja lo demás.
+ */
+export interface UpdateFullAreaData {
+  record_id: string;
+  nombre?: string;
+  ubicacion?: string;
+  /** nombre_direccion del catálogo de contacto. */
+  direccion?: string;
+  tipo_de_area?: string;
+  area_status?: AreaStatus;
+  area_state?: AreaState;
+  /** Tag ID del área ("" lo quita). */
+  qr_area?: string;
+  /** [] quita la foto. */
+  foto_area?: ArchivoArea[];
+  geolocalizacion?: GeolocalizacionArea | null;
+  multiple_ubicacion?: "si" | "no";
+  /** Checkbox "Utilizar Area en:"; [] los quita todos. */
+  usos?: AreaUso[];
+}
+
+export const updateFullAreaSdk = async (data: UpdateFullAreaData) => {
+  const payload = {
+    ...data,
+    option: "update_full_area",
+    script_name: "update_area_sdk.py",
+  };
+
+  const userJwt = await getValidToken();
+  const response = await fetch(API_ENDPOINTS.runScript, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${userJwt}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return response.json();
+};
+
+/** Dirección del catálogo "contacto" (get_catalog_direcciones en el back). */
+export interface DireccionContacto {
+  nombre_direccion: string;
+  /** Tipo de contacto: "Direccion", "Persona" o "Empresa". */
+  tipo: string;
+  direccion: string;
+  ciudad: string;
+  estado: string;
+  pais: string;
+  geolocalizacion: GeolocalizacionArea | null;
+}
+
+export const getCatalogDireccionesSdk = async () => {
+  const payload = {
+    option: "catalog_direcciones",
     script_name: "rondines_sdk.py",
   };
 

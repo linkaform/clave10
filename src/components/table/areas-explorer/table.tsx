@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Power, Printer } from "lucide-react";
+import { Pencil, Power, Printer } from "lucide-react";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { PhotoGridActionButtons } from "@/components/Bitacoras/PhotoGrid/PhotoGridActionButtons";
@@ -34,6 +34,7 @@ import { ViewMode, cn } from "@/lib/utils";
 import { getAreasColumns } from "./columns";
 import { AreaDisponibilidadMenu } from "./AreaDisponibilidadMenu";
 import { AreaDetallePanel } from "@/components/Areas/AreaDetallePanel";
+import type { AreaTab } from "@/components/Areas/AreaDetalle";
 
 interface AreasExplorerTableProps {
   areas: AreaRow[];
@@ -58,6 +59,8 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
   onSelectedAreaIdChange,
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
+  // Tab con el que abre el panel lateral: el lápiz abre directo en "configuracion".
+  const [panelTab, setPanelTab] = useState<AreaTab>("general");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
@@ -70,17 +73,25 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
 
   const { handlePrintAreaQR, handleToggleAreaEstado } = useAreaActions();
 
-  const handleVerArea = React.useCallback(
-    (area: NormalizedArea) => onSelectedAreaIdChange(area.recordId),
+  const abrirPanel = React.useCallback(
+    (recordId: string, tab: AreaTab = "general") => {
+      if (!recordId) return;
+      setPanelTab(tab);
+      onSelectedAreaIdChange(recordId);
+    },
     [onSelectedAreaIdChange],
   );
 
+  const handleVerArea = React.useCallback((area: NormalizedArea) => abrirPanel(area.recordId), [abrirPanel]);
+
+  const handleEditArea = React.useCallback(
+    (area: NormalizedArea) => abrirPanel(area.recordId, "configuracion"),
+    [abrirPanel],
+  );
+
   const handleRecordClick = React.useCallback(
-    (record: PhotoRecord | ListRecord) => {
-      const recordId = (record as any)?.rawData?.record_id;
-      if (recordId) onSelectedAreaIdChange(recordId);
-    },
-    [onSelectedAreaIdChange],
+    (record: PhotoRecord | ListRecord) => abrirPanel((record as any)?.rawData?.record_id || ""),
+    [abrirPanel],
   );
 
   const handlePrintArea = React.useCallback(
@@ -105,6 +116,14 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
       return (
         <PhotoGridActionButtons
           actions={[
+            <div
+              key="editar"
+              className={iconButtonClass}
+              title="Editar área"
+              onClick={() => abrirPanel(recordId, "configuracion")}
+            >
+              <Pencil className="w-4 h-4" />
+            </div>,
             <div
               key="print"
               className={iconButtonClass}
@@ -133,12 +152,12 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
         />
       );
     },
-    [handlePrintAreaQR, handleToggleAreaEstado],
+    [handlePrintAreaQR, handleToggleAreaEstado, abrirPanel],
   );
 
   const columns = useMemo(
-    () => getAreasColumns(handleVerArea, handlePrintArea, handleToggleArea),
-    [handleVerArea, handlePrintArea, handleToggleArea],
+    () => getAreasColumns(handleVerArea, handlePrintArea, handleToggleArea, handleEditArea),
+    [handleVerArea, handlePrintArea, handleToggleArea, handleEditArea],
   );
 
   const table = useReactTable({
@@ -265,7 +284,12 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
 
       <AreaDetallePanel
         recordId={selectedAreaId}
-        onOpenChange={(open) => !open && onSelectedAreaIdChange(null)}
+        initialTab={panelTab}
+        onOpenChange={(open) => {
+          if (open) return;
+          onSelectedAreaIdChange(null);
+          setPanelTab("general");
+        }}
       />
     </div>
   );

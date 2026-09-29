@@ -33,14 +33,10 @@ export const useCreateArea = () => {
         toast.error(`Error al crear el área: ${textMsj.text}`);
         return false;
       }
-      // create_new_area no crea nada si ya hay un área con ese nombre en la
-      // ubicación: responde { status_comment: "El area ya existe. ..." }.
-      const statusComment: string = result?.response?.data?.status_comment ?? "";
-      if (statusComment.toLowerCase().includes("ya existe")) {
-        toast.warning("Ya existe un área con ese nombre en esta ubicación.");
-        return false;
-      }
       toast.success("Área creada correctamente.");
+      // get_catalog_areas_formatted: la vista actual se vuelve a pedir y las
+      // demás páginas/filtros en caché se descartan para no mostrar la lista vieja.
+      queryClient.removeQueries({ queryKey: ["areasCatalog"], type: "inactive" });
       queryClient.invalidateQueries({ queryKey: ["areasCatalog"] });
       return true;
     } catch (err) {

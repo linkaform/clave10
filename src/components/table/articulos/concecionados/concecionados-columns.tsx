@@ -3,6 +3,7 @@ import {
 } from "@tanstack/react-table";
 import { ArrowLeftRight, Eye } from "lucide-react";
 import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-de-la-concesion";
+import { DescargarPdfConcesionButton } from "@/components/Bitacoras/Concesionados/DescargarPdfConcesionButton";
 import { Imagen } from "@/components/upload-Image";
 import { EquipoConcesionado } from "@/components/concesionados-tab-datos";
 import { useState } from "react";
@@ -46,6 +47,8 @@ const OptionsCell: React.FC<{ row: any }> = ({ row }) => {
       <DetalleDelSeguimiento data={articulo} isSuccess={false}>
         <div><ArrowLeftRight className="w-5 h-5"/></div>
       </DetalleDelSeguimiento>
+
+      <DescargarPdfConcesionButton recordId={articulo._id} folio={articulo.folio} />
     </div>
   );
 };

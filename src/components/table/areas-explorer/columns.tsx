@@ -1,5 +1,5 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { Eye, Power, Printer, Tag as TagIcon } from "lucide-react";
+import { Eye, Pencil, Power, Printer, Tag as TagIcon } from "lucide-react";
 import { NormalizedArea } from "@/lib/areas";
 import { AreaDisponibilidadMenu } from "./AreaDisponibilidadMenu";
 
@@ -7,6 +7,7 @@ export const getAreasColumns = (
   onVerArea: (area: NormalizedArea) => void,
   onPrintArea: (area: NormalizedArea) => void,
   onToggleEstado: (area: NormalizedArea) => void,
+  onEditArea: (area: NormalizedArea) => void,
 ): ColumnDef<NormalizedArea>[] => [
   {
     id: "options",
@@ -14,29 +15,36 @@ export const getAreasColumns = (
     cell: ({ row }) => {
       const esActiva = row.original.estado?.toLowerCase() === "activa";
       return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div
             className="cursor-pointer"
             onClick={() => onVerArea(row.original)}
             title="Ver Área"
           >
-            <Eye className="w-5 h-5" />
+            <Eye className="w-4 h-4" />
+          </div>
+          <div
+            className="cursor-pointer"
+            onClick={() => onEditArea(row.original)}
+            title="Editar área"
+          >
+            <Pencil className="w-4 h-4" />
           </div>
           <div
             className="cursor-pointer"
             onClick={() => onPrintArea(row.original)}
             title="Imprimir QR"
           >
-            <Printer className="w-5 h-5" />
+            <Printer className="w-4 h-4" />
           </div>
           <div
             className={`cursor-pointer ${esActiva ? "text-green-600" : "text-slate-400"}`}
             onClick={() => onToggleEstado(row.original)}
             title={esActiva ? "Desactivar área" : "Activar área"}
           >
-            <Power className="w-5 h-5" />
+            <Power className="w-4 h-4" />
           </div>
-          <AreaDisponibilidadMenu recordId={row.original.recordId} />
+          <AreaDisponibilidadMenu recordId={row.original.recordId} iconClassName="w-4 h-4" />
         </div>
       );
     },

@@ -21,9 +21,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EntryPassModal } from "@/components/modals/add-pass-modal";
 import { List, UserRound, CalendarDays, Layers, Car, Camera, IdCard, Pencil } from "lucide-react";
-
-
 import { cn, formatDateToString, formatFecha, isExcluded, nowInUserTz, prefijoToCountry, todayInUserTz } from "@/lib/utils";
+import { BadgeCheck } from "lucide-react";
+import {  isHabilitado} from "@/lib/utils";
 import { requisitoAplicaA } from "@/lib/utils";
 
 
@@ -193,6 +193,7 @@ const createFormSchema = (
     }),
     todas_las_areas: z.boolean().optional(),
     habilitar_vehiculo: z.string(),
+    auto_activacion: z.string().optional(),
     habilitar_fotografia: z.string(),
     habilitar_identificacion: z.string(),
     acompanantes: z
@@ -270,6 +271,7 @@ const PaseEntradaPage = () => {
   const [modalData, setModalData] = useState<any>(null);
   const [defaultCountry, setDefaultCountry] = useState<any>("MX");
   const [habilitarVehiculo, setHabilitarVehiculo] = useState(true);
+  const [activarPorDefecto, setActivarPorDefecto] = useState(false);
   const [habilitarFoto, setHabilitarFoto] = useState(true);
   const [habilitarIdentificacion, setHabilitarIdentificacion] = useState(true);
   const [toleranciaEntrada, setToleranciaEntrada] = useState<number>(0);
@@ -425,6 +427,18 @@ const PaseEntradaPage = () => {
   const requiereIdentificacionModulo =
     dataConfigLocation?.requerimientos?.includes("identificacion") ?? false;
 
+  // El toggle "Activar pase por defecto" solo se ofrece si alguna de las
+  // ubicaciones seleccionadas tiene "Auto Activacion" en sí en su grupo de
+  // requisitos (menu-store, viene de get_user_menu). Sin el campo no se muestra.
+  const permiteActivarPorDefecto = (ubicacionesSeleccionadasLista ?? []).some((ubicacion: string) =>
+    grupoRequisitos?.some(
+      (g) =>
+        requisitoAplicaA(g.ubicacion, ubicacion) &&
+        !!g.auto_activacion &&
+        isHabilitado(g.auto_activacion),
+    ),
+  );
+
   // Igual con email/teléfono: si el módulo de seguridad de la ubicación
   // pide envío por "correo" y/o "sms", ese campo se vuelve requerido en el
   // formulario. Si no pide ninguno de los dos, ninguno es requerido.
@@ -532,6 +546,7 @@ const PaseEntradaPage = () => {
       },
       todas_las_areas: todasAreas,
       habilitar_vehiculo:"sí",
+      auto_activacion: "no",
       habilitar_fotografia: "sí",
       habilitar_identificacion: "sí",
       acompanantes: 0,
@@ -761,6 +776,11 @@ const PaseEntradaPage = () => {
       },
       todas_las_areas: todasAreas,
       habilitar_vehiculo: habilitarVehiculo ? "sí" : "no",
+      // Mismo formato que habilitar_vehiculo: "sí"/"no". Igual que la foto: si
+      // la config del módulo no ofrece el toggle, no se manda la llave.
+      ...(permiteActivarPorDefecto && {
+        auto_activacion: activarPorDefecto ? "sí" : "no",
+      }),
       // Si el módulo de seguridad no pide fotografia/identificacion, el
       // toggle ni se muestra (ver esAdmin && requiereFotoModulo en el JSX) —
       // en ese caso no se manda la llave al back. Si sí la pide, se manda
@@ -1684,6 +1704,27 @@ const PaseEntradaPage = () => {
                   />
                 </div>
               </div>
+
+              {permiteActivarPorDefecto && (
+              <div className="bg-white rounded-2xl shadow-md border border-blue-60 p-6 mt-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-blue-50 rounded-xl">
+                      <BadgeCheck className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-700">Activar pase por defecto</p>
+                      <p className="text-xs text-gray-400">El pase se crea activo sin esperar a que se complete</p>
+                    </div>
+                  </div>
+                  <Switch
+                    className="data-[state=checked]:bg-blue-600"
+                    checked={activarPorDefecto}
+                    onCheckedChange={setActivarPorDefecto}
+                  />
+                </div>
+              </div>
+              )}
 
               {esAdmin && requiereFotoModulo && (
                 <div className="bg-white rounded-2xl shadow-md border border-blue-60 p-6 mt-5">

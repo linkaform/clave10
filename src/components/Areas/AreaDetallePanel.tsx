@@ -2,17 +2,19 @@
 
 import * as React from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import AreaDetalle from "./AreaDetalle";
+import AreaDetalle, { AreaTab } from "./AreaDetalle";
 
 interface AreaDetallePanelProps {
   recordId: string | null;
   onOpenChange: (open: boolean) => void;
+  /** Tab con el que abre el detalle (default "general"). */
+  initialTab?: AreaTab;
 }
 
 // Panel lateral para ver el detalle de un área sin salir de la lista. Es
 // modal: oscurece el fondo y cualquier clic afuera (incluida la grilla) lo
 // cierra.
-export function AreaDetallePanel({ recordId, onOpenChange }: AreaDetallePanelProps) {
+export function AreaDetallePanel({ recordId, onOpenChange, initialTab = "general" }: AreaDetallePanelProps) {
   return (
     <Sheet open={!!recordId} onOpenChange={onOpenChange}>
       <SheetContent
@@ -22,7 +24,14 @@ export function AreaDetallePanel({ recordId, onOpenChange }: AreaDetallePanelPro
       >
         <SheetTitle className="sr-only">Detalle del área</SheetTitle>
         <div className="flex-1 overflow-y-auto">
-          {recordId && <AreaDetalle id={recordId} onClose={() => onOpenChange(false)} />}
+          {recordId && (
+            <AreaDetalle
+              key={`${recordId}-${initialTab}`}
+              id={recordId}
+              initialTab={initialTab}
+              onClose={() => onOpenChange(false)}
+            />
+          )}
         </div>
       </SheetContent>
     </Sheet>

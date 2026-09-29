@@ -1,9 +1,17 @@
 import { API_ENDPOINTS } from "@/config/api";
 
-export const getPdfIncidencias = async (qr_code:string, template_id:number|null, account_id:number, name_pdf?:string) => {
+// option: "get_pdf" (default) usa la plantilla por defecto de la forma e ignora
+// template_id; "get_pdf_incidencias" sí respeta el template_id que se manda.
+export const getPdfIncidencias = async (
+  qr_code:string,
+  template_id:number|null,
+  account_id:number,
+  name_pdf?:string,
+  option: "get_pdf" | "get_pdf_incidencias" = "get_pdf",
+) => {
     const payload = {
       script_name: "pase_de_acceso_use_api.py",
-      option: "get_pdf",
+      option,
       qr_code:qr_code,
       template_id,
       account_id,

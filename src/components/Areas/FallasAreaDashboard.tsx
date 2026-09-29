@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Wrench, ImageIcon, Search } from "lucide-react";
+import { Wrench, ImageIcon, Search, CircleAlert, CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAreaFallas, AreaFallaItem } from "@/hooks/Areas/useAreaFallas";
-import { KpiCard } from "./KpiCard";
+import { KpiCard, toneProblema, toneReciente } from "./KpiCard";
 
 const parseFallaDate = (value: string) => {
   if (!value) return null;
@@ -116,13 +116,13 @@ export function FallasAreaDashboard({ ubicacion, area }: { ubicacion: string; ar
   return (
     <div className="flex flex-col gap-4">
       {/* KPIs */}
-      <div className="flex flex-wrap gap-3">
-        <KpiCard label="Fallas (360 días)" value={kpis.total} />
-        <KpiCard label="Abiertas" value={kpis.abiertas} tone={kpis.abiertas > 0 ? "bad" : "good"} />
-        <KpiCard label="Fallas 30 días" value={kpis.fallasPorVentana[30]} tone="warn" />
-        <KpiCard label="Fallas 60 días" value={kpis.fallasPorVentana[60]} tone="warn" />
-        <KpiCard label="Fallas 120 días" value={kpis.fallasPorVentana[120]} tone="warn" />
-        <KpiCard label="Fallas 360 días" value={kpis.fallasPorVentana[360]} tone="warn" />
+      <div className="flex flex-wrap gap-2">
+        <KpiCard label="Fallas (360 días)" value={kpis.total} icon={Wrench} />
+        <KpiCard label="Abiertas" value={kpis.abiertas} tone={toneProblema(kpis.abiertas)} icon={CircleAlert} />
+        <KpiCard label="Fallas 30 días" value={kpis.fallasPorVentana[30]} tone={toneReciente(kpis.fallasPorVentana[30])} icon={CalendarDays} />
+        <KpiCard label="Fallas 60 días" value={kpis.fallasPorVentana[60]} tone={toneReciente(kpis.fallasPorVentana[60])} icon={CalendarDays} />
+        <KpiCard label="Fallas 120 días" value={kpis.fallasPorVentana[120]} tone={toneReciente(kpis.fallasPorVentana[120])} icon={CalendarDays} />
+        <KpiCard label="Fallas 360 días" value={kpis.fallasPorVentana[360]} tone={toneReciente(kpis.fallasPorVentana[360])} icon={CalendarDays} />
       </div>
 
       {/* Últimos comentarios */}

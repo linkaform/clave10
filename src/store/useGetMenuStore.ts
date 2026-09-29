@@ -23,6 +23,12 @@ export interface GrupoRequisito {
   prefijo_telefonico: number;
   tolerancia_de_entrada_previa: number;
   tolerancia_de_entrada_posterior: number;
+  /**
+   * Radio "Auto Activacion" del grupo ("sí"/"no"): si pase-entrada ofrece el
+   * toggle "Activar pase por defecto". Opcional: los menús persistidos antes
+   * de este campo no lo traen.
+   */
+  auto_activacion?: string;
 }
 
 interface MenuStore {

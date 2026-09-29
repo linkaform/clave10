@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -26,15 +27,15 @@ import { AREA_USOS, AreaUso, AreaStatus } from "@/lib/areas-sdk";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import type { PuntoGeo } from "./MapaSelectorPunto";
+import { SelectorDireccion } from "./SelectorDireccion";
+import { TagIdInput } from "./TagIdInput";
+import { claseError, validarAreaForm } from "@/lib/areas-schema";
+import { cn } from "@/lib/utils";
 
 const MapaSelectorPunto = dynamic(() => import("./MapaSelectorPunto"), {
   ssr: false,
   loading: () => <div className="h-64 w-full rounded-lg border border-gray-200 bg-gray-50 animate-pulse" />,
 });
-
-// TODO: reemplazar por el catálogo de direcciones cuando exista el servicio.
-// La dirección elegida es la que da la geolocalización del área.
-const DIRECCIONES_PROVISIONALES = ["Planta Monterrey"];
 
 const capitalizar = (texto: string) => (texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : texto);
 
@@ -45,7 +46,8 @@ interface NuevaAreaModalProps {
 
 // Alta de un área desde el explorador de Áreas. A diferencia de
 // Ubicaciones/AreaCreateModal (que recibe la ubicación fija desde su
-// detalle), aquí se elige la ubicación.
+// detalle), aquí se elige la ubicación. La edición vive en EditarAreaForm
+// (tab "Configuración" del detalle).
 export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
   const { tiposDeArea, disponibilidadOptions, handleCreateArea, isCreating } = useCreateArea();
   const { locations } = useAreasLocationStore();
@@ -60,7 +62,10 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
   const [tagId, setTagId] = React.useState("");
   const [usos, setUsos] = React.useState<AreaUso[]>([]);
   const [foto, setFoto] = React.useState<Imagen[]>([]);
+  const [multipleUbicacion, setMultipleUbicacion] = React.useState(false);
   const [isUploadingFoto, setIsUploadingFoto] = React.useState(false);
+  // Los errores se pintan después del primer intento de guardar, y de ahí en vivo.
+  const [intentoGuardar, setIntentoGuardar] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
@@ -74,6 +79,8 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
     setTagId("");
     setUsos([]);
     setFoto([]);
+    setMultipleUbicacion(false);
+    setIntentoGuardar(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -81,10 +88,13 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
     setUsos((prev) => (prev.includes(value) ? prev.filter((u) => u !== value) : [...prev, value]));
 
   const isUploading = isUploadingFoto;
-  const puedeGuardar = !!nombre.trim() && !!ubicacion && !!tipoDeArea && !isUploading;
+  const erroresValidacion = validarAreaForm({ nombre, ubicacion, tipo_de_area: tipoDeArea, geolocalizacion });
+  const errores = intentoGuardar ? erroresValidacion : {};
+  const esValido = Object.keys(erroresValidacion).length === 0;
 
   const handleSubmit = async () => {
-    if (!puedeGuardar) return;
+    setIntentoGuardar(true);
+    if (!esValido || isUploading) return;
     const ok = await handleCreateArea({
       nombre,
       ubicacion,
@@ -97,6 +107,7 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
       geolocalizacion,
       usos,
       foto_area: foto,
+      multiple_ubicacion: multipleUbicacion ? "si" : "no",
     });
     if (ok) onOpenChange(false);
   };
@@ -128,14 +139,16 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   placeholder="Ej. Bodega Norte"
-                  className={inputClass}
+                  className={cn(inputClass, claseError(errores.nombre))}
+                  aria-invalid={!!errores.nombre}
                 />
+                {errores.nombre && <p className="text-xs text-red-500">{errores.nombre}</p>}
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <Label className={labelClass}>Ubicación *</Label>
                 <Select value={ubicacion || undefined} onValueChange={setUbicacion}>
-                  <SelectTrigger className={`w-full ${inputClass}`}>
+                  <SelectTrigger className={cn("w-full", inputClass, claseError(errores.ubicacion))} aria-invalid={!!errores.ubicacion}>
                     <SelectValue placeholder="Selecciona una ubicación" />
                   </SelectTrigger>
                   <SelectContent>
@@ -146,12 +159,13 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
                     ))}
                   </SelectContent>
                 </Select>
+                {errores.ubicacion && <p className="text-xs text-red-500">{errores.ubicacion}</p>}
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <Label className={labelClass}>Tipo de área *</Label>
                 <Select value={tipoDeArea || undefined} onValueChange={setTipoDeArea}>
-                  <SelectTrigger className={`w-full ${inputClass}`}>
+                  <SelectTrigger className={cn("w-full", inputClass, claseError(errores.tipo_de_area))} aria-invalid={!!errores.tipo_de_area}>
                     <SelectValue placeholder="Selecciona un tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -162,6 +176,7 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
                     ))}
                   </SelectContent>
                 </Select>
+                {errores.tipo_de_area && <p className="text-xs text-red-500">{errores.tipo_de_area}</p>}
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -182,13 +197,20 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="area-tag-id" className={labelClass}>Tag ID</Label>
-                <Input
-                  id="area-tag-id"
-                  value={tagId}
-                  onChange={(e) => setTagId(e.target.value)}
-                  placeholder="Ej. 698653701b7735a0a164b4e0"
-                  className={inputClass}
-                />
+                <TagIdInput id="area-tag-id" value={tagId} onChange={setTagId} className={inputClass} />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="area-multiple-ubicacion" className={labelClass}>Múltiple ubicación</Label>
+                <div className="flex items-center gap-3 h-10">
+                  <Switch
+                    id="area-multiple-ubicacion"
+                    checked={multipleUbicacion}
+                    onCheckedChange={setMultipleUbicacion}
+                    className="data-[state=checked]:bg-blue-600"
+                  />
+                  <span className="text-sm text-gray-600">{multipleUbicacion ? "Sí" : "No"}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -199,23 +221,13 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
               <h3 className="font-semibold text-gray-700">Geolocalización</h3>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className={labelClass}>Geolocalización del área</Label>
-              <MapaSelectorPunto value={geolocalizacion} onChange={setGeolocalizacion} />
+              <Label className={labelClass}>Dirección</Label>
+              <SelectorDireccion value={direccion} onChange={setDireccion} className={inputClass} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className={labelClass}>Dirección</Label>
-              <Select value={direccion || undefined} onValueChange={setDireccion}>
-                <SelectTrigger className={`w-full ${inputClass}`}>
-                  <SelectValue placeholder="Selecciona una dirección" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DIRECCIONES_PROVISIONALES.map((dir) => (
-                    <SelectItem key={dir} value={dir}>
-                      {dir}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className={labelClass}>Geolocalización del área</Label>
+              <MapaSelectorPunto value={geolocalizacion} onChange={setGeolocalizacion} />
+              {errores.geolocalizacion && <p className="text-xs text-red-500">{errores.geolocalizacion}</p>}
             </div>
           </div>
 
@@ -271,7 +283,7 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
           <Button
             className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
             onClick={handleSubmit}
-            disabled={isCreating || !puedeGuardar}
+            disabled={isCreating || isUploading}
           >
             {isCreating ? (
               <>
@@ -288,6 +300,11 @@ export function NuevaAreaModal({ open, onOpenChange }: NuevaAreaModalProps) {
             )}
           </Button>
         </div>
+        {intentoGuardar && !esValido && !isCreating && (
+          <p className="flex-shrink-0 bg-white px-6 pb-3 -mt-2 text-right text-xs text-red-500">
+            Revisa los campos marcados en rojo.
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );

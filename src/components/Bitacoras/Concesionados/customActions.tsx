@@ -3,6 +3,7 @@ import { PhotoGridActionButtons } from "@/components/Bitacoras/PhotoGrid/PhotoGr
 import { Articulo_con_record } from "@/components/table/articulos/concecionados/concecionados-columns";
 import { DetalleDelSeguimiento } from "@/components/modals/concesionados-detalle-del-seguimiento";
 import { ArrowLeftRight } from "lucide-react";
+import { DescargarPdfConcesionButton } from "./DescargarPdfConcesionButton";
 
 interface ConcesionadosActionButtonsProps {
   concesionado: Articulo_con_record;
@@ -35,6 +36,13 @@ export const ConcesionadosActionButtons = ({ concesionado }: ConcesionadosAction
                 <ArrowLeftRight className="w-4 h-4" />
           </div>
         ),
+        <DescargarPdfConcesionButton
+          key="pdf"
+          recordId={concesionado._id}
+          folio={concesionado.folio}
+          className={iconClass(false)}
+          iconClassName="w-4 h-4"
+        />,
       ].filter(Boolean) as React.ReactNode[]}
     />
   );

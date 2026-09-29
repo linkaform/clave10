@@ -105,7 +105,7 @@ export const NombreCell: React.FC<{ row: Row<any> }> = ({ row }) => {
         )}
         <Badge
           className={`w-fit text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full font-bold ${
-            estatus?.toLowerCase() == "vencido"
+            estatus?.toLowerCase() == "vencido" || estatus?.toLowerCase() == "cancelado"
               ? "bg-red-600 hover:bg-red-600"
               : estatus?.toLowerCase() == "activo"
                 ? "bg-green-600 hover:bg-green-600"
