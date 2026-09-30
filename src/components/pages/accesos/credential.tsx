@@ -304,9 +304,11 @@ const Credentials: React.FC<Props> = ({ searchPass, onSeleccionPases }) => {
 										<div className="flex justify-between items-end">
 											<span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Límite de accesos</span>
 											<span className="text-sm font-bold text-slate-900">
-												{searchPass?.total_entradas ?? 0} / {searchPass?.limite_de_acceso}
+												{searchPass?.total_entradas ?? 0} / {Number(searchPass?.limite_de_acceso) <= 0 ? "Ilimitado" : searchPass?.limite_de_acceso}
 											</span>
 										</div>
+										{/* Límite <= 0 = ilimitado: sin barra de progreso */}
+										{Number(searchPass?.limite_de_acceso) > 0 && (
 										<div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
 											<div
 												className={`h-full transition-all duration-500 rounded-full ${(Number(searchPass?.total_entradas) / Number(searchPass?.limite_de_acceso)) > 0.9
@@ -316,6 +318,7 @@ const Credentials: React.FC<Props> = ({ searchPass, onSeleccionPases }) => {
 												style={{ width: `${Math.min(100, (Number(searchPass?.total_entradas) / Number(searchPass?.limite_de_acceso)) * 100)}%` }}
 											/>
 										</div>
+										)}
 									</div>
 								)}
 

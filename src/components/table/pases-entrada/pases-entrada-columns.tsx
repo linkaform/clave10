@@ -346,9 +346,12 @@ export const getPasesEntradaColumns = (
     cell: ({ row }) => {
       const total_entradas = row.original.total_entradas;
       const limite_entradas = row.original.limite_de_acceso ?? 1;
+      // Un límite <= 0 es ilimitado (el back solo cuenta entradas si es > 0).
       return (
         <div>
-          {total_entradas} / {limite_entradas}
+          {Number(limite_entradas) <= 0
+            ? `${total_entradas} / Ilimitado`
+            : `${total_entradas} / ${limite_entradas}`}
         </div>
       );
     },
