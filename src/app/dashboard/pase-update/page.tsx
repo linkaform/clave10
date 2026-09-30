@@ -1552,7 +1552,7 @@ const pasePadreBadge = (dataCatalogos?.pass_selected?.url_padre || dataCatalogos
                   <h1 className="font-extrabold text-3xl text-slate-900 tracking-tight">
                     {dataCatalogos?.pass_selected?.nombre}
                   </h1>
-                  <p className="text-slate-400 text-sm mt-1">Pase de entrada · Visita General</p>
+                  <p className="text-slate-400 text-sm mt-1">Pase de entrada · {dataCatalogos?.pass_selected?.tipo_de_pase || "Visita General"}</p>
                 </div>
 
                 {/* CARD: info de visita en grid 2 columnas */}

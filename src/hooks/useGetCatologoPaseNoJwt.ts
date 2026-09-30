@@ -54,6 +54,7 @@ export interface PermisoCertificacion {
 export interface PassSelected {
   folio: string;
   estatus: string;
+  tipo_de_pase?: string;
   grupo_equipos: any[];
   grupo_vehiculos: any[];
   fecha_de_caducidad: string;
