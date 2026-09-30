@@ -79,7 +79,7 @@ export const ChangeBoothModal: React.FC<ChangeBoothProps> = ({
                     className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer transition-colors"
                     onClick={() =>{
                       console.log("CAMBIO DE CASRTA", item?.area, item?.location)
-                      setBooth(item?.area, item?.location);
+                      setBooth(item?.area, item?.location, item?.extra_locations ?? []);
                       setIsOpen(false);
                     }}
                   >

@@ -13,13 +13,13 @@ export const useCreateArea = () => {
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
 
-  const { data: tiposDeArea } = useQuery<FilterOption[]>({
-    queryKey: ["filtersAreas", "tipo"],
+  const { data: filtros } = useQuery<{ tipo: FilterOption[]; disponibilidad: FilterOption[] }>({
+    queryKey: ["filtersAreas", "crear"],
     queryFn: async () => {
       const result = await getFiltersAreasSdk();
       const filters = result?.response?.data ?? [];
-      const tipoFilter = filters.find((f: any) => f.key === "tipo");
-      return tipoFilter?.options ?? [];
+      const opciones = (key: string) => filters.find((f: any) => f.key === key)?.options ?? [];
+      return { tipo: opciones("tipo"), disponibilidad: opciones("disponibilidad") };
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -34,6 +34,9 @@ export const useCreateArea = () => {
         return false;
       }
       toast.success("Área creada correctamente.");
+      // get_catalog_areas_formatted: la vista actual se vuelve a pedir y las
+      // demás páginas/filtros en caché se descartan para no mostrar la lista vieja.
+      queryClient.removeQueries({ queryKey: ["areasCatalog"], type: "inactive" });
       queryClient.invalidateQueries({ queryKey: ["areasCatalog"] });
       return true;
     } catch (err) {
@@ -45,5 +48,10 @@ export const useCreateArea = () => {
     }
   };
 
-  return { tiposDeArea: tiposDeArea ?? [], handleCreateArea, isCreating };
+  return {
+    tiposDeArea: filtros?.tipo ?? [],
+    disponibilidadOptions: filtros?.disponibilidad ?? [],
+    handleCreateArea,
+    isCreating,
+  };
 };

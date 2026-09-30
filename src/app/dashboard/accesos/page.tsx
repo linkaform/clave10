@@ -74,7 +74,7 @@ const AccesosContent = () => {
   const pathname = usePathname();
   const actionParam = searchParams.get("action");
   const { isAuth, userParentId } = useAuthStore();
-  const { area, location } = useBoothStore();
+  const { area, location, extra_locations } = useBoothStore();
   const { excludes }= useMenuStore()
   const { shift, isLoading:loadingShift, turno, downloadPass} = useGetShift(area,location);
   const {setTab, setFilter, setOption} = useShiftStore();
@@ -119,7 +119,10 @@ const AccesosContent = () => {
   const [inputValue, setInputValue] = useState("");
   const [openActivePases, setOpenActivePases] = useState(false);
   const queryClient = useQueryClient();
-  const [debouncedValue, setDebouncedValue] = useState("");
+  // Objeto (no string) para que buscar el mismo QR dos veces seguidas vuelva a disparar
+  // la búsqueda: un string igual no cambia el estado y el efecto no corre.
+  const [debounced, setDebounced] = useState<{ value: string }>({ value: "" });
+  const debouncedValue = debounced.value;
   const { data: stats } = useGetStats(
     true,
     location ?? "",
@@ -301,12 +304,21 @@ const AccesosContent = () => {
         );
       }
 
-      return data.response?.data || [];
+      // Ingreso grupal: el backend regresa un resultado por pase y cada uno
+      // puede fallar por separado (ej. un campo requerido de la bitácora).
+      const accesos: { qr_code: string; status: string; msg?: string }[] =
+        data.response?.data?.accesos ?? [];
+      const fallidos = accesos.filter((a) => a.status !== "success");
+      if (accesos.length && fallidos.length === accesos.length) {
+        throw new Error(fallidos[0].msg || "Hubo un error en el Ingreso");
+      }
+
+      return { data: data.response?.data || [], fallidos };
     },
     onMutate: () => {
       setLoading(true);
     },
-    onSuccess: () => {
+    onSuccess: ({ fallidos }) => {
       // Se calcula antes de limpiar selectedPasses: en este backend el
       // "qr_code" de cada acompañante (m.id) YA ES su _id de Mongo — no hay
       // un campo _id separado en el objeto crudo, así que selectedPasses ya
@@ -321,12 +333,19 @@ const AccesosContent = () => {
       setSelectedPasses([]);
       setEquipoVehiculoConfirmado({});
 
-      toast.success("Entrada Exitosa", {
-        style: {
-          background: "#22c55e",
-          color: "white",
-        },
-      });
+      if (fallidos.length) {
+        toast.warning(
+          `Ingreso parcial: ${fallidos.length} pase(s) no se registraron`,
+          { description: fallidos[0].msg, duration: 10000 },
+        );
+      } else {
+        toast.success("Entrada Exitosa", {
+          style: {
+            background: "#22c55e",
+            color: "white",
+          },
+        });
+      }
 
       if (downloadPass.includes("impresion_de_pase") && id) {
         const tieneAcompanantesEnEsteIngreso = idsAcompanantesIngreso.length > 0;
@@ -373,7 +392,7 @@ const AccesosContent = () => {
   useEffect(() => {
     if (inputValue) {
       const handler = setTimeout(() => {
-        setDebouncedValue(inputValue);
+        setDebounced({ value: inputValue });
       }, 700);
       return () => clearTimeout(handler);
     }
@@ -395,7 +414,7 @@ const AccesosContent = () => {
       setPassCode("");
       setInputValue("");
     }
-  }, [debouncedValue]);
+  }, [debounced]);
 
   function setTabAndFilter(tab: string, filter: string, option: string[]) {
     setTab(tab);
@@ -604,7 +623,7 @@ const AccesosContent = () => {
 					<Button
 						className="bg-red-500 hover:bg-red-600 text-white"
 						variant="secondary"
-						onClick={() =>{ setDebouncedValue(""); clearPassCode(); }}
+						onClick={() =>{ setDebounced({ value: "" }); clearPassCode(); }}
 					>
 						<Eraser className="text-white" />
 
@@ -663,7 +682,14 @@ const AccesosContent = () => {
 		{!searchPass ?
 	  	<div className="flex flex-col justify-center items-center gap-10 mt-20 overflow-hidden">
 				<div className="flex flex-col justify-center w-1/6 gap-2">
-					<Input placeholder="Ubicacion" value={location} disabled/>
+					{/* Caseta multiubicación: resumen como en el selector del header, nombres en el title. */}
+					<div title={extra_locations?.length > 0 ? [location, ...extra_locations].join(", ") : undefined}>
+						<Input
+							placeholder="Ubicacion"
+							value={extra_locations?.length > 0 ? `${extra_locations.length + 1} ubicaciones` : location}
+							disabled
+						/>
+					</div>
 					<Input placeholder="Area" value={area} disabled/>
 				</div>
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-5">

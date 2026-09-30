@@ -11,6 +11,7 @@ export interface FotoGaleria {
   file_url: string;
   file_name?: string;
   tipo?: string;
+  comentario?: string;
 }
 
 const humanizeTipo = (tipo?: string) =>
@@ -72,7 +73,11 @@ export function GaleriaFotosModal({
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div
+        className={cn(
+          "relative bg-white rounded-2xl shadow-2xl w-full flex flex-col overflow-hidden",
+          mode === "viewer" ? "max-w-[98vw] h-[95vh]" : "max-w-5xl max-h-[90vh]",
+        )}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -197,6 +202,13 @@ export function GaleriaFotosModal({
                 </span>
               )}
             </div>
+
+            {fotos[current]?.comentario && (
+              <div className="px-5 py-3 border-t border-gray-100 shrink-0 bg-gray-50">
+                <p className="text-xs font-semibold text-gray-500 mb-0.5">Comentario</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{fotos[current]?.comentario}</p>
+              </div>
+            )}
 
             {fotos.length > 1 && (
               <div className="flex gap-2 px-5 py-3 overflow-x-auto border-t border-gray-100 shrink-0">

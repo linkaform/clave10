@@ -28,8 +28,8 @@ export interface EquipoConcesionado {
   costo_equipo_concesion?: number;
   imagen_equipo_concesion?: Imagen[];
   cantidad_equipo_concesion?: number;
-  evidencia_entrega?: Imagen[];
-  comentario_entrega?: string | undefined;
+  evidencia_prestamo?: Imagen[];
+  comentario_prestamo?: string | undefined;
   status_concesion_equipo?: string;
   devoluciones?: DevolucionItem[];
   total?: number;
@@ -106,28 +106,30 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
         </div>
       )}
 
-      <ConcesionadosVerEquipo
-        title="Equipo"
-        setIsSuccess={setOpenVerEquiposModal}
-        isSuccess={openVerEquiposModal}
-        data={agregarEquipoSeleccion as any}
-        dataConcesion={dataConcesion}
-      >
-        <div />
-      </ConcesionadosVerEquipo>
+      <div className="hidden">
+        <ConcesionadosVerEquipo
+          title="Equipo"
+          setIsSuccess={setOpenVerEquiposModal}
+          isSuccess={openVerEquiposModal}
+          data={agregarEquipoSeleccion as any}
+          dataConcesion={dataConcesion}
+        >
+          <div />
+        </ConcesionadosVerEquipo>
 
-      <ConcesionadosAgregarEquipoModal
-        title="Nuevo Equipo"
-        isSuccess={openAgregarEquiposModal}
-        setIsSuccess={setOpenAgregarEquiposModal}
-        agregarEquiposSeleccion={agregarEquipoSeleccion}
-        setEquipos={setEquipos}
-        setEditarAgregarEquiposModal={setEditarAgregarEquiposModal}
-        editarAgregarEquiposModal={editarAgregarEquiposModal}
-        indice={indiceSeleccionado}
-      >
-        <div />
-      </ConcesionadosAgregarEquipoModal>
+        <ConcesionadosAgregarEquipoModal
+          title="Nuevo Equipo"
+          isSuccess={openAgregarEquiposModal}
+          setIsSuccess={setOpenAgregarEquiposModal}
+          agregarEquiposSeleccion={agregarEquipoSeleccion}
+          setEquipos={setEquipos}
+          setEditarAgregarEquiposModal={setEditarAgregarEquiposModal}
+          editarAgregarEquiposModal={editarAgregarEquiposModal}
+          indice={indiceSeleccionado}
+        >
+          <div />
+        </ConcesionadosAgregarEquipoModal>
+      </div>
 
       <div className="rounded-xl border border-gray-200 overflow-hidden">
         <div className="max-h-[240px] overflow-y-auto">

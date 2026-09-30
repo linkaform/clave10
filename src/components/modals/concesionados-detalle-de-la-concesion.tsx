@@ -14,6 +14,7 @@ import { Imagen } from "../upload-Image";
 import { Building2, Calendar, CircleDot, ClipboardList, IdCard, PenLine, User } from "lucide-react";
 import TabSeguimientos from "../concesionados-tab-seguimientos";
 import ViewImage from "./view-image";
+import { DescargarPdfConcesionButton } from "@/components/Bitacoras/Concesionados/DescargarPdfConcesionButton";
 
 export type Concesion = {
   _id: string;
@@ -98,7 +99,7 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
             <div className="p-5 py-0">
               <div className="flex items-center gap-2 mb-4">
               <ClipboardList className="text-blue-500 w-5 h-5" />
-              <h3 className="font-semibold text-gray-700">Información general</h3>
+              <h3 className="font-semibold text-gray-700">Información del préstamo</h3>
               </div>
 
               <div className="grid grid-cols-2 gap-x-6 gap-y-4">
@@ -121,7 +122,7 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                 <div className="flex items-start gap-2">
                   <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Fecha y hora</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Fecha y hora del préstamo</p>
                     <p className="text-sm text-gray-700">{data.fecha_concesion || "—"}</p>
                   </div>
                 </div>
@@ -129,7 +130,7 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                 <div className="flex items-start gap-2.5">
                   <User className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Empleado</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Empleado que solicita el préstamo</p>
                     <p className="text-sm font-medium text-gray-700">{empleado}</p>
                   </div>
                 </div>
@@ -150,7 +151,7 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                 <div className="flex items-start gap-2.5">
                   <PenLine className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Firma</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Firma de la persona que solicita el préstamo</p>
                     {firma?.file_url ? (
                       <div className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 inline-flex">
                         <ViewImage imageUrl={firma} size="lg" />
@@ -167,7 +168,7 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                 <div className="flex items-start gap-2.5">
                   <IdCard className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Identificación</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Identificación de la persona que solicita el préstamo</p>
                     {identificacion?.file_url ? (
                       <div className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 inline-flex">
                         <ViewImage imageUrl={identificacion} size="lg" />
@@ -182,6 +183,17 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                 </div>
               </div>
             </div>
+
+              {/* Descargar PDF de la concesión, antes de la lista de equipos */}
+              <div className="px-5 flex justify-end">
+                <DescargarPdfConcesionButton
+                  recordId={data._id}
+                  folio={data.folio}
+                  label="Descargar PDF"
+                  iconClassName="w-4 h-4"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all shadow-sm"
+                />
+              </div>
 
               <div className="p-5 py-0">
                 <TabDatos equipos={equipos} setEquipos={setEquipos} mode="vista" dataConcesion={data}/>

@@ -55,6 +55,7 @@ export type Access_pass={
     enviar_pre_sms:enviar_pre_sms,
     todas_las_areas?:boolean
     habilitar_vehiculo:string
+    auto_activacion?:string
     habilitar_fotografia:string
     habilitar_identificacion:string
     acompanantes: number | any[];

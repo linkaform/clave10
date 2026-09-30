@@ -17,6 +17,7 @@ export const ESTATUS_LABELS: Record<string, string> = {
   "carga_/_descarga": "Carga / Descarga",
   inspeccion_salida:  "Insp. Salida",
   terminado:          "Terminado",
+  descartado:         "Descartado",
 };
 
 export const ESTATUS_BADGE: Record<string, string> = {
@@ -26,6 +27,7 @@ export const ESTATUS_BADGE: Record<string, string> = {
   "carga_/_descarga": "bg-emerald-100 text-emerald-700",
   inspeccion_salida:  "bg-orange-100 text-orange-700",
   terminado:          "bg-green-100 text-green-700",
+  descartado:         "bg-gray-100 text-gray-500",
 };
 
 function estatusToStatus(estatus: string) {

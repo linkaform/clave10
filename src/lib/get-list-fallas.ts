@@ -2,7 +2,7 @@ import { API_ENDPOINTS } from "@/config/api";
 import { getValidToken } from "./login/get-valid-token";
 
 export const getListFallas = async (
-    location:string, area:string,status:string,  dateFrom:string, dateTo:string, filterDate:string) => {
+    location:string | string[], area:string,status:string,  dateFrom:string, dateTo:string, filterDate:string) => {
     const payload = {
         dateFrom, 
         dateTo, 

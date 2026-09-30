@@ -12,7 +12,7 @@ import { AddIncidenciaModal } from "@/components/modals/add-incidencia";
 import { useInciencias } from "@/hooks/Incidencias/useIncidencias";
 import { dateToString, ViewMode } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
-import { useBoothStore } from "@/store/useBoothStore";
+import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, LayoutList, Plus, Sheet } from "lucide-react";
@@ -26,8 +26,9 @@ const IncidenciasPage = () => {
 
   const [isSuccess, setIsSuccess] = useState(false);
   const { filter, from, setFrom, tab } = useShiftStore();
-  const { location } = useBoothStore();
-  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState("");
+  // Selector de ubicaciones del header; useBoothStore().location es el puesto
+  // activo y no cambia con el dropdown.
+  const { selectedLocations } = useSelectedLocationsStore();
   const [areaSeleccionada] = useState("todas");
   const [isSuccessIncidencia, setIsSuccessIncidencia] = useState(false);
   const [totalRegistros, setTotalRegistros] = useState(0);
@@ -110,7 +111,7 @@ const IncidenciasPage = () => {
   };
 
   const { data: dataFallas, isLoading: isLoadingFallas } = useGetFallas(
-    ubicacionSeleccionada,
+    selectedLocations,
     areaSeleccionada == "todas" ? "" : areaSeleccionada,
     fallasStatus,
     datePrimera,
@@ -119,7 +120,7 @@ const IncidenciasPage = () => {
   );
 
   const { listIncidencias, isLoadingListIncidencias } = useInciencias(
-    ubicacionSeleccionada,
+    selectedLocations,
     areaSeleccionada == "todas" ? "" : areaSeleccionada,
     [],
     datePrimera,
@@ -127,10 +128,6 @@ const IncidenciasPage = () => {
     dateFilter,
     incidenciasEstatus,
   );
-
-  useEffect(() => {
-    if (location) setUbicacionSeleccionada(location);
-  }, [location]);
 
   useEffect(() => {
     if (Array.isArray(dataFallas) && dataFallas.length > 0 && from === "turnos") {

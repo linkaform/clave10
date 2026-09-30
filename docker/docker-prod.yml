@@ -1,7 +1,7 @@
 services:
-  soter: 
-    image: linkaform/soter:develop
-    container_name: soter
+  clave10:
+    image: linkaform/clave10:develop
+    container_name: clave10
     build: 
       context: ../ 
       dockerfile: Dockerfile

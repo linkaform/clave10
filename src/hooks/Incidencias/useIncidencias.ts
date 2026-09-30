@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const useInciencias = (
-  location: string,
+  location: string | string[],
   area: string,
   prioridades: string[],
   dateFrom: string,
@@ -39,7 +39,7 @@ export const useInciencias = (
       filterDate,
       estatus,
     ],
-    enabled: location !== "",
+    enabled: location.length > 0,
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const data = await getListIncidencias(
@@ -142,7 +142,7 @@ export const useInciencias = (
     error: statsError,
   } = useQuery<any>({
     queryKey: ["getStatsIncidencias", area, location],
-    enabled: location !== "",
+    enabled: location.length > 0,
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const data = await getStats(location, area, "Incidencias");

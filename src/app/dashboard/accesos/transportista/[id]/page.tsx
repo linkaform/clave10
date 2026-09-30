@@ -64,7 +64,12 @@ import {
   type MaterialCarga,
   type UnidadItem,
   emptyMaterial,
+  emptyRemolqueData,
   emptyContenedorData,
+  emptyVehiculoData,
+  materialesDeUnidad,
+  refDeUnidad,
+  labelDeUnidad,
   resolveColorSwatch,
   AgregarUnidadModal,
   serializeUnidades,
@@ -2259,7 +2264,8 @@ export default function DetalleTransportistaPage() {
 
   useEffect(() => {
     if (!data || unidadesInitialized.current) return;
-    if (!data.remolques.length) return;
+    const materialesVehiculo = (data.materiales ?? []).filter((m) => m.lugar === "vehiculo");
+    if (!data.remolques.length && !materialesVehiculo.length) return;
     unidadesInitialized.current = true;
 
     type RV = import("@/hooks/useGetVisitTransportista").RemolqueVisita;
@@ -2331,16 +2337,39 @@ export default function DetalleTransportistaPage() {
           comentarios:   rawCont.comentarios   ?? "",
           materiales:    conMats.length ? conMats : [emptyMaterial()],
         } : emptyContenedorData(),
+        vehiculo: emptyVehiculoData(),
       };
     });
 
-    setUnidades(mapped);
-    setExpandedUnits(new Set(mapped.map((u) => u.id)));
+    // Materiales capturados directo sobre el vehículo (sin remolque/contenedor,
+    // lugar_material === "vehiculo") no tienen fila propia en grupo_remolques —
+    // se agrupan en una unidad sintética "solo_vehiculo" para poder editarlos.
+    const vehiculoMats = (data.materiales ?? [])
+      .map((m, i) => ({ m, i }))
+      .filter(({ m }) => m.lugar === "vehiculo")
+      .map(({ m, i }) => toMaterial(m, i));
+
+    const finalUnidades = vehiculoMats.length
+      ? [...mapped, {
+          id: Math.random().toString(36).slice(2),
+          config: "solo_vehiculo" as UnidadConfig,
+          remolqueApiIndex: null,
+          contenedorApiIndex: null,
+          remolque: emptyRemolqueData(),
+          contenedor: emptyContenedorData(),
+          vehiculo: { materiales: vehiculoMats },
+        }]
+      : mapped;
+
+    setUnidades(finalUnidades);
+    setExpandedUnits(new Set(finalUnidades.map((u) => u.id)));
   }, [data]);
 
   const [unidades, setUnidades] = useState<UnidadItem[]>([]);
   const [showAgregarUnidad, setShowAgregarUnidad] = useState(false);
+  const [agregarUnidadDefaultConfig, setAgregarUnidadDefaultConfig] = useState<UnidadConfig | undefined>(undefined);
   const [editingUnit, setEditingUnit] = useState<UnidadItem | null>(null);
+  const [pickingUnidadMaterial, setPickingUnidadMaterial] = useState(false);
   const [showInspeccion, setShowInspeccion] = useState(false);
   const [showInspeccionSalida, setShowInspeccionSalida] = useState(false);
   const [showInspeccionCarga, setShowInspeccionCarga] = useState<false | "edit" | "readonly">(false);
@@ -2351,6 +2380,13 @@ export default function DetalleTransportistaPage() {
   const [showGaleria, setShowGaleria] = useState(false);
   const [showAndenModal, setShowAndenModal] = useState(false);
   const [showRegistrarLlegada, setShowRegistrarLlegada] = useState(false);
+  const [showCierreAnimacion, setShowCierreAnimacion] = useState(false);
+
+  useEffect(() => {
+    if (!showCierreAnimacion) return;
+    const timer = setTimeout(() => router.back(), 2400);
+    return () => clearTimeout(timer);
+  }, [showCierreAnimacion]);
   const [vehicleExpanded, setVehicleExpanded] = useState(true);
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
 
@@ -2471,7 +2507,7 @@ export default function DetalleTransportistaPage() {
   });
 
   const deletionsFromUnit = (u: UnidadItem): Deletions => {
-    const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
+    const mats = materialesDeUnidad(u);
     return {
       delete_remolques:    u.remolqueApiIndex   !== null ? [u.remolqueApiIndex]   : [],
       delete_contenedores: u.config === "remolque_contenedor" && u.contenedorApiIndex !== null
@@ -2481,8 +2517,8 @@ export default function DetalleTransportistaPage() {
   };
 
   const deletionsFromMaterialDiff = (oldUnit: UnidadItem, updated: UnidadItem): Deletions => {
-    const oldMats = oldUnit.config === "remolque_contenedor" ? oldUnit.contenedor.materiales : oldUnit.remolque.materiales;
-    const newMats = updated.config === "remolque_contenedor" ? updated.contenedor.materiales : updated.remolque.materiales;
+    const oldMats = materialesDeUnidad(oldUnit);
+    const newMats = materialesDeUnidad(updated);
     const kept = new Set(newMats.map((m) => m.id));
     return {
       ...emptyDeletions(),
@@ -2939,7 +2975,7 @@ export default function DetalleTransportistaPage() {
         const aiMats = aiData.materiales ?? [];
         const materialesPorEntidad = aiRems.some((r) => r.materiales?.length) || aiCons.some((c) => c.materiales?.length);
         const serverHasUnidades = (fresh?.remolques?.length ?? 0) > 0;
-        if (unidades.length === 0 && !serverHasUnidades && (aiRems.length > 0 || aiCons.length > 0)) {
+        if (unidades.length === 0 && !serverHasUnidades && (aiRems.length > 0 || aiCons.length > 0 || aiMats.length > 0)) {
           // Si se detectó un único remolque real y hay más contenedores que
           // remolques, se duplica la info de ese remolque para cada contenedor
           // sobrante — el usuario la ajusta después si en realidad corresponde
@@ -2951,6 +2987,20 @@ export default function DetalleTransportistaPage() {
           }
           const count = Math.max(rems.length, aiCons.length);
           const newUnidades: UnidadItem[] = [];
+          if (count === 0 && aiMats.length > 0) {
+            // Ni remolque ni contenedor detectados: el material va directo
+            // sobre el vehículo (pickup, caja integrada) en vez de crear un
+            // remolque fantasma para sostenerlo.
+            newUnidades.push({
+              id: Math.random().toString(36).slice(2),
+              config: "solo_vehiculo",
+              remolqueApiIndex: null,
+              contenedorApiIndex: null,
+              remolque: emptyRemolqueData(),
+              contenedor: emptyContenedorData(),
+              vehiculo: { materiales: toMaterialesCarga(aiMats) },
+            });
+          }
           for (let i = 0; i < count; i++) {
             const r = rems[i];
             const con = aiCons[i];
@@ -2986,12 +3036,13 @@ export default function DetalleTransportistaPage() {
                 comentarios: con?.comentarios ?? "",
                 materiales: matsContenedor ?? (isRC ? (matsLegado ?? [emptyMaterial()]) : [emptyMaterial()]),
               },
+              vehiculo: emptyVehiculoData(),
             });
           }
           setUnidades(newUnidades);
           await saveBitacoraTransportistaRecord(id, "remolques", serializeUnidades(newUnidades));
           unidadesInitialized.current = false;
-          camposLlenados += count;
+          camposLlenados += newUnidades.length;
         } else if (unidades.length === 1 && (aiRems.length > 0 || aiCons.length > 0 || aiMats.length > 0)) {
           // Reintento sobre una unidad ya existente: si un análisis previo (con
           // el modelo IA, que no siempre acierta a la primera) creó el
@@ -3002,16 +3053,22 @@ export default function DetalleTransportistaPage() {
           // solo si sigue vacío, para no pisar algo que el usuario ya llenó.
           const existente = unidades[0];
           const esRC = existente.config === "remolque_contenedor";
-          const materialesActuales = esRC ? existente.contenedor.materiales : existente.remolque.materiales;
+          const esVehiculo = existente.config === "solo_vehiculo";
+          const materialesActuales = materialesDeUnidad(existente);
           const siguenVacios = materialesActuales.every((m) => !m.producto.trim() && !m.cantEsperada.trim());
           if (siguenVacios) {
-            const aiMatsEntidad = esRC ? aiCons[0]?.materiales : aiRems[0]?.materiales;
+            // "solo_vehiculo" no tiene entidad propia en la respuesta de la IA
+            // (remolque/contenedor) — solo puede rellenarse desde el arreglo
+            // plano legado.
+            const aiMatsEntidad = esVehiculo ? null : esRC ? aiCons[0]?.materiales : aiRems[0]?.materiales;
             const nuevosMateriales = aiMatsEntidad?.length
               ? toMaterialesCarga(aiMatsEntidad)
               : (aiMats.length > 0 ? toMaterialesCarga(aiMats) : null);
             if (nuevosMateriales?.length) {
               const actualizada: UnidadItem = esRC
                 ? { ...existente, contenedor: { ...existente.contenedor, materiales: nuevosMateriales } }
+                : esVehiculo
+                ? { ...existente, vehiculo: { ...existente.vehiculo, materiales: nuevosMateriales } }
                 : { ...existente, remolque: { ...existente.remolque, materiales: nuevosMateriales } };
               const newUnidades = [actualizada];
               setUnidades(newUnidades);
@@ -3295,6 +3352,36 @@ export default function DetalleTransportistaPage() {
               Turnos
             </Button>
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Registro descartado: no completó el flujo real, así que no se muestra la
+  // vista normal (barra de progreso, card de "Transporte verificado", etc.)
+  // — solo una pantalla informativa.
+  if (!isLoading && estatus === "descartado") {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm px-4 py-2.5 flex items-center justify-between">
+          <span className="text-[11px] text-gray-400">
+            Accesos <ChevronRight className="w-3 h-3 inline" /> Transportistas <ChevronRight className="w-3 h-3 inline" /> <span className="text-gray-700 font-semibold">Detalle del pase</span>
+          </span>
+          <button
+            onClick={() => router.back()}
+            className="h-7 px-3 text-[11px] font-medium border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1.5 text-gray-600 shrink-0">
+            <ArrowLeft className="w-3 h-3" />
+            Volver al control
+          </button>
+        </div>
+        <div className="flex justify-center items-center overflow-hidden mt-32">
+          <div className="flex items-center flex-col gap-3">
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+              <X className="w-8 h-8 text-gray-400" />
+            </div>
+            <div className="text-xl font-bold text-gray-700">Registro descartado</div>
+            <p className="text-gray-500 text-sm">Folio: {data?.folio ?? "Sin asignar"}</p>
+          </div>
         </div>
       </div>
     );
@@ -4101,98 +4188,6 @@ export default function DetalleTransportistaPage() {
             </>}
           </div>
 
-          {/* Material Carga / Descarga */}
-          <div className={cn("bg-white rounded-xl border shadow-sm overflow-hidden", materialEditMode ? "border-orange-300 ring-2 ring-orange-100" : "border-gray-100")}>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-gray-400" />
-                <span className="text-sm font-bold text-gray-800">Material Carga / Descarga</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {data?.tipo_operacion && (
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-600 uppercase tracking-wide">
-                    {data.tipo_operacion} de material
-                  </span>
-                )}
-                {!materialEditMode && !isLocked && (
-                  <button type="button" onClick={startMaterialEdit} disabled={analyzingDocs}
-                    title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
-                    className="w-6 h-6 rounded-md hover:bg-orange-50 flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
-                    <Pencil className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="p-4 space-y-3">
-              {materialEditMode ? (
-                <>
-                  <div className="grid grid-cols-3 gap-3">
-                    {(
-                      [
-                        { key: "proveedor_cliente", label: "Proveedor / Cliente" },
-                        { key: "no_orden_compra",   label: "Orden de Compra",     mono: true },
-                        { key: "procedencia",       label: "Procedencia" },
-                      ] as { key: keyof typeof materialDraft; label: string; mono?: boolean }[]
-                    ).map(({ key, label, mono }) => (
-                      <div key={key}>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-                        <input
-                          className={cn("w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100", mono && "font-mono")}
-                          value={materialDraft[key]}
-                          onChange={(e) => setMaterialDraft((p) => ({ ...p, [key]: e.target.value }))}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
-                    <button type="button" onClick={cancelMaterialEdit}
-                      className="h-8 px-3 rounded-lg border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors">
-                      Cancelar
-                    </button>
-                    <button type="button" onClick={saveMaterial} disabled={savingRegistroCompartido}
-                      title={!savingMaterial && savingRegistroCompartido ? "Espera a que termine el otro guardado en curso" : undefined}
-                      className="h-8 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:cursor-not-allowed">
-                      <Save className="w-3 h-3" /> {savingMaterial ? "Guardando…" : "Guardar cambios"}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="grid grid-cols-3 gap-4">
-                  <Field label="Proveedor / Cliente" value={data?.embarque?.proveedor_cliente} />
-                  <Field label="Orden de Compra" value={data?.embarque?.no_orden_compra} mono />
-                  <Field label="Procedencia" value={data?.vehiculo?.procedencia} />
-                </div>
-              )}
-              {unidades.some((u) => {
-                const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
-                return mats.some((m) => m.producto);
-              }) && (
-                <div className="space-y-2 pt-1 border-t border-gray-50">
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por contenedor</p>
-                  {unidades.map((u, idx) => {
-                    const mats = u.config === "remolque_contenedor" ? u.contenedor.materiales : u.remolque.materiales;
-                    const ref = u.config === "remolque_contenedor" ? u.contenedor.noContenedor : u.remolque.noCaja;
-                    const withProduct = mats.filter((m) => m.producto);
-                    if (!withProduct.length) return null;
-                    return (
-                      <div key={u.id} className="flex flex-wrap items-center gap-1.5">
-                        <span className="flex items-center gap-1 text-[11px] font-semibold text-violet-600 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5 shrink-0">
-                          <Package className="w-2.5 h-2.5" />
-                          Unidad {idx + 1}{ref ? ` · ${ref}` : ""}
-                        </span>
-                        {withProduct.map((m) => (
-                          <span key={m.id} className="flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-100 rounded-full px-2 py-0.5">
-                            <CheckCircle2 className="w-2.5 h-2.5" /> {m.producto}
-                          </span>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Vehículo & Remolques */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
@@ -4310,7 +4305,7 @@ export default function DetalleTransportistaPage() {
                           className="flex items-center gap-2 flex-1 text-left">
                           <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
                           <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                            {u.config === "remolque_contenedor" ? "Remolque + Contenedor" : "Solo remolque"}
+                            {labelDeUnidad(u)}
                           </span>
                         </button>
                         <div className="flex items-center gap-2 shrink-0">
@@ -4339,6 +4334,27 @@ export default function DetalleTransportistaPage() {
                       </div>
                       {/* card body */}
                       {isUnitExpanded && <div className="p-4 space-y-3 bg-white divide-y divide-gray-50">
+                        {u.config === "solo_vehiculo" ? (
+                        /* Vehículo — sin campos propios de unidad, solo material de carga */
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5">
+                            <Truck className="w-3 h-3 text-emerald-500" />
+                            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Vehículo</span>
+                          </div>
+                          {u.vehiculo.materiales.some((m) => m.producto) ? (
+                            <div>
+                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
+                              <div className="flex flex-wrap gap-1">
+                                {u.vehiculo.materiales.filter((m) => m.producto).map((m) => (
+                                  <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : <p className="text-xs text-gray-300 italic">Sin material capturado</p>}
+                        </div>
+                        ) : (<>
                         {/* Remolque */}
                         <div className="space-y-2">
                           <div className="flex items-center gap-1.5">
@@ -4419,24 +4435,180 @@ export default function DetalleTransportistaPage() {
                             )}
                           </div>
                         )}
+                        </>)}
                       </div>}
                     </div>
                     );
                   })}
                   <button type="button" disabled={savingUnidades || isLocked || analyzingDocs}
                     title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
-                    onClick={() => setShowAgregarUnidad(true)}
+                    onClick={() => { setAgregarUnidadDefaultConfig(undefined); setShowAgregarUnidad(true); }}
                     className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <Plus className="w-4 h-4" /> Agregar remolque
+                    <Plus className="w-4 h-4" /> Agregar unidad
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Material Carga / Descarga */}
+          <div className={cn("bg-white rounded-xl border shadow-sm overflow-hidden", materialEditMode ? "border-orange-300 ring-2 ring-orange-100" : "border-gray-100")}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Package className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-bold text-gray-800">Material Carga / Descarga</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {data?.tipo_operacion && (
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-600 uppercase tracking-wide">
+                    {data.tipo_operacion} de material
+                  </span>
+                )}
+                {!materialEditMode && !isLocked && (
+                  <button type="button" onClick={startMaterialEdit} disabled={analyzingDocs}
+                    title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
+                    className="w-6 h-6 rounded-md hover:bg-orange-50 flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="p-4 space-y-3">
+              {materialEditMode ? (
+                <>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(
+                      [
+                        { key: "proveedor_cliente", label: "Proveedor / Cliente" },
+                        { key: "no_orden_compra",   label: "Orden de Compra",     mono: true },
+                        { key: "procedencia",       label: "Procedencia" },
+                      ] as { key: keyof typeof materialDraft; label: string; mono?: boolean }[]
+                    ).map(({ key, label, mono }) => (
+                      <div key={key}>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+                        <input
+                          className={cn("w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100", mono && "font-mono")}
+                          value={materialDraft[key]}
+                          onChange={(e) => setMaterialDraft((p) => ({ ...p, [key]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+                    <button type="button" onClick={cancelMaterialEdit}
+                      className="h-8 px-3 rounded-lg border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors">
+                      Cancelar
+                    </button>
+                    <button type="button" onClick={saveMaterial} disabled={savingRegistroCompartido}
+                      title={!savingMaterial && savingRegistroCompartido ? "Espera a que termine el otro guardado en curso" : undefined}
+                      className="h-8 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:cursor-not-allowed">
+                      <Save className="w-3 h-3" /> {savingMaterial ? "Guardando…" : "Guardar cambios"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-3 gap-4">
+                  <Field label="Proveedor / Cliente" value={data?.embarque?.proveedor_cliente} />
+                  <Field label="Orden de Compra" value={data?.embarque?.no_orden_compra} mono />
+                  <Field label="Procedencia" value={data?.vehiculo?.procedencia} />
+                </div>
+              )}
+              {(() => {
+                const hayMaterialCapturado = unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto));
+                return hayMaterialCapturado && (
+                <div className="space-y-2 pt-1 border-t border-gray-50">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Material por unidad</p>
+                  {unidades.map((u, idx) => {
+                    const mats = materialesDeUnidad(u);
+                    const ref = refDeUnidad(u);
+                    const withProduct = mats.filter((m) => m.producto);
+                    if (!withProduct.length) return null;
+                    return (
+                      <div key={u.id} className="flex flex-wrap items-center gap-1.5">
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-violet-600 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5 shrink-0">
+                          <Package className="w-2.5 h-2.5" />
+                          Unidad {idx + 1}{ref ? ` · ${ref}` : ""}
+                        </span>
+                        {withProduct.map((m) => (
+                          <span key={m.id} className="flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-100 rounded-full px-2 py-0.5">
+                            <CheckCircle2 className="w-2.5 h-2.5" /> {m.producto}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+                );
+              })()}
+              {(() => {
+                const hayMaterialCapturado = unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto));
+                const abrirAgregarMaterial = () => {
+                  if (unidades.length === 0) {
+                    // Sin unidades todavía: abre "Agregar unidad" directo en la
+                    // pestaña de vehículo, que captura material sin pedir datos
+                    // de remolque/contenedor — se ve como agregar material.
+                    setAgregarUnidadDefaultConfig("solo_vehiculo");
+                    setShowAgregarUnidad(true);
+                  } else if (unidades.length === 1) {
+                    setEditingUnit(unidades[0]);
+                  } else {
+                    setPickingUnidadMaterial((v) => !v);
+                  }
+                };
+                return !hayMaterialCapturado && (
+                <div className="pt-1 border-t border-gray-50 relative">
+                  <button
+                    type="button"
+                    disabled={savingUnidades || isLocked || analyzingDocs}
+                    onClick={abrirAgregarMaterial}
+                    className="w-full h-8 rounded-lg border border-dashed border-blue-200 text-xs font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <Plus className="w-3.5 h-3.5" /> Agregar material
+                  </button>
+                  {pickingUnidadMaterial && unidades.length > 1 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg overflow-hidden">
+                      <p className="px-3 pt-2 pb-1 text-[9px] font-bold text-gray-400 uppercase tracking-widest">¿A qué unidad?</p>
+                      {unidades.map((u, idx) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => { setEditingUnit(u); setPickingUnidadMaterial(false); }}
+                          className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 flex items-center gap-1.5">
+                          <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
+                          Unidad {idx + 1}{refDeUnidad(u) ? ` · ${refDeUnidad(u)}` : ""}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                );
+              })()}
             </div>
           </div>
         </div>
 
         {/* ── RIGHT SIDEBAR ────────────────────────────────────────────────── */}
         <div className="space-y-3">
+          {/* Terminado — visible una vez que el proceso está completo; misma
+              acción que "Volver al control", solo que aquí da la sensación
+              explícita de cierre del proceso. */}
+          {estatus === "terminado" && (
+            <div className="rounded-xl overflow-hidden shadow-md bg-emerald-50 border border-emerald-100">
+              <div className="px-4 py-3 flex items-center gap-2 border-b border-emerald-100">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-bold text-emerald-800">Transporte verificado</span>
+              </div>
+              <div className="p-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCierreAnimacion(true)}
+                  className="w-full h-11 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2 shadow-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Cerrar proceso
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Aviso por correo — visible una vez que el proceso está terminado */}
           {estatus === "terminado" && <AvisoCorreoCard recordId={id} />}
 
@@ -4488,7 +4660,8 @@ export default function DetalleTransportistaPage() {
             // sin remolques registrados — no hay nada que sellar todavía.
             const selloCompleto = esRecoleccion || unidades.length === 0 || (inspecciones.sello.total > 0 && inspecciones.sello.completados >= inspecciones.sello.total);
             if (!entradaCompleta || !selloCompleto) return null;
-            const materialesRegistrados = (data?.materiales ?? []).some((m) => m.producto && m.producto.trim() !== "");
+            const requiereInspeccionMateriales = etapasActivas.includes("inspeccion_materiales");
+            const materialesRegistrados = !requiereInspeccionMateriales || (data?.materiales ?? []).some((m) => m.producto && m.producto.trim() !== "");
             const cargaDescargaActiva = etapasActivas.includes("carga_/_descarga");
             return (
               <div className="space-y-1.5">
@@ -5010,7 +5183,7 @@ export default function DetalleTransportistaPage() {
       {showInspeccionSello && (
         <InspeccionSelloModal
           recordId={id}
-          unidades={unidades}
+          unidades={unidades.filter((u) => u.config !== "solo_vehiculo")}
           inspeccionesDone={data?.inspecciones ?? []}
           documentosAdicionales={data?.documentos_adicionales}
           ubicacion={data?.ubicacion}
@@ -5022,7 +5195,7 @@ export default function DetalleTransportistaPage() {
       {showInspeccionSelloSalida && (
         <InspeccionSelloModal
           recordId={id}
-          unidades={unidades}
+          unidades={unidades.filter((u) => u.config !== "solo_vehiculo")}
           inspeccionesDone={data?.inspecciones ?? []}
           documentosAdicionales={data?.documentos_adicionales}
           tipoPrefix="salida"
@@ -5034,12 +5207,14 @@ export default function DetalleTransportistaPage() {
       )}
       {showAgregarUnidad && (
         <AgregarUnidadModal
-          onClose={() => setShowAgregarUnidad(false)}
+          defaultConfig={agregarUnidadDefaultConfig}
+          onClose={() => { setShowAgregarUnidad(false); setAgregarUnidadDefaultConfig(undefined); }}
           onSave={(u) => {
             const next = [...unidades, u];
             setUnidades(next);
             setExpandedUnits((prev) => new Set(prev).add(u.id));
             persistUnidades(next);
+            setAgregarUnidadDefaultConfig(undefined);
           }}
         />
       )}
@@ -5061,6 +5236,17 @@ export default function DetalleTransportistaPage() {
           initialPaseId={data?.num_de_pase ?? undefined}
           onLlegadaConfirmada={() => refetch()}
         />
+      )}
+      {showCierreAnimacion && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-emerald-600 animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-4 animate-in zoom-in-50 fade-in duration-500">
+            <div className="w-24 h-24 rounded-full bg-white/15 flex items-center justify-center">
+              <CheckCircle2 className="w-14 h-14 text-white" />
+            </div>
+            <p className="text-white text-lg font-bold">Transporte verificado</p>
+          </div>
+        </div>,
+        document.body
       )}
       {editingUnit && (
         <AgregarUnidadModal

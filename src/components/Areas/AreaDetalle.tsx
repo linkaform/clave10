@@ -17,17 +17,24 @@ import {
   Wrench,
   Settings,
   Navigation,
+  Info,
+  Pencil,
 } from "lucide-react";
 import { useGetAreaById } from "@/hooks/Areas/useGetAreaById";
 import { useAreaActions } from "@/hooks/Areas/useAreaActions";
 import { normalizeArea } from "@/lib/areas";
 import { AreaDisponibilidadMenu } from "@/components/table/areas-explorer/AreaDisponibilidadMenu";
+import { EditarAreaForm } from "./EditarAreaForm";
 import { ChecksAreaDashboard } from "./ChecksAreaDashboard";
+import { InspeccionesAreaDashboard } from "./InspeccionesAreaDashboard";
 import { FallasAreaDashboard } from "./FallasAreaDashboard";
+import { RondinesAreaDashboard } from "./RondinesAreaDashboard";
+import { IncidenciasAreaDashboard } from "./IncidenciasAreaDashboard";
 
-type AreaTab = "rondines" | "checks" | "inspecciones" | "incidencias" | "fallas" | "configuracion";
+export type AreaTab = "general" | "rondines" | "checks" | "inspecciones" | "incidencias" | "fallas" | "configuracion";
 
 const TABS: { key: AreaTab; label: string; icon: typeof Route }[] = [
+  { key: "general", label: "General", icon: Info },
   { key: "rondines", label: "Rondines", icon: Route },
   { key: "checks", label: "Checks Áreas", icon: ClipboardCheck },
   { key: "inspecciones", label: "Inspecciones", icon: ClipboardList },
@@ -36,11 +43,20 @@ const TABS: { key: AreaTab; label: string; icon: typeof Route }[] = [
   { key: "configuracion", label: "Configuración", icon: Settings },
 ];
 
-const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
+const AreaDetalle = ({
+  id,
+  onClose,
+  initialTab = "general",
+}: {
+  id: string;
+  onClose?: () => void;
+  /** Tab con el que abre; el lápiz de editar abre en "configuracion". */
+  initialTab?: AreaTab;
+}) => {
   const router = useRouter();
   const { area, isLoadingArea } = useGetAreaById(id);
   const { handlePrintAreaQR, handleToggleAreaEstado } = useAreaActions();
-  const [activeTab, setActiveTab] = useState<AreaTab>("rondines");
+  const [activeTab, setActiveTab] = useState<AreaTab>(initialTab);
 
   const normalized = useMemo(() => (area ? normalizeArea(area, 0) : null), [area]);
 
@@ -72,7 +88,7 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
     : null;
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 min-h-screen px-4 pt-2">
+    <div className="flex flex-col bg-gray-50 min-h-screen px-4 pt-2">
       {/* Header */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-5 mb-4">
         <div className="flex items-center justify-between">
@@ -110,6 +126,15 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
 
         <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
           <button
+            onClick={() => setActiveTab("configuracion")}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all shadow-sm"
+            title="Editar área"
+          >
+            <Pencil className="w-4 h-4" />
+            Editar
+          </button>
+
+          <button
             onClick={() => handlePrintAreaQR(normalized.recordId)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all shadow-sm"
             title="Imprimir QR"
@@ -139,77 +164,7 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
         </div>
       </div>
 
-      {/* Foto + datos */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
-        <h3 className="font-semibold text-gray-800 text-sm mb-3">Foto del área</h3>
-        <div className="flex flex-col md:flex-row gap-6">
-          {normalized.foto ? (
-            <div className="relative w-full max-w-md aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
-              <Image src={normalized.foto} alt={normalized.nombre} fill className="object-cover" />
-            </div>
-          ) : (
-            <div className="w-full max-w-md aspect-video rounded-xl flex items-center justify-center bg-slate-100 text-slate-300 text-sm shrink-0">
-              Sin foto
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4 flex-1">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> Ubicación
-              </label>
-              <span className="text-sm font-medium text-gray-800">{normalized.ubicacion || "-"}</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                <Layers className="w-3 h-3" /> Tipo
-              </label>
-              <span className="text-sm font-medium text-gray-800 capitalize">{normalized.tipo || "-"}</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                <TagIcon className="w-3 h-3" /> Tag/QR
-              </label>
-              <span className="text-sm font-medium text-gray-800">
-                {normalized.tagId ? "Con tag" : "Sin tag"}
-              </span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                Disponibilidad
-              </label>
-              <span
-                className={`text-sm font-semibold w-fit px-2 py-0.5 rounded-full border ${
-                  esDisponible
-                    ? "bg-green-50 text-green-600 border-green-100"
-                    : "bg-amber-50 text-amber-600 border-amber-100"
-                }`}
-              >
-                {normalized.disponibilidad || "-"}
-              </span>
-            </div>
-            <div className="flex flex-col gap-1 col-span-2">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                <Navigation className="w-3 h-3" /> Geolocalización
-              </label>
-              {mapsUrl ? (
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-blue-600 hover:underline w-fit"
-                >
-                  Ver en mapa
-                </a>
-              ) : (
-                <span className="text-sm font-medium text-gray-800">N/A</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs (mismas secciones que la app móvil) */}
+      {/* Tabs (mismas secciones que la app móvil, más "General" con los datos del área) */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 mb-4 min-h-[300px] min-w-0">
         <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-3 border-b border-gray-100">
           {TABS.map((tab) => {
@@ -233,19 +188,88 @@ const AreaDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
         </div>
 
         <div className="px-2 pb-2">
-          {activeTab === "checks" ? (
+          {activeTab === "general" ? (
+            <div>
+              <h3 className="font-semibold text-gray-800 text-sm mb-3">Foto del área</h3>
+              <div className="flex flex-col md:flex-row gap-6">
+                {/^https?:\/\//.test(normalized.foto || "") ? (
+                  <div className="relative w-full max-w-md aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
+                    <Image src={normalized.foto as string} alt={normalized.nombre} fill className="object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-full max-w-md aspect-video rounded-xl flex items-center justify-center bg-slate-100 text-slate-300 text-sm shrink-0">
+                    Sin foto
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4 flex-1">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> Ubicación
+                    </label>
+                    <span className="text-sm font-medium text-gray-800">{normalized.ubicacion || "-"}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+                      <Layers className="w-3 h-3" /> Tipo
+                    </label>
+                    <span className="text-sm font-medium text-gray-800 capitalize">{normalized.tipo || "-"}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+                      <TagIcon className="w-3 h-3" /> Tag/QR
+                    </label>
+                    <span className="text-sm font-medium text-gray-800">
+                      {normalized.tagId ? "Con tag" : "Sin tag"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                      Disponibilidad
+                    </label>
+                    <span
+                      className={`text-sm font-semibold w-fit px-2 py-0.5 rounded-full border ${
+                        esDisponible
+                          ? "bg-green-50 text-green-600 border-green-100"
+                          : "bg-amber-50 text-amber-600 border-amber-100"
+                      }`}
+                    >
+                      {normalized.disponibilidad || "-"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1 col-span-2">
+                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+                      <Navigation className="w-3 h-3" /> Geolocalización
+                    </label>
+                    {mapsUrl ? (
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-blue-600 hover:underline w-fit"
+                      >
+                        Ver en mapa
+                      </a>
+                    ) : (
+                      <span className="text-sm font-medium text-gray-800">N/A</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === "rondines" ? (
+            <RondinesAreaDashboard areaId={normalized.recordId} />
+          ) : activeTab === "incidencias" ? (
+            <IncidenciasAreaDashboard areaId={normalized.recordId} />
+          ) : activeTab === "checks" ? (
             <ChecksAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
+          ) : activeTab === "inspecciones" ? (
+            <InspeccionesAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
           ) : activeTab === "fallas" ? (
             <FallasAreaDashboard ubicacion={normalized.ubicacion} area={normalized.nombre} />
           ) : activeTab === "configuracion" ? (
-            <div className="flex flex-col gap-4 max-w-sm">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                  Tipo de área
-                </label>
-                <span className="text-base font-medium text-gray-800 capitalize">{normalized.tipo || "-"}</span>
-              </div>
-              <p className="text-sm text-gray-400">Edición de área — próximamente.</p>
+            <div className="max-w-2xl">
+              <EditarAreaForm area={normalized} />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-48 text-center text-gray-400 gap-2">

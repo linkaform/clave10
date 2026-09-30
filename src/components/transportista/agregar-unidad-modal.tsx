@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Truck, Package, Plus, Trash2, X } from "lucide-react";
+import { Truck, Package, Car, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── Unidades types & helpers ────────────────────────────────────────────────
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 // para que ambos flujos capturen remolques/contenedores y su material de
 // carga exactamente de la misma forma.
 
-export type UnidadConfig = "solo_remolque" | "remolque_contenedor";
+export type UnidadConfig = "solo_remolque" | "remolque_contenedor" | "solo_vehiculo";
 
 export interface MaterialCarga {
   id: string;
@@ -42,6 +42,14 @@ export interface ContenedorData {
   materiales: MaterialCarga[];
 }
 
+// Materiales capturados directo sobre el vehículo (pickup, camión de caja
+// integrada) — sin remolque ni contenedor. Sin campos propios de unidad:
+// placas/tipo/color del vehículo ya se capturan en la sección principal del
+// formulario, esto es solo el material de carga.
+export interface VehiculoData {
+  materiales: MaterialCarga[];
+}
+
 export interface UnidadItem {
   id: string;
   config: UnidadConfig;
@@ -49,7 +57,27 @@ export interface UnidadItem {
   contenedorApiIndex: number | null; // null = nuevo, 0+ = posición real en grupo combinado
   remolque: RemolqueData;
   contenedor: ContenedorData;
+  vehiculo: VehiculoData;
 }
+
+// Materiales de la unidad según su config — helper compartido para no repetir
+// el ternario en cada lugar que lista/cuenta materiales por unidad.
+export const materialesDeUnidad = (u: UnidadItem): MaterialCarga[] =>
+  u.config === "remolque_contenedor" ? u.contenedor.materiales
+  : u.config === "solo_vehiculo" ? u.vehiculo.materiales
+  : u.remolque.materiales;
+
+// Identificador visible de la unidad (no. de caja/contenedor) — "solo_vehiculo"
+// no tiene uno propio, el vehículo ya se identifica por sus placas aparte.
+export const refDeUnidad = (u: UnidadItem): string =>
+  u.config === "remolque_contenedor" ? (u.contenedor.noContenedor || u.contenedor.noCaja)
+  : u.config === "solo_vehiculo" ? ""
+  : u.remolque.noCaja;
+
+export const labelDeUnidad = (u: UnidadItem): string =>
+  u.config === "remolque_contenedor" ? "Remolque + Contenedor"
+  : u.config === "solo_vehiculo" ? "Solo vehículo"
+  : "Solo remolque";
 
 export const emptyMaterial = (): MaterialCarga => ({
   id: Math.random().toString(36).slice(2),
@@ -65,6 +93,10 @@ export const emptyContenedorData = (): ContenedorData => ({
   tipo: "", noSello: "", noContenedor: "", noCaja: "", color: "", comentarios: "", materiales: [emptyMaterial()],
 });
 
+export const emptyVehiculoData = (): VehiculoData => ({
+  materiales: [emptyMaterial()],
+});
+
 export const emptyUnidad = (): UnidadItem => ({
   id: Math.random().toString(36).slice(2),
   config: "solo_remolque",
@@ -72,6 +104,7 @@ export const emptyUnidad = (): UnidadItem => ({
   contenedorApiIndex: null,
   remolque: emptyRemolqueData(),
   contenedor: emptyContenedorData(),
+  vehiculo: emptyVehiculoData(),
 });
 
 // ─── Serialización para el servicio de guardado ──────────────────────────────
@@ -88,12 +121,25 @@ export const serializeMaterial = (m: MaterialCarga) => ({
 export const serializeUnidades = (list: UnidadItem[]) => {
   let remolqueIdx = 0;
   let contenedorIdx = 0;
+  let vehiculoIdx = 0;
 
   const remolques: object[] = [];
   const contenedores: object[] = [];
   const materiales: object[] = [];
 
   list.forEach((u) => {
+    if (u.config === "solo_vehiculo") {
+      // Sin remolque ni contenedor: el material se liga a un `ref` que no
+      // empieza con "remolque"/"contenedor" — el backend ya clasifica eso
+      // como lugar_material "vehiculo" (ver accesos_utils.py/transportistas.py).
+      vehiculoIdx++;
+      const vehiculoRef = `vehiculo_${vehiculoIdx}`;
+      u.vehiculo.materiales
+        .filter((m) => m.producto)
+        .forEach((m) => materiales.push({ index: m.apiIndex, ref: vehiculoRef, ...serializeMaterial(m) }));
+      return;
+    }
+
     remolqueIdx++;
     const remolqueRef = `remolque_${remolqueIdx}`;
 
@@ -192,17 +238,20 @@ export function UnidadEditorCard({
   onCancel,
   onSave,
   initialData,
+  defaultConfig,
   className,
 }: {
   onCancel: () => void;
   onSave: (unidad: UnidadItem) => void;
   initialData?: UnidadItem;
+  defaultConfig?: UnidadConfig;
   className?: string;
 }) {
-  const [config, setConfig] = useState<UnidadConfig>(initialData?.config ?? "solo_remolque");
+  const [config, setConfig] = useState<UnidadConfig>(initialData?.config ?? defaultConfig ?? "solo_remolque");
   const [activeTab, setActiveTab] = useState<"remolque" | "contenedor">("remolque");
   const [remolque, setRemolque] = useState<RemolqueData>(initialData?.remolque ?? emptyRemolqueData());
   const [contenedor, setContenedor] = useState<ContenedorData>(initialData?.contenedor ?? emptyContenedorData());
+  const [vehiculo, setVehiculo] = useState<VehiculoData>(initialData?.vehiculo ?? emptyVehiculoData());
 
   const updateR = (field: keyof RemolqueData, value: string) =>
     setRemolque((p) => ({ ...p, [field]: value }));
@@ -219,6 +268,11 @@ export function UnidadEditorCard({
   const updateMaterialC = (id: string, field: keyof MaterialCarga, value: string) =>
     setContenedor((p) => ({ ...p, materiales: p.materiales.map((m) => m.id === id ? { ...m, [field]: value } : m) }));
 
+  const addMaterialV = () => setVehiculo((p) => ({ ...p, materiales: [...p.materiales, emptyMaterial()] }));
+  const removeMaterialV = (id: string) => setVehiculo((p) => ({ ...p, materiales: p.materiales.filter((m) => m.id !== id) }));
+  const updateMaterialV = (id: string, field: keyof MaterialCarga, value: string) =>
+    setVehiculo((p) => ({ ...p, materiales: p.materiales.map((m) => m.id === id ? { ...m, [field]: value } : m) }));
+
   const handleSave = () => {
     onSave({
       id:                 initialData?.id                 ?? Math.random().toString(36).slice(2),
@@ -227,6 +281,7 @@ export function UnidadEditorCard({
       contenedorApiIndex: initialData?.contenedorApiIndex ?? null,
       remolque,
       contenedor,
+      vehiculo,
     });
   };
 
@@ -278,7 +333,9 @@ export function UnidadEditorCard({
         </div>
         <div className="flex-1">
           <p className="text-sm font-bold text-gray-800">{initialData ? "Editar unidad" : "Agregar unidad"}</p>
-          <p className="text-xs text-gray-400">Completa los datos del remolque o contenedor</p>
+          <p className="text-xs text-gray-400">
+            {config === "solo_vehiculo" ? "Captura el material de carga del vehículo" : "Completa los datos del remolque o contenedor"}
+          </p>
         </div>
         <button onClick={onCancel} className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
           <X className="w-4 h-4" />
@@ -289,6 +346,11 @@ export function UnidadEditorCard({
       <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-100 bg-gray-50/60">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Configuración:</span>
           <div className="flex gap-2">
+            <button type="button" onClick={() => setConfig("solo_vehiculo")}
+              className={cn("h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all",
+                config === "solo_vehiculo" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300")}>
+              <Car className="w-3.5 h-3.5" /> Solo vehículo
+            </button>
             <button type="button" onClick={() => { setConfig("solo_remolque"); setActiveTab("remolque"); }}
               className={cn("h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all",
                 config === "solo_remolque" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300")}>
@@ -317,7 +379,15 @@ export function UnidadEditorCard({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {(config === "solo_remolque" || activeTab === "remolque") ? (
+          {config === "solo_vehiculo" ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-1">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[11px] font-bold flex items-center justify-center shrink-0">1</div>
+                <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">Vehículo</span>
+              </div>
+              {renderMateriales(vehiculo.materiales, addMaterialV, removeMaterialV, updateMaterialV)}
+            </div>
+          ) : (config === "solo_remolque" || activeTab === "remolque") ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-1">
                 <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center shrink-0">1</div>
@@ -421,16 +491,19 @@ export function AgregarUnidadModal({
   onClose,
   onSave,
   initialData,
+  defaultConfig,
 }: {
   onClose: () => void;
   onSave: (unidad: UnidadItem) => void;
   initialData?: UnidadItem;
+  defaultConfig?: UnidadConfig;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <UnidadEditorCard
         className="w-full max-w-3xl max-h-[90vh] shadow-2xl"
         initialData={initialData}
+        defaultConfig={defaultConfig}
         onCancel={onClose}
         onSave={(u) => { onSave(u); onClose(); }}
       />

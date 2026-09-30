@@ -13,16 +13,22 @@ export type Excludes = Record<string, string[]>;
 export interface GrupoRequisito {
   datos_requeridos: string[];
   /**
-   * Puede llegar como string, como lista (requisito con varias ubicaciones) o
-   * como [] si no se capturó ninguna: el back la pasa por `unlist`, que sólo
-   * colapsa listas no vacías. Compárala con `requisitoAplicaA`, nunca con
-   * `.toLowerCase()` directo.
+   * El back manda una lista de nombres (el requisito puede aplicar a varias
+   * ubicaciones o a ninguna); las sesiones con el menú viejo persistido en
+   * localStorage todavía traen un string o un `[]`. Compárala siempre con
+   * `requisitoAplicaA`, nunca con `.toLowerCase()` directo.
    */
   ubicacion: string | string[];
   envio_por: string[];
   prefijo_telefonico: number;
   tolerancia_de_entrada_previa: number;
   tolerancia_de_entrada_posterior: number;
+  /**
+   * Radio "Auto Activacion" del grupo ("sí"/"no"): si pase-entrada ofrece el
+   * toggle "Activar pase por defecto". Opcional: los menús persistidos antes
+   * de este campo no lo traen.
+   */
+  auto_activacion?: string;
 }
 
 interface MenuStore {

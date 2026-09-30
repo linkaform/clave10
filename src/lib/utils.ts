@@ -16,11 +16,12 @@ export const normalizeText = (text: any) =>
   String(text ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
 
 /**
- * La `ubicacion` de un grupo de requisitos no siempre llega como string: el back
- * la pasa por `unlist`, que colapsa la lista sólo si trae elementos, así que un
- * requisito sin ubicación capturada llega como `[]` y uno con varias puede
- * llegar como arreglo. Normaliza cualquiera de esas formas a una lista de
- * nombres en minúsculas para poder comparar sin reventar con `.toLowerCase`.
+ * La `ubicacion` de un grupo de requisitos llega como lista de nombres (un
+ * requisito puede aplicar a varias ubicaciones, o a ninguna). Las sesiones con
+ * el menú viejo en localStorage todavía la traen como string o como `[]`,
+ * porque el store se persiste con `staleTime: Infinity`. Normaliza cualquiera
+ * de esas formas a una lista en minúsculas para comparar sin reventar con
+ * `.toLowerCase`.
  */
   export const ubicacionesDeRequisito = (ubicacion: unknown): string[] =>
   (Array.isArray(ubicacion) ? ubicacion : [ubicacion])
@@ -142,6 +143,43 @@ export function reemplazarGuionMinuscula(str: string | null | undefined) {
   if (!str) return "";
   return str.replace(/_/g, " ").toLowerCase();
 }
+
+// Zona horaria del usuario en Linkaform (se guarda al iniciar sesión). Las horas de
+// los pases se guardan como texto sin zona y el backend las interpreta en esta zona,
+// así que el "ahora" de los formularios debe salir de aquí y no del reloj del equipo.
+export const getUserTimezone = (): string => {
+  const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (typeof window === "undefined") return deviceTz;
+  const tz = localStorage.getItem("userTimezone_soter");
+  if (!tz) return deviceTz;
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return tz;
+  } catch {
+    return deviceTz;
+  }
+};
+
+// Fecha/hora actual en la zona del usuario, como Date cuyos campos locales
+// (getHours, getDate...) son la hora de pared de esa zona. Sirve para
+// formatDateToString y para los pickers, que trabajan con campos locales.
+export const nowInUserTz = (): Date => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: getUserTimezone(),
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return new Date(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+};
+
+// Fecha de hoy ("YYYY-MM-DD") en la zona del usuario.
+export const todayInUserTz = (): string => formatDateToString(nowInUserTz()).split(" ")[0];
 
 export const formatDateToString = (date: Date): string => {
   const year = date.getFullYear();

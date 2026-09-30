@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
-import { ClipboardCheck, Search, ChevronDown, ChevronUp, TrendingUp, ArrowUpRight, ExternalLink } from "lucide-react";
+import ViewImage from "@/components/modals/view-image";
+import { ClipboardCheck, Search, ChevronDown, ChevronUp, TrendingUp, ArrowUpRight, ExternalLink, AlertTriangle, Wrench, ListTodo, ClipboardList } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAreaChecks, AreaCheckItem } from "@/hooks/Areas/useAreaChecks";
 import { useAreaFallas } from "@/hooks/Areas/useAreaFallas";
-import { KpiCard } from "./KpiCard";
+import { KpiCard, toneProblema, toneReciente } from "./KpiCard";
 import {
   KPI_WINDOWS,
   countWithinWindows,
@@ -49,6 +49,10 @@ export function ChecksAreaDashboard({ ubicacion, area }: { ubicacion: string; ar
       if ((check.grupo_incidencias_check?.length || 0) > 0) conIncidencias += 1;
     }
 
+    const inspeccionesPorVentana = countWithinWindows(
+      checks.filter((c) => !!c.url_inspeccion).map((c) => ({ date: parseCheckDate(c.created_at) })),
+    );
+
     const fallasPorVentana = countWithinWindows(
       fallas.map((falla) => ({ date: parseLooseDate(falla.falla_fecha_hora || falla.created_at) })),
     );
@@ -60,6 +64,8 @@ export function ChecksAreaDashboard({ ubicacion, area }: { ubicacion: string; ar
 
     return {
       total: checks.length,
+      inspecciones: checks.filter((c) => !!c.url_inspeccion).length,
+      inspeccionesPorVentana,
       conIncidencias,
       incidenciasPorVentana,
       fallasTotal: fallas.length,
@@ -117,20 +123,22 @@ export function ChecksAreaDashboard({ ubicacion, area }: { ubicacion: string; ar
   return (
     <div className="flex flex-col gap-4 min-w-0">
       {/* KPIs */}
-      <div className="flex flex-wrap gap-3">
-        <KpiCard label="Checks (360 días)" value={kpis.total} />
+      <div className="flex flex-wrap gap-2">
+        <KpiCard label="Checks (360 días)" value={kpis.total} icon={ClipboardCheck} />
         <KpiCard
           label="Con incidencias"
           value={kpis.conIncidencias}
-          tone={kpis.conIncidencias > 0 ? "bad" : "good"}
+          tone={toneProblema(kpis.conIncidencias)}
+          icon={AlertTriangle}
         />
         <KpiCard
           label="Fallas"
           value={isLoadingFallas ? "…" : kpis.fallasTotal}
-          tone={kpis.fallasTotal > 0 ? "warn" : "good"}
+          tone={toneReciente(kpis.fallasTotal)}
+          icon={Wrench}
         />
-        <KpiCard label="Tareas" value="—" />
-        <KpiCard label="Inspecciones" value="—" />
+        <KpiCard label="Tareas" value="—" icon={ListTodo} />
+        <KpiCard label="Inspecciones" value={kpis.inspecciones} icon={ClipboardList} />
       </div>
 
       <button
@@ -222,10 +230,10 @@ export function ChecksAreaDashboard({ ubicacion, area }: { ubicacion: string; ar
                         ))}
                       </tr>
                       <tr>
-                        <td className="py-2 pr-4 font-medium text-gray-400">Inspecciones</td>
+                        <td className="py-2 pr-4 font-medium text-gray-700">Inspecciones</td>
                         {KPI_WINDOWS.map((dias) => (
-                          <td key={dias} className="py-2 px-3 text-center text-gray-300">
-                            —
+                          <td key={dias} className="py-2 px-3 text-center text-gray-700">
+                            {kpis.inspeccionesPorVentana[dias]}
                           </td>
                         ))}
                       </tr>
@@ -314,19 +322,19 @@ export function ChecksAreaDashboard({ ubicacion, area }: { ubicacion: string; ar
   );
 }
 
-function CheckCard({ check }: { check: AreaCheckItem }) {
+export function CheckCard({ check }: { check: AreaCheckItem }) {
   const tieneIncidencias = (check.grupo_incidencias_check?.length || 0) > 0;
   const primeraIncidencia = check.grupo_incidencias_check?.[0];
-  const evidenciaThumbRaw = check.foto_evidencia_area?.[0]?.file_url;
   // Algunos registros sincronizados desde el celular guardan una ruta local
   // (file:///...) mientras la foto aún no termina de subirse -- next/image
   // truena si el host no está configurado, así que solo usamos http(s).
-  const evidenciaThumb = /^https?:\/\//.test(evidenciaThumbRaw || "") ? evidenciaThumbRaw : null;
-  const evidenciasCount = check.foto_evidencia_area?.length || 0;
+  const evidencias = (check.foto_evidencia_area || []).filter((foto: any) =>
+    /^https?:\/\//.test(foto?.file_url || ""),
+  );
   const rondinUrl = check.rondin?.id ? `/dashboard/rondines?tab=rondines&id=${check.rondin.id}` : null;
 
   return (
-    <div className="border-2 border-blue-500 rounded-xl p-4 flex gap-4 divide-x divide-gray-200 transition-colors">
+    <div className="border border-gray-200 rounded-xl p-4 flex gap-4 divide-x divide-gray-200 transition-colors">
       {/* Columna 1: rondín, fecha, comentario */}
       <div className="flex-1 min-w-0 flex flex-col gap-2">
         <div className="flex items-center gap-2">
@@ -367,16 +375,7 @@ function CheckCard({ check }: { check: AreaCheckItem }) {
 
       {/* Columna 2: foto de evidencia */}
       <div className="w-24 shrink-0 flex items-center justify-center pl-4">
-        {evidenciaThumb && (
-          <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-green-500 bg-gray-50 shrink-0">
-            <Image src={evidenciaThumb} alt="Evidencia" fill className="object-cover" />
-            {evidenciasCount > 1 && (
-              <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] px-1 rounded-tl">
-                +{evidenciasCount - 1}
-              </span>
-            )}
-          </div>
-        )}
+        {evidencias.length > 0 && <ViewImage imageUrl={evidencias} size="md" />}
       </div>
 
       {/* Columna 3: datos de la incidencia */}

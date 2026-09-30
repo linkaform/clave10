@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchPasesActivos } from "@/lib/access";
 
-export const usePasses = (location: string | null) => {
+export const usePasses = (location: string | null, area?: string) => {
 
   const {
     data,
@@ -11,10 +11,10 @@ export const usePasses = (location: string | null) => {
     refetch,
   } = useQuery<any>({
     enabled: !!location, 
-    queryKey: ["getActivePasses", location],
+    queryKey: ["getActivePasses", location, area],
     queryFn: async () => {
       if (!location) return []; 
-      const data = await fetchPasesActivos({ location });
+      const data = await fetchPasesActivos({ location, area });
       return Array.isArray(data.response?.data)
         ? data.response.data
         : [];

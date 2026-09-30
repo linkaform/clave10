@@ -29,7 +29,8 @@ import { useGetBitacoraTransportistaRecords, BitacoraTransportistaRecord } from 
 import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
 import { saveBitacoraTransportistaRecord } from "@/services/endpoints";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Pencil, X } from "lucide-react";
+import { ConfirmModal } from "@/components/confirm-modal";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { formatPhotoRecord, formatListRecord } from "@/utils/formatRecords";
@@ -121,6 +122,24 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
   const [showAndenModal, setShowAndenModal] = useState(false);
   const [savingAnden, setSavingAnden] = useState(false);
 
+  const puedeDescartar = !["terminado", "descartado"].includes(record.estatus);
+  const [showDescartarConfirm, setShowDescartarConfirm] = useState(false);
+  const [descartando, setDescartando] = useState(false);
+
+  const handleDescartarConfirm = async () => {
+    setDescartando(true);
+    try {
+      await saveBitacoraTransportistaRecord(record._id, "estatus", { estatus: "descartado" });
+      queryClient.invalidateQueries({ queryKey: ["bitacoraTransportistaRecords"] });
+      toast.success("Registro descartado");
+      setShowDescartarConfirm(false);
+    } catch {
+      toast.error("Error al descartar el registro");
+    } finally {
+      setDescartando(false);
+    }
+  };
+
   const handleAndenConfirm = async (anden: string | null) => {
     setShowAndenModal(false);
     const prev = localAnden;
@@ -140,8 +159,17 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
 
   return (
     <>
-      <Link href={`/dashboard/accesos/transportista/${record._id}`} className="block bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 space-y-2.5 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer">
-        <div className="flex items-start justify-between gap-2">
+      <Link href={`/dashboard/accesos/transportista/${record._id}`} className="relative block bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 space-y-2.5 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer">
+        {puedeDescartar && (
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDescartarConfirm(true); }}
+            className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+            title="Descartar registro">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <div className="flex items-start justify-between gap-2 pr-5">
           {sinPase
             ? <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">SIN PASE</span>
             : <span className="text-[10px] font-bold text-gray-400 tracking-wide">{record.folio}</span>
@@ -213,6 +241,15 @@ function KanbanCard({ record, now }: { record: BitacoraTransportistaRecord; now:
           onConfirm={handleAndenConfirm}
         />
       )}
+      <ConfirmModal
+        open={showDescartarConfirm}
+        onClose={() => setShowDescartarConfirm(false)}
+        onConfirm={handleDescartarConfirm}
+        title="¿Descartar este registro?"
+        description="El registro pasará a estatus Descartado y saldrá del Kanban. Podrás seguir viéndolo en Lista, Cuadrícula o Tabla."
+        confirmText="Descartar"
+        isLoading={descartando}
+      />
     </>
   );
 }
@@ -368,15 +405,26 @@ export default function BitacorasTransportistasPage() {
         }),
   });
 
-  // Oculta del kanban las columnas de etapas desactivadas para esta cuenta.
-  // El value real de la opción de Linkaform para "entrada" es "inspeccion_de_entrada"
-  // (no coincide con el key de la columna, que sí es el valor real de `estatus`).
+  // Oculta del kanban las columnas de etapas desactivadas para esta cuenta, y las que
+  // la cuenta desmarcó en "Kanban View" (puramente visual — no afecta el flujo real).
+  // Los value reales de las opciones en Linkaform no siempre coinciden con el key de
+  // la columna (que es el valor real de `estatus`): "inspeccion_de_entrada" en vez de
+  // "inspeccion_entrada", "terminados" (plural) en vez de "terminado".
   const { data: configFlujo } = useConfigFlujoTransportista();
+  const COL_KEY_A_KANBAN_VIEW_SLUG: Record<string, string> = {
+    arribo: "arribo",
+    inspeccion_entrada: "inspeccion_de_entrada",
+    "carga_/_descarga": "carga_/_descarga",
+    inspeccion_salida: "inspeccion_salida",
+    terminado: "terminados",
+  };
   const columnasVisibles = COLUMNAS.filter((col) => {
+    if (!configFlujo.kanbanView.includes(COL_KEY_A_KANBAN_VIEW_SLUG[col.key])) return false;
     if (col.key === "arribo" || col.key === "terminado") return true;
     const slug = col.key === "inspeccion_entrada" ? "inspeccion_de_entrada" : col.key;
     return configFlujo.etapasActivas.includes(slug);
   });
+  const mostrarProgramados = configFlujo.kanbanView.includes("programados");
 
   // Resetea a la primera página cuando cambian fecha/filtros/búsqueda/vista,
   // para no quedar "colgado" en una página fuera de rango.
@@ -521,7 +569,9 @@ export default function BitacorasTransportistasPage() {
       ) : viewMode === "kanban" ? (
         <div className="flex-1 min-h-0 overflow-hidden">
           <div className="flex gap-3 p-4 h-full w-full">
-            <ProgramadosColumn records={byEstatus("programado")} fecha={fecha} now={now} onChangeDay={changeDay} />
+            {mostrarProgramados && (
+              <ProgramadosColumn records={byEstatus("programado")} fecha={fecha} now={now} onChangeDay={changeDay} />
+            )}
             {columnasVisibles.map((col) => (
               <KanbanColumn
                 key={col.key}

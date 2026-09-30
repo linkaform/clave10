@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ColumnFiltersState,
   SortingState,
@@ -9,11 +9,9 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -22,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Power, Printer } from "lucide-react";
+import { Pencil, Power, Printer } from "lucide-react";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { PhotoGridActionButtons } from "@/components/Bitacoras/PhotoGrid/PhotoGridActionButtons";
@@ -32,10 +30,11 @@ import { FilterConfig, ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { AreaRow, NormalizedArea, normalizeArea } from "@/lib/areas";
 import { AreasExternalFilters } from "@/hooks/Areas/useAreasFilters";
 import { useAreaActions } from "@/hooks/Areas/useAreaActions";
-import { ViewMode } from "@/lib/utils";
+import { ViewMode, cn } from "@/lib/utils";
 import { getAreasColumns } from "./columns";
 import { AreaDisponibilidadMenu } from "./AreaDisponibilidadMenu";
 import { AreaDetallePanel } from "@/components/Areas/AreaDetallePanel";
+import type { AreaTab } from "@/components/Areas/AreaDetalle";
 
 interface AreasExplorerTableProps {
   areas: AreaRow[];
@@ -53,7 +52,6 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
   areas,
   isLoading,
   viewMode,
-  searchTags,
   filtersConfig,
   externalFilters,
   onExternalFiltersChange,
@@ -61,15 +59,12 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
   onSelectedAreaIdChange,
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
+  // Tab con el que abre el panel lateral: el lápiz abre directo en "configuracion".
+  const [panelTab, setPanelTab] = useState<AreaTab>("general");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
   const [globalFilter, setGlobalFilter] = useState("");
-
-  useEffect(() => {
-    setGlobalFilter(searchTags && searchTags.length > 0 ? searchTags.join("|") : "");
-  }, [searchTags]);
 
   const normalizedAreas = useMemo(
     () => areas.map((area, index) => normalizeArea(area, index)),
@@ -78,17 +73,25 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
 
   const { handlePrintAreaQR, handleToggleAreaEstado } = useAreaActions();
 
-  const handleVerArea = React.useCallback(
-    (area: NormalizedArea) => onSelectedAreaIdChange(area.recordId),
+  const abrirPanel = React.useCallback(
+    (recordId: string, tab: AreaTab = "general") => {
+      if (!recordId) return;
+      setPanelTab(tab);
+      onSelectedAreaIdChange(recordId);
+    },
     [onSelectedAreaIdChange],
   );
 
+  const handleVerArea = React.useCallback((area: NormalizedArea) => abrirPanel(area.recordId), [abrirPanel]);
+
+  const handleEditArea = React.useCallback(
+    (area: NormalizedArea) => abrirPanel(area.recordId, "configuracion"),
+    [abrirPanel],
+  );
+
   const handleRecordClick = React.useCallback(
-    (record: PhotoRecord | ListRecord) => {
-      const recordId = (record as any)?.rawData?.record_id;
-      if (recordId) onSelectedAreaIdChange(recordId);
-    },
-    [onSelectedAreaIdChange],
+    (record: PhotoRecord | ListRecord) => abrirPanel((record as any)?.rawData?.record_id || ""),
+    [abrirPanel],
   );
 
   const handlePrintArea = React.useCallback(
@@ -114,6 +117,14 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
         <PhotoGridActionButtons
           actions={[
             <div
+              key="editar"
+              className={iconButtonClass}
+              title="Editar área"
+              onClick={() => abrirPanel(recordId, "configuracion")}
+            >
+              <Pencil className="w-4 h-4" />
+            </div>,
+            <div
               key="print"
               className={iconButtonClass}
               title="Imprimir QR"
@@ -123,7 +134,12 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
             </div>,
             <div
               key="toggle-estado"
-              className={`${iconButtonClass} ${esActiva ? "text-green-600" : "text-slate-400"}`}
+              className={cn(
+                iconButtonClass,
+                esActiva
+                  ? "bg-green-50 hover:bg-green-100 border-green-200 text-green-600 hover:text-green-700"
+                  : "bg-red-50 hover:bg-red-100 border-red-200 text-red-500 hover:text-red-600",
+              )}
               title={esActiva ? "Desactivar área" : "Activar área"}
               onClick={() => handleToggleAreaEstado(recordId, estadoActual)}
             >
@@ -136,12 +152,12 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
         />
       );
     },
-    [handlePrintAreaQR, handleToggleAreaEstado],
+    [handlePrintAreaQR, handleToggleAreaEstado, abrirPanel],
   );
 
   const columns = useMemo(
-    () => getAreasColumns(handleVerArea, handlePrintArea, handleToggleArea),
-    [handleVerArea, handlePrintArea, handleToggleArea],
+    () => getAreasColumns(handleVerArea, handlePrintArea, handleToggleArea, handleEditArea),
+    [handleVerArea, handlePrintArea, handleToggleArea, handleEditArea],
   );
 
   const table = useReactTable({
@@ -151,24 +167,11 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
-    globalFilterFn: (row, _columnId, filterValue: string) => {
-      if (!filterValue) return true;
-      const normalize = (str: string) =>
-        str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const tags = filterValue.split("|").filter(Boolean).map(normalize);
-      const allValues = row
-        .getAllCells()
-        .map((cell) => normalize(String(cell.getValue() || "")))
-        .join(" ");
-      return tags.some((tag) => allValues.includes(tag));
-    },
-    state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
+    state: { sorting, columnFilters, columnVisibility, rowSelection, globalFilter },
   });
 
   const photoRecords: PhotoRecord[] = useMemo(
@@ -180,8 +183,6 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
     () => normalizedAreas.map((area) => formatListRecord(area, "area")),
     [normalizedAreas],
   );
-
-  const gridContainerRef = React.useRef<HTMLDivElement>(null);
 
   return (
     <div className="w-full">
@@ -197,12 +198,11 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
           </aside>
         )}
 
-        <div ref={gridContainerRef} className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0">
           {viewMode === "photos" ? (
             <PhotoGridView
               isLoading={isLoading}
               records={photoRecords}
-              globalSearch={searchTags}
               onRecordClick={handleRecordClick}
             >
               {renderAreaActions}
@@ -211,7 +211,6 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
             <PhotoListView
               isLoading={isLoading}
               records={listRecords}
-              globalSearch={searchTags}
               onRecordClick={handleRecordClick}
             >
               {renderAreaActions}
@@ -278,16 +277,6 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
                   </TableBody>
                 </Table>
               </div>
-              <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-                    Anterior
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-                    Siguiente
-                  </Button>
-                </div>
-              </div>
             </>
           )}
         </div>
@@ -295,8 +284,12 @@ export const AreasExplorerTable: React.FC<AreasExplorerTableProps> = ({
 
       <AreaDetallePanel
         recordId={selectedAreaId}
-        onOpenChange={(open) => !open && onSelectedAreaIdChange(null)}
-        allowOutsideRef={gridContainerRef}
+        initialTab={panelTab}
+        onOpenChange={(open) => {
+          if (open) return;
+          onSelectedAreaIdChange(null);
+          setPanelTab("general");
+        }}
       />
     </div>
   );

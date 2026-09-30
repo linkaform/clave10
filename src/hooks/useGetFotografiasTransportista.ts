@@ -55,7 +55,7 @@ export const useGetFotografiasTransportista = (registros: RegistroFotografias[])
       const items = (res?.response?.data ?? []) as {
         record_id: string;
         tipo_de_registro: string;
-        fotografias: { file_name: string; file_url: string }[];
+        fotografias: { file_name: string; file_url: string; comentario?: string }[];
       }[];
       return items.flatMap((item) =>
         (item.fotografias ?? [])

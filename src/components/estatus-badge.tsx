@@ -20,6 +20,8 @@ const ESTATUS_STYLES: Record<string, string> = {
   // Rojos
   abierto:    "bg-red-50 text-red-700 border border-red-200",
   pendiente:  "bg-red-50 text-red-700 border border-red-200",
+  cancelado:  "bg-red-50 text-red-700 border border-red-300",
+  vencido:    "bg-red-50 text-red-700 border border-red-300",
   salida:   "bg-red-50 text-red-700 border border-red-200",
   // Grises
   eliminado:  "bg-slate-50 text-slate-500 border border-slate-200",

@@ -165,7 +165,12 @@ const PasesEntradaTable: React.FC<ListProps> = ({ isLoading, pases }) => {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="hover:bg-slate-100 transition-colors border-slate-50">
+                  className={
+                    // Pases cancelados o vencidos: fondo y borde rojo para distinguirlos.
+                    ["cancelado", "vencido"].includes((row.original as any)?.estatus?.toLowerCase())
+                      ? "bg-red-50 hover:bg-red-100 transition-colors border-l-4 border-l-red-500 border-red-100"
+                      : "hover:bg-slate-100 transition-colors border-slate-50"
+                  }>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}

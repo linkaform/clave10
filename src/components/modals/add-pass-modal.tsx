@@ -7,8 +7,8 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import CalendarDays from "../calendar-days";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { Camera, CalendarClock, Car, IdCard, Layers, Loader2, MessageSquare, ShieldCheck, UserRound } from "lucide-react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import { AlertTriangle, BadgeCheck, Camera, CalendarClock, Car, IdCard, Layers, Loader2, MessageSquare, ShieldCheck, UserRound } from "lucide-react";
 import { GeneratedPassModal } from "./generated-pass-modal";
 import { Access_pass, Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
@@ -57,6 +57,8 @@ interface EntryPassUpdateModalProps {
     enviar_pre_sms: enviar_pre_sms;
 	todas_las_areas:boolean;
 	habilitar_vehiculo:string;
+	/** "sí"/"no"; solo viene si la ubicación ofrece el toggle "Activar pase por defecto". */
+	auto_activacion?:string;
 	habilitar_fotografia:string;
 	habilitar_identificacion:string;
 	acompanantes:number;
@@ -150,6 +152,7 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
       },
 	  todas_las_areas:dataPass.todas_las_areas,
 	  habilitar_vehiculo:dataPass.habilitar_vehiculo,
+	  ...(dataPass.auto_activacion !== undefined && { auto_activacion: dataPass.auto_activacion }),
 	  habilitar_fotografia:dataPass.habilitar_fotografia,
 	  habilitar_identificacion:dataPass.habilitar_identificacion,
 	  acompanantes:dataPass.acompanantes,
@@ -204,6 +207,24 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 		setIsSuccess(false); 
 		onClose(); 
 	};
+
+	// Aviso de auto activación en Acompañantes: el back solo activa a los que
+	// ya traen nombre. Si aparece, el modal abre desplazado hasta ahí.
+	const acompanantesConNombre = (dataPass?.acompanantes_grupo ?? []).filter((m) => m.nombre?.trim()).length;
+	const acompanantesSinNombre = Math.max((dataPass?.acompanantes ?? 0) - acompanantesConNombre, 0);
+	const mostrarAvisoAutoActivacion = dataPass?.auto_activacion === "sí" && (dataPass?.acompanantes ?? 0) > 0;
+	const avisarAcompanantesEnProceso = mostrarAvisoAutoActivacion && acompanantesSinNombre > 0;
+	const avisoAutoActivacionRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (!isSuccess || !mostrarAvisoAutoActivacion) return;
+		// Espera a que termine la animación de apertura del Dialog.
+		const timer = setTimeout(
+			() => avisoAutoActivacionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
+			300,
+		);
+		return () => clearTimeout(timer);
+	}, [isSuccess, mostrarAvisoAutoActivacion]);
+
   	return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal >
 		<DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh] flex flex-col p-0 border-none rounded-3xl" aria-describedby="" onInteractOutside={(e) => e.preventDefault()}>
@@ -329,6 +350,28 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 					</Badge>
 				</div>
 				</div>
+				{/* Auto activación: solo si la ubicación ofreció el toggle */}
+				{dataPass?.auto_activacion !== undefined && (
+				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+				<div className="flex items-center justify-between">
+					<div className="flex items-center gap-2">
+					<div className="bg-blue-50 p-1.5 rounded-lg">
+						<BadgeCheck size={16} className="text-blue-600" />
+					</div>
+					<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Activar pase por defecto</span>
+					</div>
+					<Badge
+					className={
+						dataPass?.auto_activacion === "sí"
+						? "bg-green-100 text-green-700 hover:bg-green-100 border-none font-black text-[10px]"
+						: "bg-slate-100 text-slate-600 hover:bg-slate-100 border-none font-black text-[10px]"
+					}
+					>
+					{dataPass?.auto_activacion === "sí" ? "Se crea activo" : "No"}
+					</Badge>
+				</div>
+				</div>
+				)}
 				{/* Fotografía e Identificación (solo Admin) */}
 				{esAdmin && (
 				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
@@ -384,6 +427,33 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 							{dataPass.acompanantes} {dataPass.acompanantes === 1 ? "persona" : "personas"}
 						</Badge>
 						</div>
+
+						{/* Auto activación: el back activa a los acompañantes solo si ya traen nombre */}
+						{mostrarAvisoAutoActivacion && (
+							<div
+							ref={avisoAutoActivacionRef}
+							className={`flex gap-3 p-3 mb-3 rounded-xl border ${
+								acompanantesSinNombre > 0 ? "border-amber-300 bg-amber-50" : "border-blue-200 bg-blue-50"
+							}`}
+							>
+							<AlertTriangle
+								size={18}
+								className={`flex-shrink-0 mt-0.5 ${acompanantesSinNombre > 0 ? "text-amber-600" : "text-blue-600"}`}
+							/>
+							<div className={`text-xs space-y-1 ${acompanantesSinNombre > 0 ? "text-amber-800" : "text-blue-800"}`}>
+								<p className="font-bold">
+								{acompanantesSinNombre > 0
+									? `${acompanantesSinNombre} ${acompanantesSinNombre === 1 ? "acompañante sin nombre no se activará" : "acompañantes sin nombre no se activarán"}`
+									: "Los acompañantes también se crearán activos"}
+								</p>
+								<p>
+								Con &quot;Activar pase por defecto&quot; el titular se crea activo. Cada acompañante se activa
+								solo si <span className="font-semibold">tiene nombre</span>; los que no, quedan{" "}
+								<span className="font-semibold">en proceso</span> hasta que se complete su información.
+								</p>
+							</div>
+							</div>
+						)}
 
 						{dataPass?.acompanantes_grupo && dataPass.acompanantes_grupo.filter(m => m.nombre?.trim()).length > 0 && (
 						<div className="space-y-2 pt-3 border-t border-gray-50">
@@ -474,8 +544,23 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 					</Button>
 				</DialogClose>
 
-				<Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-6 font-bold uppercase text-[10px] tracking-widest h-auto shadow-lg shadow-blue-100" onClick={onSubmit} disabled={isLoading}>
-					{!isLoading ? ("Crear pase") : (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creando... </>)}
+				{/* Con auto activación y acompañantes sin nombre, el botón lo dice para que no pase desapercibido */}
+				<Button
+					className={`flex-1 text-white rounded-xl py-6 font-bold uppercase text-[10px] tracking-widest h-auto whitespace-normal ${
+						avisarAcompanantesEnProceso
+							? "bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-100"
+							: "bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-100"
+					}`}
+					onClick={onSubmit}
+					disabled={isLoading}
+				>
+					{isLoading ? (
+						<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creando... </>
+					) : avisarAcompanantesEnProceso ? (
+						`Crear pase (${acompanantesSinNombre} ${acompanantesSinNombre === 1 ? "acompañante" : "acompañantes"} en proceso)`
+					) : (
+						"Crear pase"
+					)}
 				</Button>
 
 				{responseCreatePase?.status_code == 201 && (

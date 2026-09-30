@@ -23,7 +23,7 @@ import { Textarea } from "../ui/textarea";
 import { Dispatch, ReactNode, SetStateAction, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { useCatalogoAreaEmpleadoApoyo } from "@/hooks/useCatalogoAreaEmpleadoApoyo";
-import { Loader2, Package, ClipboardList, ScanLine, Sparkles } from "lucide-react";
+import { Loader2, Package, ClipboardList, PenLine, ScanLine, Sparkles } from "lucide-react";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { useArticulosConcesionados } from "@/hooks/useArticulosConcesionados";
 import { Input } from "../ui/input";
@@ -79,8 +79,8 @@ export const equipoSchema = z.object({
   costo_equipo_concesion: z.union([z.number(), z.array(z.number())]).optional(),
   imagen_equipo_concesion: z.array(imagenSchema).optional(),
   cantidad_equipo_concesion: z.number(),
-  evidencia_entrega: z.array(imagenSchema).optional(),
-  comentario_entrega: z.string().optional(),
+  evidencia_prestamo: z.array(imagenSchema).optional(),
+  comentario_prestamo: z.string().optional(),
 });
 
 const formSchema = z.object({
@@ -435,7 +435,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                 </div>
               </div>
 
-              <div className="p-5 space-y-4">
+              <div className="mx-5 mt-4 p-5 space-y-4 rounded-xl border border-blue-200 bg-blue-100/40">
                 <div className="flex items-center gap-2 mb-1">
                   <ClipboardList className="text-blue-500 w-5 h-5" />
                   <h3 className="font-semibold text-gray-700">Información general</h3>
@@ -610,7 +610,10 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
               </div>
 
               <div className="p-5 py-0 space-y-4">
-                <h3 className="font-semibold text-gray-700">Observaciones y firma</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <PenLine className="text-blue-500 w-5 h-5" />
+                  <h3 className="font-semibold text-gray-700">Observaciones y firma</h3>
+                </div>
 
                 <FormField
                   control={form.control}

@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // react-leaflet@4.2 (React 18) no soporta el doble montaje de efectos que
+  // hace StrictMode en dev con React 19: al remontar el MapContainer sobre
+  // el mismo <div>, Leaflet truena con "Map container is already
+  // initialized". Solo afecta al dev server, no a producción.
+  reactStrictMode: false,
   images: {
     remotePatterns: [
       {

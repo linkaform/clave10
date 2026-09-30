@@ -21,7 +21,7 @@ export const InAndOutButtons = ({
 }: InAndOutButtonsProps) => {
   const [isAddBadgeOpen, setIsAddBadgeOpen] = useState(false);
   const [isReturnGafeteOpen, setIsReturnGafeteOpen] = useState(false);
-  const {userIdSoter} = useAuthStore()
+  const {userParentId} = useAuthStore()
   const isSalida = bitacora.status_visita?.toLowerCase() === "salida";
   const isEntrada = bitacora.status_visita?.toLowerCase() === "entrada";
   const isAsignado = bitacora.status_gafete?.toLowerCase() === "asignado";
@@ -83,7 +83,7 @@ export const InAndOutButtons = ({
             </VehicleLocalPassModal>
           ) : null,
           !isSalida ? (
-            <EqipmentLocalPassModal key="hammer" title="Agregar equipo" id={bitacora._id} equipos={[]} setEquipos={() => {}} isAccesos={false} userId={userIdSoter}>
+            <EqipmentLocalPassModal key="hammer" title="Agregar equipo" id={bitacora._id} equipos={[]} setEquipos={() => {}} isAccesos={false} userId={userParentId ?? undefined}>
               <div className={iconClass(false)} title="Agregar equipo" >
                 <Hammer className="w-4 h-4" />
               </div>

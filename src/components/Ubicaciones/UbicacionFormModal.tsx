@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2 } from "lucide-react";
+import { Building2, Loader2, MapPin, Phone } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -87,90 +87,131 @@ export function UbicacionFormModal({ open, onOpenChange, ubicacion, onSuccess }:
     }
   };
 
+  const labelClass = "text-xs font-semibold text-gray-500 uppercase tracking-wide";
+  const inputClass = "bg-white border-gray-200";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl w-full max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar ubicación" : "Nueva ubicación"}</DialogTitle>
+      <DialogContent className="max-w-2xl w-full max-h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="flex-shrink-0 bg-white px-6 py-5 border-b">
+          <DialogTitle className="text-2xl text-center font-bold text-gray-800">
+            {isEdit ? "Editar ubicación" : "Nueva ubicación"}
+          </DialogTitle>
+          <p className="text-center text-sm text-gray-400">
+            {isEdit
+              ? "Actualiza la información de la ubicación"
+              : "Completa la información para registrar la ubicación"}
+          </p>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4 py-2">
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label htmlFor="ubicacion-nombre">Nombre *</Label>
-            <Input
-              id="ubicacion-nombre"
-              value={form.nombre}
-              onChange={setField("nombre")}
-              placeholder="Ej. Planta Monterrey"
-              disabled={isEdit}
-            />
-            {isEdit && (
-              <span className="text-xs text-slate-400">
-                El nombre de una ubicación existente no se puede modificar desde aquí.
-              </span>
-            )}
+        <div className="flex-grow overflow-y-auto px-6">
+          <div className="p-5 space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Building2 className="text-blue-500 w-5 h-5" />
+              <h3 className="font-semibold text-gray-700">Información general</h3>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="ubicacion-nombre" className={labelClass}>Nombre *</Label>
+              <Input
+                id="ubicacion-nombre"
+                value={form.nombre}
+                onChange={setField("nombre")}
+                placeholder="Ej. Planta Monterrey"
+                disabled={isEdit}
+                className={inputClass}
+              />
+              {isEdit && (
+                <span className="text-xs text-slate-400">
+                  El nombre de una ubicación existente no se puede modificar desde aquí.
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label htmlFor="ubicacion-direccion">Dirección</Label>
-            <Input id="ubicacion-direccion" value={form.direccion} onChange={setField("direccion")} />
+          <div className="p-5 pt-0 space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <MapPin className="text-blue-500 w-5 h-5" />
+              <h3 className="font-semibold text-gray-700">Dirección</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2 flex flex-col gap-1.5">
+                <Label htmlFor="ubicacion-direccion" className={labelClass}>Dirección</Label>
+                <Input id="ubicacion-direccion" value={form.direccion} onChange={setField("direccion")} placeholder="Calle y número" className={inputClass} />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ubicacion-colonia" className={labelClass}>Colonia</Label>
+                <Input id="ubicacion-colonia" value={form.colonia} onChange={setField("colonia")} className={inputClass} />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ubicacion-ciudad" className={labelClass}>Ciudad</Label>
+                <Input id="ubicacion-ciudad" value={form.ciudad} onChange={setField("ciudad")} className={inputClass} />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label className={labelClass}>Estado</Label>
+                <Select
+                  value={form.estado || undefined}
+                  onValueChange={(value) => setForm((prev) => ({ ...prev, estado: value }))}
+                >
+                  <SelectTrigger className={`w-full ${inputClass}`}>
+                    <SelectValue placeholder="Selecciona un estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {catalogoEstados().map((estado) => (
+                      <SelectItem key={estado} value={estado}>
+                        {estado}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ubicacion-pais" className={labelClass}>País</Label>
+                <Input id="ubicacion-pais" value={form.pais} onChange={setField("pais")} placeholder="México" className={inputClass} />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ubicacion-cp" className={labelClass}>Código Postal</Label>
+                <Input id="ubicacion-cp" value={form.codigo_postal} onChange={setField("codigo_postal")} className={inputClass} />
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ubicacion-colonia">Colonia</Label>
-            <Input id="ubicacion-colonia" value={form.colonia} onChange={setField("colonia")} />
-          </div>
+          <div className="p-5 pt-0 space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Phone className="text-blue-500 w-5 h-5" />
+              <h3 className="font-semibold text-gray-700">Contacto</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ubicacion-telefono" className={labelClass}>Teléfono</Label>
+                <Input id="ubicacion-telefono" value={form.telefono} onChange={setField("telefono")} className={inputClass} />
+              </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ubicacion-ciudad">Ciudad</Label>
-            <Input id="ubicacion-ciudad" value={form.ciudad} onChange={setField("ciudad")} />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>Estado</Label>
-            <Select
-              value={form.estado || undefined}
-              onValueChange={(value) => setForm((prev) => ({ ...prev, estado: value }))}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecciona un estado" />
-              </SelectTrigger>
-              <SelectContent>
-                {catalogoEstados().map((estado) => (
-                  <SelectItem key={estado} value={estado}>
-                    {estado}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ubicacion-pais">País</Label>
-            <Input id="ubicacion-pais" value={form.pais} onChange={setField("pais")} placeholder="México" />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ubicacion-cp">Código Postal</Label>
-            <Input id="ubicacion-cp" value={form.codigo_postal} onChange={setField("codigo_postal")} />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ubicacion-telefono">Teléfono</Label>
-            <Input id="ubicacion-telefono" value={form.telefono} onChange={setField("telefono")} />
-          </div>
-
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label htmlFor="ubicacion-email">Email</Label>
-            <Input id="ubicacion-email" type="email" value={form.email} onChange={setField("email")} />
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ubicacion-email" className={labelClass}>Email</Label>
+                <Input id="ubicacion-email" type="email" value={form.email} onChange={setField("email")} placeholder="correo@empresa.com" className={inputClass} />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+        <div className="flex-shrink-0 bg-white border-t px-6 py-4 flex gap-3">
+          <Button
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !form.nombre?.trim()}>
+          <Button
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
+            onClick={handleSubmit}
+            disabled={isSubmitting || !form.nombre?.trim()}
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />

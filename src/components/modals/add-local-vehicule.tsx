@@ -284,7 +284,8 @@ const handleOcrVehiculo = async (result: any) => {
       if (colorMatch) form.setValue("color", [colorMatch.value]);
     }
 
-    form.setValue("placas", v.placa ?? "");
+    // Solo si la IA leyó placas: si falló o no las vio, no se borra lo que ya escribió el usuario.
+    if (v.placa) form.setValue("placas", v.placa);
   } catch (err) {
     console.error("Error al prellenar datos del vehículo desde OCR:", err);
     toast.error("Error al prellenar datos del vehículo desde la IA.");
@@ -361,6 +362,7 @@ const handleOcrVehiculo = async (result: any) => {
                         showWebcamOption={true}
                         facingMode="environment"
                         tipoOcr="vehiculo"
+                        accountId={account_id || undefined}
                         onOcrResult={handleOcrVehiculo}
                         showPlaceholder
                         limit={5}

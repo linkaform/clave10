@@ -82,10 +82,10 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
     value: tipo,
     label: tipo,
   }));
-  const { userIdSoter } = useAuthStore();
-  console.log(userId, userIdSoter)
+  const { userParentId } = useAuthStore();
   const { data: tiposEquiposData, isLoading: loadingTipos } = useGetTipoEquipos({
-    account_id: Number(userId) || Number(userIdSoter) || 0,
+    // Los tipos de equipo son de la cuenta: se manda el id del padre, no el del usuario hijo.
+    account_id: Number(userId) || Number(userParentId) || 0,
     isModalOpen: open,
   });
   const catTiposEquipos = (Array.isArray(tiposEquiposData) ? tiposEquiposData : tiposEquiposData?.data ?? []).map((tipo: string) => ({
@@ -308,6 +308,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                           facingMode="environment"
                           showPlaceholder
                           tipoOcr="equipo"
+                          accountId={Number(userId) || undefined}
                           onOcrResult={handleOcrEquipo}
                         />
                       </FormControl>
@@ -351,7 +352,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                         placeholder={loadingTipos ? "Cargando..." : "Selecciona un tipo"}
                         onChange={(selectedOption) => {
                           field.onChange(selectedOption ? selectedOption.value : "");
-                          if (selectedOption?.value === "otros") {
+                          if (selectedOption?.value === "Otra") {
                             setTimeout(() => nombreInputRef.current?.focus(), 0);
                           }
                         }}
@@ -361,6 +362,10 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                             : null
                         }
                         isClearable
+                        // Dentro del modal (un portal hace que el Dialog cierre el menú antes
+                        // del clic); altura acotada y "auto" para que quepa o abra hacia arriba.
+                        menuPlacement="auto"
+                        maxMenuHeight={200}
                         styles={{
                           menu: (base) => ({ ...base, zIndex: 9999 }),
                           menuPortal: (base) => ({ ...base, zIndex: 9999 }),
@@ -371,8 +376,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                   )}
                 />
 
-              {tipoValue === "Otra" && (
-                <FormField
+              <FormField
                   control={form.control}
                   name="nombre"
                   render={({ field }) => (
@@ -389,7 +393,6 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                     </FormItem>
                   )}
                 />
-              )}
                 <FormField
                   control={form.control}
                   name="marca"

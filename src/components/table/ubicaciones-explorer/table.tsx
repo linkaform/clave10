@@ -29,15 +29,20 @@ interface UbicacionesExplorerTableProps {
   ubicaciones: UbicacionRow[];
   isLoading?: boolean;
   searchTags: string[];
+  /** Ids de columna a los que se limita la búsqueda; vacío = todas. */
+  searchFields?: string[];
   selectedUbicacionId: string | null;
   onSelectedUbicacionIdChange: (id: string | null) => void;
   onEditarUbicacion: (ubicacion: NormalizedUbicacion) => void;
 }
 
+const NO_SEARCH_FIELDS: string[] = [];
+
 export const UbicacionesExplorerTable: React.FC<UbicacionesExplorerTableProps> = ({
   ubicaciones,
   isLoading,
   searchTags,
+  searchFields = NO_SEARCH_FIELDS,
   selectedUbicacionId,
   onSelectedUbicacionIdChange,
   onEditarUbicacion,
@@ -46,11 +51,13 @@ export const UbicacionesExplorerTable: React.FC<UbicacionesExplorerTableProps> =
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
-  const [globalFilter, setGlobalFilter] = useState("");
+  // Texto y campos van juntos en el filtro: TanStack solo vuelve a filtrar
+  // cuando cambia globalFilter, así que cambiar "Buscar en" también lo dispara.
+  const [globalFilter, setGlobalFilter] = useState<{ tags: string[]; fields: string[] }>({ tags: [], fields: [] });
 
   useEffect(() => {
-    setGlobalFilter(searchTags && searchTags.length > 0 ? searchTags.join("|") : "");
-  }, [searchTags]);
+    setGlobalFilter({ tags: searchTags ?? [], fields: searchFields });
+  }, [searchTags, searchFields]);
 
   const normalizedUbicaciones = useMemo(
     () => ubicaciones.map((ubicacion, index) => normalizeUbicacion(ubicacion, index)),
@@ -78,13 +85,14 @@ export const UbicacionesExplorerTable: React.FC<UbicacionesExplorerTableProps> =
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
-    globalFilterFn: (row, _columnId, filterValue: string) => {
-      if (!filterValue) return true;
+    globalFilterFn: (row, _columnId, filterValue: { tags: string[]; fields: string[] }) => {
       const normalize = (str: string) =>
         str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const tags = filterValue.split("|").filter(Boolean).map(normalize);
+      const tags = filterValue.tags.filter(Boolean).map(normalize);
+      if (tags.length === 0) return true;
       const allValues = row
         .getAllCells()
+        .filter((cell) => filterValue.fields.length === 0 || filterValue.fields.includes(cell.column.id))
         .map((cell) => normalize(String(cell.getValue() || "")))
         .join(" ");
       return tags.some((tag) => allValues.includes(tag));

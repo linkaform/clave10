@@ -28,6 +28,10 @@ export function mapPaseGrid(raw: any, base: any) {
     statusLabel: raw?.estatus
       ? raw.estatus.charAt(0).toUpperCase() + raw.estatus.slice(1)
       : "",
+    // Pases cancelados o vencidos: card con borde y fondo rojo.
+    cardClassName: ["cancelado", "vencido"].includes(raw?.estatus?.toLowerCase())
+      ? "border-red-400 bg-red-50 hover:border-red-500"
+      : undefined,
     detailsList: [
       {
         icon: <MapPin className="h-3 w-3" />,

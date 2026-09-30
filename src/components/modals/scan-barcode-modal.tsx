@@ -8,10 +8,15 @@ export function ScanBarcodeModal({
     open,
     setOpen,
     onScan,
+    incluirQr = false,
+    titulo = "Escanear número de serie",
 }: {
     open: boolean;
     setOpen: (v: boolean) => void;
     onScan: (value: string) => void;
+    /** Además de códigos de barras, lee QR y Data Matrix (ej. Tag ID de áreas). */
+    incluirQr?: boolean;
+    titulo?: string;
 }) {
     const scannerRef = useRef<Html5Qrcode | null>(null);
     const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
@@ -51,6 +56,9 @@ export function ScanBarcodeModal({
                 Html5QrcodeSupportedFormats.UPC_E,
                 Html5QrcodeSupportedFormats.ITF,
                 Html5QrcodeSupportedFormats.CODABAR,
+                ...(incluirQr
+                    ? [Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.DATA_MATRIX]
+                    : []),
             ],
         } as any);
 
@@ -93,9 +101,10 @@ export function ScanBarcodeModal({
                     }
                 });
         };
-    }, [selectedCamera, open, onScan, setOpen]);
+    }, [selectedCamera, open, onScan, setOpen, incluirQr]);
 
-    const aspectRatio = 2.5;
+    // Los QR son cuadrados; los códigos de barras, alargados.
+    const aspectRatio = incluirQr ? 1 : 2.5;
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -103,7 +112,7 @@ export function ScanBarcodeModal({
                 className="max-w-full w-[95vw] sm:max-w-md p-0"
                 style={{ maxHeight: "95vh", overflow: "auto" }}
             >
-                <DialogTitle className="px-6 pt-6">Escanear número de serie</DialogTitle>
+                <DialogTitle className="px-6 pt-6">{titulo}</DialogTitle>
 
                 <div className="px-6 pb-2">
                     {cameras.length > 1 && (

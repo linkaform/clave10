@@ -168,6 +168,7 @@ function StatusBadge({ status }: { status: string }) {
     activo: "bg-green-100 text-green-700 border-green-200",
     proceso: "bg-blue-100 text-blue-700 border-blue-200",
     vencido: "bg-red-100 text-red-700 border-red-200",
+    cancelado: "bg-red-100 text-red-700 border-red-300",
   };
   const cls = map[status?.toLowerCase()] ?? "bg-gray-100 text-gray-600 border-gray-200";
   return (

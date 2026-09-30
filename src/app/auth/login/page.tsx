@@ -66,6 +66,7 @@ export default function LoginPage() {
           response.user.id,
           response.user.thumb,
           response.user.parent_info.id,
+          response.user.timezone,
         );
         const shiftData = await getShift({});
         const hasError =
@@ -82,7 +83,11 @@ export default function LoginPage() {
             shiftData?.response?.data?.location?.name ||
             shiftData?.response?.data?.guard?.location;
 
-          setBooth(area, location);
+          setBooth(
+            area,
+            location,
+            shiftData?.response?.data?.location?.extra_locations ?? []
+          );
 
           queryClient.setQueryData(["getShift"], shiftData?.response?.data);
         }

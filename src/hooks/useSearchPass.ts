@@ -62,8 +62,10 @@ export interface QrPase {
   file: string
 }
 
-export const useSearchPass = (enable:boolean, cat?:string) => {
+// assetsLocation: ubicación de los catálogos (visita a, perfiles); por default la de la caseta.
+export const useSearchPass = (enable:boolean, cat?:string, assetsLocation?:string) => {
   const { area, location } = useBoothStore();
+  const assetsLoc = assetsLocation || location;
   const [loading,setLoading]=useState(false)
   const { passCode , setPassCode, clearPassCode} = useAccessStore()
   const queryClient = useQueryClient()
@@ -99,17 +101,17 @@ export const useSearchPass = (enable:boolean, cat?:string) => {
 
 
   const { data: assets, isLoading: assetsLoading } = useQuery<any>({
-    queryKey: ["getAssetsAccess", cat],
-    enabled: !!location && enable,
+    queryKey: ["getAssetsAccess", cat, assetsLoc],
+    enabled: !!assetsLoc && enable,
     queryFn: async () => {
-        const cached = localStorage.getItem(`assets_${location}`);
+        const cached = localStorage.getItem(`assets_${assetsLoc}`);
         if (cached) {
             return JSON.parse(cached);
         }
         
-        const data = await getAccessAssets(location ?? "", cat)
+        const data = await getAccessAssets(assetsLoc ?? "", cat)
         const result = data.response?.data || {}
-        localStorage.setItem(`assets_${location}`, JSON.stringify(result));
+        localStorage.setItem(`assets_${assetsLoc}`, JSON.stringify(result));
         return result;
     },
     staleTime: Infinity,        

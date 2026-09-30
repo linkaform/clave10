@@ -35,7 +35,6 @@ import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation
 import { PersonaExtraviadaFields } from "./persona-extraviada";
 import { RoboDeCableado } from "./robo-de-cableado";
 import { RoboDeVehiculo } from "./robo-de-vehiculo";
-import { categoriasConIconos } from "./add-incidencia";
 import { useCatalogoInciencias } from "@/hooks/useCatalogoIncidencias";
 import { Slider } from "../slider";
 import { Switch } from "@/components/ui/switch"
@@ -200,7 +199,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 
 	const openModalAgregarSeg = () =>{
 		setSeguimientoSeleccionado(data)
-		setOpenModal(!openModal)
+		setOpenModal(true)
 	}
 
 	const form = useForm<z.infer<typeof formSchema>>({
@@ -210,7 +209,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 			fecha_hora_incidencia: data.fecha_hora_incidencia||"",
 			ubicacion_incidencia: data.ubicacion_incidencia||"",
 			area_incidencia:  data.area_incidencia||"",
-			incidencia: data.incidencia||"",
+			incidencia: data.incidencia || data.incidente || "",
 			comentario_incidencia: data.comentario_incidencia||"",
 			// tipo_dano_incidencia: data.tipo_dano_incidencia ||"",
 			dano_incidencia: data.dano_incidencia||"",
@@ -224,7 +223,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 			//Categoria
 			categoria:data.categoria||"",
 			sub_categoria:data.sub_categoria||"",
-			incidente:data.incidencia||"",
+			incidente: data.incidencia || data.incidente || "",
 
 			//Grupos repetitivos
 			personas_involucradas_incidencia:personasInvolucradas,
@@ -298,15 +297,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 
 	useEffect(()=>{
 		if(catIncidencias){
-			if(search==""){
-				const catIncidenciasIcons = categoriasConIconos.filter((cat) =>
-					catIncidencias.data.includes(cat.nombre)
-					);
-				if(catIncidenciasIcons.length>0){
-					console.log("catIncidenciasIcons",catIncidenciasIcons)
-					// setCatCategorias(catIncidenciasIcons)
-				}
-			}else if(search=="cat" || search=="subCat"){
+			if(search=="cat" || search=="subCat"){
 					if(catIncidencias.type=="incidence"){
 						// const formattedSubIncidentes = catIncidencias.data.map((nombre:string) => ({
 						// 	id: nombre,
@@ -337,7 +328,7 @@ export const EditarIncidenciaModal: React.FC<EditarIncidenciaModalProps> = ({
 			console.log("data.categoria", data.categoria)
 			setCategoria(data.categoria)
 			setSubCategoria(data.sub_categoria)
-			setSelectedIncidencia(data.incidente)
+			setSelectedIncidencia(data.incidencia || data.incidente || "")
 			setDepositos(data.datos_deposito_incidencia	)
 			handleOpenModal()
 		}

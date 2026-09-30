@@ -36,6 +36,10 @@ export interface PhotoRecord {
   images: string[];
   status: PhotoStatus;
   statusLabel?: string;
+  /** Clases para el badge de estatus de la tarjeta; pisa el color de EstatusBadge. */
+  statusClassName?: string;
+  /** Clases extra para la card del grid (ej. pases cancelados en rojo). */
+  cardClassName?: string;
   detailsList?: DetailsListItem[];
   modalDetailsList?: DetailsListItem[];
   rawData?: any;
@@ -118,6 +122,7 @@ export interface AreaItem {
   area_status?: string;
   folio?: string;
   record_id?: string;
+  ubicacion?: string;
 }
 
 export interface CardConfiguration {

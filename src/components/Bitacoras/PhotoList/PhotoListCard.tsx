@@ -24,7 +24,7 @@ export function PhotoListCard({
   mapData,
 }: ListCardProps & { mapData?: MapItem[] }) {
   const allImages = (record.images || []).filter(
-    (img: string) => img && img !== "/mountain.svg" && img.trim() !== ""
+    (img: string) => img && img !== "/mountain.svg" && img.trim() !== "" && /^https?:\/\//.test(img)
   );
   
   const fallback = "/sin_imagen_rondines.png";

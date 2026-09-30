@@ -194,10 +194,10 @@ const HistorialDevolucionesPrincipal: React.FC<HistorialDevolucionesProps> = ({
                             {formatCurrency((dev?.cantidad_equipo_concesion ?? 0) * getCosto(dev?.costo_equipo_concesion))}
                           </p>
                         </div>
-                        {dev?.comentario_entrega && (
+                        {dev?.comentario_prestamo && (
                             <div className="flex items-start gap-2">
                               <MessageSquare className="w-3.5 h-3.5 text-purple-400 mt-0.5 flex-shrink-0" />
-                              <span className="text-xs text-gray-600">{dev?.comentario_entrega}</span>
+                              <span className="text-xs text-gray-600">{dev?.comentario_prestamo}</span>
                             </div>
                           )}
                        

@@ -285,53 +285,51 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
     if (!files.length) return;
     setAnalizandoGlobal(true);
     try {
-      const todosExtraidos: Array<{ nombre: string; email: string; telefono: string; foto: string }> = [];
+      // Nunca se crean filas nuevas: cada foto llena, en orden, la siguiente
+      // fila de acompañante que aún no tenga identificación. Si suben más
+      // fotos que acompañantes disponibles, las sobrantes se descartan.
+      const filasDisponibles = miembros.filter((m) => !m.identificacion || m.identificacion.length === 0).length;
+      const filesToProcess = files.slice(0, filasDisponibles);
+      if (filesToProcess.length < files.length) {
+        toast?.error?.(
+          `Solo se procesaron ${filesToProcess.length} de ${files.length} fotos: no hay más acompañantes disponibles. Incrementa el número de acompañantes para agregar más.`
+        );
+      }
+      if (!filesToProcess.length) return;
 
-      for (const file of files) {
+      const extraidos: Array<{ nombre: string; email: string; telefono: string; foto: string }> = [];
+
+      for (const file of filesToProcess) {
         try {
           const resultado = await subirYAnalizar(file, "identificacion-global");
           if (!resultado) continue;
           const { data: datos, file_url } = resultado;
           const items = Array.isArray(datos) ? datos : datos ? [datos] : [];
-          for (const item of items) {
-            const extraido = extraerDatosOcr(item);
-            if (!extraido) continue;
-            todosExtraidos.push({ ...extraido, foto: file_url }); 
-          }
+          const extraido = extraerDatosOcr(items[0]);
+          if (!extraido) continue;
+          extraidos.push({ ...extraido, foto: file_url });
         } catch (err) {
           console.error("Error procesando archivo", file.name, err);
           toast?.error?.(`No se pudo analizar "${file.name}"`);
         }
       }
 
-      console.log('todosExtraidos=', todosExtraidos);
-
-      if (todosExtraidos.length > 0) {
+      if (extraidos.length > 0) {
         setMiembros((prev) => {
           const updated = [...prev];
-          todosExtraidos.forEach((extraido, filaIndex) => {
-            if (updated[filaIndex]) {
-              updated[filaIndex] = {
-                ...updated[filaIndex],
-                nombre: extraido.nombre || updated[filaIndex].nombre,
-                email: extraido.email || updated[filaIndex].email,
-                telefono: extraido.telefono || updated[filaIndex].telefono,
-                identificacion: extraido.foto
-                  ? [{ file_url: extraido.foto, file_name: "identificacion" }]
-                  : updated[filaIndex].identificacion,
-              };
-            } else {
-              updated.push({
-                id: crypto.randomUUID(),
-                nombre: extraido.nombre,
-                email: extraido.email,
-                telefono: extraido.telefono,
-                identificacion: extraido.foto
-                  ? [{ file_url: extraido.foto, file_name: "identificacion" }]
-                  : undefined,
-              });
-            }
-          });
+          let cursor = 0;
+          for (const extraido of extraidos) {
+            while (cursor < updated.length && updated[cursor].identificacion?.length) cursor++;
+            if (cursor >= updated.length) break;
+            updated[cursor] = {
+              ...updated[cursor],
+              nombre: extraido.nombre || updated[cursor].nombre,
+              email: extraido.email || updated[cursor].email,
+              telefono: extraido.telefono || updated[cursor].telefono,
+              identificacion: [{ file_url: extraido.foto, file_name: "identificacion" }],
+            };
+            cursor++;
+          }
           return updated;
         });
       }
@@ -524,7 +522,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
             <div className="flex flex-col gap-0.5">
               <p className="text-xs font-semibold text-blue-900">Análisis automático con IA</p>
               <p className="text-[11px] text-blue-600">
-                Sube fotos de las identificaciones — la IA extraerá nombre, email y teléfono. También puedes analizar fila por fila.
+                Sube fotos de las identificaciones — la IA extraerá nombre, email y teléfono. Se toman en orden, una por acompañante; también puedes analizar fila por fila.
               </p>
               <p className="text-[11px] text-amber-500 font-medium mt-0.5">
                 ⚠ La IA puede cometer errores, verifica los datos antes de continuar.
@@ -728,6 +726,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                             showImage={false}
                             id={`id-miembro-${m.id}`}
                             titulo=""
+                            limit={1}
                             imgArray={m.identificacion ?? []}
                             setImg={((value: any) => {
                               const arr = typeof value === "function" ? value(m.identificacion ?? []) : value;

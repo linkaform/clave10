@@ -30,13 +30,13 @@ export function mapArticuloConcesionadoList(raw: any, base: any) {
     .map((i: any) => i?.file_url)
     .filter((url: string) => Boolean(url) && isValidImageUrl(url));
 
-  // 2. Imágenes de evidencia_entrega (de TODOS los equipos)
+  // 2. Imágenes de evidencia_prestamo (de TODOS los equipos)
   const imagenesEvidencia = equipos
-    .flatMap((e: any) => e?.evidencia_entrega || [])
+    .flatMap((e: any) => e?.evidencia_prestamo || [])
     .map((i: any) => i?.file_url)
     .filter((url: string) => Boolean(url) && isValidImageUrl(url));
 
-  // Primero imagen_equipo_concesion, luego evidencia_entrega
+  // Primero imagen_equipo_concesion, luego evidencia_prestamo
   const images = [...imagenesEquipo, ...imagenesEvidencia];
   const finalImages = images.length > 0 ? images : ["/sin_imagen_rondines.png"];
 

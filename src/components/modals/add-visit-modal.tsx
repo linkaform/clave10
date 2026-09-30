@@ -33,7 +33,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchPass } from "@/hooks/useSearchPass";
 import LoadImage, { Imagen } from "../upload-Image";
 import { useBoothStore } from "@/store/useBoothStore";
-import { getRequerimientos, uniqueArray } from "@/lib/utils";
+import { getRequerimientos, todayInUserTz, uniqueArray } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -110,12 +110,22 @@ export const AddVisitModal: React.FC<Props> = ({
   const [identificacion, setIdentificacion] = useState<Imagen[]>([]);
   const [fotoError, setFotoError] = useState(false);
   const [idError, setIdError] = useState(false);
-  const { assets, registerNewVisit, loading } = useSearchPass(openModal);
-  const { location } = useBoothStore();
+  const { location, extra_locations } = useBoothStore();
+  // Caseta multiubicación: el pase puede crearse para la base o para cualquiera de sus
+  // ubicaciones extra; la elegida define requisitos, catálogos y la ubicación del pase.
+  const boothLocations = useMemo(
+    () => [location ?? "", ...(extra_locations ?? [])].filter(Boolean),
+    [location, extra_locations],
+  );
+  const [ubicacionPase, setUbicacionPase] = useState(location ?? "");
+  useEffect(() => {
+    if (openModal) setUbicacionPase(location ?? "");
+  }, [openModal, location]);
+  const { assets, registerNewVisit, loading } = useSearchPass(openModal, undefined, ubicacionPase);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const assetsUnique = uniqueArray(assets?.Visita_a);
 
-  const requerimientos = getRequerimientos(location ?? "");
+  const requerimientos = getRequerimientos(ubicacionPase);
   const requireFoto = requerimientos.includes("fotografia");
   const requireIden = requerimientos.includes("identificacion");
 
@@ -138,7 +148,7 @@ export const AddVisitModal: React.FC<Props> = ({
   const [config_dia_de_acceso, set_config_dia_de_acceso] =
     useState("cualquier_día");
   const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>([]);
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayInUserTz();
 
   const form = useForm<formatData>({
     resolver: zodResolver(formSchema),
@@ -164,7 +174,7 @@ export const AddVisitModal: React.FC<Props> = ({
   // Se ejecuta tanto al abrir como al cerrar el modal, para que nunca quede
   // información de una visita anterior visible en la siguiente apertura.
   useEffect(() => {
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = todayInUserTz();
     form.reset({
       nombre: "",
       empresa: "",
@@ -232,7 +242,7 @@ export const AddVisitModal: React.FC<Props> = ({
       foto: fotografia,
       identificacion: identificacion,
       status_pase: "activo",
-      ubicaciones: [location ?? ""],
+      ubicaciones: [ubicacionPase],
       tipo_visita_pase: tipoVisita,
       // "Fecha Fija" y "Rango de fechas" comparten los mismos campos de
       // fecha (fecha_desde_visita/fecha_desde_hasta); fechaFija ya no se usa
@@ -274,7 +284,7 @@ export const AddVisitModal: React.FC<Props> = ({
     // pierde sus listeners y el onSuccess del segundo argumento de mutate()
     // deja de dispararse — por eso no cerraba solo. mutateAsync resuelve
     // por la promesa, no por ese mecanismo, así que sí corre siempre.
-    registerNewVisit.mutateAsync({ location: location ?? "", access_pass })
+    registerNewVisit.mutateAsync({ location: ubicacionPase, access_pass })
       .then(() => setOpenModal(false))
       .catch(() => {});
   }
@@ -297,7 +307,7 @@ export const AddVisitModal: React.FC<Props> = ({
   const handleToggleTipoVisitaPase = (
     tipo: "fecha_fija" | "rango_de_fechas",
   ) => {
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = todayInUserTz();
     if (tipo === "fecha_fija") {
       // "Fecha desde" queda oculto en este modo: se deriva de "Fecha:"
       // (fecha_desde_hasta) menos un día, así el usuario puede elegir
@@ -408,6 +418,30 @@ export const AddVisitModal: React.FC<Props> = ({
         <div className="overflow-y-auto flex-1 px-4 pb-4">
         <Form {...form}>
           <form id="add-visit-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            {boothLocations.length > 1 && (
+              <FormItem>
+                <FormLabel>* Ubicación del pase</FormLabel>
+                <Select
+                  value={ubicacionPase}
+                  onValueChange={(value) => {
+                    setUbicacionPase(value);
+                    // "Visita a" y perfiles dependen de la ubicación.
+                    form.setValue("visita_a", "");
+                    form.setValue("perfil_pase", "");
+                  }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una ubicación" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {boothLocations.map((loc) => (
+                      <SelectItem key={loc} value={loc}>
+                        {loc}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
             {requireIden && (
               <>
                 <LoadImage
@@ -485,7 +519,7 @@ export const AddVisitModal: React.FC<Props> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>* Visita a</FormLabel>
-                  <Select onValueChange={(value) => field.onChange(value)}>
+                  <Select value={field.value} onValueChange={(value) => field.onChange(value)}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona una opción" />

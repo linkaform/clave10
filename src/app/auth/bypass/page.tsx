@@ -60,7 +60,7 @@ export default function LoginPage() {
       const response = await getLogin(values.username, values.password, values.bypass_user);
 
       if (response.success) {
-        setAuth(response.jwt, response.session_id, response.user.name, response.user.email, response.user.id, response.user.thumb, response.user.parent_info.id );
+        setAuth(response.jwt, response.session_id, response.user.name, response.user.email, response.user.id, response.user.thumb, response.user.parent_info.id, response.user.timezone );
         const shiftData = await getShift({});
          const hasError = (!shiftData?.success) || (shiftData?.response?.data?.status_code === 400);
          if (hasError) {
@@ -70,7 +70,7 @@ export default function LoginPage() {
            const area = shiftData?.response?.data?.location?.area || shiftData?.response?.data?.guard?.area;
            const location = shiftData?.response?.data?.location?.name || shiftData?.response?.data?.guard?.location;
            
-           setBooth(area, location);
+           setBooth(area, location, shiftData?.response?.data?.location?.extra_locations ?? []);
  
            queryClient.setQueryData(
              ["getShift"],

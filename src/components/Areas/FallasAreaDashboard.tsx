@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Wrench, ImageIcon, Search } from "lucide-react";
+import { Wrench, ImageIcon, Search, CircleAlert, CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAreaFallas, AreaFallaItem } from "@/hooks/Areas/useAreaFallas";
-import { KpiCard } from "./KpiCard";
+import { KpiCard, toneProblema, toneReciente } from "./KpiCard";
 
 const parseFallaDate = (value: string) => {
   if (!value) return null;
@@ -116,13 +116,13 @@ export function FallasAreaDashboard({ ubicacion, area }: { ubicacion: string; ar
   return (
     <div className="flex flex-col gap-4">
       {/* KPIs */}
-      <div className="flex flex-wrap gap-3">
-        <KpiCard label="Fallas (360 días)" value={kpis.total} />
-        <KpiCard label="Abiertas" value={kpis.abiertas} tone={kpis.abiertas > 0 ? "bad" : "good"} />
-        <KpiCard label="Fallas 30 días" value={kpis.fallasPorVentana[30]} tone="warn" />
-        <KpiCard label="Fallas 60 días" value={kpis.fallasPorVentana[60]} tone="warn" />
-        <KpiCard label="Fallas 120 días" value={kpis.fallasPorVentana[120]} tone="warn" />
-        <KpiCard label="Fallas 360 días" value={kpis.fallasPorVentana[360]} tone="warn" />
+      <div className="flex flex-wrap gap-2">
+        <KpiCard label="Fallas (360 días)" value={kpis.total} icon={Wrench} />
+        <KpiCard label="Abiertas" value={kpis.abiertas} tone={toneProblema(kpis.abiertas)} icon={CircleAlert} />
+        <KpiCard label="Fallas 30 días" value={kpis.fallasPorVentana[30]} tone={toneReciente(kpis.fallasPorVentana[30])} icon={CalendarDays} />
+        <KpiCard label="Fallas 60 días" value={kpis.fallasPorVentana[60]} tone={toneReciente(kpis.fallasPorVentana[60])} icon={CalendarDays} />
+        <KpiCard label="Fallas 120 días" value={kpis.fallasPorVentana[120]} tone={toneReciente(kpis.fallasPorVentana[120])} icon={CalendarDays} />
+        <KpiCard label="Fallas 360 días" value={kpis.fallasPorVentana[360]} tone={toneReciente(kpis.fallasPorVentana[360])} icon={CalendarDays} />
       </div>
 
       {/* Últimos comentarios */}
@@ -131,13 +131,14 @@ export function FallasAreaDashboard({ ubicacion, area }: { ubicacion: string; ar
           <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
             Últimos comentarios
           </h4>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col divide-y divide-gray-100">
             {kpis.ultimosComentarios.map((falla) => (
-              <div key={falla.folio} className="text-sm text-gray-600 flex items-start justify-between gap-3">
-                <span className="flex-1">{falla.falla_comentarios}</span>
-                <span className="text-xs text-gray-400 whitespace-nowrap">
-                  {falla.falla_fecha_hora || falla.created_at}
-                </span>
+              <div key={falla.folio} className="flex flex-col gap-1 py-2 first:pt-0 last:pb-0 min-w-0">
+                <div className="flex items-center justify-between gap-3 text-xs text-gray-400">
+                  <span className="font-medium text-gray-500 truncate min-w-0">{falla.falla || "Falla"}</span>
+                  <span className="whitespace-nowrap shrink-0">{falla.falla_fecha_hora || falla.created_at}</span>
+                </div>
+                <p className="text-sm text-gray-600 break-words whitespace-pre-line">{falla.falla_comentarios}</p>
               </div>
             ))}
           </div>
@@ -246,7 +247,9 @@ function FallaCard({ falla }: { falla: AreaFallaItem }) {
         {falla.falla_reporta_nombre && <span>{falla.falla_reporta_nombre}</span>}
       </div>
 
-      {falla.falla_comentarios && <p className="text-sm text-gray-600">{falla.falla_comentarios}</p>}
+      {falla.falla_comentarios && (
+        <p className="text-sm text-gray-600 break-words whitespace-pre-line">{falla.falla_comentarios}</p>
+      )}
 
       {falla.falla_responsable_solucionar_nombre && (
         <p className="text-xs text-gray-500">

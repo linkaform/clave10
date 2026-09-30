@@ -93,3 +93,87 @@ export const saveUserMenuItems = (user_id: number, item_keys: string[]) =>
     user_id,
     item_keys,
   });
+
+export interface ResyncPermissionsResult {
+  updated: number;
+  skipped: { record_id: string; user_id?: number; reason: string }[];
+  total: number;
+}
+
+export const resyncAllPermissions = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "resync_all_permissions",
+  });
+
+export const listUsersMissingMenuConfig = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "list_users_missing_menu_config",
+  });
+
+export const listUsersOnlyInLegacyAccesos = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "list_users_only_in_legacy_accesos",
+  });
+
+export type PermissionItemType = "form" | "catalog" | "script";
+
+export interface PermissionGapItem {
+  id: number;
+  nombre: string;
+}
+
+export interface PermissionGapUser {
+  user_id: number;
+  username: string;
+  faltan: Partial<Record<PermissionItemType, PermissionGapItem[]>>;
+  // Compartidos que sus menús ya no piden: reaplicar los descomparte.
+  sobran: Partial<Record<PermissionItemType, PermissionGapItem[]>>;
+  total: number;
+  total_sobran: number;
+}
+
+export interface PermissionGapsResult {
+  usuarios: PermissionGapUser[];
+  revisados: number;
+  borrados: number;
+  errores: { user_id: number; error: string }[];
+}
+
+export interface ReapplyPermissionsResult {
+  user_id: number;
+  ok: boolean;
+  error: string | null;
+}
+
+export const getMenuPermissionGaps = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "get_menu_permission_gaps",
+  });
+
+export const reapplyMenuPermissions = (user_ids: number[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "reapply_menu_permissions",
+    user_ids,
+  });
+
+export interface MigrateLegacyMenusResult {
+  user_id: number;
+  username: string;
+  action: "create" | "update" | "error";
+  status_code?: number;
+  menu_count?: number;
+  error?: unknown;
+}
+
+export const migrateLegacyMenus = (user_ids: number[], dry_run = false) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "migrate_legacy_menus.py",
+    option: "migrate",
+    user_ids,
+    dry_run,
+  });

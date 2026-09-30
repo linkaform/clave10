@@ -42,6 +42,7 @@ interface EntryPassModalProps {
     comentarios: Comentarios[];
     enviar_pre_sms: enviar_pre_sms
     habilitar_vehiculo:string
+    auto_activacion?:string
     habilitar_fotografia:string
     habilitar_identificacion:string
     acompanantes:any
@@ -97,6 +98,7 @@ export const EntryPassModal: React.FC<EntryPassModalProps> = ({
         numero: data.enviar_pre_sms.numero,
       },
       habilitar_vehiculo: data.habilitar_vehiculo,
+      auto_activacion: data.auto_activacion,
       habilitar_fotografia: data.habilitar_fotografia,
       habilitar_identificacion: data.habilitar_identificacion,
       acompanantes:data.acompanantes

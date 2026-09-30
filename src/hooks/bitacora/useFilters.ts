@@ -8,18 +8,20 @@ interface UseFiltersProps {
 }
 
 export const useFilters = ({ key, endpoint }: UseFiltersProps) => {
-  const { cache, fetchFilter, isLoading } = useFiltersStore();
+  const { cache, fetchFilterStale, isLoading } = useFiltersStore();
 
+  // Stale-while-revalidate: muestra el cache persistido de inmediato y siempre lo
+  // refresca al montar, para que opciones nuevas (y cambios de cuenta) sí lleguen.
   const fetch = useCallback(
     () =>
-      fetchFilter(key, async () => {
+      fetchFilterStale(key, async () => {
         const res = await endpoint();
         const error = errorMsj(res);
         if (error) throw new Error(error.text);
         const raw = res?.response?.data ?? [];
         return Array.isArray(raw) ? raw : [];
       }),
-    [fetchFilter, key, endpoint],
+    [fetchFilterStale, key, endpoint],
   );
 
   useEffect(() => {

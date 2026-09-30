@@ -6,6 +6,8 @@ export function mapAreaGrid(raw: NormalizedArea, base: any) {
 
   const images = foto ? [foto] : ["/sin_imagen_rondines.png"];
   const esDisponible = disponibilidad.toLowerCase() === "disponible";
+  const esActiva = estado.toLowerCase() === "activa";
+  const capitalizar = (texto: string) => (texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : texto);
 
   const coords = raw.raw.geolocalizacion_area_ubicacion?.[0];
   const tieneGeolocalizacion =
@@ -34,7 +36,12 @@ export function mapAreaGrid(raw: NormalizedArea, base: any) {
     visit_type: tipo,
     images,
     status: (esDisponible ? "disponible" : "ocupada") as any,
-    statusLabel: disponibilidad || "-",
+    // El badge de arriba muestra el estado (area_state): verde si está activa,
+    // rojo si está inactiva. La disponibilidad (area_status) va en detailsList.
+    statusLabel: estado || "-",
+    statusClassName: esActiva
+      ? "bg-green-50 text-green-700 border border-green-200"
+      : "bg-red-50 text-red-700 border border-red-200",
     badgesList: [
       {
         customClass:
@@ -57,7 +64,7 @@ export function mapAreaGrid(raw: NormalizedArea, base: any) {
             {
               customClass: esDisponible
                 ? "bg-green-100 hover:bg-green-100 px-4 py-1 text-xs font-bold text-green-600 rounded-xl border-0 shadow-none"
-                : "bg-amber-100 hover:bg-amber-100 px-4 py-1 text-xs font-bold text-amber-600 rounded-xl border-0 shadow-none",
+                : "bg-red-100 hover:bg-red-100 px-4 py-1 text-xs font-bold text-red-600 rounded-xl border-0 shadow-none",
               label: disponibilidad,
             },
           ]
@@ -66,8 +73,8 @@ export function mapAreaGrid(raw: NormalizedArea, base: any) {
     detailsList: [
       { icon: <MapPin className="h-3 w-3" />, label: "UBICACIÓN", value: ubicacion },
       { icon: <Navigation className="h-3 w-3" />, label: "GEOLOCALIZACIÓN", value: geolocalizacionValue },
-      ...(estado
-        ? [{ icon: <ShieldCheck className="h-3 w-3" />, label: "ESTATUS", value: estado }]
+      ...(disponibilidad
+        ? [{ icon: <ShieldCheck className="h-3 w-3" />, label: "DISPONIBILIDAD", value: capitalizar(disponibilidad) }]
         : []),
     ],
     modalDetailsList: [
