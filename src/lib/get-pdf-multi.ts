@@ -35,14 +35,25 @@ export interface GetPdfMultiResponse {
   log?: string;
 }
 
+// Con account_id (parent_id de la URL) se usa pase_de_acceso_use_api.py, que
+// no depende del JWT: el visitante que completa su pase en /pase-update no
+// tiene sesión y con pase_de_acceso.py LinkaForm rechaza la llamada.
 export const getPdfMulti = async (
   record_ids: string[],
+  account_id?: number,
 ): Promise<GetPdfMultiResponse> => {
-  const payload = {
-    record_ids,
-    option: "get_pdf_multi",
-    script_name: "pase_de_acceso.py",
-  };
+  const payload = account_id
+    ? {
+        record_ids,
+        account_id,
+        option: "get_pdf_multi",
+        script_name: "pase_de_acceso_use_api.py",
+      }
+    : {
+        record_ids,
+        option: "get_pdf_multi",
+        script_name: "pase_de_acceso.py",
+      };
 
   const userJwt = await getValidToken();
 
@@ -50,7 +61,7 @@ export const getPdfMulti = async (
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${userJwt}`,
+      ...(userJwt ? { Authorization: `Bearer ${userJwt}` } : {}),
     },
     body: JSON.stringify(payload),
   });

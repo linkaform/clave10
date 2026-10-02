@@ -588,7 +588,7 @@ const PaseUpdate = () => {
   // acompañantes: get_pdf_multi regresa un solo PDF ya mergeado (titular +
   // acompañantes), armado de forma asíncrona por el backend (hasta ~2 min).
   const imprimirPaseMultiple = async (recordIds: string[]) => {
-    const respuesta = await getPdfMulti(recordIds);
+    const respuesta = await getPdfMulti(recordIds, account_id);
     const data = respuesta.response?.data;
     if (!data) throw new Error("No se pudo obtener el PDF combinado");
     if ("error" in data) throw new Error(data.error);
