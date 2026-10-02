@@ -71,7 +71,12 @@ export const useMenuItems = () => {
       toast.success("Catálogo importado correctamente.");
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Hubo un error al importar el catálogo.");
+      // Un timeout no significa que no se aplicó: el backend puede haber
+      // terminado. Se refresca el tablero para no reimportar a ciegas.
+      queryClient.invalidateQueries({ queryKey: ["menuItemsAdmin"] });
+      toast.error(
+        `${err.message || "Hubo un error al importar el catálogo."} Revisa el catálogo antes de volver a importar.`,
+      );
     },
   });
 
