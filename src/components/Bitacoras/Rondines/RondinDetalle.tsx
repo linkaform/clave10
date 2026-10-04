@@ -258,7 +258,14 @@ const RondinDetalle = ({ id }: { id: string }) => {
 
   const handleAbrirModalInspeccion = (areaNombre?: string) => {
       setAreaInspeccion(areaNombre ?? "");
-      setInspeccionSeleccionada("");
+      const formActual = areaNombre
+        ? areas.find((a) => a.rondin_area === areaNombre)?.form_name
+        : undefined;
+      setInspeccionSeleccionada(
+        formActual && Array.isArray(dataInspecciones) && dataInspecciones.includes(formActual)
+          ? formActual
+          : ""
+      );
       setPromptInspeccion("");
       setModalInspeccionAbierto(true);
   };
@@ -276,7 +283,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
 
   const handleAsignarInspeccion = () => {
     actualizarInspeccionMutation.mutate({
-      folio: rondin?._id ?? "",
+      folio: id,
       rondin_data: {
         inspeccion: inspeccionSeleccionada,
         areas: areaInspeccion === "todas"
@@ -917,12 +924,16 @@ const handleActualizar = () => {
               </div>
               <div className="flex gap-2 mt-5">
                 <button onClick={() => setModalInspeccionAbierto(false)}
-                  className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                  disabled={actualizarInspeccionMutation.isPending}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   Cancelar
                 </button>
                 <button onClick={handleAsignarInspeccion}
-                  className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors">
-                  Guardar asignación
+                  disabled={actualizarInspeccionMutation.isPending}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  {actualizarInspeccionMutation.isPending
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : "Actualizar Área"}
                 </button>
               </div>
             </div>

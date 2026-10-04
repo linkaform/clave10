@@ -24,6 +24,7 @@ export type Area_rondin = {
     longitude: number
   }[]
   area_tag_id: string[]
+  form_name?: string
   foto_area: {
     file_name: string
     file_url: string
@@ -140,6 +141,11 @@ function SortableItem({
       <div className="flex items-center gap-2 flex-1 cursor-grab active:cursor-grabbing" {...listeners}>
         <div>
           <p className="font-bold">{item.rondin_area}</p>
+          {item.form_name && (
+            <p className="text-sm text-blue-600 flex items-center mt-0.5">
+              <FilePenLine className="mr-1 h-4 w-4 shrink-0" /> {item.form_name}
+            </p>
+          )}
           {sinGeo ? (
             <small className="flex items-center text-red-600 mt-1">
               <AlertTriangle className="w-4 h-4 mr-1" /> Sin geolocalización
