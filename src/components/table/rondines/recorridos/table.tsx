@@ -105,6 +105,8 @@ interface ListProps {
   setVerRondin: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+const RECORRIDOS_POR_PAGINA = 25;
+
 const RecorridosTable: React.FC<ListProps> = ({
   // setDate1, setDate2, date1, date2,
   // dateFilter, setDateFilter, Filter, resetTableFilters,
@@ -117,7 +119,11 @@ const RecorridosTable: React.FC<ListProps> = ({
   setVerRondin
 }) => {
 
-  const { listRecorridos, isLoadingListRecorridos: isLoading } = useGetListRecorridos(true, "", "", 100, 0);
+  // Paginación en servidor: se piden solo RECORRIDOS_POR_PAGINA por vez.
+  const [paginaServidor, setPaginaServidor] = React.useState(0);
+  const { listRecorridos, isLoadingListRecorridos: isLoading, isFetchingListRecorridos } = useGetListRecorridos(
+    true, "", "", RECORRIDOS_POR_PAGINA, paginaServidor * RECORRIDOS_POR_PAGINA
+  );
   const { playOrPauseRondinMutation, isLoading: isLoadingPlayOrPause } = usePlayOrPauseRondin();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -192,7 +198,7 @@ const RecorridosTable: React.FC<ListProps> = ({
 
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
+  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: RECORRIDOS_POR_PAGINA });
   const [globalFilter, setGlobalFilter] = React.useState("");
 
   React.useEffect(() => {
@@ -730,10 +736,12 @@ const RecorridosTable: React.FC<ListProps> = ({
       {viewMode === "table" && !verRondin && (
         <div className="flex items-center justify-end space-x-2 py-4">
           <div className="space-x-2">
-            <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+            <Button variant="outline" size="sm" onClick={() => setPaginaServidor((p) => Math.max(0, p - 1))}
+              disabled={paginaServidor === 0 || isFetchingListRecorridos}>
               Anterior
             </Button>
-            <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            <Button variant="outline" size="sm" onClick={() => setPaginaServidor((p) => p + 1)}
+              disabled={memoizedData.length < RECORRIDOS_POR_PAGINA || isFetchingListRecorridos}>
               Siguiente
             </Button>
           </div>

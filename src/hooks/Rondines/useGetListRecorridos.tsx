@@ -1,12 +1,14 @@
 import { getListRecorridos, getListBitacoraRondines } from "@/lib/rondines";
 import { errorMsj } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 export const useGetListRecorridos = (enableList:boolean, date1:string, date2:string, limit:number, offset:number) => {
 
-    const {data: listRecorridos, isLoading:isLoadingListRecorridos, error:errorListRecorridos} = useQuery<any>({
+    const {data: listRecorridos, isLoading:isLoadingListRecorridos, isFetching:isFetchingListRecorridos, error:errorListRecorridos} = useQuery<any>({
         queryKey: ["getListRecorridos", date1, date2, limit, offset],
         enabled:enableList,
+        // conserva la pagina anterior mientras llega la siguiente (sin parpadeo)
+        placeholderData: keepPreviousData,
         queryFn: async () => {
             const data = await getListRecorridos(date1, date2, limit, offset);
             const textMsj = errorMsj(data) 
@@ -24,6 +26,7 @@ export const useGetListRecorridos = (enableList:boolean, date1:string, date2:str
     return{
         listRecorridos,
         isLoadingListRecorridos,
+        isFetchingListRecorridos,
         errorListRecorridos,
     }
 }
@@ -70,10 +73,12 @@ export const useGetListRondines = (
   offset: number,
   locations: string[] = []
 ) => {
-  const { data: listRondines, isLoading: isLoadingListRondines, error: errorListRondines } =
+  const { data: listRondines, isLoading: isLoadingListRondines, isFetching: isFetchingListRondines, error: errorListRondines } =
     useQuery<BitacoraRondin[]>({
       queryKey: ["getListRondines", date1, date2, limit, offset, locations],
       enabled: enableList,
+      // conserva la pagina anterior mientras llega la siguiente (sin parpadeo)
+      placeholderData: keepPreviousData,
       queryFn: async () => {
         const data = await getListBitacoraRondines(date1, date2, limit, offset, locations);
         const textMsj = errorMsj(data);
@@ -88,6 +93,7 @@ export const useGetListRondines = (
   return {
     listRondines,
     isLoadingListRondines,
+    isFetchingListRondines,
     errorListRondines,
   };
 };

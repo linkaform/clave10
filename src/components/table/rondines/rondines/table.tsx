@@ -91,6 +91,8 @@ interface RondinesTableProps {
 
 }
 
+const RONDINES_POR_PAGINA = 25;
+
 const RondinesTable: React.FC<RondinesTableProps> = ({
   openRecorridoId,
   viewMode: viewModeProp,
@@ -101,14 +103,21 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   setTotalRegistros
 }) => {
   const { selectedLocations } = useSelectedLocationsStore();
-  const { listRondines, isLoadingListRondines: isLoading } = useGetListRondines(true, "", "", 100, 0, selectedLocations);
+  // Paginación en servidor: se piden solo RONDINES_POR_PAGINA por vez.
+  const [paginaServidor, setPaginaServidor] = React.useState(0);
+  const { listRondines, isLoadingListRondines: isLoading, isFetchingListRondines } = useGetListRondines(
+    true, "", "", RONDINES_POR_PAGINA, paginaServidor * RONDINES_POR_PAGINA, selectedLocations
+  );
+
+  // al cambiar de ubicaciones se vuelve a la primera página
+  useEffect(() => { setPaginaServidor(0); }, [selectedLocations]);
   const [rowSelection, setRowSelection] = React.useState({});
 
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
+  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: RONDINES_POR_PAGINA });
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [rondinSeleccionado, setRondinSeleccionado] = useState<any | null>(null);
   const [modalVerAbierto, setModalVerAbierto] = useState(false);
@@ -367,10 +376,12 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
               </div>
               <div className="flex items-center justify-end space-x-2 py-4">
                 <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+                  <Button variant="outline" size="sm" onClick={() => setPaginaServidor((p) => Math.max(0, p - 1))}
+                    disabled={paginaServidor === 0 || isFetchingListRondines}>
                     Anterior
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+                  <Button variant="outline" size="sm" onClick={() => setPaginaServidor((p) => p + 1)}
+                    disabled={memoizedData.length < RONDINES_POR_PAGINA || isFetchingListRondines}>
                     Siguiente
                   </Button>
                 </div>
