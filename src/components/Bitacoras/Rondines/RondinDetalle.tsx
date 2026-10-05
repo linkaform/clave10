@@ -16,6 +16,7 @@ import {
   Layers,
   FilePenLine,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import { useRecorridoStore } from "@/store/useRecorridoStore";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
@@ -889,18 +890,31 @@ const handleActualizar = () => {
                 {/* Inspección */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Inspección</label>
-                  <select
-                    value={inspeccionSeleccionada}
-                    onChange={(e) => setInspeccionSeleccionada(e.target.value)}
-                    className="w-full h-[38px] px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-gray-800 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none"
-                  >
-                    <option value="">
-                      {loadingInspecciones ? "Cargando..." : "Selecciona una inspección"}
-                    </option>
-                    {Array.isArray(dataInspecciones) && dataInspecciones.map((inspeccion: string, i: number) => (
-                      <option key={i} value={inspeccion}>{inspeccion}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={inspeccionSeleccionada}
+                      onChange={(e) => setInspeccionSeleccionada(e.target.value)}
+                      className="w-full h-[38px] px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-gray-800 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none pr-8"
+                    >
+                      <option value="">
+                        {loadingInspecciones ? "Cargando..." : "Selecciona una inspección"}
+                      </option>
+                      {Array.isArray(dataInspecciones) && dataInspecciones.map((inspeccion: string, i: number) => (
+                        <option key={i} value={inspeccion}>{inspeccion}</option>
+                      ))}
+                    </select>
+                    {inspeccionSeleccionada && (
+                      <button
+                        type="button"
+                        onClick={() => setInspeccionSeleccionada("")}
+                        disabled={actualizarInspeccionMutation.isPending}
+                        title="Quitar formulario"
+                        aria-label="Quitar formulario"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Prompt inspección */}
