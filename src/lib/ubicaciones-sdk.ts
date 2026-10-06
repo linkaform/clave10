@@ -31,9 +31,21 @@ const runScript = async (payload: Record<string, any>) => {
   return response.json();
 };
 
-export const getUbicacionesCatalogSdk = async (ubicacion: string) => {
+export const getUbicacionesCatalogSdk = async (
+  locations: string[],
+  dynamicFilters: { key: string; value: any }[] = [],
+  limit: number = 25,
+  skip: number = 0,
+  search: string = "",
+  searchFields: string[] = [],
+) => {
   return runScript({
-    ubicacion,
+    locations,
+    dynamic_filters: dynamicFilters,
+    limit,
+    offset: skip,
+    search,
+    search_fields: searchFields,
     option: "get_catalog_ubicaciones_formatted",
     script_name: "location_sdk.py",
   });
@@ -63,6 +75,16 @@ export const updateUbicacionSdk = async (
     record_id: recordId,
     ...data,
     option: "update_ubicacion",
+    script_name: "location_sdk.py",
+  });
+};
+
+// Empleados asignados a la ubicación (tab "Empleados" del detalle).
+// Pendiente en el back: option "get_empleados_by_ubicacion" en location_sdk.py.
+export const getEmpleadosByUbicacionSdk = async (ubicacion: string) => {
+  return runScript({
+    ubicacion,
+    option: "get_empleados_by_ubicacion",
     script_name: "location_sdk.py",
   });
 };

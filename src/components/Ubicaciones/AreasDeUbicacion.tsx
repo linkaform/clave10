@@ -32,7 +32,7 @@ export function AreasDeUbicacion({ ubicacion }: AreasDeUbicacionProps) {
     : areasActivas;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+    <div>
       <div className="flex items-center justify-between mb-4">
         <span className="font-semibold text-sm text-gray-800">
           Áreas registradas

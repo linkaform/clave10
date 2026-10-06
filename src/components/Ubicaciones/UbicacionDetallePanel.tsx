@@ -21,7 +21,7 @@ export function UbicacionDetallePanel({ recordId, onOpenChange }: UbicacionDetal
       >
         <SheetTitle className="sr-only">Detalle de la ubicación</SheetTitle>
         <div className="flex-1 overflow-y-auto">
-          {recordId && <UbicacionDetalle key={recordId} id={recordId} />}
+          {recordId && <UbicacionDetalle key={recordId} id={recordId} onClose={() => onOpenChange(false)} />}
         </div>
       </SheetContent>
     </Sheet>
