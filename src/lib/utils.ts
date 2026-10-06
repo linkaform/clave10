@@ -368,10 +368,13 @@ export function errorMsj(data: any, title = "Error", type = "warning") {
     }
     return { title: title, text: errores.join(", "), type };
   }
+  // Los endpoints de Sanic envuelven la respuesta en {data: ...}, así que el
+  // status_code de post_forms_answers llega en response.data, no en response.
+  const statusCode = data.response?.status_code ?? data.response?.data?.status_code;
  if (
     data?.response?.data?.hasOwnProperty("json") &&
-    data.response?.status_code !== 202 &&
-    data.response?.status_code !== 201
+    statusCode !== 202 &&
+    statusCode !== 201
   ) {
     const dataInner = data.response.data;
     const errores = [];

@@ -38,6 +38,13 @@ export const getAreasFilters = () =>
     public_script: true,
   });
 
+export const getUbicacionesFilters = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "filters_sdk.py",
+    option: "ubicaciones",
+    public_script: true,
+  });
+
 export const getIncidenciasFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "filters.py",
