@@ -7,6 +7,7 @@ import {
   Polyline,
   TileLayer,
   Tooltip,
+  useMap,
   useMapEvents,
 } from "react-leaflet";
 import L, { latLngBounds } from "leaflet";
@@ -81,6 +82,24 @@ const MyComponent: React.FC<{ prefix: string }> = ({ prefix }) => {
   };
 
   useMapEvents({ zoomend: hideOverlappingTooltips });
+  return null;
+};
+
+// El scroll normal debe mover la pagina; el zoom solo con Ctrl/Cmd + rueda.
+const CtrlWheelZoom = () => {
+  const map = useMap();
+  useEffect(() => {
+    const el = map.getContainer();
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const point = map.mouseEventToContainerPoint(e);
+      const zoom = map.getZoom() + (e.deltaY < 0 ? 1 : -1);
+      map.setZoomAround(point, Math.min(Math.max(zoom, map.getMinZoom()), map.getMaxZoom()));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [map]);
   return null;
 };
 
@@ -191,6 +210,7 @@ const puntos = useMemo<Punto[]>(() =>
         zoom={DEFAULT_ZOOM}
         ref={mapRef}
         maxZoom={22}
+        scrollWheelZoom={false}
         whenReady={() => { if (mapRef.current) setZoom(mapRef.current); }}
         style={{ height: "100%", width: "100%" }}
       >
@@ -201,6 +221,7 @@ const puntos = useMemo<Punto[]>(() =>
           maxNativeZoom={19} 
         />
         <Polyline positions={linePositions} color="green" />
+        <CtrlWheelZoom />
         <MyComponent prefix={instanceId} />
         {records.map((obj) => (
           <Marker

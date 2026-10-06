@@ -989,9 +989,12 @@ const handleActualizar = () => {
       >
         {rondin?.map_data && rondin.map_data.length > 0 ? (
           <div className="flex flex-col h-full">
-            <div className="px-4 pt-4 pb-2">
-              <h3 className="font-semibold text-gray-800 text-sm">Mapa del rondín</h3>
-              <p className="text-xs text-gray-400">{rondin.map_data.length} puntos en el mapa</p>
+            <div className="px-4 pt-4 pb-2 flex items-end justify-between gap-2">
+              <div>
+                <h3 className="font-semibold text-gray-800 text-sm">Mapa del rondín</h3>
+                <p className="text-xs text-gray-400">{rondin.map_data.length} puntos en el mapa</p>
+              </div>
+              <p className="text-xs text-gray-400">Ctrl + scroll para zoom in/out</p>
             </div>
             <div className="flex-1" style={{ minHeight: "360px" }}>
               <MapView map_data={rondin.map_data} areas={areas} />
