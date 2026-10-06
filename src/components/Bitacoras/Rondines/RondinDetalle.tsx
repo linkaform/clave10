@@ -326,7 +326,9 @@ const handleActualizar = () => {
         tipo_rondin: tipoRondin,
         se_repite_cada: recurrenciaSeleccionada,
         area: areaSeleccionada,
-        roles: rolesSeleccionados.map((r) => ROLES_FALLBACK.find((rol) => rol.value === r)?.label ?? r),
+        roles: tipoAsignado === "guardia"
+          ? rolesSeleccionados.map((r) => ROLES_FALLBACK.find((rol) => rol.value === r)?.label ?? r)
+          : [],
         tipo_asignacion: tipoAsignado === "guardia" ? "responsable_en_turno" : tipoAsignado,
         asignado_a: asignadoA,
         fecha_hora_programada: fechaProgramada ? format(fechaProgramada, "yyyy-MM-dd HH:mm:ss") : "",
@@ -538,7 +540,8 @@ const handleActualizar = () => {
           </select>
         </div>
 
-        {/* Roles */}
+        {/* Roles: solo aplican a "Responsable en turno" */}
+        {tipoAsignado === "guardia" && (
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
             <ShieldCheck className="w-3 h-3" /> Roles
@@ -562,6 +565,7 @@ const handleActualizar = () => {
             isClearable
           />
         </div>
+        )}
 
         {/* Asignado a */}
       <div className="flex flex-col gap-1 col-span-2">
@@ -636,7 +640,7 @@ const handleActualizar = () => {
           {recurrenciaSeleccionada === "diario" && (
             <div>
               <div className="flex justify-between mb-2">
-                <span className="text-xs font-medium text-gray-600">Días de acceso:</span>
+                <span className="text-xs font-medium text-gray-600">Días programados:</span>
                 <div className="flex items-center gap-1.5">
                   <input type="checkbox" checked={que_dias_de_la_semana.length === diasSemana.length} onChange={toggleTodos} />
                   <span className="text-xs">Todos los días</span>

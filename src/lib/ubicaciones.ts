@@ -68,3 +68,45 @@ export function normalizeUbicacion(row: UbicacionRow, index: number): Normalized
     raw: row,
   };
 }
+
+// Shape esperado de get_empleados_by_ubicacion (location_sdk.py).
+export interface EmpleadoUbicacionRow {
+  _id?: string;
+  record_id?: string;
+  user_id?: number | string;
+  nombre?: string | string[];
+  puesto?: string | string[];
+  departamento?: string | string[];
+  email?: string | string[];
+  telefono?: string | string[];
+  foto?: { file_url?: string }[] | string;
+  estatus?: string | string[];
+}
+
+export interface NormalizedEmpleadoUbicacion {
+  id: string;
+  recordId: string;
+  nombre: string;
+  puesto: string;
+  departamento: string;
+  email: string;
+  telefono: string;
+  foto: string;
+  estatus: string;
+}
+
+export function normalizeEmpleadoUbicacion(row: EmpleadoUbicacionRow, index: number): NormalizedEmpleadoUbicacion {
+  const nombre = firstOrString(row.nombre) || "-";
+  const foto = Array.isArray(row.foto) ? row.foto[0]?.file_url ?? "" : row.foto || "";
+  return {
+    id: `empleado-${index}-${nombre}`,
+    recordId: row.record_id || row._id || String(row.user_id ?? ""),
+    nombre,
+    puesto: firstOrString(row.puesto),
+    departamento: firstOrString(row.departamento),
+    email: firstOrString(row.email),
+    telefono: firstOrString(row.telefono),
+    foto,
+    estatus: firstOrString(row.estatus),
+  };
+}

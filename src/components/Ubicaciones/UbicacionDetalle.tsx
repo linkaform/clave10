@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
+  MoveLeft,
   MapPin,
   Navigation,
   Phone,
@@ -14,8 +15,9 @@ import {
 } from "lucide-react";
 import { useGetUbicacionById } from "@/hooks/Ubicaciones/useGetUbicacionById";
 import { normalizeUbicacion } from "@/lib/ubicaciones";
-import { UbicacionFormModal } from "./UbicacionFormModal";
+import { EditarUbicacionForm } from "./EditarUbicacionForm";
 import { AreasDeUbicacion } from "./AreasDeUbicacion";
+import { EmpleadosDeUbicacion } from "./EmpleadosDeUbicacion";
 
 type UbicacionTab = "generales" | "areas" | "empleados" | "configuracion";
 
@@ -26,10 +28,11 @@ const TABS: { key: UbicacionTab; label: string; icon: typeof Building2 }[] = [
   { key: "configuracion", label: "Configuración", icon: Settings },
 ];
 
-const UbicacionDetalle = ({ id }: { id: string }) => {
+const UbicacionDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
   const { ubicacion, isLoadingUbicacion } = useGetUbicacionById(id);
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<UbicacionTab>("generales");
+
+  const normalized = useMemo(() => (ubicacion ? normalizeUbicacion(ubicacion, 0) : null), [ubicacion]);
 
   if (isLoadingUbicacion) {
     return (
@@ -43,11 +46,10 @@ const UbicacionDetalle = ({ id }: { id: string }) => {
     );
   }
 
-  if (!ubicacion) {
+  if (!normalized) {
     return <div className="p-8 text-center text-gray-400">Ubicación no encontrada</div>;
   }
 
-  const normalized = normalizeUbicacion(ubicacion, 0);
   const { nombre, direccion, colonia, ciudad, estado, pais, codigoPostal, telefono, email, geolocalizacion, folio } = normalized;
 
   const mapsUrl = geolocalizacion
@@ -55,32 +57,42 @@ const UbicacionDetalle = ({ id }: { id: string }) => {
     : null;
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 min-h-screen">
-      <div className="px-4 pt-2">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-5 mb-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900">{nombre}</h2>
-            {folio && (
-              <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200 ring-1 ring-blue-300/50">
-                # {folio}
-              </span>
+    <div className="flex flex-col bg-gray-50 min-h-screen px-4 pt-2">
+      {/* Header */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-5 mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-500"
+              >
+                <MoveLeft className="w-5 h-5" />
+              </button>
             )}
+            <h2 className="text-xl font-bold text-gray-900">{nombre}</h2>
           </div>
+          {folio && (
+            <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200 ring-1 ring-blue-300/50">
+              # {folio}
+            </span>
+          )}
+        </div>
 
-          <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
-            <button
-              onClick={() => setIsEditOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all shadow-sm"
-            >
-              <Pencil className="w-4 h-4" />
-              Editar
-            </button>
-          </div>
+        <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
+          <button
+            onClick={() => setActiveTab("configuracion")}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all shadow-sm"
+            title="Editar ubicación"
+          >
+            <Pencil className="w-4 h-4" />
+            Editar
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-1 min-h-0 px-4 pb-4 gap-4">
-        <aside className="w-44 shrink-0 flex flex-col gap-1">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 mb-4 min-h-[300px] min-w-0">
+        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-3 border-b border-gray-100">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.key;
@@ -88,10 +100,10 @@ const UbicacionDetalle = ({ id }: { id: string }) => {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-left transition-all ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
                   active
-                    ? "bg-white shadow-sm text-gray-900"
-                    : "text-gray-500 hover:bg-gray-100"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -99,11 +111,11 @@ const UbicacionDetalle = ({ id }: { id: string }) => {
               </button>
             );
           })}
-        </aside>
+        </div>
 
-        <div className="flex-1 min-w-0">
+        <div className="px-2 pb-2">
           {activeTab === "generales" && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+            <div>
               <h3 className="font-semibold text-gray-800 text-sm mb-3">Dirección y contacto</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1 col-span-2">
@@ -160,27 +172,15 @@ const UbicacionDetalle = ({ id }: { id: string }) => {
 
           {activeTab === "areas" && <AreasDeUbicacion ubicacion={nombre} />}
 
-          {activeTab === "empleados" && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col items-center justify-center text-center text-gray-400 gap-2 h-48">
-              <Users className="w-8 h-8 text-gray-300" />
-              <span className="text-sm">Configuración de empleados con acceso — próximamente.</span>
-            </div>
-          )}
+          {activeTab === "empleados" && <EmpleadosDeUbicacion ubicacion={nombre} />}
 
           {activeTab === "configuracion" && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col items-center justify-center text-center text-gray-400 gap-2 h-48">
-              <Settings className="w-8 h-8 text-gray-300" />
-              <span className="text-sm">Configuración de la ubicación — próximamente.</span>
+            <div className="max-w-2xl">
+              <EditarUbicacionForm ubicacion={normalized} />
             </div>
           )}
         </div>
       </div>
-
-      <UbicacionFormModal
-        open={isEditOpen}
-        onOpenChange={setIsEditOpen}
-        ubicacion={normalized}
-      />
     </div>
   );
 };
