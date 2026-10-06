@@ -370,6 +370,9 @@ import { getValidToken } from "./login/get-valid-token";
         return res;
     };
 
+    // Formas de tipo inspeccion de Catalogo de Items (nombre + id de la forma).
+    export type InspeccionCatalogo = { nombre: string; id: number | string };
+
     export const catalogoInspeccionesRecorridos= async ()=> {
         const payload = {
             option: "catalogo_inspecciones",

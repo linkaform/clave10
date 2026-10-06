@@ -30,6 +30,7 @@ import { useEjecutarRecorrido } from "@/hooks/Rondines/recorridos/useEjecutarRec
 import { useCatalogoGrupos } from "@/hooks/Rondines/useCatalogoGrupos";
 import Select from "react-select";
 import { useCatalogoInspeccionesRecorridos } from "@/hooks/Rondines/recorridos/useCatalogoInspecciones";
+import type { InspeccionCatalogo } from "@/lib/rondines";
 import dynamic from "next/dynamic";
 import { useActualizarInspeccion } from "@/hooks/Rondines/recorridos/useActualizarInspeccion";
 
@@ -259,12 +260,13 @@ const RondinDetalle = ({ id }: { id: string }) => {
 
   const handleAbrirModalInspeccion = (areaNombre?: string) => {
       setAreaInspeccion(areaNombre ?? "");
-      const formActual = areaNombre
-        ? areas.find((a) => a.rondin_area === areaNombre)?.form_name
-        : undefined;
+      // form_id del area viene como lista (["129870"]); se compara por id, no por nombre.
+      const formIdActual = areaNombre
+        ? String([areas.find((a) => a.rondin_area === areaNombre)?.form_id ?? []].flat()[0] ?? "")
+        : "";
       setInspeccionSeleccionada(
-        formActual && Array.isArray(dataInspecciones) && dataInspecciones.includes(formActual)
-          ? formActual
+        formIdActual && Array.isArray(dataInspecciones) && dataInspecciones.some((i: InspeccionCatalogo) => String(i.id) === formIdActual)
+          ? formIdActual
           : ""
       );
       setPromptInspeccion("");
@@ -286,7 +288,7 @@ const RondinDetalle = ({ id }: { id: string }) => {
     actualizarInspeccionMutation.mutate({
       folio: id,
       rondin_data: {
-        inspeccion: inspeccionSeleccionada,
+        inspeccion_id: inspeccionSeleccionada,
         areas: areaInspeccion === "todas"
           ? ["todas"]
           : Array.isArray(areaInspeccion)
@@ -899,8 +901,8 @@ const handleActualizar = () => {
                       <option value="">
                         {loadingInspecciones ? "Cargando..." : "Selecciona una inspección"}
                       </option>
-                      {Array.isArray(dataInspecciones) && dataInspecciones.map((inspeccion: string, i: number) => (
-                        <option key={i} value={inspeccion}>{inspeccion}</option>
+                      {Array.isArray(dataInspecciones) && dataInspecciones.map((inspeccion: InspeccionCatalogo) => (
+                        <option key={inspeccion.id} value={String(inspeccion.id)}>{inspeccion.nombre}</option>
                       ))}
                     </select>
                     {inspeccionSeleccionada && (

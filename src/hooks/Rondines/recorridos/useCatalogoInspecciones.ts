@@ -1,4 +1,4 @@
-import { catalogoInspeccionesRecorridos } from "@/lib/rondines";
+import { catalogoInspeccionesRecorridos, type InspeccionCatalogo } from "@/lib/rondines";
 import { errorMsj } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
@@ -12,7 +12,7 @@ export const useCatalogoInspeccionesRecorridos = () => {
         const textMsj = errorMsj(response);
         throw new Error(`Error al obtener catálogo de inspecciones, Error: ${textMsj?.text}`);
       }
-      return response.response?.data ?? [];
+      return (response.response?.data ?? []) as InspeccionCatalogo[];
     },
   });
 
