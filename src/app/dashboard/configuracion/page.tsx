@@ -3,6 +3,8 @@ import PageTitle from "@/components/page-title";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Settings, Users, Shield, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SyncButton } from "@/components/configuracion/sync-button";
+import { CleanDbButton } from "@/components/configuracion/clean-db-button";
 
 const ConfiguracionPage = () => {
   const settingsGroups = [
@@ -37,11 +39,17 @@ const ConfiguracionPage = () => {
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
-      <div className="flex flex-col gap-1">
-        <PageTitle title="Configuración" />
-        <p className="text-sm text-muted-foreground">
-          Administra tus ajustes personales y de seguridad.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <PageTitle title="Configuración" />
+          <p className="text-sm text-muted-foreground">
+            Administra tus ajustes personales y de seguridad.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <SyncButton />
+          <CleanDbButton />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
