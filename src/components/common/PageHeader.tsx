@@ -1,13 +1,18 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import debounce from "lodash.debounce";
 
 interface PageHeaderProps {
   title: string;
   totalRecords?: number;
-  onSearch: (value: string) => void;
+  onSearch?: (value: string) => void;
+  /** Oculta el buscador (pantallas que filtran solo desde el panel de filtros). */
+  hideSearch?: boolean;
+  /** Si se pasa, muestra un boton de actualizar junto al contador. */
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
   searchPlaceholder?: string;
   children?: React.ReactNode;
   /** Cambia este valor (ej. un contador) para limpiar el input de búsqueda desde afuera. */
@@ -18,6 +23,9 @@ export const PageHeader = ({
   title,
   totalRecords,
   onSearch,
+  hideSearch = false,
+  onRefresh,
+  isRefreshing = false,
   searchPlaceholder = "Buscar...",
   children,
   resetSignal,
@@ -29,7 +37,7 @@ export const PageHeader = ({
   }, [resetSignal]);
 
   const debouncedSearch = useMemo(
-    () => debounce((val: string) => onSearch(val), 400),
+    () => debounce((val: string) => onSearch?.(val), 400),
     [onSearch],
   );
 
@@ -45,11 +53,23 @@ export const PageHeader = ({
           {title}
         </h1>
         <span className="text-sm font-light text-slate-500 whitespace-nowrap">
-          {totalRecords ?? 0} registros
+          {(totalRecords ?? 0).toLocaleString("en-US")} registros
         </span>
+        {onRefresh && (
+          <button
+            type="button"
+            title="Actualizar"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="self-center p-1 rounded-md text-slate-500 hover:text-blue-600 hover:bg-slate-100 disabled:opacity-60 transition-colors"
+          >
+            <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-3 min-w-0 justify-start">
+        {!hideSearch && (
         <div className="flex p-1 rounded-lg items-center border border-slate-200 w-[220px] overflow-hidden focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 bg-white transition-all">
           <Search
             className="ml-2 mr-1 flex-shrink-0 text-slate-400"
@@ -63,6 +83,7 @@ export const PageHeader = ({
             className="w-full bg-transparent border-none shadow-none outline-none h-8 text-sm min-w-0 px-1"
           />
         </div>
+        )}
 
         {children}
       </div>

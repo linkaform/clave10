@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import PageTitle from "@/components/page-title";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Settings, Users, Shield, Lock } from "lucide-react";
@@ -7,11 +8,16 @@ import { SyncButton } from "@/components/configuracion/sync-button";
 import { CleanDbButton } from "@/components/configuracion/clean-db-button";
 
 const ConfiguracionPage = () => {
-  const settingsGroups = [
+  const settingsGroups: {
+    title: string;
+    icon: React.ReactNode;
+    items: { label: string; enabled: boolean; href?: string }[];
+  }[] = [
     {
       title: "Administración del Sistema",
       icon: <Settings className="w-5 h-5 text-slate-500" />,
       items: [
+        { label: "Logs de scripts", enabled: true, href: "/dashboard/script-logs" },
         { label: "Catálogos generales", enabled: false },
         { label: "Configuración de módulos", enabled: false },
         { label: "Parámetros de operación", enabled: false },
@@ -63,21 +69,30 @@ const ConfiguracionPage = () => {
             </CardHeader>
             <CardContent className="pt-4 px-4">
               <ul className="space-y-3">
-                {group.items.map((item, i) => (
-                  <li
-                    key={i}
-                    className={cn(
-                      "flex items-center justify-between p-2 rounded-md transition-colors",
-                      item.enabled
-                        ? "hover:bg-accent cursor-pointer"
-                        : "opacity-60 cursor-not-allowed",
-                    )}>
-                    <span className="text-sm">{item.label}</span>
-                    {!item.enabled && (
-                      <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                    )}
-                  </li>
-                ))}
+                {group.items.map((item, i) => {
+                  const row = (
+                    <li
+                      key={i}
+                      className={cn(
+                        "flex items-center justify-between p-2 rounded-md transition-colors",
+                        item.enabled
+                          ? "hover:bg-accent cursor-pointer"
+                          : "opacity-60 cursor-not-allowed",
+                      )}>
+                      <span className="text-sm">{item.label}</span>
+                      {!item.enabled && (
+                        <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                      )}
+                    </li>
+                  );
+                  return item.href ? (
+                    <Link key={i} href={item.href} className="block">
+                      {row}
+                    </Link>
+                  ) : (
+                    row
+                  );
+                })}
               </ul>
             </CardContent>
           </Card>

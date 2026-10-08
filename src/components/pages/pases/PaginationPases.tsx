@@ -56,7 +56,7 @@ const PaginationPases: React.FC<PaginationPasesProps> = ({
           </Select>
         </label>
         <span className="text-gray-500">
-          1 - {records_on_page} de {total_records} registros
+          1 - {records_on_page} de {total_records.toLocaleString("en-US")} registros
         </span>
       </div>
       <div className="flex items-center gap-5">
