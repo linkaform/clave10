@@ -2,16 +2,18 @@
 
 import * as React from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import UbicacionDetalle from "./UbicacionDetalle";
+import UbicacionDetalle, { UbicacionTab } from "./UbicacionDetalle";
 
 interface UbicacionDetallePanelProps {
   recordId: string | null;
   onOpenChange: (open: boolean) => void;
+  /** Tab con el que abre el detalle (default "generales"). */
+  initialTab?: UbicacionTab;
 }
 
 // Panel lateral para ver el detalle de una ubicación sin salir de la lista.
 // Es modal: oscurece el fondo y cualquier clic afuera lo cierra.
-export function UbicacionDetallePanel({ recordId, onOpenChange }: UbicacionDetallePanelProps) {
+export function UbicacionDetallePanel({ recordId, onOpenChange, initialTab = "generales" }: UbicacionDetallePanelProps) {
   return (
     <Sheet open={!!recordId} onOpenChange={onOpenChange}>
       <SheetContent
@@ -21,7 +23,14 @@ export function UbicacionDetallePanel({ recordId, onOpenChange }: UbicacionDetal
       >
         <SheetTitle className="sr-only">Detalle de la ubicación</SheetTitle>
         <div className="flex-1 overflow-y-auto">
-          {recordId && <UbicacionDetalle key={recordId} id={recordId} onClose={() => onOpenChange(false)} />}
+          {recordId && (
+            <UbicacionDetalle
+              key={`${recordId}-${initialTab}`}
+              id={recordId}
+              initialTab={initialTab}
+              onClose={() => onOpenChange(false)}
+            />
+          )}
         </div>
       </SheetContent>
     </Sheet>

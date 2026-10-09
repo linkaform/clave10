@@ -10,7 +10,12 @@ interface SelectorDireccionProps {
 }
 
 export function SelectorDireccion({ value, onChange, className = "" }: SelectorDireccionProps) {
-  const { direcciones, isLoadingDirecciones } = useCatalogDirecciones();
+  const { direcciones: todas, isLoadingDirecciones } = useCatalogDirecciones();
+  // El catálogo puede traer contactos repetidos con el mismo nombre; el
+  // selector elige por nombre, así que se muestra uno solo.
+  const direcciones = todas.filter(
+    (d, i) => todas.findIndex((x) => x.nombre_direccion === d.nombre_direccion) === i,
+  );
   const opciones =
     value && !direcciones.some((d) => d.nombre_direccion === value)
       ? [{ nombre_direccion: value, tipo: "", ciudad: "", estado: "" }, ...direcciones]

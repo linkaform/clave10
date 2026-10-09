@@ -6,13 +6,11 @@ import { LayoutGrid, LayoutList, Plus, Sheet, X } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { AreasUbicacionesTabs } from "@/components/common/AreasUbicacionesTabs";
-import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { useUbicacionesCatalog } from "@/hooks/Ubicaciones/useUbicacionesCatalog";
 import { useUbicacionesFilters } from "@/hooks/Ubicaciones/useUbicacionesFilters";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { UbicacionesExplorerTable } from "@/components/table/ubicaciones-explorer/table";
 import { UbicacionFormModal } from "@/components/Ubicaciones/UbicacionFormModal";
-import { NormalizedUbicacion } from "@/lib/ubicaciones";
 import { ViewMode } from "@/lib/utils";
 import { SearchFieldsFilter, SearchFieldOption } from "@/components/common/SearchFieldsFilter";
 import PaginationPases from "@/components/pages/pases/PaginationPases";
@@ -28,12 +26,13 @@ const UBICACIONES_SEARCH_FIELDS: SearchFieldOption[] = [
   { key: "state", label: "Estado" },
 ];
 
+const TODAS_LAS_UBICACIONES: string[] = [];
+
 const UbicacionesContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const idParam = searchParams.get("id");
 
-  const { selectedLocations } = useSelectedLocationsStore();
   const [viewMode, setViewMode] = React.useState<ViewMode>("table");
   const [searchTags, setSearchTags] = React.useState<string[]>([]);
   const [searchFields, setSearchFields] = React.useState<string[]>([]);
@@ -41,13 +40,28 @@ const UbicacionesContent = () => {
   const [limit, setLimit] = React.useState(25);
   const [skip, setSkip] = React.useState(0);
   const [selectedUbicacionId, setSelectedUbicacionId] = React.useState<string | null>(idParam);
-  const [ubicacionFormModal, setUbicacionFormModal] = React.useState<
-    { mode: "create" } | { mode: "edit"; ubicacion: NormalizedUbicacion } | null
-  >(null);
+  const [isNuevaUbicacionOpen, setIsNuevaUbicacionOpen] = React.useState(false);
 
   useEffect(() => {
     setSelectedUbicacionId(idParam);
   }, [idParam]);
+
+  // /ubicaciones?action=nueva_ubicacion (ítem "+ Nueva Ubicación" del menú)
+  // abre el modal de crear, mismo patrón que notas?action=nueva_nota.
+  const actionParam = searchParams.get("action");
+  useEffect(() => {
+    if (actionParam === "nueva_ubicacion") setIsNuevaUbicacionOpen(true);
+  }, [actionParam]);
+
+  const handleUbicacionFormOpenChange = (open: boolean) => {
+    if (open) return;
+    setIsNuevaUbicacionOpen(false);
+    if (actionParam === "nueva_ubicacion") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`/dashboard/ubicaciones${params.toString() ? `?${params.toString()}` : ""}`);
+    }
+  };
 
   const handleUbicacionIdChange = useCallback(
     (id: string | null) => {
@@ -58,6 +72,9 @@ const UbicacionesContent = () => {
       } else {
         params.delete("id");
       }
+      // Al abrir el panel de una recién creada desde el menú, que no se quede
+      // ?action=nueva_ubicacion y el modal se vuelva a abrir al recargar.
+      params.delete("action");
       router.replace(`/dashboard/ubicaciones${params.toString() ? `?${params.toString()}` : ""}`);
     },
     [router, searchParams],
@@ -79,7 +96,9 @@ const UbicacionesContent = () => {
   const puedeBuscar = searchFields.length === 0 || search.trim() !== "";
 
   const { ubicacionesCatalog, isLoading } = useUbicacionesCatalog(
-    selectedLocations,
+    // Catálogo completo de la cuenta, sin depender del selector de ubicaciones
+    // del top-nav: así salen también las recién creadas o sin usuarios asignados.
+    TODAS_LAS_UBICACIONES,
     dynamicFiltersArray,
     limit,
     skip,
@@ -151,7 +170,7 @@ const UbicacionesContent = () => {
           </Button>
 
           <Button
-            onClick={() => setUbicacionFormModal({ mode: "create" })}
+            onClick={() => setIsNuevaUbicacionOpen(true)}
             className="gap-2 bg-green-600 hover:bg-green-700 text-white"
           >
             <Plus size={16} />
@@ -182,7 +201,6 @@ const UbicacionesContent = () => {
           onExternalFiltersChange={onExternalFiltersChange}
           selectedUbicacionId={selectedUbicacionId}
           onSelectedUbicacionIdChange={handleUbicacionIdChange}
-          onEditarUbicacion={(ubicacion) => setUbicacionFormModal({ mode: "edit", ubicacion })}
         />
         {!isLoading && (
           <PaginationPases
@@ -197,9 +215,9 @@ const UbicacionesContent = () => {
       </div>
 
       <UbicacionFormModal
-        open={!!ubicacionFormModal}
-        onOpenChange={(open) => !open && setUbicacionFormModal(null)}
-        ubicacion={ubicacionFormModal?.mode === "edit" ? ubicacionFormModal.ubicacion : null}
+        open={isNuevaUbicacionOpen}
+        onOpenChange={handleUbicacionFormOpenChange}
+        onCreated={handleUbicacionIdChange}
       />
     </div>
   );
