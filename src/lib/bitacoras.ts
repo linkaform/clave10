@@ -14,6 +14,8 @@ export const getListBitacora = async (
   offset: number = 0,
   // Búsquedas de texto del buscador (los filtros del panel van en dynamicFilters).
   facets: SearchFacet[] = [],
+  // "vehiculos" | "equipos": una fila por vehículo/equipo, con su propio total.
+  desglose: "" | "vehiculos" | "equipos" = "",
 ) => {
   const payload = {
     filterDate: dateFilter,
@@ -26,6 +28,7 @@ export const getListBitacora = async (
     limit: limit,
     offset: offset,
     facets,
+    desglose,
     option: "list_bitacora2",
     script_name: "script_turnos.py",
   };

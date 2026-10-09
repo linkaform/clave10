@@ -24,6 +24,7 @@ export const useBitacoras = (
   limit: number = 20,
   offset: number = 0,
   facets: SearchFacet[] = [],
+  desglose: "" | "vehiculos" | "equipos" = "",
 ) => {
   const {
     data: listBitacoras,
@@ -43,6 +44,7 @@ export const useBitacoras = (
       limit,
       offset,
       facets,
+      desglose,
     ],
     enabled: enableList,
     refetchInterval: 60000,
@@ -59,6 +61,7 @@ export const useBitacoras = (
         limit,
         offset,
         facets,
+        desglose,
       );
       const textMsj = errorMsj(data);
       if (textMsj) {

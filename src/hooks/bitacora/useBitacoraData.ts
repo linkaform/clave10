@@ -18,6 +18,7 @@ export interface BitacoraDataProps {
   appliedFilters?: { key: string; value: string }[];
   pagination: { pageIndex: number; pageSize: number };
   textFacets?: SearchFacet[];
+  selectedTab?: string;
 }
 
 export const useBitacoraData = ({
@@ -29,8 +30,12 @@ export const useBitacoraData = ({
   appliedFilters,
   pagination,
   textFacets = [],
+  selectedTab = "personal",
 }: BitacoraDataProps) => {
   const isEnabled = selectedLocation && selectedArea ? true : false;
+  // Vehículos y Equipos piden al back una fila por vehículo/equipo; Personal, una por bitácora.
+  const desglose =
+    selectedTab === "vehiculos" || selectedTab === "equipos" ? selectedTab : "";
 
   const { listBitacoras, isLoadingListBitacoras, refetchBitacoras } =
     useBitacoras(
@@ -45,6 +50,7 @@ export const useBitacoraData = ({
       pagination.pageSize,
       pagination.pageIndex * pagination.pageSize,
       textFacets,
+      desglose,
     );
 
   const { data: stats, refetch: refetchStats } = useGetStats(
@@ -65,13 +71,13 @@ export const useBitacoraData = ({
   };
 
   const recordsVehiculos = useMemo(
-    () => processBitacorasV(listBitacoras?.records || []),
-    [listBitacoras?.records],
+    () => (desglose === "vehiculos" ? processBitacorasV(listBitacoras?.records || []) : []),
+    [desglose, listBitacoras?.records],
   );
 
   const recordsEquipos = useMemo(
-    () => processBitacorasE(listBitacoras?.records || []),
-    [listBitacoras?.records],
+    () => (desglose === "equipos" ? processBitacorasE(listBitacoras?.records || []) : []),
+    [desglose, listBitacoras?.records],
   );
 
   return {

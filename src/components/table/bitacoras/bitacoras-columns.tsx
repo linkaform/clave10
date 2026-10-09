@@ -11,6 +11,8 @@ import { Car, Eye, Forward, Hammer, IdCard, Printer } from "lucide-react";
 import { useState } from "react";
 
 export interface Bitacora_record {
+	// Con desglose (Vehículos/Equipos), posición del vehículo/equipo dentro de la bitácora.
+	item_index?: number
 	equipos: Equipo_bitacora[]
 	file_name: string
 	fecha_entrada: string
