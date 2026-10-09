@@ -16,6 +16,11 @@ import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/Floating
 import VehiculosTable from "@/components/table/bitacoras/vehiculos/table";
 import EquiposTable from "@/components/table/bitacoras/equipos/table";
 import { PageHeader } from "@/components/common/PageHeader";
+import { FacetSearch } from "@/components/common/FacetSearch";
+
+// La búsqueda de texto ya se resuelve en el back (FacetSearch); las tablas ya
+// no filtran en el navegador.
+const NO_SEARCH_TAGS: string[] = [];
 
 const BitacorasContent = () => {
   const {
@@ -42,7 +47,6 @@ const BitacorasContent = () => {
     recordsEquipos,
     recordsVehiculos,
     refreshData,
-    searchTags,
     selectedLocation,
     selectedRecord,
     setActiveDateFilter,
@@ -54,7 +58,6 @@ const BitacorasContent = () => {
     setIsForcingQuit,
     setIsReturnGafeteOpen,
     setPagination,
-    setSearchTags,
     setStartDate,
     setViewMode,
     startDate,
@@ -62,9 +65,12 @@ const BitacorasContent = () => {
     viewMode,
     selectedTab,
     setSelectedTab,
+    searchFields,
+    searchFacets,
+    onSearchFacetsChange,
+    fetchSearchCounts,
   } = useBitacora();
 
-  console.log("Stats:", stats);
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
   return (
@@ -84,8 +90,15 @@ const BitacorasContent = () => {
           <PageHeader
           title="Bitácora de Entradas & Salidas"
           totalRecords={listBitacoras?.total_records || 0}
-          onSearch={(val) => setSearchTags(val ? [val] : [])}
-          searchPlaceholder="Buscar...">
+          search={
+            <FacetSearch
+              fields={searchFields}
+              facets={searchFacets}
+              onChange={onSearchFacetsChange}
+              fetchCounts={fetchSearchCounts}
+              placeholder="Buscar por visitante, empresa, folio..."
+            />
+          }>
 
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-auto">
             <TabsList className="bg-slate-100/50 h-10 p-0 border border-slate-300 divide-x divide-slate-300 rounded-lg overflow-hidden shadow-sm">
@@ -151,7 +164,7 @@ const BitacorasContent = () => {
                 onExternalDynamicFiltersChange={setDynamicFilters}
                 pagination={pagination}
                 printPase={handlePrintPase}
-                searchTags={searchTags}
+                searchTags={NO_SEARCH_TAGS}
                 setDate1={setStartDate}
                 setDate2={setEndDate}
                 setDateFilter={setActiveDateFilter}
@@ -176,7 +189,7 @@ const BitacorasContent = () => {
                 onExternalDynamicFiltersChange={setDynamicFilters}
                 pagination={pagination}
                 printPase={handlePrintPase}
-                searchTags={searchTags}
+                searchTags={NO_SEARCH_TAGS}
                 setDate1={setStartDate}
                 setDate2={setEndDate}
                 setDateFilter={setActiveDateFilter}
@@ -200,7 +213,7 @@ const BitacorasContent = () => {
                 onExternalDynamicFiltersChange={setDynamicFilters}
                 pagination={pagination}
                 printPase={handlePrintPase}
-                searchTags={searchTags}
+                searchTags={NO_SEARCH_TAGS}
                 setDate1={setStartDate}
                 setDate2={setEndDate}
                 setDateFilter={setActiveDateFilter}

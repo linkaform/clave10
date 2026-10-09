@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { SearchFacet } from "@/components/common/FacetSearch";
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api"
 import { getValidToken } from "./login/get-valid-token";
@@ -37,7 +38,14 @@ export interface CloseNote {
 }
 
 
-export const getNotes = async (area: string, location: string, limit: number = 10, offset: number = 0, dateFrom: string = "", dateTo: string = "", status: string = "abierto") => {
+/** Buscador avanzado: fecha del panel, ubicaciones del header y facets (chips + panel). */
+export interface NotesSearch {
+  filterDate: string;
+  locations: string[];
+  facets: SearchFacet[];
+}
+
+export const getNotes = async (area: string, location: string, limit: number = 10, offset: number = 0, dateFrom: string = "", dateTo: string = "", status: string = "abierto", search?: NotesSearch) => {
   const payload = {
     script_name: "notes.py",
     option: "get_notes",
@@ -47,7 +55,8 @@ export const getNotes = async (area: string, location: string, limit: number = 1
     offset,
     dateFrom,
     dateTo,
-    status
+    status,
+    ...(search ?? {}),
   };
 
   const userJwt = await getValidToken();

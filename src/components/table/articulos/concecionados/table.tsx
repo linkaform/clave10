@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import * as React from "react";
 import {
   ColumnFiltersState, SortingState, VisibilityState,
@@ -16,8 +17,6 @@ import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
-import { CustomSpinner } from "@/components/custom-spinner";
-import { applyArticulosConcesionadosFilters } from "@/hooks/Concesionados/useConcesionadosFilters";
 import { ConcesionadosActionButtons } from "@/components/Bitacoras/Concesionados/customActions";
 import { SortableTableHead } from "@/components/table/SortableTableHead";
 
@@ -68,10 +67,8 @@ const ArticulosConTable: React.FC<ListProps> = ({
 
   const memoizedData = useMemo(() => data || [], [data]);
 
-  // El search ya se resuelve en el backend (getListArticulosCon); aquí solo aplican los filtros del sidebar.
-  const filteredData = useMemo(() => {
-    return applyArticulosConcesionadosFilters(memoizedData, externalFilters ?? { dynamic: {} });
-  }, [memoizedData, externalFilters]);
+  // Búsqueda y filtros del panel ya vienen resueltos del back (getListArticulosCon).
+  const filteredData = memoizedData;
 
   useEffect(() => {
     setTotalRegistros?.(filteredData.length);
@@ -158,7 +155,9 @@ const ArticulosConTable: React.FC<ListProps> = ({
                     ))}
                   </TableHeader>
                   <TableBody>
-                    {table.getRowModel().rows?.length ? (
+                    {isLoadingListArticulosCon ? (
+                      <TableRowSkeletons columns={columns.length} />
+                    ) : table.getRowModel().rows?.length ? (
                       table.getRowModel().rows.map((row) => (
                         <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}
                           className="hover:bg-slate-100 transition-colors border-slate-50">
@@ -173,11 +172,7 @@ const ArticulosConTable: React.FC<ListProps> = ({
                     ) : (
                       <TableRow>
                         <TableCell colSpan={columns.length} className="h-32 text-center">
-                          {isLoadingListArticulosCon ? (
-                            <CustomSpinner />
-                          ) : (
-                            <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
-                          )}
+                          <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
                         </TableCell>
                       </TableRow>
                     )}
@@ -198,6 +193,7 @@ const ArticulosConTable: React.FC<ListProps> = ({
           {viewMode === "photos" && (
             <PhotoGridView
               isLoading={isLoadingListArticulosCon}
+              skeleton
               records={concesionadoPhotoRecords}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
@@ -216,6 +212,7 @@ const ArticulosConTable: React.FC<ListProps> = ({
           {viewMode === "list" && (
             <PhotoListView
               isLoading={isLoadingListArticulosCon}
+              skeleton
               records={concesionadoListRecords}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}

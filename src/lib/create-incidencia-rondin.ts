@@ -22,10 +22,19 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
     return res;
   };
     
-  export const getListIncidenciasRondin = async (ubicacion: string, area:string)=> {
+  /** Buscador avanzado: con esto el back pagina por incidencia y aplica los filtros. */
+  export interface IncidenciasRondinSearch {
+    facets: { key: string; values: string[]; exact?: boolean }[];
+    locations: string[];
+    limit: number;
+    skip: number;
+  }
+
+  export const getListIncidenciasRondin = async (ubicacion: string, area:string, search?: IncidenciasRondinSearch)=> {
     const payload = {
         ubicacion,
         area,
+        ...(search ? { facets: search.facets, locations: search.locations, limit: search.limit, offset: search.skip, paginated: true } : {}),
         option: "get_incidencias_rondines",
         script_name: "rondines.py",
     };

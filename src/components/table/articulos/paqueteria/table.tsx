@@ -10,11 +10,9 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -30,9 +28,8 @@ import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
-import { applyPaqueteriaFilters } from "@/hooks/Paqueteria/usePaqueteriaFilters";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
-import { CustomSpinner } from "@/components/custom-spinner";
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import { PaqueteriaActionButtons } from "@/components/Bitacoras/Paqueteria/customAction";
 import { SortableTableHead } from "@/components/table/SortableTableHead";
 
@@ -78,7 +75,6 @@ const PaqueteriaTable:React.FC<ListProps> = ({
   isLoadingListPaqueteria,
 	setSelectedArticulos,
   viewMode, 
-  searchTags:searchTagsProp,
   filtersConfig:filtersConfigProp,
   externalFilters:externalFiltersProp,
   onExternalFiltersChange:onExternalFiltersChangeProp,
@@ -90,10 +86,6 @@ const PaqueteriaTable:React.FC<ListProps> = ({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: 23,
-  });
 
   const externalFilters = useMemo(
     () => externalFiltersProp ?? { dynamic: {}, dateFilter: "" },
@@ -101,16 +93,13 @@ const PaqueteriaTable:React.FC<ListProps> = ({
   );
   const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
   const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
-  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   const [globalFilter, setGlobalFilter] = React.useState("");
   const columns = useMemo(() => (isLoadingListPaqueteria ? [] : paqueteriaColumns), [isLoadingListPaqueteria]);
   const memoizedData = useMemo(() => data || [], [data]);
 
-  const filteredData = useMemo(() => {
-    console.log("externalFilters:", JSON.stringify(externalFilters));
-    return applyPaqueteriaFilters(memoizedData, externalFilters ?? { dynamic: {} });
-  }, [memoizedData, externalFilters]);
+  // Búsqueda, filtros y paginación ya vienen resueltos del back (getListPaqueteria).
+  const filteredData = memoizedData;
 
 
   const table = useReactTable({
@@ -120,12 +109,10 @@ const PaqueteriaTable:React.FC<ListProps> = ({
       onColumnFiltersChange: setColumnFilters,
       onGlobalFilterChange: setGlobalFilter,
       getCoreRowModel: getCoreRowModel(),
-      getPaginationRowModel: getPaginationRowModel(),
       getSortedRowModel: getSortedRowModel(),
       getFilteredRowModel: getFilteredRowModel(),
       onColumnVisibilityChange: setColumnVisibility,
       onRowSelectionChange: setRowSelection,
-      onPaginationChange: setPagination,
       globalFilterFn: (row, _columnId, filterValue: string) => {
         if (!filterValue) return true;
         const normalize = (str: string) =>
@@ -142,7 +129,6 @@ const PaqueteriaTable:React.FC<ListProps> = ({
         columnFilters,
         columnVisibility,
         rowSelection,
-        pagination,
         globalFilter,
       },
     });
@@ -169,14 +155,6 @@ const PaqueteriaTable:React.FC<ListProps> = ({
       if (!filteredData?.length) return [];
       return filteredData.map((item: any) => formatListRecord(item, "paqueteria"));
     }, [filteredData]);
-
-    React.useEffect(() => {
-      if (searchTags && searchTags.length > 0) {
-        setGlobalFilter(searchTags.join("|"));
-      } else {
-        setGlobalFilter("");
-      }
-    }, [searchTags]);
 
     const renderActions = (record: PhotoRecord | ListRecord) => {
       const paquete = memoizedData.find((p) => p._id === record.id || p.folio === record.folio);
@@ -215,7 +193,9 @@ const PaqueteriaTable:React.FC<ListProps> = ({
                   ))}
                 </TableHeader>
                 <TableBody>
-                  {table.getRowModel().rows?.length ? (
+                  {isLoadingListPaqueteria ? (
+                    <TableRowSkeletons columns={paqueteriaColumns.length} />
+                  ) : table.getRowModel().rows?.length ? (
                     table.getRowModel().rows.map((row) => (
                       <TableRow
                         key={row.id}
@@ -233,26 +213,12 @@ const PaqueteriaTable:React.FC<ListProps> = ({
                   ) : (
                     <TableRow>
                       <TableCell colSpan={paqueteriaColumns.length} className="h-32 text-center">
-                        {isLoadingListPaqueteria ? (
-                          <CustomSpinner />
-                        ) : (
-                          <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
-                        )}
+                        <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
-              </div>
-              <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-                    Anterior
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-                    Siguiente
-                  </Button>
-                </div>
               </div>
             </>
           )}
@@ -260,8 +226,8 @@ const PaqueteriaTable:React.FC<ListProps> = ({
           {viewMode === "photos" && (
             <PhotoGridView
               isLoading={isLoadingListPaqueteria}
+              skeleton
               records={paqueteriaPhotoRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalActions={(record) => {
@@ -278,8 +244,8 @@ const PaqueteriaTable:React.FC<ListProps> = ({
           {viewMode === "list" && (
             <PhotoListView
               isLoading={isLoadingListPaqueteria}
+              skeleton
               records={paqueteriaListRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
             >

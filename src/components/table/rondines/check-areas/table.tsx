@@ -8,7 +8,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -25,13 +24,16 @@ import { FilterConfig, ListRecord, PhotoRecord } from "@/types/bitacoras";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { useGetListCheckUbicaciones } from "@/hooks/Rondines/useListCheckUbicaciones";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
-import { applyCheckAreasFilters } from "@/hooks/Rondines/checkAreas/useCheckAreasFilters ";
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
+import { CheckAreasSearch } from "@/lib/get-all-checks";
 import { CheckArea, getCheckAreasColumns } from "./check-areas-columns";
 import { mapCheckUbicacionGrid } from "@/mappers/check-ubicaciones.grid.mapper";
 import { PhotoGridCardModal } from "@/components/Bitacoras/PhotoGrid/PhotoGridCardModal";
 
 interface CheckUbicacionesTableProps {
   searchTags?: string[];
+  /** Buscador avanzado: filtros, fecha y ubicaciones que se resuelven en el back. */
+  search?: Omit<CheckAreasSearch, "limit" | "skip">;
   viewMode?: "table" | "photos" | "list";
   onExternalDynamicFiltersChange: (filters: Record<string, any>) => void;
   setUbicacionSeleccionada?: (val: string) => void;
@@ -46,23 +48,33 @@ interface CheckUbicacionesTableProps {
   setTotalRegistros: React.Dispatch<React.SetStateAction<number | 0>>;
 }
 
+const CHECKS_POR_PAGINA = 25;
+
 const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
   viewMode = "table",
-  searchTags:searchTagsProp,
+  search,
   filtersConfig :filtersConfigProp,
   stats,
   externalFilters :externalFiltersProp,
   onExternalFiltersChange:onExternalFiltersChangeProp,
   setTotalRegistros,
 }) => {
-  const { listCheckUbicaciones, isLoadingListCheckUbicaciones: isLoading } = useGetListCheckUbicaciones(true);
+  // Paginación en servidor.
+  const [paginaServidor, setPaginaServidor] = React.useState(0);
+  const searchKey = JSON.stringify(search ?? null);
+  useEffect(() => { setPaginaServidor(0); }, [searchKey]);
+  const pageSearch = useMemo(
+    () => (search ? { ...search, limit: CHECKS_POR_PAGINA, skip: paginaServidor * CHECKS_POR_PAGINA } : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [searchKey, paginaServidor],
+  );
+  const { listCheckUbicaciones, totalCheckUbicaciones, isLoadingListCheckUbicaciones: isLoading } =
+    useGetListCheckUbicaciones(true, undefined, undefined, pageSearch);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ options: true });
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
-  const [globalFilter, setGlobalFilter] = React.useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
 
@@ -72,7 +84,6 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
   );
   const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
   const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
-  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   const handleVerCheck = React.useCallback((check: CheckArea) => {
     const base = { id: check.id, folio: check.folio };
@@ -81,13 +92,6 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
     setIsModalOpen(true);
   }, []);
   
-  React.useEffect(() => {
-    if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join("|"));
-    } else {
-      setGlobalFilter("");
-    }
-  }, [searchTags]);
 
   const handleEliminar = (check: CheckArea) => {
     console.log("Eliminar:", check);
@@ -104,47 +108,24 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
     [listCheckUbicaciones]
   );
 
-  const filteredData = useMemo(
-    () => applyCheckAreasFilters(memoizedData, externalFilters),
-    [memoizedData, externalFilters]
-  );
+  // Búsqueda, filtros y paginación ya vienen resueltos del back.
+  const filteredData = memoizedData;
 
   useEffect(() => {
-    setTotalRegistros(filteredData.length);
-  }, [filteredData, setTotalRegistros]);
+    setTotalRegistros(totalCheckUbicaciones);
+  }, [totalCheckUbicaciones, setTotalRegistros]);
 
   const table = useReactTable({
     data: filteredData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
-    globalFilterFn: (row, _columnId, filterValue: string) => {
-      if (!filterValue) return true;
-      const normalize = (str: string) =>
-        str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const tags = filterValue.split("|").filter(Boolean).map(normalize);
-      const allValues = row
-        .getAllCells()
-        .map((cell) => {
-          const columnId = cell.column.id;
-          let value = String(cell.getValue() || "");
-          if (columnId === "check_status") {
-            value = value.replace(/_/g, " ");
-          }
-          return normalize(value);
-        })
-        .join(" ");
-      return tags.some((tag) => allValues.includes(tag));
-    },
-    state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
+    state: { sorting, columnFilters, columnVisibility, rowSelection },
   });
 
   const photoListRecords: ListRecord[] = useMemo(() => {
@@ -220,7 +201,9 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
                     ))}
                   </TableHeader>
                   <TableBody>
-                    {table.getRowModel().rows?.length ? (
+                    {isLoading ? (
+                      <TableRowSkeletons columns={columns.length} />
+                    ) : table.getRowModel().rows?.length ? (
                       table.getRowModel().rows.map((row) => (
                         <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}
                           className="hover:bg-slate-100 transition-colors border-slate-50">
@@ -235,17 +218,7 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
                     ) : (
                       <TableRow>
                         <TableCell colSpan={columns.length} className="h-32 text-center">
-                          {isLoading ? (
-                            <div className="flex flex-col items-center gap-3 h-32 justify-center">
-                              <div className="relative h-8 w-8">
-                                <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
-                                <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                              </div>
-                              <span className="text-base text-slate-400">Cargando registros...</span>
-                            </div>
-                          ) : (
-                            <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
-                          )}
+                          <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
                         </TableCell>
                       </TableRow>
                     )}
@@ -254,16 +227,16 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
               </div>
               <div className="flex items-center justify-end space-x-2 py-4">
                 <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Anterior</Button>
-                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Siguiente</Button>
+                  <Button variant="outline" size="sm" onClick={() => setPaginaServidor((p) => Math.max(0, p - 1))} disabled={paginaServidor === 0 || isLoading}>Anterior</Button>
+                  <Button variant="outline" size="sm" onClick={() => setPaginaServidor((p) => p + 1)} disabled={(paginaServidor + 1) * CHECKS_POR_PAGINA >= totalCheckUbicaciones || isLoading}>Siguiente</Button>
                 </div>
               </div>
             </>
           ) : viewMode === "photos" ? (
             <PhotoGridView
               isLoading={isLoading}
+              skeleton
               records={photoRecords}
-              globalSearch={searchTags ?? []}
               modalType="rondines_v2"
               getMapData={(record) => (record as any)?.rawData?.map_data ?? []}
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
@@ -272,8 +245,8 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
           ) : (
             <PhotoListView
               isLoading={isLoading}
+              skeleton
               records={photoListRecords}
-              globalSearch={searchTags ?? []}
               modalType="normal"
               getMapData={(record) => record?.rawData?.map_data ?? []}
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>

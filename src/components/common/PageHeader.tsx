@@ -17,6 +17,10 @@ interface PageHeaderProps {
   children?: React.ReactNode;
   /** Cambia este valor (ej. un contador) para limpiar el input de búsqueda desde afuera. */
   resetSignal?: number | string;
+  /** Muestra el contador como una pastilla gris parpadeando mientras llega el total. */
+  isLoadingTotal?: boolean;
+  /** Reemplaza el input de búsqueda simple (ej. por FacetSearch) y le da todo el ancho libre. */
+  search?: React.ReactNode;
 }
 
 export const PageHeader = ({
@@ -29,6 +33,8 @@ export const PageHeader = ({
   searchPlaceholder = "Buscar...",
   children,
   resetSignal,
+  search,
+  isLoadingTotal = false,
 }: PageHeaderProps) => {
   const [searchInput, setSearchInput] = useState("");
 
@@ -52,8 +58,15 @@ export const PageHeader = ({
         <h1 className="text-xl font-bold text-slate-900 whitespace-nowrap">
           {title}
         </h1>
-        <span className="text-sm font-light text-slate-500 whitespace-nowrap">
-          {(totalRecords ?? 0).toLocaleString("en-US")} registros
+        {/* La pastilla de carga se monta encima del texto (que queda invisible
+            pero ocupando su lugar) para que el header no cambie de ancho. */}
+        <span className="relative text-sm font-light text-slate-500 whitespace-nowrap">
+          <span className={isLoadingTotal ? "invisible" : ""}>
+            {(totalRecords ?? 0).toLocaleString("en-US")} registros
+          </span>
+          {isLoadingTotal && (
+            <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-5 rounded-full bg-slate-200 animate-pulse" />
+          )}
         </span>
         {onRefresh && (
           <button
@@ -68,8 +81,9 @@ export const PageHeader = ({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 min-w-0 justify-start">
-        {!hideSearch && (
+      <div className={`flex flex-wrap items-center gap-3 min-w-0 ${search ? "flex-1 justify-end" : "justify-start"}`}>
+        {search}
+        {!search && !hideSearch && (
         <div className="flex p-1 rounded-lg items-center border border-slate-200 w-[220px] overflow-hidden focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 bg-white transition-all">
           <Search
             className="ml-2 mr-1 flex-shrink-0 text-slate-400"

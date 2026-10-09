@@ -255,6 +255,8 @@ export interface BitacoraTransportistaRecordsParams {
    * Gate temporal mientras la app móvil no soporta este shape (sigue recibiendo
    * la lista plana de siempre si esta key no se manda o es false). */
   pagination?: boolean;
+  /** Filtros del buscador avanzado (panel + chips), ver transportistas_search_fields. */
+  facets?: { key: string; values: string[]; exact?: boolean }[];
 }
 
 export const getBitacoraTransportistaRecords = (
@@ -277,6 +279,7 @@ export const getBitacoraTransportistaRecords = (
     ...(params.skip !== undefined && { skip: params.skip }),
     ...(params.limit !== undefined && { limit: params.limit }),
     ...(params.pagination && { pagination: true }),
+    ...(params.facets?.length && { facets: params.facets }),
   });
 
 export const saveInspeccionesTransportista = (record_id: string, inspecciones: unknown[]) =>

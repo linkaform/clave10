@@ -19,6 +19,9 @@ import { LayoutGrid, LayoutList, Plus, Sheet } from "lucide-react";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { useIncidenciasFilters } from "@/hooks/Incidencias/useIncidenciasFilters";
 import { useFallasFilters } from "@/hooks/Fallas/useFallasFIlter";
+import { FacetSearch } from "@/components/common/FacetSearch";
+import { useFacetSection } from "@/hooks/common/useFacetSection";
+import PaginationPases from "@/components/pages/pases/PaginationPases";
 
 const IncidenciasPage = () => {
   const searchParams = useSearchParams();
@@ -31,8 +34,6 @@ const IncidenciasPage = () => {
   const { selectedLocations } = useSelectedLocationsStore();
   const [areaSeleccionada] = useState("todas");
   const [isSuccessIncidencia, setIsSuccessIncidencia] = useState(false);
-  const [totalRegistros, setTotalRegistros] = useState(0);
-  const [searchQuery, setSearchQuery] = useState<string[]>([]);
 
   const {
     externalFilters: incidenciasFilters,
@@ -57,8 +58,10 @@ const IncidenciasPage = () => {
   const [fallasStatus, setFallasStatus] = useState<string>(filter || "");
   const [date1, setDate1] = useState<Date | "">("");
   const [date2, setDate2] = useState<Date | "">("");
-  const [datePrimera, setDatePrimera] = useState<string>("");
-  const [dateSegunda, setDateSegunda] = useState<string>("");
+  // Fechas viejas de la tabla: las tablas aún piden Filter/resetTableFilters,
+  // pero la fecha que va al back es la del panel (useFacetSection).
+  const [, setDatePrimera] = useState<string>("");
+  const [, setDateSegunda] = useState<string>("");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [modalEliminarMultiAbierto, setModalEliminarMultiAbierto] = useState(false);
@@ -110,40 +113,55 @@ const IncidenciasPage = () => {
     }
   };
 
+  // Buscador avanzado por pestaña: chips + panel comparten filtro y todo se
+  // resuelve en el back, paginado (ver useFacetSection).
+  const inc = useFacetSection({
+    scriptName: "incidencias.py",
+    panel: {
+      externalFilters: incidenciasFilters,
+      onExternalFiltersChange: onIncidenciasFiltersChange,
+      activeFiltersCount: incidenciasFiltersCount,
+    },
+    status: incidenciasEstatus,
+    locations: selectedLocations,
+  });
+  const fal = useFacetSection({
+    scriptName: "fallas.py",
+    panel: {
+      externalFilters: fallasFilters,
+      onExternalFiltersChange: onFallasFiltersChange,
+      activeFiltersCount: fallasFiltersCount,
+    },
+    status: fallasStatus,
+    locations: selectedLocations,
+  });
+
+  const area = areaSeleccionada == "todas" ? "" : areaSeleccionada;
+  // Fallas solo se pide en su pestaña y con ubicaciones (sin ubicación el back
+  // traería las de todas las ubicaciones).
   const { data: dataFallas, isLoading: isLoadingFallas } = useGetFallas(
-    selectedLocations,
-    areaSeleccionada == "todas" ? "" : areaSeleccionada,
-    fallasStatus,
-    datePrimera,
-    dateSegunda,
-    dateFilter,
+    selectedLocations, area, fallasStatus,
+    fal.dateFrom, fal.dateTo, fal.filterDate, fal.paging,
+    selectedTab === "Fallas" && selectedLocations.length > 0,
   );
 
   const { listIncidencias, isLoadingListIncidencias } = useInciencias(
-    selectedLocations,
-    areaSeleccionada == "todas" ? "" : areaSeleccionada,
-    [],
-    datePrimera,
-    dateSegunda,
-    dateFilter,
-    incidenciasEstatus,
+    selectedLocations, area, [],
+    inc.dateFrom, inc.dateTo, inc.filterDate,
+    incidenciasEstatus, inc.paging,
   );
 
   useEffect(() => {
-    if (Array.isArray(dataFallas) && dataFallas.length > 0 && from === "turnos") {
+    if ((dataFallas?.records?.length ?? 0) > 0 && from === "turnos") {
       setFallasStatus(filter);
       setSelectedTab(tab);
       setFrom("");
     }
   }, [dataFallas, fallasStatus, filter, from, selectedTab, setFrom, tab]);
 
-  useEffect(() => {
-    if (selectedTab === "Incidencias") {
-      setTotalRegistros(Array.isArray(listIncidencias) ? listIncidencias.length : 0);
-    } else {
-      setTotalRegistros(Array.isArray(dataFallas) ? dataFallas.length : 0);
-    }
-  }, [selectedTab, listIncidencias, dataFallas]);
+  const current = selectedTab === "Incidencias"
+    ? { section: inc, list: listIncidencias, loading: isLoadingListIncidencias }
+    : { section: fal, list: dataFallas, loading: isLoadingFallas };
 
   const Filter = () => {
     setDatePrimera(dateToString(new Date(date1)));
@@ -168,9 +186,9 @@ const IncidenciasPage = () => {
         <FloatingFiltersDrawer
           isOpen={incidenciasSidebarOpen}
           onOpenChange={setIncidenciasSidebarOpen}
-          activeFiltersCount={incidenciasFiltersCount}
-          filters={incidenciasFilters}
-          onFiltersChange={onIncidenciasFiltersChange}
+          activeFiltersCount={inc.activeFiltersCount}
+          filters={inc.filtersView}
+          onFiltersChange={inc.onFiltersChange}
           filtersConfig={incidenciasFiltersConfig}
           filtroUbicacion={false}
         />
@@ -179,9 +197,9 @@ const IncidenciasPage = () => {
         <FloatingFiltersDrawer
           isOpen={fallasSidebarOpen}
           onOpenChange={setFallasSidebarOpen}
-          activeFiltersCount={fallasFiltersCount}
-          filters={fallasFilters}
-          onFiltersChange={onFallasFiltersChange}
+          activeFiltersCount={fal.activeFiltersCount}
+          filters={fal.filtersView}
+          onFiltersChange={fal.onFiltersChange}
           filtersConfig={fallasFiltersConfig}
           filtroUbicacion={false}
         />
@@ -190,9 +208,19 @@ const IncidenciasPage = () => {
         <div className="p-3 w-full mx-auto">
           <PageHeader
             title={titulo}
-            totalRecords={totalRegistros}
-            onSearch={(val) => setSearchQuery(val ? [val] : [])}
-            searchPlaceholder="Buscar...">
+            totalRecords={current.list?.total_records ?? 0}
+            isLoadingTotal={current.loading}
+            search={
+              <FacetSearch
+                // key: cada pestaña tiene su propio estado de texto/menú.
+                key={selectedTab}
+                fields={current.section.fields}
+                facets={current.section.facets}
+                onChange={current.section.setFacets}
+                fetchCounts={current.section.fetchCounts}
+                placeholder={selectedTab === "Incidencias" ? "Buscar por folio, incidente, lugar..." : "Buscar por folio, falla, lugar..."}
+              />
+            }>
 
             {selectedTab === "Incidencias" && (
               <Button
@@ -259,7 +287,7 @@ const IncidenciasPage = () => {
                   setModalEliminarMultiAbierto={setModalEliminarMultiAbierto}
                   modalEliminarMultiAbierto={modalEliminarMultiAbierto}
                   viewMode={viewMode}
-                  data={listIncidencias}
+                  data={listIncidencias?.records ?? []}
                   isLoading={isLoadingListIncidencias}
                   openModal={() => setIsSuccessIncidencia(true)}
                   setSelectedIncidencias={setSelectedIncidencias}
@@ -268,17 +296,16 @@ const IncidenciasPage = () => {
                   setDateFilter={setDateFilter}
                   Filter={Filter}
                   resetTableFilters={resetTableFilters}
-                  searchTags={searchQuery}
-                  externalFilters={incidenciasFilters}
-                  onExternalFiltersChange={onIncidenciasFiltersChange}
+                  externalFilters={inc.filtersView}
+                  onExternalFiltersChange={inc.onFiltersChange}
                   filtersConfig={incidenciasFiltersConfig}
-                  setTotalRegistros={setTotalRegistros}
                 />
+                <SectionPagination list={listIncidencias} loading={isLoadingListIncidencias} section={inc} />
               </TabsContent>
               <TabsContent value="Fallas">
                 <FallasTable
                   viewMode={viewMode}
-                  data={dataFallas}
+                  data={dataFallas?.records ?? []}
                   isLoading={isLoadingFallas}
                   openModal={() => setIsSuccess(true)}
                   setSelectedFallas={setSelectedFallas}
@@ -291,12 +318,11 @@ const IncidenciasPage = () => {
                   setDateFilter={setDateFilter}
                   Filter={Filter}
                   resetTableFilters={resetTableFilters}
-                  searchTags={searchQuery}
-                  externalFilters={fallasFilters}
-                  onExternalFiltersChange={onFallasFiltersChange}
+                  externalFilters={fal.filtersView}
+                  onExternalFiltersChange={fal.onFiltersChange}
                   filtersConfig={fallasFiltersConfig}
-                  setTotalRegistros={setTotalRegistros}
                 />
+                <SectionPagination list={dataFallas} loading={isLoadingFallas} section={fal} />
               </TabsContent>
             </Tabs>
           </div>
@@ -321,6 +347,29 @@ const IncidenciasPage = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Paginación de una pestaña con el formato paginado del back.
+const SectionPagination = ({
+  list,
+  loading,
+  section,
+}: {
+  list: any;
+  loading: boolean;
+  section: { paging: { limit: number }; onPageChange: (skip: number, limit: number) => void };
+}) => {
+  if (loading || !list) return null;
+  return (
+    <PaginationPases
+      actual_page={list.actual_page ?? 1}
+      records_on_page={list.records_on_page ?? 0}
+      total_pages={list.total_pages ?? 1}
+      total_records={list.total_records ?? 0}
+      limit={section.paging.limit}
+      onPageChange={section.onPageChange}
+    />
   );
 };
 

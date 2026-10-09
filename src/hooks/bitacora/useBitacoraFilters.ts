@@ -5,6 +5,7 @@ import { getBitacoraFilters } from "@/services/endpoints";
 import { useFilters } from "./useFilters";
 import { dateToString } from "@/lib/utils";
 import { useQueryParams } from "@/hooks/useQueryParams";
+import { SearchFacet } from "@/components/common/FacetSearch";
 
 export const useBitacoraFilters = () => {
   const { filter, option } = useShiftStore();
@@ -79,6 +80,13 @@ export const useBitacoraFilters = () => {
     pageIndex: 0,
     pageSize: 100,
   });
+  // Búsquedas de texto del buscador avanzado; los filtros exactos viven en dynamicFilters.
+  const [textFacets, setTextFacets] = useState<SearchFacet[]>([]);
+
+  // Cambiar búsqueda, filtros, fecha o ubicación regresa a la primera página.
+  useEffect(() => {
+    setPagination((p) => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }));
+  }, [textFacets, dynamicFilters, dateFilter, date1, date2, selectedLocations]);
 
   // Configuración de filtros desde API
   const { filters: bitacoraFilters, loadingFilters } = useFilters({
@@ -110,6 +118,7 @@ export const useBitacoraFilters = () => {
     selectedLocation: ubicacionSeleccionada,
     selectedOptions: selectedOption,
     startDate: date1,
+    textFacets,
 
     // Setters
     setActiveDateFilter: setDateFilter,
@@ -122,6 +131,7 @@ export const useBitacoraFilters = () => {
     setSelectedLocation: setUbicacionSeleccionada,
     setSelectedOptions: setSelectedOption,
     setStartDate: setDate1,
+    setTextFacets,
   };
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,10 +38,10 @@ import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersP
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import TransportistasTable from "@/components/table/transportistas/table";
 import PaginationTransportistas from "@/components/pages/transportistas/PaginationTransportistas";
-import {
-  useTransportistaFilters,
-  applyTransportistaFilters,
-} from "@/hooks/transportistas/useTransportistaFilters";
+import { useTransportistaFilters } from "@/hooks/transportistas/useTransportistaFilters";
+import { FacetSearch, SearchCandidate, SearchFacet } from "@/components/common/FacetSearch";
+import { useFacetSection } from "@/hooks/common/useFacetSection";
+import { runScript } from "@/lib/facet-search";
 import { useConfigFlujoTransportista } from "@/hooks/transportistas/useConfigFlujoTransportista";
 import useAuthStore from "@/store/useAuthStore";
 import { useBoothStore } from "@/store/useBoothStore";
@@ -339,9 +339,11 @@ function KanbanColumn({
 
 // ─── Página principal ────────────────────────────────────────────────────────
 
+// Transportistas no filtra por ubicación.
+const NO_LOCATIONS: string[] = [];
+
 export default function BitacorasTransportistasPage() {
   const [fecha, setFecha] = useState(todayIso());
-  const [search, setSearch] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const [modalNuevoOpen, setModalNuevoOpen] = useState(false);
   const [modalLlegadaOpen, setModalLlegadaOpen] = useState(false);
@@ -361,8 +363,30 @@ export default function BitacorasTransportistasPage() {
     isSidebarOpen,
     setIsSidebarOpen,
     dateRange,
-    serverFilters,
   } = useTransportistaFilters();
+
+  // Buscador avanzado: panel y chips comparten filtro y todo se resuelve en el
+  // back, también en el Kanban (ver transportistas_search_fields). La fecha es
+  // el rango que ya resuelve el panel (dateRange), por eso los conteos van aparte.
+  const section = useFacetSection({
+    scriptName: "transportistas.py",
+    panel: { externalFilters, onExternalFiltersChange, activeFiltersCount },
+    status: "",
+    locations: NO_LOCATIONS,
+  });
+  const fetchCounts = useCallback(
+    async (facets: SearchFacet[], candidates: SearchCandidate[]) => {
+      const res = await runScript("transportistas.py", {
+        option: "get_search_counts",
+        date_from: dateRange.date_from,
+        date_to: dateRange.date_to,
+        facets,
+        candidates,
+      });
+      return (res?.response?.data ?? []) as number[];
+    },
+    [dateRange.date_from, dateRange.date_to],
+  );
 
   // Actualiza el reloj cada minuto para refrescar los tiempos en etapa
   useEffect(() => {
@@ -385,24 +409,10 @@ export default function BitacorasTransportistasPage() {
   const { data: records, pagination, isLoading } = useGetBitacoraTransportistaRecords(fecha, {
     date_from: dateRange.date_from,
     date_to: dateRange.date_to,
-    tipo_de_vehiculo: serverFilters.tipo_de_vehiculo,
-    proveedor_cliente: serverFilters.proveedor_cliente,
-    anden_asignado: serverFilters.anden_asignado,
-    // El Kanban trae siempre el dataset completo del día (sin paginar ni filtrar en
-    // servidor) porque necesita agrupar/contar TODOS los registros por estatus.
-    // Tabla/Lista/Grid sí paginan y filtran en servidor, igual que Pases de Entrada.
-    ...(isKanban
-      ? {}
-      : {
-          pagination: true,
-          skip,
-          limit,
-          search: search || undefined,
-          estatus: serverFilters.estatus,
-          tipo_de_operacion: serverFilters.tipo_de_operacion,
-          conductor: serverFilters.conductor,
-          material: serverFilters.material,
-        }),
+    facets: section.facets,
+    // El Kanban no pagina porque agrupa/cuenta TODOS los registros por estatus;
+    // Tabla/Lista/Grid sí paginan. En los dos, el filtrado es en el servidor.
+    ...(isKanban ? {} : { pagination: true, skip, limit }),
   });
 
   // Oculta del kanban las columnas de etapas desactivadas para esta cuenta, y las que
@@ -430,27 +440,15 @@ export default function BitacorasTransportistasPage() {
   // para no quedar "colgado" en una página fuera de rango.
   useEffect(() => {
     setSkip(0);
-  }, [fecha, dateRange.date_from, dateRange.date_to, JSON.stringify(serverFilters), search, viewMode]);
+  }, [fecha, dateRange.date_from, dateRange.date_to, section.facets, viewMode]);
 
   const handlePageChange = (newSkip: number, newLimit: number) => {
     setSkip(newSkip);
     setLimit(newLimit);
   };
 
-  // Kanban: filtra client-side sobre el dataset completo del día (comportamiento sin cambios).
-  // Tabla/Lista/Grid: `records` ya viene filtrado y paginado desde el servidor.
-  const searchFiltered = records.filter((r) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      r.folio?.toLowerCase().includes(q) ||
-      r.placas?.toLowerCase().includes(q) ||
-      r.conductor?.toLowerCase().includes(q) ||
-      r.proveedor_cliente?.toLowerCase().includes(q)
-    );
-  });
-
-  const filtered = isKanban ? applyTransportistaFilters(searchFiltered, externalFilters) : records;
+  // `records` ya viene filtrado desde el servidor (y paginado fuera del Kanban).
+  const filtered = records;
 
   const byEstatus = (key: string) => filtered.filter((r) => r.estatus === key);
 
@@ -489,8 +487,15 @@ export default function BitacorasTransportistasPage() {
         <PageHeader
           title="Bitácoras Transportistas"
           totalRecords={isKanban ? records.length : pagination.total_records}
-          onSearch={(val) => setSearch(val)}
-          searchPlaceholder="Buscar folio, placas, chofer..."
+          search={
+            <FacetSearch
+              fields={section.fields}
+              facets={section.facets}
+              onChange={section.setFacets}
+              fetchCounts={fetchCounts}
+              placeholder="Buscar por folio, placas, conductor..."
+            />
+          }
         >
           {/* Leyenda tiempo en etapa — solo en kanban */}
           {viewMode === "kanban" && (
@@ -553,9 +558,9 @@ export default function BitacorasTransportistasPage() {
         <FloatingFiltersDrawer
           isOpen={isSidebarOpen}
           onOpenChange={setIsSidebarOpen}
-          activeFiltersCount={activeFiltersCount}
-          filters={externalFilters}
-          onFiltersChange={onExternalFiltersChange}
+          activeFiltersCount={section.activeFiltersCount}
+          filters={section.filtersView}
+          onFiltersChange={section.onFiltersChange}
           filtersConfig={filtersConfig}
           filtroUbicacion={false}
         />
@@ -601,8 +606,8 @@ export default function BitacorasTransportistasPage() {
         <div className="flex gap-4 items-start p-4">
           <aside className="w-72 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[72px] shadow-sm max-h-[calc(100vh-100px)] overflow-y-auto">
             <FiltersPanel
-              filters={externalFilters}
-              onFiltersChange={onExternalFiltersChange}
+              filters={section.filtersView}
+              onFiltersChange={section.onFiltersChange}
               filtersConfig={filtersConfig}
               filtroUbicacion={false}
             />
@@ -613,9 +618,8 @@ export default function BitacorasTransportistasPage() {
               <PhotoListView
                 isLoading={isLoading}
                 records={listRecords as any}
-                globalSearch={search ? [search] : []}
-                externalFilters={externalFilters}
-                onExternalFiltersChange={onExternalFiltersChange}
+                externalFilters={section.filtersView}
+                onExternalFiltersChange={section.onFiltersChange}
                 modalActions={(record) => {
                   if (!record) return null;
                   return (
@@ -632,9 +636,8 @@ export default function BitacorasTransportistasPage() {
               <PhotoGridView
                 isLoading={isLoading}
                 records={gridRecords}
-                globalSearch={search ? [search] : []}
-                externalFilters={externalFilters}
-                onExternalFiltersChange={onExternalFiltersChange}
+                externalFilters={section.filtersView}
+                onExternalFiltersChange={section.onFiltersChange}
                 modalActions={(record) => {
                   if (!record) return null;
                   return (

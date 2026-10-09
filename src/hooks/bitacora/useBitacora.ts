@@ -6,6 +6,7 @@ import {
 import { useBitacoraModals } from "./useBitacoraModals";
 import { useBitacoraData } from "./useBitacoraData";
 import { useBitacoraActions } from "./useBitacoraActions";
+import { useBitacoraSearch } from "./useBitacoraSearch";
 
 export const useBitacora = () => {
   const [viewMode, setViewMode] = useState<"table" | "photos" | "list">(
@@ -18,6 +19,7 @@ export const useBitacora = () => {
     ...filters,
   });
   const actions = useBitacoraActions();
+  const search = useBitacoraSearch(filters);
 
   // Lógica extra para el Drawer de filtros externos
   const extraFilters = useBitacoraFiltersExtra(filters);
@@ -42,6 +44,7 @@ export const useBitacora = () => {
     ...data,
     ...actions,
     ...extraFilters,
+    ...search,
 
     // Vista local
     viewMode,

@@ -1,5 +1,6 @@
 "use client";
 
+import { ListCardSkeletons } from "@/components/common/RecordSkeletons";
 import { useState, useMemo, useEffect } from "react";
 import { ImageIcon } from "lucide-react";
 import { PhotoListCard } from "./PhotoListCard";
@@ -34,11 +35,14 @@ export default function PhotoListView({
   globalSearch = [],
   getMapData,
   modalType = "normal",
-  modalActions
+  modalActions,
+  skeleton = false,
 }: Omit<
   PhotoListViewProps,
   "filtersConfig" | "hideSidebar" | "renderCustomActions"
 > & {
+  /** Al cargar muestra tarjetas fantasma en vez del spinner. */
+  skeleton?: boolean;
   globalSearch?: string[];
   selectionActions?:
     | React.ReactNode
@@ -149,7 +153,7 @@ export default function PhotoListView({
             <div>
               <div className={"space-y-4w-full"}>
                 {isLoading ? (
-                 <CustomSpinner />
+                 skeleton ? <ListCardSkeletons /> : <CustomSpinner />
                 ) : filteredRecords.length > 0 ? (
                   filteredRecords.map((record) => (
                     <PhotoListCard

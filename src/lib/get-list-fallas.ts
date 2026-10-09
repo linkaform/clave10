@@ -1,8 +1,9 @@
 import { API_ENDPOINTS } from "@/config/api";
 import { getValidToken } from "./login/get-valid-token";
+import { facetListPayload, FacetListParams } from "./facet-search";
 
 export const getListFallas = async (
-    location:string | string[], area:string,status:string,  dateFrom:string, dateTo:string, filterDate:string) => {
+    location:string | string[], area:string,status:string,  dateFrom:string, dateTo:string, filterDate:string, paging?: FacetListParams) => {
     const payload = {
         dateFrom, 
         dateTo, 
@@ -10,6 +11,8 @@ export const getListFallas = async (
         area:area,
         location: location,
         status:status,
+        // Con paging: listado paginado + filtros del buscador (ver facet-search).
+        ...facetListPayload(paging),
         option: "get_failures",
         script_name: "fallas.py",
     };

@@ -1,18 +1,20 @@
-import { crearIncidenciaRondin, getListIncidenciasRondin } from "@/lib/create-incidencia-rondin";
+import { crearIncidenciaRondin, getListIncidenciasRondin, IncidenciasRondinSearch } from "@/lib/create-incidencia-rondin";
 import { useShiftStore } from "@/store/useShiftStore";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export const useIncidenciaRondin = (location:string, area:string) => {
+// Con search: {records, total_records...} paginado por incidencia; sin él, la lista de siempre.
+export const useIncidenciaRondin = (location:string, area:string, search?: IncidenciasRondinSearch) => {
 
     const queryClient = useQueryClient();
     const {isLoading, setLoading} = useShiftStore();
         
-    const {data: listIncidenciasRondin, isLoading:isLoadingListIncidencias} = useQuery<any>({
-        queryKey: ["getListIncidenciasRondin",location, area],
+    const {data: listIncidenciasRondin, isLoading:isLoadingQuery, isFetching, isPlaceholderData} = useQuery<any>({
+        queryKey: ["getListIncidenciasRondin",location, area, search],
+        placeholderData: keepPreviousData,
         refetchOnWindowFocus: false,
         queryFn: async () => {
-            const data = await getListIncidenciasRondin(location, area);
+            const data = await getListIncidenciasRondin(location, area, search);
             return data?.response?.data; 
         },
     });
@@ -50,7 +52,8 @@ export const useIncidenciaRondin = (location:string, area:string) => {
     return{
         playOrPauseRondinMutation,
         isLoading,
-        isLoadingListIncidencias,
+        // Cargando = datos nuevos (cambió búsqueda, filtro o página).
+        isLoadingListIncidencias: isLoadingQuery || (isFetching && isPlaceholderData),
         listIncidenciasRondin
     }
 }

@@ -11,95 +11,9 @@ export type PaqueteriaExternalFilters = {
   date2?: Date | "";
 };
 
-export function applyPaqueteriaFilters(data: any[], filters: PaqueteriaExternalFilters): any[] {
-  if (!data?.length) return [];
-
-  const dynamic = filters.dynamic || {};
-  const dateFilter = filters.dateFilter || "";
-  const date1 = filters.date1;
-  const date2 = filters.date2;
-
-  const hasActiveFilters =
-    Object.values(dynamic).some((v) => Array.isArray(v) ? v.length > 0 : Boolean(v)) ||
-    (dateFilter && dateFilter !== "");
-
-  if (!hasActiveFilters) return data;
-
-  const normalize = (text: any) =>
-    String(text ?? "").toLowerCase().normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").trim();
-
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  return data.filter((item) => {
-    if (dynamic.estatus_paqueteria) {
-      const filter = Array.isArray(dynamic.estatus_paqueteria) ? dynamic.estatus_paqueteria : [dynamic.estatus_paqueteria];
-      if (!filter.some((f: string) => normalize(f) === normalize(item.estatus_paqueteria || ""))) return false;
-    }
-
-    if (dynamic.proveedor) {
-      const filter = Array.isArray(dynamic.proveedor) ? dynamic.proveedor : [dynamic.proveedor];
-      if (!filter.some((f: string) => normalize(f) === normalize(item.proveedor || ""))) return false;
-    }
-
-    if (dynamic.area_paqueteria) {
-      const filter = Array.isArray(dynamic.area_paqueteria) ? dynamic.area_paqueteria : [dynamic.area_paqueteria];
-      if (!filter.some((f: string) => normalize(f) === normalize(item.area_paqueteria || ""))) return false;
-    }
-
-    if (dynamic.quien_recibe_paqueteria) {
-      const filter = Array.isArray(dynamic.quien_recibe_paqueteria) ? dynamic.quien_recibe_paqueteria : [dynamic.quien_recibe_paqueteria];
-      if (!filter.some((f: string) => normalize(f) === normalize(item.quien_recibe_paqueteria || ""))) return false;
-    }
-    if (dynamic.locker) {
-      const filter = Array.isArray(dynamic.locker) ? dynamic.locker : [dynamic.locker];
-      if (!filter.some((f: string) => normalize(f) === normalize(item.guardado_en_paqueteria || ""))) return false;
-    }
-    if (dateFilter && dateFilter !== "" && dateFilter !== "all_records") {
-      const rawFecha = item.fecha_recibido_paqueteria;
-      if (!rawFecha) return false;
-      const itemDate = new Date(rawFecha.replace(" ", "T"));
-
-      if (dateFilter === "today") {
-        if (itemDate < startOfToday || itemDate >= new Date(startOfToday.getTime() + 86400000)) return false;
-      } else if (dateFilter === "yesterday") {
-        const startOfYesterday = new Date(startOfToday.getTime() - 86400000);
-        if (itemDate < startOfYesterday || itemDate >= startOfToday) return false;
-      } else if (dateFilter === "this_week") {
-        const startOfWeek = new Date(startOfToday);
-        startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
-        if (itemDate < startOfWeek || itemDate > now) return false;
-      } else if (dateFilter === "last_week") {
-        const startOfThisWeek = new Date(startOfToday);
-        startOfThisWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
-        const startOfLastWeek = new Date(startOfThisWeek.getTime() - 7 * 86400000);
-        if (itemDate < startOfLastWeek || itemDate >= startOfThisWeek) return false;
-      } else if (dateFilter === "last_fifteen_days") {
-        const fifteenDaysAgo = new Date(now.getTime() - 15 * 86400000);
-        if (itemDate < fifteenDaysAgo || itemDate > now) return false;
-      } else if (dateFilter === "this_month") {
-        if (itemDate < startOfMonth || itemDate > now) return false;
-      } else if (dateFilter === "last_month") {
-        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        if (itemDate < startOfLastMonth || itemDate >= endOfLastMonth) return false;
-      } else if (dateFilter === "this_year") {
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        if (itemDate < startOfYear || itemDate > now) return false;
-      } else if (dateFilter === "range" && date1 && date2) {
-        const from = new Date(date1);
-        const to = new Date(date2);
-        to.setHours(23, 59, 59, 999);
-        if (itemDate < from || itemDate > to) return false;
-      }
-    }
-
-    return true;
-  });
-}
-
+// Este hook solo guarda el estado del panel. Los filtros "dynamic" se
+// manejan como facets del buscador (useFacetSection) y la fecha va en la
+// petición; todo se resuelve en el back.
 export function usePaqueteriaFilters() {
     const [dynamicFilters, setDynamicFilters] = useState<Record<string, any>>({});
     const [date1, setDate1] = useState<Date | "">("");

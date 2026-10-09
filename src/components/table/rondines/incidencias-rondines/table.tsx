@@ -9,7 +9,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -33,8 +32,8 @@ import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { useIncidenciaRondin } from "@/hooks/Rondines/useRondinIncidencia";
-import { applyIncidenciasFilters } from "@/hooks/Rondines/incidencias/useIncidenciasFilters ";
-import { CustomSpinner } from "@/components/custom-spinner";
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
+import { IncidenciasRondinSearch } from "@/lib/create-incidencia-rondin";
 
 interface ListProps {
   showTabs: boolean;
@@ -56,6 +55,8 @@ interface ListProps {
   filtersConfig?: any[];
   setTotalRegistros: React.Dispatch<React.SetStateAction<number | 0>>;
   searchTags?: string[];
+  /** Buscador avanzado: filtros y ubicaciones que se resuelven en el back. */
+  search?: Omit<IncidenciasRondinSearch, "limit" | "skip">;
 }
 
 export const incidenciasColumnsCSV = [
@@ -67,6 +68,8 @@ export const incidenciasColumnsCSV = [
   { label: 'Reporta', key: 'reporta_incidencia' },
 ];
 
+const INCIDENCIAS_POR_PAGINA = 25;
+
 const IncidenciasRondinesTable: React.FC<ListProps> = ({
   openModal,
   setOpenModal,
@@ -77,9 +80,19 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
   onExternalFiltersChange:onExternalFiltersChangeProp,
   filtersConfig:filtersConfigProp,
   setTotalRegistros,
-  searchTags:searchTagsProp,
+  search,
 }) => {
-  const { listIncidenciasRondin, isLoadingListIncidencias } = useIncidenciaRondin("", "");
+  // Paginación en servidor, por incidencia.
+  const [paginaServidor, setPaginaServidor] = React.useState(0);
+  const searchKey = JSON.stringify(search ?? null);
+  useEffect(() => { setPaginaServidor(0); }, [searchKey]);
+  const pageSearch = useMemo(
+    () => (search ? { ...search, limit: INCIDENCIAS_POR_PAGINA, skip: paginaServidor * INCIDENCIAS_POR_PAGINA } : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [searchKey, paginaServidor],
+  );
+  const { listIncidenciasRondin, isLoadingListIncidencias } = useIncidenciaRondin("", "", pageSearch);
+  const totalIncidencias: number = listIncidenciasRondin?.total_records ?? 0;
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
@@ -94,8 +107,6 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
   const [seguimientoSeleccionado] = useState(null);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
-  const [globalFilter, setGlobalFilter] = React.useState("");
   
   const externalFilters = useMemo(
     () => externalFiltersProp ?? { dynamic: {}, dateFilter: "" },
@@ -103,13 +114,10 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
   );
   const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
   const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
-  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   useEffect(() => {
-    if (Array.isArray(listIncidenciasRondin)) {
-      setTotalRegistros(listIncidenciasRondin.length);
-    }
-  }, [listIncidenciasRondin, setTotalRegistros]);
+    setTotalRegistros(totalIncidencias);
+  }, [totalIncidencias, setTotalRegistros]);
 
   const handleEliminar = (incidencia: Incidencia_record) => {
     setIncidenciaSeleccionada(incidencia);
@@ -133,62 +141,24 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
     []
   );
 
-  useEffect(() => {
-    if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join("|"));
-    } else {
-      setGlobalFilter("");
-    }
-  }, [searchTags]);
-
-  const memoizedData = useMemo(() => listIncidenciasRondin || [], [listIncidenciasRondin]);
-
-  const filteredData = useMemo(() => {
-    return applyIncidenciasFilters(memoizedData, externalFilters);
-  }, [memoizedData, externalFilters]);
+  const memoizedData = useMemo(
+    () => (Array.isArray(listIncidenciasRondin?.records) ? listIncidenciasRondin.records : []),
+    [listIncidenciasRondin],
+  );
+  // Búsqueda, filtros y paginación ya vienen resueltos del back.
+  const filteredData = memoizedData;
   
   const table = useReactTable({
     data: filteredData??[],
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
-    globalFilterFn: (row, _columnId, filterValue: string) => {
-      if (!filterValue) return true;
-      const normalize = (str: string) =>
-        str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    
-      console.log("filterValue raw:", filterValue); // ← temporal
-    
-      const tags = filterValue.split("|").filter(Boolean).map(normalize);
-    
-      console.log("tags normalizados:", tags); // ← temporal
-    
-      const raw = row.original as any;
-      const allValues = normalize([
-        raw?.folio || "",
-        raw?.incidente || "",
-        raw?.categoria || "",
-        raw?.subcategoria || "",
-        raw?.area_incidente || "",
-        raw?.ubicacion_incidente || "",
-        raw?.comentarios || "",
-        raw?.nombre_del_recorrido || "",
-        raw?.accion_tomada || "",
-      ].join(" "));
-    
-      console.log("allValues sample:", allValues.substring(0, 100)); // ← temporal
-    
-      return tags.some((tag) => allValues.includes(tag));
-    },
-    state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
+    state: { sorting, columnFilters, columnVisibility, rowSelection },
   });
 
   React.useEffect(() => {
@@ -199,9 +169,6 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
     }
   }, [table.getFilteredSelectedRowModel().rows]);
 
-  useEffect(() => {
-    setTotalRegistros(filteredData.length);
-  }, [filteredData, setTotalRegistros]);
 
   const photoListRecords: ListRecord[] = useMemo(() => {
     return filteredData.map((item: any, index: number) =>
@@ -332,7 +299,9 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
                     ))}
                   </TableHeader>
                   <TableBody>
-                    {table.getRowModel().rows?.length ? (
+                    {isLoadingListIncidencias ? (
+                      <TableRowSkeletons columns={table.getVisibleFlatColumns().length} />
+                    ) : table.getRowModel().rows?.length ? (
                       table.getRowModel().rows.map((row) => (
                         <TableRow
                           key={row.id}
@@ -351,11 +320,7 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
                     ) : (
                       <TableRow>
                         <TableCell colSpan={table.getVisibleFlatColumns().length} className="h-32 text-center">
-                          {isLoadingListIncidencias ? (
-                           <CustomSpinner/>
-                          ) : (
-                            <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
-                          )}
+                          <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
                         </TableCell>
                       </TableRow>
                     )}
@@ -371,10 +336,10 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
                   </div>
                 )}
                 <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+                  <Button variant="outline" size="sm" onClick={() => setPaginaServidor((p) => Math.max(0, p - 1))} disabled={paginaServidor === 0 || isLoadingListIncidencias}>
                     Anterior
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+                  <Button variant="outline" size="sm" onClick={() => setPaginaServidor((p) => p + 1)} disabled={(paginaServidor + 1) * INCIDENCIAS_POR_PAGINA >= totalIncidencias || isLoadingListIncidencias}>
                     Siguiente
                   </Button>
                 </div>
@@ -383,8 +348,8 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
           ) : viewMode === "photos" ? (
             <PhotoGridView
               isLoading={isLoadingListIncidencias}
+              skeleton
               records={photoRecords}
-              globalSearch={[globalFilter]}
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}
               showStatusBadge = {false} >
               {renderActions}
@@ -392,8 +357,8 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
           ) : (
             <PhotoListView
               isLoading={isLoadingListIncidencias}
+              skeleton
               records={photoListRecords}
-              globalSearch={[globalFilter]}
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
               {renderActions}
             </PhotoListView>

@@ -2,19 +2,23 @@ import { getStats } from "@/lib/get-stats";
 import { crearPaqueteria, editarPaqueteria, getListPaqueteria, InputPaqueteria, InputPaqueteriaDevolver, NotificacionPaquete } from "@/lib/paqueteria";
 import { errorMsj } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FacetListParams } from "@/lib/facet-search";
 import { toast } from "sonner";
 
-export const usePaqueteria = (location:string, area:string, status:string, enableList:boolean, date1:string, date2:string, filterDate:string) => {
+// Con paging, el listado viene paginado del back ({records, total_records...})
+// y con los filtros del buscador; sin paging, la lista de antes.
+export const usePaqueteria = (location:string, area:string, status:string, enableList:boolean, date1:string, date2:string, filterDate:string, paging?: FacetListParams) => {
     const queryClient = useQueryClient();
     const {isLoading, setLoading} = useShiftStore();
 
     //Obtener lista de Paquetes
-    const {data: listPaqueteria ,isLoading:isLoadingListPaqueteria , error:errorListPaqueteria } = useQuery<any>({
-        queryKey: ["getListPaqueteria", location, area , status, date1, date2, filterDate],
+    const {data: listPaqueteria, isLoading:isLoadingQuery, isFetching, isPlaceholderData, error:errorListPaqueteria } = useQuery<any>({
+        queryKey: ["getListPaqueteria", location, area , status, date1, date2, filterDate, paging],
         enabled:enableList,
+        placeholderData: keepPreviousData,
         queryFn: async () => {
-            const data = await getListPaqueteria(location, status, area, date1, date2, filterDate);
+            const data = await getListPaqueteria(location, status, area, date1, date2, filterDate, paging);
             const textMsj = errorMsj(data) 
             if (textMsj){
               toast.error(`Error al obtener lista de paquetes, Error: ${data.error}`);
@@ -139,7 +143,9 @@ export const usePaqueteria = (location:string, area:string, status:string, enabl
     return{
         //Lista de Paquetes
         listPaqueteria,
-        isLoadingListPaqueteria,
+        // Cargando = datos nuevos (cambió búsqueda, filtro o página); los refetch
+        // de fondo de la misma consulta no tapan la vista con el esqueleto.
+        isLoadingListPaqueteria: isLoadingQuery || (isFetching && isPlaceholderData),
         errorListPaqueteria,
         //Crear Paquetes
         createPaqueteriaMutation,

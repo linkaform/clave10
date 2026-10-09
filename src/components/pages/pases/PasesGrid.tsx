@@ -19,6 +19,7 @@ export default function PasesGrid({ pases, isLoading }: PasesGridProps) {
   return (
     <PhotoGridView
       isLoading={isLoading}
+      skeleton
       records={records}
     />
   );

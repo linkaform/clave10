@@ -11,6 +11,8 @@ interface FloatingFiltersDrawerProps extends FiltersPanelProps {
   onOpenChange: (open: boolean) => void;
   activeFiltersCount: number;
   filtroUbicacion?:boolean
+  /** Muestra el botón solo debajo de lg, donde se oculta el panel lateral fijo. */
+  onlyBelowLg?: boolean;
 }
 
 export function FloatingFiltersDrawer({
@@ -22,7 +24,8 @@ export function FloatingFiltersDrawer({
   filtersConfig,
   stats,
   filtroUbicacion = false,
-  hideFecha = false
+  hideFecha = false,
+  onlyBelowLg = false,
 }: FloatingFiltersDrawerProps) {
   useEffect(() => {
     if (isOpen) {
@@ -39,7 +42,7 @@ export function FloatingFiltersDrawer({
     <>
       {/* Botón flotante lateral izquierdo*/}
       {!isOpen && (
-        <div className="fixed -left-2 top-1/2 -translate-y-1/2 z-[45]">
+        <div className={`fixed -left-2 top-1/2 -translate-y-1/2 z-[45] ${onlyBelowLg ? "lg:hidden" : ""}`}>
           <Button
             onClick={() => onOpenChange(true)}
             className="h-14 w-14 rounded-full rounded-l-none shadow-2xl bg-[#3B83F7] hover:bg-[#3B83F7] text-white p-0 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-none"
@@ -57,7 +60,7 @@ export function FloatingFiltersDrawer({
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] lg:flex hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex"
           onClick={() => onOpenChange(false)}
         />
       )}
@@ -65,8 +68,8 @@ export function FloatingFiltersDrawer({
       {/* Drawer */}
       <aside
         className={`${
-          isOpen ? "translate-x-0 w-80" : "-translate-x-full w-0 invisible"
-        } fixed left-0 top-0 h-full z-[101] hidden lg:flex shrink-0 flex-col border-r border-border bg-card shadow-2xl transition-all duration-300 ease-in-out`}>
+          isOpen ? "translate-x-0 w-80 max-w-[85vw]" : "-translate-x-full w-0 invisible"
+        } fixed left-0 top-0 h-full z-[101] flex shrink-0 flex-col border-r border-border bg-card shadow-2xl transition-all duration-300 ease-in-out`}>
         <div className="flex-1 overflow-y-auto">
           <div className="p-6">
             <FiltersPanel

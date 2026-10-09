@@ -2,6 +2,7 @@ import { Bitacora_record } from "@/components/table/bitacoras/bitacoras-columns"
 import { getListBitacora } from "@/lib/bitacoras";
 import { errorMsj } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { SearchFacet } from "@/components/common/FacetSearch";
 
 export interface Data {
   total_records: number;
@@ -22,6 +23,7 @@ export const useBitacoras = (
   dynamicFilters?: { key: string; value: string }[],
   limit: number = 20,
   offset: number = 0,
+  facets: SearchFacet[] = [],
 ) => {
   const {
     data: listBitacoras,
@@ -40,6 +42,7 @@ export const useBitacoras = (
       dynamicFilters,
       limit,
       offset,
+      facets,
     ],
     enabled: enableList,
     refetchInterval: 60000,
@@ -55,6 +58,7 @@ export const useBitacoras = (
         dynamicFilters,
         limit,
         offset,
+        facets,
       );
       const textMsj = errorMsj(data);
       if (textMsj) {

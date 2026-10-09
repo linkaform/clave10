@@ -5,9 +5,8 @@ import * as React from "react";
 import {
   ColumnFiltersState, SortingState, VisibilityState,
   flexRender, getCoreRowModel, getFilteredRowModel,
-  getPaginationRowModel, getSortedRowModel, useReactTable,
+  getSortedRowModel, useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { Articulo_perdido_record, pendientesColumns } from "./pendientes-columns";
 import { useEffect, useMemo } from "react";
@@ -17,8 +16,7 @@ import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
-import { CustomSpinner } from "@/components/custom-spinner";
-import { applyArticulosPerdidosFilters } from "@/hooks/Perdidos/usePerdidosFilters";
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import { PerdidosActionButtons } from "@/components/Bitacoras/Perdidos/customActions";
 import { SortableTableHead } from "@/components/table/SortableTableHead";
 
@@ -49,17 +47,14 @@ const ArticulosPerdidosTable: React.FC<ListProps> = ({
   isLoadingListArticulosPerdidos,
   setSelectedArticulos,
   viewMode,
-  searchTags: searchTagsProp,
   filtersConfig: filtersConfigProp,
   externalFilters: externalFiltersProp,
   onExternalFiltersChange: onExternalFiltersChangeProp,
-  setTotalRegistros,
 }) => {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 23 });
   const [globalFilter, setGlobalFilter] = React.useState("");
 
   const externalFilters = useMemo(
@@ -68,25 +63,11 @@ const ArticulosPerdidosTable: React.FC<ListProps> = ({
   );
   const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
   const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
-  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   const memoizedData = useMemo(() => data || [], [data]);
 
-  const filteredData = useMemo(() => {
-    return applyArticulosPerdidosFilters(memoizedData, externalFilters ?? { dynamic: {} });
-  }, [memoizedData, externalFilters]);
-
-  React.useEffect(() => {
-    if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join("|"));
-    } else {
-      setGlobalFilter("");
-    }
-  }, [searchTags]);
-
-  useEffect(() => {
-    setTotalRegistros?.(filteredData.length);
-  }, [filteredData, setTotalRegistros]);
+  // Búsqueda, filtros y paginación ya vienen resueltos del back (getListArticulosPerdidos).
+  const filteredData = memoizedData;
 
   const columns = useMemo(() => (isLoadingListArticulosPerdidos ? [] : pendientesColumns), [isLoadingListArticulosPerdidos]);
 
@@ -97,12 +78,10 @@ const ArticulosPerdidosTable: React.FC<ListProps> = ({
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
     globalFilterFn: (row, _columnId, filterValue: string) => {
       if (!filterValue) return true;
       const normalize = (str: string) =>
@@ -114,7 +93,7 @@ const ArticulosPerdidosTable: React.FC<ListProps> = ({
         .join(" ");
       return tags.some((tag) => allValues.includes(tag));
     },
-    state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
+    state: { sorting, columnFilters, columnVisibility, rowSelection, globalFilter },
   });
 
   useEffect(() => {
@@ -171,7 +150,9 @@ const ArticulosPerdidosTable: React.FC<ListProps> = ({
                 ))}
               </TableHeader>
               <TableBody>
-                {table.getRowModel().rows?.length ? (
+                {isLoadingListArticulosPerdidos ? (
+                  <TableRowSkeletons columns={pendientesColumns.length} />
+                ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow
                       key={row.id}
@@ -189,11 +170,7 @@ const ArticulosPerdidosTable: React.FC<ListProps> = ({
                 ) : (
                       <TableRow>
                         <TableCell colSpan={pendientesColumns.length} className="h-24 text-center">
-                          {isLoadingListArticulosPerdidos ? (
-                            <CustomSpinner />
-                          ) : (
-                            <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
-                          )}
+                          <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
                         </TableCell>
                       </TableRow>
                     )}
@@ -207,10 +184,6 @@ const ArticulosPerdidosTable: React.FC<ListProps> = ({
                     {table.getFilteredRowModel().rows.length} items seleccionados.
                   </div>
                 )}
-                <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Anterior</Button>
-                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Siguiente</Button>
-                </div>
               </div>
             </>
           )}
@@ -218,8 +191,8 @@ const ArticulosPerdidosTable: React.FC<ListProps> = ({
           {viewMode === "photos" && (
             <PhotoGridView
               isLoading={isLoadingListArticulosPerdidos}
+              skeleton
               records={perdidoPhotoRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalActions={(record) => {
@@ -236,8 +209,8 @@ const ArticulosPerdidosTable: React.FC<ListProps> = ({
           {viewMode === "list" && (
             <PhotoListView
               isLoading={isLoadingListArticulosPerdidos}
+              skeleton
               records={perdidoListRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
             >

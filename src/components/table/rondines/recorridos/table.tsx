@@ -8,7 +8,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -36,9 +35,9 @@ import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
 // import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 // import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { useGetListRecorridos } from "@/hooks/Rondines/useGetListRecorridos";
-import { applyRecorridosFilters } from "@/hooks/Rondines/recorridos/useRecorridosFilters ";
+import { SearchFacet } from "@/components/common/FacetSearch";
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import Swal from "sweetalert2";
-import { CustomSpinner } from "@/components/custom-spinner";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useAsignarRondin } from "@/hooks/Rondines/rondines/useAsignarRondin";
@@ -97,6 +96,8 @@ interface ListProps {
   activeTab: string;
   viewMode?: "table" | "photos" | "list";
   searchTags?: string[];
+  /** Filtros del buscador avanzado (panel + chips); se resuelven en el back. */
+  facets?: SearchFacet[];
   externalFilters?: any;
   onExternalFiltersChange?: (filters: any) => void;
   filtersConfig?: any[];
@@ -112,8 +113,7 @@ const RecorridosTable: React.FC<ListProps> = ({
   // dateFilter, setDateFilter, Filter, resetTableFilters,
   setActiveTab,
   viewMode: viewModeProp,
-  searchTags: searchTagsProp,
-  externalFilters: externalFiltersProp,
+  facets,
   setTotalRegistros,
   verRondin, 
   setVerRondin
@@ -121,9 +121,18 @@ const RecorridosTable: React.FC<ListProps> = ({
 
   // Paginación en servidor: se piden solo RECORRIDOS_POR_PAGINA por vez.
   const [paginaServidor, setPaginaServidor] = React.useState(0);
-  const { listRecorridos, isLoadingListRecorridos: isLoading, isFetchingListRecorridos } = useGetListRecorridos(
-    true, "", "", RECORRIDOS_POR_PAGINA, paginaServidor * RECORRIDOS_POR_PAGINA
+  const { listRecorridos, isLoadingListRecorridos, isFetchingListRecorridos } = useGetListRecorridos(
+    true, "", "", RECORRIDOS_POR_PAGINA, paginaServidor * RECORRIDOS_POR_PAGINA, facets ?? []
   );
+  // Mientras llega una página/filtro nuevo se conserva la anterior (keepPreviousData).
+  const isLoading = isLoadingListRecorridos;
+  const totalRecorridos: number = listRecorridos?.total_records ?? 0;
+
+  // Cambiar búsqueda o filtros regresa a la primera página.
+  const facetsKey = JSON.stringify(facets ?? []);
+  useEffect(() => {
+    setPaginaServidor(0);
+  }, [facetsKey]);
   const { playOrPauseRondinMutation, isLoading: isLoadingPlayOrPause } = usePlayOrPauseRondin();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -162,12 +171,7 @@ const RecorridosTable: React.FC<ListProps> = ({
     }
   }, []);
 
-  const externalFilters = useMemo(
-    () => externalFiltersProp ?? { dynamic: {}, dateFilter: "" },
-    [externalFiltersProp]
-  );
 
-  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   const { data: rondin, isLoadingRondin } = useGetRondinById(
     rondinSeleccionado ? rondinSeleccionado._id : ""
@@ -198,16 +202,6 @@ const RecorridosTable: React.FC<ListProps> = ({
 
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: RECORRIDOS_POR_PAGINA });
-  const [globalFilter, setGlobalFilter] = React.useState("");
-
-  React.useEffect(() => {
-    if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join(" "));
-    } else {
-      setGlobalFilter("");
-    }
-  }, [searchTags]);
 
   const handlePlay = () => {
     playOrPauseRondinMutation.mutate({
@@ -260,13 +254,11 @@ const RecorridosTable: React.FC<ListProps> = ({
   ), [handleVerRondin]);
   
   const memoizedData = useMemo(
-    () => (Array.isArray(listRecorridos) ? listRecorridos : []),
+    () => (Array.isArray(listRecorridos?.records) ? listRecorridos.records : []),
     [listRecorridos]
   );
-  const filteredData = useMemo(() => {
-    console.log("externalFilters en RecorridosTable:", JSON.stringify(externalFilters));
-    return applyRecorridosFilters(memoizedData, externalFilters);
-  }, [memoizedData, externalFilters]);
+  // Búsqueda, filtros y paginación ya vienen resueltos del back.
+  const filteredData = memoizedData;
 
   const table = useReactTable({
     data: filteredData ?? [],
@@ -279,34 +271,17 @@ const RecorridosTable: React.FC<ListProps> = ({
     getRowId: (row) => row._id,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
-    globalFilterFn: (row, _columnId, filterValue: string) => {
-      if (!filterValue) return true;
-      const normalize = (str: string) =>
-        str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    
-      const tags = filterValue.split("|").filter(Boolean).map(normalize);
-    
-      const allValues = row
-        .getAllCells()
-        .map((cell) => normalize(String(cell.getValue() || "")))
-        .join(" ");
-    
-      return tags.some((tag) => allValues.includes(tag));
-    },
-    state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
+    state: { sorting, columnFilters, columnVisibility, rowSelection },
   });
 
   useEffect(() => {
-    setTotalRegistros(filteredData.length);
-  }, [filteredData, setTotalRegistros]);
+    setTotalRegistros(totalRecorridos);
+  }, [totalRecorridos, setTotalRegistros]);
   
   const handleAsignar = () => {
     const folio = rondinSeleccionado?._id ?? "";
@@ -668,7 +643,9 @@ const RecorridosTable: React.FC<ListProps> = ({
                         ))}
                       </TableHeader>
                       <TableBody>
-                        {table.getRowModel().rows?.length ? (
+                        {isLoading ? (
+                          <TableRowSkeletons columns={table.getVisibleFlatColumns().length} />
+                        ) : table.getRowModel().rows?.length ? (
                           table.getRowModel().rows.map((row) => (
                             <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}
                               className="hover:bg-slate-100 transition-colors border-slate-50">
@@ -683,11 +660,7 @@ const RecorridosTable: React.FC<ListProps> = ({
                         ) : (
                           <TableRow>
                             <TableCell colSpan={table.getVisibleFlatColumns().length} className="h-32 text-center">
-                              {isLoading ? (
-                                <CustomSpinner />
-                              ) : (
-                                <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
-                              )}
+                              <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
                             </TableCell>
                           </TableRow>
                         )}
@@ -741,7 +714,7 @@ const RecorridosTable: React.FC<ListProps> = ({
               Anterior
             </Button>
             <Button variant="outline" size="sm" onClick={() => setPaginaServidor((p) => p + 1)}
-              disabled={memoizedData.length < RECORRIDOS_POR_PAGINA || isFetchingListRecorridos}>
+              disabled={(paginaServidor + 1) * RECORRIDOS_POR_PAGINA >= totalRecorridos || isFetchingListRecorridos}>
               Siguiente
             </Button>
           </div>

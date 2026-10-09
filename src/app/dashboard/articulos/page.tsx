@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Tabs as TabsOuter, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutGrid, LayoutList, Plus, Sheet, X } from "lucide-react";
+import { LayoutGrid, LayoutList, Plus, Sheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useArticulosPerdidos } from "@/hooks/useArticulosPerdidos";
 import ArticulosPerdidosTable from "@/components/table/articulos/perdidos/table";
@@ -20,7 +20,8 @@ import { useBoothStore } from "@/store/useBoothStore";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { AddArticuloConModal } from "@/components/modals/add-article.con";
 import { PageHeader } from "@/components/common/PageHeader";
-import { SearchFieldsFilter, SearchFieldOption } from "@/components/common/SearchFieldsFilter";
+import { FacetSearch } from "@/components/common/FacetSearch";
+import { useFacetSection } from "@/hooks/common/useFacetSection";
 import { usePaqueteriaFilters } from "@/hooks/Paqueteria/usePaqueteriaFilters";
 import { useArticulosConcesionadosFilters } from "@/hooks/Concesionados/useConcesionadosFilters";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
@@ -39,37 +40,12 @@ const TAB_TITLES: Record<string, string> = {
   Perdidos: "Artículos Perdidos",
 };
 
-// Campos por los que se puede acotar la búsqueda de texto en Concesionados.
-// key = nombre real del campo en el registro, tal cual lo espera el back en
-// search_fields (contrato ya confirmado e implementado).
-const CONCESIONADOS_SEARCH_FIELDS: SearchFieldOption[] = [
-  { key: "folio", label: "Folio" },
-  { key: "nombre_equipo", label: "Nombre del equipo" },
-  { key: "categoria_equipo_concesion", label: "Categoría" },
-  { key: "status_concesion", label: "Estado" },
-  { key: "persona_nombre_concesion", label: "Empleado" },
-  { key: "creado_por", label: "Creado por" },
-];
-
-// Mismo selector "Buscar en" para Paquetería y Perdidos, pero deshabilitado:
-// el backend de estas dos secciones aún no soporta acotar por search_fields
-// (a diferencia de Concesionados, ya confirmado e implementado). Se deja
-// visible en gris para anticipar la UI mientras se agrega ese soporte.
-const PAQUETERIA_SEARCH_FIELDS: SearchFieldOption[] = [
-  { key: "folio", label: "Folio" },
-  { key: "quien_recibe_paqueteria", label: "Destinatario" },
-  { key: "proveedor", label: "Proveedor" },
-  { key: "estatus_paqueteria", label: "Estatus" },
-  { key: "guardado_en_paqueteria", label: "Locker" },
-];
-
-const PERDIDOS_SEARCH_FIELDS: SearchFieldOption[] = [
-  { key: "folio", label: "Folio" },
-  { key: "articulo_perdido", label: "Nombre" },
-  { key: "articulo_seleccion", label: "Artículo" },
-  { key: "tipo_articulo_perdido", label: "Categoría" },
-  { key: "estatus_perdido", label: "Estatus" },
-];
+// Placeholder del buscador por pestaña (los campos los define el back).
+const SEARCH_PLACEHOLDERS: Record<string, string> = {
+  Paqueteria: "Buscar por folio, destinatario, proveedor...",
+  Concecionados: "Buscar por folio, equipo, empleado...",
+  Perdidos: "Buscar por folio, artículo, categoría...",
+};
 
 const ArticulosPage = () => (
   <Suspense fallback={<div className="p-6 text-slate-400 text-sm">Cargando...</div>}>
@@ -95,106 +71,52 @@ const ArticulosContent = () => {
   const [dateFilter, setDateFilter] = useState<string>("");
   const [statusPaqueteria, setStatusPaqueteria] = useState<string>("");
   const [statusPerdidos, setStatusPerdidos] = useState<string>("");
-  const [datePrimera, setDatePrimera] = useState<string>("");
-  const [dateSegunda, setDateSegunda] = useState<string>("");
+  // Fechas viejas de la tabla: las tablas aún piden Filter/resetTableFilters,
+  // pero la fecha que se manda al back es la del panel (useFacetSection).
+  const [, setDatePrimera] = useState<string>("");
+  const [, setDateSegunda] = useState<string>("");
   const [statusConcesionados, setStatusConcesionados] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState<string[]>([]);
-  // const [ setSearchQuery] = useState<string[]>([]);
-  // Campos a los que se acota la búsqueda en Concesionados (vacío = buscar
-  // como hoy, en todos los campos que ya cubra el back).
-  const [searchFieldsCon, setSearchFieldsCon] = useState<string[]>([]);
-  // Se incrementa al resetear filtros, para forzar a PageHeader a limpiar
-  // el texto del buscador (PageHeader maneja ese input internamente).
-  const [resetSignalCon, setResetSignalCon] = useState(0);
-  const [totalRegistros, setTotalRegistros] = useState(0);
-  const [limitCon, setLimitCon] = useState(25);
-  const [skipCon, setSkipCon] = useState(0);
 
-  const { listArticulosPerdidos, isLoadingListArticulosPerdidos } = useArticulosPerdidos(
-    ubicacionSeleccionada,
-    areaSeleccionada === "todas" ? "" : areaSeleccionada,
-    statusPerdidos, true, datePrimera,dateSegunda, dateFilter,
-  );
+  // Paneles de filtros (estado del drawer/card) y, encima, el buscador
+  // avanzado de cada pestaña: chips + panel comparten filtro, paginación y
+  // conteos en el back (ver useFacetSection).
+  const paqueteriaPanel = usePaqueteriaFilters();
+  const concesionadosPanel = useArticulosConcesionadosFilters();
+  const perdidosPanel = usePerdidosFilters();
 
-  const searchConcesionados = searchQuery[0] ?? "";
+  const paq = useFacetSection({
+    scriptName: "paqueteria.py",
+    panel: paqueteriaPanel,
+    status: statusPaqueteria,
+    locations: selectedLocations,
+  });
+  const con = useFacetSection({
+    scriptName: "articulos_consecionados.py",
+    panel: concesionadosPanel,
+    status: statusConcesionados,
+    locations: selectedLocations,
+  });
+  const per = useFacetSection({
+    scriptName: "articulos_perdidos.py",
+    panel: perdidosPanel,
+    status: statusPerdidos,
+    locations: selectedLocations,
+  });
 
-  const {
-    externalFilters: concesionadosFilters,
-    onExternalFiltersChange: onConcesionadosFiltersChange,
-    filtersConfig: concesionadosFiltersConfig,
-    activeFiltersCount: concesionadosFiltersCount,
-    isSidebarOpen: concesionadosSidebarOpen,
-    setIsSidebarOpen: setConcesionadosSidebarOpen,
-  } = useArticulosConcesionadosFilters();
-
-  // El filtro de fecha del panel de Concesionados se manda al backend (igual
-  // que status/área/búsqueda) en vez de filtrarse en memoria sobre la página
-  // ya traída — así el filtro aplica sobre TODOS los registros, no solo los
-  // de la página actual.
-  const concesionadosDateFrom = concesionadosFilters.date1
-    ? dateToString(new Date(concesionadosFilters.date1))
-    : "";
-  const concesionadosDateTo = concesionadosFilters.date2
-    ? dateToString(new Date(concesionadosFilters.date2))
-    : "";
-  // Con campos elegidos en "Buscar en" pero sin texto todavía, no tiene
-  // sentido mandar la petición — se espera a que escriba algo.
-  const puedeBuscarCon = searchFieldsCon.length === 0 || searchConcesionados.trim() !== "";
-  const { listArticulosCon: articulosConData, isLoadingListArticulosCon } = useArticulosConcesionados(
-    ubicacionSeleccionada,
-    areaSeleccionada === "todas" ? "" : areaSeleccionada,
-    statusConcesionados, puedeBuscarCon, concesionadosDateFrom, concesionadosDateTo, concesionadosFilters.dateFilter ?? "",
-    limitCon, skipCon, selectedLocations, searchConcesionados, searchFieldsCon,
-  );
-  const {
-    records: listArticulosCon = [],
-    actual_page: actualPageCon = 1,
-    records_on_page: recordsOnPageCon = 0,
-    total_pages: totalPagesCon = 1,
-    total_records: totalRecordsCon = 0,
-  } = articulosConData ?? {};
-
-  const handleConcesionadosPageChange = (newSkip: number, newLimit: number) => {
-    setSkipCon(newSkip);
-    setLimitCon(newLimit);
-  };
-
-  // Solo la fecha cambia la petición al servidor (ver concesionadosDateFrom/
-  // concesionadosDateTo arriba), así que solo ella debe regresar a skip 0 —
-  // de lo contrario se podría quedar apuntando más allá del nuevo total de
-  // resultados filtrados. Los filtros "dynamic" (status_concesion, etc.) son
-  // 100% en cliente y no cambian qué página trae el servidor; si este efecto
-  // también reaccionara a ellos, cada vez que tocas un filtro de estatus se
-  // abandonaría la página donde estabas (con sus propias coincidencias) y se
-  // reemplazaría por la página 1, aunque no hiciera falta.
-  useEffect(() => {
-    setSkipCon(0);
-  }, [concesionadosDateFrom, concesionadosDateTo, concesionadosFilters.dateFilter]);
-
+  const area = areaSeleccionada === "todas" ? "" : areaSeleccionada;
   const { listPaqueteria, isLoadingListPaqueteria } = usePaqueteria(
-    ubicacionSeleccionada,
-    areaSeleccionada === "todas" ? "" : areaSeleccionada,
-    statusPaqueteria, true,datePrimera,dateSegunda, dateFilter,
+    ubicacionSeleccionada, area, statusPaqueteria, true,
+    paq.dateFrom, paq.dateTo, paq.filterDate, paq.paging,
   );
-
-  const {
-    externalFilters: paqueteriaFilters,
-    onExternalFiltersChange: onPaqueteriaFiltersChange,
-    filtersConfig: paqueteriaFiltersConfig,
-    activeFiltersCount: paqueteriaFiltersCount,
-    isSidebarOpen: paqueteriaSidebarOpen,
-    setIsSidebarOpen: setPaqueteriaSidebarOpen,
-  } = usePaqueteriaFilters();
-
-  const {
-    externalFilters: perdidosFilters,
-    onExternalFiltersChange: onPerdidosFiltersChange,
-    filtersConfig: perdidosFiltersConfig,
-    activeFiltersCount: perdidosFiltersCount,
-    isSidebarOpen: perdidosSidebarOpen,
-    setIsSidebarOpen: setPerdidosSidebarOpen,
-  } = usePerdidosFilters();
-
+  const { listArticulosCon, isLoadingListArticulosCon } = useArticulosConcesionados(
+    ubicacionSeleccionada, area, statusConcesionados, true,
+    con.dateFrom, con.dateTo, con.filterDate,
+    con.paging.limit, con.paging.skip, selectedLocations, con.facets,
+  );
+  const { listArticulosPerdidos, isLoadingListArticulosPerdidos } = useArticulosPerdidos(
+    ubicacionSeleccionada, area, statusPerdidos, true,
+    per.dateFrom, per.dateTo, per.filterDate, per.paging,
+  );
 
   const { tab, setTab } = useShiftStore();
 
@@ -244,11 +166,6 @@ const ArticulosContent = () => {
     if (selectedTab === "Concecionados") setStatusConcesionados(currentStatus);
   }, [statusParam, selectedTab]);
 
-  useEffect(() => { setTotalRegistros(0); }, [selectedTab]);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setSkipCon(0); }, [searchConcesionados, searchFieldsCon]);
-
   const handleOpenChange = (value: React.SetStateAction<boolean>) => {
     const open = typeof value === "function" ? value(isSuccess) : value;
     setIsSuccess(open);
@@ -292,94 +209,77 @@ const ArticulosContent = () => {
     setDateFilter("");
   };
 
-  // Limpia buscador (texto y campos) + filtros del sidebar (Estatus,
-  // Solicitante, Fecha) de la pestaña Concesionados.
-  const resetFiltrosConcesionados = () => {
-    setSearchQuery([]);
-    setSearchFieldsCon([]);
-    onConcesionadosFiltersChange({ dynamic: {}, dateFilter: "" });
-    setResetSignalCon((n) => n + 1);
-  };
+  const current = {
+    Paqueteria: { section: paq, list: listPaqueteria, loading: isLoadingListPaqueteria },
+    Concecionados: { section: con, list: listArticulosCon, loading: isLoadingListArticulosCon },
+    Perdidos: { section: per, list: listArticulosPerdidos, loading: isLoadingListArticulosPerdidos },
+  }[selectedTab] ?? { section: paq, list: listPaqueteria, loading: isLoadingListPaqueteria };
 
   return (
     <div className="w-full relative">
-      {viewMode === "table" && selectedTab === "Paqueteria" && (
+      {selectedTab === "Paqueteria" && (
         <FloatingFiltersDrawer
-          isOpen={paqueteriaSidebarOpen}
-          onOpenChange={setPaqueteriaSidebarOpen}
-          activeFiltersCount={paqueteriaFiltersCount}
-          filters={paqueteriaFilters}
-          onFiltersChange={onPaqueteriaFiltersChange}
-          filtersConfig={paqueteriaFiltersConfig}
+          isOpen={paqueteriaPanel.isSidebarOpen}
+          onOpenChange={paqueteriaPanel.setIsSidebarOpen}
+          activeFiltersCount={paq.activeFiltersCount}
+          filters={paq.filtersView}
+          onFiltersChange={paq.onFiltersChange}
+          filtersConfig={paqueteriaPanel.filtersConfig}
           filtroUbicacion={false}
+          onlyBelowLg={viewMode !== "table"}
         />
       )}
-      {viewMode === "table" && selectedTab === "Concecionados" && (
+      {selectedTab === "Concecionados" && (
         <FloatingFiltersDrawer
-          isOpen={concesionadosSidebarOpen}
-          onOpenChange={setConcesionadosSidebarOpen}
-          activeFiltersCount={concesionadosFiltersCount}
-          filters={concesionadosFilters}
-          onFiltersChange={onConcesionadosFiltersChange}
-          filtersConfig={concesionadosFiltersConfig}
+          isOpen={concesionadosPanel.isSidebarOpen}
+          onOpenChange={concesionadosPanel.setIsSidebarOpen}
+          activeFiltersCount={con.activeFiltersCount}
+          filters={con.filtersView}
+          onFiltersChange={con.onFiltersChange}
+          filtersConfig={concesionadosPanel.filtersConfig}
           filtroUbicacion={false}
+          onlyBelowLg={viewMode !== "table"}
         />
       )}
-      {viewMode === "table" && selectedTab === "Perdidos" && (
+      {selectedTab === "Perdidos" && (
         <FloatingFiltersDrawer
-          isOpen={perdidosSidebarOpen}
-          onOpenChange={setPerdidosSidebarOpen}
-          activeFiltersCount={perdidosFiltersCount}
-          filters={perdidosFilters}
-          onFiltersChange={onPerdidosFiltersChange}
-          filtersConfig={perdidosFiltersConfig}
+          isOpen={perdidosPanel.isSidebarOpen}
+          onOpenChange={perdidosPanel.setIsSidebarOpen}
+          activeFiltersCount={per.activeFiltersCount}
+          filters={per.filtersView}
+          onFiltersChange={per.onFiltersChange}
+          filtersConfig={perdidosPanel.filtersConfig}
           filtroUbicacion={false}
+          onlyBelowLg={viewMode !== "table"}
         />
       )}
       <div className="flex flex-col">
         <div className="p-3 w-full mx-auto">
           <PageHeader
             title={TAB_TITLES[selectedTab] || "Artículos"}
-            totalRecords={totalRegistros}
-            onSearch={(val) => setSearchQuery(val ? [val] : [])}
-            searchPlaceholder="Buscar..."
-            resetSignal={resetSignalCon}>
-
-            {selectedTab === "Concecionados" && (
-              <>
-                <SearchFieldsFilter
-                  options={CONCESIONADOS_SEARCH_FIELDS}
-                  selected={searchFieldsCon}
-                  onChange={setSearchFieldsCon}
-                  searchTerm={searchConcesionados}
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  title="Resetear búsqueda"
-                  className="h-10 w-10 bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 hover:text-red-600 shadow-sm"
-                  onClick={resetFiltrosConcesionados}>
-                  <X size={16} />
-                </Button>
-              </>
-            )}
+            // Las tres pestañas paginan en el back: el total es el de la
+            // consulta, no lo que trae la página actual.
+            totalRecords={current.list?.total_records ?? 0}
+            isLoadingTotal={current.loading}
+            search={
+              <FacetSearch
+                // key: cada pestaña tiene su propio estado de texto/menú.
+                key={selectedTab}
+                fields={current.section.fields}
+                facets={current.section.facets}
+                onChange={current.section.setFacets}
+                fetchCounts={current.section.fetchCounts}
+                placeholder={SEARCH_PLACEHOLDERS[selectedTab]}
+              />
+            }>
 
             {selectedTab === "Paqueteria" && (
-              <>
-                <SearchFieldsFilter
-                  options={PAQUETERIA_SEARCH_FIELDS}
-                  selected={[]}
-                  onChange={() => {}}
-                  searchTerm={searchConcesionados}
-                  disabled
-                />
-                <Button
-                  className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                  onClick={() => setIsSuccessPaq(true)}>
-                  <Plus size={16} />
-                  Nuevo Paquete
-                </Button>
-              </>
+              <Button
+                className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                onClick={() => setIsSuccessPaq(true)}>
+                <Plus size={16} />
+                Nuevo Paquete
+              </Button>
             )}
             {selectedTab === "Concecionados" && (
               <Button
@@ -390,21 +290,12 @@ const ArticulosContent = () => {
               </Button>
             )}
             {selectedTab === "Perdidos" && (
-              <>
-                <SearchFieldsFilter
-                  options={PERDIDOS_SEARCH_FIELDS}
-                  selected={[]}
-                  onChange={() => {}}
-                  searchTerm={searchConcesionados}
-                  disabled
-                />
-                <Button
-                  className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                  onClick={() => setIsSuccess(true)}>
-                  <Plus size={16} />
-                  Nuevo Artículo Perdido
-                </Button>
-              </>
+              <Button
+                className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                onClick={() => setIsSuccess(true)}>
+                <Plus size={16} />
+                Nuevo Artículo Perdido
+              </Button>
             )}
 
             <TabsOuter
@@ -453,29 +344,25 @@ const ArticulosContent = () => {
             <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
               <TabsContent value="Paqueteria">
                 <PaqueteriaTable
-                  data={listPaqueteria}
+                  data={listPaqueteria?.records ?? []}
                   isLoadingListPaqueteria={isLoadingListPaqueteria}
                   openModal={() => setIsSuccessPaq(true)}
                   setSelectedArticulos={setSelectedArticulos}
                   date1={date1} date2={date2}
-                  setDate1={setDate1} 
-                  setDate2={setDate2}
-                  dateFilter={dateFilter} 
-                  setDateFilter={setDateFilter}
-                  Filter={Filter} 
-                  resetTableFilters={resetTableFilters}
+                  setDate1={setDate1} setDate2={setDate2}
+                  dateFilter={dateFilter} setDateFilter={setDateFilter}
+                  Filter={Filter} resetTableFilters={resetTableFilters}
                   viewMode={viewMode}
-                  searchTags={searchQuery}
-                  externalFilters={paqueteriaFilters}
-                  onExternalFiltersChange={onPaqueteriaFiltersChange}
-                  filtersConfig={paqueteriaFiltersConfig}
-                  setTotalRegistros={setTotalRegistros}
+                  externalFilters={paq.filtersView}
+                  onExternalFiltersChange={paq.onFiltersChange}
+                  filtersConfig={paqueteriaPanel.filtersConfig}
                 />
+                <SectionPagination list={listPaqueteria} loading={isLoadingListPaqueteria} section={paq} />
               </TabsContent>
 
               <TabsContent value="Concecionados">
                 <ArticulosConTable
-                  data={listArticulosCon ?? []}
+                  data={listArticulosCon?.records ?? []}
                   isLoadingListArticulosCon={isLoadingListArticulosCon}
                   openModal={() => setIsSuccessCon(true)}
                   setSelectedArticulos={setSelectedArticulos}
@@ -484,27 +371,16 @@ const ArticulosContent = () => {
                   dateFilter={dateFilter} setDateFilter={setDateFilter}
                   Filter={Filter} resetTableFilters={resetTableFilters}
                   viewMode={viewMode}
-                  searchTags={searchQuery}
-                  externalFilters={concesionadosFilters}
-                  onExternalFiltersChange={onConcesionadosFiltersChange}
-                  filtersConfig={concesionadosFiltersConfig}
-                  setTotalRegistros={setTotalRegistros}
+                  externalFilters={con.filtersView}
+                  onExternalFiltersChange={con.onFiltersChange}
+                  filtersConfig={concesionadosPanel.filtersConfig}
                 />
-                {!isLoadingListArticulosCon && (
-                  <PaginationPases
-                    actual_page={actualPageCon}
-                    records_on_page={recordsOnPageCon}
-                    total_pages={totalPagesCon}
-                    total_records={totalRecordsCon}
-                    limit={limitCon}
-                    onPageChange={handleConcesionadosPageChange}
-                  />
-                )}
+                <SectionPagination list={listArticulosCon} loading={isLoadingListArticulosCon} section={con} />
               </TabsContent>
 
               <TabsContent value="Perdidos">
                 <ArticulosPerdidosTable
-                  data={listArticulosPerdidos}
+                  data={listArticulosPerdidos?.records ?? []}
                   isLoadingListArticulosPerdidos={isLoadingListArticulosPerdidos}
                   openModal={() => setIsSuccess(true)}
                   setSelectedArticulos={setSelectedArticulos}
@@ -513,12 +389,11 @@ const ArticulosContent = () => {
                   dateFilter={dateFilter} setDateFilter={setDateFilter}
                   Filter={Filter} resetTableFilters={resetTableFilters}
                   viewMode={viewMode}
-                  searchTags={searchQuery}
-                  externalFilters={perdidosFilters}
-                  onExternalFiltersChange={onPerdidosFiltersChange}
-                  filtersConfig={perdidosFiltersConfig}
-                  setTotalRegistros={setTotalRegistros}
+                  externalFilters={per.filtersView}
+                  onExternalFiltersChange={per.onFiltersChange}
+                  filtersConfig={perdidosPanel.filtersConfig}
                 />
+                <SectionPagination list={listArticulosPerdidos} loading={isLoadingListArticulosPerdidos} section={per} />
               </TabsContent>
             </Tabs>
           </div>
@@ -545,6 +420,29 @@ const ArticulosContent = () => {
         onClose={() => handleOpenChangePaq(false)}
       />
     </div>
+  );
+};
+
+// Paginación de una pestaña con el formato paginado del back.
+const SectionPagination = ({
+  list,
+  loading,
+  section,
+}: {
+  list: any;
+  loading: boolean;
+  section: { paging: { limit: number }; onPageChange: (skip: number, limit: number) => void };
+}) => {
+  if (loading || !list) return null;
+  return (
+    <PaginationPases
+      actual_page={list.actual_page ?? 1}
+      records_on_page={list.records_on_page ?? 0}
+      total_pages={list.total_pages ?? 1}
+      total_records={list.total_records ?? 0}
+      limit={section.paging.limit}
+      onPageChange={section.onPageChange}
+    />
   );
 };
 

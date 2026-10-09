@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { SearchFacet } from "@/components/common/FacetSearch";
 import { useBitacoras } from "./useBitacoras";
 import { useGetStats } from "../useGetStats";
 import {
@@ -16,6 +17,7 @@ export interface BitacoraDataProps {
   activeDateFilter: string;
   appliedFilters?: { key: string; value: string }[];
   pagination: { pageIndex: number; pageSize: number };
+  textFacets?: SearchFacet[];
 }
 
 export const useBitacoraData = ({
@@ -26,6 +28,7 @@ export const useBitacoraData = ({
   activeDateFilter,
   appliedFilters,
   pagination,
+  textFacets = [],
 }: BitacoraDataProps) => {
   const isEnabled = selectedLocation && selectedArea ? true : false;
 
@@ -41,6 +44,7 @@ export const useBitacoraData = ({
       appliedFilters,
       pagination.pageSize,
       pagination.pageIndex * pagination.pageSize,
+      textFacets,
     );
 
   const { data: stats, refetch: refetchStats } = useGetStats(

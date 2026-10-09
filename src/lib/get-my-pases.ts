@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from "@/config/api";
 import { getValidToken } from "./login/get-valid-token";
+import { SearchFacet } from "@/components/common/FacetSearch";
 
 interface GetMyPasesParams {
   tab?: string;
@@ -10,8 +11,10 @@ interface GetMyPasesParams {
   locations?: string[];
   dynamicFilters?: Record<string, string | string[]>;
   dateFilter?: string;
-  date1?: Date | "";
-  date2?: Date | "";
+  /** "AAAA-MM-DD"; el back extiende dateTo al final del día. */
+  dateFrom?: string;
+  dateTo?: string;
+  facets?: SearchFacet[];
 }
 
 export const getMyPases = async ({
@@ -23,8 +26,9 @@ export const getMyPases = async ({
   locations = [],
   dynamicFilters = {},
   dateFilter = "",
-  date1 = "",
-  date2 = "",
+  dateFrom = "",
+  dateTo = "",
+  facets = [],
 }: GetMyPasesParams = {}) => {
   const dynamic_filters = Object.entries(dynamicFilters)
     .filter(([, value]) => (Array.isArray(value) ? value.length > 0 : !!value))
@@ -42,8 +46,9 @@ export const getMyPases = async ({
     locations,
     dynamic_filters,
     filterDate: dateFilter,
-    dateFrom: date1 ? (date1 as Date).toISOString() : "",
-    dateTo: date2 ? (date2 as Date).toISOString() : "",
+    dateFrom,
+    dateTo,
+    facets,
     option: "get_my_pases",
     script_name: "pase_de_acceso.py",
   };
