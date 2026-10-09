@@ -16,6 +16,8 @@ export interface UbicacionFormData {
   telefono?: string;
   email?: string;
   geolocalizacion?: { latitude: number; longitude: number };
+  /** Al crear una ubicación: address_name del contacto elegido en el catálogo. */
+  contacto?: string;
 }
 
 const runScript = async (payload: Record<string, any>) => {
@@ -67,14 +69,33 @@ export const createUbicacionSdk = async (data: UbicacionFormData) => {
   });
 };
 
+// La edición solo apunta la ubicación a otro contacto del catálogo (el
+// catálogo no se modifica desde aquí; ver update_ubicacion en el back).
+export interface UbicacionUpdateData {
+  nombre?: string;
+  /** address_name del contacto elegido en el catálogo "contacto". */
+  contacto?: string;
+}
+
 export const updateUbicacionSdk = async (
   recordId: string,
-  data: UbicacionFormData,
+  data: UbicacionUpdateData,
 ) => {
   return runScript({
     record_id: recordId,
     ...data,
     option: "update_ubicacion",
+    script_name: "location_sdk.py",
+  });
+};
+
+// Alta de un contacto (dirección) en el catálogo "contacto", desde el botón
+// "+" del selector de dirección de la ubicación.
+export const createContactoSdk = async (data: UbicacionFormData) => {
+  return runScript({
+    ...data,
+    tipo: "Direccion",
+    option: "create_contacto",
     script_name: "location_sdk.py",
   });
 };

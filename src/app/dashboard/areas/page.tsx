@@ -45,6 +45,20 @@ const AreasContent = () => {
     setSelectedAreaId(idParam);
   }, [idParam]);
 
+  const actionParam = searchParams.get("action");
+  useEffect(() => {
+    if (actionParam === "nueva_area") setNuevaAreaOpen(true);
+  }, [actionParam]);
+
+  const handleNuevaAreaOpenChange = (open: boolean) => {
+    setNuevaAreaOpen(open);
+    if (!open && actionParam === "nueva_area") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`/dashboard/areas${params.toString() ? `?${params.toString()}` : ""}`);
+    }
+  };
+
   const handleAreaIdChange = useCallback(
     (id: string | null) => {
       setSelectedAreaId(id);
@@ -196,7 +210,7 @@ const AreasContent = () => {
         )}
       </div>
 
-      <NuevaAreaModal open={nuevaAreaOpen} onOpenChange={setNuevaAreaOpen} />
+      <NuevaAreaModal open={nuevaAreaOpen} onOpenChange={handleNuevaAreaOpenChange} />
     </div>
   );
 };
