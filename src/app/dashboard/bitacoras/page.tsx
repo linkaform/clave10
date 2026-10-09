@@ -90,6 +90,7 @@ const BitacorasContent = () => {
           <PageHeader
           title="Bitácora de Entradas & Salidas"
           totalRecords={listBitacoras?.total_records || 0}
+          isLoadingTotal={isLoadingListBitacoras}
           search={
             <FacetSearch
               fields={searchFields}

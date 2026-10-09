@@ -26,6 +26,7 @@ import { useMemo, useState } from "react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { ListRecord, PhotoRecord, FilterConfig } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
@@ -93,7 +94,6 @@ const VehiculosTable: React.FC<ListProps> = ({
   const setSearchTags = setLocalSearchTags;
 
   const columns = useMemo(() => {
-    if (isLoading) return [];
     return vehiculosColumns;
   }, [isLoading]);
   const memoizedData = useMemo(() => data || [], [data]);
@@ -229,7 +229,9 @@ const VehiculosTable: React.FC<ListProps> = ({
                   </TableHeader>
 
                   <TableBody>
-                    {table.getRowModel().rows?.length ? (
+                    {isLoading ? (
+                      <TableRowSkeletons columns={columns.length} />
+                    ) : table.getRowModel().rows?.length ? (
                       table.getRowModel().rows.map((row: any) => (
                         <TableRow
                           key={row.id}
@@ -250,15 +252,9 @@ const VehiculosTable: React.FC<ListProps> = ({
                         <TableCell
                           colSpan={columns.length}
                           className="h-24 text-center">
-                          {isLoading ? (
-                            <div className="text-xl font-semibold">
-                              Cargando registros...{" "}
-                            </div>
-                          ) : (
-                            <div className="text-xl font-semibold">
-                              No hay registros disponibles...
-                            </div>
-                          )}
+                          <div className="text-xl font-semibold">
+                            No hay registros disponibles...
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}
@@ -270,6 +266,7 @@ const VehiculosTable: React.FC<ListProps> = ({
             <>
               <PhotoGridView
                 isLoading={isLoading}
+                skeleton
                 records={photoRecords}
                 globalSearch={searchTags}
                 selectionActions={(ids) => (
@@ -282,6 +279,7 @@ const VehiculosTable: React.FC<ListProps> = ({
             <>
               <PhotoListView
                 isLoading={isLoading}
+                skeleton
                 records={photoListRecords}
                 globalSearch={searchTags}
                 selectionActions={(ids) => (
