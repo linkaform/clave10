@@ -46,6 +46,7 @@ import {
   UnidadEditorCard,
   serializeUnidades,
   faltantesCarga,
+  cajaRapidaOpcional,
   unidadesARegistrar,
   emptyCajaRapida,
   CapturaCajaRapida,
@@ -592,7 +593,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
     !celular.trim() && "Celular del conductor",
     !tieneMinCaracteres(noLicencia) && "No. de licencia (mín. 4)",
     !tieneMinCaracteres(ordenCompra) && "Factura / Orden de compra (mín. 4)",
-    ...faltantesCarga(unidades, cajaRapida),
+    ...faltantesCarga(unidades, cajaRapida, cajaRapidaOpcional(tipoVehiculo)),
   ].filter((v): v is string => Boolean(v));
 
   return (
@@ -1174,6 +1175,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                 onChange={setCajaRapida}
                 deshabilitada={unidades.length > 0}
                 showValidation={showValidation}
+                opcional={cajaRapidaOpcional(tipoVehiculo)}
               />
               {unidades.map((u, idx) => {
                 if (editingUnit?.id === u.id) return null; // se edita inline debajo de la lista

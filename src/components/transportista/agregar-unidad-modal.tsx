@@ -114,12 +114,23 @@ export const unidadDesdeCajaRapida = (caja: CajaRapida): UnidadItem => ({
   remolque: { ...emptyRemolqueData(), noCaja: caja.noCaja.trim(), placas: caja.placas.trim() },
 });
 
-// Unidades que se mandan al registrar: las capturadas, o la caja rápida si no hay.
-export const unidadesARegistrar = (list: UnidadItem[], caja: CajaRapida): UnidadItem[] =>
-  list.length ? list : [unidadDesdeCajaRapida(caja)];
+const cajaRapidaVacia = (caja: CajaRapida) => !caja.noCaja.trim() && !caja.placas.trim();
 
-export const faltantesCarga = (list: UnidadItem[], caja: CajaRapida): string[] =>
-  list.length ? unidadesSinCaja(list) : [
+// Vehículos que sugieren "Solo vehículo" (Pickup, Torton, Rabón, 3.5 t) traen
+// la caja integrada: la caja rápida pasa a ser opcional. Si capturan uno de
+// los dos campos, se sigue pidiendo el otro.
+export const cajaRapidaOpcional = (tipoVehiculo?: string | null): boolean =>
+  sugerenciaPorTipoVehiculo(tipoVehiculo)?.config === "solo_vehiculo";
+
+// Unidades que se mandan al registrar: las capturadas, o la caja rápida si no
+// hay (ninguna si la caja quedó vacía porque era opcional).
+export const unidadesARegistrar = (list: UnidadItem[], caja: CajaRapida): UnidadItem[] =>
+  list.length ? list : cajaRapidaVacia(caja) ? [] : [unidadDesdeCajaRapida(caja)];
+
+export const faltantesCarga = (list: UnidadItem[], caja: CajaRapida, cajaOpcional = false): string[] =>
+  list.length ? unidadesSinCaja(list)
+  : cajaOpcional && cajaRapidaVacia(caja) ? []
+  : [
     !caja.noCaja.trim() && "No. de caja",
     !caja.placas.trim() && "Placas de caja",
   ].filter((v): v is string => Boolean(v));
@@ -129,18 +140,22 @@ export function CapturaCajaRapida({
   onChange,
   deshabilitada,
   showValidation,
+  opcional,
 }: {
   caja: CajaRapida;
   onChange: (caja: CajaRapida) => void;
   deshabilitada: boolean;
   showValidation?: boolean;
+  // Ver cajaRapidaOpcional: obligatoria solo si ya capturaron uno de los dos.
+  opcional?: boolean;
 }) {
+  const requerida = !deshabilitada && !(opcional && cajaRapidaVacia(caja));
   const campo = (key: keyof CajaRapida, label: string, placeholder: string) => {
-    const falta = !deshabilitada && showValidation && !caja[key].trim();
+    const falta = requerida && showValidation && !caja[key].trim();
     return (
       <div>
         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-          {label} {!deshabilitada && <span className="text-red-400">*</span>}
+          {label} {requerida && <span className="text-red-400">*</span>}
         </p>
         <input
           disabled={deshabilitada}
@@ -162,8 +177,10 @@ export function CapturaCajaRapida({
         {campo("noCaja", "No. de caja", "Ej. CAJA-001")}
         {campo("placas", "Placas de caja", "Ej. 123-AB-4")}
       </div>
-      {deshabilitada && (
+      {deshabilitada ? (
         <p className="text-[11px] text-gray-400">Se usan la caja y placas de cada unidad de abajo.</p>
+      ) : opcional && (
+        <p className="text-[11px] text-gray-400">Opcional: este tipo de vehículo trae la caja integrada.</p>
       )}
       <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-gray-200" />

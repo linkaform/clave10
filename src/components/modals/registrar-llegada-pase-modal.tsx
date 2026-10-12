@@ -47,6 +47,7 @@ import {
   UnidadEditorCard,
   serializeUnidades,
   faltantesCarga,
+  cajaRapidaOpcional,
   unidadesARegistrar,
   emptyCajaRapida,
   CapturaCajaRapida,
@@ -786,7 +787,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
     !celular.trim() && "Celular del conductor",
     !tieneMinCaracteres(noLicencia) && "No. de licencia (mín. 4)",
     !tieneMinCaracteres(ordenCompra) && "Factura / Orden de compra (mín. 4)",
-    ...faltantesCarga(unidades, cajaRapida),
+    ...faltantesCarga(unidades, cajaRapida, cajaRapidaOpcional(tipoVehiculo)),
   ].filter((v): v is string => Boolean(v));
 
   const handleConfirmar = async () => {
@@ -1286,6 +1287,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
                     onChange={setCajaRapida}
                     deshabilitada={unidades.length > 0}
                     showValidation={showValidation}
+                    opcional={cajaRapidaOpcional(tipoVehiculo)}
                   />
                   {unidades.map((u, idx) => {
                     if (editingUnit?.id === u.id) return null;
