@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 // no cambia. Todavía no decide qué inspección aplica a cada tipo.
 
 // Siluetas de perfil (mirando a la derecha), mismo trazo que los íconos.
-const Rueda = ({ x }: { x: number }) => (
+export const Rueda = ({ x }: { x: number }) => (
   <>
     <circle cx={x} cy={38} r={5} fill="white" />
     <circle cx={x} cy={38} r={1.5} fill="currentColor" stroke="none" />
@@ -26,13 +26,13 @@ const Cabina = ({ x }: { x: number }) => (
   </>
 );
 
-const Silueta = ({ children }: { children: ReactNode }) => (
+export const Silueta = ({ children }: { children: ReactNode }) => (
   <svg viewBox="0 0 128 48" fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" className="w-full h-full">
     {children}
   </svg>
 );
 
-const Auto = ({ x, y }: { x: number; y: number }) => (
+export const Auto = ({ x, y }: { x: number; y: number }) => (
   <path d={`M${x} ${y} V${y - 4} H${x + 4} L${x + 8} ${y - 8} H${x + 18} L${x + 22} ${y - 4} H${x + 26} V${y}`} />
 );
 

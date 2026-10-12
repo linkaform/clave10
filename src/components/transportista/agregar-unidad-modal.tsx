@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Truck, Package, Car, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SelectorTipoRemolque } from "@/components/transportista/selector-tipo-remolque";
 
 // ─── Unidades types & helpers ────────────────────────────────────────────────
 // Compartido entre el modal de "Nuevo acceso" y el detalle de transportista,
@@ -342,7 +343,7 @@ export function SelectorColorVehiculo({
   );
 }
 
-export const TIPOS_REMOLQUE = ["Caja seca", "Plataforma", "Caja refrigerada", "Ganadero", "Basculante", "Portavehículos", "Caravana"];
+export const TIPOS_REMOLQUE = ["Caja seca", "Plataforma", "Caja refrigerada", "Ganadero", "Basculante", "Portavehículos", "Caravana", "Tanque"];
 export const TIPOS_CONTENEDOR = ["20' Standard (20GP)", "40' Standard (40GP)", "40' High Cube (40HC)", "20' Reefer (20RF)", "40' Reefer (40RF)", "40' HC Reefer (40HR)", "20' Open Top (20OT)", "40' Open Top (40OT)", "20' Flat Rack (20FR)", "40' Flat Rack (40FR)", "ISO Tank", "20' Ventilado (20VH)", "Open Side"];
 
 // Deriva el subtipo (config de "Configuración de Flujo de Transportistas") a
@@ -536,10 +537,7 @@ export function UnidadEditorCard({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tipo de remolque <span className="text-red-400">*</span></p>
-                  <select className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-blue-400 bg-white" value={remolque.tipo} onChange={(e) => updateR("tipo", e.target.value)}>
-                    <option value="">Seleccionar tipo...</option>
-                    {TIPOS_REMOLQUE.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <SelectorTipoRemolque value={remolque.tipo} onChange={(t) => updateR("tipo", t)} />
                 </div>
                 <div>
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">No. de sello</p>
