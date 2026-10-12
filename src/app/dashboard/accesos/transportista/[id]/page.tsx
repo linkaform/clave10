@@ -71,6 +71,7 @@ import {
   refDeUnidad,
   labelDeUnidad,
   resolveColorSwatch,
+  SelectorColorVehiculo,
   AgregarUnidadModal,
   serializeUnidades,
   inferSubtipoContenedor,
@@ -4235,6 +4236,11 @@ export default function DetalleTransportistaPage() {
                                 <SelectorTipoVehiculo
                                   value={vehicleDraft.tipo_vehiculo}
                                   onChange={(t) => setVehicleDraft((p) => ({ ...p, tipo_vehiculo: t }))}
+                                />
+                              ) : key === "color" ? (
+                                <SelectorColorVehiculo
+                                  value={vehicleDraft.color}
+                                  onChange={(c) => setVehicleDraft((p) => ({ ...p, color: c }))}
                                 />
                               ) : (
                                 <input
