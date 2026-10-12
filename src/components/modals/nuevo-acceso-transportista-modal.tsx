@@ -45,8 +45,17 @@ import {
   resolveColorSwatch,
   UnidadEditorCard,
   serializeUnidades,
+  faltantesCarga,
+  unidadesARegistrar,
+  emptyCajaRapida,
+  CapturaCajaRapida,
+  type CajaRapida,
+  SelectorColorVehiculo,
 } from "@/components/transportista/agregar-unidad-modal";
-import { TIPOS_DOCUMENTO_TRANSPORTISTA } from "@/config/documentos-transportista";
+import { SelectorTipoVehiculo, resolverTipoVehiculo } from "@/components/transportista/selector-tipo-vehiculo";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+import { TIPOS_DOCUMENTO_SUBIDA, tieneMinCaracteres } from "@/config/documentos-transportista";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -86,7 +95,7 @@ const TIPOS_OPERACION = [
 // es el mismo slug compartido con el detalle de la visita y "Registrar llegada
 // de pase" (config/documentos-transportista.ts) — así un documento etiquetado
 // aquí se reconoce igual en los demás flujos.
-const DOC_TYPES = TIPOS_DOCUMENTO_TRANSPORTISTA.filter((t) => !t.soloRecoleccion);
+const DOC_TYPES = TIPOS_DOCUMENTO_SUBIDA;
 const DOC_TYPES_LABELS = DOC_TYPES.map((t) => t.label);
 
 interface DocItem {
@@ -204,6 +213,8 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   const [modeloVehiculo, setModeloVehiculo] = useState("");
   const [colorVehiculo, setColorVehiculo] = useState("");
   const [conductor, setConductor] = useState("");
+  // Para avisarle al chofer su andén por SMS (2610-1323).
+  const [celular, setCelular] = useState("");
   const [noLicencia, setNoLicencia] = useState("");
   const [vigenciaLicencia, setVigenciaLicencia] = useState("");
   const [rfcConductor, setRfcConductor] = useState("");
@@ -237,6 +248,8 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   // Remolques / contenedores — mismo modelo de unidades que el detalle de transportista
   const [unidades, setUnidades] = useState<UnidadItem[]>([]);
   const [showAgregarUnidad, setShowAgregarUnidad] = useState(false);
+  // Caja y placas rápidas de la pestaña Carga cuando no se agregan unidades.
+  const [cajaRapida, setCajaRapida] = useState<CajaRapida>(emptyCajaRapida());
   const [editingUnit, setEditingUnit] = useState<UnidadItem | null>(null);
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
 
@@ -314,6 +327,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
     setModeloVehiculo("");
     setColorVehiculo("");
     setConductor("");
+    setCelular("");
     setNoLicencia("");
     setVigenciaLicencia("");
     setRfcConductor("");
@@ -328,6 +342,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
     setProveedorCliente("");
     setOrdenCompra("");
     setUnidades([]);
+    setCajaRapida(emptyCajaRapida());
     setShowAgregarUnidad(false);
     setEditingUnit(null);
     setExpandedUnits(new Set());
@@ -416,7 +431,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
 
       // Vehículo
       if (d.vehiculo?.transportista)  { setTransportista(d.vehiculo.transportista);    filled.add("transportista"); }
-      if (d.vehiculo?.tipo_vehiculo)  { setTipoVehiculo(d.vehiculo.tipo_vehiculo);      filled.add("tipoVehiculo"); }
+      if (d.vehiculo?.tipo_vehiculo)  { setTipoVehiculo(resolverTipoVehiculo(d.vehiculo.tipo_vehiculo)?.value ?? d.vehiculo.tipo_vehiculo);      filled.add("tipoVehiculo"); }
       if (d.vehiculo?.placa)          { setPlaca(d.vehiculo.placa);                     filled.add("placa"); }
       if (d.vehiculo?.procedencia)    { setProcedencia(d.vehiculo.procedencia);         filled.add("procedencia"); }
       if (d.vehiculo?.no_economico)   { setNoEconomico(d.vehiculo.no_economico);        filled.add("noEconomico"); }
@@ -565,16 +580,19 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
 
   // ─────────────────────────────────────────────────────────────────────────────
 
+  // Flujo simplificado (2610-1323): procedencia, color y vigencia dejan de
+  // ser obligatorios; licencia y factura/OC piden al menos 4 caracteres.
   const camposFaltantes = [
     !tipoOperacion && "Tipo de operación",
-    !transportista.trim() && "Transportista",
-    !procedencia.trim() && "Procedencia",
+    !transportista.trim() && "Línea",
     !tipoVehiculo.trim() && "Tipo de vehículo",
-    !placa.trim() && "Placa del vehículo",
-    !colorVehiculo.trim() && "Color",
+    !placa.trim() && "Placa de tracto",
+    !noEconomico.trim() && "No. de tracto",
     !conductor.trim() && "Conductor",
-    !noLicencia.trim() && "No. de licencia",
-    !vigenciaLicencia.trim() && "Vigencia de licencia",
+    !celular.trim() && "Celular del conductor",
+    !tieneMinCaracteres(noLicencia) && "No. de licencia (mín. 4)",
+    !tieneMinCaracteres(ordenCompra) && "Factura / Orden de compra (mín. 4)",
+    ...faltantesCarga(unidades, cajaRapida),
   ].filter((v): v is string => Boolean(v));
 
   return (
@@ -849,28 +867,24 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <FieldLabel required>Transportista</FieldLabel>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                    <Input
-                      className={cn("pl-9 text-sm", showValidation && !transportista.trim() && "border-red-300 bg-red-50")}
-                      placeholder="Buscar o escribir transportista..."
-                      value={transportista}
-                      onChange={(e) => setTransportista(e.target.value)}
-                    />
-                  </div>
+                  <FieldLabel required>Línea</FieldLabel>
+                  <Input
+                    className={cn("text-sm", showValidation && !transportista.trim() && "border-red-300 bg-red-50")}
+                    placeholder="Nombre de la línea transportista"
+                    value={transportista}
+                    onChange={(e) => setTransportista(e.target.value)}
+                  />
                   {showValidation && !transportista.trim() && (
                     <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
                   )}
                 </div>
                 <div>
-                  <FieldLabel required>Procedencia</FieldLabel>
+                  <FieldLabel>Procedencia</FieldLabel>
                   <div className="relative">
                     <Input
                       className={cn(
                         "text-sm",
                         aiFilledFields.has("procedencia") && "border-violet-200 bg-violet-50/40",
-                        showValidation && !procedencia.trim() && "border-red-300 bg-red-50",
                       )}
                       placeholder="Ej. Bodega central del proveedor"
                       value={procedencia}
@@ -878,9 +892,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                     />
                     {aiFilledFields.has("procedencia") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
                   </div>
-                  {showValidation && !procedencia.trim() && (
-                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
-                  )}
                 </div>
               </div>
 
@@ -892,34 +903,18 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <FieldLabel required>Tipo de vehículo</FieldLabel>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                    <Input
-                      className={cn(
-                        "pl-9 text-sm",
-                        aiFilledFields.has("tipoVehiculo") &&
-                          "border-violet-200 bg-violet-50/40",
-                        showValidation && !tipoVehiculo.trim() && "border-red-300 bg-red-50",
-                      )}
-                      placeholder="Seleccionar tipo de vehículo..."
-                      value={tipoVehiculo}
-                      onChange={(e) => {
-                        setTipoVehiculo(e.target.value);
-                        clearAiField("tipoVehiculo");
-                      }}
-                    />
-                    {aiFilledFields.has("tipoVehiculo") && (
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none">
-                        <Sparkles className="w-2.5 h-2.5" /> IA
-                      </span>
-                    )}
-                  </div>
+                  <SelectorTipoVehiculo
+                    value={tipoVehiculo}
+                    onChange={(t) => { setTipoVehiculo(t); clearAiField("tipoVehiculo"); }}
+                    aiFilled={aiFilledFields.has("tipoVehiculo")}
+                    invalid={showValidation && !tipoVehiculo.trim()}
+                  />
                   {showValidation && !tipoVehiculo.trim() && (
                     <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
                   )}
                 </div>
                 <div>
-                  <FieldLabel required>Placa del vehículo</FieldLabel>
+                  <FieldLabel required>Placa de tracto</FieldLabel>
                   <div className="relative">
                     <Input
                       className={cn(
@@ -946,63 +941,35 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                   )}
                 </div>
                 <div>
-                  <FieldLabel>No. Económico / No. Rótulo</FieldLabel>
+                  <FieldLabel required>No. de tracto</FieldLabel>
                   <div className="relative">
                     <Input
-                      className={cn("text-sm", aiFilledFields.has("noEconomico") && "border-violet-200 bg-violet-50/40")}
+                      className={cn(
+                        "text-sm",
+                        aiFilledFields.has("noEconomico") && "border-violet-200 bg-violet-50/40",
+                        showValidation && !noEconomico.trim() && "border-red-300 bg-red-50",
+                      )}
                       placeholder="Ej. ECO-001"
                       value={noEconomico}
                       onChange={(e) => { setNoEconomico(e.target.value); clearAiField("noEconomico"); }}
                     />
                     {aiFilledFields.has("noEconomico") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
                   </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <FieldLabel>Marca</FieldLabel>
-                  <div className="relative">
-                    <Input
-                      className={cn("text-sm", aiFilledFields.has("marcaVehiculo") && "border-violet-200 bg-violet-50/40")}
-                      placeholder="Ej. Kenworth"
-                      value={marcaVehiculo}
-                      onChange={(e) => { setMarcaVehiculo(e.target.value); clearAiField("marcaVehiculo"); }}
-                    />
-                    {aiFilledFields.has("marcaVehiculo") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
-                  </div>
-                </div>
-                <div>
-                  <FieldLabel>Modelo / Año</FieldLabel>
-                  <div className="relative">
-                    <Input
-                      className={cn("text-sm", aiFilledFields.has("modeloVehiculo") && "border-violet-200 bg-violet-50/40")}
-                      placeholder="Ej. 2023"
-                      value={modeloVehiculo}
-                      onChange={(e) => { setModeloVehiculo(e.target.value); clearAiField("modeloVehiculo"); }}
-                    />
-                    {aiFilledFields.has("modeloVehiculo") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
-                  </div>
-                </div>
-                <div>
-                  <FieldLabel required>Color</FieldLabel>
-                  <div className="relative">
-                    <Input
-                      className={cn(
-                        "text-sm",
-                        aiFilledFields.has("colorVehiculo") && "border-violet-200 bg-violet-50/40",
-                        showValidation && !colorVehiculo.trim() && "border-red-300 bg-red-50",
-                      )}
-                      placeholder="Ej. Blanco"
-                      value={colorVehiculo}
-                      onChange={(e) => { setColorVehiculo(e.target.value); clearAiField("colorVehiculo"); }}
-                    />
-                    {aiFilledFields.has("colorVehiculo") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
-                  </div>
-                  {showValidation && !colorVehiculo.trim() && (
+                  {showValidation && !noEconomico.trim() && (
                     <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
                   )}
                 </div>
+              </div>
+
+              {/* Marca y modelo/año no se muestran (2610-1323): los llena la IA y
+                  se guardan igual, pero no estorban la captura. */}
+              <div>
+                <FieldLabel>Color</FieldLabel>
+                <SelectorColorVehiculo
+                  value={colorVehiculo}
+                  onChange={(c) => { setColorVehiculo(c); clearAiField("colorVehiculo"); }}
+                  aiFilled={aiFilledFields.has("colorVehiculo")}
+                />
               </div>
 
               <SectionDivider
@@ -1010,7 +977,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                 icon={<Search className="w-3 h-3" />}
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <FieldLabel required>Conductor</FieldLabel>
                   <div className="relative">
@@ -1039,6 +1006,26 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                   )}
                 </div>
                 <div>
+                  <FieldLabel required>Celular</FieldLabel>
+                  <PhoneInput
+                    limitMaxLength
+                    defaultCountry="MX"
+                    placeholder="81 1234 5678"
+                    value={celular}
+                    onChange={(v) => setCelular(v || "")}
+                    containerComponentProps={{
+                      className: cn(
+                        "flex h-9 w-full rounded-md border border-input bg-transparent pl-3 py-0 text-sm shadow-sm focus-within:ring-1 focus-within:ring-ring",
+                        showValidation && !celular.trim() && "border-red-300 bg-red-50",
+                      ),
+                    }}
+                    numberInputProps={{ className: "pl-3 bg-transparent outline-none text-sm font-mono" }}
+                  />
+                  {showValidation && !celular.trim() && (
+                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
+                  )}
+                </div>
+                <div>
                   <FieldLabel required>No. de licencia</FieldLabel>
                   <div className="relative">
                     <Input
@@ -1046,9 +1033,9 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                         "text-sm font-mono uppercase",
                         aiFilledFields.has("noLicencia") &&
                           "border-violet-200 bg-violet-50/40",
-                        showValidation && !noLicencia.trim() && "border-red-300 bg-red-50",
+                        showValidation && !tieneMinCaracteres(noLicencia) && "border-red-300 bg-red-50",
                       )}
-                      placeholder="Número de licencia"
+                      placeholder="Mín. 4 caracteres"
                       value={noLicencia}
                       onChange={(e) => {
                         setNoLicencia(e.target.value);
@@ -1061,15 +1048,16 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                       </span>
                     )}
                   </div>
-                  {showValidation && !noLicencia.trim() && (
-                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
+                  {showValidation && !tieneMinCaracteres(noLicencia) && (
+                    <p className="text-[10px] text-red-500 mt-1">Mínimo 4 caracteres</p>
                   )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              {/* RFC no se muestra (2610-1323); si la IA lo detecta se guarda igual. */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <FieldLabel required>Vigencia de licencia</FieldLabel>
+                  <FieldLabel>Vigencia de licencia</FieldLabel>
                   <div className="relative">
                     {(() => {
                       const expired = vigenciaLicencia && new Date(vigenciaLicencia) < new Date();
@@ -1080,7 +1068,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                               "text-sm",
                               aiFilledFields.has("vigenciaLicencia") && !expired && "border-violet-200 bg-violet-50/40",
                               expired && "border-red-300 bg-red-50 text-red-700",
-                              showValidation && !vigenciaLicencia.trim() && "border-red-300 bg-red-50",
                             )}
                             placeholder="YYYY-MM-DD"
                             value={vigenciaLicencia}
@@ -1097,21 +1084,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                         </>
                       );
                     })()}
-                  </div>
-                  {showValidation && !vigenciaLicencia.trim() && (
-                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
-                  )}
-                </div>
-                <div>
-                  <FieldLabel>RFC</FieldLabel>
-                  <div className="relative">
-                    <Input
-                      className={cn("text-sm font-mono uppercase", aiFilledFields.has("rfcConductor") && "border-violet-200 bg-violet-50/40")}
-                      placeholder="Ej. GASS901012AB3"
-                      value={rfcConductor}
-                      onChange={(e) => { setRfcConductor(e.target.value); clearAiField("rfcConductor"); }}
-                    />
-                    {aiFilledFields.has("rfcConductor") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
                   </div>
                 </div>
                 <div>
@@ -1140,13 +1112,16 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                   />
                 </div>
                 <div>
-                  <FieldLabel>Orden de compra</FieldLabel>
+                  <FieldLabel required>Factura / Orden de compra</FieldLabel>
                   <Input
-                    className="text-sm"
-                    placeholder="Ej. OC-2026-001"
+                    className={cn("text-sm", showValidation && !tieneMinCaracteres(ordenCompra) && "border-red-300 bg-red-50")}
+                    placeholder="Mín. 4 caracteres"
                     value={ordenCompra}
                     onChange={(e) => setOrdenCompra(e.target.value)}
                   />
+                  {showValidation && !tieneMinCaracteres(ordenCompra) && (
+                    <p className="text-[10px] text-red-500 mt-1">Mínimo 4 caracteres</p>
+                  )}
                 </div>
               </div>
 
@@ -1194,6 +1169,12 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
           {/* ══ TAB: REMOLQUES ═══════════════════════ */}
           {tab === "remolques" && (
             <div className="space-y-3">
+              <CapturaCajaRapida
+                caja={cajaRapida}
+                onChange={setCajaRapida}
+                deshabilitada={unidades.length > 0}
+                showValidation={showValidation}
+              />
               {unidades.map((u, idx) => {
                 if (editingUnit?.id === u.id) return null; // se edita inline debajo de la lista
                 const isUnitExpanded = expandedUnits.has(u.id);
@@ -1274,7 +1255,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                           </div>
                           <div className="grid grid-cols-4 gap-3">
                             <MiniField label="Tipo" value={u.remolque.tipo} />
-                            <MiniField label="No. Remolque" value={u.remolque.noCaja} mono />
+                            <MiniField label="No. de caja" value={u.remolque.noCaja} mono />
                             <MiniField label="Placas" value={u.remolque.placas} mono />
                             <div>
                               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Color</p>
@@ -1378,12 +1359,14 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
               {showAgregarUnidad || editingUnit ? (
                 <UnidadEditorCard
                   initialData={editingUnit ?? undefined}
+                prefillRemolque={!editingUnit && unidades.length === 0 ? cajaRapida : undefined}
                   onCancel={() => { setShowAgregarUnidad(false); setEditingUnit(null); }}
                   onSave={(u) => {
                     if (editingUnit) {
                       setUnidades((p) => p.map((x) => x.id === u.id ? u : x));
                     } else {
                       setUnidades((p) => [...p, u]);
+                    setCajaRapida(emptyCajaRapida());
                       setExpandedUnits((prev) => new Set(prev).add(u.id));
                     }
                     setShowAgregarUnidad(false);
@@ -1428,7 +1411,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                 toast.error(`Completa los campos obligatorios: ${camposFaltantes.join(", ")}`);
                 return;
               }
-              const { remolques, contenedores, materiales } = serializeUnidades(unidades);
+              const { remolques, contenedores, materiales } = serializeUnidades(unidadesARegistrar(unidades, cajaRapida));
               const payload = {
                 creado_desde: "acceso_web",
                 tipo_operacion: tipoOperacion,
@@ -1447,6 +1430,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                 },
                 conductor: {
                   nombre: conductor || null,
+                  celular: celular || null,
                   no_licencia: noLicencia || null,
                   vigencia_licencia: vigenciaLicencia || null,
                   rfc: rfcConductor || null,
@@ -1491,6 +1475,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                       },
                       conductor: {
                         nombre: conductor || null,
+                        celular: celular || null,
                         no_licencia: noLicencia || null,
                         vigencia_licencia: vigenciaLicencia || null,
                         rfc: rfcConductor || null,

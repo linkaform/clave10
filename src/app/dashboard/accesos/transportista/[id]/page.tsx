@@ -85,6 +85,7 @@ import {
   tipoRequeridoSlug,
   labelDeTipoRequerido,
 } from "@/config/documentos-transportista";
+import { SelectorTipoVehiculo } from "@/components/transportista/selector-tipo-vehiculo";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -2169,7 +2170,7 @@ function Skeleton({ className }: { className?: string }) {
 // y Registrar llegada de pase, para que un documento subido desde cualquiera
 // de los 3 flujos se reconozca igual en los demás (mismo campo real en Mongo).
 const documentosRequeridosNombres = TIPOS_DOCUMENTO_TRANSPORTISTA
-  .filter((t) => !t.soloRecoleccion)
+  .filter((t) => !t.soloRecoleccion && !t.retirado)
   .map((t) => t.label);
 
 const DOCUMENTOS_REQUERIDOS_DESCRIPCION: Record<string, string> = Object.fromEntries(
@@ -3502,33 +3503,8 @@ export default function DetalleTransportistaPage() {
             {/* Input oculto para subir nueva foto */}
             <input ref={fotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
 
-            <div className="grid grid-cols-2 gap-2">
-              {/* Foto conductor */}
-              {(() => {
-                const url = data?.conductor?.foto_conductor?.file_url
-                  ?? data?.documentos_adicionales?.find((d) => d.tipo === "foto_conductor")?.file_url;
-                return (
-                  <button type="button" onClick={() => !isLocked && setFotoPicker("foto_conductor")} disabled={isLocked}
-                    className="h-24 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden flex flex-col items-center justify-center gap-1.5 relative group hover:border-blue-300 transition-colors disabled:cursor-not-allowed disabled:opacity-70">
-                    {url ? (
-                      <>
-                        <Image src={url} fill className="object-cover" alt="Conductor" unoptimized />
-                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Pencil className="w-4 h-4 text-white" />
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <Camera className="w-5 h-5 text-gray-300 group-hover:text-blue-400 transition-colors" />
-                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">FOTO</span>
-                      </>
-                    )}
-                    <div className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-white shadow flex items-center justify-center">
-                      <Pencil className="w-2.5 h-2.5 text-gray-500" />
-                    </div>
-                  </button>
-                );
-              })()}
+            <div className="grid grid-cols-1 gap-2">
+              {/* Flujo simplificado (2610-1323): ya no se pide la foto del conductor. */}
               {/* Foto licencia */}
               {(() => {
                 const url = data?.conductor?.foto_licencia?.file_url
@@ -3654,10 +3630,11 @@ export default function DetalleTransportistaPage() {
             ) : (
               <>
                 <Field
-                  label="Empresa Transportista"
+                  label="Línea"
                   value={data?.vehiculo?.transportista}
                 />
                 <Field label="Tipo de Operación" value={capitalizeOnlyFirstLetter(data?.tipo_operacion)} />
+                <Field label="Celular" value={data?.conductor?.celular} mono />
                 <Field
                   label="No. de Licencia"
                   value={data?.conductor?.no_licencia}
@@ -3685,7 +3662,7 @@ export default function DetalleTransportistaPage() {
             ) : (
               <>
                 <Field label="Proveedor / Cliente" value={data?.embarque?.proveedor_cliente} />
-                <Field label="Orden de Compra" value={data?.embarque?.no_orden_compra} mono />
+                <Field label="Factura / Orden de compra" value={data?.embarque?.no_orden_compra} mono />
                 <Field label="Procedencia" value={data?.vehiculo?.procedencia} />
               </>
             )}
@@ -4245,8 +4222,8 @@ export default function DetalleTransportistaPage() {
                           {(
                             [
                               { key: "tipo_vehiculo", label: "Tipo de Vehículo" },
-                              { key: "placa",         label: "Placas Vehículo",   mono: true },
-                              { key: "no_economico",  label: "No. Económico",     mono: true },
+                              { key: "placa",         label: "Placa de tracto",   mono: true },
+                              { key: "no_economico",  label: "No. de tracto",     mono: true },
                               { key: "marca",         label: "Marca" },
                               { key: "modelo",        label: "Modelo / Año" },
                               { key: "color",         label: "Color" },
@@ -4254,11 +4231,18 @@ export default function DetalleTransportistaPage() {
                           ).map(({ key, label, mono }) => (
                             <div key={key}>
                               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-                              <input
-                                className={cn("w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100", mono && "font-mono uppercase")}
-                                value={vehicleDraft[key]}
-                                onChange={(e) => setVehicleDraft((p) => ({ ...p, [key]: e.target.value }))}
-                              />
+                              {key === "tipo_vehiculo" ? (
+                                <SelectorTipoVehiculo
+                                  value={vehicleDraft.tipo_vehiculo}
+                                  onChange={(t) => setVehicleDraft((p) => ({ ...p, tipo_vehiculo: t }))}
+                                />
+                              ) : (
+                                <input
+                                  className={cn("w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100", mono && "font-mono uppercase")}
+                                  value={vehicleDraft[key]}
+                                  onChange={(e) => setVehicleDraft((p) => ({ ...p, [key]: e.target.value }))}
+                                />
+                              )}
                             </div>
                           ))}
                         </div>
@@ -4277,8 +4261,8 @@ export default function DetalleTransportistaPage() {
                     ) : (
                       <div className="px-4 py-3 grid grid-cols-3 gap-4">
                         <Field label="Tipo de Vehículo" value={data?.vehiculo?.tipo_vehiculo} />
-                        <Field label="Placas Vehículo" value={data?.vehiculo?.placa} mono />
-                        <Field label="No. Económico" value={data?.vehiculo?.no_economico} mono />
+                        <Field label="Placa de tracto" value={data?.vehiculo?.placa} mono />
+                        <Field label="No. de tracto" value={data?.vehiculo?.no_economico} mono />
                         <Field label="Marca" value={data?.vehiculo?.marca} />
                         <Field label="Modelo / Año" value={data?.vehiculo?.modelo} />
                         <Field label="Color" value={data?.vehiculo?.color} />
@@ -4363,7 +4347,7 @@ export default function DetalleTransportistaPage() {
                           </div>
                           <div className="grid grid-cols-4 gap-3">
                             <Field label="Tipo" value={u.remolque.tipo || null} />
-                            <Field label="No. Remolque" value={u.remolque.noCaja || null} mono />
+                            <Field label="No. de caja" value={u.remolque.noCaja || null} mono />
                             <Field label="Placas" value={u.remolque.placas || null} mono />
                             <div>
                               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Color</p>
@@ -4509,7 +4493,7 @@ export default function DetalleTransportistaPage() {
               ) : (
                 <div className="grid grid-cols-3 gap-4">
                   <Field label="Proveedor / Cliente" value={data?.embarque?.proveedor_cliente} />
-                  <Field label="Orden de Compra" value={data?.embarque?.no_orden_compra} mono />
+                  <Field label="Factura / Orden de compra" value={data?.embarque?.no_orden_compra} mono />
                   <Field label="Procedencia" value={data?.vehiculo?.procedencia} />
                 </div>
               )}

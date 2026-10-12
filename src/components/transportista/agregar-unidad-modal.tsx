@@ -79,6 +79,100 @@ export const labelDeUnidad = (u: UnidadItem): string =>
   : u.config === "solo_vehiculo" ? "Solo vehículo"
   : "Solo remolque";
 
+// Número y placa de la caja son obligatorios en toda unidad con remolque
+// (flujo simplificado 2610-1323). "solo_vehiculo" no tiene caja.
+export const faltantesCajaDeUnidad = (u: Pick<UnidadItem, "config" | "remolque">): string[] =>
+  u.config === "solo_vehiculo" ? [] : [
+    !u.remolque.noCaja.trim() && "No. de caja",
+    !u.remolque.placas.trim() && "Placas de caja",
+  ].filter((v): v is string => Boolean(v));
+
+// Unidades a las que les falta algún dato de caja, como "Unidad 2 (No. de caja)"
+// — para el aviso de campos obligatorios de cada flujo.
+export const unidadesSinCaja = (list: UnidadItem[]): string[] =>
+  list.flatMap((u, i) => {
+    const faltan = faltantesCajaDeUnidad(u);
+    return faltan.length ? [`Unidad ${i + 1} (${faltan.join(", ")})`] : [];
+  });
+
+// ─── Caja rápida ──────────────────────────────────────────────────────────────
+// Captura mínima de la pestaña Carga (2610-1323): número y placas de la caja
+// arriba, y debajo —separado por "O"— el detalle por unidad. Mientras no haya
+// unidades, los dos campos de arriba son obligatorios y al registrar se
+// convierten en una unidad "Solo remolque"; si ya hay unidades se deshabilitan
+// y la caja se exige dentro de cada unidad.
+export interface CajaRapida {
+  noCaja: string;
+  placas: string;
+}
+
+export const emptyCajaRapida = (): CajaRapida => ({ noCaja: "", placas: "" });
+
+export const unidadDesdeCajaRapida = (caja: CajaRapida): UnidadItem => ({
+  ...emptyUnidad(),
+  remolque: { ...emptyRemolqueData(), noCaja: caja.noCaja.trim(), placas: caja.placas.trim() },
+});
+
+// Unidades que se mandan al registrar: las capturadas, o la caja rápida si no hay.
+export const unidadesARegistrar = (list: UnidadItem[], caja: CajaRapida): UnidadItem[] =>
+  list.length ? list : [unidadDesdeCajaRapida(caja)];
+
+export const faltantesCarga = (list: UnidadItem[], caja: CajaRapida): string[] =>
+  list.length ? unidadesSinCaja(list) : [
+    !caja.noCaja.trim() && "No. de caja",
+    !caja.placas.trim() && "Placas de caja",
+  ].filter((v): v is string => Boolean(v));
+
+export function CapturaCajaRapida({
+  caja,
+  onChange,
+  deshabilitada,
+  showValidation,
+}: {
+  caja: CajaRapida;
+  onChange: (caja: CajaRapida) => void;
+  deshabilitada: boolean;
+  showValidation?: boolean;
+}) {
+  const campo = (key: keyof CajaRapida, label: string, placeholder: string) => {
+    const falta = !deshabilitada && showValidation && !caja[key].trim();
+    return (
+      <div>
+        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+          {label} {!deshabilitada && <span className="text-red-400">*</span>}
+        </p>
+        <input
+          disabled={deshabilitada}
+          className={cn(
+            "w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs font-mono uppercase focus:outline-none focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed",
+            falta && "border-red-300 bg-red-50",
+          )}
+          placeholder={placeholder}
+          value={deshabilitada ? "" : caja[key]}
+          onChange={(e) => onChange({ ...caja, [key]: e.target.value })}
+        />
+        {falta && <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>}
+      </div>
+    );
+  };
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        {campo("noCaja", "No. de caja", "Ej. CAJA-001")}
+        {campo("placas", "Placas de caja", "Ej. 123-AB-4")}
+      </div>
+      {deshabilitada && (
+        <p className="text-[11px] text-gray-400">Se usan la caja y placas de cada unidad de abajo.</p>
+      )}
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-gray-200" />
+        <span className="text-[11px] font-bold text-gray-400">O</span>
+        <div className="h-px flex-1 bg-gray-200" />
+      </div>
+    </div>
+  );
+}
+
 export const emptyMaterial = (): MaterialCarga => ({
   id: Math.random().toString(36).slice(2),
   apiIndex: null,
@@ -213,6 +307,41 @@ export function resolveColorSwatch(value: string): { hex: string | null; label: 
   return { hex: key ? COLOR_HEX_POR_NOMBRE[key] : null, label: value };
 }
 
+// Selector de color del vehículo con la misma paleta de remolques/contenedores.
+// Guarda el nombre ("Blanco"), no el hex, porque el color del vehículo se lee
+// como texto en el detalle; si la IA trajo un color fuera de la paleta (ej.
+// "Gris"), se muestra como texto junto a la paleta para no perderlo.
+export function SelectorColorVehiculo({
+  value,
+  onChange,
+  aiFilled,
+}: {
+  value: string;
+  onChange: (color: string) => void;
+  aiFilled?: boolean;
+}) {
+  const actual = resolveColorSwatch(value);
+  const fueraDePaleta = !!value.trim() && !COLORES.some((c) => c.label.toLowerCase() === value.trim().toLowerCase());
+  return (
+    <div className="flex items-center gap-2 min-h-9 flex-wrap">
+      {COLORES.map((c) => (
+        <button key={c.hex} type="button" onClick={() => onChange(actual?.hex === c.hex ? "" : c.label)}
+          className={cn("w-7 h-7 rounded-full border-2 transition-all", actual?.hex === c.hex ? "border-blue-500 scale-110" : "border-transparent hover:border-gray-300")}
+          style={{ background: c.hex }} title={c.label} />
+      ))}
+      {fueraDePaleta && (
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-600 border border-gray-200 rounded-full px-2 py-0.5">
+          {actual?.hex && <span className="w-3 h-3 rounded-full" style={{ background: actual.hex }} />}
+          {value}
+        </span>
+      )}
+      {aiFilled && value && (
+        <span className="text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5">IA</span>
+      )}
+    </div>
+  );
+}
+
 export const TIPOS_REMOLQUE = ["Caja seca", "Plataforma", "Caja refrigerada", "Ganadero", "Basculante", "Portavehículos", "Caravana"];
 export const TIPOS_CONTENEDOR = ["20' Standard (20GP)", "40' Standard (40GP)", "40' High Cube (40HC)", "20' Reefer (20RF)", "40' Reefer (40RF)", "40' HC Reefer (40HR)", "20' Open Top (20OT)", "40' Open Top (40OT)", "20' Flat Rack (20FR)", "40' Flat Rack (40FR)", "ISO Tank", "20' Ventilado (20VH)", "Open Side"];
 
@@ -239,17 +368,20 @@ export function UnidadEditorCard({
   onSave,
   initialData,
   defaultConfig,
+  prefillRemolque,
   className,
 }: {
   onCancel: () => void;
   onSave: (unidad: UnidadItem) => void;
   initialData?: UnidadItem;
   defaultConfig?: UnidadConfig;
+  // Datos con los que arranca una unidad nueva (ej. la caja rápida ya capturada).
+  prefillRemolque?: Partial<RemolqueData>;
   className?: string;
 }) {
   const [config, setConfig] = useState<UnidadConfig>(initialData?.config ?? defaultConfig ?? "solo_remolque");
   const [activeTab, setActiveTab] = useState<"remolque" | "contenedor">("remolque");
-  const [remolque, setRemolque] = useState<RemolqueData>(initialData?.remolque ?? emptyRemolqueData());
+  const [remolque, setRemolque] = useState<RemolqueData>(initialData?.remolque ?? { ...emptyRemolqueData(), ...prefillRemolque });
   const [contenedor, setContenedor] = useState<ContenedorData>(initialData?.contenedor ?? emptyContenedorData());
   const [vehiculo, setVehiculo] = useState<VehiculoData>(initialData?.vehiculo ?? emptyVehiculoData());
 
@@ -273,7 +405,15 @@ export function UnidadEditorCard({
   const updateMaterialV = (id: string, field: keyof MaterialCarga, value: string) =>
     setVehiculo((p) => ({ ...p, materiales: p.materiales.map((m) => m.id === id ? { ...m, [field]: value } : m) }));
 
+  const [showValidation, setShowValidation] = useState(false);
+  const faltantesCaja = faltantesCajaDeUnidad({ config, remolque });
+
   const handleSave = () => {
+    if (faltantesCaja.length) {
+      setShowValidation(true);
+      setActiveTab("remolque");
+      return;
+    }
     onSave({
       id:                 initialData?.id                 ?? Math.random().toString(36).slice(2),
       config,
@@ -407,11 +547,13 @@ export function UnidadEditorCard({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">No. de caja <span className="text-red-400">*</span></p>
-                  <input className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs font-mono uppercase focus:outline-none focus:border-blue-400" placeholder="Ej. CAJA-001" value={remolque.noCaja} onChange={(e) => updateR("noCaja", e.target.value)} />
+                  <input className={cn("w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs font-mono uppercase focus:outline-none focus:border-blue-400", showValidation && !remolque.noCaja.trim() && "border-red-300 bg-red-50")} placeholder="Ej. CAJA-001" value={remolque.noCaja} onChange={(e) => updateR("noCaja", e.target.value)} />
+                  {showValidation && !remolque.noCaja.trim() && <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>}
                 </div>
                 <div>
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Placas de caja <span className="text-red-400">*</span></p>
-                  <input className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs font-mono uppercase focus:outline-none focus:border-blue-400" placeholder="Ej. 123-AB-4" value={remolque.placas} onChange={(e) => updateR("placas", e.target.value)} />
+                  <input className={cn("w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs font-mono uppercase focus:outline-none focus:border-blue-400", showValidation && !remolque.placas.trim() && "border-red-300 bg-red-50")} placeholder="Ej. 123-AB-4" value={remolque.placas} onChange={(e) => updateR("placas", e.target.value)} />
+                  {showValidation && !remolque.placas.trim() && <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>}
                 </div>
               </div>
               <div>
