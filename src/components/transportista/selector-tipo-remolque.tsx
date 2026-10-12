@@ -4,7 +4,8 @@ import { useState, type ReactNode } from "react";
 import { LayoutGrid } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Auto, Rueda, Silueta } from "@/components/transportista/selector-tipo-vehiculo";
+import { Auto, Rueda, Silueta, resolverTipoVehiculo } from "@/components/transportista/selector-tipo-vehiculo";
+import type { UnidadConfig } from "@/components/transportista/agregar-unidad-modal";
 
 // ─── Tipos de remolque ────────────────────────────────────────────────────────
 // Misma lista que el select anterior (TIPOS_REMOLQUE); se guarda el `value`
@@ -101,15 +102,42 @@ export const TIPOS_REMOLQUE_SILUETA: { value: string; silueta: ReactNode }[] = [
 const normalizar = (s: string) =>
   s.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
+// ─── Sugerencias por tipo de vehículo ─────────────────────────────────────────
+// Solo sugieren (ordenan la galería y proponen la configuración de una unidad
+// nueva); nunca esconden opciones ni cambian unidades ya capturadas.
+// Madrina y Pipa ya implican su remolque, por eso traen uno solo y se
+// preselecciona. Torton/Rabón/3.5 t traen caja integrada: arrancan en
+// "Solo vehículo".
+const SUGERENCIAS_POR_VEHICULO: Record<string, { remolques: string[]; config: UnidadConfig }> = {
+  "Tractocamión":    { remolques: ["Caja seca", "Caja refrigerada", "Plataforma", "Basculante", "Ganadero"], config: "solo_remolque" },
+  "Madrina":         { remolques: ["Portavehículos"], config: "solo_remolque" },
+  "Pipa":            { remolques: ["Tanque"], config: "solo_remolque" },
+  "Torton":          { remolques: [], config: "solo_vehiculo" },
+  "Rabón":           { remolques: [], config: "solo_vehiculo" },
+  "Camioneta 3.5 t": { remolques: [], config: "solo_vehiculo" },
+  "Pickup":          { remolques: ["Caravana", "Plataforma"], config: "solo_vehiculo" },
+};
+
+export function sugerenciaPorTipoVehiculo(tipoVehiculo?: string | null) {
+  const tipo = resolverTipoVehiculo(tipoVehiculo ?? "");
+  return tipo ? { tipoVehiculo: tipo.value, ...SUGERENCIAS_POR_VEHICULO[tipo.value] } : null;
+}
+
 export function SelectorTipoRemolque({
   value,
   onChange,
+  tipoVehiculo,
 }: {
   value: string;
   onChange: (tipo: string) => void;
+  // Tipo de vehículo del acceso: si tiene sugerencias, van primero.
+  tipoVehiculo?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const actual = TIPOS_REMOLQUE_SILUETA.find((t) => normalizar(t.value) === normalizar(value));
+  const sugerencia = sugerenciaPorTipoVehiculo(tipoVehiculo);
+  const sugeridos = TIPOS_REMOLQUE_SILUETA.filter((t) => sugerencia?.remolques.includes(t.value));
+  const otros = TIPOS_REMOLQUE_SILUETA.filter((t) => !sugeridos.includes(t));
 
   const tarjeta = (t: (typeof TIPOS_REMOLQUE_SILUETA)[number]) => {
     const activo = actual?.value === t.value;
@@ -167,7 +195,16 @@ export function SelectorTipoRemolque({
             <DialogDescription>Elige el que más se parezca al remolque que llegó.</DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-4 gap-3">{TIPOS_REMOLQUE_SILUETA.map(tarjeta)}</div>
+          {sugeridos.length > 0 ? (
+            <>
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Sugeridos para {sugerencia?.tipoVehiculo}</p>
+              <div className="grid grid-cols-4 gap-3">{sugeridos.map(tarjeta)}</div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Otros</p>
+              <div className="grid grid-cols-4 gap-3">{otros.map(tarjeta)}</div>
+            </>
+          ) : (
+            <div className="grid grid-cols-4 gap-3">{otros.map(tarjeta)}</div>
+          )}
         </DialogContent>
       </Dialog>
     </>

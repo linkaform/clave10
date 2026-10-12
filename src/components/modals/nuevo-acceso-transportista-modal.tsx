@@ -1359,6 +1359,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
               {showAgregarUnidad || editingUnit ? (
                 <UnidadEditorCard
                   initialData={editingUnit ?? undefined}
+                  tipoVehiculo={tipoVehiculo}
                 prefillRemolque={!editingUnit && unidades.length === 0 ? cajaRapida : undefined}
                   onCancel={() => { setShowAgregarUnidad(false); setEditingUnit(null); }}
                   onSave={(u) => {

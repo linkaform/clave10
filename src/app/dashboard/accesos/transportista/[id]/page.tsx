@@ -5198,6 +5198,7 @@ export default function DetalleTransportistaPage() {
       {showAgregarUnidad && (
         <AgregarUnidadModal
           defaultConfig={agregarUnidadDefaultConfig}
+          tipoVehiculo={data?.vehiculo?.tipo_vehiculo}
           onClose={() => { setShowAgregarUnidad(false); setAgregarUnidadDefaultConfig(undefined); }}
           onSave={(u) => {
             const next = [...unidades, u];
@@ -5241,6 +5242,7 @@ export default function DetalleTransportistaPage() {
       {editingUnit && (
         <AgregarUnidadModal
           initialData={editingUnit}
+          tipoVehiculo={data?.vehiculo?.tipo_vehiculo}
           onClose={() => setEditingUnit(null)}
           onSave={(updated) => {
             const next = unidades.map((x) => x.id === updated.id ? updated : x);

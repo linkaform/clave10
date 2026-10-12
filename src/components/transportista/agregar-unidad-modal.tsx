@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Truck, Package, Car, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SelectorTipoRemolque } from "@/components/transportista/selector-tipo-remolque";
+import { SelectorTipoRemolque, sugerenciaPorTipoVehiculo } from "@/components/transportista/selector-tipo-remolque";
 
 // ─── Unidades types & helpers ────────────────────────────────────────────────
 // Compartido entre el modal de "Nuevo acceso" y el detalle de transportista,
@@ -370,6 +370,7 @@ export function UnidadEditorCard({
   initialData,
   defaultConfig,
   prefillRemolque,
+  tipoVehiculo,
   className,
 }: {
   onCancel: () => void;
@@ -378,11 +379,20 @@ export function UnidadEditorCard({
   defaultConfig?: UnidadConfig;
   // Datos con los que arranca una unidad nueva (ej. la caja rápida ya capturada).
   prefillRemolque?: Partial<RemolqueData>;
+  // Tipo de vehículo del acceso: sugiere configuración y tipo de remolque de
+  // una unidad nueva (ver sugerenciaPorTipoVehiculo). No toca unidades ya
+  // capturadas.
+  tipoVehiculo?: string | null;
   className?: string;
 }) {
-  const [config, setConfig] = useState<UnidadConfig>(initialData?.config ?? defaultConfig ?? "solo_remolque");
+  const sugerencia = initialData ? null : sugerenciaPorTipoVehiculo(tipoVehiculo);
+  // Si ya capturaron caja rápida no se sugiere "Solo vehículo": perderían la caja.
+  const traeCaja = !!(prefillRemolque?.noCaja?.trim() || prefillRemolque?.placas?.trim());
+  const configSugerida = sugerencia && !(sugerencia.config === "solo_vehiculo" && traeCaja) ? sugerencia.config : undefined;
+  const remolqueSugerido = sugerencia?.remolques.length === 1 ? sugerencia.remolques[0] : "";
+  const [config, setConfig] = useState<UnidadConfig>(initialData?.config ?? defaultConfig ?? configSugerida ?? "solo_remolque");
   const [activeTab, setActiveTab] = useState<"remolque" | "contenedor">("remolque");
-  const [remolque, setRemolque] = useState<RemolqueData>(initialData?.remolque ?? { ...emptyRemolqueData(), ...prefillRemolque });
+  const [remolque, setRemolque] = useState<RemolqueData>(initialData?.remolque ?? { ...emptyRemolqueData(), tipo: remolqueSugerido, ...prefillRemolque });
   const [contenedor, setContenedor] = useState<ContenedorData>(initialData?.contenedor ?? emptyContenedorData());
   const [vehiculo, setVehiculo] = useState<VehiculoData>(initialData?.vehiculo ?? emptyVehiculoData());
 
@@ -537,7 +547,7 @@ export function UnidadEditorCard({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tipo de remolque <span className="text-red-400">*</span></p>
-                  <SelectorTipoRemolque value={remolque.tipo} onChange={(t) => updateR("tipo", t)} />
+                  <SelectorTipoRemolque value={remolque.tipo} onChange={(t) => updateR("tipo", t)} tipoVehiculo={tipoVehiculo} />
                 </div>
                 <div>
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">No. de sello</p>
@@ -632,11 +642,13 @@ export function AgregarUnidadModal({
   onSave,
   initialData,
   defaultConfig,
+  tipoVehiculo,
 }: {
   onClose: () => void;
   onSave: (unidad: UnidadItem) => void;
   initialData?: UnidadItem;
   defaultConfig?: UnidadConfig;
+  tipoVehiculo?: string | null;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -644,6 +656,7 @@ export function AgregarUnidadModal({
         className="w-full max-w-3xl max-h-[90vh] shadow-2xl"
         initialData={initialData}
         defaultConfig={defaultConfig}
+        tipoVehiculo={tipoVehiculo}
         onCancel={onClose}
         onSave={(u) => { onSave(u); onClose(); }}
       />

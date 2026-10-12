@@ -1466,6 +1466,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
                   {showAgregarUnidad || editingUnit ? (
                     <UnidadEditorCard
                       initialData={editingUnit ?? undefined}
+                      tipoVehiculo={tipoVehiculo}
                     prefillRemolque={!editingUnit && unidades.length === 0 ? cajaRapida : undefined}
                       onCancel={() => { setShowAgregarUnidad(false); setEditingUnit(null); }}
                       onSave={(u) => {
