@@ -13,11 +13,11 @@ services:
       - ../public:/srv/public/
       - ../cache:/srv/cache/
     ports:
-      - "3000:3000"
+      - "3010:3010"
     environment:
       NEXT_PUBLIC_API_BASE_URL: https://app.linkaform.com/api
-      #NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api
+      #NEXT_PUBLIC_API_BASE_URL: http://localhost:8014/api
     stdin_open: true
-    command: yarn dev
+    command: yarn dev -p 3010
     #command: /bin/bash
     tty: true

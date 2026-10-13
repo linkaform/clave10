@@ -7,7 +7,7 @@ import path from "node:path";
  *
  * Requisitos antes de correr los tests:
  *   1. Levantar la app: `docker compose up -d` (desde /docker) o `yarn dev`.
- *   2. Confirmar que responde en http://localhost:3000.
+ *   2. Confirmar que responde en http://localhost:3010.
  *
  * Docs: https://playwright.dev/docs/test-configuration
  */
@@ -54,7 +54,7 @@ export default defineConfig({
   outputDir: "./tests/test_logs",
 
   use: {
-    baseURL: process.env.BASE_URL || "http://localhost:3000",
+    baseURL: process.env.BASE_URL || "http://localhost:3010",
     // Guarda el trace completo (timeline, DOM, red, consola) en cualquier
     // falla local, no solo en reintentos — aquí no hay reintentos
     // (retries: 0 fuera de CI), así que "on-first-retry" nunca se
@@ -103,7 +103,7 @@ export default defineConfig({
   // docker compose, descomentar esto (requiere `yarn dev` funcional en host):
   // webServer: {
   //   command: "yarn dev",
-  //   url: "http://localhost:3000",
+  //   url: "http://localhost:3010",
   //   reuseExistingServer: !process.env.CI,
   // },
 });
