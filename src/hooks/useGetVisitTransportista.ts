@@ -61,6 +61,7 @@ interface RawRecord {
   year_vehiculo: string | null;
   color_vehiculo: string | null;
   conductor: string | null;
+  telefono_conductor?: string | null;
   num_licencia: string | null;
   proveedor_cliente: string | null;
   orden_de_compra: string | null;
@@ -112,6 +113,7 @@ function mapRecord(raw: RawRecord): VisitaTransportista {
     },
     conductor: {
       nombre: raw.conductor,
+      celular: raw.telefono_conductor ?? null,
       no_licencia: raw.num_licencia,
       vigencia_licencia: null,
       rfc: null,
@@ -227,6 +229,8 @@ export interface VisitaTransportista {
   } | null;
   conductor: {
     nombre: string | null;
+    // Celular del chofer para avisarle el andén (2610-1323).
+    celular?: string | null;
     no_licencia: string | null;
     vigencia_licencia: string | null;
     rfc: string | null;

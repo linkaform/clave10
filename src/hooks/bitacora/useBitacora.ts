@@ -6,6 +6,7 @@ import {
 import { useBitacoraModals } from "./useBitacoraModals";
 import { useBitacoraData } from "./useBitacoraData";
 import { useBitacoraActions } from "./useBitacoraActions";
+import { useBitacoraSearch } from "./useBitacoraSearch";
 
 export const useBitacora = () => {
   const [viewMode, setViewMode] = useState<"table" | "photos" | "list">(
@@ -14,13 +15,6 @@ export const useBitacora = () => {
 
   const filters = useBitacoraFilters();
   const modals = useBitacoraModals();
-  const data = useBitacoraData({
-    ...filters,
-  });
-  const actions = useBitacoraActions();
-
-  // Lógica extra para el Drawer de filtros externos
-  const extraFilters = useBitacoraFiltersExtra(filters);
 
   // Manejo de Tabs desde la URL
   const initialTab = filters.queryParams.tab?.[0] || "personal";
@@ -35,6 +29,22 @@ export const useBitacora = () => {
     }
   }, [filters.queryParams.tab]);
 
+  // Cada pestaña pagina sus propias filas: al cambiar se vuelve a la primera página.
+  const { setPagination } = filters;
+  useEffect(() => {
+    setPagination((p) => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }));
+  }, [selectedTab, setPagination]);
+
+  const data = useBitacoraData({
+    ...filters,
+    selectedTab,
+  });
+  const actions = useBitacoraActions();
+  const search = useBitacoraSearch(filters);
+
+  // Lógica extra para el Drawer de filtros externos
+  const extraFilters = useBitacoraFiltersExtra(filters);
+
   // Mapeamos para mantener nombres limpios
   return {
     ...filters,
@@ -42,6 +52,7 @@ export const useBitacora = () => {
     ...data,
     ...actions,
     ...extraFilters,
+    ...search,
 
     // Vista local
     viewMode,

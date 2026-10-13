@@ -360,6 +360,10 @@ export interface DireccionContacto {
   ciudad: string;
   estado: string;
   pais: string;
+  colonia?: string;
+  codigo_postal?: string;
+  telefono?: string;
+  email?: string;
   geolocalizacion: GeolocalizacionArea | null;
 }
 

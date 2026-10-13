@@ -38,7 +38,7 @@ export function AreasDeUbicacion({ ubicacion }: AreasDeUbicacionProps) {
           Áreas registradas
           <span className="ml-2 text-blue-600 font-bold">{areasActivas.length}</span>
         </span>
-        <Button size="sm" onClick={() => setIsCreateOpen(true)} className="gap-1.5">
+        <Button size="sm" onClick={() => setIsCreateOpen(true)} className="gap-1.5 bg-blue-500 hover:bg-blue-600 text-white">
           <Plus size={14} />
           Agregar área
         </Button>

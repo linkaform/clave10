@@ -20,10 +20,12 @@ interface PaginationPasesProps {
 const LIMIT_OPTIONS = [25, 50, 100];
 
 const PaginationPases: React.FC<PaginationPasesProps> = ({
-  actual_page,
-  records_on_page,
-  total_pages,
-  total_records,
+  // Defaults: si el back responde sin paginación (error o forma distinta),
+  // la paginación muestra ceros en vez de tumbar la página.
+  actual_page = 1,
+  records_on_page = 0,
+  total_pages = 1,
+  total_records = 0,
   limit,
   onPageChange,
 }) => {
@@ -56,7 +58,7 @@ const PaginationPases: React.FC<PaginationPasesProps> = ({
           </Select>
         </label>
         <span className="text-gray-500">
-          1 - {records_on_page} de {total_records.toLocaleString("en-US")} registros
+          {records_on_page > 0 ? (actual_page - 1) * limit + 1 : 0} - {(actual_page - 1) * limit + records_on_page} de {total_records.toLocaleString("en-US")} registros
         </span>
       </div>
       <div className="flex items-center gap-5">

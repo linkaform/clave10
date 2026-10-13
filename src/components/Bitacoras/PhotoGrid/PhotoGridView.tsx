@@ -1,5 +1,6 @@
 "use client";
 
+import { GridCardSkeletons } from "@/components/common/RecordSkeletons";
 import { useState, useEffect, useMemo } from "react";
 import { PhotoGridCard } from "./PhotoGridCard";
 import { ImageIcon } from "lucide-react";
@@ -42,12 +43,15 @@ export function PhotoGridView({
   getMapData,
   modalType = "normal",
   showStatusBadge=true,
-  modalActions
+  modalActions,
+  skeleton = false,
 }: Omit<
   PhotoGridViewProps,
   "filtersConfig" | "hideSidebar" | "renderCustomActions"
 > & {
   showStatusBadge?: boolean;
+  /** Al cargar muestra tarjetas fantasma en vez del spinner. */
+  skeleton?: boolean;
   globalSearch?: string[];
   selectionActions?:
     | React.ReactNode
@@ -153,7 +157,7 @@ export function PhotoGridView({
           <div className="flex-1 overflow-y-auto">
             <div>
               {isLoading ? (
-               <CustomSpinner/>
+               skeleton ? <GridCardSkeletons /> : <CustomSpinner/>
               ) : filteredRecords.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
                   {filteredRecords.map((record, index) => (

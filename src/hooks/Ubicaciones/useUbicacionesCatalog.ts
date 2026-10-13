@@ -36,7 +36,8 @@ export const useUbicacionesCatalog = (
     refetch,
   } = useQuery<UbicacionesCatalogPage>({
     queryKey: ["ubicacionesCatalog", locations, dynamicFilters, limit, skip, search, searchFields],
-    enabled: locations.length > 0 && enabled,
+    // locations vacío es válido: el back regresa todas las de la cuenta.
+    enabled,
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<UbicacionesCatalogPage> => {
       const data = await getUbicacionesCatalogSdk(locations, dynamicFilters, limit, skip, search, searchFields);

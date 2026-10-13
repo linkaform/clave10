@@ -8,18 +8,18 @@ import {
   Phone,
   Mail,
   Layers,
-  Pencil,
   Building2,
   Users,
   Settings,
 } from "lucide-react";
 import { useGetUbicacionById } from "@/hooks/Ubicaciones/useGetUbicacionById";
+import { useCatalogDirecciones } from "@/hooks/Areas/useCatalogDirecciones";
 import { normalizeUbicacion } from "@/lib/ubicaciones";
 import { EditarUbicacionForm } from "./EditarUbicacionForm";
 import { AreasDeUbicacion } from "./AreasDeUbicacion";
 import { EmpleadosDeUbicacion } from "./EmpleadosDeUbicacion";
 
-type UbicacionTab = "generales" | "areas" | "empleados" | "configuracion";
+export type UbicacionTab = "generales" | "areas" | "empleados" | "configuracion";
 
 const TABS: { key: UbicacionTab; label: string; icon: typeof Building2 }[] = [
   { key: "generales", label: "Generales", icon: Building2 },
@@ -28,11 +28,23 @@ const TABS: { key: UbicacionTab; label: string; icon: typeof Building2 }[] = [
   { key: "configuracion", label: "Configuración", icon: Settings },
 ];
 
-const UbicacionDetalle = ({ id, onClose }: { id: string; onClose?: () => void }) => {
+const UbicacionDetalle = ({
+  id,
+  onClose,
+  initialTab = "generales",
+}: {
+  id: string;
+  onClose?: () => void;
+  /** Tab con el que abre; el lápiz de editar abre en "configuracion". */
+  initialTab?: UbicacionTab;
+}) => {
   const { ubicacion, isLoadingUbicacion } = useGetUbicacionById(id);
-  const [activeTab, setActiveTab] = useState<UbicacionTab>("generales");
+  const [activeTab, setActiveTab] = useState<UbicacionTab>(initialTab);
 
   const normalized = useMemo(() => (ubicacion ? normalizeUbicacion(ubicacion, 0) : null), [ubicacion]);
+  // La forma de Ubicaciones no trae el teléfono del contacto: se toma del catálogo.
+  const { direcciones } = useCatalogDirecciones();
+  const contactoCatalogo = direcciones.find((d) => d.nombre_direccion === normalized?.contacto);
 
   if (isLoadingUbicacion) {
     return (
@@ -50,7 +62,9 @@ const UbicacionDetalle = ({ id, onClose }: { id: string; onClose?: () => void })
     return <div className="p-8 text-center text-gray-400">Ubicación no encontrada</div>;
   }
 
-  const { nombre, direccion, colonia, ciudad, estado, pais, codigoPostal, telefono, email, geolocalizacion, folio } = normalized;
+  const { nombre, direccion, colonia, ciudad, estado, pais, codigoPostal, geolocalizacion, folio } = normalized;
+  const telefono = normalized.telefono || contactoCatalogo?.telefono || "";
+  const email = normalized.email || contactoCatalogo?.email || "";
 
   const mapsUrl = geolocalizacion
     ? `https://www.google.com/maps?q=${geolocalizacion.latitude},${geolocalizacion.longitude}`
@@ -77,17 +91,6 @@ const UbicacionDetalle = ({ id, onClose }: { id: string; onClose?: () => void })
               # {folio}
             </span>
           )}
-        </div>
-
-        <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
-          <button
-            onClick={() => setActiveTab("configuracion")}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all shadow-sm"
-            title="Editar ubicación"
-          >
-            <Pencil className="w-4 h-4" />
-            Editar
-          </button>
         </div>
       </div>
 

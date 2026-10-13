@@ -3,22 +3,21 @@ import { errorMsj } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { SearchFacet } from "@/components/common/FacetSearch";
 
-export const useArticulosConcesionados = (location:string, area:string, status:string, enableList:boolean, date1:string, date2:string, filterDate:string, limit:number = 25, skip:number = 0, locations:string[] = [], search:string = "", searchFields:string[] = []) => {
+export const useArticulosConcesionados = (location:string, area:string, status:string, enableList:boolean, date1:string, date2:string, filterDate:string, limit:number = 25, skip:number = 0, locations:string[] = [], facets:SearchFacet[] = []) => {
     const queryClient = useQueryClient();
     const {isLoading, setLoading} = useShiftStore();
 
     //Obtener lista de ArtículosCon
-    const {data: listArticulosCon, isLoading:isLoadingQuery, isFetching, error:errorListArticulosCon } = useQuery<any>({
-        queryKey: ["getListArticulosCon",location, area, status, date1, date2, filterDate, limit, skip, locations, search, searchFields],
+    const {data: listArticulosCon, isLoading:isLoadingQuery, isFetching, isPlaceholderData, error:errorListArticulosCon } = useQuery<any>({
+        queryKey: ["getListArticulosCon",location, area, status, date1, date2, filterDate, limit, skip, locations, facets],
         enabled:enableList,
-        // Al elegir campos en "Buscar en" sin haber escrito nada, la query
-        // queda enabled:false (ver puedeBuscarCon en articulos/page.tsx) y
-        // además cambia de queryKey (search/searchFields) — sin esto, el
-        // listado se vaciaría en vez de seguir mostrando lo que ya había.
+        // Al cambiar los filtros del buscador cambia el queryKey; sin esto el
+        // listado se vaciaría mientras llega la respuesta nueva.
         placeholderData: keepPreviousData,
         queryFn: async () => {
-            const data = await getListArticulosCon(location, area, status, date1, date2, filterDate, limit, skip, locations, search, searchFields);
+            const data = await getListArticulosCon(location, area, status, date1, date2, filterDate, limit, skip, locations, facets);
             const textMsj = errorMsj(data)
             if (textMsj){
               throw new Error (`Error al obtener lista de artículos concesionados, Error: ${data.error}`);
@@ -93,11 +92,11 @@ export const useArticulosConcesionados = (location:string, area:string, status:s
     return{
         //Lista de ArticulosCon
         listArticulosCon,
-        // isFetching cubre también los refetch en segundo plano que
-        // placeholderData/keepPreviousData deja pasar como isLoading:false
-        // (para no dejar la pantalla en blanco) — sin esto, el loader
-        // desaparecía al cambiar de campos de búsqueda.
-        isLoadingListArticulosCon: isLoadingQuery || isFetching,
+        // Cargando = se están pidiendo datos NUEVOS (cambió búsqueda, filtro o
+        // página): keepPreviousData los marca como placeholder mientras llegan.
+        // Los refetch en segundo plano de la misma consulta (p.ej. al volver a
+        // la pestaña) no cuentan, para no tapar la vista con el esqueleto.
+        isLoadingListArticulosCon: isLoadingQuery || (isFetching && isPlaceholderData),
         errorListArticulosCon,
         //Crear ArticulosCon
         createArticulosConMutation,

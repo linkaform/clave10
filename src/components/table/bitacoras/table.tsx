@@ -26,6 +26,7 @@ import { useMemo, useState } from "react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { ListRecord, PhotoRecord, FilterConfig } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
@@ -100,7 +101,6 @@ const BitacorasTable: React.FC<ListProps> = ({
   const setSearchTags = setLocalSearchTags;
 
   const columns = useMemo(() => {
-    if (isLoading) return [];
     return getBitacorasColumns(
       handleRegresarGafete,
       handleAgregarBadge,
@@ -241,7 +241,9 @@ const BitacorasTable: React.FC<ListProps> = ({
                   </TableHeader>
 
                   <TableBody>
-                    {table.getRowModel().rows?.length ? (
+                    {isLoading ? (
+                      <TableRowSkeletons columns={columns.length} />
+                    ) : table.getRowModel().rows?.length ? (
                       table.getRowModel().rows.map((row: any) => (
                         <TableRow
                           key={row.id}
@@ -264,18 +266,9 @@ const BitacorasTable: React.FC<ListProps> = ({
                         <TableCell
                           colSpan={columns.length}
                           className="h-32 text-center">
-                          {isLoading ? (
-                            <div className="flex flex-col items-center gap-2 text-slate-300">
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-                              <span className="text-xs font-normal">
-                                Cargando registros...
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-300 font-normal">
-                              No se encontraron registros
-                            </span>
-                          )}
+                          <span className="text-xs text-slate-300 font-normal">
+                            No se encontraron registros
+                          </span>
                         </TableCell>
                       </TableRow>
                     )}
@@ -287,6 +280,7 @@ const BitacorasTable: React.FC<ListProps> = ({
             <>
               <PhotoGridView
                 isLoading={isLoading}
+                skeleton
                 records={photoRecords}
                 globalSearch={searchTags}
                 selectionActions={(ids) => (
@@ -299,6 +293,7 @@ const BitacorasTable: React.FC<ListProps> = ({
             <>
               <PhotoListView
                 isLoading={isLoading}
+                skeleton
                 records={photoListRecords}
                 globalSearch={searchTags}
                 selectionActions={(ids) => (

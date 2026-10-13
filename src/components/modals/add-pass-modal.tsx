@@ -8,7 +8,7 @@ import {
 } from "../ui/dialog";
 import CalendarDays from "../calendar-days";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
-import { AlertTriangle, BadgeCheck, Camera, CalendarClock, Car, IdCard, Layers, Loader2, MessageSquare, ShieldCheck, UserRound } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Camera, CalendarClock, Car, IdCard, Laptop, Layers, Loader2, MessageSquare, ShieldCheck, UserRound } from "lucide-react";
 import { GeneratedPassModal } from "./generated-pass-modal";
 import { Access_pass, Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
@@ -19,6 +19,8 @@ import { Badge } from "../ui/badge";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { Miembro } from "../miembros-del-pase";
 import Image from "next/image";
+import { Equipo, Vehiculo } from "@/lib/update-pass";
+import { Imagen } from "../upload-Image";
 
 export type Visita={
   puesto: string;
@@ -63,6 +65,11 @@ interface EntryPassUpdateModalProps {
 	habilitar_identificacion:string;
 	acompanantes:number;
 	acompanantes_grupo:Miembro[];
+	/** Solo vienen con "Activar pase por defecto" encendido y con algo capturado. */
+	grupo_vehiculos?:Vehiculo[];
+	grupo_equipos?:Equipo[];
+	foto?:Imagen[];
+	identificacion?:Imagen[];
   };
   isSuccess: boolean;
   setIsSuccess: Dispatch<SetStateAction<boolean>>;
@@ -157,6 +164,10 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 	  habilitar_identificacion:dataPass.habilitar_identificacion,
 	  acompanantes:dataPass.acompanantes,
 	  acompanantes_grupo: dataPass.acompanantes_grupo ?? [],
+	  ...(dataPass.grupo_vehiculos?.length && { grupo_vehiculos: dataPass.grupo_vehiculos }),
+	  ...(dataPass.grupo_equipos?.length && { grupo_equipos: dataPass.grupo_equipos }),
+	  ...(dataPass.foto?.length && { foto: dataPass.foto }),
+	  ...(dataPass.identificacion?.length && { identificacion: dataPass.identificacion }),
     };
     const enviarPreSms : enviar_pre_sms= {
       from: dataPass.enviar_pre_sms.from,
@@ -372,6 +383,63 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 				</div>
 				</div>
 				)}
+				{/* Vehículos y equipos capturados junto con la auto activación */}
+				{(!!dataPass?.grupo_vehiculos?.length || !!dataPass?.grupo_equipos?.length ||
+					!!dataPass?.foto?.length || !!dataPass?.identificacion?.length) && (
+				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-5">
+					{(!!dataPass?.foto?.length || !!dataPass?.identificacion?.length) && (
+					<div className="flex gap-4">
+						{[
+						{ label: "Fotografía", img: dataPass?.foto?.[0] },
+						{ label: "Identificación", img: dataPass?.identificacion?.[0] },
+						].filter((x) => x.img?.file_url).map((x) => (
+						<div key={x.label} className="flex flex-col items-center gap-1.5">
+							<Image
+							src={x.img!.file_url!}
+							alt={x.label}
+							width={96}
+							height={96}
+							className="h-24 w-24 rounded-xl object-cover border border-gray-100"
+							/>
+							<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{x.label}</span>
+						</div>
+						))}
+					</div>
+					)}
+					{!!dataPass?.grupo_vehiculos?.length && (
+					<ListaArticulosPase
+						icon={<Car size={16} className="text-blue-600" />}
+						titulo="Vehículos"
+						items={dataPass.grupo_vehiculos.map((v) => ({
+						nombre: v.tipo || "Vehículo",
+						clave: v.placas ? { label: "Placas", value: v.placas } : undefined,
+						campos: [
+							{ label: "Marca", value: v.marca },
+							{ label: "Modelo", value: v.modelo },
+							{ label: "Color", value: v.color },
+							{ label: "Estado", value: v.estado },
+						],
+						}))}
+					/>
+					)}
+					{!!dataPass?.grupo_equipos?.length && (
+					<ListaArticulosPase
+						icon={<Laptop size={16} className="text-blue-600" />}
+						titulo="Equipos"
+						items={dataPass.grupo_equipos.map((e) => ({
+						nombre: e.tipo || "Equipo",
+						clave: e.serie ? { label: "Serie", value: e.serie } : undefined,
+						campos: [
+							{ label: "Nombre", value: e.nombre },
+							{ label: "Marca", value: e.marca },
+							{ label: "Modelo", value: e.modelo },
+							{ label: "Color", value: e.color },
+						],
+						}))}
+					/>
+					)}
+				</div>
+				)}
 				{/* Fotografía e Identificación (solo Admin) */}
 				{esAdmin && (
 				<div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
@@ -571,6 +639,8 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 						openGeneratedPass={openGeneratedPass}
 						setOpenGeneratedPass={setOpenGeneratedPass} 
 						from={from}
+						recordId={responseCreatePase?.json?.id}
+						accountId={userParentId ?? undefined}
 					/>
 				)}
 			</div>
@@ -578,3 +648,59 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
     </Dialog>
   );
 };
+
+type ArticuloPase = {
+	nombre: string;
+	/** Dato que identifica al artículo (placas/serie), resaltado a la derecha. */
+	clave?: { label: string; value: string };
+	campos: { label: string; value?: string }[];
+};
+
+// Resumen de vehículos/equipos en la confirmación: listado de renglones
+// colapsados (tipo + placas/serie); al abrir uno se ven sus campos capturados.
+const ListaArticulosPase = ({ icon, titulo, items }: { icon: React.ReactNode; titulo: string; items: ArticuloPase[] }) => (
+	<div>
+		<div className="flex items-center justify-between mb-2">
+			<div className="flex items-center gap-2">
+				<div className="bg-blue-50 p-1.5 rounded-lg">{icon}</div>
+				<span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{titulo}</span>
+			</div>
+			<Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none font-black text-[10px]">
+				{items.length}
+			</Badge>
+		</div>
+		<Accordion type="multiple" className="w-full">
+			{items.map((item, i) => {
+				const campos = item.campos.filter((c) => c.value?.trim());
+				return (
+					<AccordionItem key={i} value={`${titulo}-${i}`} className="border-b border-gray-100 last:border-b-0">
+						<AccordionTrigger className="py-2.5 hover:no-underline">
+							<div className="flex flex-1 items-center justify-between gap-3 pr-3 min-w-0">
+								<span className="text-sm font-medium text-slate-700 truncate">{item.nombre}</span>
+								{item.clave && (
+									<span className="shrink-0 text-xs text-gray-500">
+										{item.clave.label}: <span className="font-mono font-semibold text-slate-700">{item.clave.value}</span>
+									</span>
+								)}
+							</div>
+						</AccordionTrigger>
+						<AccordionContent className="pb-3">
+							{campos.length > 0 ? (
+								<ul className="space-y-1 pl-1">
+									{campos.map((c) => (
+										<li key={c.label} className="flex justify-between gap-3 text-xs">
+											<span className="text-gray-400">{c.label}</span>
+											<span className="font-medium text-slate-700 text-right">{c.value}</span>
+										</li>
+									))}
+								</ul>
+							) : (
+								<p className="text-xs text-gray-400 pl-1">Sin más datos capturados.</p>
+							)}
+						</AccordionContent>
+					</AccordionItem>
+				);
+			})}
+		</Accordion>
+	</div>
+);

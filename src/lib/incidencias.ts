@@ -2,6 +2,7 @@
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
 import { getValidToken } from "./login/get-valid-token";
+import { facetListPayload, FacetListParams } from "./facet-search";
 
 export const getListIncidencias = async (
   location: string | string[],
@@ -11,6 +12,7 @@ export const getListIncidencias = async (
   dateTo: string,
   filterDate: string,
   estatus: string = "",
+  paging?: FacetListParams,
 ) => {
   const payload = {
     dateFrom,
@@ -22,6 +24,8 @@ export const getListIncidencias = async (
     option: "get_incidences",
     script_name: "incidencias.py",
     estatus: estatus,
+    // Con paging: listado paginado + filtros del buscador (ver facet-search).
+    ...facetListPayload(paging),
   };
 
   const userJwt = await getValidToken();

@@ -1,6 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
+import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
+import { FacetSearch } from "@/components/common/FacetSearch";
+import { useFacetSection } from "@/hooks/common/useFacetSection";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useShiftStore } from "@/store/useShiftStore";
@@ -16,11 +19,15 @@ import { useBoothStore } from "@/store/useBoothStore";
 import RecorridosTable from "@/components/table/rondines/recorridos/table";
 import { useRecorridosFilters } from "@/hooks/Rondines/recorridos/useRecorridosFilters ";
 import { useCheckAreasFilters } from "@/hooks/Rondines/checkAreas/useCheckAreasFilters ";
-import { useIncidenciasFilters } from "@/hooks/Incidencias/useIncidenciasFilters";
+// Panel propio de incidencias de rondín (option incidencias_rondines), no el de incidencias generales.
+import { useIncidenciasFilters } from "@/hooks/Rondines/incidencias/useIncidenciasFilters ";
 import { useRondinesFilters } from "@/hooks/Rondines/rondines/useRondinesFilters";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { PageHeader } from "@/components/common/PageHeader";
 import { useRouter } from "next/navigation";
+
+// Recorridos no filtra por ubicación.
+const NO_LOCATIONS: string[] = [];
 
 const RondinesContent = () => {
 
@@ -33,7 +40,6 @@ const RondinesContent = () => {
   const [date2, setDate2] = useState<Date | "">("");
   const [dates, setDates] = useState<string[]>([]);
   console.log(dates);
-  const [searchQuery, setSearchQuery] = useState<string[]>([]);
   const [subTab, setSubTab] = useState("recorridos");
   const [viewMode, setViewMode] = useState<ViewMode>("photos");
   const [titulo, setTitulo] = useState("");
@@ -78,12 +84,40 @@ const RondinesContent = () => {
     activeFiltersCount: recorridosFiltersCount,
   } = useRecorridosFilters();
 
+  // Buscador avanzado de Recorridos: chips + panel comparten filtro y se
+  // resuelven en el back (rondines.py, opciones *_recorridos).
+  const recorridosSearch = useFacetSection({
+    scriptName: "rondines.py",
+    optionSuffix: "_recorridos",
+    panel: {
+      externalFilters: recorridosFilters,
+      onExternalFiltersChange: onRecorridosFiltersChange,
+      activeFiltersCount: recorridosFiltersCount,
+    },
+    status: "",
+    locations: NO_LOCATIONS,
+  });
+
   const {
     externalFilters: rondinesFilters,
     onExternalFiltersChange: onRondinesFiltersChange,
     filtersConfig: rondinesFiltersConfig,
     activeFiltersCount: rondinesFiltersCount,
   } = useRondinesFilters();
+  const { selectedLocations } = useSelectedLocationsStore();
+
+  // Buscador avanzado de la bitácora de rondines (rondines.py, *_rondines).
+  const rondinesSearch = useFacetSection({
+    scriptName: "rondines.py",
+    optionSuffix: "_rondines",
+    panel: {
+      externalFilters: rondinesFilters,
+      onExternalFiltersChange: onRondinesFiltersChange,
+      activeFiltersCount: rondinesFiltersCount,
+    },
+    status: "",
+    locations: selectedLocations,
+  });
 
   const {
     externalFilters: checkAreasFilters,
@@ -92,10 +126,33 @@ const RondinesContent = () => {
     activeFiltersCount: checkAreasFiltersCount,
   } = useCheckAreasFilters();
 
+  // Buscador avanzado de Check de áreas (rondines.py, *_check_areas).
+  const checkAreasSearch = useFacetSection({
+    scriptName: "rondines.py",
+    optionSuffix: "_check_areas",
+    panel: {
+      externalFilters: checkAreasFilters,
+      onExternalFiltersChange: onCheckAreasFiltersChange,
+      activeFiltersCount: checkAreasFiltersCount,
+    },
+    status: "",
+    locations: selectedLocations,
+  });
+  const checkAreasQuery = useMemo(
+    () => ({
+      facets: checkAreasSearch.facets,
+      locations: selectedLocations,
+      filterDate: checkAreasSearch.filterDate,
+      dateFrom: checkAreasSearch.dateFrom,
+      dateTo: checkAreasSearch.dateTo,
+    }),
+    [checkAreasSearch.facets, selectedLocations, checkAreasSearch.filterDate, checkAreasSearch.dateFrom, checkAreasSearch.dateTo],
+  );
+
   useEffect(() => {
     const areaParam = searchParams.get("area");
     if (areaParam) {
-      onCheckAreasFiltersChange({ dynamic: { area: [areaParam] } });
+      checkAreasSearch.onFiltersChange({ dynamic: { area: [areaParam] } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -106,6 +163,23 @@ const RondinesContent = () => {
     filtersConfig: incidenciasFiltersConfig,
     activeFiltersCount: incidenciasFiltersCount,
   } = useIncidenciasFilters();
+
+  // Buscador avanzado de incidencias de rondín (rondines.py, *_incidencias_rondines).
+  const incidenciasSearch = useFacetSection({
+    scriptName: "rondines.py",
+    optionSuffix: "_incidencias_rondines",
+    panel: {
+      externalFilters: incidenciasFilters,
+      onExternalFiltersChange: onIncidenciasFiltersChange,
+      activeFiltersCount: incidenciasFiltersCount,
+    },
+    status: "",
+    locations: selectedLocations,
+  });
+  const incidenciasQuery = useMemo(
+    () => ({ facets: incidenciasSearch.facets, locations: selectedLocations }),
+    [incidenciasSearch.facets, selectedLocations],
+  );
 
   const [openModal, setOpenModal] = useState(false);
   const [selectedIncidencias, setSelectedIncidencias] = useState<string[]>([]);
@@ -158,9 +232,9 @@ const RondinesContent = () => {
         <FloatingFiltersDrawer
           isOpen={recorridosSidebarOpen}
           onOpenChange={setRecorridosSidebarOpen}
-          activeFiltersCount={recorridosFiltersCount}
-          filters={recorridosFilters}
-          onFiltersChange={onRecorridosFiltersChange}
+          activeFiltersCount={recorridosSearch.activeFiltersCount}
+          filters={recorridosSearch.filtersView}
+          onFiltersChange={recorridosSearch.onFiltersChange}
           filtersConfig={recorridosFiltersConfig}
           filtroUbicacion={false}
         />
@@ -169,9 +243,9 @@ const RondinesContent = () => {
         <FloatingFiltersDrawer
           isOpen={rondinesSidebarOpen}
           onOpenChange={setRondinesSidebarOpen}
-          activeFiltersCount={rondinesFiltersCount}
-          filters={rondinesFilters}
-          onFiltersChange={onRondinesFiltersChange}
+          activeFiltersCount={rondinesSearch.activeFiltersCount}
+          filters={rondinesSearch.filtersView}
+          onFiltersChange={rondinesSearch.onFiltersChange}
           filtersConfig={rondinesFiltersConfig}
           filtroUbicacion={false}
         />
@@ -180,9 +254,9 @@ const RondinesContent = () => {
         <FloatingFiltersDrawer
           isOpen={checkAreasSidebarOpen}
           onOpenChange={setCheckAreasSidebarOpen}
-          activeFiltersCount={checkAreasFiltersCount}
-          filters={checkAreasFilters}
-          onFiltersChange={onCheckAreasFiltersChange}
+          activeFiltersCount={checkAreasSearch.activeFiltersCount}
+          filters={checkAreasSearch.filtersView}
+          onFiltersChange={checkAreasSearch.onFiltersChange}
           filtersConfig={checkAreasFiltersConfig}
           filtroUbicacion={false}
         />
@@ -191,9 +265,9 @@ const RondinesContent = () => {
         <FloatingFiltersDrawer
           isOpen={incidenciasSidebarOpen}
           onOpenChange={setIncidenciasSidebarOpen}
-          activeFiltersCount={incidenciasFiltersCount}
-          filters={incidenciasFilters}
-          onFiltersChange={onIncidenciasFiltersChange}
+          activeFiltersCount={incidenciasSearch.activeFiltersCount}
+          filters={incidenciasSearch.filtersView}
+          onFiltersChange={incidenciasSearch.onFiltersChange}
           filtersConfig={incidenciasFiltersConfig}
           filtroUbicacion={false}
         />
@@ -204,8 +278,41 @@ const RondinesContent = () => {
         <PageHeader
           title={titulo}
           totalRecords={totalRegistros}
-          onSearch={(val) => setSearchQuery(val ? [val] : [])}
-          searchPlaceholder="Buscar...">
+          search={
+            subTab === "recorridos" || subTab === "rondines" || subTab === "check-areas" || subTab === "incidencias-rondines" ? (
+              <FacetSearch
+                key={subTab}
+                {...(subTab === "recorridos"
+                  ? {
+                      fields: recorridosSearch.fields,
+                      facets: recorridosSearch.facets,
+                      onChange: recorridosSearch.setFacets,
+                      fetchCounts: recorridosSearch.fetchCounts,
+                    }
+                  : subTab === "rondines"
+                  ? {
+                      fields: rondinesSearch.fields,
+                      facets: rondinesSearch.facets,
+                      onChange: rondinesSearch.setFacets,
+                      fetchCounts: rondinesSearch.fetchCounts,
+                    }
+                  : subTab === "check-areas"
+                  ? {
+                      fields: checkAreasSearch.fields,
+                      facets: checkAreasSearch.facets,
+                      onChange: checkAreasSearch.setFacets,
+                      fetchCounts: checkAreasSearch.fetchCounts,
+                    }
+                  : {
+                      fields: incidenciasSearch.fields,
+                      facets: incidenciasSearch.facets,
+                      onChange: incidenciasSearch.setFacets,
+                      fetchCounts: incidenciasSearch.fetchCounts,
+                    })}
+                placeholder="Buscar por recorrido, ubicación, área..."
+              />
+            ) : undefined
+          }>
 
           {subTab === "recorridos" && (
             <AddRondinModal title="Crear recorrido" mode="create" externalOpen={openCrearRecorrido}
@@ -267,9 +374,9 @@ const RondinesContent = () => {
                   Filter={Filter} resetTableFilters={resetTableFilters}
                   setActiveTab={setSubTab} activeTab={subTab}
                   viewMode={viewMode}
-                  searchTags={searchQuery}
-                  externalFilters={recorridosFilters}
-                  onExternalFiltersChange={onRecorridosFiltersChange}
+                  facets={recorridosSearch.facets}
+                  externalFilters={recorridosSearch.filtersView}
+                  onExternalFiltersChange={recorridosSearch.onFiltersChange}
                   filtersConfig={recorridosFiltersConfig}
                   setTotalRegistros={setTotalRegistros}
                   verRondin={verRondin}
@@ -286,9 +393,9 @@ const RondinesContent = () => {
                   showTabs={true}
                   ubicacion={ubicacionSeleccionada}
                   viewMode={viewMode}
-                  searchTags={searchQuery}
-                  externalFilters={rondinesFilters}
-                  onExternalFiltersChange={onRondinesFiltersChange}
+                  facets={rondinesSearch.facets}
+                  externalFilters={rondinesSearch.filtersView}
+                  onExternalFiltersChange={rondinesSearch.onFiltersChange}
                   filtersConfig={rondinesFiltersConfig}
                   setTotalRegistros={setTotalRegistros} dateFilter={""}/>
               </TabsContent>
@@ -298,9 +405,9 @@ const RondinesContent = () => {
                   viewMode={viewMode}
                   onExternalDynamicFiltersChange={() => []}
                   total={undefined}
-                  searchTags={searchQuery}
-                  externalFilters={checkAreasFilters}
-                  onExternalFiltersChange={onCheckAreasFiltersChange}
+                  search={checkAreasQuery}
+                  externalFilters={checkAreasSearch.filtersView}
+                  onExternalFiltersChange={checkAreasSearch.onFiltersChange}
                   filtersConfig={checkAreasFiltersConfig}
                   setTotalRegistros={setTotalRegistros}
                 />
@@ -317,9 +424,9 @@ const RondinesContent = () => {
                   Filter={Filter} resetTableFilters={resetTableFilters}
                   openModal={openModal} setOpenModal={setOpenModal}
                   viewMode={viewMode}
-                  searchTags={searchQuery}
-                  externalFilters={incidenciasFilters}
-                  onExternalFiltersChange={onIncidenciasFiltersChange}
+                  search={incidenciasQuery}
+                  externalFilters={incidenciasSearch.filtersView}
+                  onExternalFiltersChange={incidenciasSearch.onFiltersChange}
                   filtersConfig={incidenciasFiltersConfig}
                   setTotalRegistros={setTotalRegistros}
                 />

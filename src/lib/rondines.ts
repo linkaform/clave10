@@ -78,12 +78,15 @@ import { getValidToken } from "./login/get-valid-token";
         roles?:string[]
     }
 
-    export const getListRecorridos  = async (date1:string, date2:string, limit:number, offset:number ) => {
+    // facets: filtros del buscador avanzado; con ellos el back regresa el
+    // formato paginado {records, total_records, ...}.
+    export const getListRecorridos  = async (date1:string, date2:string, limit:number, offset:number, facets?: { key: string; values: string[]; exact?: boolean }[] ) => {
         const payload = {
-            dateFom: date1,
-            dateTo: date2,
+            date_from: date1 || undefined,
+            date_to: date2 || undefined,
             limit: limit,
             offset: offset,
+            ...(facets ? { facets, paginated: true } : {}),
             option: "get_recorridos",
             script_name: "rondines.py",
         };
@@ -102,13 +105,15 @@ import { getValidToken } from "./login/get-valid-token";
         const data = await response.json();
         return data;
     };
-    export const getListBitacoraRondines  = async (date1:string, date2:string, limit:number, offset:number, locations:string[] = [] ) => {
+    // facets: filtros del buscador avanzado; con ellos el back agrega total_records.
+    export const getListBitacoraRondines  = async (date1:string, date2:string, limit:number, offset:number, locations:string[] = [], facets?: { key: string; values: string[]; exact?: boolean }[] ) => {
         const payload = {
-            dateFom: date1,
-            dateTo: date2,
+            date_from: date1 || undefined,
+            date_to: date2 || undefined,
             limit: limit,
             offset: offset,
             locations,
+            ...(facets ? { facets, paginated: true } : {}),
             option: "get_bitacora",
             script_name: "rondines.py",
         };

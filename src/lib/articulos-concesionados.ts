@@ -1,6 +1,8 @@
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api"
 import { getValidToken } from "./login/get-valid-token";
+import { SearchCandidate, SearchFacet } from "@/components/common/FacetSearch";
+import { FacetCountsBase, getSearchCounts, getSearchFields } from "./facet-search";
 
 export interface InputArticuloCon {
     status_concesion:string,
@@ -20,7 +22,7 @@ export interface InputOutArticuloCon {
 }
 
 
-export const getListArticulosCon = async (location:string, area:string,status:string,date1:string, date2:string, filterDate:string, limit:number = 25, skip:number = 0, locations:string[] = [], search:string = "", searchFields:string[] = []) => {
+export const getListArticulosCon = async (location:string, area:string,status:string,date1:string, date2:string, filterDate:string, limit:number = 25, skip:number = 0, locations:string[] = [], facets:SearchFacet[] = []) => {
     const payload = {
         dateFrom:date1,
         dateTo: date2,
@@ -31,10 +33,7 @@ export const getListArticulosCon = async (location:string, area:string,status:st
         area:area,
         limit,
         skip,
-        search,
-        // Acota `search` a estos campos (OR entre ellos) en vez de la
-        // búsqueda genérica de siempre. Vacío = comportamiento actual.
-        search_fields: searchFields,
+        facets,
         option: "get_articles",
         script_name: "articulos_consecionados.py",
     };
@@ -158,3 +157,10 @@ export const editarArticuloCon = async (data_article_update: InputArticuloCon | 
     const data = await response.json();
     return data;
   };
+
+// Campos del buscador avanzado (los define el back).
+export const getConcesionadosSearchFields = () => getSearchFields("articulos_consecionados.py");
+
+// Cuántos registros daría cada candidato del menú sobre los filtros actuales.
+export const getConcesionadosSearchCounts = (base: FacetCountsBase, facets: SearchFacet[], candidates: SearchCandidate[]) =>
+    getSearchCounts("articulos_consecionados.py", base, facets, candidates);

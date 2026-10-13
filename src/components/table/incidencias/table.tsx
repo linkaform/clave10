@@ -5,9 +5,8 @@ import * as React from "react";
 import {
   ColumnFiltersState, SortingState, VisibilityState,
   flexRender, getCoreRowModel, getFilteredRowModel,
-  getPaginationRowModel, getSortedRowModel, useReactTable,
+  getSortedRowModel, useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getIncidenciasColumns, Incidencia_record } from "./incidencias-columns";
 import { useEffect, useMemo, useState } from "react";
@@ -21,8 +20,7 @@ import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
-import { applyIncidenciasFilters } from "@/hooks/Incidencias/useIncidenciasFilters";
-import { CustomSpinner } from "@/components/custom-spinner";
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import { IncidenciasActionButtons } from "@/components/Bitacoras/Incidencias/customActions";
 
 type ViewMode = "table" | "photos" | "list";
@@ -67,8 +65,6 @@ const IncidenciasTable: React.FC<ListProps> = ({
   setModalEliminarMultiAbierto,
   modalEliminarMultiAbierto=false,
   viewMode, 
-  setTotalRegistros,
-  searchTags:searchTagsProp,
   filtersConfig:filtersConfigProp,
   externalFilters:externalFiltersProp,
   onExternalFiltersChange:onExternalFiltersChangeProp,
@@ -86,7 +82,6 @@ const IncidenciasTable: React.FC<ListProps> = ({
   const [seguimientoSeleccionado] = useState(null);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 23 });
   const [globalFilter, setGlobalFilter] = React.useState("");
 
   const handleEditar = (incidencia: Incidencia_record) => {
@@ -115,27 +110,15 @@ const IncidenciasTable: React.FC<ListProps> = ({
   );
   const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
   const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
-  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
-  const columns = useMemo(() => {
-    if (isLoading) return [];
-    return getIncidenciasColumns(handleEditar, handleEliminar, handleSeguimiento, handleVer);
-  }, [isLoading]);
+  // Las columnas se quedan mientras carga para que el esqueleto tenga su forma.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const columns = useMemo(() => getIncidenciasColumns(handleEditar, handleEliminar, handleSeguimiento, handleVer), []);
 
   const memoizedData = useMemo(() => data || [], [data]);
 
-  const filteredData = useMemo(() => {
-    console.log("externalFilters:", JSON.stringify(externalFilters));
-    return applyIncidenciasFilters(memoizedData, externalFilters ?? { dynamic: {} });
-  }, [memoizedData, externalFilters]);
-
-  React.useEffect(() => {
-    if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join("|"));
-    } else {
-      setGlobalFilter("");
-    }
-  }, [searchTags]);
+  // Búsqueda, filtros y paginación ya vienen resueltos del back (get_incidences paginado).
+  const filteredData = memoizedData;
   
   const table = useReactTable({
     data: filteredData,
@@ -144,13 +127,11 @@ const IncidenciasTable: React.FC<ListProps> = ({
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
-    state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
+    state: { sorting, columnFilters, columnVisibility, rowSelection, globalFilter },
     globalFilterFn: (row, _columnId, filterValue: string) => {
       if (!filterValue) return true;
       const normalize = (str: string) =>
@@ -163,10 +144,6 @@ const IncidenciasTable: React.FC<ListProps> = ({
       return tags.some((tag) => allValues.includes(tag));
     },
   });
-
-    useEffect(() => {
-      setTotalRegistros?.(filteredData.length);
-    }, [filteredData, setTotalRegistros]);
 
     useEffect(() => {
       if (table.getFilteredSelectedRowModel().rows.length > 0) {
@@ -294,7 +271,9 @@ const IncidenciasTable: React.FC<ListProps> = ({
                     ))}
                   </TableHeader>
                   <TableBody>
-                    {table.getRowModel().rows?.length ? (
+                    {isLoading ? (
+                      <TableRowSkeletons columns={columns.length} />
+                    ) : table.getRowModel().rows?.length ? (
                       table.getRowModel().rows.map((row) => (
                         <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}
                           className="hover:bg-slate-100 transition-colors border-slate-50">
@@ -309,11 +288,7 @@ const IncidenciasTable: React.FC<ListProps> = ({
                     ) : (
                       <TableRow>
                         <TableCell colSpan={table.getVisibleFlatColumns().length} className="h-32 text-center">
-                          {isLoading ? (
-                           <CustomSpinner/>
-                          ) : (
-                            <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
-                          )}
+                          <span className="text-xs text-slate-300 font-normal">No hay registros disponibles...</span>
                         </TableCell>
                       </TableRow>
                     )}
@@ -327,10 +302,6 @@ const IncidenciasTable: React.FC<ListProps> = ({
                     {table.getFilteredRowModel().rows.length} items seleccionados.
                   </div>
                 )}
-                <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Anterior</Button>
-                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Siguiente</Button>
-                </div>
               </div>
             </>
           )}
@@ -338,8 +309,8 @@ const IncidenciasTable: React.FC<ListProps> = ({
           {viewMode === "photos" && (
             <PhotoGridView
               isLoading={isLoading}
+              skeleton
               records={incidenciaPhotoRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalType="incidencia"
@@ -364,8 +335,8 @@ const IncidenciasTable: React.FC<ListProps> = ({
           {viewMode === "list" && (
             <PhotoListView
               isLoading={isLoading}
+              skeleton
               records={incidenciaListRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalType="incidencia"

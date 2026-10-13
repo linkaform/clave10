@@ -37,6 +37,10 @@ export interface NormalizedUbicacion {
   email: string;
   geolocalizacion: GeolocalizacionUbicacion | null;
   areasCount: number;
+  /** address_name del contacto (catálogo "contacto") al que apunta. */
+  contacto: string;
+  /** Tipo del contacto: "Direccion", "Empresa" o "Persona". */
+  tipoContacto: string;
   raw: UbicacionRow;
 }
 
@@ -65,6 +69,8 @@ export function normalizeUbicacion(row: UbicacionRow, index: number): Normalized
     email: firstOrString(row.email),
     geolocalizacion: tieneGeo ? geo! : null,
     areasCount: row.areas_count ?? 0,
+    contacto: firstOrString(row.address_name),
+    tipoContacto: firstOrString(row.address_type),
     raw: row,
   };
 }

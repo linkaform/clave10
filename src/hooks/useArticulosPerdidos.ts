@@ -2,25 +2,31 @@ import { crearArticuloPerdido, editarArticuloPerdido, getListArticulosPerdidos, 
 import { getStats } from "@/lib/get-stats";
 import { errorMsj } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FacetListParams } from "@/lib/facet-search";
 import { toast } from "sonner";
 
-export const useArticulosPerdidos = (location:string, area:string, status:string, enableList:boolean, date1:string, date2:string, filterDate:string ) => {
+// Con paging, el listado viene paginado del back ({records, total_records...})
+// y con los filtros del buscador; sin paging, la lista de antes.
+export const useArticulosPerdidos = (location:string, area:string, status:string, enableList:boolean, date1:string, date2:string, filterDate:string, paging?: FacetListParams) => {
     const queryClient = useQueryClient();
     const {isLoading, setLoading} = useShiftStore();
 
     //Obtener lista de ArtículosPerdidos
-    const {data: listArticulosPerdidos, isLoading:isLoadingListArticulosPerdidos, error:errorListArticulosPerdidos, refetch } = useQuery<any>({
-        queryKey: ["getListArticulosPerdidos", location, status, date1, date2, filterDate],
+    const {data: listArticulosPerdidos, isLoading:isLoadingQuery, isFetching, isPlaceholderData, error:errorListArticulosPerdidos, refetch } = useQuery<any>({
+        queryKey: ["getListArticulosPerdidos", location, status, date1, date2, filterDate, paging],
         enabled:enableList,
+        placeholderData: keepPreviousData,
         queryFn: async () => {
-            const data = await getListArticulosPerdidos(location, status, date1, date2, filterDate);
+            const data = await getListArticulosPerdidos(location, status, date1, date2, filterDate, paging);
             const textMsj = errorMsj(data) 
             if (textMsj){
               toast.error(`Error al obtener lista de artículos perdidos, Error: ${data.error}`);
               return []
             }else {
-              return Array.isArray(data?.response?.data) ? data?.response?.data : [];
+              const result = data?.response?.data;
+              if (paging) return result ?? { records: [], total_records: 0, total_pages: 1, actual_page: 1, records_on_page: 0 };
+              return Array.isArray(result) ? result : [];
             }
         },
        
@@ -134,7 +140,9 @@ export const useArticulosPerdidos = (location:string, area:string, status:string
     return{
         //Lista de ArticulosPerdidos
         listArticulosPerdidos,
-        isLoadingListArticulosPerdidos,
+        // Cargando = datos nuevos (cambió búsqueda, filtro o página); los refetch
+        // de fondo de la misma consulta no tapan la vista con el esqueleto.
+        isLoadingListArticulosPerdidos: isLoadingQuery || (isFetching && isPlaceholderData),
         errorListArticulosPerdidos,
         //Crear ArticulosPerdidos
         createArticulosPerdidosMutation,

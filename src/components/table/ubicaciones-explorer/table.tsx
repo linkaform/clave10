@@ -30,6 +30,7 @@ import { ViewMode } from "@/lib/utils";
 import { UbicacionRow, NormalizedUbicacion, normalizeUbicacion } from "@/lib/ubicaciones";
 import { getUbicacionesColumns } from "./columns";
 import { UbicacionDetallePanel } from "@/components/Ubicaciones/UbicacionDetallePanel";
+import type { UbicacionTab } from "@/components/Ubicaciones/UbicacionDetalle";
 
 interface UbicacionesExplorerTableProps {
   ubicaciones: UbicacionRow[];
@@ -40,7 +41,6 @@ interface UbicacionesExplorerTableProps {
   onExternalFiltersChange: (filters: UbicacionesExternalFilters) => void;
   selectedUbicacionId: string | null;
   onSelectedUbicacionIdChange: (id: string | null) => void;
-  onEditarUbicacion: (ubicacion: NormalizedUbicacion) => void;
 }
 
 export const UbicacionesExplorerTable: React.FC<UbicacionesExplorerTableProps> = ({
@@ -52,7 +52,6 @@ export const UbicacionesExplorerTable: React.FC<UbicacionesExplorerTableProps> =
   onExternalFiltersChange,
   selectedUbicacionId,
   onSelectedUbicacionIdChange,
-  onEditarUbicacion,
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -63,9 +62,27 @@ export const UbicacionesExplorerTable: React.FC<UbicacionesExplorerTableProps> =
     [ubicaciones],
   );
 
-  const handleVerUbicacion = React.useCallback(
-    (ubicacion: NormalizedUbicacion) => onSelectedUbicacionIdChange(ubicacion.recordId),
+  // Tab con el que abre el panel lateral: el lápiz abre directo en
+  // "configuracion", igual que en Áreas.
+  const [panelTab, setPanelTab] = useState<UbicacionTab>("generales");
+
+  const abrirPanel = React.useCallback(
+    (recordId: string, tab: UbicacionTab = "generales") => {
+      if (!recordId) return;
+      setPanelTab(tab);
+      onSelectedUbicacionIdChange(recordId);
+    },
     [onSelectedUbicacionIdChange],
+  );
+
+  const handleVerUbicacion = React.useCallback(
+    (ubicacion: NormalizedUbicacion) => abrirPanel(ubicacion.recordId),
+    [abrirPanel],
+  );
+
+  const onEditarUbicacion = React.useCallback(
+    (ubicacion: NormalizedUbicacion) => abrirPanel(ubicacion.recordId, "configuracion"),
+    [abrirPanel],
   );
 
   const columns = useMemo(
@@ -106,9 +123,9 @@ export const UbicacionesExplorerTable: React.FC<UbicacionesExplorerTableProps> =
   const handleRecordClick = React.useCallback(
     (record: PhotoRecord | ListRecord) => {
       const recordId = (record as any)?.rawData?.record_id || "";
-      if (recordId) onSelectedUbicacionIdChange(recordId);
+      abrirPanel(recordId);
     },
-    [onSelectedUbicacionIdChange],
+    [abrirPanel],
   );
 
   const iconButtonClass =
@@ -236,7 +253,12 @@ export const UbicacionesExplorerTable: React.FC<UbicacionesExplorerTableProps> =
 
       <UbicacionDetallePanel
         recordId={selectedUbicacionId}
-        onOpenChange={(open) => !open && onSelectedUbicacionIdChange(null)}
+        initialTab={panelTab}
+        onOpenChange={(open) => {
+          if (open) return;
+          onSelectedUbicacionIdChange(null);
+          setPanelTab("generales");
+        }}
       />
     </div>
   );

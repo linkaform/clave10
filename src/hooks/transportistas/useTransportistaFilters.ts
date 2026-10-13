@@ -40,68 +40,8 @@ export type TransportistaExternalFilters = {
   date2?: Date | "";
 };
 
-export function applyTransportistaFilters(
-  data: any[],
-  filters: TransportistaExternalFilters
-): any[] {
-  if (!data?.length) return [];
-  if (!filters) return data;
-
-  const dynamic = filters.dynamic || {};
-  const dateFilter = filters.dateFilter || "";
-
-  const normalize = (text: any) =>
-    String(text ?? "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .replace(/_/g, " ")
-      .trim();
-
-  const hasActiveFilters =
-    Object.values(dynamic).some((v) =>
-      Array.isArray(v) ? v.length > 0 : Boolean(v)
-    ) || (dateFilter && dateFilter !== "");
-
-  if (!hasActiveFilters) return data;
-
-  return data.filter((item) => {
-    if (dynamic.estatus) {
-      const estatusFilter = Array.isArray(dynamic.estatus)
-        ? dynamic.estatus
-        : [dynamic.estatus];
-      if (!estatusFilter.some((e: string) => normalize(e) === normalize(item.estatus)))
-        return false;
-    }
-
-    if (dynamic.tipo_de_operacion) {
-      const opFilter = Array.isArray(dynamic.tipo_de_operacion)
-        ? dynamic.tipo_de_operacion
-        : [dynamic.tipo_de_operacion];
-      if (!opFilter.some((o: string) => normalize(o) === normalize(item.tipo_de_operacion)))
-        return false;
-    }
-
-    if (dynamic.conductor) {
-      const cFilter = Array.isArray(dynamic.conductor)
-        ? dynamic.conductor
-        : [dynamic.conductor];
-      if (!cFilter.some((c: string) => normalize(c) === normalize(item.conductor)))
-        return false;
-    }
-
-    if (dynamic.material) {
-      const mFilter = Array.isArray(dynamic.material)
-        ? dynamic.material
-        : [dynamic.material];
-      if (!mFilter.some((m: string) => normalize(m) === normalize(item.material)))
-        return false;
-    }
-
-    return true;
-  });
-}
-
+// Los filtros del panel ya no se aplican en cliente: la página los manda al
+// back como facets (useFacetSection), también en el Kanban.
 export function useTransportistaFilters() {
   const [dynamicFilters, setDynamicFilters] = useState<Record<string, any>>({});
   const [date1, setDate1] = useState<Date | "">("");

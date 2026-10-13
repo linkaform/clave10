@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useGetMyPases } from "@/hooks/useGetMyPases";
 import PasesEntradaTable from "@/components/table/pases-entrada/table";
 import PaginationPases from "@/components/pages/pases/PaginationPases";
@@ -17,6 +17,8 @@ import Link from "next/link";
 import { useFilters } from "@/hooks/bitacora/useFilters";
 import { PageHeader } from "@/components/common/PageHeader";
 import { getPasesFilters } from "@/services/endpoints";
+import { FacetSearch } from "@/components/common/FacetSearch";
+import { useFacetSection } from "@/hooks/common/useFacetSection";
 
 type ViewMode = "table" | "grid";
 
@@ -29,9 +31,6 @@ const ListaPasesPage = () => {
 };
 
 const ListaPasesContent = () => {
-  const [limit, setLimit] = useState(25);
-  const [skip, setSkip] = useState(0);
-  const [searchName, setSearchName] = useState("");
   const [activeStatus, setActiveStatus] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -53,29 +52,37 @@ const ListaPasesContent = () => {
     setActiveStatus(status ?? "");
   }, [searchParams]);
 
+  // Buscador avanzado: los filtros del panel (Estatus, Perfil, Visita a) y
+  // los chips comparten filtro; todo se resuelve en el back, siempre dentro
+  // de "mis pases" (ver useFacetSection y Accesos.pases_search_fields).
+  const panel = useMemo(
+    () => ({
+      externalFilters,
+      onExternalFiltersChange: setExternalFilters,
+      activeFiltersCount: externalFilters.dateFilter ? 1 : 0,
+    }),
+    [externalFilters],
+  );
+  const section = useFacetSection({
+    scriptName: "pase_de_acceso.py",
+    panel,
+    status: activeStatus,
+    locations: selectedLocations,
+  });
+
   const { data, isLoading } = useGetMyPases({
-    skip,
-    limit,
-    searchName,
+    skip: section.paging.skip,
+    limit: section.paging.limit,
     tab: activeStatus,
     location: location ?? "",
     locations: selectedLocations,
-    dynamicFilters: externalFilters.dynamic,
-    dateFilter: externalFilters.dateFilter,
-    date1: externalFilters.date1,
-    date2: externalFilters.date2,
+    dateFilter: section.filterDate,
+    dateFrom: section.dateFrom,
+    dateTo: section.dateTo,
+    facets: section.facets,
   });
   const { records, actual_page, records_on_page, total_pages, total_records } =
     data || {};
-  const handlePageChange = (newSkip: number, newLimit: number) => {
-    setSkip(newSkip);
-    setLimit(newLimit);
-  };
-
-  const activeFiltersCount =
-    Object.values(externalFilters.dynamic || {})
-      .flat()
-      .filter(Boolean).length + (externalFilters.dateFilter ? 1 : 0);
 
   return (
     <div className="w-full relative">
@@ -83,9 +90,9 @@ const ListaPasesContent = () => {
         <FloatingFiltersDrawer
           isOpen={isSidebarOpen}
           onOpenChange={setIsSidebarOpen}
-          activeFiltersCount={activeFiltersCount}
-          filters={externalFilters}
-          onFiltersChange={setExternalFilters}
+          activeFiltersCount={section.activeFiltersCount}
+          filters={section.filtersView}
+          onFiltersChange={section.onFiltersChange}
           filtersConfig={pasesFilters}
         />
       )}
@@ -94,8 +101,16 @@ const ListaPasesContent = () => {
         <PageHeader
           title="Historial De Pases De Entrada"
           totalRecords={total_records}
-          onSearch={setSearchName}
-          searchPlaceholder="Buscar pase...">
+          isLoadingTotal={isLoading}
+          search={
+            <FacetSearch
+              fields={section.fields}
+              facets={section.facets}
+              onChange={section.setFacets}
+              fetchCounts={section.fetchCounts}
+              placeholder="Buscar por visitante, empresa, folio..."
+            />
+          }>
           <Link href="/dashboard/pase-entrada">
             <Button className="bg-blue-500 hover:bg-blue-600 text-white h-10 px-4">
               <Plus size={16} />
@@ -128,8 +143,8 @@ const ListaPasesContent = () => {
             <div className="flex gap-4">
               <aside className="w-64 flex-shrink-0 border border-slate-200 rounded-xl bg-white p-4 h-fit sticky top-[120px]">
                 <FiltersPanel
-                  filters={externalFilters}
-                  onFiltersChange={setExternalFilters}
+                  filters={section.filtersView}
+                  onFiltersChange={section.onFiltersChange}
                   filtersConfig={pasesFilters}
                 />
               </aside>
@@ -146,8 +161,8 @@ const ListaPasesContent = () => {
             records_on_page={records_on_page}
             total_pages={total_pages}
             total_records={total_records}
-            limit={limit}
-            onPageChange={handlePageChange}
+            limit={section.paging.limit}
+            onPageChange={section.onPageChange}
           />
         )}
       </div>

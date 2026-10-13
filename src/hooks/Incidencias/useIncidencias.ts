@@ -7,7 +7,8 @@ import {
 } from "@/lib/incidencias";
 import { errorMsj } from "@/lib/utils";
 import { useShiftStore } from "@/store/useShiftStore";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FacetListParams } from "@/lib/facet-search";
 import { toast } from "sonner";
 
 export const useInciencias = (
@@ -18,6 +19,8 @@ export const useInciencias = (
   dateTo: string,
   filterDate: string,
   estatus?: string,
+  // Con paging, el listado viene paginado del back con los filtros del buscador.
+  paging?: FacetListParams,
 ) => {
   const queryClient = useQueryClient();
   // Lógica extra para el Drawer de filtros externos
@@ -25,7 +28,9 @@ export const useInciencias = (
   //Obtener lista de Incidencias
   const {
     data: listIncidencias,
-    isLoading: isLoadingListIncidencias,
+    isLoading: isLoadingQueryIncidencias,
+    isFetching: isFetchingIncidencias,
+    isPlaceholderData: isPlaceholderIncidencias,
     error: errorListIncidencias,
     refetch: refetchTableIncidencias,
   } = useQuery<any>({
@@ -38,9 +43,11 @@ export const useInciencias = (
       dateTo,
       filterDate,
       estatus,
+      paging,
     ],
     enabled: location.length > 0,
     refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const data = await getListIncidencias(
         location,
@@ -50,8 +57,11 @@ export const useInciencias = (
         dateTo,
         filterDate,
         estatus,
+        paging,
       );
-      return Array.isArray(data.response?.data) ? data.response?.data : [];
+      const result = data.response?.data;
+      if (paging) return result ?? { records: [], total_records: 0, total_pages: 1, actual_page: 1, records_on_page: 0 };
+      return Array.isArray(result) ? result : [];
     },
   });
 
@@ -154,7 +164,8 @@ export const useInciencias = (
   return {
     //Obtener Incidencias
     listIncidencias,
-    isLoadingListIncidencias,
+    // Cargando = datos nuevos (cambió búsqueda, filtro o página).
+    isLoadingListIncidencias: isLoadingQueryIncidencias || (isFetchingIncidencias && isPlaceholderIncidencias),
     loading,
     setLoading,
     errorListIncidencias,

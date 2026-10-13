@@ -255,13 +255,16 @@ export interface BitacoraTransportistaRecordsParams {
    * Gate temporal mientras la app móvil no soporta este shape (sigue recibiendo
    * la lista plana de siempre si esta key no se manda o es false). */
   pagination?: boolean;
+  /** Filtros del buscador avanzado (panel + chips), ver transportistas_search_fields. */
+  facets?: { key: string; values: string[]; exact?: boolean }[];
 }
 
 export const getBitacoraTransportistaRecords = (
   params: BitacoraTransportistaRecordsParams = {},
 ) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    // Va a lkf-sanic-apps (accesos/get_bitac_transportista_records).
+    script_name: "transportistas_sdk.py",
     option: "get_bitac_transportista_records",
     ...(params.fecha && { fecha: params.fecha }),
     ...(params.date_from && { date_from: params.date_from }),
@@ -277,6 +280,7 @@ export const getBitacoraTransportistaRecords = (
     ...(params.skip !== undefined && { skip: params.skip }),
     ...(params.limit !== undefined && { limit: params.limit }),
     ...(params.pagination && { pagination: true }),
+    ...(params.facets?.length && { facets: params.facets }),
   });
 
 export const saveInspeccionesTransportista = (record_id: string, inspecciones: unknown[]) =>
