@@ -263,7 +263,8 @@ export const getBitacoraTransportistaRecords = (
   params: BitacoraTransportistaRecordsParams = {},
 ) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    // Va a lkf-sanic-apps (accesos/get_bitac_transportista_records).
+    script_name: "transportistas_sdk.py",
     option: "get_bitac_transportista_records",
     ...(params.fecha && { fecha: params.fecha }),
     ...(params.date_from && { date_from: params.date_from }),
