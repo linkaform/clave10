@@ -1,4 +1,6 @@
 import { Miembro } from "@/components/miembros-del-pase";
+import type { Equipo, Vehiculo } from "@/lib/update-pass";
+import type { Imagen } from "@/components/upload-Image";
 import { createPase } from "@/lib/create-access-pass";
 import { useQuery } from "@tanstack/react-query";
 
@@ -60,6 +62,12 @@ export type Access_pass={
     habilitar_identificacion:string
     acompanantes: number | any[];
     acompanantes_grupo?:Miembro[]
+    /** Solo con auto_activacion "sí": se registran desde la creación. */
+    grupo_vehiculos?:Vehiculo[]
+    grupo_equipos?:Equipo[]
+    /** El back los guarda en walkin_fotografia / walkin_identificacion. */
+    foto?:Imagen[]
+    identificacion?:Imagen[]
 }
 
 export const useCreateAccessPase = (location: string, access_pass: Access_pass|null, enviar_pre_sms: enviar_pre_sms|null) => {

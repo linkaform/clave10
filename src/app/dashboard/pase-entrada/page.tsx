@@ -47,6 +47,10 @@ import DateTimePicker from "@/components/dateTimerPicker";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MiembrosPase, { Miembro } from "@/components/miembros-del-pase";
+import { PaseVehiculosSection } from "@/components/pase-vehiculos-section";
+import { PaseEquiposSection } from "@/components/pase-equipos-section";
+import { Equipo, Vehiculo } from "@/lib/update-pass";
+import LoadImage, { Imagen } from "@/components/upload-Image";
 
 const DIAS_SEMANA = [
   "domingo",
@@ -271,7 +275,18 @@ const PaseEntradaPage = () => {
   const [modalData, setModalData] = useState<any>(null);
   const [defaultCountry, setDefaultCountry] = useState<any>("MX");
   const [habilitarVehiculo, setHabilitarVehiculo] = useState(true);
-  const [activarPorDefecto, setActivarPorDefecto] = useState(false);
+  const [activarPorDefecto, setActivarPorDefecto] = useState(true);
+  // Datos que se registran desde la creación (sección "Datos del visitante"),
+  // solo con "Activar pase por defecto" encendido: foto/identificación según
+  // la config y vehículos/equipos (mismas secciones que pase-update).
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
+  const [equipos, setEquipos] = useState<Equipo[]>([]);
+  const [fotoVisitante, setFotoVisitante] = useState<Imagen[]>([]);
+  const [identificacionVisitante, setIdentificacionVisitante] = useState<Imagen[]>([]);
+  // Se prende al intentar avanzar; los mensajes de "requerido" se ven desde
+  // ahí y se quitan solos en cuanto se sube la imagen.
+  const [validarDatosVisitante, setValidarDatosVisitante] = useState(false);
+  const datosVisitanteRef = useRef<HTMLDivElement>(null);
   const [habilitarFoto, setHabilitarFoto] = useState(true);
   const [habilitarIdentificacion, setHabilitarIdentificacion] = useState(true);
   const [toleranciaEntrada, setToleranciaEntrada] = useState<number>(0);
@@ -461,6 +476,36 @@ const PaseEntradaPage = () => {
   useEffect(() => {
     if (requiereIdentificacionModulo) setHabilitarIdentificacion(true);
   }, [requiereIdentificacionModulo]);
+  useEffect(() => {
+    if (permiteActivarPorDefecto) setActivarPorDefecto(true);
+  }, [permiteActivarPorDefecto]);
+
+  // Si la auto activación se apaga o deja de ofrecerse, lo capturado se
+  // descarta: no se manda y no se arrastra a otra ubicación.
+  const capturaVehiculosEquipos = permiteActivarPorDefecto && activarPorDefecto;
+  // Foto/identificación responden a la config: se piden si el módulo de
+  // seguridad las requiere y el toggle (Admin) no las apagó.
+  const capturaFoto = capturaVehiculosEquipos && requiereFotoModulo && habilitarFoto;
+  const capturaIdentificacion =
+    capturaVehiculosEquipos && requiereIdentificacionModulo && habilitarIdentificacion;
+  useEffect(() => {
+    if (!capturaVehiculosEquipos) {
+      setVehiculos([]);
+      setEquipos([]);
+    }
+  }, [capturaVehiculosEquipos]);
+  useEffect(() => {
+    if (!habilitarVehiculo) setVehiculos([]);
+  }, [habilitarVehiculo]);
+  useEffect(() => {
+    if (!capturaFoto) setFotoVisitante([]);
+  }, [capturaFoto]);
+  // Con auto activación, si la config pide foto/identificación son obligatorias.
+  const faltaFoto = capturaFoto && fotoVisitante.length === 0;
+  const faltaIdentificacion = capturaIdentificacion && identificacionVisitante.length === 0;
+  useEffect(() => {
+    if (!capturaIdentificacion) setIdentificacionVisitante([]);
+  }, [capturaIdentificacion]);
 
   const [enviar_correo_pre_registro] = useState<string[]>([]);
   const [formatedDocs, setFormatedDocs] = useState<string[]>([]);
@@ -701,6 +746,11 @@ const PaseEntradaPage = () => {
         message: "Selecciona al menos una ubicación",
       });
     }
+    if (faltaFoto || faltaIdentificacion) {
+      setValidarDatosVisitante(true);
+      datosVisitanteRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     console.log( tipoVisita === "fecha_fija"
           ? date
             ? (() => {
@@ -780,6 +830,17 @@ const PaseEntradaPage = () => {
       // la config del módulo no ofrece el toggle, no se manda la llave.
       ...(permiteActivarPorDefecto && {
         auto_activacion: activarPorDefecto ? "sí" : "no",
+      }),
+      // Solo con auto activación; vacíos no se mandan.
+      ...(capturaVehiculosEquipos && habilitarVehiculo && vehiculos.length > 0 && {
+        grupo_vehiculos: vehiculos,
+      }),
+      ...(capturaVehiculosEquipos && equipos.length > 0 && {
+        grupo_equipos: equipos,
+      }),
+      ...(capturaFoto && fotoVisitante.length > 0 && { foto: fotoVisitante }),
+      ...(capturaIdentificacion && identificacionVisitante.length > 0 && {
+        identificacion: identificacionVisitante,
       }),
       // Si el módulo de seguridad no pide fotografia/identificacion, el
       // toggle ni se muestra (ver esAdmin && requiereFotoModulo en el JSX) —
@@ -1768,6 +1829,76 @@ const PaseEntradaPage = () => {
                 </div>
               )}
             </div>
+
+            {capturaVehiculosEquipos && (
+              <div ref={datosVisitanteRef} className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="p-2 bg-blue-50 rounded-xl">
+                    <BadgeCheck className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-700">Datos del visitante</h3>
+                </div>
+                <p className="text-xs text-gray-400 mb-5">
+                  El pase se crea activo: registra desde ahora la información del visitante.
+                </p>
+
+                {(capturaFoto || capturaIdentificacion) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    {capturaFoto && (
+                      <div>
+                        <LoadImage
+                          id="pase-entrada-fotografia"
+                          titulo="Fotografía *"
+                          imgArray={fotoVisitante}
+                          setImg={setFotoVisitante}
+                          showWebcamOption={true}
+                          facingMode="user"
+                          accountId={userIdSoter ?? undefined}
+                        />
+                        {validarDatosVisitante && faltaFoto && (
+                          <p className="mt-1.5 text-sm font-medium text-red-500">
+                            La fotografía es requerida para activar el pase.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {capturaIdentificacion && (
+                      <div>
+                        <LoadImage
+                          id="pase-entrada-identificacion"
+                          titulo="Identificación *"
+                          imgArray={identificacionVisitante}
+                          setImg={setIdentificacionVisitante}
+                          showWebcamOption={true}
+                          facingMode="environment"
+                          accountId={userIdSoter ?? undefined}
+                        />
+                        {validarDatosVisitante && faltaIdentificacion && (
+                          <p className="mt-1.5 text-sm font-medium text-red-500">
+                            La identificación es requerida para activar el pase.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-5">
+                  {habilitarVehiculo && (
+                    <PaseVehiculosSection
+                      vehicles={vehiculos}
+                      setVehiculos={setVehiculos}
+                      account_id={userIdSoter ?? undefined}
+                    />
+                  )}
+                  <PaseEquiposSection
+                    equipos={equipos}
+                    setEquipos={setEquipos}
+                    userId={userIdSoter ?? undefined}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
               <FormField
