@@ -29,6 +29,7 @@ export interface GrupoRequisito {
    * de este campo no lo traen.
    */
   auto_activacion?: string;
+  acompanantes_requeridos?: string;
 }
 
 interface MenuStore {
