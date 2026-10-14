@@ -71,6 +71,8 @@ interface MiembrosPaseProps {
   acompanantes_grupo?: Miembro[];
   acompanantesActivos?: Miembro[];
   nonDeletableIds?: string[];
+  camposRequeridos?: boolean;
+  marcarFaltantes?: boolean;
 }
 
 const isValidEmail = (val: string) =>
@@ -129,8 +131,13 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   modo,
   acompanantesActivos = [],
   nonDeletableIds = [],
-  showFotoColumn=true
+  showFotoColumn=true,
+  camposRequeridos = false,
+  marcarFaltantes = false,
 }) => {
+  const req = camposRequeridos ? " *" : "";
+  const falta = (valor?: string) => camposRequeridos && marcarFaltantes && !valor?.trim();
+  const celdaFaltante = "bg-red-50/70";
   const [draftRow, setDraftRow] = useState<Miembro>(EMPTY_ROW());
   const [draftErrors, setDraftErrors] = useState({ email: false, telefono: false });
   const [analizandoGlobal, setAnalizandoGlobal] = useState(false);
@@ -636,32 +643,32 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                       />
                     </td>
                     
-                    <td className={td} style={{ width: "22%" }}>
+                    <td className={`${td} ${!esVista && falta(m.nombre) ? celdaFaltante : ""}`} style={{ width: "22%" }}>
                       {esVista ? (
                         <span className="text-gray-700">{m.nombre || "—"}</span>
                       ) : (
                         <input
-                          className={inp + " text-gray-700"}
+                          className={falta(m.nombre) ? inpErr : inp + " text-gray-700"}
                           value={m.nombre}
-                          placeholder="Nombre"
+                          placeholder={"Nombre" + req}
                           onChange={(e) => handleEditCell(m.id, "nombre", e.target.value)}
                         />
                       )}
                     </td>
-                    <td className={td} style={{ width: "28%" }}>
+                    <td className={`${td} ${!esVista && falta(m.email) ? celdaFaltante : ""}`} style={{ width: "28%" }}>
                       {esVista ? (
                         <span className="text-gray-700">{m.email || "—"}</span>
                       ) : (
                         <input
-                          className={err.email ? inpErr : inp + " text-gray-700"}
+                          className={err.email || falta(m.email) ? inpErr : inp + " text-gray-700"}
                           value={m.email}
-                          placeholder="Email"
+                          placeholder={"Email" + req}
                           onChange={(e) => handleEditCell(m.id, "email", e.target.value)}
                           onBlur={(e) => handleBlurSaved(m.id, "email", e.target.value)}
                         />
                       )}
                     </td>
-                    <td className={td} style={{ width: "22%" }}>
+                    <td className={`${td} ${!esVista && falta(m.telefono) ? celdaFaltante : ""}`} style={{ width: "22%" }}>
                       {esVista ? (
                         <span className="text-gray-700">{m.telefono || "—"}</span>
                       ) : (
@@ -673,7 +680,8 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                           containerComponentProps={{ className: "flex w-full bg-transparent" }}
                           numberInputProps={{
                             className: "bg-transparent border-none outline-none text-xs w-full focus:ring-0 p-0 " +
-                              (err.telefono ? "text-red-500" : "text-gray-700"),
+                              (err.telefono || falta(m.telefono) ? "text-red-500 placeholder:text-red-300" : "text-gray-700"),
+                            placeholder: "Teléfono" + req,
                           }}
                         />
                       )}
@@ -756,10 +764,12 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                                   prev.map((row) =>
                                     row.id === m.id
                                       ? {
+                                          // extraerDatosOcr regresa "" en lo que no leyó (una INE no
+                                          // trae email/teléfono): con || no pisa lo ya capturado.
                                           ...row,
-                                          nombre: extraido.nombre ?? row.nombre,
-                                          email: extraido.email ?? row.email,
-                                          telefono: extraido.telefono ?? row.telefono,
+                                          nombre: extraido.nombre || row.nombre,
+                                          email: extraido.email || row.email,
+                                          telefono: extraido.telefono || row.telefono,
                                         }
                                       : row
                                   )
