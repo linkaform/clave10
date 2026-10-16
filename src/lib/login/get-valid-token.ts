@@ -29,3 +29,15 @@ export const getValidToken = async (): Promise<string | null> => {
 
   return renewPromise;
 };
+
+// Con account_id el script corre con el API key de esa cuenta; mandar el JWT
+// de una sesión de otra cuenta en el navegador lo haría correr en esa otra.
+export const authHeaders = async (
+  account_id?: number | null,
+): Promise<Record<string, string>> => {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (account_id) return headers;
+  const userJwt = await getValidToken();
+  if (userJwt) headers.Authorization = `Bearer ${userJwt}`;
+  return headers;
+};
