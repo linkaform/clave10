@@ -454,6 +454,18 @@ const PaseEntradaPage = () => {
     ),
   );
 
+  // "Acompañantes Requeridos" en sí en alguna de las ubicaciones elegidas (mismo
+  // grupo de requisitos que la auto activación): si se agregan acompañantes,
+  // su nombre, email y teléfono son obligatorios. Sin acompañantes no aplica.
+  const acompanantesRequeridos = (ubicacionesSeleccionadasLista ?? []).some((ubicacion: string) =>
+    grupoRequisitos?.some(
+      (g) =>
+        requisitoAplicaA(g.ubicacion, ubicacion) &&
+        !!g.acompanantes_requeridos &&
+        isHabilitado(g.acompanantes_requeridos),
+    ),
+  );
+
   // Igual con email/teléfono: si el módulo de seguridad de la ubicación
   // pide envío por "correo" y/o "sms", ese campo se vuelve requerido en el
   // formulario. Si no pide ninguno de los dos, ninguno es requerido.
@@ -524,6 +536,16 @@ const PaseEntradaPage = () => {
   const [todasAreas, setTodasAreas] = useState(true);
   const today = todayInUserTz();
   const [miembrosAcompanantes, setMiembrosAcompanantes] = useState<Miembro[]>([]);
+  // Tab de "Datos del visitante" controlada: la validación de acompañantes
+  // requeridos lleva al usuario a la tab "Acompañantes".
+  const [tabVisitante, setTabVisitante] = useState("datos-visita");
+  const [validarAcompanantes, setValidarAcompanantes] = useState(false);
+  const tabsVisitanteRef = useRef<HTMLDivElement>(null);
+  // Con "Acompañantes Requeridos", cada acompañante agregado necesita nombre,
+  // email y teléfono; el mensaje en rojo se quita solo al completarlos.
+  const acompanantesIncompletos =
+    acompanantesRequeridos &&
+    miembrosAcompanantes.some((m) => !m.nombre?.trim() || !m.email?.trim() || !m.telefono?.trim());
   const [acompanantesError, setAcompanantesError] = useState(false);
   const [diasVigenciaError, setDiasVigenciaError] = useState(false);
   const [areasError, setAreasError] = useState(false);
@@ -745,6 +767,12 @@ const PaseEntradaPage = () => {
       form.setError("ubicaciones", {
         message: "Selecciona al menos una ubicación",
       });
+    }
+    if (acompanantesIncompletos) {
+      setValidarAcompanantes(true);
+      setTabVisitante("miembros-grupo");
+      tabsVisitanteRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
     }
     if (faltaFoto || faltaIdentificacion) {
       setValidarDatosVisitante(true);
@@ -1142,8 +1170,8 @@ const PaseEntradaPage = () => {
             </div>
 
             {/* ── SECCIÓN 2: Datos del visitante con tabs internos ── */}
-            <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6">
-              <Tabs defaultValue="datos-visita">
+            <div ref={tabsVisitanteRef} className="bg-white rounded-2xl shadow-sm border border-blue-50 p-6 scroll-mt-4">
+              <Tabs value={tabVisitante} onValueChange={setTabVisitante}>
                 <TabsList className="w-auto justify-start bg-transparent border-b border-gray-200 rounded-none p-0 mb-5 gap-0">
                   <TabsTrigger
                     value="datos-visita"
@@ -1386,7 +1414,14 @@ const PaseEntradaPage = () => {
                 </TabsContent>
 
                 <TabsContent value="miembros-grupo">
+                  {validarAcompanantes && acompanantesIncompletos && (
+                    <p className="mb-3 text-sm font-medium text-red-500">
+                      Completa el nombre, email y teléfono de todos los acompañantes para crear el pase.
+                    </p>
+                  )}
                   <MiembrosPase
+                    camposRequeridos={acompanantesRequeridos}
+                    marcarFaltantes={validarAcompanantes}
                     miembros={miembrosAcompanantes}
                     setMiembros={setMiembrosAcompanantes}
                     rowErrors={miembrosRowErrors}
