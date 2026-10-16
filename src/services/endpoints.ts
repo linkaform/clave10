@@ -204,14 +204,23 @@ export const createVisitTransportista = (payload: unknown) =>
     payload,
   });
 
-export const ocrAccesoTransportista = (
+// Va a lkf-sanic-apps (accesos/ocr_acceso_transportista, 2610-1382).
+// ocr_docs_sdk.py responde {status_code, msg, data} sin el {data: ...} que
+// envolvía ocr_docs.py; se re-envuelve aquí para que los modales lean igual.
+export const ocrAccesoTransportista = async (
   image_source: { file_url: string; file_name: string; tipo_hint?: string }[],
-) =>
-  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "ocr_docs.py",
+) => {
+  const result = await apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "ocr_docs_sdk.py",
     option: "ocr_acceso_transportista",
     image_source,
   });
+  const res = result?.response as { status_code?: number; data?: { status_code?: number } } | undefined;
+  if (res && res.status_code !== undefined && res.data?.status_code === undefined) {
+    return { ...result, response: { data: res } } as ApiResponse;
+  }
+  return result;
+};
 
 export const saveDataTransportista = (payload: unknown) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
