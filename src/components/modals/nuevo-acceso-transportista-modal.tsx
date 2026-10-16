@@ -1,29 +1,20 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  AlertTriangle,
   ArrowLeftRight,
   Camera,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  FileText,
-  GripVertical,
   Link2,
   Package,
-  Pencil,
-  Plus,
   Search,
   Sparkles,
-  Trash2,
   Truck,
-  Unlink,
-  X,
 } from "lucide-react";
 import { cn, errorMsj, reemplazarGuionMinuscula } from "@/lib/utils";
 import { useUploadImage } from "@/hooks/useUploadImage";
@@ -39,21 +30,18 @@ import {
   emptyUnidad,
   emptyMaterial,
   emptyContenedorData,
-  materialesDeUnidad,
-  refDeUnidad,
-  labelDeUnidad,
-  resolveColorSwatch,
-  UnidadEditorCard,
   serializeUnidades,
   faltantesCarga,
   cajaRapidaOpcional,
   unidadesARegistrar,
   emptyCajaRapida,
-  CapturaCajaRapida,
   type CajaRapida,
-  SelectorColorVehiculo,
 } from "@/components/transportista/agregar-unidad-modal";
-import { SelectorTipoVehiculo, resolverTipoVehiculo } from "@/components/transportista/selector-tipo-vehiculo";
+import { CapturaFotosDocumentos, etiquetaDeFoto, type OpcionFoto } from "@/components/transportista/captura-fotos-documentos";
+import { VisorFotosModal } from "@/components/transportista/visor-fotos-modal";
+import { RenglonesRemolque } from "@/components/transportista/renglones-remolque";
+import { MaterialesCarga } from "@/components/transportista/materiales-carga";
+import { SelectorTipoVehiculo, GaleriaTipoVehiculo, resolverTipoVehiculo, camposDeVehiculo } from "@/components/transportista/selector-tipo-vehiculo";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { TIPOS_DOCUMENTO_SUBIDA, tieneMinCaracteres } from "@/config/documentos-transportista";
@@ -97,7 +85,6 @@ const TIPOS_OPERACION = [
 // de pase" (config/documentos-transportista.ts) — así un documento etiquetado
 // aquí se reconoce igual en los demás flujos.
 const DOC_TYPES = TIPOS_DOCUMENTO_SUBIDA;
-const DOC_TYPES_LABELS = DOC_TYPES.map((t) => t.label);
 
 interface DocItem {
   id:        string;
@@ -106,6 +93,9 @@ interface DocItem {
   uploading: boolean;
   preview:   string | null;
   tipo?:     string;
+  // Opción de la cámara (Tracto, Caja…) y pista para la IA (2610-1382).
+  opcion?:   string;
+  hint?:     string;
   // true cuando el usuario asignó el tipo a mano — evita que el resultado de
   // "Analizar con IA" lo sobrescriba con su propia detección automática.
   tipoManual?: boolean;
@@ -113,7 +103,6 @@ interface DocItem {
 
 // El navegador no puede pintar un PDF dentro de un <img> — se muestra un ícono
 // en vez de la miniatura rota cuando el archivo no es una imagen.
-const esPdf = (fileName: string) => fileName.toLowerCase().endsWith(".pdf");
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -129,25 +118,6 @@ function FieldLabel({
       {children}
       {required && <span className="text-red-400 ml-0.5">*</span>}
     </label>
-  );
-}
-
-function MiniField({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value?: string | null;
-  mono?: boolean;
-}) {
-  return (
-    <div>
-      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{label}</p>
-      <p className={cn("text-xs text-gray-700 leading-snug", mono && "font-mono", !value && "text-gray-300 italic")}>
-        {value || "Sin información"}
-      </p>
-    </div>
   );
 }
 
@@ -175,21 +145,17 @@ function SectionDivider({
 
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
-type Tab = "vehiculo" | "remolques";
-
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: "vehiculo",   label: "Vehículo" },
-  { key: "remolques",  label: "Carga"    },
-];
-
 export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
-  const [tab, setTab] = useState<Tab>("vehiculo");
   const [showValidation, setShowValidation] = useState(false);
+  // 2610-1382 (junta 16 oct): el modal abre directo en operación, tipo de
+  // vehículo y fotos; sin fotos, "Continuar" pasa a la captura manual.
+  const [modo, setModo] = useState<"fotos" | "manual">("fotos");
+  const [visorFoto, setVisorFoto] = useState<number | null>(null);
   // Cerrar el modal (por cualquier vía: botón Cancelar, la X, o un intento de
   // cerrar accidental) siempre pasa por aquí — nunca se cierra directo, para
   // no perder lo capturado sin que el usuario lo confirme explícitamente.
@@ -220,7 +186,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   const [vigenciaLicencia, setVigenciaLicencia] = useState("");
   const [rfcConductor, setRfcConductor] = useState("");
   const [acompanante, setAcompanante] = useState("");
-  const [documentosDetectados, setDocumentosDetectados] = useState<string[]>([]);
   // Placa leída en la tarjeta de circulación del vehículo — sin campo visual
   // en este modal todavía, pero se manda al crear el registro para usarla
   // más adelante (verificación de placas en la inspección de entrada).
@@ -228,8 +193,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
 
   // Fotos
   const [documentos, setDocumentos] = useState<DocItem[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragCounter = useRef(0);
 
   // IA
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
@@ -248,28 +211,14 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
 
   // Remolques / contenedores — mismo modelo de unidades que el detalle de transportista
   const [unidades, setUnidades] = useState<UnidadItem[]>([]);
-  const [showAgregarUnidad, setShowAgregarUnidad] = useState(false);
-  // Caja y placas rápidas de la pestaña Carga cuando no se agregan unidades.
+  // Caja rápida ya sin UI (los remolques van en renglones, 2610-1382); se
+  // queda vacía y solo alimenta los helpers de validación y registro.
   const [cajaRapida, setCajaRapida] = useState<CajaRapida>(emptyCajaRapida());
-  const [editingUnit, setEditingUnit] = useState<UnidadItem | null>(null);
-  const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
-
-  const toggleUnit = (id: string) =>
-    setExpandedUnits((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
 
   // Contenedores detectados por IA que no se pudieron ligar automáticamente
   // a un remolque (más de un remolque y/o contenedor detectados) — se ligan
-  // arrastrándolos sobre la tarjeta del remolque correspondiente.
+  // eligiendo su caja en los renglones de Remolque.
   const [contenedoresSueltos, setContenedoresSueltos] = useState<(ContenedorData & { id: string })[]>([]);
-  const [dragOverUnidadId, setDragOverUnidadId] = useState<string | null>(null);
 
   const linkContenedorSuelto = (unidadId: string, contenedorId: string) => {
     const target = unidades.find((x) => x.id === unidadId);
@@ -303,20 +252,10 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
         }
       : u));
     setContenedoresSueltos((prev) => prev.filter((c) => c.id !== contenedorId));
-    setExpandedUnits((prev) => new Set(prev).add(unidadId));
-  };
-
-  const unlinkContenedor = (unidadId: string) => {
-    const u = unidades.find((x) => x.id === unidadId);
-    if (!u || u.config !== "remolque_contenedor") return;
-    setContenedoresSueltos((prev) => [...prev, { id: Math.random().toString(36).slice(2), ...u.contenedor }]);
-    setUnidades((prev) => prev.map((x) => x.id === unidadId
-      ? { ...x, config: "solo_remolque", contenedor: emptyContenedorData() }
-      : x));
   };
 
   const resetForm = () => {
-    setTab("vehiculo");
+    setModo("fotos");
     setShowValidation(false);
     setTipoOperacion(null);
     setTransportista("");
@@ -333,29 +272,28 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
     setVigenciaLicencia("");
     setRfcConductor("");
     setAcompanante("");
-    setDocumentosDetectados([]);
     setPlacaTarjetaVehiculo(null);
     setDocumentos([]);
-    setIsDragging(false);
-    dragCounter.current = 0;
     setAiAnalyzing(false);
     setAiFilledFields(new Set());
     setProveedorCliente("");
     setOrdenCompra("");
     setUnidades([]);
     setCajaRapida(emptyCajaRapida());
-    setShowAgregarUnidad(false);
-    setEditingUnit(null);
-    setExpandedUnits(new Set());
     setContenedoresSueltos([]);
-    setDragOverUnidadId(null);
   };
 
   // ── Upload helpers ────────────────────────────────────────────────────────────
 
-  const uploadDocumento = async (file: File) => {
+  // tipo: el que eligió el guardia al tomar la foto (modo fotos); queda como
+  // manual para que "Analizar con IA" no lo sobrescriba.
+  const uploadDocumento = async (file: File, opcion?: OpcionFoto) => {
     const id = Math.random().toString(36).slice(2);
-    setDocumentos((p) => [...p, { id, file_url: "", file_name: "", uploading: true, preview: URL.createObjectURL(file) }]);
+    setDocumentos((p) => [...p, {
+      id, file_url: "", file_name: "", uploading: true, preview: URL.createObjectURL(file),
+      // `fijo` = la IA no puede cambiarle el tipo (conductor → licencia).
+      ...(opcion ? { opcion: opcion.value, hint: opcion.hint, tipo: opcion.tipo, tipoManual: opcion.fijo } : {}),
+    }]);
     try {
       const renamed = new File([file], reemplazarGuionMinuscula(file.name), { type: file.type });
       const result = await uploadImageMutation.mutateAsync({ img: renamed });
@@ -370,8 +308,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
     }
   };
   const removeDocumento = (id: string) => setDocumentos((p) => p.filter((d) => d.id !== id));
-  const setTipoDocumento = (id: string, tipo: string) =>
-    setDocumentos((p) => p.map((d) => d.id === id ? { ...d, tipo: tipo || undefined, tipoManual: !!tipo } : d));
 
   const analyzePhotosWithAI = async () => {
     setAiAnalyzing(true);
@@ -382,14 +318,14 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
           .map((d) => ({
             file_url: d.file_url,
             file_name: d.file_name,
-            tipo_hint: d.tipo ? DOC_TYPES.find((t) => t.value === d.tipo)?.label : undefined,
+            tipo_hint: d.hint ?? (d.tipo ? DOC_TYPES.find((t) => t.value === d.tipo)?.label : undefined),
           })),
       );
       const hasError = !result?.success || (result?.response?.data?.status_code ?? 0) >= 400;
       if (hasError) {
         const textMsj = errorMsj(result);
         toast.error(textMsj?.text || "Error al analizar los documentos con IA.");
-        return;
+        return false;
       }
       const d = (result?.response?.data?.data ?? {}) as Partial<{
         vehiculo: Partial<{
@@ -453,7 +389,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
         setDocumentos((prev) =>
           prev.map((doc) => byUrl.has(doc.file_url) && !doc.tipoManual ? { ...doc, tipo: byUrl.get(doc.file_url) } : doc),
         );
-        setDocumentosDetectados([...new Set(d.documentos_detectados.map((dd) => dd.tipo))]);
       }
 
       // Remolques y contenedores llegan en arreglos separados — la IA no
@@ -558,7 +493,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
 
       if (unidadesFromAI.length) {
         setUnidades(unidadesFromAI);
-        setExpandedUnits(new Set(unidadesFromAI.map((u) => u.id)));
         filled.add("remolques");
       }
 
@@ -571,9 +505,11 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       if (d.vehiculo?.placa_tarjeta_circulacion) setPlacaTarjetaVehiculo(d.vehiculo.placa_tarjeta_circulacion);
 
       setAiFilledFields(filled);
+      return true;
     } catch (err) {
       const textMsj = errorMsj(err instanceof Error ? err.message : err);
       toast.error(textMsj?.text || "Error al analizar los documentos con IA.");
+      return false;
     } finally {
       setAiAnalyzing(false);
     }
@@ -581,20 +517,137 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
 
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Flujo simplificado (2610-1323): procedencia, color y vigencia dejan de
-  // ser obligatorios; licencia y factura/OC piden al menos 4 caracteres.
+  // Junta 14 oct: conductor, celular y no. de licencia dejan de ser
+  // obligatorios; se exige la foto de la licencia (de ahí los lee la IA).
+  // Factura/OC sigue pidiendo al menos 4 caracteres.
+  const tieneFotoLicencia = documentos.some((d) => d.tipo === "licencia" && d.file_url);
+  const licenciaVencida = !!vigenciaLicencia && new Date(vigenciaLicencia) < new Date();
+  // Rígidos y pickup no piden no. de tracto ni caja (junta 14 oct).
+  const campos = camposDeVehiculo(tipoVehiculo);
   const camposFaltantes = [
     !tipoOperacion && "Tipo de operación",
     !transportista.trim() && "Línea",
     !tipoVehiculo.trim() && "Tipo de vehículo",
-    !placa.trim() && "Placa de tracto",
-    !noEconomico.trim() && "No. de tracto",
-    !conductor.trim() && "Conductor",
-    !celular.trim() && "Celular del conductor",
-    !tieneMinCaracteres(noLicencia) && "No. de licencia (mín. 4)",
+    !placa.trim() && (campos.tracto ? "Placa de tracto" : "Placa del vehículo"),
+    campos.tracto && !noEconomico.trim() && "No. de tracto",
+    !tieneFotoLicencia && "Foto de la licencia",
     !tieneMinCaracteres(ordenCompra) && "Factura / Orden de compra (mín. 4)",
-    ...faltantesCarga(unidades, cajaRapida, cajaRapidaOpcional(tipoVehiculo)),
+    // Las unidades "Solo vehículo" solo llevan material sin ligar: no cuentan como caja.
+    ...faltantesCarga(unidades.filter((u) => u.config !== "solo_vehiculo"), cajaRapida, !campos.caja || cajaRapidaOpcional(tipoVehiculo)),
   ].filter((v): v is string => Boolean(v));
+
+  const registrarAcceso = () => {
+    if (camposFaltantes.length > 0) {
+      setShowValidation(true);
+      toast.error(`Completa los campos obligatorios: ${camposFaltantes.join(", ")}`);
+      return;
+    }
+    const { remolques, contenedores, materiales } = serializeUnidades(unidadesARegistrar(unidades, cajaRapida));
+    const payload = {
+      creado_desde: "acceso_web",
+      tipo_operacion: tipoOperacion,
+      ubicacion: location || null,
+      area: area || null,
+      vehiculo: {
+        transportista: transportista || null,
+        procedencia: procedencia || null,
+        tipo_vehiculo: tipoVehiculo || null,
+        placa: placa || null,
+        no_economico: noEconomico || null,
+        marca: marcaVehiculo || null,
+        modelo: modeloVehiculo || null,
+        color: colorVehiculo || null,
+        placa_tarjeta_circulacion: placaTarjetaVehiculo || null,
+      },
+      conductor: {
+        nombre: conductor || null,
+        celular: celular || null,
+        no_licencia: noLicencia || null,
+        vigencia_licencia: vigenciaLicencia || null,
+        rfc: rfcConductor || null,
+        acompanante: acompanante || null,
+      },
+      embarque: {
+        proveedor_cliente: proveedorCliente || null,
+        no_orden_compra: ordenCompra || null,
+      },
+      documentos_adicionales: documentos
+        .filter((d) => d.file_url)
+        .map((d) => ({ file_url: d.file_url, file_name: d.file_name, ...(d.tipo ? { tipo: d.tipo } : {}) })),
+      remolques,
+      contenedores,
+      materiales,
+    };
+    createVisit(payload, {
+      onSuccess: (result) => {
+        if (result?.id) {
+          const cacheData: VisitaTransportista = {
+            id: result.id,
+            folio: result.folio ?? null,
+            num_de_pase: null,
+            tipo_operacion: tipoOperacion,
+            created_at: result.created_at ? String(result.created_at) : null,
+            fecha_hora_ingreso: null,
+            estatus: null,
+            ubicacion: location || null,
+            area: area || null,
+            vehiculo: {
+              transportista: transportista || null,
+              procedencia: procedencia || null,
+              tipo_vehiculo: tipoVehiculo || null,
+              placa: placa || null,
+              placa_tarjeta_circulacion: null,
+              no_economico: noEconomico || null,
+              marca: marcaVehiculo || null,
+              modelo: modeloVehiculo || null,
+              color: colorVehiculo || null,
+              material: null,
+              foto_placa: null,
+            },
+            conductor: {
+              nombre: conductor || null,
+              celular: celular || null,
+              no_licencia: noLicencia || null,
+              vigencia_licencia: vigenciaLicencia || null,
+              rfc: rfcConductor || null,
+              acompanante: acompanante || null,
+              foto_conductor: null,
+              foto_licencia: null,
+              firma: null,
+            },
+            embarque: {
+              proveedor_cliente: proveedorCliente || null,
+              no_orden_compra: ordenCompra || null,
+              anden_asignado: null,
+            },
+            documentos_adicionales: documentos
+              .filter((d) => d.file_url)
+              .map((d) => ({ file_url: d.file_url, file_name: d.file_name, ...(d.tipo ? { tipo: d.tipo } : {}) })),
+            // Los remolques/contenedores/materiales quedan vacíos aquí:
+            // el backend los agrupa (remolque + contenedor + refs de
+            // material) al guardar, así que se dejan para que la
+            // siguiente carga real los traiga ya vinculados.
+            remolques: [],
+            materiales: [],
+            inspecciones: [],
+          };
+          queryClient.setQueryData(
+            ["visitaTransportista", result.id],
+            cacheData,
+          );
+          queryClient.invalidateQueries({ queryKey: ["visitaTransportista", result.id] });
+          resetForm();
+          onClose();
+          router.push(
+            `/dashboard/accesos/transportista/${result.id}`,
+          );
+        } else {
+          resetForm();
+          onClose();
+        }
+      },
+    });
+  };
 
   return (
     <Dialog
@@ -609,7 +662,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
-        className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
+        className={cn("p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl", modo === "fotos" ? "max-w-5xl" : "max-w-3xl")}>
         <DialogTitle className="sr-only">
           Nuevo acceso de transportista
         </DialogTitle>
@@ -635,273 +688,117 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
           </div>
         </div>
 
-        {/* ── Tab navigation ────────────────────────── */}
-        <div className="px-6 pt-4 pb-0">
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
-            {TABS.map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setTab(key)}
-                className={cn(
-                  "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                  tab === key
-                    ? "bg-white text-gray-800 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700",
-                )}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* ── Content ───────────────────────────────── */}
-        <div className="overflow-y-auto max-h-[58vh] px-6 py-5 space-y-5">
-          {/* ══ TAB: VEHÍCULO ════════════════════════ */}
-          {tab === "vehiculo" && (
-            <>
-              <SectionDivider label="Tipo de operación" required />
-
-              <div className="grid grid-cols-2 gap-3">
-                {TIPOS_OPERACION.map(
-                  ({ value, label, description, icon: Icon }) => {
-                    const selected = tipoOperacion === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setTipoOperacion(value)}
-                        className={cn(
-                          "text-left p-4 rounded-xl border-2 transition-all duration-150",
-                          selected
-                            ? "border-teal-500 bg-teal-50/80"
-                            : showValidation && !tipoOperacion
-                            ? "border-red-300 bg-red-50 hover:border-red-400"
-                            : "border-gray-200 bg-white hover:border-blue-200 hover:bg-blue-50/40",
-                        )}>
-                        <div className="flex items-start gap-3">
-                          <Icon
-                            className={cn(
-                              "w-5 h-5 mt-0.5 shrink-0",
-                              selected ? "text-teal-600" : "text-blue-400",
-                            )}
-                          />
-                          <div className="min-w-0">
-                            <p
-                              className={cn(
-                                "font-semibold text-sm leading-snug",
-                                selected ? "text-teal-700" : "text-gray-700",
-                              )}>
-                              {label}
-                            </p>
-                            <p className="text-xs text-gray-400 mt-0.5 leading-snug">
-                              {description}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  },
-                )}
-              </div>
-              {showValidation && !tipoOperacion && (
-                <p className="text-[10px] text-red-500 -mt-3">Campo obligatorio</p>
-              )}
-
-              <SectionDivider
-                label="Fotografías"
-                icon={<Camera className="w-3 h-3" />}
-              />
-
-              {/* ── Bloque unificado de fotos + IA ── */}
-              {(() => {
-                const anyUploading = documentos.some((d) => d.uploading);
-                const canAnalyze = documentos.some((d) => d.file_url) && !anyUploading;
-                return (
-                  <div
-                    className="rounded-xl border border-gray-200 bg-gray-50/40 p-4 space-y-3"
-                    onDragEnter={(e) => { e.preventDefault(); dragCounter.current++; setIsDragging(true); }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDragLeave={() => { dragCounter.current--; if (dragCounter.current === 0) setIsDragging(false); }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      dragCounter.current = 0;
-                      setIsDragging(false);
-                      Array.from(e.dataTransfer.files).forEach(uploadDocumento);
-                    }}
-                  >
-                    {/* Upload zone — large when empty, small thumbnail at end when files exist */}
-                    {documentos.length === 0 ? (
-                      <label className="block cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          multiple
-                          className="hidden"
-                          onChange={(e) => {
-                            Array.from(e.target.files ?? []).forEach(uploadDocumento);
-                            e.target.value = "";
-                          }}
-                        />
-                        <div className={`w-full rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-1.5 py-5 ${isDragging ? "border-blue-400 bg-blue-50/60" : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"}`}>
-                          <Camera className={`w-5 h-5 ${isDragging ? "text-blue-400" : "text-gray-300"}`} />
-                          <span className="text-sm text-gray-400 font-medium">{isDragging ? "Suelta aquí" : "Subir imágenes o archivos"}</span>
-                          <span className="text-[11px] text-gray-300">Puedes seleccionar múltiples archivos</span>
-                        </div>
-                      </label>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {documentos.map((doc) => (
-                          <div key={doc.id} className="flex items-center gap-2.5 rounded-lg border border-gray-200 bg-white p-1.5">
-                            <div className="relative w-11 h-11 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
-                              {doc.uploading ? (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                                </div>
-                              ) : esPdf(doc.file_name) ? (
-                                <div className="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-red-50">
-                                  <FileText className="w-4 h-4 text-red-400" />
-                                </div>
-                              ) : doc.preview ? (
-                                <Image src={doc.preview} fill className="object-cover" alt="" unoptimized />
-                              ) : null}
-                            </div>
-                            <p className="text-[11px] text-gray-500 truncate w-24 shrink-0" title={doc.file_name}>
-                              {doc.file_name || "Subiendo…"}
-                            </p>
-                            <select
-                              value={doc.tipo ?? ""}
-                              disabled={doc.uploading}
-                              onChange={(e) => setTipoDocumento(doc.id, e.target.value)}
-                              className="flex-1 min-w-0 h-8 rounded-lg border border-gray-200 px-2 text-[11px] bg-white focus:outline-none focus:border-blue-400 disabled:opacity-50">
-                              <option value="">Tipo de documento (opcional)</option>
-                              {DOC_TYPES.map(({ value, label }) => (
-                                <option key={value} value={value}>{label}</option>
-                              ))}
-                            </select>
-                            <button
-                              type="button"
-                              onClick={() => removeDocumento(doc.id)}
-                              className="w-6 h-6 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors shrink-0">
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                        <label className="cursor-pointer block">
-                          <input
-                            type="file"
-                            accept="image/*,application/pdf"
-                            multiple
-                            className="hidden"
-                            onChange={(e) => {
-                              Array.from(e.target.files ?? []).forEach(uploadDocumento);
-                              e.target.value = "";
-                            }}
-                          />
-                          <div className={`w-full rounded-lg border-2 border-dashed transition-all flex items-center justify-center gap-1.5 py-2 ${isDragging ? "border-blue-400 bg-blue-50/60" : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"}`}>
-                            <Camera className={`w-3.5 h-3.5 ${isDragging ? "text-blue-400" : "text-gray-300"}`} />
-                            <span className="text-[11px] text-gray-300 font-medium">{isDragging ? "Suelta aquí" : "Agregar más archivos"}</span>
-                          </div>
-                        </label>
-                      </div>
-                    )}
-
-                    {/* Info */}
-                    <p className="text-[11px] text-gray-400 leading-relaxed">
-                      <span className="font-semibold text-gray-500">Archivos sugeridos: </span>
-                      {DOC_TYPES_LABELS.join(" · ")}
-                    </p>
-
+        <div className={cn("overflow-y-auto px-6 py-5 space-y-5", modo === "fotos" ? "max-h-[74vh]" : "max-h-[58vh]")}>
+          {modo === "fotos" ? (
+            <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-6 items-stretch">
+              {/* Izquierda: ningún documento trae el tipo de operación, y el tipo
+                  de vehículo define qué campos aplican; los dos se piden antes de
+                  continuar. Derecha: la cámara. */}
+              <div className="space-y-4">
+              <div className="space-y-2">
+                <FieldLabel required>Tipo de operación</FieldLabel>
+                {TIPOS_OPERACION.map(({ value, label, description, icon: Icon }) => {
+                  const selected = tipoOperacion === value;
+                  return (
                     <button
+                      key={value}
                       type="button"
-                      disabled={!canAnalyze || aiAnalyzing}
-                      onClick={analyzePhotosWithAI}
+                      onClick={() => setTipoOperacion(value)}
                       className={cn(
-                        "w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all border-2",
-                        canAnalyze && !aiAnalyzing
-                          ? "border-violet-300 bg-violet-50 text-violet-600 hover:bg-violet-100 hover:border-violet-400"
-                          : "border-gray-200 bg-white text-gray-300 cursor-not-allowed",
+                        "w-full text-left px-4 py-3 rounded-xl border-2 transition-all flex items-center gap-3",
+                        selected
+                          ? "border-teal-500 bg-teal-50/80"
+                          : "border-gray-200 bg-white hover:border-blue-200 hover:bg-blue-50/40",
                       )}>
-                      {aiAnalyzing ? (
-                        <>
-                          <span className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
-                          Analizando imágenes...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4" />
-                          Analizar con IA
-                        </>
-                      )}
-                    </button>
-
-                    {aiFilledFields.size > 0 && !aiAnalyzing && (
-                      <p className="text-[11px] text-violet-500 font-medium flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3" />
-                        {aiFilledFields.size} campo
-                        {aiFilledFields.size > 1 ? "s completados" : " completado"}{" "}
-                        automáticamente — puedes editarlos si es necesario
-                      </p>
-                    )}
-
-                    {documentosDetectados.length > 0 && !aiAnalyzing && (
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                          Documentos detectados
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {documentosDetectados.map((doc) => (
-                            <span
-                              key={doc}
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100">
-                              {doc.replace(/_/g, " ")}
-                            </span>
-                          ))}
-                        </div>
+                      <Icon className={cn("w-5 h-5 shrink-0", selected ? "text-teal-600" : "text-blue-400")} />
+                      <div className="min-w-0">
+                        <p className={cn("font-semibold text-sm leading-snug", selected ? "text-teal-700" : "text-gray-700")}>{label}</p>
+                        <p className="text-[11px] text-gray-400 leading-snug truncate">{description}</p>
                       </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              <SectionDivider label="Información general" />
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <FieldLabel required>Línea</FieldLabel>
-                  <Input
-                    className={cn("text-sm", showValidation && !transportista.trim() && "border-red-300 bg-red-50")}
-                    placeholder="Nombre de la línea transportista"
-                    value={transportista}
-                    onChange={(e) => setTransportista(e.target.value)}
-                  />
-                  {showValidation && !transportista.trim() && (
-                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
-                  )}
-                </div>
-                <div>
-                  <FieldLabel>Procedencia</FieldLabel>
-                  <div className="relative">
-                    <Input
+                    </button>
+                  );
+                })}
+              </div>
+              <div>
+                <FieldLabel required>Tipo de vehículo</FieldLabel>
+                <GaleriaTipoVehiculo
+                  compacta
+                  value={tipoVehiculo}
+                  onChange={(t) => { setTipoVehiculo(t); clearAiField("tipoVehiculo"); }}
+                />
+              </div>
+              </div>
+              <div className="min-w-0">
+              <CapturaFotosDocumentos
+                llenarAlto
+                fotos={documentos}
+                onCapturar={(file, opcion) => uploadDocumento(file, opcion)}
+                onQuitar={removeDocumento}
+                onCambiarTipo={(id, opcion) => setDocumentos((p) => p.map((d) => d.id === id
+                  ? { ...d, opcion: opcion.value, hint: opcion.hint, tipo: opcion.tipo, tipoManual: opcion.fijo }
+                  : d))}
+              />
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Operación y fotos ya se eligieron en el paso anterior: aquí van
+                  compactos, solo para confirmar o cambiar. */}
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  {TIPOS_OPERACION.map(({ value, label, icon: Icon }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setTipoOperacion(value)}
                       className={cn(
-                        "text-sm",
-                        aiFilledFields.has("procedencia") && "border-violet-200 bg-violet-50/40",
-                      )}
-                      placeholder="Ej. Bodega central del proveedor"
-                      value={procedencia}
-                      onChange={(e) => { setProcedencia(e.target.value); clearAiField("procedencia"); }}
-                    />
-                    {aiFilledFields.has("procedencia") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
-                  </div>
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all",
+                        tipoOperacion === value
+                          ? "border-teal-500 bg-teal-50 text-teal-700"
+                          : showValidation && !tipoOperacion
+                          ? "border-red-300 bg-red-50 text-red-600"
+                          : "border-gray-200 bg-white text-gray-500 hover:border-blue-200",
+                      )}>
+                      <Icon className="w-3.5 h-3.5" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {documentos.map((d, i) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setVisorFoto(i)}
+                      aria-label="Ver foto en grande"
+                      className="relative w-10 h-8 rounded-md overflow-hidden border border-gray-200 bg-white shrink-0 hover:border-blue-400">
+                      {d.preview && <Image src={d.preview} fill className="object-cover" alt="" unoptimized />}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setModo("fotos")}
+                    className="ml-1 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 shrink-0">
+                    <Camera className="w-3.5 h-3.5" /> {documentos.length ? "Ver fotos" : "Tomar fotos"}
+                  </button>
                 </div>
               </div>
+              {showValidation && !tieneFotoLicencia && (
+                <p className="text-[11px] text-red-500 -mt-3">Falta la foto del documento del conductor.</p>
+              )}
+              <VisorFotosModal
+                fotos={documentos.map((d) => ({ id: d.id, src: d.preview, etiqueta: etiquetaDeFoto(d) }))}
+                indice={visorFoto}
+                onIndice={setVisorFoto}
+              />
 
               <SectionDivider
                 label="Vehículo"
                 icon={<Truck className="w-3 h-3" />}
               />
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <FieldLabel required>Tipo de vehículo</FieldLabel>
                   <SelectorTipoVehiculo
@@ -915,7 +812,22 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                   )}
                 </div>
                 <div>
-                  <FieldLabel required>Placa de tracto</FieldLabel>
+                  <FieldLabel required>Línea</FieldLabel>
+                  <Input
+                    className={cn("text-sm", showValidation && !transportista.trim() && "border-red-300 bg-red-50")}
+                    placeholder="Nombre de la línea transportista"
+                    value={transportista}
+                    onChange={(e) => setTransportista(e.target.value)}
+                  />
+                  {showValidation && !transportista.trim() && (
+                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <FieldLabel required>{campos.tracto ? "Placa de tracto" : "Placa del vehículo"}</FieldLabel>
                   <div className="relative">
                     <Input
                       className={cn(
@@ -941,176 +853,73 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                     <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
                   )}
                 </div>
-                <div>
-                  <FieldLabel required>No. de tracto</FieldLabel>
-                  <div className="relative">
-                    <Input
-                      className={cn(
-                        "text-sm",
-                        aiFilledFields.has("noEconomico") && "border-violet-200 bg-violet-50/40",
-                        showValidation && !noEconomico.trim() && "border-red-300 bg-red-50",
-                      )}
-                      placeholder="Ej. ECO-001"
-                      value={noEconomico}
-                      onChange={(e) => { setNoEconomico(e.target.value); clearAiField("noEconomico"); }}
-                    />
-                    {aiFilledFields.has("noEconomico") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
+                {campos.tracto && (
+                  <div>
+                    <FieldLabel required>No. de tracto</FieldLabel>
+                    <div className="relative">
+                      <Input
+                        className={cn(
+                          "text-sm",
+                          aiFilledFields.has("noEconomico") && "border-violet-200 bg-violet-50/40",
+                          showValidation && !noEconomico.trim() && "border-red-300 bg-red-50",
+                        )}
+                        placeholder="Ej. ECO-001"
+                        value={noEconomico}
+                        onChange={(e) => { setNoEconomico(e.target.value); clearAiField("noEconomico"); }}
+                      />
+                      {aiFilledFields.has("noEconomico") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
+                    </div>
+                    {showValidation && !noEconomico.trim() && (
+                      <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
+                    )}
                   </div>
-                  {showValidation && !noEconomico.trim() && (
-                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
-                  )}
-                </div>
+                )}
               </div>
 
-              {/* Marca y modelo/año no se muestran (2610-1323): los llena la IA y
-                  se guardan igual, pero no estorban la captura. */}
-              <div>
-                <FieldLabel>Color</FieldLabel>
-                <SelectorColorVehiculo
-                  value={colorVehiculo}
-                  onChange={(c) => { setColorVehiculo(c); clearAiField("colorVehiculo"); }}
-                  aiFilled={aiFilledFields.has("colorVehiculo")}
+              {/* Pickup y rígidos (torton, rabón, 3.5 t) no traen remolque. */}
+              {campos.caja && (
+                <>
+                <SectionDivider
+                  label="Remolque"
+                  icon={<Package className="w-3 h-3" />}
                 />
-              </div>
+
+                <RenglonesRemolque
+                  unidades={unidades}
+                  setUnidades={setUnidades}
+                  sueltos={contenedoresSueltos}
+                  onLigarSuelto={linkContenedorSuelto}
+                  requerido={campos.caja && !cajaRapidaOpcional(tipoVehiculo)}
+                  showValidation={showValidation}
+                  tipoVehiculo={tipoVehiculo}
+                  conSello={tipoOperacion !== "Recolección"}
+                />
+                </>
+              )}
 
               <SectionDivider
-                label="Conductor"
-                icon={<Search className="w-3 h-3" />}
+                label="Material"
+                icon={<Package className="w-3 h-3" />}
               />
+              <MaterialesCarga unidades={unidades} setUnidades={setUnidades} />
 
-              <div className="grid grid-cols-3 gap-4">
+              <SectionDivider label="Origen y documento" />
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <FieldLabel required>Conductor</FieldLabel>
+                  <FieldLabel>Procedencia</FieldLabel>
                   <div className="relative">
                     <Input
                       className={cn(
                         "text-sm",
-                        aiFilledFields.has("conductor") &&
-                          "border-violet-200 bg-violet-50/40",
-                        showValidation && !conductor.trim() && "border-red-300 bg-red-50",
+                        aiFilledFields.has("procedencia") && "border-violet-200 bg-violet-50/40",
                       )}
-                      placeholder="Nombre completo del conductor"
-                      value={conductor}
-                      onChange={(e) => {
-                        setConductor(e.target.value);
-                        clearAiField("conductor");
-                      }}
+                      placeholder="Ej. Bodega central del proveedor"
+                      value={procedencia}
+                      onChange={(e) => { setProcedencia(e.target.value); clearAiField("procedencia"); }}
                     />
-                    {aiFilledFields.has("conductor") && (
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none">
-                        <Sparkles className="w-2.5 h-2.5" /> IA
-                      </span>
-                    )}
+                    {aiFilledFields.has("procedencia") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
                   </div>
-                  {showValidation && !conductor.trim() && (
-                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
-                  )}
-                </div>
-                <div>
-                  <FieldLabel required>Celular</FieldLabel>
-                  <PhoneInput
-                    limitMaxLength
-                    defaultCountry="MX"
-                    placeholder="81 1234 5678"
-                    value={celular}
-                    onChange={(v) => setCelular(v || "")}
-                    containerComponentProps={{
-                      className: cn(
-                        "flex h-9 w-full rounded-md border border-input bg-transparent pl-3 py-0 text-sm shadow-sm focus-within:ring-1 focus-within:ring-ring",
-                        showValidation && !celular.trim() && "border-red-300 bg-red-50",
-                      ),
-                    }}
-                    numberInputProps={{ className: "pl-3 bg-transparent outline-none text-sm font-mono" }}
-                  />
-                  {showValidation && !celular.trim() && (
-                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
-                  )}
-                </div>
-                <div>
-                  <FieldLabel required>No. de licencia</FieldLabel>
-                  <div className="relative">
-                    <Input
-                      className={cn(
-                        "text-sm font-mono uppercase",
-                        aiFilledFields.has("noLicencia") &&
-                          "border-violet-200 bg-violet-50/40",
-                        showValidation && !tieneMinCaracteres(noLicencia) && "border-red-300 bg-red-50",
-                      )}
-                      placeholder="Mín. 4 caracteres"
-                      value={noLicencia}
-                      onChange={(e) => {
-                        setNoLicencia(e.target.value);
-                        clearAiField("noLicencia");
-                      }}
-                    />
-                    {aiFilledFields.has("noLicencia") && (
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none">
-                        <Sparkles className="w-2.5 h-2.5" /> IA
-                      </span>
-                    )}
-                  </div>
-                  {showValidation && !tieneMinCaracteres(noLicencia) && (
-                    <p className="text-[10px] text-red-500 mt-1">Mínimo 4 caracteres</p>
-                  )}
-                </div>
-              </div>
-
-              {/* RFC no se muestra (2610-1323); si la IA lo detecta se guarda igual. */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <FieldLabel>Vigencia de licencia</FieldLabel>
-                  <div className="relative">
-                    {(() => {
-                      const expired = vigenciaLicencia && new Date(vigenciaLicencia) < new Date();
-                      return (
-                        <>
-                          <Input
-                            className={cn(
-                              "text-sm",
-                              aiFilledFields.has("vigenciaLicencia") && !expired && "border-violet-200 bg-violet-50/40",
-                              expired && "border-red-300 bg-red-50 text-red-700",
-                            )}
-                            placeholder="YYYY-MM-DD"
-                            value={vigenciaLicencia}
-                            onChange={(e) => { setVigenciaLicencia(e.target.value); clearAiField("vigenciaLicencia"); }}
-                          />
-                          {expired && (
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-red-500 bg-red-100 border border-red-200 rounded px-1.5 py-0.5 pointer-events-none">
-                              Vencida
-                            </span>
-                          )}
-                          {aiFilledFields.has("vigenciaLicencia") && !expired && (
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                </div>
-                <div>
-                  <FieldLabel>Acompañante</FieldLabel>
-                  <div className="relative">
-                    <Input
-                      className={cn("text-sm", aiFilledFields.has("acompanante") && "border-violet-200 bg-violet-50/40")}
-                      placeholder="Nombre (opcional)"
-                      value={acompanante}
-                      onChange={(e) => { setAcompanante(e.target.value); clearAiField("acompanante"); }}
-                    />
-                    {aiFilledFields.has("acompanante") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
-                  </div>
-                </div>
-              </div>
-
-              <SectionDivider label="Proveedor / Cliente" />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <FieldLabel>Proveedor / Cliente</FieldLabel>
-                  <Input
-                    className="text-sm"
-                    placeholder="Nombre del proveedor o cliente"
-                    value={proveedorCliente}
-                    onChange={(e) => setProveedorCliente(e.target.value)}
-                  />
                 </div>
                 <div>
                   <FieldLabel required>Factura / Orden de compra</FieldLabel>
@@ -1126,266 +935,100 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-3 flex items-start gap-2.5">
-                <Package className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  El material de carga se captura por cada remolque, contenedor o vehículo —
-                  agrégalo en la pestaña <span className="font-semibold text-gray-600">Carga</span>.
-                </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <FieldLabel>Proveedor / Cliente</FieldLabel>
+                  <Input
+                    className="text-sm"
+                    placeholder="Nombre del proveedor o cliente"
+                    value={proveedorCliente}
+                    onChange={(e) => setProveedorCliente(e.target.value)}
+                  />
+                </div>
               </div>
 
-              {unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto)) && (
-                <div className="space-y-2 pt-1 border-t border-gray-50">
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Resumen de material capturado</p>
-                  {unidades.map((u) => {
-                    const mats = materialesDeUnidad(u);
-                    const ref = refDeUnidad(u);
-                    const withProduct = mats.filter((m) => m.producto);
-                    if (!withProduct.length) return null;
-                    const UnidadIcon = u.config === "remolque_contenedor" ? Package : Truck;
-                    const badgeColor = u.config === "remolque_contenedor"
-                      ? "text-violet-600 bg-violet-50 border-violet-100"
-                      : u.config === "solo_vehiculo"
-                      ? "text-emerald-600 bg-emerald-50 border-emerald-100"
-                      : "text-blue-600 bg-blue-50 border-blue-100";
-                    return (
-                      <div key={u.id} className="flex flex-wrap items-center gap-1.5">
-                        <span className={cn("flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 shrink-0 border", badgeColor)}>
-                          <UnidadIcon className="w-2.5 h-2.5" />
-                          {labelDeUnidad(u)}{ref ? ` · ${ref}` : ""}
-                        </span>
-                        {withProduct.map((m) => (
-                          <span key={m.id} className="flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-100 rounded-full px-2 py-0.5">
-                            <CheckCircle2 className="w-2.5 h-2.5" /> {m.producto}
-                          </span>
-                        ))}
-                      </div>
-                    );
-                  })}
+              <SectionDivider
+                label="Conductor"
+                icon={<Search className="w-3 h-3" />}
+              />
+
+              {/* Vigencia y RFC no se muestran: los lee la IA de la licencia y se
+                  guardan igual; la vigencia solo se avisa si viene vencida. El
+                  nombre vuelve a verse (junta 16 oct), lo llena la IA. */}
+              {licenciaVencida && (
+                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  Licencia vencida (vigencia {vigenciaLicencia})
                 </div>
               )}
-            </>
-          )}
 
-          {/* ══ TAB: REMOLQUES ═══════════════════════ */}
-          {tab === "remolques" && (
-            <div className="space-y-3">
-              <CapturaCajaRapida
-                caja={cajaRapida}
-                onChange={setCajaRapida}
-                deshabilitada={unidades.length > 0}
-                showValidation={showValidation}
-                opcional={cajaRapidaOpcional(tipoVehiculo)}
-              />
-              {unidades.map((u, idx) => {
-                if (editingUnit?.id === u.id) return null; // se edita inline debajo de la lista
-                const isUnitExpanded = expandedUnits.has(u.id);
-                const yaTieneContenedor = u.config === "remolque_contenedor";
-                const isDropTarget = dragOverUnidadId === u.id;
-                return (
-                  <div key={u.id}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = yaTieneContenedor ? "none" : "move";
-                      if (!yaTieneContenedor && dragOverUnidadId !== u.id) setDragOverUnidadId(u.id);
+              <div>
+                <FieldLabel>Nombre del conductor</FieldLabel>
+                <div className="relative">
+                  <Input
+                    className={cn("text-sm", aiFilledFields.has("conductor") && "border-violet-200 bg-violet-50/40")}
+                    placeholder="Nombre completo"
+                    value={conductor}
+                    onChange={(e) => { setConductor(e.target.value); clearAiField("conductor"); }}
+                  />
+                  {aiFilledFields.has("conductor") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <FieldLabel>Celular</FieldLabel>
+                  <PhoneInput
+                    limitMaxLength
+                    defaultCountry="MX"
+                    placeholder="81 1234 5678"
+                    value={celular}
+                    onChange={(v) => setCelular(v || "")}
+                    containerComponentProps={{
+                      className: cn(
+                        "flex h-10 w-full rounded-md border border-input bg-background pl-3 py-0 text-sm focus-within:ring-2 focus-within:ring-ring",
+                      ),
                     }}
-                    onDragLeave={() => setDragOverUnidadId((prev) => prev === u.id ? null : prev)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setDragOverUnidadId(null);
-                      const contenedorId = e.dataTransfer.getData("text/plain");
-                      if (contenedorId) linkContenedorSuelto(u.id, contenedorId);
-                    }}
-                    className={cn(
-                      "rounded-xl border overflow-hidden transition-colors",
-                      isDropTarget ? "border-violet-400 ring-2 ring-violet-100 bg-violet-50/30" : "border-gray-200",
-                    )}>
-                    {/* card header */}
-                    <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                      <button
-                        type="button"
-                        onClick={() => toggleUnit(u.id)}
-                        className="flex items-center gap-2 flex-1 text-left">
-                        <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                          {idx + 1}
-                        </span>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                          {labelDeUnidad(u)}
-                        </span>
-                      </button>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button type="button" onClick={() => setEditingUnit(u)}
-                          className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                        <button type="button" onClick={() => setUnidades((p) => p.filter((x) => x.id !== u.id))}
-                          className="w-6 h-6 rounded-md hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors">
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                        <button type="button" onClick={() => toggleUnit(u.id)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                          {isUnitExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-                    {/* card body */}
-                    {isUnitExpanded && (
-                      <div className="p-4 space-y-3 bg-white divide-y divide-gray-50">
-                        {u.config === "solo_vehiculo" ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-1.5">
-                            <Truck className="w-3 h-3 text-emerald-500" />
-                            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Vehículo</span>
-                          </div>
-                          {u.vehiculo.materiales.some((m) => m.producto) ? (
-                            <div className="pt-1">
-                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
-                              <div className="flex flex-wrap gap-1">
-                                {u.vehiculo.materiales.filter((m) => m.producto).map((m) => (
-                                  <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
-                                    <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          ) : <p className="text-xs text-gray-300 italic">Sin material capturado</p>}
-                        </div>
-                        ) : (<>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-1.5">
-                            <Truck className="w-3 h-3 text-blue-500" />
-                            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Remolque</span>
-                          </div>
-                          <div className="grid grid-cols-4 gap-3">
-                            <MiniField label="Tipo" value={u.remolque.tipo} />
-                            <MiniField label="No. de caja" value={u.remolque.noCaja} mono />
-                            <MiniField label="Placas" value={u.remolque.placas} mono />
-                            <div>
-                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Color</p>
-                              {u.remolque.color ? (
-                                <div className="flex items-center gap-1.5">
-                                  <div className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ background: resolveColorSwatch(u.remolque.color)?.hex ?? "transparent" }} />
-                                  <span className="text-xs text-gray-600">{resolveColorSwatch(u.remolque.color)?.label}</span>
-                                </div>
-                              ) : <p className="text-xs text-gray-300 italic">Sin información</p>}
-                            </div>
-                          </div>
-                          {u.remolque.materiales.some((m) => m.producto) && (
-                            <div className="pt-1">
-                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
-                              <div className="flex flex-wrap gap-1">
-                                {u.remolque.materiales.filter((m) => m.producto).map((m) => (
-                                  <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
-                                    <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        {u.config === "remolque_contenedor" && (
-                          <div className="pt-3 space-y-2">
-                            <div className="flex items-center gap-1.5 justify-between">
-                              <div className="flex items-center gap-1.5">
-                                <Package className="w-3 h-3 text-violet-500" />
-                                <span className="text-[10px] font-bold text-violet-600 uppercase tracking-widest">Contenedor</span>
-                              </div>
-                              <button type="button" onClick={() => unlinkContenedor(u.id)}
-                                className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 hover:text-red-500 transition-colors">
-                                <Unlink className="w-3 h-3" /> Desligar
-                              </button>
-                            </div>
-                            <div className="grid grid-cols-4 gap-3">
-                              <MiniField label="Tipo contenedor" value={u.contenedor.tipo} />
-                              <MiniField label="No. Contenedor" value={u.contenedor.noContenedor} mono />
-                              <MiniField label="No. de Caja" value={u.contenedor.noCaja} mono />
-                              <div>
-                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Color</p>
-                                {u.contenedor.color ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ background: resolveColorSwatch(u.contenedor.color)?.hex ?? "transparent" }} />
-                                    <span className="text-xs text-gray-600">{resolveColorSwatch(u.contenedor.color)?.label}</span>
-                                  </div>
-                                ) : <p className="text-xs text-gray-300 italic">Sin información</p>}
-                              </div>
-                            </div>
-                            {u.contenedor.materiales.some((m) => m.producto) && (
-                              <div className="pt-1">
-                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {u.contenedor.materiales.filter((m) => m.producto).map((m) => (
-                                    <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
-                                      <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        </>)}
-                      </div>
+                    numberInputProps={{ className: "pl-3 bg-transparent outline-none text-sm font-mono" }}
+                  />
+                </div>
+                <div>
+                  <FieldLabel>No. de licencia</FieldLabel>
+                  <div className="relative">
+                    <Input
+                      className={cn(
+                        "text-sm font-mono uppercase placeholder:normal-case placeholder:font-sans",
+                        aiFilledFields.has("noLicencia") &&
+                          "border-violet-200 bg-violet-50/40",
+                      )}
+                      placeholder="Ej. AB123456"
+                      value={noLicencia}
+                      onChange={(e) => {
+                        setNoLicencia(e.target.value);
+                        clearAiField("noLicencia");
+                      }}
+                    />
+                    {aiFilledFields.has("noLicencia") && (
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none">
+                        <Sparkles className="w-2.5 h-2.5" /> IA
+                      </span>
                     )}
                   </div>
-                );
-              })}
-
-              {contenedoresSueltos.length > 0 && (
-                <div className="rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-3.5 space-y-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <Link2 className="w-3.5 h-3.5 text-violet-500" />
-                    <p className="text-[11px] font-bold text-violet-700">Contenedores por ligar</p>
-                  </div>
-                  <p className="text-[11px] text-violet-500/80 leading-relaxed">
-                    La IA detectó más de un remolque y/o contenedor y no pudo saber cuál va con cuál.
-                    Arrastra cada contenedor sobre el remolque que lo carga.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {contenedoresSueltos.map((c) => (
-                      <div key={c.id}
-                        draggable
-                        onDragStart={(e) => { e.dataTransfer.setData("text/plain", c.id); e.dataTransfer.effectAllowed = "move"; }}
-                        onDragEnd={() => setDragOverUnidadId(null)}
-                        className="flex items-center gap-2 rounded-lg border border-violet-200 bg-white pl-2 pr-3 py-2 cursor-grab active:cursor-grabbing shadow-sm">
-                        <GripVertical className="w-3.5 h-3.5 text-violet-300 shrink-0" />
-                        <Package className="w-3.5 h-3.5 text-violet-500 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-semibold text-gray-700 truncate">{c.noContenedor || c.tipo || "Contenedor"}</p>
-                          <p className="text-[10px] text-gray-400 truncate">{[c.tipo, c.noSello && `Sello ${c.noSello}`].filter(Boolean).join(" · ") || "Sin datos"}</p>
-                        </div>
-                      </div>
-                    ))}
+                </div>
+                <div>
+                  <FieldLabel>Acompañante</FieldLabel>
+                  <div className="relative">
+                    <Input
+                      className={cn("text-sm", aiFilledFields.has("acompanante") && "border-violet-200 bg-violet-50/40")}
+                      placeholder="Nombre del acompañante"
+                      value={acompanante}
+                      onChange={(e) => { setAcompanante(e.target.value); clearAiField("acompanante"); }}
+                    />
+                    {aiFilledFields.has("acompanante") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
                   </div>
                 </div>
-              )}
-
-              {showAgregarUnidad || editingUnit ? (
-                <UnidadEditorCard
-                  initialData={editingUnit ?? undefined}
-                  tipoVehiculo={tipoVehiculo}
-                prefillRemolque={!editingUnit && unidades.length === 0 ? cajaRapida : undefined}
-                  onCancel={() => { setShowAgregarUnidad(false); setEditingUnit(null); }}
-                  onSave={(u) => {
-                    if (editingUnit) {
-                      setUnidades((p) => p.map((x) => x.id === u.id ? u : x));
-                    } else {
-                      setUnidades((p) => [...p, u]);
-                    setCajaRapida(emptyCajaRapida());
-                      setExpandedUnits((prev) => new Set(prev).add(u.id));
-                    }
-                    setShowAgregarUnidad(false);
-                    setEditingUnit(null);
-                  }}
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowAgregarUnidad(true)}
-                  className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  Agregar unidad
-                </button>
-              )}
-            </div>
+              </div>
+            </>
           )}
         </div>
 
@@ -1394,7 +1037,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
           {contenedoresSueltos.length > 0 && (
             <p className="text-[11px] font-medium text-violet-600 flex items-center gap-1.5">
               <Link2 className="w-3 h-3" />
-              Liga {contenedoresSueltos.length === 1 ? "el contenedor pendiente" : "los contenedores pendientes"} en la pestaña Carga antes de registrar.
+              Liga {contenedoresSueltos.length === 1 ? "el contenedor pendiente" : "los contenedores pendientes"} en la sección Remolque antes de registrar.
             </p>
           )}
           <div className="flex items-center gap-3">
@@ -1404,134 +1047,62 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
             className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-100">
             Cancelar
           </Button>
-          <Button
-            disabled={isPending || contenedoresSueltos.length > 0}
-            className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-2"
-            onClick={() => {
-              if (camposFaltantes.length > 0) {
-                setShowValidation(true);
-                setTab("vehiculo");
-                toast.error(`Completa los campos obligatorios: ${camposFaltantes.join(", ")}`);
-                return;
-              }
-              const { remolques, contenedores, materiales } = serializeUnidades(unidadesARegistrar(unidades, cajaRapida));
-              const payload = {
-                creado_desde: "acceso_web",
-                tipo_operacion: tipoOperacion,
-                ubicacion: location || null,
-                area: area || null,
-                vehiculo: {
-                  transportista: transportista || null,
-                  procedencia: procedencia || null,
-                  tipo_vehiculo: tipoVehiculo || null,
-                  placa: placa || null,
-                  no_economico: noEconomico || null,
-                  marca: marcaVehiculo || null,
-                  modelo: modeloVehiculo || null,
-                  color: colorVehiculo || null,
-                  placa_tarjeta_circulacion: placaTarjetaVehiculo || null,
-                },
-                conductor: {
-                  nombre: conductor || null,
-                  celular: celular || null,
-                  no_licencia: noLicencia || null,
-                  vigencia_licencia: vigenciaLicencia || null,
-                  rfc: rfcConductor || null,
-                  acompanante: acompanante || null,
-                },
-                embarque: {
-                  proveedor_cliente: proveedorCliente || null,
-                  no_orden_compra: ordenCompra || null,
-                },
-                documentos_adicionales: documentos
-                  .filter((d) => d.file_url)
-                  .map((d) => ({ file_url: d.file_url, file_name: d.file_name, ...(d.tipo ? { tipo: d.tipo } : {}) })),
-                remolques,
-                contenedores,
-                materiales,
-              };
-              createVisit(payload, {
-                onSuccess: (result) => {
-                  if (result?.id) {
-                    const cacheData: VisitaTransportista = {
-                      id: result.id,
-                      folio: result.folio ?? null,
-                      num_de_pase: null,
-                      tipo_operacion: tipoOperacion,
-                      created_at: result.created_at ? String(result.created_at) : null,
-                      fecha_hora_ingreso: null,
-                      estatus: null,
-                      ubicacion: location || null,
-                      area: area || null,
-                      vehiculo: {
-                        transportista: transportista || null,
-                        procedencia: procedencia || null,
-                        tipo_vehiculo: tipoVehiculo || null,
-                        placa: placa || null,
-                        placa_tarjeta_circulacion: null,
-                        no_economico: noEconomico || null,
-                        marca: marcaVehiculo || null,
-                        modelo: modeloVehiculo || null,
-                        color: colorVehiculo || null,
-                        material: null,
-                        foto_placa: null,
-                      },
-                      conductor: {
-                        nombre: conductor || null,
-                        celular: celular || null,
-                        no_licencia: noLicencia || null,
-                        vigencia_licencia: vigenciaLicencia || null,
-                        rfc: rfcConductor || null,
-                        acompanante: acompanante || null,
-                        foto_conductor: null,
-                        foto_licencia: null,
-                        firma: null,
-                      },
-                      embarque: {
-                        proveedor_cliente: proveedorCliente || null,
-                        no_orden_compra: ordenCompra || null,
-                        anden_asignado: null,
-                      },
-                      documentos_adicionales: documentos
-                        .filter((d) => d.file_url)
-                        .map((d) => ({ file_url: d.file_url, file_name: d.file_name, ...(d.tipo ? { tipo: d.tipo } : {}) })),
-                      // Los remolques/contenedores/materiales quedan vacíos aquí:
-                      // el backend los agrupa (remolque + contenedor + refs de
-                      // material) al guardar, así que se dejan para que la
-                      // siguiente carga real los traiga ya vinculados.
-                      remolques: [],
-                      materiales: [],
-                      inspecciones: [],
-                    };
-                    queryClient.setQueryData(
-                      ["visitaTransportista", result.id],
-                      cacheData,
-                    );
-                    queryClient.invalidateQueries({ queryKey: ["visitaTransportista", result.id] });
-                    resetForm();
-                    onClose();
-                    router.push(
-                      `/dashboard/accesos/transportista/${result.id}`,
-                    );
-                  } else {
-                    resetForm();
-                    onClose();
-                  }
-                },
-              });
-            }}>
-            {isPending ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Registrando...
-              </>
-            ) : (
-              <>
-                <Package className="w-4 h-4" />
-                Registrar acceso
-              </>
-            )}
-          </Button>
+          {modo === "fotos" && (() => {
+            // Con operación y tipo de vehículo se puede continuar: con fotos,
+            // la IA llena el registro y se pasa al resumen; sin fotos, directo
+            // a la captura manual.
+            const listas = documentos.filter((d) => d.file_url).length;
+            const subiendo = documentos.some((d) => d.uploading);
+            const puede = !!tipoOperacion && !!tipoVehiculo.trim() && !subiendo && !aiAnalyzing;
+            return (
+              <Button
+                disabled={!puede}
+                onClick={async () => {
+                  if (listas === 0) { setModo("manual"); return; }
+                  // La IA llena el formulario; lo que falte queda marcado en rojo.
+                  if (await analyzePhotosWithAI()) { setShowValidation(true); setModo("manual"); }
+                }}
+                className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                {aiAnalyzing ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Analizando…
+                  </>
+                ) : !tipoOperacion ? (
+                  "Elige el tipo de operación"
+                ) : !tipoVehiculo.trim() ? (
+                  "Elige el tipo de vehículo"
+                ) : subiendo ? (
+                  "Subiendo fotos…"
+                ) : listas > 0 ? (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Analizar y continuar
+                  </>
+                ) : (
+                  "Continuar"
+                )}
+              </Button>
+            );
+          })()}
+          {modo === "manual" && (
+            <Button
+              disabled={isPending || contenedoresSueltos.length > 0}
+              className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-2"
+              onClick={registrarAcceso}>
+              {isPending ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Registrando...
+                </>
+              ) : (
+                <>
+                  <Package className="w-4 h-4" />
+                  Registrar acceso
+                </>
+              )}
+            </Button>
+          )}
           </div>
         </div>
 

@@ -208,7 +208,7 @@ export const ocrAccesoTransportista = (
   image_source: { file_url: string; file_name: string; tipo_hint?: string }[],
 ) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "ocr_docs_2.py",
+    script_name: "ocr_docs.py",
     option: "ocr_acceso_transportista",
     image_source,
   });
