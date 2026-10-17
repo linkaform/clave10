@@ -278,6 +278,7 @@ export const IncidenciaDetalle = ({
     setAcciones(incidencia?.acciones_correctivas_incidencia || []);
     setSeguimientos(incidencia?.seguimientos_incidencia || []);
     setEstatusActual(incidencia?.estatus || "");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, incidencia?.folio]);
 
   // update_incidence reemplaza las respuestas completas del registro (y valida

@@ -6,7 +6,6 @@ import { Equipo, UpdatePase, Vehiculo } from "@/lib/update-pass";
 import { UpdatePaseFull } from "@/lib/update-pass-full";
 import { errorMsj } from "@/lib/utils";
 import { useMutation, useQuery ,useQueryClient} from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Access_pass, Areas, Comentarios, enviar_pre_sms } from "@/hooks/useCreateAccessPass";
@@ -52,7 +51,6 @@ export type Update_full_pass = {
 }
 
 export const usePaseEntrada = (locationConfSeguridad:string[]) => {
-  const router = useRouter(); 
     const { data: dataConfigLocation, isLoading:isLoadingConfigLocation, error: errorConfigLocation} = useQuery<any>({
         queryKey: ["getConfSeguridad", locationConfSeguridad], 
         enabled: locationConfSeguridad.length > 0 ? true : false, 
@@ -135,16 +133,12 @@ export const usePaseEntrada = (locationConfSeguridad:string[]) => {
             }
         },
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["getListIncidencias"] });
-          queryClient.invalidateQueries({ queryKey: ["getStatsIncidencias"] });
+          queryClient.invalidateQueries({ queryKey: ["getMyPases"] });
           toast.success("Pase de entrada editado correctamente.");
         },
         onError: (err) => {
           toast.error(err.message || "Hubo un error al editar el pase entrada.");
 
-        },
-        onSettled: () => {
-          router.push(`/dashboard/pases`)
         },
       });
 

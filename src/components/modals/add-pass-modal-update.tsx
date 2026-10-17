@@ -10,7 +10,6 @@ import {
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { CalendarClock, Car, Layers, Loader2, MessageSquare, ShieldCheck, UserRound } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
-import { GeneratedPassModal } from "./generated-pass-modal";
 import CalendarDays from "../calendar-days";
 import { Areas, Comentarios } from "@/hooks/useCreateAccessPass";
 import useAuthStore from "@/store/useAuthStore";
@@ -26,7 +25,8 @@ interface EntryPassModalUpdateProps {
   onClose: () => void;
   id: string;
   folio: string;
-  from: string;
+  /** Se llama cuando el pase se guardó bien (para cerrar el formulario de editar). */
+  onGuardado?: () => void;
 }
 
 export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
@@ -37,14 +37,12 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
   onClose,
   id,
   folio,
-  from
+  onGuardado,
 }) => {
-  const { userEmailSoter, userIdSoter, userParentId } = useAuthStore();
-  const [openGeneratedPass, setOpenGeneratedPass] = useState<boolean>(false);
+  const { userEmailSoter, userIdSoter } = useAuthStore();
   const [sendDataUpdate, setSendDataUpdate] = useState<Update_full_pass | null>(null);
 
-  const [link, setLink] = useState("");
-  const { updatePaseEntradaFullMutation, responseCreatePase } = usePaseEntrada(dataPass?.ubicacion ?? "");
+  const { updatePaseEntradaFullMutation } = usePaseEntrada(dataPass?.ubicacion ?? "");
   const isLoading = updatePaseEntradaFullMutation.isPending;
   const [hostPro, setHostPro] = useState({ protocol: '', host: '' });
   const telefonoFormateado = dataPass?.telefono?.startsWith("+")
@@ -129,35 +127,21 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
 
   useEffect(() => {
     if (sendDataUpdate) {
-      updatePaseEntradaFullMutation.mutate({ access_pass: sendDataUpdate, id, folio, location: dataPass?.ubicacion });
+      // Al editar el pase no cambia de link: no se abre "Pase de Entrada Generado".
+      // Si se guarda bien se cierra todo; si falla, solo la confirmación, para
+      // que el formulario conserve los cambios y se pueda reintentar.
+      updatePaseEntradaFullMutation.mutate(
+        { access_pass: sendDataUpdate, id, folio, location: dataPass?.ubicacion },
+        {
+          onSuccess: () => {
+            setIsSuccess(false);
+            onGuardado?.();
+          },
+          onError: () => setIsSuccess(false),
+        },
+      );
     }
   }, [sendDataUpdate]);
-
-  useEffect(() => {
-    if (responseCreatePase?.status_code == 201 || responseCreatePase?.status_code == 202) {
-      let docs = "";
-      dataPass?.link.docs.map((d: string, index: number) => {
-        if (d == "agregarIdentificacion") {
-          docs += "iden";
-        }
-        else if (d == "agregarFoto") {
-          docs += "foto";
-        }
-        if (index == 0) {
-          docs += "-";
-        }
-      });
-
-      const backendLink = responseCreatePase?.json?.link;
-      setLink(backendLink || `${hostPro.protocol}//${hostPro.host}/dashboard/pase-update?id=${responseCreatePase?.json.id}&user=${userParentId}&docs=${docs}`);
-    }
-  }, [responseCreatePase]);
-
-  useEffect(() => {
-    if (link) {
-      setOpenGeneratedPass(true);
-    }
-  }, [link]);
 
   return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
@@ -391,17 +375,6 @@ export const EntryPassModalUpdate: React.FC<EntryPassModalUpdateProps> = ({
           <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-6 font-bold uppercase text-[10px] tracking-widest h-auto shadow-lg shadow-blue-100" onClick={onSubmitEdit} disabled={isLoading}>
             {!isLoading ? ("Editar pase") : (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Actualizando... </>)}
           </Button>
-
-          {openGeneratedPass && (
-            <GeneratedPassModal
-              title="Pase de Entrada Generado"
-              description="El pase de entrada se ha generado correctamente. Por favor, copie el siguiente enlace y compártalo con el visitante para completar el proceso."
-              link={link}
-              openGeneratedPass={openGeneratedPass}
-              setOpenGeneratedPass={setOpenGeneratedPass}
-              from={from}
-            />
-          )}
         </div>
       </DialogContent>
     </Dialog>

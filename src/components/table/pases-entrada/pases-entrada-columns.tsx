@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ViewPassModal } from "@/components/modals/view-pass-modal";
+import ViewImage from "@/components/modals/view-image";
 import { Areas, Comentarios, enviar_pre_sms, Link } from "@/hooks/useCreateAccessPass";
 import { capitalizeFirstLetter, formatTo12Hour, replaceNullsInArrayDynamic } from "@/lib/utils";
 import { Edit, Eye, UserRound, UsersRound } from "lucide-react";
 import { ColumnDef, Row } from "@tanstack/react-table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
 type Imagen = {
@@ -86,17 +87,29 @@ export const getDocsFromLink = (link: unknown): string[] => {
 // Celda: Nombre (avatar + nombre + estatus)
 // ---------------------------------------------------------------------------
 export const NombreCell: React.FC<{ row: Row<any> }> = ({ row }) => {
-  const foto = row.original.foto;
   const nombre = row.original.nombre;
   const estatus = row.original.estatus;
-  const primeraImagen = foto && foto.length > 0 ? foto[0].file_url : "/nouser.svg";
+  // La foto del visitante o, si no tiene, su identificación (igual que la vista
+  // del pase). Con imagen se puede abrir en grande con el visualizador.
+  const imagen = [row.original.foto, row.original.identificacion]
+    .map((lista: Imagen[] | undefined) => lista?.find((i) => i?.file_url))
+    .find(Boolean);
 
   return (
     <div className="flex items-center space-x-3">
-      <Avatar className="h-8 w-8">
-        <AvatarImage src={primeraImagen} alt="Avatar" className="object-cover" />
-        <AvatarFallback>CN</AvatarFallback>
-      </Avatar>
+      {imagen ? (
+        <div className="flex-shrink-0">
+          <ViewImage imageUrl={imagen} size="sm" />
+        </div>
+      ) : (
+        // Marino agrisado del logo de Clave 10 (#5C637F) sobre el marino del
+        // logo (#202B4E) al 8%, con el borde estándar (c10-border).
+        <Avatar className="h-8 w-8 flex-shrink-0 ring-1 ring-c10-border">
+          <AvatarFallback className="bg-[#202B4E]/[0.08] text-[#5C637F]">
+            <UserRound className="h-[18px] w-[18px]" strokeWidth={2.25} />
+          </AvatarFallback>
+        </Avatar>
+      )}
       <div className="flex flex-col gap-0.5">
         {nombre ? (
           <span className="font-bold leading-tight">{nombre}</span>
@@ -222,7 +235,7 @@ export const OptionsCell: React.FC<{ row: any; onEditarClick: (pase: any) => voi
     <div className="flex space-x-2">
       <ViewPassModal title="Pase De Entrada" data={dataFull} isSuccess={false}>
         <div className="cursor-pointer">
-          <Eye className="w-5 h-5" />
+          <Eye className="w-4 h-4" />
         </div>
       </ViewPassModal>
       {dataFull?.status_pase?.toLowerCase() !== "cancelado" && (
@@ -230,7 +243,7 @@ export const OptionsCell: React.FC<{ row: any; onEditarClick: (pase: any) => voi
           className="cursor-pointer"
           onClick={() => onEditarClick(dataFull)}
           title="Editar Pase">
-          <Edit className="w-5 h-5" />
+          <Edit className="w-4 h-4" />
         </div>
       )}
     </div>

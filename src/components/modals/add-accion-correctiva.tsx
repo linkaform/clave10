@@ -63,6 +63,7 @@ export const AccionCorrectivaModal = ({
     setMostrarCausa(!!seleccionada?.causa);
     setResponsableTipo(seleccionada?.responsable_tipo ?? "Empleado");
     setResponsable(seleccionada?.responsable ?? "");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const puedeGuardar = !!accion.trim() && !!responsable.trim();
