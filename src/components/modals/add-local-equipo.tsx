@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { useAccessStore } from "@/store/useAccessStore";
 import { useUpdateBitacora } from "@/hooks/useUpdateBitacora";
 import Select from "react-select";
+import CreatableSelect from "react-select/creatable";
 import { ScanBarcodeModal } from "@/components/modals/scan-barcode-modal";
 import { ScanBarcode } from "lucide-react";
 import { Equipo } from "@/lib/update-pass";
@@ -44,6 +45,8 @@ interface Props {
   id?: string;
   fetch?: boolean;
   userId?:number
+  /** Deja escribir un tipo que no esté en la lista (pases). */
+  permitirCapturaManual?: boolean;
 }
 
 const formSchema = z.object({
@@ -67,8 +70,11 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
   isAccesos,
   id = "",
   fetch = false,
-  userId
+  userId,
+  permitirCapturaManual = false,
 }) => {
+  // Con captura manual, el tipo acepta valores fuera del catálogo.
+  const SelectTipo: any = permitirCapturaManual ? CreatableSelect : Select;
   const [open, setOpen] = useState(false);
   const [openScan, setOpenScan] = useState(false);
   const [confianzaOcr, setConfianzaOcr] = useState<string | null>(null);
@@ -98,13 +104,13 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .trim();
+      // Guiones, puntos y espacios no cuentan al comparar con el catálogo.
+      .replace(/[^a-z0-9]/g, "");
 
  const handleOcrEquipo = async (result: any) => {
-  // ocrEquipoMutation ya resuelve al objeto plano de campos (tipo, marca,
-  // modelo, num_serie, color, confianza...), no viene envuelto en otra
-  // llave "data".
-  const v = result;
+  // El OCR ahora responde {status_code, msg, data: {campos}} (ocr_docs.py);
+  // se acepta también el formato plano anterior, igual que paquetería.
+  const v = result?.data && typeof result.data === "object" ? result.data : result;
   if (!v) return;
 
   setConfianzaOcr(v.confianza ?? null);
@@ -115,7 +121,9 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
       const tipoMatch = catTiposEquipos.find(
         (t: any) => normalizar(String(t.value)) === tipoNorm
       );
-      if (tipoMatch) form.setValue("tipo", tipoMatch.value);
+      // Con captura manual, lo que leyó la IA se usa aunque no esté en la lista.
+      const tipoFinal = tipoMatch?.value || (permitirCapturaManual ? String(v.tipo).trim() : "");
+      if (tipoFinal) form.setValue("tipo", tipoFinal);
     }
 
     if (v.marca) form.setValue("marca", v.marca);
@@ -341,7 +349,13 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>* Tipo</FormLabel>
-                      <Select
+                      <SelectTipo
+                        {...(permitirCapturaManual
+                          ? {
+                              formatCreateLabel: (texto: string) => `Usar: "${texto}"`,
+                              noOptionsMessage: () => "Escribe para agregarlo",
+                            }
+                          : {})}
                         options={catTiposEquipos}
                         aria-labelledby="tipo-label"
                         inputId="tipo-input"
@@ -350,7 +364,7 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                         isDisabled={loadingTipos}
                         loadingMessage={() => "Cargando tipos..."}
                         placeholder={loadingTipos ? "Cargando..." : "Selecciona un tipo"}
-                        onChange={(selectedOption) => {
+                        onChange={(selectedOption: any) => {
                           field.onChange(selectedOption ? selectedOption.value : "");
                           if (selectedOption?.value === "Otra") {
                             setTimeout(() => nombreInputRef.current?.focus(), 0);
@@ -367,8 +381,8 @@ export const EqipmentLocalPassModal: React.FC<Props> = ({
                         menuPlacement="auto"
                         maxMenuHeight={200}
                         styles={{
-                          menu: (base) => ({ ...base, zIndex: 9999 }),
-                          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                          menu: (base: any) => ({ ...base, zIndex: 9999 }),
+                          menuPortal: (base: any) => ({ ...base, zIndex: 9999 }),
                         }}
                       />
                       <FormMessage />
