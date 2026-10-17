@@ -39,7 +39,6 @@ const separarDuracion = (texto?: string) => {
 export const AfectacionPatrimonialModal: React.FC<IncidenciaModalProps> = ({
 	title,
 	subtitulo,
-	children,
 	openAfectacionPatrimonialModal,
 	setOpenAfectacionPatrimonialModal,
 	setAfectacionPatrimonial,

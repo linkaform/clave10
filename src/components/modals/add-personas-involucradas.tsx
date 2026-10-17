@@ -68,7 +68,6 @@ const Segmentado = ({
 );
 
 export const PersonasInvolucradasModal: React.FC<IncidenciaModalProps> = ({
-	children,
 	isSuccess,
 	setIsSuccess,
 	setPersonasInvolucradas,

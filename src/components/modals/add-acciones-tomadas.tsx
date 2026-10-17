@@ -46,7 +46,6 @@ const VACIO = {
 const label = "text-[11px] font-bold uppercase tracking-wide text-gray-600";
 
 export const AccionesTomadasModal: React.FC<IncidenciaModalProps> = ({
-	children,
 	isSuccess,
 	setIsSuccess,
 	setAccionesTomadas,
