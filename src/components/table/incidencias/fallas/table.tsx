@@ -5,15 +5,14 @@ import * as React from "react";
 import {
   ColumnFiltersState, SortingState, VisibilityState,
   flexRender, getCoreRowModel, getFilteredRowModel,
-  getPaginationRowModel, getSortedRowModel, useReactTable,
+  getSortedRowModel, useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Fallas_record, getFallasColumns } from "./fallas-columns";
 import { EliminarFallaModal } from "@/components/modals/delete-falla-modal";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { EditarFallaModal } from "@/components/modals/editar-falla";
 import { ViewFalla } from "@/components/modals/view-falla";
 import { SeguimientoFallaCerrarModal } from "@/components/modals/add-seguimiento-falla-cerrar";
@@ -23,8 +22,7 @@ import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersP
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { ViewMode } from "@/lib/utils";
-import { applyFallasFilters } from "@/hooks/Fallas/useFallasFIlter";
-import { CustomSpinner } from "@/components/custom-spinner";
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import { FallasActionButtons } from "@/components/Bitacoras/Fallas/customAction";
 
 interface ListProps {
@@ -64,7 +62,7 @@ export const fallasColumnsCSV = [
 
 const FallasTable: React.FC<ListProps> = ({
   isLoading, data, setSelectedFallas, viewMode,
-  searchTags, setTotalRegistros,  externalFilters,onExternalFiltersChange,filtersConfig
+  externalFilters,onExternalFiltersChange,filtersConfig
 }) => {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -78,16 +76,7 @@ const FallasTable: React.FC<ListProps> = ({
   const [setSeguimientos] = useState<any>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 25 });
   const [globalFilter, setGlobalFilter] = React.useState("");
-
-  useEffect(() => {
-    if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join("|"));
-    } else {
-      setGlobalFilter("");
-    }
-  }, [searchTags]);
 
   const handleEliminar = (falla: Fallas_record) => {
     setFallaSeleccionada(falla);
@@ -104,22 +93,14 @@ const FallasTable: React.FC<ListProps> = ({
     setModalVerSeguimientoAbierto(true);
   };
 
-  const columns = useMemo(() => {
-    if (isLoading) return [];
-    return getFallasColumns(handleEliminar, handleCerrar, handleVer);
-  }, [isLoading]);
+  // Las columnas se quedan mientras carga para que el esqueleto tenga su forma.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const columns = useMemo(() => getFallasColumns(handleEliminar, handleCerrar, handleVer), []);
 
   const memoizedData = useMemo(() => data || [], [data]);
 
-  const filteredData = useMemo(() => {
-    console.log("externalFilters:", JSON.stringify(externalFilters));
-    return applyFallasFilters(memoizedData, externalFilters ?? { dynamic: {} });
-  }, [memoizedData, externalFilters]);
-
-
-  useEffect(() => {
-    setTotalRegistros?.(filteredData.length);
-  }, [filteredData, setTotalRegistros]);
+  // Búsqueda, filtros y paginación ya vienen resueltos del back (get_failures paginado).
+  const filteredData = memoizedData;
 
   const table = useReactTable({
     data: filteredData,
@@ -128,12 +109,10 @@ const FallasTable: React.FC<ListProps> = ({
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
     globalFilterFn: (row, _columnId, filterValue: string) => {
       if (!filterValue) return true;
       const normalize = (str: string) =>
@@ -145,7 +124,7 @@ const FallasTable: React.FC<ListProps> = ({
         .join(" ");
       return tags.some((tag) => allValues.includes(tag));
     },
-    state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
+    state: { sorting, columnFilters, columnVisibility, rowSelection, globalFilter },
   });
 
   React.useEffect(() => {
@@ -260,7 +239,9 @@ const FallasTable: React.FC<ListProps> = ({
                     ))}
                   </TableHeader>
                   <TableBody>
-                    {table.getRowModel().rows?.length ? (
+                    {isLoading ? (
+                      <TableRowSkeletons columns={columns.length} />
+                    ) : table.getRowModel().rows?.length ? (
                       table.getRowModel().rows.map((row) => (
                         <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}
                           className="hover:bg-slate-100 transition-colors border-slate-50">
@@ -275,11 +256,7 @@ const FallasTable: React.FC<ListProps> = ({
                     ) : (
                       <TableRow>
                       <TableCell colSpan={columns.length} className="h-32 text-center">
-                          {isLoading ? (
-                            <CustomSpinner/>
-                          ) : (
-                            <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
-                          )}
+                          <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
                         </TableCell>
                       </TableRow>
                     )}
@@ -291,10 +268,6 @@ const FallasTable: React.FC<ListProps> = ({
                   {table.getFilteredSelectedRowModel().rows.length} de{" "}
                   {table.getFilteredRowModel().rows.length} registros seleccionados.
                 </div>
-                <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Anterior</Button>
-                  <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Siguiente</Button>
-                </div>
               </div>
             </>
           )}
@@ -302,8 +275,8 @@ const FallasTable: React.FC<ListProps> = ({
           {viewMode === "photos" && (
             <PhotoGridView
               isLoading={isLoading}
+              skeleton
               records={fallaPhotoRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
             >
@@ -314,8 +287,8 @@ const FallasTable: React.FC<ListProps> = ({
           {viewMode === "list" && (
             <PhotoListView
               isLoading={isLoading}
+              skeleton
               records={fallaListRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
             > 

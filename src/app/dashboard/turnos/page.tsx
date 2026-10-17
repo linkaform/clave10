@@ -20,6 +20,7 @@ export default function Home() {
   const location = useBoothStore((s) => s.location);
 
   const { shift, isLoading, allData } = useGetShift(area, location);
+  const configException = shift?.guard?.config_exception;
 
   const [evidencia, setEvidencia] = useState<Imagen[]>([])
   const [identificacion, setIdentificacion] = useState<Imagen[]>([])
@@ -53,7 +54,7 @@ export default function Home() {
           <Sidebar key={shift?.location?.name} shift={shift} nombreSuplente={nombreSuplente} setNombreSuplente={setNombreSuplente} onSuplenteConfirmado={() => setForceOpenStartPhoto(true)} />
         </div>
         <div className="w-full lg:w-3/4 p-8 flex flex-col">
-          {allData?.success === false && (
+          {(allData?.success === false || configException) && (
             <Card className="mb-6 border-2 border-red-500 bg-red-50/50 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
@@ -61,9 +62,9 @@ export default function Home() {
                     <ShieldAlert className="w-8 h-8 text-red-600" />
                   </div>
                   <div className="flex-1 space-y-1">
-                    <h3 className="text-lg font-bold text-red-900 border-b border-red-200 pb-1 mb-1">Configuración Incompleta</h3>
+                    <h3 className="text-lg font-bold text-red-900 border-b border-red-200 pb-1 mb-1">{configException?.title || "Configuración Incompleta"}</h3>
                     <p className="text-red-800 font-medium">
-                      Hubo un problema por falta de configuración en este usuario.
+                      {configException?.msg || "Hubo un problema por falta de configuración en este usuario."}
                     </p>
                     <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-red-600 italic">
                       <AlertCircle className="w-4 h-4" />

@@ -1,24 +1,25 @@
-import { crearNota, editarNota, getNotes, InputNote, UpdateNote, CloseNote, cerrarNota } from "@/lib/notes";
+import { crearNota, editarNota, getNotes, InputNote, UpdateNote, CloseNote, cerrarNota, NotesSearch } from "@/lib/notes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { errorMsj } from "@/lib/utils";
 import { toast } from "sonner";
 import { useState } from "react";
 
-export const useNotes = (enableGetNotes:boolean, area:string, location:string, pageIndex: number = 0, pageSize: number = 10, dateFrom: string = "", dateTo: string="", status: string = "abierto") => {
+export const useNotes = (enableGetNotes:boolean, area:string, location:string, pageIndex: number = 0, pageSize: number = 10, dateFrom: string = "", dateTo: string="", status: string = "abierto", search?: NotesSearch) => {
   const offset = pageIndex * pageSize
   const limit = pageSize
   const queryClient = useQueryClient();
   const [isLoadingNotes, setLoadingNotes] = useState(false);
   //Obtener lista de notas
   const { data, isLoading: isLoadingListNotes, error, isFetching, refetch } = useQuery<any, Error>({
-    queryKey: ["getNotes", area, location, pageIndex, pageSize, dateFrom, dateTo, status], 
+    queryKey: ["getNotes", area, location, pageIndex, pageSize, dateFrom, dateTo, status, search], 
     queryFn: async () => {
-      if (!area || !location) return {};
-      const fetchedData = await getNotes(area, location, limit, offset, dateFrom, dateTo, status); 
-      console.log("fet", fetchedData.response?.data )
+      // Con el buscador nuevo basta con las ubicaciones del header.
+      const hasLocation = !!location || !!search?.locations?.length;
+      if (!area || !hasLocation) return {};
+      const fetchedData = await getNotes(area, location, limit, offset, dateFrom, dateTo, status, search); 
       return fetchedData.response?.data ?? {};
     },
-    enabled: !!location && enableGetNotes,
+    enabled: (!!location || !!search?.locations?.length) && enableGetNotes,
     placeholderData: {} as any,
     staleTime: 1000 * 60 * 5,
   });

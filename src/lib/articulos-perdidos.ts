@@ -1,6 +1,7 @@
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
 import { getValidToken } from "./login/get-valid-token";
+import { facetListPayload, FacetListParams } from "./facet-search";
 
 export interface InputArticuloPerdido {
     area_perdido:string,
@@ -29,13 +30,15 @@ export interface InputDevolver {
 }
   
 export const getListArticulosPerdidos = async (
-    location:string,status:string, date1:string, date2:string, filterDate:string) => {
+    location:string,status:string, date1:string, date2:string, filterDate:string, paging?: FacetListParams) => {
     const payload = {
         dateFrom:date1, 
         dateTo:date2, 
         filterDate,
         location: location,
         status:status,
+        // Con paging: listado paginado + filtros del buscador (ver facet-search).
+        ...facetListPayload(paging),
         option: "get_articles",
         script_name: "articulos_perdidos.py",
     };

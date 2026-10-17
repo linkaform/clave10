@@ -3,41 +3,8 @@ import { useState, useMemo, useCallback } from "react";
 import { useFilters } from "../bitacora/useFilters";
 import { getNotasFilters } from "@/services/endpoints";
 
-export function applyNotasFilters(data: any[], externalFilters: any) {
-  if (!data?.length) return [];
-  const { dynamic, dateFilter, date1, date2 } = externalFilters;
-
-  const normalize = (text: any) =>
-    String(text ?? "").toLowerCase().normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "").trim();
-
-  return data.filter((item) => {
-
-    if (dynamic?.estatus?.length > 0) {
-      const filter = Array.isArray(dynamic.estatus) ? dynamic.estatus : [dynamic.estatus];
-      if (!filter.some((f: string) => normalize(f) === normalize(item.note_status || ""))) return false;
-    }
-
-    if (dynamic?.creador_por?.length > 0) {
-      const filter = Array.isArray(dynamic.creador_por) ? dynamic.creador_por : [dynamic.creador_por];
-      if (!filter.some((f: string) => normalize(f) === normalize(item.created_by_name || ""))) return false;
-    }
-
-    if (dateFilter && date1) {
-      const fecha = new Date(item[dateFilter]);
-      const d1 = new Date(date1);
-      const d2 = date2 ? new Date(date2) : null;
-      if (d2) {
-        if (fecha < d1 || fecha > d2) return false;
-      } else {
-        if (fecha < d1) return false;
-      }
-    }
-
-    return true;
-  });
-}
-
+// Los filtros del panel ya no se aplican en cliente: la página los manda al
+// back como facets (useFacetSection).
 export function useNotasFilters() {
   const [dynamicFilters, setDynamicFilters] = useState<Record<string, any>>({});
   const [date1, setDate1] = useState<Date | "">("");

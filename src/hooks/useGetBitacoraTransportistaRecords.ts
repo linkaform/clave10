@@ -71,7 +71,7 @@ export const useGetBitacoraTransportistaRecords = (
 ) => {
   const {
     date_from, date_to, tipo_de_vehiculo, proveedor_cliente, anden_asignado,
-    estatus, tipo_de_operacion, conductor, material, search, skip, limit, pagination,
+    estatus, tipo_de_operacion, conductor, material, search, skip, limit, pagination, facets,
   } = params;
 
   const { data, isLoading, error, refetch } = useQuery<ExtractedResponse>({
@@ -91,6 +91,7 @@ export const useGetBitacoraTransportistaRecords = (
       skip ?? 0,
       limit ?? 0,
       pagination ?? false,
+      JSON.stringify(facets ?? []),
     ],
     queryFn: async () => {
       const res = await getBitacoraTransportistaRecords({ fecha, ...params });

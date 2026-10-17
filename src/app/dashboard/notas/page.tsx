@@ -1,7 +1,7 @@
 "use client";
 
 import { ListaNotasTable } from "@/components/table/notas/lista-notas/table";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { AddNoteModal } from "@/components/modals/add-note-modal";
@@ -11,6 +11,9 @@ import { LayoutGrid, LayoutList, Plus, Sheet } from "lucide-react";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { ViewMode } from "@/lib/utils";
 import { useNotasFilters } from "@/hooks/Notas/useNotasFIlters";
+import { FacetSearch } from "@/components/common/FacetSearch";
+import { useFacetSection } from "@/hooks/common/useFacetSection";
+import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 
 const NotasPage = () => {
   return (
@@ -31,7 +34,6 @@ const NotasContent = () => {
   const [areaSeleccionada] = useState(area ?? "");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [totalRegistros, setTotalRegistros] = useState(0);
-  const [searchQuery, setSearchQuery] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   const {
@@ -41,8 +43,25 @@ const NotasContent = () => {
     activeFiltersCount: notasFiltersCount,
     isSidebarOpen: notasSidebarOpen,
     setIsSidebarOpen: setNotasSidebarOpen,
-    setSearchTags,
   } = useNotasFilters();
+  const { selectedLocations } = useSelectedLocationsStore();
+
+  // Buscador avanzado: chips + panel (Estatus, Creado por) comparten filtro y
+  // todo se resuelve en el back, igual que la fecha del panel.
+  const section = useFacetSection({
+    scriptName: "notes.py",
+    panel: {
+      externalFilters: notasFilters,
+      onExternalFiltersChange: onNotasFiltersChange,
+      activeFiltersCount: notasFiltersCount,
+    },
+    status: statusFilter,
+    locations: selectedLocations,
+  });
+  const notesSearch = useMemo(
+    () => ({ filterDate: section.filterDate, locations: selectedLocations, facets: section.facets }),
+    [section.filterDate, selectedLocations, section.facets],
+  );
 
   useEffect(() => {
     const action = searchParams.get("action");
@@ -73,9 +92,9 @@ const NotasContent = () => {
         <FloatingFiltersDrawer
           isOpen={notasSidebarOpen}
           onOpenChange={setNotasSidebarOpen}
-          activeFiltersCount={notasFiltersCount}
-          filters={notasFilters}
-          onFiltersChange={onNotasFiltersChange}
+          activeFiltersCount={section.activeFiltersCount}
+          filters={section.filtersView}
+          onFiltersChange={section.onFiltersChange}
           filtersConfig={notasFiltersConfig}
           filtroUbicacion={false}
         />
@@ -84,12 +103,15 @@ const NotasContent = () => {
       <PageHeader
         title="Notas"
         totalRecords={totalRegistros}
-        onSearch={(val) => {
-          const tags = val ? [val] : [];
-          setSearchQuery(tags);
-          setSearchTags(tags);
-        }}
-        searchPlaceholder="Buscar...">
+        search={
+          <FacetSearch
+            fields={section.fields}
+            facets={section.facets}
+            onChange={section.setFacets}
+            fetchCounts={section.fetchCounts}
+            placeholder="Buscar por nota, folio, guardia..."
+          />
+        }>
 
         <Button
           className="bg-green-600 hover:bg-green-700 text-white gap-2"
@@ -125,9 +147,9 @@ const NotasContent = () => {
           setUbicacionSeleccionada={setUbicacionSeleccionada}
           areaSeleccionada={areaSeleccionada}
           viewMode={viewMode}
-          searchTags={searchQuery}
-          externalFilters={notasFilters}
-          onExternalFiltersChange={onNotasFiltersChange}
+          search={notesSearch}
+          externalFilters={section.filtersView}
+          onExternalFiltersChange={section.onFiltersChange}
           filtersConfig={notasFiltersConfig}
           setTotalRegistros={setTotalRegistros}
         />

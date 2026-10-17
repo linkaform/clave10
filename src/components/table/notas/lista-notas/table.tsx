@@ -17,7 +17,7 @@ import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersP
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { CustomSpinner } from "@/components/custom-spinner";
-import { applyNotasFilters } from "@/hooks/Notas/useNotasFIlters";
+import { NotesSearch } from "@/lib/notes";
 import { useBoothStore } from "@/store/useBoothStore";
 import { NotasActionButtons } from "@/components/Bitacoras/Notas/customActions";
 
@@ -26,7 +26,8 @@ interface ListaNotasTableProps {
   ubicacionSeleccionada: string;
   areaSeleccionada: string;
   viewMode?: ViewMode;
-  searchTags?: string[];
+  /** Buscador avanzado: con esto la búsqueda, filtros y fecha se resuelven en el back. */
+  search?: NotesSearch;
   externalFilters?: any;
   onExternalFiltersChange?: (filters: any) => void;
   filtersConfig?: any[];
@@ -40,7 +41,7 @@ export const ListaNotasTable = ({
   setUbicacionSeleccionada,
   areaSeleccionada,
   viewMode = "table",
-  searchTags: searchTagsProp,
+  search,
   filtersConfig: filtersConfigProp,
   externalFilters: externalFiltersProp,
   onExternalFiltersChange: onExternalFiltersChangeProp,
@@ -50,22 +51,22 @@ export const ListaNotasTable = ({
   const [registersPage, setRegistersPage] = useState(10);
   const [dateFromValue ] = useState("");
   const [dateToValue] = useState("");
-  const [dateFiter, setDateFilter] = useState<string>("this_month");
-  const [globalFilter, setGlobalFilter] = React.useState("");
+  const [globalFilter] = React.useState("");
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 23 });
   const { location } = useBoothStore();
-  console.log(dateFiter)
   
   useEffect(() => {
     if (location) setUbicacionSeleccionada(location);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
-  if (statusFilter === "") statusFilter = "abierto";
+  // Sin buscador nuevo se conserva el default de siempre (solo abiertas); con él,
+  // "" = todas y el estatus se elige en el panel.
+  if (statusFilter === "" && !search) statusFilter = "abierto";
 
   const externalFilters = useMemo(
     () => externalFiltersProp ?? { dynamic: {}, dateFilter: "" },
@@ -73,12 +74,7 @@ export const ListaNotasTable = ({
   );
   const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
   const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
-  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
-  useEffect(() => {
-    if (statusFilter === "dia") setDateFilter("today");
-    else setDateFilter("this_month");
-  }, [statusFilter]);
 
   const {
     data: notes,
@@ -93,8 +89,14 @@ export const ListaNotasTable = ({
     dateFromValue,
     dateToValue,
     statusFilter,
+    search,
   );
-  console.log("not", notes)
+
+  // Cambiar búsqueda, filtros, fecha o ubicaciones regresa a la primera página.
+  const searchKey = JSON.stringify(search ?? null);
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [searchKey]);
   const actual_page = notes?.actual_page ?? 1;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const records = notes?.records ?? [];
@@ -109,14 +111,11 @@ export const ListaNotasTable = ({
   const handlePageChange = (newPage: number) => setCurrentPage(newPage - 1);
 
   const memoizedData = useMemo(() => (Array.isArray(records) ? records : []), [records]);
-  const filteredData = useMemo(() => applyNotasFilters(memoizedData, externalFilters), [memoizedData, externalFilters]);
+  // Búsqueda y filtros ya vienen resueltos del back.
+  const filteredData = memoizedData;
 
   const isLoading = isLoadingListNotes || isFetching;
 
-  React.useEffect(() => {
-    if (searchTags && searchTags.length > 0) setGlobalFilter(searchTags.join("|"));
-    else setGlobalFilter("");
-  }, [searchTags]);
 
   useEffect(() => {
     setTotalRegistros?.(total_records);
@@ -283,7 +282,6 @@ export const ListaNotasTable = ({
             <PhotoGridView
               isLoading={isLoading}
               records={notaPhotoRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalActions={(record) => {
@@ -301,7 +299,6 @@ export const ListaNotasTable = ({
             <PhotoListView
               isLoading={isLoading}
               records={notaListRecords}
-              globalSearch={searchTags}
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
             >

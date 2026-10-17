@@ -1,7 +1,8 @@
 import { toast } from "sonner";
+import { SearchFacet } from "@/components/common/FacetSearch";
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api"
-import { getValidToken } from "./login/get-valid-token";
+import { authHeaders, getValidToken } from "./login/get-valid-token";
 
 
 export interface InputNote {
@@ -37,7 +38,14 @@ export interface CloseNote {
 }
 
 
-export const getNotes = async (area: string, location: string, limit: number = 10, offset: number = 0, dateFrom: string = "", dateTo: string = "", status: string = "abierto") => {
+/** Buscador avanzado: fecha del panel, ubicaciones del header y facets (chips + panel). */
+export interface NotesSearch {
+  filterDate: string;
+  locations: string[];
+  facets: SearchFacet[];
+}
+
+export const getNotes = async (area: string, location: string, limit: number = 10, offset: number = 0, dateFrom: string = "", dateTo: string = "", status: string = "abierto", search?: NotesSearch) => {
   const payload = {
     script_name: "notes.py",
     option: "get_notes",
@@ -47,7 +55,8 @@ export const getNotes = async (area: string, location: string, limit: number = 1
     offset,
     dateFrom,
     dateTo,
-    status
+    status,
+    ...(search ?? {}),
   };
 
   const userJwt = await getValidToken();
@@ -160,13 +169,9 @@ export const sendSmsOrEmail = async (folio: string, envio: string[], account_id?
       account_id
     };
 
-    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${userJwt}`,
-      },
+      headers: await authHeaders(account_id),
       body: JSON.stringify(payload),
     });
 

@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import UpdateFullPassModal from "@/components/modals/update-full-pass";
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import { useMemo, useState } from "react";
 import { getPasesEntradaColumns } from "./pases-entrada-columns";
 
@@ -99,10 +100,8 @@ const PasesEntradaTable: React.FC<ListProps> = ({ isLoading, pases }) => {
     setModalEditarAbierto(true);
   };
 
-  const columns = useMemo(() => {
-    if (isLoading) return [];
-    return getPasesEntradaColumns(handleEditar);
-  }, [isLoading, handleEditar]);
+  // Las columnas se quedan mientras carga para que el esqueleto tenga su forma.
+  const columns = useMemo(() => getPasesEntradaColumns(handleEditar), [handleEditar]);
 
   const memoizedData = useMemo(() => pases || [], [pases]);
 
@@ -160,7 +159,9 @@ const PasesEntradaTable: React.FC<ListProps> = ({ isLoading, pases }) => {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              <TableRowSkeletons columns={columns.length} />
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -188,18 +189,9 @@ const PasesEntradaTable: React.FC<ListProps> = ({ isLoading, pases }) => {
                 <TableCell
                   colSpan={columns.length}
                   className="h-32 text-center">
-                  {isLoading ? (
-                    <div className="flex flex-col items-center gap-2 text-slate-300">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-100 border-t-slate-300" />
-                      <span className="text-xs font-normal">
-                        Cargando registros...
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-slate-300 font-normal">
-                      No se encontraron registros
-                    </span>
-                  )}
+                  <span className="text-xs text-slate-300 font-normal">
+                    No se encontraron registros
+                  </span>
                 </TableCell>
               </TableRow>
             )}

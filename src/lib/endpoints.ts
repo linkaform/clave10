@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
-import { getValidToken } from "./login/get-valid-token";
+import { authHeaders, getValidToken } from "./login/get-valid-token";
 
 export const getAreasByLocations = async (locations: string[]) => {
   const userJwt = await getValidToken();
@@ -41,13 +41,9 @@ export const getGoogleWalletPassUrl = async (
   account_id: number,
   qr_code: string,
 ) => {
-  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${userJwt}`,
-    },
+    headers: await authHeaders(account_id),
     body: JSON.stringify({
       script_name: "create_pass_google_wallet.py",
       account_id,
@@ -59,13 +55,9 @@ export const getGoogleWalletPassUrl = async (
 };
 
 export const getImgPassUrl = async (account_id: number, qr_code: string) => {
-  const userJwt = await getValidToken();
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${userJwt}`,
-    },
+    headers: await authHeaders(account_id),
     body: JSON.stringify({
       script_name: "pase_de_acceso_use_api.py",
       option: "get_pass_img",

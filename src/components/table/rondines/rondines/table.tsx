@@ -9,7 +9,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -31,7 +30,8 @@ import { useGetPdfMutation } from "@/hooks/usetGetPdf";
 import useAuthStore from "@/store/useAuthStore";
 import Swal from "sweetalert2";
 import { RondinActionButtons } from "../rondinActionButtons";
-import { applyRondinesFilters } from "@/hooks/Rondines/rondines/useRondinesFilters";
+import { SearchFacet } from "@/components/common/FacetSearch";
+import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
 import { toast } from "sonner";
 import { errorMsj, imprimirUrlEnIframe } from "@/lib/utils";
@@ -81,6 +81,8 @@ interface RondinesTableProps {
   dateFilter: string;
   viewMode?: "table" | "photos" | "list";
   searchTags?: string[];
+  /** Filtros del buscador avanzado (panel + chips); se resuelven en el back. */
+  facets?: SearchFacet[];
   ubicacion?: string;
   showTabs?: boolean;
   externalFilters?: any;
@@ -96,7 +98,7 @@ const RONDINES_POR_PAGINA = 25;
 const RondinesTable: React.FC<RondinesTableProps> = ({
   openRecorridoId,
   viewMode: viewModeProp,
-  searchTags:searchTagsProp,
+  facets,
   externalFilters: externalFiltersProp,
   onExternalFiltersChange: onExternalFiltersChangeProp,
   filtersConfig: filtersConfigProp,
@@ -105,20 +107,19 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   const { selectedLocations } = useSelectedLocationsStore();
   // Paginación en servidor: se piden solo RONDINES_POR_PAGINA por vez.
   const [paginaServidor, setPaginaServidor] = React.useState(0);
-  const { listRondines, isLoadingListRondines: isLoading, isFetchingListRondines } = useGetListRondines(
-    true, "", "", RONDINES_POR_PAGINA, paginaServidor * RONDINES_POR_PAGINA, selectedLocations
+  const { listRondines, totalRondines, isLoadingListRondines: isLoading, isFetchingListRondines } = useGetListRondines(
+    true, "", "", RONDINES_POR_PAGINA, paginaServidor * RONDINES_POR_PAGINA, selectedLocations, facets ?? []
   );
 
-  // al cambiar de ubicaciones se vuelve a la primera página
-  useEffect(() => { setPaginaServidor(0); }, [selectedLocations]);
+  // al cambiar de ubicaciones, búsqueda o filtros se vuelve a la primera página
+  const facetsKey = JSON.stringify(facets ?? []);
+  useEffect(() => { setPaginaServidor(0); }, [selectedLocations, facetsKey]);
   const [rowSelection, setRowSelection] = React.useState({});
 
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: RONDINES_POR_PAGINA });
-  const [globalFilter, setGlobalFilter] = React.useState("");
   const [rondinSeleccionado, setRondinSeleccionado] = useState<any | null>(null);
   const [modalVerAbierto, setModalVerAbierto] = useState(false);
   const [rondinActual, setRondinActual] = useState<BitacoraRondin | null>(null);
@@ -132,7 +133,6 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
 
   const onExternalFiltersChange = onExternalFiltersChangeProp ?? (() => {});
   const filtersConfig = useMemo(() => filtersConfigProp ?? [], [filtersConfigProp]);
-  const searchTags = useMemo(() => searchTagsProp ?? [], [searchTagsProp]);
 
   const { refetch } = useGetPdfMutation(
     rondinActual?.id ?? "",
@@ -185,18 +185,8 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
   };
 
   useEffect(() => {
-    if (Array.isArray(listRondines)) {
-      setTotalRegistros(listRondines.length);
-    }
-  }, [listRondines, setTotalRegistros]);
-
-  useEffect(() => {
-    if (searchTags && searchTags.length > 0) {
-      setGlobalFilter(searchTags.join("|"));
-    } else {
-      setGlobalFilter("");
-    }
-  }, [searchTags]);
+    setTotalRegistros(totalRondines);
+  }, [totalRondines, setTotalRegistros]);
 
 
   const handleVer = (rondin: BitacoraRondin) => {
@@ -214,9 +204,8 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
     () => (Array.isArray(listRondines) ? listRondines : []) as BitacoraRondin[],
     [listRondines]
   );
-  const filteredData = useMemo(() => {
-    return applyRondinesFilters(memoizedData, externalFilters);
-  }, [memoizedData, externalFilters]);
+  // Búsqueda, filtros y paginación ya vienen resueltos del back.
+  const filteredData = memoizedData;
 
 
   useEffect(() => {
@@ -233,35 +222,11 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onPaginationChange: setPagination,
-    globalFilterFn: (row, _columnId, filterValue: string) => {
-      if (!filterValue) return true;
-      const normalize = (str: string) =>
-        str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    
-      const tags = filterValue.split("|").filter(Boolean).map(normalize);
-    
-      const allValues = row
-        .getAllCells()
-        .map((cell) => {
-          const columnId = cell.column.id;
-          let value = String(cell.getValue() || "");
-          if (columnId === "estatus_recorrido") {
-            value = value.replace(/_/g, " ");
-          }
-          return normalize(value);
-        })
-        .join(" ");
-    
-      return tags.some((tag) => allValues.includes(tag));
-    },
-    state: { sorting, columnFilters, columnVisibility, rowSelection, pagination, globalFilter },
+    state: { sorting, columnFilters, columnVisibility, rowSelection },
   });
 
   const selectedRows = table.getFilteredSelectedRowModel().rows;
@@ -339,7 +304,9 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
                     ))}
                   </TableHeader>
                   <TableBody>
-                    {table.getRowModel().rows?.length ? (
+                    {isLoading ? (
+                      <TableRowSkeletons columns={columns.length} />
+                    ) : table.getRowModel().rows?.length ? (
                       table.getRowModel().rows.map((row) => (
                         <TableRow
                           key={row.id}
@@ -357,17 +324,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
                     ) : (
                       <TableRow>
                         <TableCell colSpan={columns.length} className="h-32 text-center">
-                          {isLoading ? (
-                            <div className="flex flex-col items-center gap-3 h-32 justify-center">
-                              <div className="relative h-8 w-8">
-                                <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
-                                <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                              </div>
-                              <span className="text-base text-slate-400">Cargando registros...</span>
-                            </div>
-                          ) : (
-                            <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
-                          )}
+                          <span className="text-base text-slate-400 font-normal">No se encontraron registros</span>
                         </TableCell>
                       </TableRow>
                     )}
@@ -381,7 +338,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
                     Anterior
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => setPaginaServidor((p) => p + 1)}
-                    disabled={memoizedData.length < RONDINES_POR_PAGINA || isFetchingListRondines}>
+                    disabled={(paginaServidor + 1) * RONDINES_POR_PAGINA >= totalRondines || isFetchingListRondines}>
                     Siguiente
                   </Button>
                 </div>
@@ -390,8 +347,8 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
           ) : viewMode === "photos" ? (
             <PhotoGridView
               isLoading={isLoading}
+              skeleton
               records={photoRecords}
-              globalSearch={searchTags ?? []}
               modalType="rondines"
               getMapData={(record) => (record as any)?.rawData?.map_data ?? []}
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} variant="imprimir"/>}
@@ -402,8 +359,8 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
           ) : (
             <PhotoListView
               isLoading={isLoading}
+              skeleton
               records={photoListRecords}
-              globalSearch={searchTags ?? []}
               modalType="rondines"
               getMapData={(record) => record?.rawData?.map_data ?? []}
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} variant="imprimir"/>}
