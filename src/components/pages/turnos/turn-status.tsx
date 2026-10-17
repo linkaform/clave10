@@ -35,6 +35,7 @@ const TurnStatus = ({
   	const [currentDateTime, setCurrentDateTime] = useState(shift?.guard.status_turn =="Turno Abierto"? shift?.guard.checkin_date: shift?.guard.checkout_date);
   	const turno =  capitalizeOnlyFirstLetter(shift?.guard.status_turn?? "")
 	const checkin_id = shift?.booth_status?.checkin_id
+	const configException = !!shift?.guard?.config_exception
 	const { userIdSoter} = useAuthStore()
 	const isUserActiveTurn = userIdSoter==shift?.guard.user_id && shift?.guard.status_turn =="Turno Abierto"
 	const [openStartShift, setOpenStartShift] = useState(false)
@@ -268,7 +269,7 @@ const TurnStatus = ({
       </div>
 
 	  <div className="flex flex-col items-end">
-	  	{shift?.guard?.status_turn !== "Turno Abierto" && (
+	  	{!configException && shift?.guard?.status_turn !== "Turno Abierto" && (
 			<Button
 				className="w-[520px] md:w-[300px] bg-blue-600 hover:bg-blue-700"
 				disabled={area === ""}
@@ -287,7 +288,7 @@ const TurnStatus = ({
 		<StartShiftModal title="Confirmación" evidencia={evidencia} roles={rolesInicio} open= {openStartShift} setOpen={setOpenStartShift} nombreSuplente={nombreSuplente} checkin_id={checkin_id}>
 		</StartShiftModal>
        
-		{shift?.guard?.status_turn !== "Turno Cerrado" && (
+		{!configException && shift?.guard?.status_turn !== "Turno Cerrado" && (
             <Button className="w-[520px] md:w-[300px] bg-red-600 hover:bg-red-700" disabled ={area==""?true:false  }
 			onClick={() => {
 				if (!identificacion || identificacion.length === 0) {

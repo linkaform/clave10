@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
-import { getValidToken } from "./login/get-valid-token";
+import { authHeaders } from "./login/get-valid-token";
 
 // A diferencia de getPdf (get_pdf, por qr_code, un solo pase), este servicio
 // recibe los _id de Mongo de varios registros de Pase de Entrada (titular +
@@ -55,14 +55,9 @@ export const getPdfMulti = async (
         script_name: "pase_de_acceso.py",
       };
 
-  const userJwt = await getValidToken();
-
   const response = await fetch(API_ENDPOINTS.runScript, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(userJwt ? { Authorization: `Bearer ${userJwt}` } : {}),
-    },
+    headers: await authHeaders(account_id),
     body: JSON.stringify(payload),
   });
 

@@ -15,7 +15,8 @@ import type { UnidadConfig } from "@/components/transportista/agregar-unidad-mod
 // Remolque sin tracto: lanza y patín de apoyo al frente (derecha).
 const Enganche = () => <path d="M110 30 H118 M98 32 V40 M95 40 H101" />;
 
-export const TIPOS_REMOLQUE_SILUETA: { value: string; silueta: ReactNode }[] = [
+// `contenedor`: el remolque puede llevar un contenedor montado (2610-1382).
+export const TIPOS_REMOLQUE_SILUETA: { value: string; silueta: ReactNode; contenedor?: boolean }[] = [
   {
     value: "Caja seca",
     silueta: (
@@ -27,10 +28,22 @@ export const TIPOS_REMOLQUE_SILUETA: { value: string; silueta: ReactNode }[] = [
   },
   {
     value: "Plataforma",
+    contenedor: true,
     silueta: (
       <Silueta>
         <rect x={6} y={26} width={104} height={6} rx={1} />
         <path d="M14 26 V20 M40 26 V20 M66 26 V20 M92 26 V20" />
+        <Enganche /><Rueda x={20} /><Rueda x={33} />
+      </Silueta>
+    ),
+  },
+  {
+    value: "Chasis portacontenedor",
+    contenedor: true,
+    silueta: (
+      <Silueta>
+        <rect x={6} y={27} width={92} height={4} rx={1} />
+        <path d="M98 31 V24 H110 V31 M10 27 V23 M94 27 V23 M52 27 V24" />
         <Enganche /><Rueda x={20} /><Rueda x={33} />
       </Silueta>
     ),
@@ -102,6 +115,10 @@ export const TIPOS_REMOLQUE_SILUETA: { value: string; silueta: ReactNode }[] = [
 const normalizar = (s: string) =>
   s.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
+// Si el tipo de remolque admite contenedor (plataforma, chasis portacontenedor).
+export const remolquePermiteContenedor = (tipo?: string | null): boolean =>
+  !!TIPOS_REMOLQUE_SILUETA.find((t) => normalizar(t.value) === normalizar(tipo ?? ""))?.contenedor;
+
 // ─── Sugerencias por tipo de vehículo ─────────────────────────────────────────
 // Solo sugieren (ordenan la galería y proponen la configuración de una unidad
 // nueva); nunca esconden opciones ni cambian unidades ya capturadas.
@@ -109,7 +126,7 @@ const normalizar = (s: string) =>
 // preselecciona. Torton/Rabón/3.5 t traen caja integrada: arrancan en
 // "Solo vehículo".
 const SUGERENCIAS_POR_VEHICULO: Record<string, { remolques: string[]; config: UnidadConfig }> = {
-  "Tractocamión":    { remolques: ["Caja seca", "Caja refrigerada", "Plataforma", "Basculante", "Ganadero"], config: "solo_remolque" },
+  "Tractocamión":    { remolques: ["Caja seca", "Caja refrigerada", "Plataforma", "Chasis portacontenedor", "Basculante", "Ganadero"], config: "solo_remolque" },
   "Madrina":         { remolques: ["Portavehículos"], config: "solo_remolque" },
   "Pipa":            { remolques: ["Tanque"], config: "solo_remolque" },
   "Torton":          { remolques: [], config: "solo_vehiculo" },

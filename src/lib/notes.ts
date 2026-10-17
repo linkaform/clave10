@@ -2,7 +2,7 @@ import { toast } from "sonner";
 import { SearchFacet } from "@/components/common/FacetSearch";
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api"
-import { getValidToken } from "./login/get-valid-token";
+import { authHeaders, getValidToken } from "./login/get-valid-token";
 
 
 export interface InputNote {
@@ -169,13 +169,9 @@ export const sendSmsOrEmail = async (folio: string, envio: string[], account_id?
       account_id
     };
 
-    const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${userJwt}`,
-      },
+      headers: await authHeaders(account_id),
       body: JSON.stringify(payload),
     });
 
