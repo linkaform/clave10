@@ -639,7 +639,7 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 						openGeneratedPass={openGeneratedPass}
 						setOpenGeneratedPass={setOpenGeneratedPass} 
 						from={from}
-						recordId={responseCreatePase?.json?.id}
+						recordId={dataPass?.auto_activacion === "sí" ? responseCreatePase?.json?.id : undefined}
 						accountId={userParentId ?? undefined}
 					/>
 				)}

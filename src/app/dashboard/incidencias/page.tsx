@@ -60,7 +60,7 @@ const IncidenciasPage = () => {
   const [datePrimera, setDatePrimera] = useState<string>("");
   const [dateSegunda, setDateSegunda] = useState<string>("");
   const [dateFilter, setDateFilter] = useState<string>("");
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("photos");
   const [modalEliminarMultiAbierto, setModalEliminarMultiAbierto] = useState(false);
   const [modalData] = useState<any>(null);
   const [selectedFallas, setSelectedFallas] = useState<string[]>([]);
@@ -110,6 +110,35 @@ const IncidenciasPage = () => {
     }
   };
 
+<<<<<<< Updated upstream
+=======
+  // Buscador avanzado por pestaña: chips + panel comparten filtro y todo se
+  // resuelve en el back, paginado (ver useFacetSection).
+  const inc = useFacetSection({
+    scriptName: "incidencias_sdk.py",
+    panel: {
+      externalFilters: incidenciasFilters,
+      onExternalFiltersChange: onIncidenciasFiltersChange,
+      activeFiltersCount: incidenciasFiltersCount,
+    },
+    status: incidenciasEstatus,
+    locations: selectedLocations,
+  });
+  const fal = useFacetSection({
+    scriptName: "fallas.py",
+    panel: {
+      externalFilters: fallasFilters,
+      onExternalFiltersChange: onFallasFiltersChange,
+      activeFiltersCount: fallasFiltersCount,
+    },
+    status: fallasStatus,
+    locations: selectedLocations,
+  });
+
+  const area = areaSeleccionada == "todas" ? "" : areaSeleccionada;
+  // Fallas solo se pide en su pestaña y con ubicaciones (sin ubicación el back
+  // traería las de todas las ubicaciones).
+>>>>>>> Stashed changes
   const { data: dataFallas, isLoading: isLoadingFallas } = useGetFallas(
     selectedLocations,
     areaSeleccionada == "todas" ? "" : areaSeleccionada,
@@ -193,15 +222,6 @@ const IncidenciasPage = () => {
             totalRecords={totalRegistros}
             onSearch={(val) => setSearchQuery(val ? [val] : [])}
             searchPlaceholder="Buscar...">
-
-            {selectedTab === "Incidencias" && (
-              <Button
-                className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                onClick={() => setIsSuccessIncidencia(true)}>
-                <Plus size={16} />
-                Nueva Incidencia
-              </Button>
-            )}
 
             {selectedTab === "Fallas" && (
               <Button
@@ -311,13 +331,25 @@ const IncidenciasPage = () => {
             onClose={() => setIsSuccess(false)}
           />
           <AddIncidenciaModal
-            title="Crear Incidencia"
+            title="Nueva incidencia"
             isSuccess={isSuccessIncidencia}
             setIsSuccess={setIsSuccessIncidencia}
             externalOpen={isSuccessIncidencia}
             onExternalOpenChange={handleOpenIncidenciaChange}
             onClose={() => setIsSuccessIncidencia(false)}
           />
+
+          <button
+            type="button"
+            onClick={() => setIsSuccessIncidencia(true)}
+            title="Nueva incidencia"
+            aria-label="Nueva incidencia"
+            className="group fixed bottom-10 right-10 z-40 flex h-14 min-w-14 items-center justify-center gap-0 rounded-full bg-green-600 px-[18px] text-white shadow-lg shadow-green-600/30 transition-all duration-200 hover:gap-2 hover:bg-green-700 hover:pr-6">
+            <Plus className="h-5 w-5 shrink-0" />
+            <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-semibold transition-all duration-200 group-hover:max-w-[160px]">
+              Nueva incidencia
+            </span>
+          </button>
         </div>
       </div>
     </div>

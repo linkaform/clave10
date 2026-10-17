@@ -1,7 +1,8 @@
 import { LoadingModal } from "@/components/modals/loading-modal";
 import { AccionesTomadas, AfectacionPatrimonial, Depositos, PersonasInvolucradas } from "@/lib/incidencias";
 import { generarComprobanteIncidencia } from "@/lib/generar-comprobante";
-import { Download, Edit, Eye, ListChecks, Trash2 } from "lucide-react";
+import { Eye, MessageSquarePlus, Pencil, Printer, Trash2 } from "lucide-react";
+import { BotonAccion } from "@/components/Bitacoras/Incidencias/customActions";
 import { useState } from "react";
 import { ColumnDef, Row, Table as TanstackTable } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -90,23 +91,23 @@ export const OptionsCell: React.FC<{
   const incidencia = row.original;
   const [showLoadingModal] = useState(false);
   return (
-    <div className="flex space-x-2">
-      <div className="cursor-pointer" title="Información de la Incidencia" onClick={() => onView(incidencia)}>
-        <Eye className="w-5 h-5" />
-      </div>
+    <div className="flex items-center gap-1.5">
+      <BotonAccion tooltip="Ver" data-ver-incidencia onClick={() => onView(incidencia)}>
+        <Eye className="w-4 h-4" />
+      </BotonAccion>
       <LoadingModal isOpen={showLoadingModal} text="Cargando..." />
-      <div className="cursor-pointer" onClick={() => onEditarClick(incidencia)} title="Editar Incidencia">
-        <Edit className="w-5 h-5" />
-      </div>
-      <div className="cursor-pointer" onClick={() => onSeguimientoClick(incidencia)} title="Seguimiento Incidencia">
-        <ListChecks className="w-5 h-5" />
-      </div>
-      <div className="cursor-pointer" title="Descargar Comprobante" onClick={() => generarComprobanteIncidencia(incidencia)}>
-        <Download className="w-5 h-5" />
-      </div>
-      <div className="cursor-pointer" title="Eliminar Incidencia" onClick={() => onEliminarClick(incidencia)}>
-        <Trash2 className="w-5 h-5" />
-      </div>
+      <BotonAccion tooltip="Editar" onClick={() => onEditarClick(incidencia)}>
+        <Pencil className="w-4 h-4" />
+      </BotonAccion>
+      <BotonAccion tooltip="Agregar seguimiento" onClick={() => onSeguimientoClick(incidencia)}>
+        <MessageSquarePlus className="w-4 h-4" />
+      </BotonAccion>
+      <BotonAccion tooltip="Imprimir comprobante" onClick={() => generarComprobanteIncidencia(incidencia)}>
+        <Printer className="w-4 h-4" />
+      </BotonAccion>
+      <BotonAccion tooltip="Eliminar" peligro onClick={() => onEliminarClick(incidencia)}>
+        <Trash2 className="w-4 h-4" />
+      </BotonAccion>
     </div>
   );
 };

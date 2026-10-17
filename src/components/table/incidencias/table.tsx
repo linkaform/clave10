@@ -14,7 +14,8 @@ import { useEffect, useMemo, useState } from "react";
 import { EliminarIncidenciaModal } from "@/components/modals/delete-incidencia-modal";
 import { convertirDateToISO } from "@/lib/utils";
 import { EditarIncidenciaModal } from "@/components/modals/editar-incidencia";
-import { ViewIncidencia } from "@/components/modals/view-incidencia";
+import { IncidenciaDetalle } from "@/components/incidencias/incidencia-detalle";
+import { generarComprobanteIncidencia } from "@/lib/generar-comprobante";
 import { SeguimientoIncidenciaLista } from "@/components/modals/add-seguimientos";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
@@ -215,15 +216,22 @@ const IncidenciasTable: React.FC<ListProps> = ({
         modalEliminarAbierto={modalEliminarMultiAbierto}
         setModalEliminarAbierto={setModalEliminarMultiAbierto}/>
   
-      {modalVerAbierto && incidenciaSeleccionada && (
-        <ViewIncidencia
-          title="Información de la Incidencia"
-          data={incidenciaSeleccionada} isSuccess={modalVerAbierto}
-          tab={tabSelected} setTab={setTabSelected}
-          setIsSuccess={setModalVerAbierto} setModalEditarAbierto={setModalEditarAbierto}>
-          <div />
-        </ViewIncidencia>
-      )}
+      {/* Detalle (panel lateral): se abre desde la tabla, las tarjetas y la lista. */}
+      <IncidenciaDetalle
+        incidencia={incidenciaSeleccionada}
+        open={modalVerAbierto}
+        onOpenChange={setModalVerAbierto}
+        modoTabla={viewMode === "table"}
+        onEditar={(incidencia) => {
+          setModalVerAbierto(false);
+          handleEditar(incidencia);
+        }}
+        onImprimir={(incidencia) => generarComprobanteIncidencia(incidencia)}
+        onEliminar={(incidencia) => {
+          setModalVerAbierto(false);
+          handleEliminar(incidencia);
+        }}
+      />
   
       {modalEditarAbierto && incidenciaSeleccionada && (
         <EditarIncidenciaModal
@@ -343,6 +351,10 @@ const IncidenciasTable: React.FC<ListProps> = ({
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalType="incidencia"
+              onRecordClick={(record: any) => {
+                const incidencia = memoizedData.find((b: any) => b._id === record?.id || b.folio === record?.folio);
+                if (incidencia) handleVer(incidencia);
+              }}
               modalActions={(record) => {
                 if (!record) return null;
                 const incidencia = memoizedData.find((b: any) => b._id === record.id || b.folio === record.folio);
@@ -369,6 +381,10 @@ const IncidenciasTable: React.FC<ListProps> = ({
               externalFilters={externalFilters}
               onExternalFiltersChange={onExternalFiltersChange}
               modalType="incidencia"
+              onRecordClick={(record: any) => {
+                const incidencia = memoizedData.find((b: any) => b._id === record?.id || b.folio === record?.folio);
+                if (incidencia) handleVer(incidencia);
+              }}
               modalActions={(record) => {
                 if (!record) return null;
                 const incidencia = memoizedData.find((b: any) => b._id === record.id || b.folio === record.folio);

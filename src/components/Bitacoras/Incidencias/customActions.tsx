@@ -1,8 +1,9 @@
 import React from "react";
 import { PhotoGridActionButtons } from "@/components/Bitacoras/PhotoGrid/PhotoGridActionButtons";
-import { Trash2, ListChecks, Edit, Download } from "lucide-react";
+import { Trash2, MessageSquarePlus, Pencil, Printer } from "lucide-react";
 import { Incidencia_record } from "@/components/table/incidencias/incidencias-columns";
 import { generarComprobanteIncidencia } from "@/lib/generar-comprobante";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface IncidenciasActionButtonsProps {
   incidencia: Incidencia_record;
@@ -11,51 +12,58 @@ interface IncidenciasActionButtonsProps {
   handleEliminar: (incidencia: Incidencia_record) => void;
 }
 
+// Botón redondo de acción con hover y tooltip con el nombre de la acción.
+// Lo usan las tarjetas y la tabla de incidencias.
+export const BotonAccion = ({
+  tooltip,
+  onClick,
+  peligro = false,
+  children,
+  ...rest
+}: {
+  tooltip: string;
+  onClick: () => void;
+  peligro?: boolean;
+  children: React.ReactNode;
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "children">) => (
+  <Tooltip
+    content={tooltip}
+    contentClassName="mb-1.5 min-w-0 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium text-gray-800 shadow-md">
+    <button
+        type="button"
+        aria-label={tooltip}
+        onClick={onClick}
+        {...rest}
+        className={`flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-slate-600 transition-all duration-200 active:scale-95 ${
+          peligro
+            ? "hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+            : "hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+        }`}>
+      {children}
+    </button>
+  </Tooltip>
+);
+
 export const IncidenciasActionButtons = ({
   incidencia,
   handleEditar,
   handleSeguimiento,
   handleEliminar,
-}: IncidenciasActionButtonsProps) => {
-  const iconClass = (disabled: boolean) =>
-    `p-1.5 rounded-full transition-all duration-200 bg-white/90 hover:bg-white shadow-sm border border-slate-100 ${
-      disabled
-        ? "text-slate-300 cursor-not-allowed opacity-50"
-        : "cursor-pointer hover:shadow-md text-slate-700 hover:text-blue-600 active:scale-95"
-    }`;
-
-  return (
-    <PhotoGridActionButtons
+}: IncidenciasActionButtonsProps) => (
+  <PhotoGridActionButtons
       actions={[
-        <div
-          key="edit"
-          className={iconClass(false)}
-          title="Editar incidencia"
-          onClick={() => handleEditar(incidencia)}>
-          <Edit className="w-4 h-4" />
-        </div>,
-        <div
-          key="seguimiento"
-          className={iconClass(false)}
-          title="Seguimiento"
-          onClick={() => handleSeguimiento(incidencia)}>
-          <ListChecks className="w-4 h-4" />
-        </div>,
-        <div
-          key="comprobante"
-          className={iconClass(false)}
-          title="Descargar comprobante"
-          onClick={() => generarComprobanteIncidencia(incidencia)}>
-          <Download className="w-4 h-4" />
-        </div>,
-        <div
-          key="delete"
-          className={iconClass(false)}
-          title="Eliminar incidencia"
-          onClick={() => handleEliminar(incidencia)}>
-          <Trash2 className="w-4 h-4 text-red-500" />
-        </div>,
+        <BotonAccion key="edit" tooltip="Editar" onClick={() => handleEditar(incidencia)}>
+          <Pencil className="w-4 h-4" />
+        </BotonAccion>,
+        <BotonAccion key="seguimiento" tooltip="Agregar seguimiento" onClick={() => handleSeguimiento(incidencia)}>
+          <MessageSquarePlus className="w-4 h-4" />
+        </BotonAccion>,
+        <BotonAccion key="comprobante" tooltip="Imprimir comprobante" onClick={() => generarComprobanteIncidencia(incidencia)}>
+          <Printer className="w-4 h-4" />
+        </BotonAccion>,
+        <BotonAccion key="delete" tooltip="Eliminar" peligro onClick={() => handleEliminar(incidencia)}>
+          <Trash2 className="w-4 h-4" />
+        </BotonAccion>,
       ]}
-    />
-  );
-};
+  />
+);
