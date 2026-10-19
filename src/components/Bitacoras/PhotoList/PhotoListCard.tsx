@@ -32,16 +32,15 @@ export function PhotoListCard({
   const showMap = mapData && mapData.length > 0;
   
   // Separar áreas del resto de detalles
-  const areasItem = record.detailsList?.find(
-    (item) => item.label?.toLowerCase() === "areas" || item.label?.toLowerCase() === "áreas"
-  );
+  // "Artículos" (concesionados) se pinta igual que áreas: lista de chips.
+  const esListaChips = (label?: string) => ["areas", "áreas", "artículos"].includes(label?.toLowerCase() ?? "");
+  const areasItem = record.detailsList?.find((item) => esListaChips(item.label));
   const gafeteItem = record.detailsList?.find(
     (item) => item.label?.toLowerCase() === "gafete"
   );
   const otherDetails = record.detailsList?.filter(
     (item) => 
-      item.label?.toLowerCase() !== "areas" && 
-      item.label?.toLowerCase() !== "áreas" &&
+      !esListaChips(item.label) &&
       item.label?.toLowerCase() !== "gafete"
   );
   console.log("detailsList:", record.detailsList);
@@ -119,6 +118,11 @@ console.log("gafeteItem:", gafeteItem);
             <div className="min-w-0 flex-1">
               <h3 className="text-lg font-bold text-slate-900 leading-tight text-balance">
                 {titleCard}
+                {record.titleBadge && (
+                  <span className="ml-2 align-middle rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
+                    {record.titleBadge}
+                  </span>
+                )}
               </h3>
             </div>
            
@@ -287,7 +291,7 @@ console.log("gafeteItem:", gafeteItem);
             <span className="text-[0.65rem] font-medium text-slate-400 uppercase tracking-wider">
               {areasItem.label}
             </span>
-            <ArrayBadgeList values={areasItem.value} tooltipTitle="Todas las áreas" max={10}/>
+            <ArrayBadgeList values={areasItem.value} tooltipTitle={`Todas las ${areasItem.label?.toLowerCase()}`} max={10}/>
           </div>
         )}
 

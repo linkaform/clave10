@@ -120,6 +120,12 @@ export function PhotoGridCard({
         )}
         <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
 
+        {record.imageLabels?.[currentImageIndex] && (
+          <span className="absolute bottom-3 left-3 z-10 max-w-[70%] truncate rounded bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white">
+            {record.imageLabels[currentImageIndex]}
+          </span>
+        )}
+
         <div
           className={cn(
             "absolute top-3 left-3 z-20 transition-opacity duration-200",
@@ -175,9 +181,16 @@ export function PhotoGridCard({
 
       <CardContent className="flex flex-col gap-3 p-4">
         <div className="space-y-1">
-          <h3 className="font-semibold text-sm leading-tight line-clamp-1 text-foreground">
-            {titleCard}
-          </h3>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h3 className="font-semibold text-sm leading-tight line-clamp-1 text-foreground min-w-0">
+              {titleCard}
+            </h3>
+            {record.titleBadge && (
+              <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                {record.titleBadge}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground line-clamp-2">
             {descriptionCard}
           </p>
@@ -203,7 +216,7 @@ export function PhotoGridCard({
                     key={index}
                     className={`flex items-center gap-1.5 text-xs text-muted-foreground ${item.customClass}`}>
                     {item.icon}
-                    <span>{item.value}</span>
+                    <span className="min-w-0">{item.value}</span>
                   </div>
                 );
               })}

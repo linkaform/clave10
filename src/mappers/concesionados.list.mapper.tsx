@@ -44,8 +44,6 @@ export function mapArticuloConcesionadoList(raw: any, base: any) {
   const persona = raw?.persona_nombre_concesion || raw?.persona_nombre_otro || "Sin nombre";
   const equipoNames = equipos.map((e: any) => e.nombre_equipo).filter(Boolean);
   const categoria = firstEquipo?.categoria_equipo_concesion || "";
-  const maxLength = 50;
-  const equiposText = equipoNames.join(", ");
 
   const totalUnidades = equipos.reduce(
     (acc: number, e: any) => acc + Number(e.cantidad_equipo_concesion ?? 0), 0
@@ -62,10 +60,10 @@ export function mapArticuloConcesionadoList(raw: any, base: any) {
     id: raw?._id || "no-id",
     folio: raw?.folio || "S/F",
     visit_type: raw?.caseta_concesion || "",
-    // title: persona,
-    title: equiposText.length > maxLength 
-      ? equiposText.slice(0, maxLength) + "..." 
-      : equiposText || "Sin equipos",
+    // Varios artículos (2610-1305): el primero de título con "+N"; todos van
+    // en "Artículos" con lo devuelto / prestado de cada uno.
+    title: equipoNames[0] || "Sin equipos",
+    titleBadge: equipos.length > 1 ? `+${equipos.length - 1} artículo${equipos.length > 2 ? "s" : ""}` : undefined,
     images:finalImages,
     status: raw?.status_concesion?.toLowerCase() || "abierto",
     statusLabel: raw?.status_concesion || "",
@@ -102,8 +100,9 @@ export function mapArticuloConcesionadoList(raw: any, base: any) {
       },
       {
         icon: <Package className="h-3 w-3" />,
-        label: "areas",
-        value: equipoNames,
+        label: "Artículos",
+        value: equipos.map((e: any) =>
+          `${e?.nombre_equipo || "Sin nombre"} · ${Number(e?.cantidad_equipo_devuelto ?? 0)}/${Number(e?.cantidad_equipo_concesion ?? 0)}`),
       },
     ],
     modalDetailsList: [
