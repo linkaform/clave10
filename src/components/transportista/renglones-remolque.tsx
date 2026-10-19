@@ -10,7 +10,7 @@ import {
   emptyContenedorData,
   TIPOS_CONTENEDOR,
 } from "@/components/transportista/agregar-unidad-modal";
-import { SelectorTipoRemolque, remolquePermiteContenedor } from "@/components/transportista/selector-tipo-remolque";
+import { SelectorTipoRemolque, remolquePermiteContenedor, remolqueLlevaSello } from "@/components/transportista/selector-tipo-remolque";
 
 // Captura de remolques en renglones (2610-1382, junta 16 oct): cada caja en un
 // renglón con tipo, placas, número y sello; "+" agrega otra caja, y las que
@@ -38,7 +38,11 @@ const celda = "h-9 text-sm";
 const rojo = "border-red-300 bg-red-50";
 
 export function RenglonesRemolque({ unidades, setUnidades, sueltos, onLigarSuelto, requerido, showValidation, tipoVehiculo, conSello = true }: Props) {
-  const cols = conSello ? "grid-cols-[1.2fr_1fr_1fr_1fr_32px]" : "grid-cols-[1.2fr_1fr_1fr_32px]";
+  // minmax(0, …): sin él, un tipo largo ("Chasis portacontenedor") ensancha
+  // la columna solo en su renglón y descuadra los encabezados.
+  const cols = conSello
+    ? "grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_32px]"
+    : "grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_32px]";
   const cajas = unidades.filter((u) => u.config !== "solo_vehiculo");
 
   // Si el nuevo tipo no admite contenedor, se le quita (su material pasa al remolque).
@@ -46,6 +50,8 @@ export function RenglonesRemolque({ unidades, setUnidades, sueltos, onLigarSuelt
     setUnidades((p) => p.map((u) => {
       if (u.id !== id) return u;
       const remolque = { ...u.remolque, [campo]: valor };
+      // La plataforma no lleva sello (junta 19 oct).
+      if (campo === "tipo" && !remolqueLlevaSello(valor)) remolque.noSello = "";
       if (campo === "tipo" && u.config === "remolque_contenedor" && !remolquePermiteContenedor(valor)) {
         const mats = u.contenedor.materiales.filter((m) => m.producto);
         return {
@@ -119,7 +125,10 @@ export function RenglonesRemolque({ unidades, setUnidades, sueltos, onLigarSuelt
                 value={r?.noCaja ?? ""}
                 onChange={(e) => editar("noCaja", e.target.value)}
               />
-              {conSello && (
+              {conSello && !remolqueLlevaSello(r?.tipo) && (
+                <span className="text-[11px] text-gray-300 italic px-1">Sin sello</span>
+              )}
+              {conSello && remolqueLlevaSello(r?.tipo) && (
                 <Input
                   className={celda}
                   placeholder="Si aplica"
@@ -138,10 +147,12 @@ export function RenglonesRemolque({ unidades, setUnidades, sueltos, onLigarSuelt
             {u?.config === "remolque_contenedor" && (
               // Línea de "árbol" (como la indentación de un editor de código)
               // que cuelga el contenedor de su remolque.
-              <div className="relative pl-7">
+              // Misma grid que el remolque (sin sangría) para que las columnas
+              // coincidan; solo el tipo de contenedor se recorre a la derecha.
+              <div className="relative">
               <span aria-hidden className="absolute left-3 -top-2 h-[calc(50%+0.5rem)] w-3.5 border-l-2 border-b-2 border-violet-300 rounded-bl-md" />
               <div className={cn("grid gap-2 items-center", cols)}>
-                <div className="relative">
+                <div className="relative ml-7">
                   <Package className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-violet-500 pointer-events-none" />
                   <select
                     value={u.contenedor.tipo}

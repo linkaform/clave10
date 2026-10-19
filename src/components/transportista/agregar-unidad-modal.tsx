@@ -124,6 +124,13 @@ export const cajaRapidaOpcional = (tipoVehiculo?: string | null): boolean =>
 
 // Unidades que se mandan al registrar: las capturadas, o la caja rápida si no
 // hay (ninguna si la caja quedó vacía porque era opcional).
+// Vehículo sin caja (rígidos, pickup): los remolques capturados antes de
+// cambiar el tipo no se guardan; todo su material pasa al vehículo.
+export const soloMaterialDelVehiculo = (list: UnidadItem[]): UnidadItem[] => {
+  const materiales = list.flatMap((u) => materialesDeUnidad(u).filter((m) => m.producto));
+  return materiales.length ? [{ ...emptyUnidad(), config: "solo_vehiculo", vehiculo: { materiales } }] : [];
+};
+
 export const unidadesARegistrar = (list: UnidadItem[], caja: CajaRapida): UnidadItem[] =>
   list.length ? list : cajaRapidaVacia(caja) ? [] : [unidadDesdeCajaRapida(caja)];
 
@@ -360,7 +367,7 @@ export function SelectorColorVehiculo({
   );
 }
 
-export const TIPOS_REMOLQUE = ["Caja seca", "Plataforma", "Caja refrigerada", "Ganadero", "Basculante", "Portavehículos", "Caravana", "Tanque"];
+export const TIPOS_REMOLQUE = ["Caja seca", "Plataforma", "Caja refrigerada", "Ganadero", "Basculante", "Madrina", "Caravana", "Pipa", "Chasis portacontenedor"];
 export const TIPOS_CONTENEDOR = ["20' Standard (20GP)", "40' Standard (40GP)", "40' High Cube (40HC)", "20' Reefer (20RF)", "40' Reefer (40RF)", "40' HC Reefer (40HR)", "20' Open Top (20OT)", "40' Open Top (40OT)", "20' Flat Rack (20FR)", "40' Flat Rack (40FR)", "ISO Tank", "20' Ventilado (20VH)", "Open Side"];
 
 // Deriva el subtipo (config de "Configuración de Flujo de Transportistas") a

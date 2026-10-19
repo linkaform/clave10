@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -34,8 +34,10 @@ import {
   faltantesCarga,
   cajaRapidaOpcional,
   unidadesARegistrar,
+  soloMaterialDelVehiculo,
   emptyCajaRapida,
   type CajaRapida,
+  materialesDeUnidad,
 } from "@/components/transportista/agregar-unidad-modal";
 import { CapturaFotosDocumentos, etiquetaDeFoto, type OpcionFoto } from "@/components/transportista/captura-fotos-documentos";
 import { VisorFotosModal } from "@/components/transportista/visor-fotos-modal";
@@ -198,6 +200,14 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
 
+  // Fotos que ya se analizaron (url + tipo elegido): si al volver a "fotos" no
+  // cambió nada, se continúa sin volver a llamar a la IA.
+  const [firmaAnalizada, setFirmaAnalizada] = useState<string | null>(null);
+  const firmaFotos = () =>
+    documentos.filter((d) => d.file_url).map((d) => `${d.file_url}|${d.opcion ?? ""}`).sort().join(",");
+  // Remolques tal como los dejó la IA, para saber si alguien los editó.
+  const unidadesDeIA = useRef<string | null>(null);
+
   const clearAiField = (field: string) =>
     setAiFilledFields((prev) => {
       const next = new Set(prev);
@@ -256,6 +266,8 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
 
   const resetForm = () => {
     setModo("fotos");
+    setFirmaAnalizada(null);
+    unidadesDeIA.current = null;
     setShowValidation(false);
     setTipoOperacion(null);
     setTransportista("");
@@ -364,24 +376,33 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
           volumen:      m.volumen       ?? "",
         }));
 
-      const filled = new Set<string>();
+      // Al re-analizar se respeta lo capturado a mano: solo se llenan los
+      // campos vacíos o los que llenó la IA y nadie tocó (clearAiField los
+      // saca de aiFilledFields al editarlos).
+      const filled = new Set<string>(aiFilledFields);
+      const poner = (campo: string, actual: string, valor: string | undefined, set: (v: string) => void) => {
+        if (!valor || (actual.trim() && !aiFilledFields.has(campo))) return;
+        set(valor);
+        filled.add(campo);
+      };
 
       // Vehículo
-      if (d.vehiculo?.transportista)  { setTransportista(d.vehiculo.transportista);    filled.add("transportista"); }
-      if (d.vehiculo?.tipo_vehiculo)  { setTipoVehiculo(resolverTipoVehiculo(d.vehiculo.tipo_vehiculo)?.value ?? d.vehiculo.tipo_vehiculo);      filled.add("tipoVehiculo"); }
-      if (d.vehiculo?.placa)          { setPlaca(d.vehiculo.placa);                     filled.add("placa"); }
-      if (d.vehiculo?.procedencia)    { setProcedencia(d.vehiculo.procedencia);         filled.add("procedencia"); }
-      if (d.vehiculo?.no_economico)   { setNoEconomico(d.vehiculo.no_economico);        filled.add("noEconomico"); }
-      if (d.vehiculo?.marca)           { setMarcaVehiculo(d.vehiculo.marca);            filled.add("marcaVehiculo"); }
-      if (d.vehiculo?.modelo)          { setModeloVehiculo(d.vehiculo.modelo);           filled.add("modeloVehiculo"); }
-      if (d.vehiculo?.color)           { setColorVehiculo(d.vehiculo.color);             filled.add("colorVehiculo"); }
+      const tipoIA = d.vehiculo?.tipo_vehiculo;
+      poner("transportista",    transportista,    d.vehiculo?.transportista, setTransportista);
+      poner("tipoVehiculo",     tipoVehiculo,     tipoIA && (resolverTipoVehiculo(tipoIA)?.value ?? tipoIA), setTipoVehiculo);
+      poner("placa",            placa,            d.vehiculo?.placa,         setPlaca);
+      poner("procedencia",      procedencia,      d.vehiculo?.procedencia,   setProcedencia);
+      poner("noEconomico",      noEconomico,      d.vehiculo?.no_economico,  setNoEconomico);
+      poner("marcaVehiculo",    marcaVehiculo,    d.vehiculo?.marca,         setMarcaVehiculo);
+      poner("modeloVehiculo",   modeloVehiculo,   d.vehiculo?.modelo,        setModeloVehiculo);
+      poner("colorVehiculo",    colorVehiculo,    d.vehiculo?.color,         setColorVehiculo);
 
       // Conductor
-      if (d.conductor?.nombre)        { setConductor(d.conductor.nombre);               filled.add("conductor"); }
-      if (d.conductor?.no_licencia)   { setNoLicencia(d.conductor.no_licencia);         filled.add("noLicencia"); }
-      if (d.conductor?.vigencia_licencia) { setVigenciaLicencia(d.conductor.vigencia_licencia); filled.add("vigenciaLicencia"); }
-      if (d.conductor?.rfc)            { setRfcConductor(d.conductor.rfc);                filled.add("rfcConductor"); }
-      if (d.conductor?.acompanante)    { setAcompanante(d.conductor.acompanante);         filled.add("acompanante"); }
+      poner("conductor",        conductor,        d.conductor?.nombre,            setConductor);
+      poner("noLicencia",       noLicencia,       d.conductor?.no_licencia,       setNoLicencia);
+      poner("vigenciaLicencia", vigenciaLicencia, d.conductor?.vigencia_licencia, setVigenciaLicencia);
+      poner("rfcConductor",     rfcConductor,     d.conductor?.rfc,               setRfcConductor);
+      poner("acompanante",      acompanante,      d.conductor?.acompanante,       setAcompanante);
 
       // Documentos detectados — asigna tipo a cada DocItem por URL
       if (Array.isArray(d.documentos_detectados) && d.documentos_detectados.length) {
@@ -460,8 +481,6 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
             contenedor: { tipo, noSello, noContenedor, noCaja, color, comentarios, materiales },
           };
         });
-      } else if (contenedoresParaLigar.length) {
-        setContenedoresSueltos(contenedoresParaLigar);
       }
 
       // Materiales — formato legado: cuando el servicio no liga cada material
@@ -491,20 +510,34 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
         filled.add("carga");
       }
 
-      if (unidadesFromAI.length) {
-        setUnidades(unidadesFromAI);
-        filled.add("remolques");
+      const sinCaptura = unidades.every((u) =>
+        !u.remolque.tipo && !u.remolque.placas.trim() && !u.remolque.noCaja.trim()
+        && !materialesDeUnidad(u).some((m) => m.producto));
+      const intactas = unidadesDeIA.current === JSON.stringify(unidades);
+      if (unidadesFromAI.length || contenedoresParaLigar.length) {
+        if (sinCaptura || intactas) {
+          const ligados = unidadesFromAI.some((u) => u.config === "remolque_contenedor");
+          setContenedoresSueltos(ligados ? [] : contenedoresParaLigar);
+          if (unidadesFromAI.length) {
+            setUnidades(unidadesFromAI);
+            unidadesDeIA.current = JSON.stringify(unidadesFromAI);
+            filled.add("remolques");
+          }
+        } else {
+          toast.info("Se conservaron los remolques y materiales que ya estaban capturados.");
+        }
       }
 
       // Embarque
-      if (d.embarque?.proveedor_cliente) { setProveedorCliente(d.embarque.proveedor_cliente); filled.add("proveedorCliente"); }
-      if (d.embarque?.no_orden_compra)   { setOrdenCompra(d.embarque.no_orden_compra);        filled.add("ordenCompra"); }
+      poner("proveedorCliente", proveedorCliente, d.embarque?.proveedor_cliente, setProveedorCliente);
+      poner("ordenCompra",      ordenCompra,      d.embarque?.no_orden_compra,   setOrdenCompra);
 
       // Placa de la tarjeta de circulación del vehículo — sin campo visual,
       // se guarda para mandarla al crear el registro.
       if (d.vehiculo?.placa_tarjeta_circulacion) setPlacaTarjetaVehiculo(d.vehiculo.placa_tarjeta_circulacion);
 
       setAiFilledFields(filled);
+      setFirmaAnalizada(firmaFotos());
       return true;
     } catch (err) {
       const textMsj = errorMsj(err instanceof Error ? err.message : err);
@@ -522,18 +555,21 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   // Factura/OC sigue pidiendo al menos 4 caracteres.
   const tieneFotoLicencia = documentos.some((d) => d.tipo === "licencia" && d.file_url);
   const licenciaVencida = !!vigenciaLicencia && new Date(vigenciaLicencia) < new Date();
-  // Rígidos y pickup no piden no. de tracto ni caja (junta 14 oct).
+  // Rígidos y pickup no piden no. de tracto ni caja (junta 14 oct); el no. de
+  // tracto ya no es obligatorio (junta 19 oct).
   const campos = camposDeVehiculo(tipoVehiculo);
   const camposFaltantes = [
     !tipoOperacion && "Tipo de operación",
     !transportista.trim() && "Línea",
     !tipoVehiculo.trim() && "Tipo de vehículo",
     !placa.trim() && (campos.tracto ? "Placa de tracto" : "Placa del vehículo"),
-    campos.tracto && !noEconomico.trim() && "No. de tracto",
     !tieneFotoLicencia && "Foto de la licencia",
     !tieneMinCaracteres(ordenCompra) && "Factura / Orden de compra (mín. 4)",
     // Las unidades "Solo vehículo" solo llevan material sin ligar: no cuentan como caja.
-    ...faltantesCarga(unidades.filter((u) => u.config !== "solo_vehiculo"), cajaRapida, !campos.caja || cajaRapidaOpcional(tipoVehiculo)),
+    // Sin caja (rígidos, pickup) los remolques ocultos no se validan.
+    ...(campos.caja
+      ? faltantesCarga(unidades.filter((u) => u.config !== "solo_vehiculo"), cajaRapida, cajaRapidaOpcional(tipoVehiculo))
+      : []),
   ].filter((v): v is string => Boolean(v));
 
   const registrarAcceso = () => {
@@ -542,7 +578,9 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
       toast.error(`Completa los campos obligatorios: ${camposFaltantes.join(", ")}`);
       return;
     }
-    const { remolques, contenedores, materiales } = serializeUnidades(unidadesARegistrar(unidades, cajaRapida));
+    const { remolques, contenedores, materiales } = serializeUnidades(
+      campos.caja ? unidadesARegistrar(unidades, cajaRapida) : soloMaterialDelVehiculo(unidades),
+    );
     const payload = {
       creado_desde: "acceso_web",
       tipo_operacion: tipoOperacion,
@@ -794,165 +832,12 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
               />
 
               <SectionDivider
-                label="Vehículo"
-                icon={<Truck className="w-3 h-3" />}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <FieldLabel required>Tipo de vehículo</FieldLabel>
-                  <SelectorTipoVehiculo
-                    value={tipoVehiculo}
-                    onChange={(t) => { setTipoVehiculo(t); clearAiField("tipoVehiculo"); }}
-                    aiFilled={aiFilledFields.has("tipoVehiculo")}
-                    invalid={showValidation && !tipoVehiculo.trim()}
-                  />
-                  {showValidation && !tipoVehiculo.trim() && (
-                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
-                  )}
-                </div>
-                <div>
-                  <FieldLabel required>Línea</FieldLabel>
-                  <Input
-                    className={cn("text-sm", showValidation && !transportista.trim() && "border-red-300 bg-red-50")}
-                    placeholder="Nombre de la línea transportista"
-                    value={transportista}
-                    onChange={(e) => setTransportista(e.target.value)}
-                  />
-                  {showValidation && !transportista.trim() && (
-                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <FieldLabel required>{campos.tracto ? "Placa de tracto" : "Placa del vehículo"}</FieldLabel>
-                  <div className="relative">
-                    <Input
-                      className={cn(
-                        "text-sm font-mono uppercase",
-                        aiFilledFields.has("placa") &&
-                          "border-violet-200 bg-violet-50/40",
-                        showValidation && !placa.trim() && "border-red-300 bg-red-50",
-                      )}
-                      placeholder="AB-1234-C"
-                      value={placa}
-                      onChange={(e) => {
-                        setPlaca(e.target.value);
-                        clearAiField("placa");
-                      }}
-                    />
-                    {aiFilledFields.has("placa") && (
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none">
-                        <Sparkles className="w-2.5 h-2.5" /> IA
-                      </span>
-                    )}
-                  </div>
-                  {showValidation && !placa.trim() && (
-                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
-                  )}
-                </div>
-                {campos.tracto && (
-                  <div>
-                    <FieldLabel required>No. de tracto</FieldLabel>
-                    <div className="relative">
-                      <Input
-                        className={cn(
-                          "text-sm",
-                          aiFilledFields.has("noEconomico") && "border-violet-200 bg-violet-50/40",
-                          showValidation && !noEconomico.trim() && "border-red-300 bg-red-50",
-                        )}
-                        placeholder="Ej. ECO-001"
-                        value={noEconomico}
-                        onChange={(e) => { setNoEconomico(e.target.value); clearAiField("noEconomico"); }}
-                      />
-                      {aiFilledFields.has("noEconomico") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
-                    </div>
-                    {showValidation && !noEconomico.trim() && (
-                      <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Pickup y rígidos (torton, rabón, 3.5 t) no traen remolque. */}
-              {campos.caja && (
-                <>
-                <SectionDivider
-                  label="Remolque"
-                  icon={<Package className="w-3 h-3" />}
-                />
-
-                <RenglonesRemolque
-                  unidades={unidades}
-                  setUnidades={setUnidades}
-                  sueltos={contenedoresSueltos}
-                  onLigarSuelto={linkContenedorSuelto}
-                  requerido={campos.caja && !cajaRapidaOpcional(tipoVehiculo)}
-                  showValidation={showValidation}
-                  tipoVehiculo={tipoVehiculo}
-                  conSello={tipoOperacion !== "Recolección"}
-                />
-                </>
-              )}
-
-              <SectionDivider
-                label="Material"
-                icon={<Package className="w-3 h-3" />}
-              />
-              <MaterialesCarga unidades={unidades} setUnidades={setUnidades} />
-
-              <SectionDivider label="Origen y documento" />
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <FieldLabel>Procedencia</FieldLabel>
-                  <div className="relative">
-                    <Input
-                      className={cn(
-                        "text-sm",
-                        aiFilledFields.has("procedencia") && "border-violet-200 bg-violet-50/40",
-                      )}
-                      placeholder="Ej. Bodega central del proveedor"
-                      value={procedencia}
-                      onChange={(e) => { setProcedencia(e.target.value); clearAiField("procedencia"); }}
-                    />
-                    {aiFilledFields.has("procedencia") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
-                  </div>
-                </div>
-                <div>
-                  <FieldLabel required>Factura / Orden de compra</FieldLabel>
-                  <Input
-                    className={cn("text-sm", showValidation && !tieneMinCaracteres(ordenCompra) && "border-red-300 bg-red-50")}
-                    placeholder="Mín. 4 caracteres"
-                    value={ordenCompra}
-                    onChange={(e) => setOrdenCompra(e.target.value)}
-                  />
-                  {showValidation && !tieneMinCaracteres(ordenCompra) && (
-                    <p className="text-[10px] text-red-500 mt-1">Mínimo 4 caracteres</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <FieldLabel>Proveedor / Cliente</FieldLabel>
-                  <Input
-                    className="text-sm"
-                    placeholder="Nombre del proveedor o cliente"
-                    value={proveedorCliente}
-                    onChange={(e) => setProveedorCliente(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <SectionDivider
                 label="Conductor"
                 icon={<Search className="w-3 h-3" />}
               />
 
-              {/* Vigencia y RFC no se muestran: los lee la IA de la licencia y se
+              {/* Conductor primero (junta 19 oct).
+                  Vigencia y RFC no se muestran: los lee la IA de la licencia y se
                   guardan igual; la vigencia solo se avisa si viene vencida. El
                   nombre vuelve a verse (junta 16 oct), lo llena la IA. */}
               {licenciaVencida && (
@@ -1028,6 +913,157 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                   </div>
                 </div>
               </div>
+
+              <SectionDivider
+                label="Vehículo"
+                icon={<Truck className="w-3 h-3" />}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <FieldLabel required>Tipo de vehículo</FieldLabel>
+                  <SelectorTipoVehiculo
+                    value={tipoVehiculo}
+                    onChange={(t) => { setTipoVehiculo(t); clearAiField("tipoVehiculo"); }}
+                    aiFilled={aiFilledFields.has("tipoVehiculo")}
+                    invalid={showValidation && !tipoVehiculo.trim()}
+                  />
+                  {showValidation && !tipoVehiculo.trim() && (
+                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
+                  )}
+                </div>
+                <div>
+                  <FieldLabel required>Línea</FieldLabel>
+                  <Input
+                    className={cn("text-sm", showValidation && !transportista.trim() && "border-red-300 bg-red-50")}
+                    placeholder="Nombre de la línea transportista"
+                    value={transportista}
+                    onChange={(e) => { setTransportista(e.target.value); clearAiField("transportista"); }}
+                  />
+                  {showValidation && !transportista.trim() && (
+                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <FieldLabel required>{campos.tracto ? "Placa de tracto" : "Placa del vehículo"}</FieldLabel>
+                  <div className="relative">
+                    <Input
+                      className={cn(
+                        "text-sm font-mono uppercase",
+                        aiFilledFields.has("placa") &&
+                          "border-violet-200 bg-violet-50/40",
+                        showValidation && !placa.trim() && "border-red-300 bg-red-50",
+                      )}
+                      placeholder="AB-1234-C"
+                      value={placa}
+                      onChange={(e) => {
+                        setPlaca(e.target.value);
+                        clearAiField("placa");
+                      }}
+                    />
+                    {aiFilledFields.has("placa") && (
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none">
+                        <Sparkles className="w-2.5 h-2.5" /> IA
+                      </span>
+                    )}
+                  </div>
+                  {showValidation && !placa.trim() && (
+                    <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
+                  )}
+                </div>
+                {campos.tracto && (
+                  <div>
+                    <FieldLabel>No. de tracto</FieldLabel>
+                    <div className="relative">
+                      <Input
+                        className={cn(
+                          "text-sm",
+                          aiFilledFields.has("noEconomico") && "border-violet-200 bg-violet-50/40",
+                        )}
+                        placeholder="Ej. ECO-001"
+                        value={noEconomico}
+                        onChange={(e) => { setNoEconomico(e.target.value); clearAiField("noEconomico"); }}
+                      />
+                      {aiFilledFields.has("noEconomico") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Pickup y rígidos (torton, rabón, 3.5 t) no traen remolque. */}
+              {campos.caja && (
+                <>
+                <SectionDivider
+                  label="Remolque"
+                  icon={<Package className="w-3 h-3" />}
+                />
+
+                <RenglonesRemolque
+                  unidades={unidades}
+                  setUnidades={setUnidades}
+                  sueltos={contenedoresSueltos}
+                  onLigarSuelto={linkContenedorSuelto}
+                  requerido={campos.caja && !cajaRapidaOpcional(tipoVehiculo)}
+                  showValidation={showValidation}
+                  tipoVehiculo={tipoVehiculo}
+                  conSello={tipoOperacion !== "Recolección"}
+                />
+                </>
+              )}
+
+              <SectionDivider
+                label="Material"
+                icon={<Package className="w-3 h-3" />}
+              />
+              <MaterialesCarga unidades={unidades} setUnidades={setUnidades} sinCajas={!campos.caja} />
+
+              <SectionDivider label="Origen y documento" />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <FieldLabel>Procedencia</FieldLabel>
+                  <div className="relative">
+                    <Input
+                      className={cn(
+                        "text-sm",
+                        aiFilledFields.has("procedencia") && "border-violet-200 bg-violet-50/40",
+                      )}
+                      placeholder="Ej. Bodega central del proveedor"
+                      value={procedencia}
+                      onChange={(e) => { setProcedencia(e.target.value); clearAiField("procedencia"); }}
+                    />
+                    {aiFilledFields.has("procedencia") && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none"><Sparkles className="w-2.5 h-2.5" /> IA</span>}
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel required>Factura / Orden de compra</FieldLabel>
+                  <Input
+                    className={cn("text-sm", showValidation && !tieneMinCaracteres(ordenCompra) && "border-red-300 bg-red-50")}
+                    placeholder="Mín. 4 caracteres"
+                    value={ordenCompra}
+                    onChange={(e) => { setOrdenCompra(e.target.value); clearAiField("ordenCompra"); }}
+                  />
+                  {showValidation && !tieneMinCaracteres(ordenCompra) && (
+                    <p className="text-[10px] text-red-500 mt-1">Mínimo 4 caracteres</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <FieldLabel>Proveedor / Cliente</FieldLabel>
+                  <Input
+                    className="text-sm"
+                    placeholder="Nombre del proveedor o cliente"
+                    value={proveedorCliente}
+                    onChange={(e) => { setProveedorCliente(e.target.value); clearAiField("proveedorCliente"); }}
+                  />
+                </div>
+              </div>
+
             </>
           )}
         </div>
@@ -1053,12 +1089,14 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
             // a la captura manual.
             const listas = documentos.filter((d) => d.file_url).length;
             const subiendo = documentos.some((d) => d.uploading);
+            // Mismas fotos que ya se analizaron: se regresa sin llamar a la IA.
+            const yaAnalizadas = listas > 0 && firmaFotos() === firmaAnalizada;
             const puede = !!tipoOperacion && !!tipoVehiculo.trim() && !subiendo && !aiAnalyzing;
             return (
               <Button
                 disabled={!puede}
                 onClick={async () => {
-                  if (listas === 0) { setModo("manual"); return; }
+                  if (listas === 0 || yaAnalizadas) { setModo("manual"); return; }
                   // La IA llena el formulario; lo que falte queda marcado en rojo.
                   if (await analyzePhotosWithAI()) { setShowValidation(true); setModo("manual"); }
                 }}
@@ -1074,7 +1112,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
                   "Elige el tipo de vehículo"
                 ) : subiendo ? (
                   "Subiendo fotos…"
-                ) : listas > 0 ? (
+                ) : listas > 0 && !yaAnalizadas ? (
                   <>
                     <Sparkles className="w-4 h-4" />
                     Analizar y continuar

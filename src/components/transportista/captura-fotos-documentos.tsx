@@ -141,7 +141,7 @@ export function CapturaFotosDocumentos({ fotos, onCapturar, onQuitar, onCambiarT
                   onClick={() => setPreTipo(t.value)}
                   className={cn(
                     "flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl text-xs font-semibold transition-all backdrop-blur-sm",
-                    preTipo === t.value ? "bg-white text-blue-700" : "bg-white/15 text-white hover:bg-white/25",
+                    preTipo === t.value ? "bg-white text-blue-700" : "bg-black/45 text-white border border-white/20 hover:bg-black/60",
                   )}>
                   <t.icon className="w-5 h-5" />
                   {t.label}
