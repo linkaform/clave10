@@ -848,7 +848,10 @@ const PaseEntradaPage = () => {
           : "cualquier_día",
       config_dias_acceso: config_dias_acceso,
       config_limitar_acceso: Number(data.config_limitar_acceso) || 0,
-      areas: areasList,
+      // Con "Todas las áreas" no se manda la selección parcial previa de areasList.
+      areas: todasAreas
+        ? areasDisponiblesPorUbicacion.map((nombre) => ({ nombre_area: nombre, commentario_area: "" }))
+        : areasList,
       comentarios: [
         { tipo_comentario: "pase", comentario_pase: data.descripcion },
       ],
