@@ -11,6 +11,8 @@ interface AreaDetalle {
 interface UbicacionDetalle {
   ubicacion: string;
   es_default: boolean;
+  /** false = solo lectura (Permiso en configuracion_areas_y_empleados) */
+  escritura?: boolean;
   areas: AreaDetalle[];
 }
 

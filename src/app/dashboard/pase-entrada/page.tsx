@@ -306,9 +306,14 @@ const PaseEntradaPage = () => {
   const pickerRef = useRef<any>(null);
 
   
-  // Formatear ubicaciones del store como { id, name }
+  // Formatear ubicaciones del store como { id, name }. Las de solo lectura no se
+  // ofrecen para crear pases; escritura ausente (back viejo o store persistido)
+  // cuenta como escritura.
   const ubicacionesFormatteadoStore = ubicacionesStore
     .filter((u: string) => u !== null && u !== undefined)
+    .filter((u: string) =>
+      locationDetails.find((d) => d.ubicacion === u)?.escritura !== false,
+    )
     .map((u: string) => ({ id: u, name: u }));
 
   const ubicacionesDefaultFormatted = defaultLocations
