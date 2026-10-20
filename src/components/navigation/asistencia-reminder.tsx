@@ -39,7 +39,7 @@ export function AsistenciaReminder() {
       <span className="flex-1 min-w-0 flex flex-col gap-[3px]">
         <span className="text-sm font-semibold text-slate-900">Registra tu asistencia</span>
         <span className="text-[13px] leading-[1.45] text-slate-500">
-          Tu estatus es Ausente. Cámbialo a Disponible para registrar tu asistencia.
+          Estás como Ausente. Cámbiate a Disponible.
         </span>
         <button
           type="button"
