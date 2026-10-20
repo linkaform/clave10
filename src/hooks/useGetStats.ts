@@ -19,7 +19,7 @@ export const useGetStats = (
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const data = await getStats(location, area, page, month, year, dateFrom, dateTo, filterDate, dynamicFilters);
-      return data.response?.data;
+      return data.response?.data ?? null;
     },
   });
 

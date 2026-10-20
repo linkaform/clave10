@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { NuevoAccesoTransportistaModal } from "@/components/modals/nuevo-acceso-transportista-modal";
 import { RegistrarLlegadaPaseModal } from "@/components/modals/registrar-llegada-pase-modal";
@@ -44,8 +43,8 @@ import {
 } from "@/hooks/transportistas/useTransportistaFilters";
 import { useConfigFlujoTransportista } from "@/hooks/transportistas/useConfigFlujoTransportista";
 import useAuthStore from "@/store/useAuthStore";
-import { useBoothStore } from "@/store/useBoothStore";
-import { useGetShift } from "@/hooks/useGetShift";
+import { useCheckIn } from "@/hooks/useCheckIn";
+import { RequiereCheckIn } from "@/components/checkin/requiere-checkin";
 
 // ─── Columnas del kanban ────────────────────────────────────────────────────
 
@@ -350,8 +349,8 @@ export default function BitacorasTransportistasPage() {
   const [limit, setLimit] = useState(25);
 
   const { isAuth } = useAuthStore();
-  const { area, location } = useBoothStore();
-  const { isLoading: loadingShift, turno } = useGetShift(area, location);
+  const { checkIn, isLoading: loadingShift } = useCheckIn();
+  const turno = !!checkIn;
 
   const {
     externalFilters,
@@ -463,24 +462,9 @@ export default function BitacorasTransportistasPage() {
     setFecha(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
   };
 
-  // Igual que en accesos/page.tsx: sin turno abierto no se puede operar esta pantalla.
+  // Igual que en accesos/page.tsx: sin Check In abierto no se puede operar esta pantalla.
   if (!turno && isAuth && !loadingShift) {
-    return (
-      <div className="flex justify-center items-center overflow-hidden mt-32">
-        <div className="flex items-center flex-col gap-2">
-          <Image src="/guardia1.png" alt="Next.js img" width={300} height={300} priority />
-          <div className="text-2xl font-bold">Inicia turno para comenzar...</div>
-          <p className="text-gray-500">Activa tus funciones registrando el inicio de turno.</p>
-          <Link href="/dashboard/turnos">
-            <Button
-              className="w-40 h-9 mt-5 px-3 border border-blue-500 bg-blue-500 rounded-md text-sm text-white font-medium hover:bg-blue-600"
-              variant="default">
-              Turnos
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
+    return <RequiereCheckIn />;
   }
 
   return (

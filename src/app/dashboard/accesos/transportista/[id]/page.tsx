@@ -3,13 +3,11 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import useAuthStore from "@/store/useAuthStore";
-import { useBoothStore } from "@/store/useBoothStore";
-import { useGetShift } from "@/hooks/useGetShift";
-import { Button } from "@/components/ui/button";
+import { useCheckIn } from "@/hooks/useCheckIn";
+import { RequiereCheckIn } from "@/components/checkin/requiere-checkin";
 import {
   ArrowLeft,
   ArrowRight,
@@ -2244,8 +2242,8 @@ export default function DetalleTransportistaPage() {
   const esRecoleccion = !!data?.tipo_operacion?.toLowerCase().includes("recolec");
   const queryClient = useQueryClient();
   const { isAuth } = useAuthStore();
-  const { area, location } = useBoothStore();
-  const { isLoading: loadingShift, turno } = useGetShift(area, location);
+  const { checkIn, isLoading: loadingShift } = useCheckIn();
+  const turno = !!checkIn;
   // Precarga los puntos de inspección desde que se abre el detalle, en paralelo
   // con el registro, para que el modal de inspección abra sin spinner propio.
   // Arranca con los form_id por default (ubicación aún no cargada) y se re-resuelve
@@ -3336,25 +3334,10 @@ export default function DetalleTransportistaPage() {
     );
   }
 
-  // Igual que en accesos/page.tsx y bitacoras_transportistas: sin turno abierto
+  // Igual que en accesos/page.tsx y bitacoras_transportistas: sin Check In abierto
   // no se puede operar esta pantalla.
   if (!turno && isAuth && !loadingShift) {
-    return (
-      <div className="flex justify-center items-center overflow-hidden mt-32">
-        <div className="flex items-center flex-col gap-2">
-          <Image src="/guardia1.png" alt="Next.js img" width={300} height={300} priority />
-          <div className="text-2xl font-bold">Inicia turno para comenzar...</div>
-          <p className="text-gray-500">Activa tus funciones registrando el inicio de turno.</p>
-          <Link href="/dashboard/turnos">
-            <Button
-              className="w-40 h-9 mt-5 px-3 border border-blue-500 bg-blue-500 rounded-md text-sm text-white font-medium hover:bg-blue-600"
-              variant="default">
-              Turnos
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
+    return <RequiereCheckIn />;
   }
 
   // Registro descartado: no completó el flujo real, así que no se muestra la

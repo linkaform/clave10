@@ -1,67 +1,58 @@
 "use client";
 
 import { MainLayout } from "@/components/Layout/MainLayout";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useGetMenu } from "@/hooks/useGetMenu";
+import { RecentMovements } from "@/components/home/recent-movements";
+import { FavoriteActions } from "@/components/home/favorite-actions";
+import { NoticesCarousel } from "@/components/home/notices-carousel";
+import { AssistantChat } from "@/components/home/assistant-chat";
+import useAuthStore from "@/store/useAuthStore";
+import { CheckInStatus } from "@/components/checkin/checkin-status";
+
+function greeting(hour: number) {
+  if (hour < 12) return "Buenos días";
+  if (hour < 19) return "Buenas tardes";
+  return "Buenas noches";
+}
 
 export default function Home() {
-    const router = useRouter();
-    const { menuItems, isLoadingMenu } = useGetMenu();
-    
-    // useEffect(()=>{
-    //     if (!area && !location) {
-	// 		fetchShift();
-	// 	}
-    // },[area, location, fetchShift])
+  const { userNameSoter, newUserUsername } = useAuthStore();
 
+  // Algunas cuentas traen el correo como nombre: se usa lo que va antes de "@".
+  const rawName = (newUserUsername || userNameSoter || "").trim().split(/\s+/)[0] || "Usuario";
+  const firstName = rawName.split("@")[0];
+  const now = new Date();
+  const date = now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
 
-    const handleClick = (menuName: string) => {
-        router.push(`/dashboard/${menuName}`); 
-    };
-
-    return (
-        <MainLayout>
-            <link rel="icon" href="/favicon.ico" type="image/svg+xml" />
-            <div className="flex justify-center items-start min-h-screen">
-                {isLoadingMenu ? (
-                    <div className="flex justify-center items-center h-screen">
-                        <div className="w-24 h-24 border-8 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-                    </div>
-                ) : (
-                    <div className="flex flex-wrap gap-5 p-4 justify-center items-center sm:w-1/2 md:w-1/3 lg:w-4/6">
-                        {menuItems?.length > 0 ? (
-                            menuItems.sort((a, b) => {
-                                if (a.id === "pases") return -1;  // pases va primero
-                                if (b.id === "pases") return 1;   // si {b} es pases, {a} va antes
-                                if (a.id === "turnos") return -1;  // turnos va después de pases
-                                if (b.id === "turnos") return 1;   // si {b} es turnos, {a} va antes
-                                return 0; 
-                            }).map((item) => {
-                                    return (
-                                        <div key={item.id} className="flex flex-wrap">
-                                            <div
-                                                onClick={() => handleClick(item.id)}
-                                                className="text-center p-4 bg-gray-100 rounded-lg shadow-md flex flex-col justify-center items-center w-64 h-40 group transition-transform duration-200 transform hover:scale-105 hover:bg-gray-200 cursor-pointer hover:shadow-[0_4px_4px_rgba(0,0,0,0.2)]"
-                                            >
-                                                <Image
-                                                    width={250}
-                                                    height={250}
-                                                    alt={item.id}
-                                                    src={`/${item.id}.svg`}
-                                                    className="aspect-square rounded-md group-hover:opacity-75 h-12"
-                                                />
-                                                <p className="mt-2 text-lg">{item.label == "Pases de entrada"? "Pases De Entrada": item.label }</p>
-                                            </div>
-                                        </div>
-                                    );
-                            })
-                        ) : (
-                            <div>No hay menus disponibles, revisa la configuración.</div>
-                        )}
-                    </div>
-                )}
+  return (
+    <MainLayout>
+      <link rel="icon" href="/favicon.ico" type="image/svg+xml" />
+      <div className="min-h-[calc(100vh-4rem)] bg-[#F3F5F8]">
+        <div className="w-full max-w-[1600px] mx-auto px-4 py-5 md:px-8 md:py-6 pb-24 flex flex-col gap-5">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="min-w-0 flex flex-col gap-1.5">
+              <div className="text-[13px] font-medium text-slate-500 first-letter:uppercase">{date}</div>
+              <h1 className="text-[28px] font-semibold leading-[1.15] tracking-[-0.025em] text-slate-900">
+                {greeting(now.getHours())}, {firstName}
+              </h1>
+              <CheckInStatus.Detail />
             </div>
-        </MainLayout>
-    );
+            <CheckInStatus.Pill />
+          </div>
+
+          <div className="flex flex-col lg:flex-row lg:h-[max(600px,calc(100vh-190px))] gap-4">
+            <div className="lg:flex-[0_0_clamp(300px,27%,420px)] min-w-0 min-h-0 flex flex-col">
+              <RecentMovements className="flex-1" />
+            </div>
+            <div className="lg:flex-1 min-w-0 min-h-0 flex flex-col gap-4">
+              <FavoriteActions className="lg:flex-1 lg:min-h-0" />
+              <NoticesCarousel className="lg:flex-[0_0_36%]" />
+            </div>
+            <div className="lg:flex-[0_0_clamp(300px,27%,420px)] min-w-0 min-h-0 flex flex-col">
+              <AssistantChat userName={firstName} className="flex-1" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </MainLayout>
+  );
 }

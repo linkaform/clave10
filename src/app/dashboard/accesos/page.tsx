@@ -41,7 +41,8 @@ import { useSearchPass } from "@/hooks/useSearchPass";
 import { useAccessStore } from "@/store/useAccessStore";
 import { AddVisitModal } from "@/components/modals/add-visit-modal";
 import { toast } from "sonner";
-import { useGetShift } from "@/hooks/useGetShift";
+import { useBoothConfig, useCheckIn } from "@/hooks/useCheckIn";
+import { RequiereCheckIn } from "@/components/checkin/requiere-checkin";
 import { exitRegister, registerIncoming } from "@/lib/access";
 import { getImgPassUrl } from "@/lib/endpoints";
 import { getPdfMulti } from "@/lib/get-pdf-multi";
@@ -60,7 +61,6 @@ import { ScanPassOptionsModal } from "@/components/modals/scan-pass-options";
 import Swal from "sweetalert2";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { UpdatePassModal } from "@/components/modals/complete-pass-accesos";
-import Image from "next/image";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useMenuStore } from "@/store/useGetMenuStore";
@@ -76,7 +76,9 @@ const AccesosContent = () => {
   const { isAuth, userParentId } = useAuthStore();
   const { area, location, extra_locations } = useBoothStore();
   const { excludes }= useMenuStore()
-  const { shift, isLoading:loadingShift, turno, downloadPass} = useGetShift(area,location);
+  const { checkIn, isLoading: loadingShift } = useCheckIn();
+  const turno = !!checkIn;
+  const { data: downloadPass = [] } = useBoothConfig(location);
   const {setTab, setFilter, setOption} = useShiftStore();
   const { passCode, setPassCode, clearPassCode, selectedEquipos, setSelectedEquipos, setSelectedVehiculos, selectedVehiculos, setTipoMovimiento, tipoMovimiento} = useAccessStore();
   // Ids de los pases de acompañantes seleccionados en el carrusel/modal
@@ -436,33 +438,7 @@ const AccesosContent = () => {
     );
   }
   if (!turno && isAuth) {
-    return (
-      <div className="flex justify-center items-center overflow-hidden mt-32">
-        <div className="flex items-center flex-col gap-2">
-          <Image
-            src="/guardia1.png"
-            alt="Next.js img"
-            width={300}
-            height={300}
-            priority
-          />
-
-          <div className="text-2xl font-bold">
-            Inicia turno para comenzar...
-          </div>
-          <p className="text-gray-500">
-            Activa tus funciones registrando el inicio de turno.
-          </p>
-          <Link href="/dashboard/turnos">
-            <Button
-              className="w-40 h-9 mt-5 px-3 border border-blue-500 bg-blue-500 rounded-md text-sm text-white font-medium hover:bg-blue-600"
-              variant="default">
-              Turnos
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
+    return <RequiereCheckIn />;
   }
 
   return (
@@ -513,9 +489,9 @@ const AccesosContent = () => {
 						<Button
 						className="bg-green-600 hover:bg-green-700"
 						onClick={() => {
-							if (shift?.guard?.status_turn === "Turno Cerrado") {
+							if (!turno) {
 							toast.error(
-								"¡Debes iniciar turno antes de registrar un ingreso!."
+								"¡Debes hacer Check In antes de registrar un ingreso!."
 							);
 							return;
 							}
@@ -535,9 +511,9 @@ const AccesosContent = () => {
 						<Button
 						className="bg-red-500 hover:bg-red-600 text-white"
 						onClick={() => {
-							if (shift?.guard?.status_turn === "Turno Cerrado") {
+							if (!turno) {
 							toast.error(
-								"¡Debes iniciar turno antes de registrar una salida!."
+								"¡Debes hacer Check In antes de registrar una salida!."
 							);
 							return;
 							}

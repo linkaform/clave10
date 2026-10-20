@@ -6,7 +6,6 @@ interface ShiftStore {
 
 	area: string;
   location: string;
-  checkin_id: string | undefined;
   isLoading:boolean;
   tab: string;
   filter: string;
@@ -16,7 +15,6 @@ interface ShiftStore {
   setArea: (area: string) => void;
   setLocation: (location: string) => void;
   setLoading:(loading:boolean)=>void;
-  setCheckin_id: (id: string | undefined) => void;
   setTab: (tab: string) => void;
   setFilter: (filter: string) => void;
   setOption: (option: string[]) => void;
@@ -29,7 +27,6 @@ export const useShiftStore = create(
     (set) => ({
       area: "",
       location: "",
-      checkin_id: undefined,
       tab: "",
       filter: "",
       option: [],
@@ -39,7 +36,6 @@ export const useShiftStore = create(
       setLoading:(isLoading)=> set({isLoading}),
       setArea: (area) => set({ area }),
       setLocation: (location) => set({ location }),
-      setCheckin_id: (id) => set({ checkin_id: id }),
       setTab: (tab) => set({ tab }),
       setFilter: (filter) => set({ filter }),
       setOption: (option) => set({ option }),
@@ -48,7 +44,6 @@ export const useShiftStore = create(
       clearShift: () => set({
         area: "",
         location: "",
-        checkin_id: undefined,
         tab: "",
         filter: "",
         option: [],

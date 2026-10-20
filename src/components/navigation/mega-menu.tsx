@@ -14,6 +14,7 @@ import {
 } from "@/components/navigation/navigation-menu";
 import type { MenuModule, MenuSection, MenuItem } from "@/types/menu-types";
 import { groupSectionsByColumn } from "@/types/menu-types";
+import { MenuItemLabel } from "./menu-item-label";
 
 interface MegaMenuProps {
   modules: MenuModule[];
@@ -25,8 +26,8 @@ export function MegaMenu({ modules, basePath = "/dashboard" }: MegaMenuProps) {
   const sortedModules = [...modules].sort((a, b) => a.order - b.order);
 
   return (
-    <NavigationMenu viewport={false}>
-      <NavigationMenuList>
+    <NavigationMenu viewport={false} className="max-w-none justify-end">
+      <NavigationMenuList className="flex-wrap justify-end gap-0.5">
         {sortedModules.map((module) => (
           <MegaMenuItem
             key={module.id}
@@ -38,6 +39,17 @@ export function MegaMenu({ modules, basePath = "/dashboard" }: MegaMenuProps) {
       </NavigationMenuList>
     </NavigationMenu>
   );
+}
+
+const triggerClassName =
+  "h-8 w-max inline-flex items-center rounded-lg bg-transparent px-[7px] xl:px-[9px] 2xl:px-[11px] text-[13px] xl:text-sm font-medium whitespace-nowrap text-slate-800 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:bg-slate-100 focus:outline-none data-[state=open]:bg-transparent data-[state=open]:text-button-primary data-[state=open]:hover:bg-slate-100 data-[state=open]:focus:bg-slate-100";
+
+function resolveHref(href: string, basePath: string) {
+  if (href.startsWith("/") && !href.startsWith(basePath)) {
+    const [path, query] = href.split("?");
+    return `${basePath}${path}${query ? `?${query}` : ""}`;
+  }
+  return href;
 }
 
 interface MegaMenuItemProps {
@@ -54,10 +66,7 @@ function MegaMenuItem({ module, basePath, isActive }: MegaMenuItemProps) {
         <NavigationMenuLink asChild>
           <Link
             href={module.href}
-            className={cn(
-              "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-              isActive && "text-primary font-semibold",
-            )}>
+            className={cn(triggerClassName, isActive && "text-button-primary")}>
             {module.label}
           </Link>
         </NavigationMenuLink>
@@ -69,56 +78,32 @@ function MegaMenuItem({ module, basePath, isActive }: MegaMenuItemProps) {
   const populatedColumns = Array.from(columnGroups.entries())
     .sort(([a], [b]) => a - b)
     .map(([, sections]) => sections);
-  const maxColumns = populatedColumns.length || 1;
   const hasSidebar = module.sidebar && module.sidebar.items.length > 0;
-  // Con más de 4 columnas el menú ya no cabe centrado bajo su trigger sin
-  // salirse de la ventana, así que se vuelve una barra de ancho completo.
-  const isFullWidth = maxColumns > 4;
 
   return (
-    <NavigationMenuItem>
+    <NavigationMenuItem className="static">
       <NavigationMenuTrigger
         className={cn(
-          "bg-transparent data-[state=open]:bg-accent/50",
-          isActive && "text-primary font-semibold",
+          triggerClassName,
+          "[&>svg]:hidden",
+          isActive && "text-button-primary",
         )}>
         {module.label}
       </NavigationMenuTrigger>
-      <NavigationMenuContent
-        className={
-          isFullWidth
-            ? "md:!fixed md:!top-[57px] md:!left-0 md:!right-0 md:!mt-0 md:!w-screen md:!translate-x-0"
-            : "md:left-1/2 md:-translate-x-1/2"
-        }>
-        <div className={cn("flex", isFullWidth && "mx-auto max-w-[1400px] px-6 lg:px-12")}>
-          {/* Contenido principal del menú */}
-          <div
-            className={cn(
-              "grid gap-6 p-6",
-              !isFullWidth && maxColumns === 1 && "w-[220px]",
-              !isFullWidth && maxColumns === 2 && "w-[420px] grid-cols-2",
-              !isFullWidth && maxColumns === 3 && "w-[580px] grid-cols-3",
-              !isFullWidth && maxColumns === 4 && "w-[750px] grid-cols-4",
-              isFullWidth && "w-full",
-            )}
-            style={
-              isFullWidth
-                ? { gridTemplateColumns: `repeat(${maxColumns}, minmax(160px, 1fr))` }
-                : undefined
-            }>
-            {populatedColumns.map((sections, i) => (
-              <MenuColumn
-                key={i}
-                sections={sections}
-                basePath={basePath}
-                moduleKey={module.key}
-              />
-            ))}
-          </div>
+      {/* Panel de ancho completo pegado al borde inferior del header (h-16). */}
+      <NavigationMenuContent className="md:!fixed md:!top-16 md:!left-0 md:!right-0 md:!mt-0 md:!w-screen !p-0 md:!rounded-none md:!border-0 md:!border-b md:!border-gray-200 md:!bg-white md:!shadow-[0_16px_32px_rgba(15,23,42,.08)] max-h-[calc(100vh-4rem)] overflow-y-auto">
+        <div className="flex flex-wrap justify-center items-start gap-x-10 2xl:gap-x-14 gap-y-7 px-6 pt-7 pb-8">
+          {populatedColumns.map((sections, i) => (
+            <MenuColumn
+              key={i}
+              sections={sections}
+              basePath={basePath}
+              moduleKey={module.key}
+            />
+          ))}
 
-          {/* Sidebar opcional */}
           {hasSidebar && (
-            <div className="border-l border-border bg-muted/30 p-6 w-[180px]">
+            <div className="min-w-[168px] pl-10 border-l border-slate-100">
               <MenuSidebar items={module.sidebar!.items} basePath={basePath} />
             </div>
           )}
@@ -138,14 +123,11 @@ function MenuColumn({ sections, basePath, moduleKey }: MenuColumnProps) {
   const sortedSections = [...sections].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="flex flex-col gap-4">
-      {sortedSections.map((section) => (
-        <MenuSectionComponent
-          key={section.id}
-          section={section}
-          basePath={basePath}
-          moduleKey={moduleKey}
-        />
+    <div className="min-w-[168px] flex flex-col gap-2.5">
+      {sortedSections.map((section, i) => (
+        <div key={section.id} className={cn(i > 0 && "pt-2.5 border-t border-gray-200")}>
+          <MenuSectionComponent section={section} basePath={basePath} moduleKey={moduleKey} />
+        </div>
       ))}
     </div>
   );
@@ -163,35 +145,20 @@ function MenuSectionComponent({
   moduleKey,
 }: MenuSectionComponentProps) {
   const sortedItems = [...section.items].sort((a, b) => a.order - b.order);
-
-  const SectionLabel = () => (
-    <h4
-      className={cn(
-        "text-sm font-semibold mb-2 text-foreground transition-colors",
-        section.href && "hover:text-primary relative group/section w-max",
-      )}>
-      {section.label}
-      {section.href && (
-        <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover/section:w-1/2" />
-      )}
-    </h4>
-  );
+  const titleClassName = "text-sm font-bold text-slate-900 transition-colors";
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-1.5">
       {section.href ? (
         <Link
-          href={
-            section.href.startsWith("/") && !section.href.startsWith(basePath)
-              ? `${basePath}${section.href}`
-              : section.href
-          }>
-          <SectionLabel />
+          href={resolveHref(section.href, basePath)}
+          className={cn(titleClassName, "w-max hover:text-button-primary")}>
+          {section.label}
         </Link>
       ) : (
-        <SectionLabel />
+        <h4 className={titleClassName}>{section.label}</h4>
       )}
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-0.5">
         {sortedItems.map((item) => (
           <MenuItemComponent
             key={item.key}
@@ -219,29 +186,19 @@ function MenuItemComponent({
   moduleKey,
   sectionKey,
 }: MenuItemComponentProps) {
-  let href = item.href;
-
-  if (href) {
-    if (href.startsWith("/") && !href.startsWith(basePath)) {
-      const [path, query] = href.split("?");
-      href = `${basePath}${path}${query ? `?${query}` : ""}`;
-    }
-  } else {
-    href = `${basePath}/${moduleKey}/${sectionKey}/${item.key}`;
-  }
+  const href = item.href
+    ? resolveHref(item.href, basePath)
+    : `${basePath}/${moduleKey}/${sectionKey}/${item.key}`;
 
   return (
     <li>
       <Link
         href={href}
         className={cn(
-          "block text-sm py-1 transition-colors text-foreground hover:text-primary relative group/item",
-          item.type === "link" &&
-            item.variant === "primary" &&
-            "text-primary font-medium",
+          "flex items-center gap-1.5 text-sm py-1 text-slate-600 transition-colors hover:text-button-primary",
+          item.type === "link" && item.variant === "primary" && "text-button-primary font-medium",
         )}>
-        {item.label}
-        <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover/item:w-1/2" />
+        <MenuItemLabel label={item.label} />
       </Link>
     </li>
   );

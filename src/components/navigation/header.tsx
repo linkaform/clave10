@@ -6,7 +6,9 @@ import Image from "next/image";
 
 import {
   Building2,
+  Check,
   ChevronDown,
+  LogIn,
   LogOut,
   Settings,
   StickyNote,
@@ -17,19 +19,22 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MegaMenu } from "./mega-menu";
 import { MobileMenu } from "./mobile-menu";
+import { AsistenciaReminder } from "./asistencia-reminder";
 import type { MenuConfig } from "@/types/menu-types";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import { useLocationOptions } from "@/hooks/useLocationOptions";
+import { useCheckInAction } from "@/hooks/useCheckIn";
+import { CheckInWizard } from "@/components/checkin/checkin-wizard";
+import { CheckInSync } from "@/components/checkin/checkin-sync";
 
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
+import { useAsistencia } from "@/hooks/useAsistencia";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
-import { Check } from "lucide-react";
 
 interface HeaderProps {
   menuConfig: MenuConfig;
@@ -60,7 +65,8 @@ export function Header({
 }: HeaderProps) {
   const { fetchLocations } = useAreasLocationStore();
   const locations = useLocationOptions();
-  const { selectedLocations, toggleLocation } = useSelectedLocationsStore();
+  const { selectedLocations, toggleLocation, setSelectedLocations } =
+    useSelectedLocationsStore();
 
   useEffect(() => {
     useAreasLocationStore.persist.rehydrate();
@@ -69,154 +75,264 @@ export function Header({
   useEffect(() => {
     fetchLocations();
   }, [fetchLocations]);
-  
-  const handleToggleLocation = (loc: string) => {
-    toggleLocation(loc);
-  };
+
+  const allSelected =
+    locations.length > 0 && locations.every((loc) => selectedLocations.includes(loc));
 
   const triggerLabel =
     selectedLocations.length === 0
       ? "Seleccionar Ubicación"
-      : selectedLocations.length === 1
-        ? selectedLocations[0]
-        : `${selectedLocations.length} ubicaciones`;
+      : allSelected && locations.length > 1
+        ? "Todas las ubicaciones"
+        : selectedLocations.length === 1
+          ? selectedLocations[0]
+          : `${selectedLocations.length} ubicaciones`;
+
+  const userName = user?.name || "Usuario";
+  // Asistencia: Disponible abre la jornada, Ausente la cierra (employee/asistencia).
+  const { asistencia, disponible, setEstatus, isSaving } = useAsistencia();
+  const isAway = !disponible;
+  const statusDot = disponible ? "bg-green-600" : "bg-amber-500";
+  const { checkIn, run: runCheckIn } = useCheckInAction();
 
   return (
-    <header className="w-full shadow-sm py-2 px-6 lg:px-12 sticky top-0 left-0 bg-background z-50 border-b border-border">
-      <div className="mx-auto grid grid-cols-3 items-center">
-        {/* Left Section: Logo & Location */}
-        <div className="flex items-center gap-8 justify-self-start">
-          {/* Mobile/Tablet menu trigger */}
-          <MobileMenu modules={menuConfig.modules} basePath="/dashboard" />
+    <header className="w-full sticky top-0 left-0 z-50 bg-white border-b border-gray-200">
+      <div className="h-14 lg:h-16 pl-1 pr-2 lg:px-4 2xl:px-6 flex items-center gap-1 lg:gap-3 2xl:gap-5">
+        {/* Mobile/Tablet menu trigger */}
+        <MobileMenu modules={menuConfig.modules} basePath="/dashboard" />
 
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0 relative h-10 w-[120px]">
-              <Image
-                src={logo.src}
-                alt={logo.alt}
-                fill
-                priority
-                className="dark:invert object-contain object-left"
-                sizes="120px"
-              />
-            </Link>
-          </div>
+        {/* Logo */}
+        <Link href="/" className="flex-shrink-0 flex items-center">
+          <Image
+            src={logo.src}
+            alt={logo.alt}
+            width={logo.width}
+            height={logo.height}
+            priority
+            className="h-[22px] lg:h-6 w-auto object-contain"
+          />
+        </Link>
 
-          {/* Location Selector */}
-          <div className="hidden lg:flex items-center">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className={cn(
-                    "group inline-flex h-9 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 gap-2",
-                    selectedLocations.length > 0 && "text-primary",
-                  )}>
-                  <Building2 className="h-5 w-5" strokeWidth={1.5} />
-                  {triggerLabel}
-                  <ChevronDown className="h-4 w-4 opacity-50 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64 mt-1">
-                <div className="max-h-[300px] overflow-y-auto p-1">
-                  {locations.length > 0 ? (
-                    locations.map((loc) => {
-                      const isSelected = selectedLocations.includes(loc);
-                      return (
-                        <DropdownMenuItem
-                          key={loc}
-                          className="cursor-pointer rounded-sm px-3 py-2 text-sm transition-colors focus:bg-accent focus:text-accent-foreground flex items-center justify-between gap-3 text-foreground"
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            handleToggleLocation(loc);
-                          }}>
-                          {loc}
-                          <div className={cn(
-                            "h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors",
-                            isSelected ? "bg-blue-600 border-blue-600" : "border-muted-foreground/40",
-                          )}>
-                            {isSelected && <Check className="h-3 w-3 text-white" strokeWidth={2.5} />}
-                          </div>
-                        </DropdownMenuItem>
-                      );
-                    })
-                  ) : (
-                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                      No hay ubicaciones
-                    </div>
-                  )}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+        <div className="hidden lg:block w-px h-6 bg-gray-200" />
 
-        {/* Center Section: Navigation */}
-        <nav className="hidden lg:flex items-center justify-self-center">
-          <MegaMenu modules={menuConfig.modules} basePath="/dashboard" />
-        </nav>
-
-        {/* Right Section: User Menu */}
-        <div className="flex items-center justify-self-end">
+        {/* Location Selector */}
+        <div className="hidden lg:flex items-center flex-shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 focus:outline-none">
-                <span className="hidden sm:block text-xs text-muted-foreground max-w-[140px] truncate">
-                  {user?.name || "Usuario"}
+              <button
+                className="group h-9 flex items-center gap-2 pl-2 pr-2.5 rounded-lg text-sm text-neutral-900 whitespace-nowrap transition-colors hover:bg-slate-100 data-[state=open]:bg-slate-100 focus:outline-none"
+                title={triggerLabel}>
+                <Building2 className="h-4 w-4 text-slate-500" />
+                <span className="hidden xl:inline font-medium max-w-[220px] truncate">
+                  {triggerLabel}
                 </span>
-                <Avatar className="h-9 w-9 shadow-sm ring-2 ring-border hover:ring-primary transition-all cursor-pointer">
-                  <AvatarImage
-                    src={user?.avatar}
-                    alt={user?.name || "Usuario"}
-                    className="object-cover"
-                  />
-                  <AvatarFallback>
-                    <User className="h-4 w-4 text-muted-foreground" />
-                  </AvatarFallback>
-                </Avatar>
+                <ChevronDown className="h-3.5 w-3.5 text-slate-400 transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {user?.email && (
-                <>
-                  <div className="px-2 py-1.5">
-                    <p className="text-sm font-medium">
-                      {user.name || "Usuario"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {user.email}
-                    </p>
+            <DropdownMenuContent
+              align="start"
+              sideOffset={8}
+              className="w-[280px] p-0 rounded-xl border-gray-200 shadow-[0_10px_15px_-3px_rgba(15,23,42,.08),0_4px_6px_-4px_rgba(15,23,42,.06)]">
+              <div className="px-3.5 pt-3 pb-2 flex items-center justify-between gap-2">
+                <span className="text-sm font-bold text-slate-900">Ubicaciones</span>
+                {locations.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedLocations(allSelected ? [] : [...locations])}
+                    className="text-xs font-medium text-button-primary hover:text-button-primary-hover">
+                    {allSelected ? "Limpiar" : "Seleccionar todas"}
+                  </button>
+                )}
+              </div>
+              <div className="px-1.5 pb-1.5 flex flex-col gap-0.5 max-h-80 overflow-y-auto">
+                {locations.length > 0 ? (
+                  locations.map((loc) => {
+                    const isSelected = selectedLocations.includes(loc);
+                    return (
+                      <DropdownMenuItem
+                        key={loc}
+                        className="min-h-10 flex items-center gap-2.5 px-2 rounded-lg cursor-pointer text-sm text-neutral-900 focus:bg-slate-100"
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          toggleLocation(loc);
+                        }}>
+                        <div
+                          className={cn(
+                            "h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                            isSelected
+                              ? "bg-button-primary border-button-primary"
+                              : "bg-white border-slate-300",
+                          )}>
+                          {isSelected && <Check className="h-3 w-3 text-white" strokeWidth={2.5} />}
+                        </div>
+                        <span className="flex-1">{loc}</span>
+                      </DropdownMenuItem>
+                    );
+                  })
+                ) : (
+                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                    No hay ubicaciones
                   </div>
-                  <DropdownMenuSeparator />
-                </>
+                )}
+              </div>
+              {locations.length > 0 && (
+                <div className="px-3.5 py-2.5 border-t border-gray-200 text-xs text-slate-500">
+                  {selectedLocations.length} de {locations.length} seleccionadas
+                </div>
               )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-              <Link href="/dashboard/notas">
-                <DropdownMenuItem className="cursor-pointer">
-                  <StickyNote className="mr-2 h-4 w-4" />
-                  Notas
+        {/* Navigation */}
+        <nav className="hidden lg:flex flex-1 min-w-0 justify-end self-stretch">
+          <MegaMenu modules={menuConfig.modules} basePath="/dashboard" />
+        </nav>
+        <div className="flex-1 lg:hidden" />
+
+        {/* User Menu */}
+        <div className="flex items-center flex-shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="group h-11 w-11 md:w-auto flex items-center justify-center md:justify-start gap-2.5 md:pl-1 md:pr-2.5 rounded-[10px] text-left transition-colors hover:bg-slate-100 data-[state=open]:bg-slate-100 focus:outline-none">
+                <div className="relative flex-shrink-0">
+                  <Avatar className="h-8 w-8 border border-gray-200">
+                    <AvatarImage src={user?.avatar} alt={userName} className="object-cover" />
+                    <AvatarFallback>
+                      <User className="h-4 w-4 text-muted-foreground" />
+                    </AvatarFallback>
+                  </Avatar>
+                  {asistencia && (
+                    <StatusDot className={cn("absolute -right-px -bottom-px ring-2 ring-white", statusDot)} />
+                  )}
+                </div>
+                <div className="hidden xl:flex flex-col leading-tight min-w-0">
+                  <span className="text-sm font-bold text-slate-900 whitespace-nowrap max-w-[160px] truncate">
+                    {userName}
+                  </span>
+                  {user?.email && (
+                    <span className="text-xs text-slate-500 whitespace-nowrap max-w-[160px] truncate">
+                      {user.email}
+                    </span>
+                  )}
+                </div>
+                <ChevronDown className="hidden md:block h-3.5 w-3.5 text-slate-400 transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[state=open]:text-button-primary" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              sideOffset={8}
+              className="w-72 p-0 rounded-2xl border-gray-200 shadow-[0_16px_36px_rgba(15,23,42,.14)]">
+              <div className="px-4 pt-4 pb-3">
+                <div className="text-[15px] font-bold text-slate-900 truncate">{userName}</div>
+                {user?.email && (
+                  <div className="text-[13px] text-slate-500 mt-0.5 truncate">{user.email}</div>
+                )}
+              </div>
+              <div className="px-1.5 pb-1.5">
+                <DropdownMenuItem
+                  disabled={!asistencia || isSaving}
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setEstatus(isAway ? "disponible" : "ausente");
+                  }}
+                  className="h-10 gap-2.5 px-2.5 rounded-[10px] cursor-pointer text-sm font-medium text-neutral-900 focus:bg-slate-100">
+                  <StatusDot className={statusDot} />
+                  <span className="flex-1">{isSaving ? "Guardando…" : disponible ? "Disponible" : "Ausente"}</span>
+                  <span
+                    className={cn(
+                      "relative h-5 w-9 flex-shrink-0 rounded-full transition-colors duration-150",
+                      isAway ? "bg-slate-300" : "bg-green-600",
+                    )}>
+                    <span
+                      className={cn(
+                        "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,.2)] transition-[left] duration-150",
+                        isAway ? "left-0.5" : "left-[18px]",
+                      )}
+                    />
+                  </span>
                 </DropdownMenuItem>
-              </Link>
-
-              <Link href="/dashboard/configuracion">
-                <DropdownMenuItem className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Configuración
+              </div>
+              <div className="h-px bg-slate-100 mx-3" />
+              <div className="p-1.5 flex flex-col gap-0.5">
+                <DropdownMenuItem
+                  onSelect={runCheckIn}
+                  className="cursor-pointer rounded-[10px] px-2.5 py-2 gap-3 focus:bg-slate-50">
+                  <div
+                    className={cn(
+                      "h-8 w-8 flex-shrink-0 rounded-[10px] flex items-center justify-center",
+                      checkIn ? "bg-red-600/[.12] text-red-600" : "bg-[#EFF6FF] text-[#2F80ED]",
+                    )}>
+                    {checkIn ? <LogOut className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={cn("text-sm font-bold", checkIn ? "text-red-600" : "text-[#2F80ED]")}>
+                      {checkIn ? "Check Out" : "Check In"}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5 truncate">
+                      {checkIn ? `${checkIn.ubicacion} · ${checkIn.caseta}` : "Hacer Check In"}
+                    </div>
+                  </div>
                 </DropdownMenuItem>
-              </Link>
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                className="cursor-pointer text-destructive focus:text-destructive"
-                onClick={onLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Salir
-              </DropdownMenuItem>
+                <ProfileLink
+                  href="/dashboard/notas"
+                  icon={<StickyNote className="h-4 w-4" />}
+                  iconClassName="bg-amber-500/15 text-amber-600"
+                  label="Notas"
+                />
+                <ProfileLink
+                  href="/dashboard/configuracion"
+                  icon={<Settings className="h-4 w-4" />}
+                  iconClassName="bg-slate-500/10 text-slate-500"
+                  label="Configuración"
+                />
+              </div>
+              <div className="px-3 pb-3">
+                <DropdownMenuItem
+                  onClick={onLogout}
+                  className="h-10 flex items-center justify-center gap-2 rounded-[10px] cursor-pointer bg-red-50 text-sm font-bold text-red-600 focus:bg-red-100 focus:text-red-600">
+                  <LogOut className="h-4 w-4" />
+                  Salir
+                </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
+      <AsistenciaReminder />
+      <CheckInWizard />
+      <CheckInSync />
     </header>
+  );
+}
+
+function StatusDot({ className }: { className?: string }) {
+  return <span className={cn("block h-2.5 w-2.5 flex-shrink-0 rounded-full box-border", className)} />;
+}
+
+function ProfileLink({
+  href,
+  icon,
+  iconClassName,
+  label,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  iconClassName: string;
+  label: string;
+}) {
+  return (
+    <DropdownMenuItem asChild className="cursor-pointer rounded-[10px] px-2.5 py-2 gap-3 focus:bg-slate-50">
+      <Link href={href}>
+        <div
+          className={cn(
+            "h-8 w-8 flex-shrink-0 rounded-[10px] flex items-center justify-center",
+            iconClassName,
+          )}>
+          {icon}
+        </div>
+        <span className="flex-1 text-sm font-bold text-slate-900">{label}</span>
+      </Link>
+    </DropdownMenuItem>
   );
 }

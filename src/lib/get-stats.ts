@@ -30,6 +30,9 @@ export const getStats = async (
         body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data || data.success === false) {
+        throw new Error(data?.error || data?.message || `Error al obtener estadísticas (${response.status})`);
+    }
     return data;
 };

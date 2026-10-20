@@ -40,9 +40,6 @@ export const useNotes = (enableGetNotes:boolean, area:string, location:string, p
       setLoadingNotes(true);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === 'getShift'
-      });
       queryClient.invalidateQueries({ queryKey: ['getStats'] });
       queryClient.invalidateQueries({ queryKey: ['getNotes'] });
       toast.success("Nota creada correctamente.");
@@ -74,9 +71,6 @@ export const useNotes = (enableGetNotes:boolean, area:string, location:string, p
       setLoadingNotes(true);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === 'getShift'
-      });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
       queryClient.invalidateQueries({ queryKey: ['getNotes'] });
       toast.success("Nota editada correctamente.");
@@ -108,9 +102,6 @@ export const useNotes = (enableGetNotes:boolean, area:string, location:string, p
       setLoadingNotes(true);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === 'getShift'
-      });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
       queryClient.invalidateQueries({ queryKey: ['getNotes'] });
       toast.success("Nota cerrada correctamente.");
