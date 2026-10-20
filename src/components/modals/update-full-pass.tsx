@@ -482,6 +482,15 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			if (value === "fotografia") acc.push("agregarFoto");
 			return acc;
 		}, [] as string[]);
+		// Con "Todas las áreas" activo se mandan todas las áreas de las ubicaciones
+		// seleccionadas; si no, quedaba la selección parcial previa de areasList.
+		const comentarioPorArea = new Map(areasList.map((a) => [a.nombre_area, a.commentario_area]));
+		const areasAEnviar: Areas[] = todasAreas
+			? Array.from(new Set(areasTodas.map((a) => a.nombre))).map((nombre) => ({
+				nombre_area: nombre,
+				commentario_area: comentarioPorArea.get(nombre) ?? "",
+			}))
+			: areasList;
 		const formattedData = {
 			_id: dataPass._id,
 			folio: dataPass.folio,
@@ -504,7 +513,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			config_dia_de_acceso: config_dia_de_acceso === "limitar_días_de_acceso" ? config_dia_de_acceso : "cualquier_día",
 			config_dias_acceso: config_dias_acceso,
 			config_limitar_acceso: Number(data.config_limitar_acceso) || 1,
-			areas: areasList,
+			areas: areasAEnviar,
 			comentarios: comentariosList,
 			enviar_pre_sms: { from: "enviar_pre_sms", mensaje: "prueba", numero: dataPass.telefono },
 			fechaFija: date ? formatDateToString(date) : "",
