@@ -3,7 +3,8 @@
 import * as React from "react";
 import { Building2, Loader2, LogIn, LogOut, Search, Users, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import LoadImage, { type Imagen } from "@/components/upload-Image";
+import type { Imagen } from "@/components/upload-Image";
+import { CheckInCamera } from "./checkin-camera";
 import { cn } from "@/lib/utils";
 import {
   useCheckIn,
@@ -222,19 +223,12 @@ function CheckInFlow({ onDone }: { onDone: () => void }) {
         <div className="flex flex-col min-h-0">
           <div className="px-6 pt-2 pb-4 max-h-[min(520px,60vh)] overflow-y-auto flex flex-col gap-4">
             <Hint>Capture una fotografía de su uniforme completo antes de hacer Check In.</Hint>
-            <LoadImage
-              id="checkin-foto"
-              titulo="Fotografía"
-              imgArray={foto}
-              setImg={setFoto}
-              showWebcamOption={true}
-              facingMode="user"
-              limit={1}
-              onLoadingChange={setSubiendoFoto}
-            />
+            <CheckInCamera nombre="checkin" foto={foto} onChange={setFoto} onUploadingChange={setSubiendoFoto} />
             <SinFotoToggle value={sinFoto} onChange={setSinFoto} />
             <label className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-semibold uppercase tracking-[.04em] text-slate-700">Rol</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[.04em] text-slate-700">
+                Rol <span className="font-normal normal-case text-slate-400">(opcional)</span>
+              </span>
               <select
                 value={rol}
                 onChange={(e) => setRol(e.target.value)}
@@ -284,16 +278,7 @@ function CheckOutFlow({ onDone }: { onDone: () => void }) {
       />
       <div className="px-6 pt-2 pb-4 max-h-[min(560px,65vh)] overflow-y-auto flex flex-col gap-4">
         <Hint>Capture una fotografía de su uniforme completo antes de hacer Check Out.</Hint>
-        <LoadImage
-          id="checkout-foto"
-          titulo="Fotografía"
-          imgArray={foto}
-          setImg={setFoto}
-          showWebcamOption={true}
-          facingMode="user"
-          limit={1}
-          onLoadingChange={setSubiendoFoto}
-        />
+        <CheckInCamera nombre="checkout" foto={foto} onChange={setFoto} onUploadingChange={setSubiendoFoto} />
         <SinFotoToggle value={sinFoto} onChange={setSinFoto} />
         <label className="flex flex-col gap-1.5">
           <span className="text-[11px] font-semibold uppercase tracking-[.04em] text-slate-700">Comentario</span>
