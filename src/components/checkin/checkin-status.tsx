@@ -7,11 +7,23 @@ import { useAsistencia } from "@/hooks/useAsistencia";
 
 const hhmm = (fecha?: string | null) => (fecha ? fecha.slice(11, 16) : "");
 
-function formatCierre(fecha: string) {
+function diaYHora(fecha: string) {
   const d = new Date(fecha.replace(" ", "T"));
   if (Number.isNaN(d.getTime())) return fecha;
   const dia = d.toLocaleDateString("es-MX", { weekday: "short", day: "2-digit", month: "short" });
-  return `${dia.charAt(0).toUpperCase() + dia.slice(1)} a las ${hhmm(fecha)} h`;
+  return `${dia} a las ${hhmm(fecha)} h`;
+}
+
+function formatCierre(fecha: string) {
+  const texto = diaYHora(fecha);
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+// "a las 12:29 h" si es de hoy; con el día si el Check In quedó de otra fecha.
+function formatDesde(fecha: string) {
+  const d = new Date();
+  const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return fecha.slice(0, 10) === hoy ? `a las ${hhmm(fecha)} h` : `el ${diaYHora(fecha)}`;
 }
 
 // Línea bajo el saludo: rol + hora del Check In, o el último cierre de asistencia.
@@ -34,7 +46,7 @@ function Detail() {
         )}
         <span className="flex items-center gap-1.5 tabular-nums">
           <Clock className="h-3.5 w-3.5" />
-          Check In a las {hhmm(checkIn.desde)} h
+          Check In {formatDesde(checkIn.desde)}
         </span>
       </div>
     );
