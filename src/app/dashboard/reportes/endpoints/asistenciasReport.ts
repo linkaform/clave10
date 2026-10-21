@@ -5,8 +5,8 @@ import { API_ENDPOINTS } from "@/config/api";
 export const getReportAsistencias = async ({ dateRange, locations, groupBy, month, year }: asistenciasReport) => {
     try {
         const payload = {
-            option: "get_report",
-            script_name: "asistencia_report.py",
+            option: "reporte_asistencia",
+            script_name: "asistencia_sdk.py",
             date_range: dateRange,
             locations,
             group_by: groupBy,
@@ -37,8 +37,8 @@ export const getReportAsistencias = async ({ dateRange, locations, groupBy, mont
 export const getReportLocations = async () => {
     try {
         const payload = {
-            option: "get_locations",
-            script_name: "asistencia_report.py",
+            option: "reporte_ubicaciones",
+            script_name: "asistencia_sdk.py",
         };
 
         const userJwt = await getValidToken();
@@ -61,14 +61,22 @@ export const getReportLocations = async () => {
     }
 };
 
-export const getAttendanceDetail = async (userIds: number[], selectedDay: number, location: string) => {
+export const getAttendanceDetail = async (
+    userIds: number[],
+    selectedDay: number,
+    location: string,
+    month?: number,
+    year?: number,
+) => {
     try {
         const payload = {
-            option: "get_guard_turn_details",
-            script_name: "asistencia_report.py",
+            option: "reporte_detalle",
+            script_name: "asistencia_sdk.py",
             user_ids: userIds,
             selected_day: selectedDay,
-            location
+            location,
+            month,
+            year,
         };
 
         const userJwt = await getValidToken();
@@ -93,18 +101,24 @@ export const getAttendanceDetail = async (userIds: number[], selectedDay: number
  
 export const getAttendanceData = async ({
     locations = [],
+    month,
+    year,
     limit = 100,
     offset = 0,
   }: {
     locations?: string[];
+    month?: number;
+    year?: number;
     limit?: number;
     offset?: number;
   }) => {
     try {
       const payload = {
-        option: "get_attendance_data",
-        script_name: "asistencia_report.py",
+        option: "reporte_registros",
+        script_name: "asistencia_sdk.py",
         locations,
+        month,
+        year,
         limit,
         offset,
       };

@@ -115,6 +115,8 @@ const ReportPage = () => {
   // Datos para vistas fotos y lista
   const { attendanceData, isLoadingAttendance } = useAttendanceData({
     locations: selectedLocations,
+    month,
+    year,
     limit: 100,
     offset: 0,
     enabled: viewMode === "photos" || viewMode === "list",

@@ -60,17 +60,31 @@ export const useReportLocations = ({ enabled = false }: { enabled?: boolean }) =
     };
 };
 
-export const useAttendanceDetail = ({ enabled = false, userIds, selectedDay, location }: { enabled?: boolean; userIds: number[]; selectedDay: number; location: string }) => {
+export const useAttendanceDetail = ({
+    enabled = false,
+    userIds,
+    selectedDay,
+    location,
+    month,
+    year,
+}: {
+    enabled?: boolean;
+    userIds: number[];
+    selectedDay: number;
+    location: string;
+    month?: number;
+    year?: number;
+}) => {
     const {
         data: attendanceDetail,
         isLoading: isLoadingAttendanceDetail,
         error: errorAttendanceDetail,
         refetch: refetchAttendanceDetail,
     } = useQuery<any>({
-        queryKey: ["getAttendanceDetail", { userIds, selectedDay, location }],
+        queryKey: ["getAttendanceDetail", { userIds, selectedDay, location, month, year }],
         enabled,
         queryFn: async () => {
-            const data = await getAttendanceDetail(userIds, selectedDay, location);
+            const data = await getAttendanceDetail(userIds, selectedDay, location, month, year);
             return data ?? [];
         },
         refetchOnWindowFocus: false,
@@ -88,11 +102,15 @@ export const useAttendanceDetail = ({ enabled = false, userIds, selectedDay, loc
 export const useAttendanceData = ({
     enabled = true,
     locations = [],
+    month,
+    year,
     limit = 100,
     offset = 0,
   }: {
     enabled?: boolean;
     locations?: string[];
+    month?: number;
+    year?: number;
     limit?: number;
     offset?: number;
   }) => {
@@ -102,10 +120,10 @@ export const useAttendanceData = ({
       error: errorAttendance,
       refetch: refetchAttendance,
     } = useQuery<any>({
-      queryKey: ["getAttendanceData", { locations, limit, offset }],
+      queryKey: ["getAttendanceData", { locations, month, year, limit, offset }],
       enabled,
       queryFn: async () => {
-        const records = await getAttendanceData({ locations, limit, offset });
+        const records = await getAttendanceData({ locations, month, year, limit, offset });
         return records ?? [];
       },
       refetchOnWindowFocus: false,

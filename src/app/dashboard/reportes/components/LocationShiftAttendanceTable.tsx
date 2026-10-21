@@ -299,6 +299,8 @@ const LocationShiftAttendanceTable: React.FC<LocationShiftAttendanceTableProps> 
         userIds={selectedUserIds}
         selectedDay={selectedDay ?? 1}
         ubicacion={selectedUbicacion}
+        month={month}
+        year={year}
       />
     </div>
   );

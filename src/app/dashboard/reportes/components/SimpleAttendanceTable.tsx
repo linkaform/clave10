@@ -550,6 +550,8 @@ export const SimpleAttendanceTable: React.FC<SimpleAttendanceTableProps> = ({
         selectedDay={selectedDay ?? 1}
         ubicacion={selectedUbicacion}
         daysInMonth={daysInMonth}
+        month={month}
+        year={year}
       />
     </div>
   );

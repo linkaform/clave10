@@ -40,6 +40,8 @@ interface AttendanceDetailModalProps {
     userIds: number[];
     selectedDay: number;
     ubicacion: string;
+    month?: number;
+    year?: number;
 }
 
 const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
@@ -49,6 +51,8 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
     userIds,
     selectedDay,
     ubicacion,
+    month,
+    year,
 }) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [initialIndex, setInitialIndex] = useState(0);
@@ -65,7 +69,11 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
         userIds,
         selectedDay: currentDay,
         location: ubicacion,
+        month,
+        year,
     });
+    // Mes del reporte (el que se ve en la tabla); sin él, el actual.
+    const mesReporte = new Date(year ?? new Date().getFullYear(), (month ?? new Date().getMonth() + 1) - 1, 1);
     const images = [
         {
             src: attendanceDetail?.guardia_generales?.foto_inicio_turno?.[0]?.file_url,
@@ -193,7 +201,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                             >
                                 <CarouselContent className="px-6 py-2">
                                     {attendanceDetail?.asistencia_mes?.map(({ status, dia }: { status: string; dia: number }) => {
-                                        const date = new Date(2025, 8, dia);
+                                        const date = new Date(mesReporte.getFullYear(), mesReporte.getMonth(), dia);
                                         const dayOfWeek = date.getDay();
                                         return (
                                             <CarouselItem key={dia} className="basis-auto px-1">
@@ -258,7 +266,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                             >
                                 <CarouselContent className="px-6 py-2">
                                     {attendanceDetail?.asistencia_mes?.map(({ status, dia }: { status: string; dia: number }) => {
-                                        const date = new Date(2025, 8, dia);
+                                        const date = new Date(mesReporte.getFullYear(), mesReporte.getMonth(), dia);
                                         const dayOfWeek = date.getDay();
                                         return (
                                             <CarouselItem key={dia} className="basis-auto px-1">
@@ -313,7 +321,9 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                                 <div className="text-lg font-bold mb-2">{attendanceDetail?.guardia_generales?.fecha_inicio_turno}</div>
                                                 <div className="text-sm mb-1">
                                                     <span className="text-gray-500">Turno:</span>
-                                                    <span className="font-semibold ml-1">{attendanceDetail?.guardia_generales?.nombre_horario}: {attendanceDetail?.guardia_generales?.hora_entrada?.slice(0, 5)} - {attendanceDetail?.guardia_generales?.hora_salida?.slice(0, 5)} hrs</span>
+                                                    <span className="font-semibold ml-1">{attendanceDetail?.guardia_generales?.nombre_horario
+                                            ? `${attendanceDetail.guardia_generales.nombre_horario}: ${attendanceDetail.guardia_generales.hora_entrada?.slice(0, 5)} - ${attendanceDetail.guardia_generales.hora_salida?.slice(0, 5)} hrs`
+                                            : "Sin horario"}</span>
                                                 </div>
                                                 <div className="text-sm mb-1">
                                                     <span className="text-gray-500">Caseta:</span>
@@ -416,8 +426,8 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                     {/* Indicadores de septiembre */}
                                     <div className="bg-gray-50 rounded-xl p-4">
                                         <div className="text-gray-500 text-sm font-medium mb-3">
-                                            Indicadores: <span className="text-gray-700 font-semibold">{new Date().toLocaleString("es-MX", { month: "long" }).charAt(0).toUpperCase() +
-                                                new Date().toLocaleString("es-MX", { month: "long" }).slice(1)}</span>
+                                            Indicadores: <span className="text-gray-700 font-semibold">{mesReporte.toLocaleString("es-MX", { month: "long" }).charAt(0).toUpperCase() +
+                                                mesReporte.toLocaleString("es-MX", { month: "long" }).slice(1)}</span>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="border rounded-lg p-3 flex items-center gap-3">
@@ -465,8 +475,8 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
                                         {/* Indicadores */}
                                         <div className="bg-gray-50 rounded-xl p-4 mb-6">
                                             <div className="text-gray-500 text-sm font-medium mb-3">
-                                                Indicadores: <span className="text-gray-700 font-semibold">{new Date().toLocaleString("es-MX", { month: "long" }).charAt(0).toUpperCase() +
-                                                    new Date().toLocaleString("es-MX", { month: "long" }).slice(1)}</span>
+                                                Indicadores: <span className="text-gray-700 font-semibold">{mesReporte.toLocaleString("es-MX", { month: "long" }).charAt(0).toUpperCase() +
+                                                    mesReporte.toLocaleString("es-MX", { month: "long" }).slice(1)}</span>
                                             </div>
                                             <div className="grid grid-cols-3 gap-4 mb-4">
                                                 <div className="border rounded-lg p-3 flex items-center gap-3">

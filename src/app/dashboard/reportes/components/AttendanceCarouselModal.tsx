@@ -14,6 +14,8 @@ interface AttendanceCarouselModalProps {
     selectedDay: number;
     ubicacion: string;
     daysInMonth: number; // Needed to prevent navigating past boundaries
+    month?: number;
+    year?: number;
 }
 
 const AttendanceCarouselModal: React.FC<AttendanceCarouselModalProps> = ({
@@ -23,7 +25,9 @@ const AttendanceCarouselModal: React.FC<AttendanceCarouselModalProps> = ({
     userIds,
     selectedDay,
     ubicacion,
-    daysInMonth
+    daysInMonth,
+    month,
+    year,
 }) => {
     const [activeDay, setActiveDay] = useState(selectedDay);
 
@@ -80,6 +84,8 @@ const AttendanceCarouselModal: React.FC<AttendanceCarouselModalProps> = ({
                                     userIds={userIds}
                                     selectedDay={prevDay}
                                     ubicacion={ubicacion}
+                                    month={month}
+                                    year={year}
                                     className="pointer-events-none" // Disable interaction inside the preview
                                 />
                             </div>
@@ -97,6 +103,8 @@ const AttendanceCarouselModal: React.FC<AttendanceCarouselModalProps> = ({
                                 userIds={userIds}
                                 selectedDay={activeDay}
                                 ubicacion={ubicacion}
+                                month={month}
+                                year={year}
                                 onClose={onClose}
                             />
                         </div>
@@ -123,6 +131,8 @@ const AttendanceCarouselModal: React.FC<AttendanceCarouselModalProps> = ({
                                     userIds={userIds}
                                     selectedDay={nextDay}
                                     ubicacion={ubicacion}
+                                    month={month}
+                                    year={year}
                                     className="pointer-events-none"
                                 />
                             </div>
