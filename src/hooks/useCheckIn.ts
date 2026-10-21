@@ -8,8 +8,9 @@ export const CHECKIN_KEY = ["checkin"];
 
 // El asistente se abre desde el inicio y desde el menú del avatar; vive una vez en el header.
 export const useCheckInWizard = create<{
-  mode: "checkin" | "checkout" | null;
-  open: (mode: "checkin" | "checkout") => void;
+  // "asistencia": confirma marcar asistencia antes del Check In (quien está Ausente).
+  mode: "asistencia" | "checkin" | "checkout" | null;
+  open: (mode: "asistencia" | "checkin" | "checkout") => void;
   close: () => void;
 }>((set) => ({
   mode: null,
@@ -70,7 +71,7 @@ export const useCheckInAction = () => {
   const open = useCheckInWizard((s) => s.open);
   const run = () => {
     if (checkIn) return open("checkout");
-    if (!disponible) return toast.error("Para hacer Check In primero cámbiate a Disponible.");
+    if (!disponible) return open("asistencia");
     open("checkin");
   };
   return { checkIn, run };

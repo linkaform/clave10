@@ -13,6 +13,7 @@ import {
   useLugaresCheckIn,
   useRolesCheckIn,
 } from "@/hooks/useCheckIn";
+import { useAsistencia } from "@/hooks/useAsistencia";
 
 const MOTIVOS: [string, string][] = [
   ["incapacidad", "Incapacidad"],
@@ -35,10 +36,35 @@ export function CheckInWizard() {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
       <DialogContent className="max-w-[560px] p-0 gap-0 rounded-[20px] border-0 overflow-hidden [&>button:last-child]:hidden">
+        {mode === "asistencia" && <AsistenciaPrimero onDone={close} />}
         {mode === "checkin" && <CheckInFlow onDone={close} />}
         {mode === "checkout" && <CheckOutFlow onDone={close} />}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// El Check In depende de la jornada: quien está Ausente primero marca su asistencia.
+function AsistenciaPrimero({ onDone }: { onDone: () => void }) {
+  const { setEstatus, isSaving } = useAsistencia();
+  const open = useCheckInWizard((s) => s.open);
+
+  return (
+    <>
+      <WizardHeader title="Registra tu asistencia" subtitle="Para hacer Check In tu estatus debe ser Disponible." onClose={onDone} />
+      <div className="px-6 pt-1 pb-4">
+        <Hint>¿Registrar tu asistencia y hacer Check In?</Hint>
+      </div>
+      <WizardFooter>
+        <SecondaryButton onClick={onDone}>Cancelar</SecondaryButton>
+        <PrimaryButton
+          disabled={isSaving}
+          onClick={() => setEstatus("disponible", { onSuccess: () => open("checkin") })}>
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
+          Registrar y hacer Check In
+        </PrimaryButton>
+      </WizardFooter>
+    </>
   );
 }
 
