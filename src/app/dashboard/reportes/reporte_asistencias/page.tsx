@@ -1,37 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Eraser,
-  LayoutGrid,
-  LayoutList,
-  Play,
-  Search,
-  Sheet,
-  CheckSquare,
-  Square,
-} from "lucide-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, Download, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
-import { SimpleAttendanceTable } from "../components/SimpleAttendanceTable";
-import AttendanceTableSymbology from "../components/AttendanceTableSymbology";
-import { useAsistenciasView } from "@/hooks/asistencias/useAsistenciasView";
-import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
-import { FiltersPanel } from "@/components/Bitacoras/PhotoGrid/PhotoGridFiltersPanel";
-import { ListRecord, PhotoRecord } from "@/types/bitacoras";
-import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
-import LocationShiftAttendanceTable from "../components/LocationShiftAttendanceTable";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   MultiSelect,
   MultiSelectContent,
@@ -40,392 +13,178 @@ import {
   MultiSelectTrigger,
   MultiSelectValue,
 } from "@/components/ui/multi-select";
-import { useAttendanceData, useReportLocations } from "../hooks/useAsistenciasReport";
-import { mapAttendanceGrid } from "@/mappers/attendance.grid.mappers";
-import { mapAttendanceList } from "@/mappers/attendance.list.mappers";
-import { TagSearchInput } from "@/components/tag-search-input";
-import { applyAttendanceFilters, useAttendanceFilters } from "@/hooks/bitacora/useAttendanceFilters";
+import {
+  getReporteHoy,
+  getReportePeriodo,
+  getReporteUbicaciones,
+  type ReporteHoy,
+  type ReportePeriodo,
+} from "@/lib/asistencia-sdk";
+import { HoyView } from "./components/hoy-view";
+import { PeriodoView } from "./components/periodo-view";
+import { DiaSheet } from "./components/dia-sheet";
+import { estilo, hhmm } from "./components/estados";
 
+type Vista = "hoy" | "periodo";
 
-const getMonthName = (month: number) => {
-  const date = new Date();
-  date.setMonth(month - 1);
-  return date.toLocaleString("es-ES", { month: "long" });
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+// Del primer día del mes al último (o a hoy si es el mes en curso).
+const rangoMes = (mes: Date) => {
+  const hoy = new Date();
+  const fin = new Date(mes.getFullYear(), mes.getMonth() + 1, 0);
+  return { desde: iso(new Date(mes.getFullYear(), mes.getMonth(), 1)), hasta: iso(fin > hoy ? hoy : fin) };
 };
 
-const ReportPage = () => {
-  const {
-    viewMode,
-    setViewMode,
-    isSidebarOpen,
-    setIsSidebarOpen,
-    month,
-    year,
-    daysInMonth,
-    handlePrevMonth,
-    handleNextMonth,
-    groupByLocation,
-    handleGroupByLocationToggle,
-    selectedStatus,
-    setSelectedStatus,
-    timeframe,
-    setTimeframe,
-    groupingMode,
-    setGroupingMode,
-    selectedLocations,
-    setSelectedLocations,
-    handleExecute,
-    handleClear,
-    isExecuted,
-    reportAsistencias,
-    isLoading,
-    errorReportAsistencias,
-    refetchReportAsistencias,
-    hasData,
-  } = useAsistenciasView();
+export default function ReporteAsistenciasPage() {
+  const [vista, setVista] = useState<Vista>("hoy");
+  const [ubicaciones, setUbicaciones] = useState<string[]>([]);
+  const [mes, setMes] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [sel, setSel] = useState<{ userId: number; fecha: string } | null>(null);
+  const { desde, hasta } = rangoMes(mes);
+  const esMesActual = mes.getFullYear() === new Date().getFullYear() && mes.getMonth() === new Date().getMonth();
+  const nombreMes = mes.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+  const tituloMes = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
 
-  const { reportLocations } = useReportLocations({ enabled: true });
-
-  const {
-    externalFilters,
-    onExternalFiltersChange,
-    activeFiltersCount,
-    filtersConfig,
-    searchTags,
-    setSearchTags,
-    isSidebarOpen: isFilterSidebarOpen,
-    setIsSidebarOpen: setIsFilterSidebarOpen,
-  } = useAttendanceFilters();
-
-  // Auto-fetch al entrar en vista tabla (solo una vez por visita)
-  const hasAutoFetched = useRef(false);
-  useEffect(() => {
-    if (viewMode === "table" && !hasAutoFetched.current) {
-      hasAutoFetched.current = true;
-      handleExecute();
-    }
-  }, [handleExecute, viewMode]);
-
-  useEffect(() => {
-    if (viewMode !== "table") {
-      hasAutoFetched.current = false;
-    }
-  }, [viewMode]);
-
-  // Datos para vistas fotos y lista
-  const { attendanceData, isLoadingAttendance } = useAttendanceData({
-    locations: selectedLocations,
-    month,
-    year,
-    limit: 100,
-    offset: 0,
-    enabled: viewMode === "photos" || viewMode === "list",
+  const ubicacionesQ = useQuery({ queryKey: ["reporteUbicaciones"], queryFn: getReporteUbicaciones, staleTime: Infinity });
+  const hoy = useQuery({
+    queryKey: ["reporteHoy", ubicaciones],
+    queryFn: () => getReporteHoy(ubicaciones),
+    enabled: vista === "hoy",
+    refetchInterval: 60_000,
   });
-
-  // Aplicar filtros de estatus antes de formatear
-  const filteredAttendanceData = useMemo(
-    () => applyAttendanceFilters(attendanceData ?? [], externalFilters),
-    [attendanceData, externalFilters]
-  );
-
-  const attendancePhotoRecords: PhotoRecord[] = useMemo(() => {
-    if (!filteredAttendanceData?.length) return [];
-    return filteredAttendanceData.map((item: any) => {
-      const base = { id: item._id || "no-id", folio: item.folio || "S/F" };
-      return mapAttendanceGrid(item, base);
-    });
-  }, [filteredAttendanceData]);
-
-  const attendanceListRecords: ListRecord[] = useMemo(() => {
-    if (!filteredAttendanceData?.length) return [];
-    return filteredAttendanceData.map((item: any) => {
-      const base = { id: item._id || "no-id", folio: item.folio || "S/F" };
-      return mapAttendanceList(item, base);
-    });
-  }, [filteredAttendanceData]);
+  const periodo = useQuery({
+    queryKey: ["reportePeriodo", desde, hasta, ubicaciones],
+    queryFn: () => getReportePeriodo(desde, hasta, ubicaciones),
+    enabled: vista === "periodo",
+  });
+  const activa = vista === "hoy" ? hoy : periodo;
+  const abrir = (userId: number, fecha: string) => setSel({ userId, fecha });
 
   return (
-    <div className="w-full relative">
-      <div className="p-6 space-y-4 pt-3 w-full">
-
-        {/* Header sticky */}
-        <div className="sticky top-[68px] z-40 bg-white py-2 space-y-2">
-
-          {/* Fila 1: título + filtros de tabla + acciones */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-baseline gap-2 mr-2">
-              <h1 className="text-xl font-bold text-slate-900 whitespace-nowrap">
-                Reporte de Asistencias
-              </h1>
-              <span className="text-sm font-light text-slate-500 whitespace-nowrap">
-                {viewMode === "table"
-                  ? `${Array.isArray(reportAsistencias) ? reportAsistencias.length : 0} empleados`
-                  : `${filteredAttendanceData?.length ?? 0} registros`}
-              </span>
-            </div>
-
-            {/* TagSearch — en todas las vistas */}
-            <div className="flex p-1 rounded-lg items-center border border-slate-200 w-[240px] overflow-hidden focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 bg-white transition-all">
-              <Search className="ml-2 mr-1 flex-shrink-0 text-slate-400" size={14} />
-              <TagSearchInput
-                tags={searchTags}
-                onTagsChange={setSearchTags}
-                placeholder="Buscar..."
-                className="w-full bg-transparent border-none shadow-none focus-visible:ring-0 h-8 text-sm min-w-0 px-1"
-              />
-            </div>
-
-            {/* Ubicaciones — solo en tabla */}
-            {viewMode === "table" && (
-              <MultiSelect values={selectedLocations} onValuesChange={setSelectedLocations}>
-                <MultiSelectTrigger className="w-[220px] h-9">
-                  <MultiSelectValue placeholder="Ubicaciones" />
-                </MultiSelectTrigger>
-                <MultiSelectContent>
-                  <MultiSelectGroup>
-                    {reportLocations?.map((location: string, i: number) => (
-                      <MultiSelectItem key={`${i}-${location}`} value={location}>
-                        {location}
-                      </MultiSelectItem>
-                    ))}
-                  </MultiSelectGroup>
-                </MultiSelectContent>
-              </MultiSelect>
-            )}
-
-            {viewMode === "table" && (
-              <Select value={groupingMode} onValueChange={(v) => setGroupingMode(v as any)}>
-                <SelectTrigger className="w-[140px] h-9">
-                  <SelectValue placeholder="Agrupación" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="employees">Empleados</SelectItem>
-                    <SelectItem value="locations">Ubicaciones</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            )}
-
-            {viewMode === "table" && groupingMode === "employees" && (
-              <Button
-                variant="outline"
-                onClick={handleGroupByLocationToggle}
-                className={`flex items-center gap-2 h-9 ${
-                  groupByLocation ? "bg-blue-100 border-blue-500 hover:bg-blue-200" : ""
-                }`}
-              >
-                Agrupar por Ubicación{" "}
-                {groupByLocation ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-              </Button>
-            )}
-
-            <div className="flex-1" />
-
-            {/* Acciones + toggle vistas al mismo lado derecho */}
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              <Button variant="outline" onClick={handleClear} className="h-9">
-                <Eraser className="mr-1 h-4 w-4" /> Limpiar
-              </Button>
-              <Button variant="outline" disabled className="h-9">
-                <Download className="mr-1 h-4 w-4" /> Exportar
-              </Button>
-              {viewMode === "table" && (
-                <Button
-                  className="bg-blue-600 h-9"
-                  onClick={handleExecute}
-                  disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                      Cargando...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="mr-1 h-4 w-4" /> Ejecutar
-                    </>
-                  )}
-                </Button>
-              )}
-              {/* Toggle de vistas — al lado de los botones de acción */}
-              <div className="flex items-center bg-slate-100/50 h-9 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
-                <Button
-                  variant="ghost" size="icon"
-                  className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "photos" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-                  onClick={() => setViewMode("photos")}>
-                  <LayoutGrid size={16} />
-                </Button>
-                <Button
-                  variant="ghost" size="icon"
-                  className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "table" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-                  onClick={() => setViewMode("table")}>
-                  <Sheet size={16} />
-                </Button>
-                <Button
-                  variant="ghost" size="icon"
-                  className={`h-full w-9 rounded-none hover:bg-slate-200/50 ${viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : "text-slate-500"}`}
-                  onClick={() => setViewMode("list")}>
-                  <LayoutList size={16} />
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Fila 2: periodo + navegación mes + simbología (solo tabla) */}
-          {viewMode === "table" && (
-            <div className="flex items-center gap-3 flex-wrap">
-              <Select value={timeframe} onValueChange={(v) => setTimeframe(v as "mes" | "semana")}>
-                <SelectTrigger className="w-[130px] h-9">
-                  <SelectValue placeholder="Periodo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="semana">Semana</SelectItem>
-                    <SelectItem value="mes">Mes</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              <div className="flex items-center bg-slate-100/50 h-9 border border-slate-300 rounded-lg overflow-hidden shadow-sm">
-                <Button
-                  variant="ghost" size="icon"
-                  className="h-full w-9 rounded-none hover:bg-slate-200/50"
-                  onClick={handlePrevMonth}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="px-3 font-semibold text-sm min-w-[130px] text-center capitalize">
-                  {getMonthName(month)} {year}
-                </span>
-                <Button
-                  variant="ghost" size="icon"
-                  className="h-full w-9 rounded-none hover:bg-slate-200/50"
-                  onClick={handleNextMonth}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <AttendanceTableSymbology
-                selectedStatus={selectedStatus}
-                onChange={setSelectedStatus}
-              />
-            </div>
-          )}
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Asistencias</h1>
+          <p className="text-sm text-slate-500">
+            {vista === "hoy"
+              ? hoy.data
+                ? `Hoy · actualizado ${hoy.data.hora}`
+                : "Hoy"
+              : `Del ${Number(desde.slice(8))} al ${Number(hasta.slice(8))} de ${nombreMes}`}
+          </p>
         </div>
-
-        {/* Contenido */}
-        <div className="w-full">
-
-          {/* Vista tabla */}
-          {viewMode === "table" && (
-            isLoading ? (
-              <div className="flex justify-center items-center p-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent" />
-              </div>
-            ) : errorReportAsistencias ? (
-              <div className="text-center p-8">
-                <p className="text-red-500 mb-2">Error al cargar los datos</p>
-                <Button onClick={() => refetchReportAsistencias()}>Reintentar</Button>
-              </div>
-            ) : !isExecuted || !hasData ? (
-              <div className="text-center p-8">
-                <p className="text-gray-500 mb-2">
-                  {!isExecuted ? "Cargando datos..." : "No hay registros para los filtros seleccionados"}
-                </p>
-              </div>
-            ) : groupingMode === "locations" ? (
-              <LocationShiftAttendanceTable
-                data={reportAsistencias}
-                month={month}
-                year={year}
-                timeframe={timeframe}
-                selectedStatus={selectedStatus}
-                onStatusChange={setSelectedStatus}
-              />
-            ) : (
-              <>
-                <FloatingFiltersDrawer
-                  isOpen={isSidebarOpen}
-                  onOpenChange={setIsSidebarOpen}
-                  activeFiltersCount={0}
-                  filters={{ dynamic: {} }}
-                  onFiltersChange={() => {}}
-                  filtersConfig={[]}
-                />
-                <SimpleAttendanceTable
-                  data={reportAsistencias}
-                  daysInMonth={daysInMonth}
-                  groupByLocation={groupByLocation}
-                  timeframe={timeframe}
-                  month={month}
-                  year={year}
-                  selectedStatus={selectedStatus}
-                />
-              </>
-            )
-          )}
-
-          {viewMode === "photos" && (
-            <div className="flex gap-4">
-              {/* FloatingFiltersDrawer para mobile */}
-              <FloatingFiltersDrawer
-                isOpen={isFilterSidebarOpen}
-                onOpenChange={setIsFilterSidebarOpen}
-                activeFiltersCount={activeFiltersCount}
-                filters={externalFilters}
-                onFiltersChange={onExternalFiltersChange}
-                filtersConfig={filtersConfig}
-              />
-              <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">
-                <FiltersPanel
-                  filters={externalFilters}
-                  onFiltersChange={onExternalFiltersChange}
-                  filtersConfig={filtersConfig}
-                />
-              </aside>
-              <div className="flex-1 min-w-0">
-                <PhotoGridView
-                  isLoading={isLoadingAttendance}
-                  records={attendancePhotoRecords}
-                  globalSearch={searchTags}
-                  externalFilters={externalFilters}
-                  onExternalFiltersChange={onExternalFiltersChange}
-                />
-              </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Tabs value={vista} onValueChange={(v) => setVista(v as Vista)}>
+            <TabsList>
+              <TabsTrigger value="hoy">Hoy</TabsTrigger>
+              <TabsTrigger value="periodo">Periodo</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <MultiSelect values={ubicaciones} onValuesChange={setUbicaciones}>
+            <MultiSelectTrigger className="h-9 w-[210px]">
+              <MultiSelectValue placeholder="Todas las ubicaciones" />
+            </MultiSelectTrigger>
+            <MultiSelectContent>
+              <MultiSelectGroup>
+                {(ubicacionesQ.data ?? []).map((u) => (
+                  <MultiSelectItem key={u} value={u}>
+                    {u}
+                  </MultiSelectItem>
+                ))}
+              </MultiSelectGroup>
+            </MultiSelectContent>
+          </MultiSelect>
+          {vista === "periodo" && (
+            <div className="flex items-center rounded-md border border-slate-200">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Mes anterior"
+                onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() - 1, 1))}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="min-w-[120px] text-center text-sm">{tituloMes}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Mes siguiente"
+                disabled={esMesActual}
+                onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() + 1, 1))}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           )}
-
-          {viewMode === "list" && (
-            <div className="flex gap-4">
-              <FloatingFiltersDrawer
-                isOpen={isFilterSidebarOpen}
-                onOpenChange={setIsFilterSidebarOpen}
-                activeFiltersCount={activeFiltersCount}
-                filters={externalFilters}
-                onFiltersChange={onExternalFiltersChange}
-                filtersConfig={filtersConfig}
-              />
-              <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">
-                <FiltersPanel
-                  filters={externalFilters}
-                  onFiltersChange={onExternalFiltersChange}
-                  filtersConfig={filtersConfig}
-                />
-              </aside>
-              <div className="flex-1 min-w-0">
-                <PhotoListView
-                  isLoading={isLoadingAttendance}
-                  records={attendanceListRecords}
-                  globalSearch={searchTags}
-                  externalFilters={externalFilters}
-                  onExternalFiltersChange={onExternalFiltersChange}
-                />
-              </div>
-            </div>
-          )}
+          <Button variant="outline" size="icon" aria-label="Actualizar" onClick={() => activa.refetch()}>
+            <RefreshCw className={`h-4 w-4 ${activa.isFetching ? "animate-spin" : ""}`} />
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!activa.data}
+            onClick={() => (vista === "hoy" ? exportarHoy(hoy.data!) : exportarPeriodo(periodo.data!))}>
+            <Download className="h-4 w-4" />
+            Exportar
+          </Button>
         </div>
       </div>
+
+      {activa.isError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          No se pudo cargar el reporte. {(activa.error as Error)?.message}
+        </div>
+      )}
+
+      {vista === "hoy" ? (
+        <HoyView data={hoy.data} isLoading={hoy.isLoading} onSelect={abrir} />
+      ) : (
+        <PeriodoView data={periodo.data} isLoading={periodo.isLoading} onSelect={abrir} />
+      )}
+
+      <DiaSheet sel={sel} onClose={() => setSel(null)} />
     </div>
   );
-};
+}
 
-export default ReportPage;
+function descargar(nombre: string, filas: (string | number | null | undefined)[][]) {
+  const csv = filas.map((f) => f.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: nombre });
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportarHoy(d: ReporteHoy) {
+  descargar(`asistencias-${d.fecha}.csv`, [
+    ["Empleado", "Horario", "Entrada", "Salida", "Llegó", "Retraso (min)", "Estado", "Dónde está", "Rol"],
+    ...d.empleados.map((e) => [
+      e.nombre,
+      e.horario,
+      e.turno?.entrada,
+      e.turno?.salida,
+      e.llegada ? hhmm(e.llegada) : "",
+      e.retraso_min,
+      estilo(e.estado).label,
+      e.lugar,
+      e.rol,
+    ]),
+  ]);
+}
+
+function exportarPeriodo(d: ReportePeriodo) {
+  const fechas = d.empleados[0]?.dias.map((x) => x.fecha) ?? [];
+  descargar(`asistencias-${d.desde}-a-${d.hasta}.csv`, [
+    ["Empleado", "Horario", "Asistencias", "Retardos", "Faltas", "Descansos", "Horas trabajadas", "Horas programadas", ...fechas],
+    ...d.empleados.map((e) => [
+      e.nombre,
+      e.horario,
+      e.resumen.asistencias,
+      e.resumen.retardos,
+      e.resumen.faltas,
+      e.resumen.descansos,
+      e.resumen.horas_trabajadas,
+      e.resumen.horas_programadas,
+      ...e.dias.map((x) => estilo(x.estado).label),
+    ]),
+  ]);
+}

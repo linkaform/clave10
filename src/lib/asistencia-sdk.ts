@@ -79,3 +79,106 @@ export const doCheckOut = (data: { foto: Foto[]; comentario?: string }) =>
 // Opciones de la ubicación (impresion_de_pase, auto_acceso) de Configuración Módulo Seguridad.
 export const getBoothConfig = (location: string) =>
   runPresencia<string[]>({ option: "get_booth_config", location });
+
+// Reporte de asistencias: lo que le toca a cada persona (su horario) contra lo
+// que hizo (su jornada y sus Check In).
+export type EstadoDia =
+  | "presente"
+  | "retardo"
+  | "falta_por_retardo"
+  | "falta"
+  | "no_ha_llegado"
+  | "por_llegar"
+  | "fuera_de_horario"
+  | "descanso"
+  | "sin_horario"
+  | "sin_registro"
+  | (string & {}); // tipos de permiso (vacaciones, enfermedad…)
+
+export type Turno = { entrada: string; salida: string } | null;
+
+export type ReporteHoy = {
+  fecha: string;
+  hora: string;
+  resumen: {
+    programados: number;
+    a_tiempo: number;
+    retardo: number;
+    no_ha_llegado: number;
+    fuera_de_horario: number;
+    dentro: number;
+  };
+  empleados: {
+    user_id: number;
+    nombre: string;
+    horario: string | null;
+    turno: Turno;
+    llegada: string | null;
+    retraso_min: number | null;
+    estado: EstadoDia;
+    lugar: string | null;
+    rol: string | null;
+    jornada_abierta: boolean;
+  }[];
+};
+
+export type ReportePeriodo = {
+  desde: string;
+  hasta: string;
+  empleados: {
+    user_id: number;
+    nombre: string;
+    horario: string | null;
+    dias: { fecha: string; estado: EstadoDia }[];
+    resumen: {
+      asistencias: number;
+      retardos: number;
+      faltas: number;
+      descansos: number;
+      horas_trabajadas: number;
+      horas_programadas: number;
+    };
+  }[];
+};
+
+export type ReporteDia = {
+  user_id: number;
+  nombre: string;
+  fecha: string;
+  horario: string | null;
+  turno: Turno;
+  estado: EstadoDia;
+  jornada: {
+    folio: string;
+    inicio: string;
+    cierre: string | null;
+    tipo_cierre: string | null;
+    horas: number;
+    ubicacion: string | null;
+  } | null;
+  checkins: {
+    folio: string;
+    ubicacion: string | null;
+    caseta: string | null;
+    estatus: string;
+    desde: string;
+    hasta: string | null;
+    rol: string | null;
+    suplente: string | null;
+    tipo_out: string | null;
+    comentario: string | null;
+    horas: number | null;
+    foto_in: Foto[];
+    foto_out: Foto[];
+  }[];
+};
+
+export const getReporteHoy = (locations: string[]) => runPresencia<ReporteHoy>({ option: "reporte_hoy", locations });
+
+export const getReportePeriodo = (desde: string, hasta: string, locations: string[]) =>
+  runPresencia<ReportePeriodo>({ option: "reporte_periodo", desde, hasta, locations });
+
+export const getReporteDia = (userId: number, fecha: string) =>
+  runPresencia<ReporteDia>({ option: "reporte_dia", user_id: userId, fecha });
+
+export const getReporteUbicaciones = () => runPresencia<string[]>({ option: "reporte_ubicaciones" });
