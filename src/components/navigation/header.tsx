@@ -30,6 +30,7 @@ import { useLocationOptions } from "@/hooks/useLocationOptions";
 import { useCheckInAction } from "@/hooks/useCheckIn";
 import { CheckInWizard } from "@/components/checkin/checkin-wizard";
 import { CheckInSync } from "@/components/checkin/checkin-sync";
+import { ExtraPrompt } from "@/components/checkin/extra-prompt";
 
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { useAsistencia } from "@/hooks/useAsistencia";
@@ -302,6 +303,7 @@ export function Header({
       <AsistenciaReminder />
       <CheckInWizard />
       <CheckInSync />
+      <ExtraPrompt />
     </header>
   );
 }

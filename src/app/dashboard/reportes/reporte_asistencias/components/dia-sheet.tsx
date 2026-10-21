@@ -44,11 +44,26 @@ export function DiaSheet({
               <Dato label="Llegó" value={hhmm(data.jornada?.inicio)} />
               <Dato label="Salió" value={data.jornada?.cierre ? hhmm(data.jornada.cierre) : data.jornada ? "En jornada" : "—"} />
               <Dato label="Horas" value={horas(data.jornada?.horas)} />
+              <Dato
+                label="Extra"
+                value={
+                  data.jornada?.horas_extra
+                    ? horas(data.jornada.horas_extra)
+                    : data.jornada?.extra_confirmado
+                      ? "En curso"
+                      : "—"
+                }
+              />
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[.04em] text-slate-500">Estado</div>
                 {s && <span className={`mt-1 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${s.pill}`}>{s.label}</span>}
               </div>
             </div>
+            {(data.jornada?.jornadas ?? 0) > 1 && (
+              <div className="text-[13px] text-slate-500">
+                Este día tuvo {data.jornada!.jornadas} jornadas (pasó a Ausente y volvió); las horas están sumadas.
+              </div>
+            )}
             {data.jornada?.tipo_cierre === "automatico" && (
               <div className="rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-2 text-[13px] text-[#1E6FDB]">
                 La jornada se cerró sola: no pasó a Ausente.

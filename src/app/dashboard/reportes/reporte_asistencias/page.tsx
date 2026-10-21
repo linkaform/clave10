@@ -174,7 +174,7 @@ function exportarHoy(d: ReporteHoy) {
 function exportarPeriodo(d: ReportePeriodo) {
   const fechas = d.empleados[0]?.dias.map((x) => x.fecha) ?? [];
   descargar(`asistencias-${d.desde}-a-${d.hasta}.csv`, [
-    ["Empleado", "Horario", "Asistencias", "Retardos", "Faltas", "Descansos", "Horas trabajadas", "Horas programadas", ...fechas],
+    ["Empleado", "Horario", "Asistencias", "Retardos", "Faltas", "Descansos", "Horas trabajadas", "Horas programadas", "Horas extra", ...fechas],
     ...d.empleados.map((e) => [
       e.nombre,
       e.horario,
@@ -184,6 +184,7 @@ function exportarPeriodo(d: ReportePeriodo) {
       e.resumen.descansos,
       e.resumen.horas_trabajadas,
       e.resumen.horas_programadas,
+      e.resumen.horas_extra,
       ...e.dias.map((x) => estilo(x.estado).label),
     ]),
   ]);

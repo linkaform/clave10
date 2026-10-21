@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getAsistencia, setAsistencia, type Asistencia } from "@/lib/asistencia-sdk";
+import { confirmarExtra, getAsistencia, setAsistencia, type Asistencia } from "@/lib/asistencia-sdk";
 
 const KEY = ["asistencia"];
 
@@ -11,6 +11,8 @@ export const useAsistencia = () => {
     queryFn: getAsistencia,
     staleTime: 1000 * 60,
     refetchOnWindowFocus: true,
+    // Para que la pregunta de tiempo extra salga sin recargar.
+    refetchInterval: 1000 * 60 * 5,
   });
 
   const mutation = useMutation({
@@ -24,11 +26,22 @@ export const useAsistencia = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const extra = useMutation({
+    mutationFn: confirmarExtra,
+    onSuccess: (res) => {
+      queryClient.setQueryData(KEY, res);
+      toast.success("Tu tiempo extra quedó registrado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return {
     asistencia: data,
     isLoading,
     disponible: data?.estatus === "disponible",
     setEstatus: mutation.mutate,
     isSaving: mutation.isPending,
+    confirmarExtra: extra.mutate,
+    isConfirmandoExtra: extra.isPending,
   };
 };

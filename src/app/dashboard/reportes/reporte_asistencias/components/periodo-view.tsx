@@ -61,12 +61,13 @@ export function PeriodoView({
               <th className="bg-[#DBEAFE] px-3 py-2 text-right font-semibold uppercase tracking-[.05em]">Ret.</th>
               <th className="bg-[#DBEAFE] px-3 py-2 text-right font-semibold uppercase tracking-[.05em]">Faltas</th>
               <th className="bg-[#DBEAFE] px-4 py-2 text-right font-semibold uppercase tracking-[.05em] whitespace-nowrap">Horas</th>
+              <th className="bg-[#DBEAFE] px-4 py-2 text-right font-semibold uppercase tracking-[.05em]">Extra</th>
             </tr>
           </thead>
           <tbody>
             {data.empleados.length === 0 && (
               <tr>
-                <td colSpan={fechas.length + 4} className="px-4 py-10 text-center text-slate-500">
+                <td colSpan={fechas.length + 5} className="px-4 py-10 text-center text-slate-500">
                   No hay empleados para las ubicaciones elegidas.
                 </td>
               </tr>
@@ -99,6 +100,13 @@ export function PeriodoView({
                 <td className="border-t border-slate-100 px-4 py-2 text-right tabular-nums text-slate-600 whitespace-nowrap">
                   {horas(e.resumen.horas_trabajadas)}
                   <span className="text-slate-400"> / {horas(e.resumen.horas_programadas)}</span>
+                </td>
+                <td className="border-t border-slate-100 px-4 py-2 text-right tabular-nums whitespace-nowrap">
+                  {e.resumen.horas_extra ? (
+                    <span className="font-medium text-violet-700">{horas(e.resumen.horas_extra)}</span>
+                  ) : (
+                    <span className="text-slate-300">—</span>
+                  )}
                 </td>
               </tr>
             ))}

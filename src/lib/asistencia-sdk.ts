@@ -30,10 +30,15 @@ export type Asistencia =
       status_llegada: "presente" | "retardo" | "falta_por_retardo" | null;
       horario: { nombre: string; entrada: string; salida: string } | null;
       folio: string;
+      extra_confirmado: string | null;
+      // Ya pasó su salida y no ha dicho si sigue trabajando.
+      pregunta_extra: { salida: string } | null;
     }
   | { estatus: "ausente"; ultimo_cierre: string | null };
 
 export const getAsistencia = () => runPresencia<Asistencia>({ option: "get_asistencia" });
+
+export const confirmarExtra = () => runPresencia<Asistencia>({ option: "confirmar_extra" });
 
 export const setAsistencia = (estatus: Asistencia["estatus"]) =>
   runPresencia<Asistencia>({ option: "set_asistencia", estatus });
@@ -137,6 +142,7 @@ export type ReportePeriodo = {
       descansos: number;
       horas_trabajadas: number;
       horas_programadas: number;
+      horas_extra: number;
     };
   }[];
 };
@@ -154,6 +160,10 @@ export type ReporteDia = {
     cierre: string | null;
     tipo_cierre: string | null;
     horas: number;
+    horas_extra: number;
+    jornadas: number;
+    extra_confirmado: string | null;
+    autorizacion_extra: string | null;
     ubicacion: string | null;
   } | null;
   checkins: {
