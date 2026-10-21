@@ -32,13 +32,18 @@ export type Asistencia =
       folio: string;
       extra_confirmado: string | null;
       // Ya pasó su salida y no ha dicho si sigue trabajando.
-      pregunta_extra: { salida: string } | null;
+      pregunta_extra: {
+        salida: string;
+        requiere_autorizacion: boolean;
+        motivo_obligatorio: boolean;
+        motivos: string[];
+      } | null;
     }
   | { estatus: "ausente"; ultimo_cierre: string | null };
 
 export const getAsistencia = () => runPresencia<Asistencia>({ option: "get_asistencia" });
 
-export const confirmarExtra = () => runPresencia<Asistencia>({ option: "confirmar_extra" });
+export const confirmarExtra = (motivo?: string) => runPresencia<Asistencia>({ option: "confirmar_extra", motivo });
 
 export const setAsistencia = (estatus: Asistencia["estatus"]) =>
   runPresencia<Asistencia>({ option: "set_asistencia", estatus });
@@ -208,8 +213,13 @@ export type BandejaItem = {
   progreso?: { hechos: number; total: number };
   duracion_estimada?: string | number | null;
   autorizacion_status?: string | null;
+  horas?: number | null;
+  motivo?: string | null;
 };
 
 export type Bandeja = { items: BandejaItem[]; total: number; pendientes: number };
 
 export const getBandeja = () => runPresencia<Bandeja>({ option: "get_bandeja" });
+
+export const resolverBandeja = (id: string, decision: "aprobada" | "rechazada", comentario?: string) =>
+  runPresencia<{ id: string; autorizacion_status: string }>({ option: "resolver_bandeja", id, decision, comentario });

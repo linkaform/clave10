@@ -1,4 +1,4 @@
-import { Route, ShieldCheck, Smartphone } from "lucide-react";
+import { Clock, Route, ShieldCheck, Smartphone } from "lucide-react";
 import type { BandejaItem } from "@/lib/asistencia-sdk";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ const ESTADOS: Record<string, { label: string; className: string }> = {
 const ICONOS: Record<string, React.ReactNode> = {
   rondin: <Route className="h-4 w-4" />,
   autorizacion_acceso: <ShieldCheck className="h-4 w-4" />,
+  autorizacion_extra: <Clock className="h-4 w-4" />,
 };
 
 const FECHA = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -22,7 +23,15 @@ export const fechaItem = (fecha: string | null) => {
   return Number.isNaN(d.getTime()) ? fecha : FECHA.format(d);
 };
 
-export function BandejaItemRow({ item, compacto = false }: { item: BandejaItem; compacto?: boolean }) {
+export function BandejaItemRow({
+  item,
+  compacto = false,
+  acciones,
+}: {
+  item: BandejaItem;
+  compacto?: boolean;
+  acciones?: React.ReactNode;
+}) {
   const estado = ESTADOS[item.estado] ?? { label: item.estado, className: "bg-slate-100 text-slate-600" };
   const p = item.progreso;
   return (
@@ -63,6 +72,7 @@ export function BandejaItemRow({ item, compacto = false }: { item: BandejaItem; 
             </span>
           )}
         </div>
+        {acciones}
       </div>
     </div>
   );

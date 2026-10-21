@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { Inbox, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useBandeja } from "@/hooks/useBandeja";
+import { useBandeja, useResolverBandeja } from "@/hooks/useBandeja";
+import type { BandejaItem } from "@/lib/asistencia-sdk";
 import { BandejaItemRow } from "@/components/bandeja/bandeja-item";
 
 const PENDIENTES = ["new", "in_progress", "paused"];
@@ -67,11 +68,41 @@ export default function BandejaPage() {
               {dia === "sin-fecha" ? "Sin fecha" : DIA.format(new Date(`${dia}T12:00:00`))}
             </h2>
             {items.map((i) => (
-              <BandejaItemRow key={i.id} item={i} />
+              <BandejaItemRow
+                key={i.id}
+                item={i}
+                acciones={i.tipo === "autorizacion_extra" && i.autorizacion_status === "pendiente" ? <Resolver item={i} /> : null}
+              />
             ))}
           </section>
         ))
       )}
+    </div>
+  );
+}
+
+// Aprobar o rechazar unas horas extra desde la bandeja de quien autoriza.
+function Resolver({ item }: { item: BandejaItem }) {
+  const [comentario, setComentario] = useState("");
+  const resolver = useResolverBandeja();
+  const enviar = (decision: "aprobada" | "rechazada") =>
+    resolver.mutate({ id: item.id, decision, comentario: comentario.trim() || undefined });
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <input
+        value={comentario}
+        onChange={(e) => setComentario(e.target.value)}
+        placeholder="Comentario (opcional)"
+        className="h-9 min-w-[180px] flex-1 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#2F80ED]"
+      />
+      <Button variant="outline" disabled={resolver.isPending} onClick={() => enviar("rechazada")}>
+        Rechazar
+      </Button>
+      <Button disabled={resolver.isPending} onClick={() => enviar("aprobada")}>
+        {resolver.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+        Aprobar
+      </Button>
     </div>
   );
 }

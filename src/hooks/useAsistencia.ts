@@ -27,7 +27,7 @@ export const useAsistencia = () => {
   });
 
   const extra = useMutation({
-    mutationFn: confirmarExtra,
+    mutationFn: (motivo?: string) => confirmarExtra(motivo),
     onSuccess: (res) => {
       queryClient.setQueryData(KEY, res);
       toast.success("Tu tiempo extra quedó registrado");
