@@ -192,3 +192,24 @@ export const getReporteDia = (userId: number, fecha: string) =>
   runPresencia<ReporteDia>({ option: "reporte_dia", user_id: userId, fecha });
 
 export const getReporteUbicaciones = () => runPresencia<string[]>({ option: "reporte_ubicaciones" });
+
+// Bandeja (inbox): la misma de la app (CouchDB clave_{user_id}), leída por el
+// servidor. Lo que solo se resuelve en la app viene con solo_app.
+export type BandejaItem = {
+  id: string;
+  tipo: "rondin" | "autorizacion_acceso" | (string & {});
+  tipo_label: string;
+  solo_app: boolean;
+  folio: string | null;
+  estado: "new" | "in_progress" | "paused" | "completed" | (string & {});
+  fecha: string | null;
+  titulo: string;
+  detalle: string;
+  progreso?: { hechos: number; total: number };
+  duracion_estimada?: string | number | null;
+  autorizacion_status?: string | null;
+};
+
+export type Bandeja = { items: BandejaItem[]; total: number; pendientes: number };
+
+export const getBandeja = () => runPresencia<Bandeja>({ option: "get_bandeja" });

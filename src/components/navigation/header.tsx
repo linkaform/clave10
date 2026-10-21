@@ -31,6 +31,7 @@ import { useCheckInAction } from "@/hooks/useCheckIn";
 import { CheckInWizard } from "@/components/checkin/checkin-wizard";
 import { CheckInSync } from "@/components/checkin/checkin-sync";
 import { ExtraPrompt } from "@/components/checkin/extra-prompt";
+import { BandejaBell } from "@/components/bandeja/bandeja-bell";
 
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { useAsistencia } from "@/hooks/useAsistencia";
@@ -193,6 +194,7 @@ export function Header({
 
         {/* User Menu */}
         <div className="flex items-center flex-shrink-0">
+          <BandejaBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="group h-11 w-11 md:w-auto flex items-center justify-center md:justify-start gap-2.5 md:pl-1 md:pr-2.5 rounded-[10px] text-left transition-colors hover:bg-slate-100 data-[state=open]:bg-slate-100 focus:outline-none">
