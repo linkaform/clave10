@@ -129,7 +129,7 @@ export type ReportePeriodo = {
     user_id: number;
     nombre: string;
     horario: string | null;
-    dias: { fecha: string; estado: EstadoDia }[];
+    dias: { fecha: string; estado: EstadoDia; llegada: string | null; salida: string | null }[];
     resumen: {
       asistencias: number;
       retardos: number;
