@@ -10,14 +10,14 @@ export function CopyableId({ id, label = "ID" }: { id: string; label?: string })
       <code className="font-mono text-slate-700 select-all">{id}</code>
       <button
         type="button"
-        title="Copiar ID"
+        title={`Copiar ${label}`}
         className="text-slate-400 hover:text-slate-700"
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(id);
-            toast.success("ID copiado");
+            toast.success(`${label} copiado`);
           } catch {
-            toast.error("No se pudo copiar el ID");
+            toast.error(`No se pudo copiar ${label}`);
           }
         }}
       >
