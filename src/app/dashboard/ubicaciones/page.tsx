@@ -2,29 +2,19 @@
 
 import React, { Suspense, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LayoutGrid, LayoutList, Plus, Sheet, X } from "lucide-react";
+import { LayoutGrid, LayoutList, Plus, Sheet } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { FacetSearch } from "@/components/common/FacetSearch";
 import { Button } from "@/components/ui/button";
 import { AreasUbicacionesTabs } from "@/components/common/AreasUbicacionesTabs";
 import { useUbicacionesCatalog } from "@/hooks/Ubicaciones/useUbicacionesCatalog";
 import { useUbicacionesFilters } from "@/hooks/Ubicaciones/useUbicacionesFilters";
+import { useFacetSection } from "@/hooks/common/useFacetSection";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { UbicacionesExplorerTable } from "@/components/table/ubicaciones-explorer/table";
 import { UbicacionFormModal } from "@/components/Ubicaciones/UbicacionFormModal";
 import { ViewMode } from "@/lib/utils";
-import { SearchFieldsFilter, SearchFieldOption } from "@/components/common/SearchFieldsFilter";
 import PaginationPases from "@/components/pages/pases/PaginationPases";
-
-// Campos por los que se puede acotar la búsqueda en el explorador de
-// Ubicaciones. key = tal cual lo espera el back en search_fields
-// (get_catalog_ubicaciones_formatted), igual que en Áreas.
-const UBICACIONES_SEARCH_FIELDS: SearchFieldOption[] = [
-  { key: "folio", label: "Folio" },
-  { key: "location", label: "Nombre" },
-  { key: "address", label: "Dirección" },
-  { key: "city", label: "Ciudad" },
-  { key: "state", label: "Estado" },
-];
 
 const TODAS_LAS_UBICACIONES: string[] = [];
 
@@ -34,11 +24,6 @@ const UbicacionesContent = () => {
   const idParam = searchParams.get("id");
 
   const [viewMode, setViewMode] = React.useState<ViewMode>("table");
-  const [searchTags, setSearchTags] = React.useState<string[]>([]);
-  const [searchFields, setSearchFields] = React.useState<string[]>([]);
-  const [resetSignal, setResetSignal] = React.useState(0);
-  const [limit, setLimit] = React.useState(25);
-  const [skip, setSkip] = React.useState(0);
   const [selectedUbicacionId, setSelectedUbicacionId] = React.useState<string | null>(idParam);
   const [isNuevaUbicacionOpen, setIsNuevaUbicacionOpen] = React.useState(false);
 
@@ -84,27 +69,29 @@ const UbicacionesContent = () => {
     externalFilters,
     onExternalFiltersChange,
     activeFiltersCount,
-    dynamicFiltersArray,
     isSidebarOpen,
     setIsSidebarOpen,
     filtersConfig,
   } = useUbicacionesFilters();
 
-  const search = searchTags[0] ?? "";
-  // Con campos elegidos en "Buscar en" pero sin texto todavía, no tiene
-  // sentido mandar la petición (igual que en Áreas).
-  const puedeBuscar = searchFields.length === 0 || search.trim() !== "";
-
-  const { ubicacionesCatalog, isLoading } = useUbicacionesCatalog(
+  // Buscador avanzado (igual que Áreas e Incidencias): chips + panel comparten
+  // filtro y todo se resuelve en el back, paginado (ver useFacetSection).
+  const sec = useFacetSection({
+    scriptName: "location_sdk.py",
+    optionSuffix: "_ubicaciones",
+    panel: { externalFilters, onExternalFiltersChange, activeFiltersCount },
+    status: "",
     // Catálogo completo de la cuenta, sin depender del selector de ubicaciones
     // del top-nav: así salen también las recién creadas o sin usuarios asignados.
+    locations: TODAS_LAS_UBICACIONES,
+  });
+
+  const { ubicacionesCatalog, isLoading } = useUbicacionesCatalog(
     TODAS_LAS_UBICACIONES,
-    dynamicFiltersArray,
-    limit,
-    skip,
-    search,
-    searchFields,
-    puedeBuscar,
+    [],
+    sec.paging.limit,
+    sec.paging.skip,
+    sec.facets,
   );
   const {
     records: ubicaciones = [],
@@ -113,20 +100,6 @@ const UbicacionesContent = () => {
     total_pages: totalPages = 1,
     total_records: totalRecords = 0,
   } = ubicacionesCatalog ?? {};
-
-  // Al cambiar búsqueda o filtros se regresa a la primera página.
-  useEffect(() => { setSkip(0); }, [search, searchFields, dynamicFiltersArray]);
-
-  const handlePageChange = (newSkip: number, newLimit: number) => {
-    setSkip(newSkip);
-    setLimit(newLimit);
-  };
-
-  const resetFiltros = () => {
-    setSearchTags([]);
-    setSearchFields([]);
-    setResetSignal((n) => n + 1);
-  };
 
   const btnClass = (mode: ViewMode) =>
     `h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${
@@ -139,9 +112,9 @@ const UbicacionesContent = () => {
         <FloatingFiltersDrawer
           isOpen={isSidebarOpen}
           onOpenChange={setIsSidebarOpen}
-          activeFiltersCount={activeFiltersCount}
-          filters={externalFilters}
-          onFiltersChange={onExternalFiltersChange}
+          activeFiltersCount={sec.activeFiltersCount}
+          filters={sec.filtersView}
+          onFiltersChange={sec.onFiltersChange}
           filtersConfig={filtersConfig}
           hideFecha
         />
@@ -150,25 +123,17 @@ const UbicacionesContent = () => {
         <PageHeader
           title="Ubicaciones"
           totalRecords={totalRecords}
-          onSearch={(val) => setSearchTags(val ? [val] : [])}
-          searchPlaceholder="Buscar..."
-          resetSignal={resetSignal}
+          isLoadingTotal={isLoading}
+          search={
+            <FacetSearch
+              fields={sec.fields}
+              facets={sec.facets}
+              onChange={sec.setFacets}
+              fetchCounts={sec.fetchCounts}
+              placeholder="Buscar por nombre, dirección, ciudad..."
+            />
+          }
         >
-          <SearchFieldsFilter
-            options={UBICACIONES_SEARCH_FIELDS}
-            selected={searchFields}
-            onChange={setSearchFields}
-            searchTerm={searchTags[0] ?? ""}
-          />
-          <Button
-            type="button"
-            size="icon"
-            title="Resetear búsqueda"
-            className="h-10 w-10 bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 hover:text-red-600 shadow-sm"
-            onClick={resetFiltros}>
-            <X size={16} />
-          </Button>
-
           <Button
             onClick={() => setIsNuevaUbicacionOpen(true)}
             className="gap-2 bg-green-600 hover:bg-green-700 text-white"
@@ -197,8 +162,8 @@ const UbicacionesContent = () => {
           isLoading={isLoading}
           viewMode={viewMode}
           filtersConfig={filtersConfig}
-          externalFilters={externalFilters}
-          onExternalFiltersChange={onExternalFiltersChange}
+          externalFilters={sec.filtersView}
+          onExternalFiltersChange={sec.onFiltersChange}
           selectedUbicacionId={selectedUbicacionId}
           onSelectedUbicacionIdChange={handleUbicacionIdChange}
         />
@@ -208,8 +173,8 @@ const UbicacionesContent = () => {
             records_on_page={recordsOnPage}
             total_pages={totalPages}
             total_records={totalRecords}
-            limit={limit}
-            onPageChange={handlePageChange}
+            limit={sec.paging.limit}
+            onPageChange={sec.onPageChange}
           />
         )}
       </div>

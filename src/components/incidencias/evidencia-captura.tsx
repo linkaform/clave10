@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import LoadImage, { Imagen } from "../upload-Image";
 import LoadFile from "../upload-file";
 import { useUploadImage } from "@/hooks/useUploadImage";
+import { transcribirAudio } from "@/services/endpoints";
 
 interface EvidenciaCapturaProps {
   /** Prefijo de los id de los inputs de archivo (únicos por modal). */
@@ -14,6 +15,12 @@ interface EvidenciaCapturaProps {
   setEvidencia: Dispatch<SetStateAction<Imagen[]>>;
   documento: Imagen[];
   setDocumento: Dispatch<SetStateAction<Imagen[]>>;
+  /**
+   * Si se pasa, cada nota de voz grabada se transcribe al terminar y el texto
+   * se entrega aquí (ej. para agregarlo a la descripción). El audio se queda
+   * también como evidencia.
+   */
+  onTranscripcion?: (texto: string) => void;
 }
 
 const MAX_VIDEO_MB = 50;
@@ -66,10 +73,15 @@ const duracionVideo = (archivo: File) =>
 
 // Barra de evidencia de los modales de incidencias: Foto, Video, Documento y
 // nota de voz (micrófono).
-export const EvidenciaCaptura = ({ id, evidencia, setEvidencia, documento, setDocumento }: EvidenciaCapturaProps) => {
+export const EvidenciaCaptura = ({ id, evidencia, setEvidencia, documento, setDocumento, onTranscripcion }: EvidenciaCapturaProps) => {
   const [panel, setPanel] = useState<"foto" | "video" | "documento" | null>(null);
   const { uploadImageMutation } = useUploadImage();
   const [subiendo, setSubiendo] = useState<"video" | "audio" | null>(null);
+  const [analizando, setAnalizando] = useState(false);
+  // El onstop del grabador se arma al empezar a grabar: con la ref usa siempre
+  // el callback más reciente del modal.
+  const onTranscripcionRef = useRef(onTranscripcion);
+  onTranscripcionRef.current = onTranscripcion;
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   // Si el navegador puede grabar en un formato que acepte LinkaForm.
@@ -102,13 +114,34 @@ export const EvidenciaCaptura = ({ id, evidencia, setEvidencia, documento, setDo
       return [...nuevos, ...medios];
     });
 
-  const subir = async (archivo: File, tipo: "video" | "audio") => {
+  // Regresa la liga del archivo subido (undefined si no se subió).
+  const subir = async (archivo: File, tipo: "video" | "audio"): Promise<string | undefined> => {
     setSubiendo(tipo);
     try {
       const res = await uploadImageMutation.mutateAsync({ img: archivo });
       if (res?.file_url) setDocumento((prev) => [...(prev ?? []), { file_url: res.file_url, file_name: archivo.name }]);
+      return res?.file_url;
     } finally {
       setSubiendo(null);
+    }
+  };
+
+  const transcribir = async (fileUrl: string) => {
+    const entregar = onTranscripcionRef.current;
+    if (!entregar) return;
+    setAnalizando(true);
+    try {
+      const texto = await transcribirAudio(fileUrl);
+      if (texto) {
+        entregar(texto);
+        toast.success("Nota de voz transcrita a la descripción.");
+      } else {
+        toast.info("No se entendió lo que se dijo en la nota de voz.");
+      }
+    } catch (e) {
+      toast.error(`No se pudo transcribir la nota de voz: ${e instanceof Error ? e.message : "error desconocido"}`);
+    } finally {
+      setAnalizando(false);
     }
   };
 
@@ -165,7 +198,8 @@ export const EvidenciaCaptura = ({ id, evidencia, setEvidencia, documento, setDo
         if (!blob.size) return;
         const ext = "m4a";
         const nombre = `nota-de-voz-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.${ext}`;
-        await subir(new File([blob], nombre, { type: tipo }), "audio");
+        const fileUrl = await subir(new File([blob], nombre, { type: tipo }), "audio");
+        if (fileUrl) await transcribir(fileUrl);
       };
       recorderRef.current = recorder;
       recorder.start();
@@ -319,6 +353,11 @@ export const EvidenciaCaptura = ({ id, evidencia, setEvidencia, documento, setDo
             </span>
           ) : subiendo === "audio" ? (
             "Subiendo nota de voz..."
+          ) : analizando ? (
+            <span className="flex items-center gap-2 font-medium text-blue-600">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Analizando audio...
+            </span>
           ) : (
             "Foto, video, audio o documento"
           )}
@@ -326,7 +365,7 @@ export const EvidenciaCaptura = ({ id, evidencia, setEvidencia, documento, setDo
         <button
           type="button"
           onClick={grabando ? detenerGrabacion : iniciarGrabacion}
-          disabled={!!subiendo || (!puedeGrabarAudio && !grabando)}
+          disabled={!!subiendo || analizando || (!puedeGrabarAudio && !grabando)}
           title={
             !puedeGrabarAudio
               ? "Tu navegador no puede grabar notas de voz compatibles. Usa Chrome o Safari."
@@ -338,7 +377,7 @@ export const EvidenciaCaptura = ({ id, evidencia, setEvidencia, documento, setDo
           className={`flex h-10 w-10 items-center justify-center rounded-full text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
             grabando ? "bg-red-600 hover:bg-red-700" : "bg-blue-500 hover:bg-blue-600"
           }`}>
-          {subiendo === "audio" ? (
+          {subiendo === "audio" || analizando ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : grabando ? (
             <Square className="h-4 w-4 fill-current" />

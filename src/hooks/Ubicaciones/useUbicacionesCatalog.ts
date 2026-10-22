@@ -1,3 +1,4 @@
+import type { SearchFacet } from "@/components/common/FacetSearch";
 import { getUbicacionesCatalogSdk } from "@/lib/ubicaciones-sdk";
 import { errorMsj } from "@/lib/utils";
 import { UbicacionRow } from "@/lib/ubicaciones";
@@ -24,8 +25,7 @@ export const useUbicacionesCatalog = (
   dynamicFilters: { key: string; value: any }[] = [],
   limit: number = 25,
   skip: number = 0,
-  search: string = "",
-  searchFields: string[] = [],
+  facets: SearchFacet[] = [],
   enabled: boolean = true,
 ) => {
   const {
@@ -35,12 +35,12 @@ export const useUbicacionesCatalog = (
     error,
     refetch,
   } = useQuery<UbicacionesCatalogPage>({
-    queryKey: ["ubicacionesCatalog", locations, dynamicFilters, limit, skip, search, searchFields],
+    queryKey: ["ubicacionesCatalog", locations, dynamicFilters, limit, skip, facets],
     // locations vacío es válido: el back regresa todas las de la cuenta.
     enabled,
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<UbicacionesCatalogPage> => {
-      const data = await getUbicacionesCatalogSdk(locations, dynamicFilters, limit, skip, search, searchFields);
+      const data = await getUbicacionesCatalogSdk(locations, dynamicFilters, limit, skip, facets);
       const textMsj = errorMsj(data);
       if (textMsj) {
         throw new Error(`Error al obtener ubicaciones: ${data.error}`);

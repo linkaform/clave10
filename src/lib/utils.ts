@@ -377,6 +377,11 @@ export function errorMsj(data: any, title = "Error", type = "warning") {
     statusCode !== 201
   ) {
     const dataInner = data.response.data;
+    // Error general de LinkaForm ({code, success:false, error: "..."}, ej. 440
+    // "No tienes sesión activa"): no trae errores por campo.
+    if (typeof dataInner.json?.error === "string") {
+      return { title, text: dataInner.json.error, type };
+    }
     const errores = [];
     for (const err in dataInner.json) {
       if (dataInner.json[err].hasOwnProperty("label")) {

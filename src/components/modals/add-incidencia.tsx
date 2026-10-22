@@ -941,7 +941,22 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 
                       <p className={`${etiqueta} mt-5`}>Evidencia</p>
                       <div className="mt-1.5">
-                        <EvidenciaCaptura id="incidencia" evidencia={evidencia} setEvidencia={setEvidencia} documento={documento} setDocumento={setDocumento} />
+                        <EvidenciaCaptura
+                          id="incidencia"
+                          evidencia={evidencia}
+                          setEvidencia={setEvidencia}
+                          documento={documento}
+                          setDocumento={setDocumento}
+                          // La nota de voz se transcribe a la descripción; lo ya
+                          // escrito se conserva y el texto va en un renglón nuevo.
+                          onTranscripcion={(texto) => {
+                            const actual = (form.getValues("comentario_incidencia") || "").trimEnd();
+                            form.setValue("comentario_incidencia", actual ? `${actual}\n${texto}` : texto, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            });
+                          }}
+                        />
                       </div>
 
                       {/* Campos especiales según el tipo de incidencia */}

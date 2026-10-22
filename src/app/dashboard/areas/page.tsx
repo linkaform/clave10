@@ -2,29 +2,20 @@
 
 import React, { Suspense, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LayoutGrid, LayoutList, Plus, Sheet, X } from "lucide-react";
+import { LayoutGrid, LayoutList, Plus, Sheet } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { FacetSearch } from "@/components/common/FacetSearch";
 import { Button } from "@/components/ui/button";
 import { AreasUbicacionesTabs } from "@/components/common/AreasUbicacionesTabs";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { useAreasCatalog } from "@/hooks/Areas/useAreasCatalog";
 import { useAreasFilters } from "@/hooks/Areas/useAreasFilters";
+import { useFacetSection } from "@/hooks/common/useFacetSection";
 import { AreasExplorerTable } from "@/components/table/areas-explorer/table";
 import { ViewMode } from "@/lib/utils";
-import { SearchFieldsFilter, SearchFieldOption } from "@/components/common/SearchFieldsFilter";
 import PaginationPases from "@/components/pages/pases/PaginationPases";
 import { NuevaAreaModal } from "@/components/Areas/NuevaAreaModal";
-
-// Campos por los que se puede acotar la búsqueda en el explorador de Áreas.
-// key = tal cual lo espera el back en search_fields (get_areas_details).
-const AREAS_SEARCH_FIELDS: SearchFieldOption[] = [
-  { key: "folio", label: "Folio" },
-  { key: "area", label: "Nombre del área" },
-  { key: "tipo_de_area", label: "Tipo de área" },
-  { key: "area_state", label: "Estado" },
-  { key: "area_status", label: "Disponibilidad" },
-];
 
 const AreasContent = () => {
   const router = useRouter();
@@ -35,11 +26,7 @@ const AreasContent = () => {
   const { selectedLocations } = useSelectedLocationsStore();
   const [viewMode, setViewMode] = React.useState<ViewMode>("photos");
   const [selectedAreaId, setSelectedAreaId] = React.useState<string | null>(idParam);
-  const [searchFieldsAreas, setSearchFieldsAreas] = React.useState<string[]>([]);
-  const [resetSignalAreas, setResetSignalAreas] = React.useState(0);
   const [nuevaAreaOpen, setNuevaAreaOpen] = React.useState(false);
-  const [limitAreas, setLimitAreas] = React.useState(25);
-  const [skipAreas, setSkipAreas] = React.useState(0);
 
   useEffect(() => {
     setSelectedAreaId(idParam);
@@ -77,9 +64,7 @@ const AreasContent = () => {
     externalFilters,
     onExternalFiltersChange,
     activeFiltersCount,
-    dynamicFiltersArray,
     searchTags,
-    setSearchTags,
     isSidebarOpen,
     setIsSidebarOpen,
     filtersConfig,
@@ -87,19 +72,34 @@ const AreasContent = () => {
     ...(statusParam === "disponible" ? { disponibilidad: ["disponible"] } : {}),
   });
 
-  const searchAreas = searchTags[0] ?? "";
-  // Con campos elegidos en "Buscar en" pero sin texto todavía, no tiene
-  // sentido mandar la petición (igual que en Concesionados).
-  const puedeBuscarAreas = searchFieldsAreas.length === 0 || searchAreas.trim() !== "";
+  // Buscador avanzado (igual que Incidencias): chips + panel comparten filtro
+  // y todo se resuelve en el back, paginado (ver useFacetSection).
+  const sec = useFacetSection({
+    scriptName: "rondines_sdk.py",
+    optionSuffix: "_areas",
+    panel: { externalFilters, onExternalFiltersChange, activeFiltersCount },
+    status: "",
+    locations: selectedLocations,
+  });
+
+  // Los filtros iniciales del panel (Estatus "activa", y Disponibilidad con
+  // ?status=disponible) se pasan una vez a facets, que es lo que aplica el
+  // back. Hasta entonces no se pide el catálogo, para no hacerlo dos veces.
+  const [filtrosIniciales, setFiltrosIniciales] = React.useState(false);
+  useEffect(() => {
+    sec.onFiltersChange(externalFilters);
+    setFiltrosIniciales(true);
+    // Solo al montar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { areasCatalog, isLoading } = useAreasCatalog(
     selectedLocations,
-    dynamicFiltersArray,
-    limitAreas,
-    skipAreas,
-    searchAreas,
-    searchFieldsAreas,
-    puedeBuscarAreas,
+    [],
+    sec.paging.limit,
+    sec.paging.skip,
+    sec.facets,
+    filtrosIniciales,
   );
   const {
     records: areas = [],
@@ -108,20 +108,6 @@ const AreasContent = () => {
     total_pages: totalPagesAreas = 1,
     total_records: totalRecordsAreas = 0,
   } = areasCatalog ?? {};
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setSkipAreas(0); }, [searchAreas, searchFieldsAreas]);
-
-  const handleAreasPageChange = (newSkip: number, newLimit: number) => {
-    setSkipAreas(newSkip);
-    setLimitAreas(newLimit);
-  };
-
-  const resetFiltrosAreas = () => {
-    setSearchTags([]);
-    setSearchFieldsAreas([]);
-    setResetSignalAreas((n) => n + 1);
-  };
 
   const btnClass = (mode: ViewMode) =>
     `h-full w-10 transition-all rounded-none hover:bg-slate-200/50 border-x border-slate-300/50 ${
@@ -134,9 +120,9 @@ const AreasContent = () => {
         <FloatingFiltersDrawer
           isOpen={isSidebarOpen}
           onOpenChange={setIsSidebarOpen}
-          activeFiltersCount={activeFiltersCount}
-          filters={externalFilters}
-          onFiltersChange={onExternalFiltersChange}
+          activeFiltersCount={sec.activeFiltersCount}
+          filters={sec.filtersView}
+          onFiltersChange={sec.onFiltersChange}
           filtersConfig={filtersConfig}
           hideFecha
         />
@@ -145,25 +131,17 @@ const AreasContent = () => {
         <PageHeader
           title={statusParam === "disponible" ? "Áreas disponibles" : "Áreas"}
           totalRecords={totalRecordsAreas}
-          onSearch={(val) => setSearchTags(val ? [val] : [])}
-          searchPlaceholder="Buscar..."
-          resetSignal={resetSignalAreas}
+          isLoadingTotal={isLoading}
+          search={
+            <FacetSearch
+              fields={sec.fields}
+              facets={sec.facets}
+              onChange={sec.setFacets}
+              fetchCounts={sec.fetchCounts}
+              placeholder="Buscar por folio, nombre, tipo..."
+            />
+          }
         >
-          <SearchFieldsFilter
-            options={AREAS_SEARCH_FIELDS}
-            selected={searchFieldsAreas}
-            onChange={setSearchFieldsAreas}
-            searchTerm={searchAreas}
-          />
-          <Button
-            type="button"
-            size="icon"
-            title="Resetear búsqueda"
-            className="h-10 w-10 bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 hover:text-red-600 shadow-sm"
-            onClick={resetFiltrosAreas}>
-            <X size={16} />
-          </Button>
-
           <Button
             onClick={() => setNuevaAreaOpen(true)}
             className="gap-2 bg-green-600 hover:bg-green-700 text-white"
@@ -193,8 +171,8 @@ const AreasContent = () => {
           viewMode={viewMode}
           searchTags={searchTags}
           filtersConfig={filtersConfig}
-          externalFilters={externalFilters}
-          onExternalFiltersChange={onExternalFiltersChange}
+          externalFilters={sec.filtersView}
+          onExternalFiltersChange={sec.onFiltersChange}
           selectedAreaId={selectedAreaId}
           onSelectedAreaIdChange={handleAreaIdChange}
         />
@@ -204,8 +182,8 @@ const AreasContent = () => {
             records_on_page={recordsOnPageAreas}
             total_pages={totalPagesAreas}
             total_records={totalRecordsAreas}
-            limit={limitAreas}
-            onPageChange={handleAreasPageChange}
+            limit={sec.paging.limit}
+            onPageChange={sec.onPageChange}
           />
         )}
       </div>

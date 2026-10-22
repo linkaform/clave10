@@ -7,14 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { PuntoGeo } from "./MapaSelectorPunto";
-
-export interface ResultadoDireccion {
-  id: string;
-  nombre: string;
-  detalle: string;
-  punto: PuntoGeo;
-}
+import { buscarDirecciones, type PuntoGeo, type ResultadoDireccion } from "@/lib/geocodificacion";
+import { EtiquetaPrecision } from "./EtiquetaPrecision";
 
 const PAISES = [
   { code: "mx", label: "México" },
@@ -43,18 +37,6 @@ const CAMPOS_VACIOS: CamposDireccion = {
   pais: "mx",
 };
 
-const aResultado = (feature: any): ResultadoDireccion => {
-  const [lng, lat] = feature.center ?? [0, 0];
-  const nombre: string = feature.text || feature.place_name || "";
-  const completo: string = feature.place_name || nombre;
-  return {
-    id: feature.id ?? completo,
-    nombre,
-    detalle: completo.startsWith(nombre) ? completo.slice(nombre.length).replace(/^,\s*/, "") : completo,
-    punto: { latitude: lat, longitude: lng },
-  };
-};
-
 interface BuscarDireccionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -80,27 +62,21 @@ export function BuscarDireccionModal({ open, onOpenChange, apiKey, cerca, onSele
   const consulta = [calleConNumero, campos.colonia.trim(), cpMunicipio, campos.estado.trim()]
     .filter(Boolean)
     .join(", ");
+  const consultaMapquest = [calleConNumero, cpMunicipio, campos.estado.trim()].filter(Boolean).join(", ");
   const puedeBuscar = consulta.length >= 3 && !buscando;
 
   const buscar = async () => {
     if (!puedeBuscar) return;
     setBuscando(true);
-    try {
-      const pais = campos.pais !== "todos" ? `&country=${campos.pais}` : "";
-      const proximity = cerca ? `&proximity=${cerca.longitude},${cerca.latitude}` : "";
-      const tipos = campos.calle.trim()
-        ? "&types=address,poi,road,neighbourhood,locality,place,municipality"
-        : "";
-      const res = await fetch(
-        `https://api.maptiler.com/geocoding/${encodeURIComponent(consulta)}.json?key=${apiKey}&autocomplete=false&limit=8&language=es${pais}${tipos}${proximity}`,
-      );
-      const data = await res.json();
-      setResultados((data?.features ?? []).map(aResultado));
-    } catch {
-      setResultados([]);
-    } finally {
-      setBuscando(false);
-    }
+    const resultados = await buscarDirecciones(consulta, {
+      apiKey,
+      cerca,
+      pais: campos.pais,
+      consultaMapquest,
+      tipos: campos.calle.trim() ? "&types=address,poi,road,neighbourhood,locality,place,municipality" : "",
+    });
+    setResultados(resultados);
+    setBuscando(false);
   };
 
   const labelClass = "text-xs font-semibold text-gray-500 uppercase tracking-wide";
@@ -188,17 +164,17 @@ export function BuscarDireccionModal({ open, onOpenChange, apiKey, cerca, onSele
                           className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-gray-50"
                         >
                           <MapPin className="w-5 h-5 shrink-0 text-gray-700" />
-                          <span className="min-w-0">
+                          <span className="min-w-0 flex-1">
                             <span className="block text-sm text-gray-800 truncate">{r.nombre}</span>
                             {r.detalle && <span className="block text-xs text-gray-400 truncate">{r.detalle}</span>}
                           </span>
+                          {r.componentes.calle && <EtiquetaPrecision exacto={r.exacto} />}
                         </button>
                       </li>
                     ))}
                   </ul>
                   <p className="text-xs text-gray-400">
-                    El mapa no siempre tiene el número exacto: si solo aparece la calle, elígela y mueve el marcador
-                    al punto exacto.
+                    Si ninguno dice &quot;Número exacto&quot;, elige la calle y mueve el marcador al punto exacto.
                   </p>
                 </>
               )}
