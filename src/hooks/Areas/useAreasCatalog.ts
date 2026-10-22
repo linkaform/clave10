@@ -1,3 +1,4 @@
+import type { SearchFacet } from "@/components/common/FacetSearch";
 import { getAreasCatalogSdk } from "@/lib/areas-sdk";
 import { errorMsj } from "@/lib/utils";
 import { AreaRow } from "@/lib/areas";
@@ -24,8 +25,7 @@ export const useAreasCatalog = (
   dynamicFilters: { key: string; value: any }[] = [],
   limit: number = 25,
   skip: number = 0,
-  search: string = "",
-  searchFields: string[] = [],
+  facets: SearchFacet[] = [],
   enabled: boolean = true,
 ) => {
   const {
@@ -35,13 +35,13 @@ export const useAreasCatalog = (
     error,
     refetch,
   } = useQuery<AreasCatalogPage>({
-    queryKey: ["areasCatalog", locations, dynamicFilters, limit, skip, search, searchFields],
+    queryKey: ["areasCatalog", locations, dynamicFilters, limit, skip, facets],
     enabled: locations.length > 0 && enabled,
     // Igual que en Concesionados: al cambiar de página/búsqueda, mantiene la
     // página anterior visible en vez de vaciar la tabla mientras llega la nueva.
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<AreasCatalogPage> => {
-      const data = await getAreasCatalogSdk(locations, dynamicFilters, limit, skip, search, searchFields);
+      const data = await getAreasCatalogSdk(locations, dynamicFilters, limit, skip, facets);
       const textMsj = errorMsj(data);
       if (textMsj) {
         throw new Error(`Error al obtener áreas: ${data.error}`);

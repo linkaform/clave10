@@ -222,6 +222,22 @@ export const ocrAccesoTransportista = async (
   return result;
 };
 
+// Nota de voz -> texto, para la descripción de incidencias (lkf-sanic-apps,
+// accesos/transcribir_audio). Regresa el texto o lanza un Error con el motivo.
+export const transcribirAudio = async (audio_source: string): Promise<string> => {
+  const result = await apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: "ocr_docs_sdk.py",
+    option: "transcribir_audio",
+    audio_source,
+  });
+  const res = result?.response as
+    | { data?: { texto?: string }; msg?: string | string[]; error?: string; exception?: { msg?: string[] } }
+    | undefined;
+  if (typeof res?.data?.texto === "string") return res.data.texto;
+  const motivo = res?.exception?.msg?.[0] ?? res?.error ?? (Array.isArray(res?.msg) ? res?.msg[0] : res?.msg);
+  throw new Error(motivo || result?.error || "No se pudo transcribir el audio");
+};
+
 export const saveDataTransportista = (payload: unknown) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "transportistas.py",

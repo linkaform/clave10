@@ -7,25 +7,26 @@ import debounce from "lodash.debounce";
 import { Crosshair, Loader2, MapPin, TextSearch, X } from "lucide-react";
 import osm from "@/app/map-config";
 import { fixLeafletIcon } from "@/lib/fixLeafletIcon";
+import {
+  buscarDirecciones,
+  direccionDePunto,
+  textoResultado,
+  type PuntoGeo,
+  type ResultadoDireccion,
+} from "@/lib/geocodificacion";
 import useAuthStore from "@/store/useAuthStore";
 import { BuscarDireccionModal } from "./BuscarDireccionModal";
+import { EtiquetaPrecision } from "./EtiquetaPrecision";
 
-export interface PuntoGeo {
-  latitude: number;
-  longitude: number;
-}
+export type { PuntoGeo };
 
 interface MapaSelectorPuntoProps {
   value: PuntoGeo | null;
   onChange: (punto: PuntoGeo | null) => void;
-  onDireccionChange?: (direccion: string) => void;
-}
-
-interface Sugerencia {
-  id: string;
-  nombre: string;
-  detalle: string;
-  punto: PuntoGeo;
+  /** Dirección del punto elegido (búsqueda, clic o arrastre); null al quitarlo. */
+  onDireccionChange?: (resultado: ResultadoDireccion | null) => void;
+  /** Texto bajo la dirección; por defecto, el de áreas. */
+  nota?: string;
 }
 
 const CENTRO_DEFAULT: [number, number] = [25.6866, -100.3161];
@@ -51,18 +52,6 @@ const parsearPar = (texto: string): PuntoGeo | null => {
 
 const aTexto = (n: number) => String(Number(n.toFixed(6)));
 
-const aSugerencia = (feature: any): Sugerencia => {
-  const [lng, lat] = feature.center ?? [0, 0];
-  const nombre: string = feature.text || feature.place_name || "";
-  const completo: string = feature.place_name || nombre;
-  return {
-    id: feature.id ?? completo,
-    nombre,
-    detalle: completo.startsWith(nombre) ? completo.slice(nombre.length).replace(/^,\s*/, "") : completo,
-    punto: { latitude: lat, longitude: lng },
-  };
-};
-
 //
 // Usa Leaflet directo en vez de <MapContainer> de react-leaflet 4: su ref
 // callback memoiza `context === null` y, con React 19 en dev (StrictMode
@@ -70,17 +59,22 @@ const aSugerencia = (feature: any): Sugerencia => {
 // "Map container is already initialized". Aquí el mapa vive en un efecto con
 // cleanup (map.remove() libera el div), así que el doble montaje es seguro.
 // Se carga con dynamic(..., { ssr: false }) porque Leaflet usa `window`.
-export default function MapaSelectorPunto({ value, onChange, onDireccionChange }: MapaSelectorPuntoProps) {
+export default function MapaSelectorPunto({
+  value,
+  onChange,
+  onDireccionChange,
+  nota = "Si no tiene dirección, se utiliza la dirección de la ubicación.",
+}: MapaSelectorPuntoProps) {
   const user = useAuthStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
   const [busqueda, setBusqueda] = useState("");
-  const [sugerencias, setSugerencias] = useState<Sugerencia[]>([]);
+  const [sugerencias, setSugerencias] = useState<ResultadoDireccion[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
-  const [direccion, setDireccion] = useState("");
+  const [direccion, setDireccion] = useState<ResultadoDireccion | null>(null);
   const [latTexto, setLatTexto] = useState(value ? aTexto(value.latitude) : "");
   const [lngTexto, setLngTexto] = useState(value ? aTexto(value.longitude) : "");
   const [buscarDireccionOpen, setBuscarDireccionOpen] = useState(false);
@@ -97,22 +91,18 @@ export default function MapaSelectorPunto({ value, onChange, onDireccionChange }
   const onDireccionChangeRef = useRef(onDireccionChange);
   onDireccionChangeRef.current = onDireccionChange;
 
-  const actualizarDireccion = (texto: string) => {
-    setDireccion(texto);
-    onDireccionChangeRef.current?.(texto);
+  const actualizarDireccion = (resultado: ResultadoDireccion | null) => {
+    setDireccion(resultado);
+    onDireccionChangeRef.current?.(resultado);
   };
 
-  // Dirección del punto elegido con clic o arrastre.
+  // Dirección del punto elegido con clic o arrastre. Si mientras responde se
+  // eligió otro punto, la respuesta vieja se descarta.
+  const ultimoPuntoRef = useRef<PuntoGeo | null>(null);
   const reverseGeocode = async (punto: PuntoGeo) => {
-    try {
-      const res = await fetch(
-        `https://api.maptiler.com/geocoding/${punto.longitude},${punto.latitude}.json?key=${apiKey}&language=es&limit=1`,
-      );
-      const data = await res.json();
-      actualizarDireccion(data?.features?.[0]?.place_name ?? "");
-    } catch {
-      actualizarDireccion("");
-    }
+    ultimoPuntoRef.current = punto;
+    const resultado = await direccionDePunto(punto, apiKey);
+    if (ultimoPuntoRef.current === punto) actualizarDireccion(resultado);
   };
   const reverseGeocodeRef = useRef(reverseGeocode);
   reverseGeocodeRef.current = reverseGeocode;
@@ -156,7 +146,7 @@ export default function MapaSelectorPunto({ value, onChange, onDireccionChange }
     if (!value) {
       markerRef.current?.remove();
       markerRef.current = null;
-      setDireccion("");
+      setDireccion(null);
       setLatTexto("");
       setLngTexto("");
       return;
@@ -189,22 +179,17 @@ export default function MapaSelectorPunto({ value, onChange, onDireccionChange }
           setBuscando(false);
           return;
         }
-        try {
-          const centro = mapRef.current?.getCenter();
-          const proximity = centro ? `&proximity=${centro.lng},${centro.lat}` : "";
+        const centro = mapRef.current?.getCenter();
+        const resultados = await buscarDirecciones(texto, {
+          apiKey,
+          cerca: centro ? { latitude: centro.lat, longitude: centro.lng } : null,
+          autocomplete: true,
           // Sin postal_code: con autocomplete, un número al final ("... 316")
           // se toma como prefijo de CP y los 316xx tapan las direcciones.
-          const tipos = "&types=address,poi,road,neighbourhood,locality,place,municipality";
-          const res = await fetch(
-            `https://api.maptiler.com/geocoding/${encodeURIComponent(texto)}.json?key=${apiKey}&autocomplete=true&limit=8&language=es${tipos}${proximity}`,
-          );
-          const data = await res.json();
-          setSugerencias((data?.features ?? []).map(aSugerencia));
-        } catch {
-          setSugerencias([]);
-        } finally {
-          setBuscando(false);
-        }
+          tipos: "&types=address,poi,road,neighbourhood,locality,place,municipality",
+        });
+        setSugerencias(resultados);
+        setBuscando(false);
       }, 350),
     [apiKey],
   );
@@ -288,12 +273,13 @@ export default function MapaSelectorPunto({ value, onChange, onDireccionChange }
   // Error típico: pegar longitud en latitud (en México la longitud es ~-100).
   const pareceInvertido = errorLat && latValida(lngNum) && lngValida(latNum);
 
-  const handleSeleccionar = (sugerencia: Sugerencia) => {
-    setBusqueda([sugerencia.nombre, sugerencia.detalle].filter(Boolean).join(", "));
+  const handleSeleccionar = (sugerencia: ResultadoDireccion) => {
+    ultimoPuntoRef.current = sugerencia.punto;
+    setBusqueda(textoResultado(sugerencia));
     setMostrarSugerencias(false);
     setSugerencias([]);
     onChangeRef.current(sugerencia.punto);
-    actualizarDireccion([sugerencia.nombre, sugerencia.detalle].filter(Boolean).join(", "));
+    actualizarDireccion(sugerencia);
     mapRef.current?.setView([sugerencia.punto.latitude, sugerencia.punto.longitude], 17);
   };
 
@@ -347,6 +333,11 @@ export default function MapaSelectorPunto({ value, onChange, onDireccionChange }
                   <span className="text-sm text-gray-800 truncate">{sugerencia.nombre}</span>
                   {sugerencia.detalle && (
                     <span className="text-xs text-gray-400 truncate">{sugerencia.detalle}</span>
+                  )}
+                  {sugerencia.componentes.calle && (
+                    <span className="ml-auto">
+                      <EtiquetaPrecision exacto={sugerencia.exacto} />
+                    </span>
                   )}
                 </button>
               </li>
@@ -425,8 +416,9 @@ export default function MapaSelectorPunto({ value, onChange, onDireccionChange }
               type="button"
               className="text-xs text-red-500 hover:underline"
               onClick={() => {
+                ultimoPuntoRef.current = null;
                 onChangeRef.current(null);
-                actualizarDireccion("");
+                actualizarDireccion(null);
                 limpiarBusqueda();
               }}
             >
@@ -434,10 +426,13 @@ export default function MapaSelectorPunto({ value, onChange, onDireccionChange }
             </button>
           )}
         </div>
-        {direccion && <span className="block text-gray-800">{direccion}</span>}
-        <span className="block text-xs text-gray-400">
-          Si no tiene dirección, se utiliza la dirección de la ubicación.
-        </span>
+        {direccion && (
+          <span className="flex items-center gap-2 text-gray-800">
+            {textoResultado(direccion)}
+            {direccion.componentes.calle && <EtiquetaPrecision exacto={direccion.exacto} />}
+          </span>
+        )}
+        {nota && <span className="block text-xs text-gray-400">{nota}</span>}
       </div>
 
       <BuscarDireccionModal

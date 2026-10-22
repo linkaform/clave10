@@ -203,7 +203,7 @@ const AreaDetalle = ({
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
                       <MapPin className="w-3 h-3" /> Ubicación
@@ -238,7 +238,7 @@ const AreaDetalle = ({
                       {normalized.disponibilidad || "-"}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
+                  <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
                       <Navigation className="w-3 h-3" /> Geolocalización
                     </label>

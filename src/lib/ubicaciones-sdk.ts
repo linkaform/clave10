@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import type { SearchFacet } from "@/components/common/FacetSearch";
 import { getValidToken } from "./login/get-valid-token";
 
 // Llamadas al SDK nuevo (lkf-sanic-apps) para el explorador de Ubicaciones del
@@ -38,16 +39,15 @@ export const getUbicacionesCatalogSdk = async (
   dynamicFilters: { key: string; value: any }[] = [],
   limit: number = 25,
   skip: number = 0,
-  search: string = "",
-  searchFields: string[] = [],
+  /** Filtros del buscador avanzado (FacetSearch, get_search_fields_ubicaciones). */
+  facets: SearchFacet[] = [],
 ) => {
   return runScript({
     locations,
     dynamic_filters: dynamicFilters,
     limit,
     offset: skip,
-    search,
-    search_fields: searchFields,
+    facets,
     option: "get_catalog_ubicaciones_formatted",
     script_name: "location_sdk.py",
   });
