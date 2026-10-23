@@ -4,7 +4,6 @@ import React from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LogsTabs } from "@/components/common/LogsTabs";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
-import PaginationPases from "@/components/pages/pases/PaginationPases";
 import { ScriptLogsTable } from "@/components/ScriptLogs/ScriptLogsTable";
 import { ScriptLogPanel } from "@/components/ScriptLogs/ScriptLogPanel";
 import { useScriptLogs } from "@/hooks/ScriptLogs/useScriptLogs";
@@ -20,15 +19,22 @@ export default function ScriptLogsPage() {
     setIsSidebarOpen,
     filtersConfig,
   } = useScriptLogsFilters();
-  const [limit, setLimit] = React.useState(25);
-  const [skip, setSkip] = React.useState(0);
+  // Paginación en el servidor; 20 está entre los tamaños que ofrece DataTablePagination.
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 20,
+  });
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
-  const { scriptLogs, isLoading, refetch } = useScriptLogs(queryFilters, limit, skip);
+  const { scriptLogs, isLoading, refetch } = useScriptLogs(
+    queryFilters,
+    pagination.pageSize,
+    pagination.pageIndex * pagination.pageSize,
+  );
   const selectedRow = scriptLogs.records.find((r) => r.id === selectedId) ?? null;
 
   React.useEffect(() => {
-    setSkip(0);
+    setPagination((p) => ({ ...p, pageIndex: 0 }));
   }, [queryFilters]);
 
   return (
@@ -44,7 +50,7 @@ export default function ScriptLogsPage() {
       <div className="p-6 space-y-4 pt-3 w-full">
         <PageHeader
           title="Logs de scripts"
-          totalRecords={scriptLogs.total_records}
+          hideTotal
           hideSearch
           onRefresh={() => refetch()}
           isRefreshing={isLoading}
@@ -52,20 +58,15 @@ export default function ScriptLogsPage() {
           <LogsTabs active="script" />
         </PageHeader>
 
-        <ScriptLogsTable rows={scriptLogs.records} isLoading={isLoading} selectedId={selectedId} onSelect={setSelectedId} />
-        {!isLoading && (
-          <PaginationPases
-            actual_page={scriptLogs.actual_page}
-            records_on_page={scriptLogs.records_on_page}
-            total_pages={scriptLogs.total_pages}
-            total_records={scriptLogs.total_records}
-            limit={limit}
-            onPageChange={(newSkip, newLimit) => {
-              setSkip(newSkip);
-              setLimit(newLimit);
-            }}
-          />
-        )}
+        <ScriptLogsTable 
+          rows={scriptLogs.records}
+          isLoading={isLoading}
+          hasNext={scriptLogs.has_next}
+          pagination={pagination}
+          setPagination={setPagination}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
       </div>
 
       <ScriptLogPanel row={selectedRow} onOpenChange={(open) => !open && setSelectedId(null)} />

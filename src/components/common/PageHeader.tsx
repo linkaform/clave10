@@ -19,6 +19,8 @@ interface PageHeaderProps {
   resetSignal?: number | string;
   /** Muestra el contador como una pastilla gris parpadeando mientras llega el total. */
   isLoadingTotal?: boolean;
+  /** Oculta el "N registros" (colecciones donde contar es caro). */
+  hideTotal?: boolean;
   /** Reemplaza el input de búsqueda simple (ej. por FacetSearch) y le da todo el ancho libre. */
   search?: React.ReactNode;
 }
@@ -35,6 +37,7 @@ export const PageHeader = ({
   resetSignal,
   search,
   isLoadingTotal = false,
+  hideTotal = false,
 }: PageHeaderProps) => {
   const [searchInput, setSearchInput] = useState("");
 
@@ -60,14 +63,16 @@ export const PageHeader = ({
         </h1>
         {/* La pastilla de carga se monta encima del texto (que queda invisible
             pero ocupando su lugar) para que el header no cambie de ancho. */}
-        <span className="relative text-sm font-light text-slate-500 whitespace-nowrap">
-          <span className={isLoadingTotal ? "invisible" : ""}>
-            {(totalRecords ?? 0).toLocaleString("en-US")} registros
+        {!hideTotal && (
+          <span className="relative text-sm font-light text-slate-500 whitespace-nowrap">
+            <span className={isLoadingTotal ? "invisible" : ""}>
+              {(totalRecords ?? 0).toLocaleString("en-US")} registros
+            </span>
+            {isLoadingTotal && (
+              <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-5 rounded-full bg-slate-200 animate-pulse" />
+            )}
           </span>
-          {isLoadingTotal && (
-            <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-5 rounded-full bg-slate-200 animate-pulse" />
-          )}
-        </span>
+        )}
         {onRefresh && (
           <button
             type="button"

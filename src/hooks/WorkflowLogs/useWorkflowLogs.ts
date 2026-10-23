@@ -31,16 +31,14 @@ export interface WorkflowLogRow {
 
 export interface WorkflowLogsPage {
   records: WorkflowLogRow[];
-  total_records: number;
-  total_pages: number;
+  has_next: boolean;
   actual_page: number;
   records_on_page: number;
 }
 
 const EMPTY_PAGE: WorkflowLogsPage = {
   records: [],
-  total_records: 0,
-  total_pages: 1,
+  has_next: false,
   actual_page: 1,
   records_on_page: 0,
 };
@@ -48,6 +46,7 @@ const EMPTY_PAGE: WorkflowLogsPage = {
 export const useWorkflowLogs = (filters: WorkflowLogFiltersState, limit: number, skip: number) => {
   const { data, isLoading, isFetching, error, refetch } = useQuery<WorkflowLogsPage>({
     queryKey: ["workflowLogs", filters, limit, skip],
+    refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const res = await getWorkflowLogsSdk(filters, limit, skip);
@@ -73,6 +72,7 @@ const EMPTY_OPTIONS: WorkflowLogFilterOptions = { rule: [], event: [], workflow:
 export const useWorkflowLogFilterOptions = () => {
   const { data } = useQuery<WorkflowLogFilterOptions>({
     queryKey: ["workflowLogFilterOptions"],
+    refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const res = await getWorkflowLogFiltersSdk();
@@ -95,6 +95,7 @@ export interface WorkflowLogDetail {
 export const useWorkflowLogDetail = (logId: string | null) =>
   useQuery<WorkflowLogDetail>({
     queryKey: ["workflowLogDetail", logId],
+    refetchOnWindowFocus: false,
     enabled: !!logId,
     queryFn: async () => {
       const res = await getWorkflowLogDetailSdk(logId as string);

@@ -4,7 +4,6 @@ import React from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LogsTabs } from "@/components/common/LogsTabs";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
-import PaginationPases from "@/components/pages/pases/PaginationPases";
 import { WorkflowLogsTable } from "@/components/WorkflowLogs/WorkflowLogsTable";
 import { WorkflowLogPanel } from "@/components/WorkflowLogs/WorkflowLogPanel";
 import { useWorkflowLogs } from "@/hooks/WorkflowLogs/useWorkflowLogs";
@@ -20,15 +19,22 @@ export default function WorkflowLogsPage() {
     setIsSidebarOpen,
     filtersConfig,
   } = useWorkflowLogsFilters();
-  const [limit, setLimit] = React.useState(25);
-  const [skip, setSkip] = React.useState(0);
+  // Paginación en el servidor; 20 está entre los tamaños que ofrece DataTablePagination.
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 20,
+  });
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
-  const { workflowLogs, isLoading, refetch } = useWorkflowLogs(queryFilters, limit, skip);
+  const { workflowLogs, isLoading, refetch } = useWorkflowLogs(
+    queryFilters,
+    pagination.pageSize,
+    pagination.pageIndex * pagination.pageSize,
+  );
   const selectedRow = workflowLogs.records.find((r) => r.id === selectedId) ?? null;
 
   React.useEffect(() => {
-    setSkip(0);
+    setPagination((p) => ({ ...p, pageIndex: 0 }));
   }, [queryFilters]);
 
   return (
@@ -42,7 +48,8 @@ export default function WorkflowLogsPage() {
         filtersConfig={filtersConfig}
       />
       <div className="p-6 space-y-4 pt-3 w-full">
-        <PageHeader title="Logs de workflows" totalRecords={workflowLogs.total_records}
+        <PageHeader title="Logs de workflows"
+          hideTotal
           hideSearch
           onRefresh={() => refetch()}
           isRefreshing={isLoading}
@@ -50,20 +57,15 @@ export default function WorkflowLogsPage() {
           <LogsTabs active="workflows" />
         </PageHeader>
 
-        <WorkflowLogsTable rows={workflowLogs.records} isLoading={isLoading} selectedId={selectedId} onSelect={setSelectedId} />
-        {!isLoading && (
-          <PaginationPases
-            actual_page={workflowLogs.actual_page}
-            records_on_page={workflowLogs.records_on_page}
-            total_pages={workflowLogs.total_pages}
-            total_records={workflowLogs.total_records}
-            limit={limit}
-            onPageChange={(newSkip, newLimit) => {
-              setSkip(newSkip);
-              setLimit(newLimit);
-            }}
-          />
-        )}
+        <WorkflowLogsTable
+          rows={workflowLogs.records}
+          isLoading={isLoading}
+          hasNext={workflowLogs.has_next}
+          pagination={pagination}
+          setPagination={setPagination}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
       </div>
 
       <WorkflowLogPanel row={selectedRow} onOpenChange={(open) => !open && setSelectedId(null)} />

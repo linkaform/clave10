@@ -24,16 +24,14 @@ export interface ScriptLogRow {
 
 export interface ScriptLogsPage {
   records: ScriptLogRow[];
-  total_records: number;
-  total_pages: number;
+  has_next: boolean;
   actual_page: number;
   records_on_page: number;
 }
 
 const EMPTY_PAGE: ScriptLogsPage = {
   records: [],
-  total_records: 0,
-  total_pages: 1,
+  has_next: false,
   actual_page: 1,
   records_on_page: 0,
 };
@@ -45,6 +43,7 @@ export const useScriptLogs = (
 ) => {
   const { data, isLoading, isFetching, error, refetch } = useQuery<ScriptLogsPage>({
     queryKey: ["scriptLogs", filters, limit, skip],
+    refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const res = await getScriptLogsSdk(filters, limit, skip);
@@ -63,6 +62,7 @@ export interface ScriptLogFilterOptions {
 export const useScriptLogFilterOptions = () => {
   const { data } = useQuery<ScriptLogFilterOptions>({
     queryKey: ["scriptLogFilterOptions"],
+    refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const res = await getScriptLogFiltersSdk();
@@ -83,6 +83,7 @@ export interface ScriptLogContent {
 export const useScriptLogContent = (logUrl: string | null) =>
   useQuery<ScriptLogContent>({
     queryKey: ["scriptLogContent", logUrl],
+    refetchOnWindowFocus: false,
     enabled: !!logUrl,
     queryFn: async () => {
       const res = await getScriptLogContentSdk(logUrl as string);
