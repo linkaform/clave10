@@ -70,7 +70,8 @@ export const AfectacionPatrimonialModal: React.FC<IncidenciaModalProps> = ({
 		setDocumento(sel?.documento || []);
 	}, [openAfectacionPatrimonialModal]);
 
-	const puedeGuardar = !!tipo && !!descripcion.trim() && !!estatus && monto !== "" && cantidad !== "";
+	// Monto y duración son opcionales.
+	const puedeGuardar = !!tipo && !!descripcion.trim() && !!estatus;
 
 	const handleClose = () => {
 		setOpenAfectacionPatrimonialModal(false);
@@ -84,7 +85,7 @@ export const AfectacionPatrimonialModal: React.FC<IncidenciaModalProps> = ({
 			monto_estimado: monto,
 			descripcion_afectacion: descripcion.trim(),
 			estatus_afectacion: estatus,
-			duracion_estimada: `${cantidad} ${unidad}`,
+			duracion_estimada: cantidad !== "" ? `${cantidad} ${unidad}` : "",
 			evidencia,
 			documento,
 		};
@@ -161,7 +162,7 @@ export const AfectacionPatrimonialModal: React.FC<IncidenciaModalProps> = ({
 						</div>
 						<div>
 							<p className={label}>
-								Monto estimado del daño <span className="text-red-500">*</span>
+								Monto estimado del daño
 							</p>
 							<div className="mt-1.5 flex h-11 items-center rounded-md border border-input px-3 focus-within:ring-2 focus-within:ring-blue-100">
 								<span className="text-sm text-gray-500">$</span>
@@ -180,7 +181,7 @@ export const AfectacionPatrimonialModal: React.FC<IncidenciaModalProps> = ({
 						</div>
 						<div>
 							<p className={label}>
-								Duración estimada <span className="text-red-500">*</span>
+								Duración estimada
 							</p>
 							<div className="mt-1.5 flex gap-2">
 								<Input

@@ -25,6 +25,7 @@ export const useSeguimientoIncidencia = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["getListIncidencias"] });
             queryClient.invalidateQueries({ queryKey: ["getStatsIncidencias"] });
+            queryClient.invalidateQueries({ queryKey: ["getHistorialIncidencia"] });
             toast.success("Seguimiento creado correctamente.");
         },
         onError: (err) => {

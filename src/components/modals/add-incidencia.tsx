@@ -91,7 +91,7 @@ import {
 } from "../ui/select";
 import { Plus, Wrench } from "lucide-react";
 import { EvidenciaCaptura } from "../incidencias/evidencia-captura";
-import { AccionCorrectiva, AccionCorrectivaModal } from "./add-accion-correctiva";
+import { AccionCorrectiva, AccionCorrectivaModal, CLASE_TIPO_TAREA, estatusTarea } from "./add-accion-correctiva";
 import {
   CATEGORIA_OTRO,
   SelectorTipoIncidencia,
@@ -489,7 +489,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
   // "Reportar como falla": por ahora solo visual, no se manda al back.
   const [reportarFalla, setReportarFalla] = useState(false);
   const [intentoGuardar, setIntentoGuardar] = useState(false);
-  // Acciones correctivas (grupo "Acciones Correctivas" de la forma de incidencias).
+  // Tareas (grupo "Tareas" de la forma de incidencias; antes "Acciones correctivas").
   const [accionesCorrectivas, setAccionesCorrectivas] = useState<AccionCorrectiva[]>([]);
   const [openAccionCorrectiva, setOpenAccionCorrectiva] = useState(false);
   const [indiceAccionCorrectiva, setIndiceAccionCorrectiva] = useState<number | null>(null);
@@ -826,7 +826,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
                     { value: "datos", label: "Datos" },
                     { value: "afectacion", label: "Afectación patrimonial", n: afectacionPatrimonial.length },
                     { value: "seguimiento", label: "Seguimiento", n: seguimientos.length },
-                    { value: "acciones-correctivas", label: "Acciones correctivas", n: accionesCorrectivas.length },
+                    { value: "acciones-correctivas", label: "Tareas", n: accionesCorrectivas.length },
                   ].map((t) => (
                     <TabsTrigger
                       key={t.value}
@@ -1073,8 +1073,8 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
 
                 <TabsContent value="acciones-correctivas" className="mt-5">
                   <EncabezadoTab
-                    titulo="Acciones correctivas"
-                    descripcion="Medidas para eliminar la causa y evitar que la incidencia se repita."
+                    titulo="Tareas"
+                    descripcion="Qué se hará por esta incidencia y quién es responsable."
                     onAgregar={() => {
                       setIndiceAccionCorrectiva(null);
                       setOpenAccionCorrectiva(true);
@@ -1085,7 +1085,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
                       <thead className="bg-blue-50">
                         <tr>
                           <th className={thTab}>Tipo</th>
-                          <th className={thTab}>Acción correctiva</th>
+                          <th className={thTab}>Tarea</th>
                           <th className={thTab}>¿Qué la causó?</th>
                           <th className={thTab}>Responsable</th>
                           <th className={thTab}>Estatus</th>
@@ -1099,7 +1099,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
                               <td className={tdTab}>
                                 <span
                                   className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                    item.tipo === "Correctiva" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
+                                    CLASE_TIPO_TAREA[(item.tipo || "").toLowerCase()] || CLASE_TIPO_TAREA.tarea
                                   }`}>
                                   {item.tipo}
                                 </span>
@@ -1116,7 +1116,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
                               </td>
                               <td className={tdTab}>
                                 <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                                  {item.estatus}
+                                  {estatusTarea(item.estatus)}
                                 </span>
                               </td>
                               <td className={tdTab}>
@@ -1145,7 +1145,7 @@ export const AddIncidenciaModal: React.FC<AddIncidenciaModalProps> = ({
                         ) : (
                           <tr>
                             <td colSpan={6} className="py-6 text-center text-sm text-gray-500">
-                              No se han agregado acciones correctivas.
+                              No se han agregado tareas.
                             </td>
                           </tr>
                         )}
