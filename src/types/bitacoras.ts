@@ -32,8 +32,12 @@ export interface PhotoRecord {
   folio?: string;
   visit_type?: string;
   title: string;
+  /** Badge chico junto al título (ej. "+1 artículo"). */
+  titleBadge?: string;
   description: string;
   images: string[];
+  /** Etiqueta de cada imagen (mismo orden que `images`), se muestra sobre la foto. */
+  imageLabels?: string[];
   status: PhotoStatus;
   statusLabel?: string;
   /** Clases para el badge de estatus de la tarjeta; pisa el color de EstatusBadge. */
@@ -77,6 +81,8 @@ export interface ListRecord {
   folio?: string;
   visit_type?: string;
   title: string;
+  /** Badge chico junto al título (ej. "+1 artículo"). */
+  titleBadge?: string;
   description: string;
   images: string[];
   status: PhotoStatus;

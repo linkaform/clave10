@@ -63,6 +63,7 @@ export const useGetShift = (area?: string,
     if (shift?.id) {
       setCheckin_id(shift?.id);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shift?.id, setCheckin_id, shift?.location?.name, shift?.guard?.location, shift?.location?.area, setBooth, shift?.guard?.area]);
 
   return {

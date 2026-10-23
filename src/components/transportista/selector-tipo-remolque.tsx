@@ -15,8 +15,20 @@ import type { UnidadConfig } from "@/components/transportista/agregar-unidad-mod
 // Remolque sin tracto: lanza y patín de apoyo al frente (derecha).
 const Enganche = () => <path d="M110 30 H118 M98 32 V40 M95 40 H101" />;
 
-// `contenedor`: el remolque puede llevar un contenedor montado (2610-1382).
-export const TIPOS_REMOLQUE_SILUETA: { value: string; silueta: ReactNode; contenedor?: boolean }[] = [
+// `contenedor`: el remolque puede llevar un contenedor montado (2610-1382);
+// junta 19 oct: solo el chasis portacontenedor. `sinSello`: no se pide sello
+// (la plataforma va descubierta). `alias`: valores guardados antes del
+// renombre, para seguir reconociéndolos.
+export interface TipoRemolque {
+  value: string;
+  detalle?: string;
+  alias?: string[];
+  silueta: ReactNode;
+  contenedor?: boolean;
+  sinSello?: boolean;
+}
+
+export const TIPOS_REMOLQUE_SILUETA: TipoRemolque[] = [
   {
     value: "Caja seca",
     silueta: (
@@ -28,7 +40,7 @@ export const TIPOS_REMOLQUE_SILUETA: { value: string; silueta: ReactNode; conten
   },
   {
     value: "Plataforma",
-    contenedor: true,
+    sinSello: true,
     silueta: (
       <Silueta>
         <rect x={6} y={26} width={104} height={6} rx={1} />
@@ -79,7 +91,9 @@ export const TIPOS_REMOLQUE_SILUETA: { value: string; silueta: ReactNode; conten
     ),
   },
   {
-    value: "Portavehículos",
+    value: "Madrina",
+    detalle: "Portavehículos",
+    alias: ["Portavehículos"],
     silueta: (
       <Silueta>
         <path d="M6 18 H110 M6 32 H110 M8 6 V32 M108 6 V32" />
@@ -102,7 +116,9 @@ export const TIPOS_REMOLQUE_SILUETA: { value: string; silueta: ReactNode; conten
     ),
   },
   {
-    value: "Tanque",
+    value: "Pipa",
+    detalle: "Autotanque",
+    alias: ["Tanque"],
     silueta: (
       <Silueta>
         <rect x={6} y={10} width={104} height={22} rx={11} />
@@ -115,24 +131,30 @@ export const TIPOS_REMOLQUE_SILUETA: { value: string; silueta: ReactNode; conten
 const normalizar = (s: string) =>
   s.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-// Si el tipo de remolque admite contenedor (plataforma, chasis portacontenedor).
+export const resolverTipoRemolque = (tipo?: string | null): TipoRemolque | undefined => {
+  const t = normalizar(tipo ?? "");
+  return TIPOS_REMOLQUE_SILUETA.find((r) => [r.value, ...(r.alias ?? [])].some((v) => normalizar(v) === t));
+};
+
+// Si el tipo de remolque admite contenedor (chasis portacontenedor).
 export const remolquePermiteContenedor = (tipo?: string | null): boolean =>
-  !!TIPOS_REMOLQUE_SILUETA.find((t) => normalizar(t.value) === normalizar(tipo ?? ""))?.contenedor;
+  !!resolverTipoRemolque(tipo)?.contenedor;
+
+// Si el tipo de remolque lleva número de sello (todos menos la plataforma).
+export const remolqueLlevaSello = (tipo?: string | null): boolean =>
+  !resolverTipoRemolque(tipo)?.sinSello;
 
 // ─── Sugerencias por tipo de vehículo ─────────────────────────────────────────
 // Solo sugieren (ordenan la galería y proponen la configuración de una unidad
 // nueva); nunca esconden opciones ni cambian unidades ya capturadas.
-// Madrina y Pipa ya implican su remolque, por eso traen uno solo y se
-// preselecciona. Torton/Rabón/3.5 t traen caja integrada: arrancan en
-// "Solo vehículo".
+// Torton/Rabón/3.5 t traen caja integrada: arrancan en "Solo vehículo".
 const SUGERENCIAS_POR_VEHICULO: Record<string, { remolques: string[]; config: UnidadConfig }> = {
-  "Tractocamión":    { remolques: ["Caja seca", "Caja refrigerada", "Plataforma", "Chasis portacontenedor", "Basculante", "Ganadero"], config: "solo_remolque" },
-  "Madrina":         { remolques: ["Portavehículos"], config: "solo_remolque" },
-  "Pipa":            { remolques: ["Tanque"], config: "solo_remolque" },
+  "Tractocamión":    { remolques: ["Caja seca", "Caja refrigerada", "Plataforma", "Chasis portacontenedor", "Madrina", "Pipa", "Basculante", "Ganadero"], config: "solo_remolque" },
   "Torton":          { remolques: [], config: "solo_vehiculo" },
   "Rabón":           { remolques: [], config: "solo_vehiculo" },
   "Camioneta 3.5 t": { remolques: [], config: "solo_vehiculo" },
   "Pickup":          { remolques: ["Caravana", "Plataforma"], config: "solo_vehiculo" },
+  "Automóvil":       { remolques: [], config: "solo_vehiculo" },
 };
 
 export function sugerenciaPorTipoVehiculo(tipoVehiculo?: string | null) {
@@ -151,7 +173,7 @@ export function SelectorTipoRemolque({
   tipoVehiculo?: string | null;
 }) {
   const [open, setOpen] = useState(false);
-  const actual = TIPOS_REMOLQUE_SILUETA.find((t) => normalizar(t.value) === normalizar(value));
+  const actual = resolverTipoRemolque(value);
   const sugerencia = sugerenciaPorTipoVehiculo(tipoVehiculo);
   const sugeridos = TIPOS_REMOLQUE_SILUETA.filter((t) => sugerencia?.remolques.includes(t.value));
   const otros = TIPOS_REMOLQUE_SILUETA.filter((t) => !sugeridos.includes(t));
@@ -169,7 +191,10 @@ export function SelectorTipoRemolque({
         )}
       >
         <span className="w-full h-12">{t.silueta}</span>
-        <span className="text-xs font-semibold leading-tight text-center">{t.value}</span>
+        <span className="text-xs font-semibold leading-tight text-center">
+          {t.value}
+          {t.detalle && <span className="block text-[10px] font-normal text-gray-400">{t.detalle}</span>}
+        </span>
       </button>
     );
   };
@@ -186,6 +211,7 @@ export function SelectorTipoRemolque({
       <button
         type="button"
         onClick={() => setOpen(true)}
+        title={value || undefined}
         className={cn(
           "w-full h-9 rounded-md border px-2.5 flex items-center gap-2 text-sm text-left transition-colors",
           value ? "border-input bg-transparent shadow-sm hover:border-blue-300" : "border-dashed border-gray-300 bg-gray-50/60 hover:border-blue-400 hover:bg-blue-50/40",

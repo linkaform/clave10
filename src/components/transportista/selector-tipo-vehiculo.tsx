@@ -51,13 +51,14 @@ export const TIPOS_VEHICULO: TipoVehiculo[] = [
   {
     value: "Tractocamión",
     detalle: "Tráiler",
+    // Junta 19 oct: solo el cabezote; la caja, madrina o pipa se elige como
+    // tipo de remolque.
     alias: ["tractocamion", "tracto", "tractor", "trailer", "quinta rueda", "articulado"],
     silueta: (
       <Silueta>
-        <rect x={4} y={8} width={78} height={24} rx={2} />
-        <path d="M82 30 H90" />
-        <Cabina x={90} />
-        <Rueda x={18} /><Rueda x={31} /><Rueda x={100} /><Rueda x={115} />
+        <path d="M32 30 H64 M36 30 V26 H52 V30" />
+        <Cabina x={64} />
+        <Rueda x={44} /><Rueda x={74} /><Rueda x={89} />
       </Silueta>
     ),
   },
@@ -111,29 +112,15 @@ export const TIPOS_VEHICULO: TipoVehiculo[] = [
     ),
   },
   {
-    value: "Madrina",
-    detalle: "Portavehículos",
-    alias: ["madrina", "portavehiculos", "porta vehiculos", "nodriza", "autotransporte"],
+    value: "Automóvil",
+    detalle: "Vehículo normal",
+    rigido: true,
+    alias: ["automovil", "carro", "sedan", "coche", "particular"],
     silueta: (
       <Silueta>
-        <path d="M4 18 H84 M4 32 H84 M6 6 V32 M82 6 V32" />
-        <Auto x={10} y={18} /><Auto x={46} y={18} />
-        <Auto x={10} y={32} /><Auto x={46} y={32} />
-        <path d="M84 30 H90" />
-        <Cabina x={90} />
-        <Rueda x={18} /><Rueda x={31} /><Rueda x={100} /><Rueda x={115} />
-      </Silueta>
-    ),
-  },
-  {
-    value: "Pipa",
-    alias: ["pipa", "tanque", "cisterna", "autotanque"],
-    silueta: (
-      <Silueta>
-        <rect x={6} y={10} width={76} height={22} rx={11} />
-        <path d="M82 30 H90" />
-        <Cabina x={90} />
-        <Rueda x={20} /><Rueda x={33} /><Rueda x={100} /><Rueda x={115} />
+        <path d="M22 34 V26 Q22 23 26 23 H40 L52 14 H80 L94 23 H104 Q108 23 108 27 V34 Z" />
+        <path d="M55 17 H66 V23 H46 Z M70 17 H79 L88 23 H70 Z" />
+        <Rueda x={40} /><Rueda x={92} />
       </Silueta>
     ),
   },

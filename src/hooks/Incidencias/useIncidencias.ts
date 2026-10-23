@@ -73,11 +73,13 @@ export const useInciencias = (
       data_incidencia: InputIncidencia;
     }) => {
       const response = await crearIncidencia(data_incidencia);
+      // El mini-back responde success:true aunque LinkaForm haya rechazado el
+      // registro (ej. 440 sesión expirada): cualquier status_code >= 400 es error.
       const hasError =
-        !response?.success || response?.response?.data?.status_code === 400;
+        !response?.success || (response?.response?.data?.status_code ?? 0) >= 400;
       if (hasError) {
         const textMsj = errorMsj(response);
-        throw new Error(`Error al crear seguimiento, Error: ${textMsj?.text}`);
+        throw new Error(`Error al crear la incidencia: ${textMsj?.text || "error desconocido"}`);
       } else {
         return response.response?.data;
       }
@@ -115,10 +117,10 @@ export const useInciencias = (
     }) => {
       const response = await editarIncidencia(data_incidencia, folio);
       const hasError =
-        !response?.success || response?.response?.data?.status_code === 400;
+        !response?.success || (response?.response?.data?.status_code ?? 0) >= 400;
       if (hasError) {
         const textMsj = errorMsj(response);
-        throw new Error(`Error al crear seguimiento, Error: ${textMsj?.text}`);
+        throw new Error(`Error al editar la incidencia: ${textMsj?.text || "error desconocido"}`);
       } else {
         return response.response?.data;
       }

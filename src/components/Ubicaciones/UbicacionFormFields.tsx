@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Building2, MapPin, Phone } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Building2, Loader2, MapPin, Phone } from "lucide-react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
+import { estadoDeCatalogo, type ResultadoDireccion } from "@/lib/geocodificacion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,6 +30,16 @@ interface UbicacionFormFieldsProps {
 const labelClass = "text-xs font-semibold text-gray-500 uppercase tracking-wide";
 const inputClass = "bg-white border-gray-200";
 
+// Leaflet usa `window`: sin SSR.
+const MapaSelectorPunto = dynamic(() => import("@/components/Areas/MapaSelectorPunto"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 w-full rounded-lg border border-gray-200 flex items-center justify-center">
+      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+    </div>
+  ),
+});
+
 // Campos de nombre + dirección + contacto, compartidos por el modal de nueva
 // ubicación y el de nuevo contacto (botón "+" del selector de dirección).
 export function UbicacionFormFields({
@@ -39,6 +51,23 @@ export function UbicacionFormFields({
   const setField = (key: keyof UbicacionFormData) => (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  // La dirección elegida en el mapa llena los campos; los que el proveedor no
+  // trae se quedan como estaban, y todos se pueden corregir a mano después.
+  const llenarDesdeMapa = (resultado: ResultadoDireccion | null) => {
+    if (!resultado) return;
+    const c = resultado.componentes;
+    const estado = estadoDeCatalogo(c.estado);
+    setForm((prev) => ({
+      ...prev,
+      direccion: c.calle || prev.direccion,
+      colonia: c.colonia || prev.colonia,
+      ciudad: c.ciudad || prev.ciudad,
+      estado: estado || prev.estado,
+      pais: c.pais || prev.pais,
+      codigo_postal: c.codigo_postal || prev.codigo_postal,
+    }));
+  };
 
   return (
     <>
@@ -64,6 +93,12 @@ export function UbicacionFormFields({
         <MapPin className="text-blue-500 w-5 h-5" />
         <h3 className="font-semibold text-gray-700">Dirección</h3>
       </div>
+      <MapaSelectorPunto
+        value={form.geolocalizacion ?? null}
+        onChange={(punto) => setForm((prev) => ({ ...prev, geolocalizacion: punto ?? undefined }))}
+        onDireccionChange={llenarDesdeMapa}
+        nota="Al elegir el punto se llenan los campos de abajo; revísalos y corrige lo que haga falta."
+      />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2 flex flex-col gap-1.5">
           <Label htmlFor={`${idPrefix}-direccion`} className={labelClass}>Dirección</Label>

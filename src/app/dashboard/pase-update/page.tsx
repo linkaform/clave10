@@ -918,6 +918,20 @@ const PaseUpdate = () => {
       }));
 
       setMiembrosAcompanantes(rows);
+
+      // Foto/identificación que el pase ya trae (p. ej. un acompañante al que se
+      // las cargaron al crear el pase): se precargan para no pedirlas de nuevo.
+      // Solo si el campo está vacío, para no pisar lo que el visitante ya subió.
+      const precargar = (campo: "walkin_fotografia" | "walkin_identificacion", valor: unknown) => {
+        const archivos = (normalizeImageField(valor) ?? [])
+          .filter((a) => a.file_url)
+          .map((a) => ({ file_url: a.file_url!, file_name: a.file_name ?? "" }));
+        if (archivos.length && !(form.getValues(campo)?.length)) {
+          form.setValue(campo, archivos, { shouldValidate: true });
+        }
+      };
+      precargar("walkin_fotografia", dataCatalogos.pass_selected.foto);
+      precargar("walkin_identificacion", dataCatalogos.pass_selected.identificacion);
     }
   }, [dataCatalogos]);
 

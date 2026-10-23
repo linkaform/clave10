@@ -17,49 +17,46 @@ const getStatusConfig = (status: string) => {
 export function mapArticuloConcesionadoGrid(raw: any, base: any) {
   const equipos: any[] = raw?.grupo_equipos || [];
 
-  // 1. Imágenes de imagen_equipo_concesion (de TODOS los equipos)
-  const imagenesEquipo = equipos
-    .flatMap((e: any) => e?.imagen_equipo_concesion || [])
-    .map((i: any) => i?.file_url)
-    .filter((url: string) => Boolean(url) && isValidImageUrl(url));
-
-  // 2. Imágenes de evidencia_prestamo (de TODOS los equipos)
-  const imagenesEvidencia = equipos
-    .flatMap((e: any) => e?.evidencia_prestamo || [])
-    .map((i: any) => i?.file_url)
-    .filter((url: string) => Boolean(url) && isValidImageUrl(url));
-
-  // Primero imagen_equipo_concesion, luego evidencia_prestamo
-  const images = [...imagenesEquipo, ...imagenesEvidencia];
-  const finalImages = images.length > 0 ? images : ["/sin_imagen_rondines.png"];
+  // Fotos de TODOS los equipos con el nombre de su equipo: primero
+  // imagen_equipo_concesion, luego evidencia_prestamo.
+  const fotosDe = (campo: string) =>
+    equipos.flatMap((e: any) =>
+      (e?.[campo] || [])
+        .map((i: any) => ({ url: i?.file_url, equipo: e?.nombre_equipo || "" }))
+        .filter((f: { url: string }) => Boolean(f.url) && isValidImageUrl(f.url)),
+    );
+  const fotos = [...fotosDe("imagen_equipo_concesion"), ...fotosDe("evidencia_prestamo")];
+  const finalImages = fotos.length > 0 ? fotos.map((f) => f.url) : ["/sin_imagen_rondines.png"];
 
   const statusConfig = getStatusConfig(raw?.status_concesion);
   const persona = raw?.persona_nombre_concesion || raw?.persona_nombre_otro || "Sin nombre";
   const equipoNames = equipos.map((e: any) => e.nombre_equipo).filter(Boolean);
-  const maxLength = 50;
-  const equiposText = equipoNames.join(", ");
   const truncate = (text: string, max = 33) =>
     text.length > max ? text.slice(0, max) + "..." : text;
+  const createdBy = raw?.created_by || "-";
+
+  // Varios artículos en un folio (2610-1305): el título es el primero con
+  // "+N" y el renglón lleva lo devuelto de todo el folio.
   const totalUnidades = equipos.reduce((acc: number, e: any) => acc + Number(e.cantidad_equipo_concesion ?? 0), 0);
   const totalDevueltas = equipos.reduce((acc: number, e: any) => acc + Number(e.cantidad_equipo_devuelto ?? 0), 0);
-  const createdBy = raw?.created_by || "-";
 
   return {
     ...base,
     id: raw?._id || "no-id",
     folio: raw?.folio || "S/F",
     visit_type: `Creado por: ${createdBy}` || "No disponible",
-    title: equiposText.length > maxLength
-      ? equiposText.slice(0, maxLength) + "..."
-      : equiposText || "Sin equipos",
+    title: equipoNames[0] || "Sin equipos",
+    titleBadge: equipos.length > 1 ? `+${equipos.length - 1} artículo${equipos.length > 2 ? "s" : ""}` : undefined,
     images: finalImages,
+    // Con varios artículos, cada foto dice de cuál es.
+    imageLabels: equipos.length > 1 && fotos.length > 0 ? fotos.map((f) => f.equipo) : undefined,
     status: raw?.status_concesion?.toLowerCase() || "abierto",
     statusLabel: statusConfig.label,
     detailsList: [
       {
         icon: <Package className="h-3 w-3" />,
-        label: "EQUIPOS",
-        value: equipoNames.length > 0 ? truncate(`Equipos: ${equipoNames.join(", ")}`) : "",
+        label: "DEVUELTAS",
+        value: `Devueltas: ${totalDevueltas} / ${totalUnidades}`,
       },
       {
         icon: <User className="h-3 w-3" />,
@@ -76,12 +73,7 @@ export function mapArticuloConcesionadoGrid(raw: any, base: any) {
         label: "UBICACIÓN",
         value: raw?.ubicacion_concesion ? truncate(`Ubicación: ${raw.ubicacion_concesion}`) : "",
       },
-      {
-        icon: <Package className="h-3 w-3" />,
-        label: "DEVUELTAS",
-        value: `Devueltas: ${totalDevueltas} / ${totalUnidades}`,
-      },
-      
+
     ],
     modalDetailsList: [
       { icon: <User className="h-3 w-3" />, label: "Persona", value: persona },

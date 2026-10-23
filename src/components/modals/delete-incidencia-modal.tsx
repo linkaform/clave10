@@ -1,95 +1,105 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Button } from "../ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
 import { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, TriangleAlert } from "lucide-react";
 import { useEliminarIncidencia } from "@/hooks/Incidencias/useEliminarIncidencias";
-import { useShiftStore } from "@/store/useShiftStore";
 
 interface AddFallaModalProps {
-  	title: string;
-    arrayFolios:any[];
-	setModalEliminarAbierto:Dispatch<SetStateAction<boolean>>; 
-	modalEliminarAbierto:boolean;
+	title: string;
+	arrayFolios: any[];
+	setModalEliminarAbierto: Dispatch<SetStateAction<boolean>>;
+	modalEliminarAbierto: boolean;
 }
 
+// Se muestran como máximo estos folios; el resto se resume en "+N más".
+const MAX_FOLIOS = 6;
+
 export const EliminarIncidenciaModal: React.FC<AddFallaModalProps> = ({
-  	title,
 	arrayFolios,
 	setModalEliminarAbierto,
-	modalEliminarAbierto
+	modalEliminarAbierto,
 }) => {
-	const { isLoading } = useShiftStore();
 	const eliminarIncidenciaMutation = useEliminarIncidencia();
+	const eliminando = eliminarIncidenciaMutation.isPending;
+
+	// Llegan como folios (string) o como registros de incidencia.
+	const folios: string[] = (arrayFolios ?? []).map((item) => (typeof item === "string" ? item : item?.folio)).filter(Boolean);
+	const varias = folios.length > 1;
 
 	const handleClose = () => {
-		setModalEliminarAbierto(false); 
+		setModalEliminarAbierto(false);
 	};
 
-    const deleteFallas = ()=>{
-		if(arrayFolios.length>0){
-			let foliosArray=[]
-			if (Array.isArray(arrayFolios) && arrayFolios.every(item => typeof item === "string")) {
-				foliosArray = arrayFolios.map(item => item);
-			  } else {
-				foliosArray = arrayFolios.map(item => item.folio);
-			  }
-
-			eliminarIncidenciaMutation.mutate({folio : foliosArray},{
-				onSuccess: () => {
-					handleClose(); 
-				  },
-				onError: () => {
-					handleClose(); 
-				  },
-			})
-		}else{
-			toast.error("Selecciona una incidencia para poder eliminarla...")
+	const eliminar = () => {
+		if (folios.length === 0) {
+			toast.error("Selecciona una incidencia para poder eliminarla.");
+			return;
 		}
-    }
+		eliminarIncidenciaMutation.mutate(
+			{ folio: folios },
+			{
+				onSuccess: () => handleClose(),
+				onError: () => handleClose(),
+			},
+		);
+	};
 
-  return (
-    <Dialog onOpenChange={setModalEliminarAbierto} open={modalEliminarAbierto} modal>
-      <DialogContent className="max-w-3xl" aria-describedby=""  onInteractOutside={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle className="text-2xl text-center font-bold">
-            {title}
-          </DialogTitle>
-        </DialogHeader>
+	return (
+		<Dialog onOpenChange={setModalEliminarAbierto} open={modalEliminarAbierto} modal>
+			<DialogContent
+				className="max-w-md p-6 gap-0"
+				aria-describedby=""
+				onInteractOutside={(e) => e.preventDefault()}
+				onOpenAutoFocus={(e) => e.preventDefault()}>
+				<div className="flex items-start gap-4">
+					<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50">
+						<TriangleAlert className="h-5 w-5 text-red-600" />
+					</div>
+					<div className="min-w-0">
+						<DialogTitle className="text-lg font-bold text-gray-900">
+							{varias ? `Eliminar ${folios.length} incidencias` : "Eliminar incidencia"}
+						</DialogTitle>
+						<p className="mt-1 text-sm text-gray-500">
+							{varias
+								? "¿Seguro que quieres eliminar las incidencias seleccionadas? Esta acción no se puede deshacer."
+								: "¿Seguro que quieres eliminar esta incidencia? Esta acción no se puede deshacer."}
+						</p>
+					</div>
+				</div>
 
-            <div className="my-3 flex flex-col items-center">
-            {arrayFolios.length==1 ?(<p className="text-2xl font-bold"> ¿Deseas eliminar la incidencia seleccionada?</p>):(
-               <p className="text-2xl font-bold"> ¿Deseas eliminar las incidencias seleccionadas?</p>)}
-                
-                <small> Esta acción no se puede deshacer..</small>
-            </div>
+				{folios.length > 0 && (
+					<div className="mt-4 flex flex-wrap gap-1.5 rounded-lg bg-gray-50 p-3">
+						{folios.slice(0, MAX_FOLIOS).map((folio) => (
+							<span
+								key={folio}
+								className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-xs font-semibold text-gray-700">
+								{folio}
+							</span>
+						))}
+						{folios.length > MAX_FOLIOS && (
+							<span className="px-1 py-0.5 text-xs text-gray-500">+{folios.length - MAX_FOLIOS} más</span>
+						)}
+					</div>
+				)}
 
-			<div className="flex gap-2">
-				<DialogClose asChild>
-					<Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose}>
-					Cancelar
+				<div className="mt-6 flex gap-3">
+					<Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose} disabled={eliminando}>
+						Cancelar
 					</Button>
-				</DialogClose>
-
-				
-				<Button
-                    onClick={deleteFallas}
-					className="w-full  bg-blue-500 hover:bg-blue-600 text-white " disabled={isLoading}
-				>
-					{ !isLoading ? (<>
-					{arrayFolios.length==1 ?("Eliminar"):("Eliminar")}
-					</>) :(<> <Loader2 className="animate-spin"/> {arrayFolios.length==1 ?("Eliminando"):("Eliminando")} </>)}
-				</Button>
-			</div>
-        
-      </DialogContent>
-    </Dialog>
-  );
+					<Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={eliminar} disabled={eliminando}>
+						{eliminando ? (
+							<>
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								Eliminando...
+							</>
+						) : (
+							"Eliminar"
+						)}
+					</Button>
+				</div>
+			</DialogContent>
+		</Dialog>
+	);
 };

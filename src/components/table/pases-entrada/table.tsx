@@ -23,7 +23,7 @@ import {
 import UpdateFullPassModal from "@/components/modals/update-full-pass";
 import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import { useMemo, useState } from "react";
-import { getPasesEntradaColumns } from "./pases-entrada-columns";
+import { getPasesEntradaColumns, getRolPase } from "./pases-entrada-columns";
 
 interface ListProps {
   isLoading: boolean;
@@ -168,9 +168,12 @@ const PasesEntradaTable: React.FC<ListProps> = ({ isLoading, pases }) => {
                   data-state={row.getIsSelected() && "selected"}
                   className={
                     // Pases cancelados o vencidos: fondo y borde rojo para distinguirlos.
+                    // Titulares (con acompañantes): fondo morado, como su badge.
                     ["cancelado", "vencido"].includes((row.original as any)?.estatus?.toLowerCase())
                       ? "bg-red-50 hover:bg-red-100 transition-colors border-l-4 border-l-red-500 border-red-100"
-                      : "hover:bg-slate-100 transition-colors border-slate-50"
+                      : getRolPase(row.original).esTitular
+                        ? "bg-purple-50 hover:bg-purple-100 transition-colors border-purple-100"
+                        : "hover:bg-slate-100 transition-colors border-slate-50"
                   }>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell

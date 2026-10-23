@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,6 +30,9 @@ const CAMPOS: { campo: CampoMaterial; label: string; placeholder: string }[] = [
 interface Props {
   unidades: UnidadItem[];
   setUnidades: (fn: (prev: UnidadItem[]) => UnidadItem[]) => void;
+  // El tipo de vehículo no lleva caja (rígidos, pickup): los remolques que se
+  // hayan capturado antes quedan ocultos y no cuentan.
+  sinCajas?: boolean;
 }
 
 // Reemplaza los materiales de la unidad en el lugar que les corresponde.
@@ -54,11 +57,11 @@ const quitarDe = (list: UnidadItem[], materialId: string): UnidadItem[] =>
     return mats.some((m) => m.id === materialId) ? conMateriales(u, mats.filter((m) => m.id !== materialId)) : u;
   });
 
-export function MaterialesCarga({ unidades, setUnidades }: Props) {
+export function MaterialesCarga({ unidades, setUnidades, sinCajas }: Props) {
   // Renglones recién agregados: se muestran aunque aún no tengan producto.
   const [nuevos, setNuevos] = useState<Set<string>>(new Set());
 
-  const cajas = unidades.filter((u) => u.config !== "solo_vehiculo");
+  const cajas = sinCajas ? [] : unidades.filter((u) => u.config !== "solo_vehiculo");
   const destinoDe = (u: UnidadItem) => (u.config === "solo_vehiculo" ? SIN_LIGAR : u.id);
   const etiquetaCaja = (u: UnidadItem) => {
     const n = cajas.indexOf(u) + 1;
@@ -66,12 +69,28 @@ export function MaterialesCarga({ unidades, setUnidades }: Props) {
     return u.config === "remolque_contenedor" ? `Contenedor de caja ${n}${ref}` : `Caja ${n}${ref}`;
   };
 
-  // Sin cajas (p. ej. pickup) no hay a qué ligar: el material va al vehículo
-  // y no se muestra la columna "Va en".
-  const conCajas = cajas.length > 0;
+  // Sin cajas (p. ej. pickup) el material va al vehículo; con una sola caja va
+  // a esa caja (junta 19 oct). "Va en" solo se muestra con 2+ cajas.
+  const unica = cajas.length === 1 ? cajas[0] : null;
+  const conCajas = cajas.length > 1;
+
+  // Con una sola caja, el material sin ligar (capturado antes de agregar la
+  // caja o leído por la IA) se pasa a ella: no hay columna para moverlo.
+  const unicaId = unica?.id;
+  const libres = unidades.find((u) => u.config === "solo_vehiculo");
+  const hayLibres = !!libres && materialesDeUnidad(libres).some((m) => m.producto);
+  useEffect(() => {
+    if (!unicaId || !hayLibres) return;
+    setUnidades((p) => {
+      const libre = p.find((u) => u.config === "solo_vehiculo");
+      if (!libre) return p;
+      const mats = materialesDeUnidad(libre).filter((m) => m.producto);
+      return mats.reduce((list, m) => agregarA(quitarDe(list, m.id), unicaId, m), p);
+    });
+  }, [unicaId, hayLibres, setUnidades]);
   const cols = conCajas
-    ? "grid-cols-[2fr_1fr_1fr_1fr_1fr_1.4fr_32px]"
-    : "grid-cols-[2fr_1fr_1fr_1fr_1fr_32px]";
+    ? "grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)_32px]"
+    : "grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_32px]";
 
   const renglones = unidades.flatMap((u) =>
     materialesDeUnidad(u)
@@ -82,7 +101,7 @@ export function MaterialesCarga({ unidades, setUnidades }: Props) {
   const agregar = () => {
     const m = emptyMaterial();
     setNuevos((p) => new Set(p).add(m.id));
-    setUnidades((p) => agregarA(p, SIN_LIGAR, m));
+    setUnidades((p) => agregarA(p, unica?.id ?? SIN_LIGAR, m));
   };
 
   const setCampo = (materialId: string, campo: CampoMaterial, valor: string) =>

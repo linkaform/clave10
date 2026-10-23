@@ -13,7 +13,7 @@ interface GeneratedPassModalProps {
   openGeneratedPass: boolean;
   setOpenGeneratedPass: Dispatch<SetStateAction<boolean>>;
   from:string
-  /** Con recordId (id del pase creado) se ofrece "Copiar link y descargar pase". */
+  /** Con recordId (id del pase creado) se ofrece "Descargar pase". */
   recordId?: string;
   accountId?: number;
 }
@@ -58,16 +58,14 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
     }
   };
 
-  const handleCopiarYDescargar = async () => {
-    // El portapapeles va primero, mientras sigue vivo el gesto del clic.
-    navigator.clipboard.writeText(link).catch(() => {});
+  const handleDescargar = async () => {
     setDescargando(true);
     try {
       await descargarImagenPase(accountId ?? 0, recordId ?? "");
-      toast.success("Enlace copiado y pase descargado.");
+      toast.success("Pase descargado.");
       salir();
     } catch (error) {
-      toast.error(`Enlace copiado, pero no se pudo descargar el pase: ${(error as Error).message}`);
+      toast.error(`No se pudo descargar el pase: ${(error as Error).message}`);
     } finally {
       setDescargando(false);
     }
@@ -153,7 +151,7 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
           {recordId && (
             <Button
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={handleCopiarYDescargar}
+              onClick={handleDescargar}
               disabled={descargando}
             >
               {descargando ? (
@@ -161,7 +159,7 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
               ) : (
                 <Download className="w-4 h-4 mr-2" />
               )}
-              {descargando ? "Descargando..." : "Copiar link y descargar pase"}
+              {descargando ? "Descargando..." : "Descargar pase"}
             </Button>
           )}
         </div>

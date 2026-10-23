@@ -19,6 +19,7 @@ import { Badge } from "../ui/badge";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { Miembro } from "../miembros-del-pase";
 import Image from "next/image";
+import ViewImage from "./view-image";
 import { Equipo, Vehiculo } from "@/lib/update-pass";
 import { Imagen } from "../upload-Image";
 
@@ -225,6 +226,10 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 	const acompanantesSinNombre = Math.max((dataPass?.acompanantes ?? 0) - acompanantesConNombre, 0);
 	const mostrarAvisoAutoActivacion = dataPass?.auto_activacion === "sí" && (dataPass?.acompanantes ?? 0) > 0;
 	const avisarAcompanantesEnProceso = mostrarAvisoAutoActivacion && acompanantesSinNombre > 0;
+	// Foto que se muestra de cada acompañante: la suya o, si no tiene, la de su
+	// identificación (igual que en la lista de acompañantes del formulario).
+	const fotoAcompanante = (m: Miembro) => m.foto?.[0]?.file_url || m.identificacion?.[0]?.file_url || "";
+	const acompanantesConDatos = (dataPass?.acompanantes_grupo ?? []).filter((m) => m.nombre?.trim() || fotoAcompanante(m));
 	const avisoAutoActivacionRef = useRef<HTMLDivElement>(null);
 	useEffect(() => {
 		if (!isSuccess || !mostrarAvisoAutoActivacion) return;
@@ -523,34 +528,31 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 							</div>
 						)}
 
-						{dataPass?.acompanantes_grupo && dataPass.acompanantes_grupo.filter(m => m.nombre?.trim()).length > 0 && (
+						{acompanantesConDatos.length > 0 && (
 						<div className="space-y-2 pt-3 border-t border-gray-50">
-							{dataPass.acompanantes_grupo
-							.filter((m) => m.nombre?.trim())
-							.map((m, index) => (
+							{acompanantesConDatos.map((m, index) => {
+								const foto = fotoAcompanante(m);
+								return (
 								<div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-								{m.foto?.[0]?.file_url ? (
-									<Image
-									src={m.foto[0].file_url}
-									alt="foto"
-									width={32}
-									height={32}
-									className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
-									/>
+								{foto ? (
+									<div className="flex-shrink-0">
+									<ViewImage imageUrl={{ file_url: foto, file_name: "foto" }} size="sm" />
+									</div>
 								) : (
 									<div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
 									<UserRound size={14} className="text-blue-500" />
 									</div>
 								)}
 								<div className="flex-1 min-w-0">
-									<p className="text-sm font-semibold text-gray-700 truncate">{m.nombre}</p>
+									<p className={`text-sm font-semibold truncate ${m.nombre?.trim() ? "text-gray-700" : "italic text-gray-400"}`}>{m.nombre?.trim() || "Sin nombre"}</p>
 									<div className="flex gap-3 mt-0.5">
 									{m.email && <p className="text-[11px] text-gray-400 truncate">{m.email}</p>}
 									{m.telefono && <p className="text-[11px] text-gray-400">{m.telefono}</p>}
 									</div>
 								</div>
 								</div>
-							))}
+								);
+							})}
 						</div>
 						)}
 					</div>
@@ -639,7 +641,7 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 						openGeneratedPass={openGeneratedPass}
 						setOpenGeneratedPass={setOpenGeneratedPass} 
 						from={from}
-						recordId={responseCreatePase?.json?.id}
+						recordId={dataPass?.auto_activacion === "sí" ? responseCreatePase?.json?.id : undefined}
 						accountId={userParentId ?? undefined}
 					/>
 				)}

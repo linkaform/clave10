@@ -22,7 +22,7 @@ export const getListIncidencias = async (
     location: location,
     prioridades: prioridades,
     option: "get_incidences",
-    script_name: "incidencias.py",
+    script_name: "incidencias_sdk.py",
     estatus: estatus,
     // Con paging: listado paginado + filtros del buscador (ver facet-search).
     ...facetListPayload(paging),
@@ -43,15 +43,17 @@ export const getListIncidencias = async (
   return data;
 };
 
-export const getCatIncidencias = async (
-  categoria: string,
-  subCategoria: string,
-) => {
+export interface TipoIncidenciaCatalogo {
+  incidente: string;
+  categoria: string;
+  sub_categoria: string;
+}
+
+// Todos los tipos de incidencia con su categoría/subcategoría en una llamada.
+export const getCatIncidenciasPlano = async (): Promise<TipoIncidenciaCatalogo[]> => {
   const payload = {
-    cat: categoria,
-    sub_cat: subCategoria,
-    option: "catalogo_incidencias",
-    script_name: "incidencias.py",
+    option: "catalogo_incidencias_plano",
+    script_name: "incidencias_sdk.py",
   };
 
   const userJwt = await getValidToken();
@@ -66,7 +68,7 @@ export const getCatIncidencias = async (
   });
 
   const data = await response.json();
-  return data;
+  return Array.isArray(data?.response?.data) ? data.response.data : [];
 };
 
 export interface Depositos {
@@ -181,7 +183,7 @@ export const crearIncidencia = async (
   const payload = {
     data_incidence,
     option: "nueva_incidencia",
-    script_name: "incidencias.py",
+    script_name: "incidencias_sdk.py",
   };
 
   const userJwt = await getValidToken();
@@ -206,7 +208,7 @@ export const editarIncidencia = async (
     data_incidence_update,
     folio,
     option: "update_incidence",
-    script_name: "incidencias.py",
+    script_name: "incidencias_sdk.py",
   };
 
   const userJwt = await getValidToken();
@@ -227,7 +229,7 @@ export const deleteIncidencias = async (folio: string[]) => {
   const payload = {
     folio,
     option: "delete_incidence",
-    script_name: "incidencias.py",
+    script_name: "incidencias_sdk.py",
   };
 
   const userJwt = await getValidToken();
@@ -254,7 +256,7 @@ export const crearSeguimientoIncidencia = async (
     folio,
     estatus,
     option: "update_incidence_seguimiento",
-    script_name: "incidencias.py",
+    script_name: "incidencias_sdk.py",
   };
 
   const userJwt = await getValidToken();

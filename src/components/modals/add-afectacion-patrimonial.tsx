@@ -1,347 +1,235 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-//eslint-disable react-hooks/exhaustive-deps
 import { Button } from "../ui/button";
-import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "../ui/dialog";
-
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Input } from "../ui/input";
-import { toast } from "sonner";
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { formatCurrencyString, formatForMultiselect } from "@/lib/utils";
-import Select from "react-select";
-
-import LoadFile from "../upload-file";
 import { Textarea } from "../ui/textarea";
-import LoadImage, { Imagen } from "../upload-Image";
+import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Imagen } from "../upload-Image";
+import { EvidenciaCaptura } from "../incidencias/evidencia-captura";
 
 interface IncidenciaModalProps {
 	title: string;
+	/** Texto bajo el título (p. ej. "Nueva incidencia" o el folio). */
+	subtitulo?: string;
 	children: React.ReactNode;
 	openAfectacionPatrimonialModal: boolean;
 	setOpenAfectacionPatrimonialModal: Dispatch<SetStateAction<boolean>>;
-    setAfectacionPatrimonial: Dispatch<SetStateAction<any>>;
-    indice:number| null;
-    editarAfectacionPatrimonial:boolean;
-    setEditarAfectacionPatrimonial: Dispatch<SetStateAction<any>>;
-    afectacionPatrimonialSeleccionada:any;
+	setAfectacionPatrimonial: Dispatch<SetStateAction<any>>;
+	indice: number | null;
+	editarAfectacionPatrimonial: boolean;
+	setEditarAfectacionPatrimonial: Dispatch<SetStateAction<any>>;
+	afectacionPatrimonialSeleccionada: any;
 }
 
-const formSchema = z.object({
-	tipo_afectacion: z.string().min(1, { message: "Este campo es obligatorio" }),
-    descripcion_afectacion: z.string().optional(),
-    estatus_afectacion: z.string().optional(),
-	monto_estimado: z.string().min(1, { message: "Este campo es obligatorio" }),
-	duracion_estimada: z.string().optional(),
-    evidencia:z.array(
-        z.object({
-          file_url: z.string(),
-          file_name: z.string(),
-        })
-      ).optional(),
-    documento:z.array(
-        z.object({
-          file_url: z.string(),
-          file_name: z.string(),
-        })
-      ).optional()
-});
+const TIPOS = ["Daño a infraestructura", "Suspensión de actividades", "Paro de producción", "Impacto económico estimado", "Otro"];
+const ESTATUS = ["Perdido", "Recuperación parcial", "Recuperación total"];
+const UNIDADES = ["Minutos", "Horas", "Días", "Semanas", "Meses"];
+
+const label = "text-[11px] font-bold uppercase tracking-wide text-gray-600";
+
+// duracion_estimada se guarda como texto ("4 Horas"); se separa para editarla.
+const separarDuracion = (texto?: string) => {
+	const m = (texto || "").trim().match(/^(\d+(?:[.,]\d+)?)\s*(.*)$/);
+	if (!m) return { cantidad: "", unidad: "Horas" };
+	return { cantidad: m[1], unidad: UNIDADES.includes(m[2]) ? m[2] : "Horas" };
+};
 
 export const AfectacionPatrimonialModal: React.FC<IncidenciaModalProps> = ({
 	title,
-	children,
+	subtitulo,
 	openAfectacionPatrimonialModal,
 	setOpenAfectacionPatrimonialModal,
-    setAfectacionPatrimonial,
-    indice,
-    editarAfectacionPatrimonial,
-    setEditarAfectacionPatrimonial,
-    afectacionPatrimonialSeleccionada
+	setAfectacionPatrimonial,
+	indice,
+	editarAfectacionPatrimonial,
+	setEditarAfectacionPatrimonial,
+	afectacionPatrimonialSeleccionada,
 }) => {
-	// const { isLoading} = useShiftStore();
-    const [inputValue, setInputValue] = useState(""); // texto visible
-    const debounceRef = useRef<NodeJS.Timeout | null>(null);
-    const [evidencia , setEvidencia] = useState<Imagen[]>([]);
-	const [documento , setDocumento] = useState<Imagen[]>([]);
-
-	const form = useForm<z.infer<typeof formSchema>>({
-		resolver: zodResolver(formSchema),
-		defaultValues: {
-            tipo_afectacion:"",
-            descripcion_afectacion:"",
-            estatus_afectacion:"",
-            monto_estimado:"",
-            duracion_estimada:"",
-            evidencia:[],
-            documento:[]
-		},
-	});
-
-	const { reset } = form;
+	const [tipo, setTipo] = useState("");
+	const [descripcion, setDescripcion] = useState("");
+	const [estatus, setEstatus] = useState("");
+	const [monto, setMonto] = useState("");
+	const [cantidad, setCantidad] = useState("");
+	const [unidad, setUnidad] = useState("Horas");
+	const [evidencia, setEvidencia] = useState<Imagen[]>([]);
+	const [documento, setDocumento] = useState<Imagen[]>([]);
 
 	useEffect(() => {
-        if (openAfectacionPatrimonialModal){
-            setInputValue("")
-            reset({
-                tipo_afectacion:"",
-                descripcion_afectacion:"",
-                estatus_afectacion:"",
-                monto_estimado:"",
-                duracion_estimada:"",
-                evidencia:[],
-                documento:[]
-              });
-              setEvidencia([])
-              setDocumento([])
-        }
+		if (!openAfectacionPatrimonialModal) return;
+		const sel = editarAfectacionPatrimonial ? afectacionPatrimonialSeleccionada : null;
+		const duracion = separarDuracion(sel?.duracion_estimada);
+		setTipo(sel?.tipo_afectacion || "");
+		setDescripcion(sel?.descripcion_afectacion || "");
+		setEstatus(sel?.estatus_afectacion || "");
+		setMonto(String(sel?.monto_estimado ?? "").replace(/[^\d.]/g, ""));
+		setCantidad(duracion.cantidad);
+		setUnidad(duracion.unidad);
+		setEvidencia(sel?.evidencia || []);
+		setDocumento(sel?.documento || []);
+	}, [openAfectacionPatrimonialModal]);
 
-		if (editarAfectacionPatrimonial && afectacionPatrimonialSeleccionada) {
-            const numeric = afectacionPatrimonialSeleccionada.monto_estimado.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
-            setInputValue(numeric)
-			reset({
-                tipo_afectacion:afectacionPatrimonialSeleccionada.tipo_afectacion,
-                monto_estimado:afectacionPatrimonialSeleccionada.monto_estimado,
-                descripcion_afectacion:afectacionPatrimonialSeleccionada.descripcion_afectacion,
-                estatus_afectacion:afectacionPatrimonialSeleccionada.estatus_afectacion,
-                duracion_estimada:afectacionPatrimonialSeleccionada.duracion_estimada,
-              });
-              setEvidencia(afectacionPatrimonialSeleccionada.evidencia)
-              setDocumento(afectacionPatrimonialSeleccionada.documento)
-		}
-	}, [openAfectacionPatrimonialModal, reset])
-
-	function onSubmit(values: z.infer<typeof formSchema>) {
-        const formatData = {
-            tipo_afectacion: values.tipo_afectacion,
-            monto_estimado: values.monto_estimado,
-            descripcion_afectacion: values.descripcion_afectacion,
-            estatus_afectacion:values.estatus_afectacion,
-            duracion_estimada: values.duracion_estimada,
-            evidencia:evidencia,
-            documento:documento
-        }
-        if(editarAfectacionPatrimonial){
-            setEditarAfectacionPatrimonial(false)
-            setAfectacionPatrimonial((prev: any[]) =>
-                prev.map((item, i) => (i === indice ? formatData : item))
-                );
-            toast.success("Afectación editada correctamente.")
-        }else{
-            setAfectacionPatrimonial((prev: any) => [...prev, formatData]);
-            toast.success("Afectación agregada correctamente.")
-        }
-        setOpenAfectacionPatrimonialModal(false)
-	}
+	const puedeGuardar = !!tipo && !!descripcion.trim() && !!estatus && monto !== "" && cantidad !== "";
 
 	const handleClose = () => {
 		setOpenAfectacionPatrimonialModal(false);
-        setEditarAfectacionPatrimonial(false);
+		setEditarAfectacionPatrimonial(false);
 	};
 
-    useEffect(() => {
-        if(form.formState.errors){
-            console.log("Errores:", form.formState.errors)
-        }
-    }, [form.formState.errors])
-
+	const handleGuardar = () => {
+		if (!puedeGuardar) return;
+		const formatData = {
+			tipo_afectacion: tipo,
+			monto_estimado: monto,
+			descripcion_afectacion: descripcion.trim(),
+			estatus_afectacion: estatus,
+			duracion_estimada: `${cantidad} ${unidad}`,
+			evidencia,
+			documento,
+		};
+		if (editarAfectacionPatrimonial) {
+			setAfectacionPatrimonial((prev: any[]) => prev.map((item, i) => (i === indice ? formatData : item)));
+			toast.success("Afectación editada correctamente.");
+		} else {
+			setAfectacionPatrimonial((prev: any) => [...prev, formatData]);
+			toast.success("Afectación agregada correctamente.");
+		}
+		handleClose();
+	};
 
 	return (
-		<Dialog onOpenChange={setOpenAfectacionPatrimonialModal} open={openAfectacionPatrimonialModal}>
-			<DialogTrigger>{children}</DialogTrigger>
+		<Dialog onOpenChange={(open) => (open ? setOpenAfectacionPatrimonialModal(true) : handleClose())} open={openAfectacionPatrimonialModal}>
+			<DialogContent
+				className="max-w-3xl max-h-[90vh] overflow-y-auto p-6 gap-0"
+				onInteractOutside={(e) => e.preventDefault()}
+				onOpenAutoFocus={(e) => e.preventDefault()}
+				aria-describedby="">
+				<DialogTitle className="text-xl font-bold text-gray-900">{title}</DialogTitle>
+				{subtitulo && <p className="mt-1 text-sm text-gray-500">{subtitulo}</p>}
 
-			<DialogContent className="max-w-lg overflow-y-auto max-h-[75vh] min-h-auto flex flex-col overflow-hidden" onInteractOutside={(e) => e.preventDefault()} aria-describedby="">
-				<DialogHeader>
-					<DialogTitle className="text-2xl text-center font-bold">
-						{title}
-					</DialogTitle>
-				</DialogHeader>
-                <div className="flex-grow overflow-y-auto">
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} >
-                            <div className="grid grid-cols-1 gap-5 mb-6 px-3">
+				<div className="mt-5 space-y-5">
+					<div>
+						<p className={label}>
+							Tipo de afectación <span className="text-red-500">*</span>
+						</p>
+						<div className="mt-1.5 flex flex-wrap gap-2">
+							{TIPOS.map((t) => (
+								<button
+									key={t}
+									type="button"
+									onClick={() => setTipo(t)}
+									className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+										tipo === t ? "border-blue-600 bg-blue-600 font-semibold text-white" : "border-gray-200 text-gray-700 hover:bg-gray-50"
+									}`}>
+									{t}
+								</button>
+							))}
+						</div>
+					</div>
 
-                                <FormField
-                                    control={form.control}
-                                    name="tipo_afectacion"
-                                    render={({ field }: any) => (
-                                        <FormItem className="w-full">
-                                            <FormLabel>Tipo de afectación: *</FormLabel>
-                                                <Select 
-                                                    placeholder={"Tipo de afectación"}
-                                                    inputId="select-rol"
-                                                    name="rol"
-                                                    aria-labelledby="aria-label"
-                                                    value ={field.value ? formatForMultiselect([field.value]):[]}
-                                                    options={formatForMultiselect([
-                                                        "Daño a infraestructura",
-                                                        "Suspensión de actividades",
-                                                        "Paro de producción",
-                                                        "Impacto económico estimado",
-                                                        "Otro",
-                                                        ])} 
-                                                    onChange={(selectedOption:any) => {
-                                                        field.onChange(selectedOption ? selectedOption.value :"");
-                                                    }}
-                                                    isClearable
-                                                    styles={{
-                                                        menuPortal: (base) => ({ ...base, zIndex: 9999 ,pointerEvents: "auto",}),
-                                                    }}
-                                                />
-										</FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="descripcion_afectacion"
-                                    render={({ field }: any) => (
-                                        <FormItem>
-                                            <FormLabel>Descripción de la afectación: *</FormLabel>
-                                            <FormControl>
-                                                <Textarea placeholder="Descripción de la afectación..." {...field}
-                                                    onChange={(e) => {
-                                                        field.onChange(e);
-                                                    }}
-                                                    value={field.value || ""}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+					<div>
+						<p className={label}>
+							Descripción de la afectación <span className="text-red-500">*</span>
+						</p>
+						<Textarea
+							className="mt-2 resize-none focus-visible:border-blue-400 focus-visible:ring-2 focus-visible:ring-blue-100 focus-visible:ring-offset-0"
+							rows={4}
+							placeholder="Describe qué se afectó y cómo."
+							value={descripcion}
+							onChange={(e) => setDescripcion(e.target.value)}
+						/>
+					</div>
 
-                                <FormField
-                                    control={form.control}
-                                    name="estatus_afectacion"
-                                    render={({ field }: any) => (
-                                        <FormItem className="w-full">
-                                            <FormLabel>Estatus de la afectacion: *</FormLabel>
-                                                <Select 
-                                                    placeholder={"Tipo de afectación"}
-                                                    inputId="select-rol"
-                                                    name="rol"
-                                                    aria-labelledby="aria-label"
-                                                    value ={field.value ? formatForMultiselect([field.value]):[]}
-                                                    options={formatForMultiselect([
-                                                        "Perdido",
-                                                        "Recuperación parcial",
-                                                        "Recuperación total",
-                                                        ])} 
-                                                    onChange={(selectedOption:any) => {
-                                                        field.onChange(selectedOption ? selectedOption.value :"");
-                                                    }}
-                                                    isClearable
-                                                    styles={{
-                                                        menuPortal: (base) => ({ ...base, zIndex: 9999 ,pointerEvents: "auto",}),
-                                                    }}
-                                                />
-										</FormItem>
-                                    )}
-                                />      
+					<div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+						<div>
+							<p className={label}>
+								Estatus de la afectación <span className="text-red-500">*</span>
+							</p>
+							<Select value={estatus || undefined} onValueChange={setEstatus}>
+								<SelectTrigger className="mt-1.5 h-11 w-full">
+									<SelectValue placeholder="Selecciona" />
+								</SelectTrigger>
+								<SelectContent>
+									{ESTATUS.map((e) => (
+										<SelectItem key={e} value={e}>
+											{e}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+						<div>
+							<p className={label}>
+								Monto estimado del daño <span className="text-red-500">*</span>
+							</p>
+							<div className="mt-1.5 flex h-11 items-center rounded-md border border-input px-3 focus-within:ring-2 focus-within:ring-blue-100">
+								<span className="text-sm text-gray-500">$</span>
+								<input
+									type="number"
+									min={0}
+									step="0.01"
+									inputMode="decimal"
+									placeholder="0.00"
+									value={monto}
+									onChange={(e) => setMonto(e.target.value)}
+									className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm outline-none"
+								/>
+								<span className="text-xs font-semibold text-gray-500">MXN</span>
+							</div>
+						</div>
+						<div>
+							<p className={label}>
+								Duración estimada <span className="text-red-500">*</span>
+							</p>
+							<div className="mt-1.5 flex gap-2">
+								<Input
+									type="number"
+									min={0}
+									placeholder="0"
+									className="h-11 w-20"
+									value={cantidad}
+									onChange={(e) => setCantidad(e.target.value)}
+								/>
+								<Select value={unidad} onValueChange={setUnidad}>
+									<SelectTrigger className="h-11 flex-1">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										{UNIDADES.map((u) => (
+											<SelectItem key={u} value={u}>
+												{u}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						</div>
+					</div>
 
-                                <FormField
-                                    control={form.control}
-                                    name="monto_estimado"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Monto estimado del daño: *</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                            placeholder="Monto estimado del daño..."
-                                            value={inputValue}
-                                            onChange={(e) => {
-                                                const rawInput = e.target.value;
-                                                const numeric = rawInput.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
-                                                setInputValue(numeric);
-                                                field.onChange(numeric);
-                                                if (debounceRef.current) clearTimeout(debounceRef.current);
-                                                
-                                                debounceRef.current = setTimeout(() => {
-                                                    setInputValue(formatCurrencyString(numeric));
-                                                }, 500);
-                                            }}
-                                            onBlur={field.onBlur}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                    />
+					<hr className="border-gray-100" />
 
-                                <FormField
-                                    control={form.control}
-                                    name="duracion_estimada"
-                                    render={({ field }: any) => (
-                                        <FormItem>
-                                            <FormLabel>Duración estimada de la afectación: *</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Duración estimada de la afectación..." {...field}
-                                                    onChange={(e) => {
-                                                        field.onChange(e);
-                                                    }}
-                                                    value={field.value}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+					<div>
+						<h3 className="mb-3 text-base font-bold text-gray-900">Evidencias</h3>
+						<EvidenciaCaptura
+							id="afectacion"
+							evidencia={evidencia}
+							setEvidencia={setEvidencia}
+							documento={documento}
+							setDocumento={setDocumento}
+						/>
+					</div>
+				</div>
 
-                                <LoadImage
-                                    id="evidencia" 
-                                    titulo={"Evidencia"} 
-                                    setImg={setEvidencia}
-                                    showWebcamOption={true}
-                                    facingMode="environment"
-                                    imgArray={evidencia}
-                                    limit={10}
-                                    />
-
-                                <LoadFile
-                                    id="documento"
-                                    titulo={"Documento"}
-                                    setDocs={setDocumento}
-                                    docArray={documento}
-                                    limit={10}
-                                    />
-                            </div>
-                        </form>
-                    </Form>
-                </div>
-                <div className="flex gap-2">
-                    <DialogClose asChild>
-                        <Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose}>
-                            Cancelar
-                        </Button>
-                    </DialogClose>
-
-
-                    <Button
-                        // type="submit"
-                        onClick={form.handleSubmit(onSubmit)}
-                        className="w-full  bg-blue-500 hover:bg-blue-600 text-white " 
-                    >
-                        {editarAfectacionPatrimonial? ("Guardar"):(("Agregar"))}
-                    </Button>
-                </div>
+				<div className="mt-6 flex gap-3">
+					<Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700" onClick={handleClose}>
+						Cancelar
+					</Button>
+					<Button className="w-full bg-blue-500 hover:bg-blue-600 text-white" onClick={handleGuardar} disabled={!puedeGuardar}>
+						Guardar
+					</Button>
+				</div>
 			</DialogContent>
 		</Dialog>
 	);
 };
-

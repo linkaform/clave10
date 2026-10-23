@@ -191,18 +191,19 @@ const AreaDetalle = ({
           {activeTab === "general" ? (
             <div>
               <h3 className="font-semibold text-gray-800 text-sm mb-3">Foto del área</h3>
-              <div className="flex flex-col md:flex-row gap-6">
+              {/* Foto arriba (a todo lo ancho) y los datos debajo. */}
+              <div className="flex flex-col gap-6">
                 {/^https?:\/\//.test(normalized.foto || "") ? (
-                  <div className="relative w-full max-w-md aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
+                  <div className="relative w-full h-72 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
                     <Image src={normalized.foto as string} alt={normalized.nombre} fill className="object-cover" />
                   </div>
                 ) : (
-                  <div className="w-full max-w-md aspect-video rounded-xl flex items-center justify-center bg-slate-100 text-slate-300 text-sm shrink-0">
+                  <div className="w-full h-40 rounded-xl flex items-center justify-center bg-slate-100 text-slate-300 text-sm shrink-0">
                     Sin foto
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4 flex-1">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
                       <MapPin className="w-3 h-3" /> Ubicación
@@ -237,7 +238,7 @@ const AreaDetalle = ({
                       {normalized.disponibilidad || "-"}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-1 col-span-2">
+                  <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
                       <Navigation className="w-3 h-3" /> Geolocalización
                     </label>

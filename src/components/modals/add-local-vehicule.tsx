@@ -2,6 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "../ui/button";
 import Select from "react-select";
+import CreatableSelect from "react-select/creatable";
 import {
   Dialog,
   DialogClose,
@@ -48,6 +49,8 @@ interface Props {
   id?: string;
   fetch?: boolean;
   account_id?:number;
+  /** Deja escribir tipo/marca/modelo que no estén en la lista (pases). */
+  permitirCapturaManual?: boolean;
 }
 
 const formSchema = z.object({
@@ -68,8 +71,18 @@ export const VehicleLocalPassModal: React.FC<Props> = ({
   isAccesos,
   id = "",
   fetch = false,
-  account_id
+  account_id,
+  permitirCapturaManual = false,
 }) => {
+  // Con captura manual, tipo/marca/modelo aceptan valores fuera del catálogo.
+  const SelectCatalogo: any = permitirCapturaManual ? CreatableSelect : Select;
+  const propsCaptura = permitirCapturaManual
+    ? {
+        formatCreateLabel: (texto: string) => `Usar: "${texto}"`,
+        noOptionsMessage: () => "Escribe para agregarlo",
+        placeholder: "Selecciona o escribe...",
+      }
+    : {};
   const [open, setOpen] = useState(false);
   const [confianzaOcr, setConfianzaOcr] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -206,12 +219,13 @@ const normalizar = (str: string) =>
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .trim();
+    // Guiones, puntos y espacios no cuentan: "Mercedes-Benz" = "MERCEDES BENZ".
+    .replace(/[^a-z0-9]/g, "");
 
 const handleOcrVehiculo = async (result: any) => {
-  // ocrVehiculoMutation ya resuelve al objeto plano de campos (tipo_vehiculo,
-  // marca, modelo, placa, ...), no viene envuelto en otra llave "data".
-  const v = result;
+  // El OCR ahora responde {status_code, msg, data: {campos}} (ocr_docs.py);
+  // se acepta también el formato plano anterior, igual que paquetería.
+  const v = result?.data && typeof result.data === "object" ? result.data : result;
   if (!v) return;
 
   setConfianzaOcr(v.confianza ?? null);
@@ -235,10 +249,12 @@ const handleOcrVehiculo = async (result: any) => {
       const tipoMatch = (tipos as string[]).find(
         (t) => normalizar(t) === tipoNorm
       );
-      if (tipoMatch) {
-        tipoValue = tipoMatch;
-        form.setValue("tipo", [tipoMatch]);
-        setTipoVehiculoState(tipoMatch);
+      // Con captura manual, lo que leyó la IA se usa aunque no esté en la lista.
+      const tipoFinal = tipoMatch || (permitirCapturaManual ? v.tipo_vehiculo.trim() : "");
+      if (tipoFinal) {
+        tipoValue = tipoFinal;
+        form.setValue("tipo", [tipoFinal]);
+        setTipoVehiculoState(tipoFinal);
         setCatalogSearch("marcas");
       }
     }
@@ -253,10 +269,11 @@ const handleOcrVehiculo = async (result: any) => {
       setMarcasCat(marcasOpts);
       const marcaNorm = normalizar(v.marca);
       const marcaMatch = marcasOpts.find((m) => normalizar(m.value) === marcaNorm);
-      if (marcaMatch) {
-        marcaValue = marcaMatch.value;
-        form.setValue("marca", [marcaMatch.value]);
-        setMarcaState(marcaMatch.value);
+      const marcaFinal = marcaMatch?.value || (permitirCapturaManual ? v.marca.trim() : "");
+      if (marcaFinal) {
+        marcaValue = marcaFinal;
+        form.setValue("marca", [marcaFinal]);
+        setMarcaState(marcaFinal);
         setCatalogSearch("modelos");
       }
     }
@@ -270,8 +287,9 @@ const handleOcrVehiculo = async (result: any) => {
       setModelosCat(modelosOpts);
       const modeloNorm = normalizar(v.modelo);
       const modeloMatch = modelosOpts.find((m) => normalizar(m.value) === modeloNorm);
-      if (modeloMatch) {
-        form.setValue("modelo", [modeloMatch.value]);
+      const modeloFinal = modeloMatch?.value || (permitirCapturaManual ? v.modelo.trim() : "");
+      if (modeloFinal) {
+        form.setValue("modelo", [modeloFinal]);
       }
     }
 
@@ -400,7 +418,8 @@ const handleOcrVehiculo = async (result: any) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>* Tipo de vehículo</FormLabel>
-                      <Select
+                      <SelectCatalogo
+                        {...propsCaptura}
                         value={
                           field.value?.length
                             ? { value: field.value[0], label: field.value[0] }
@@ -420,8 +439,8 @@ const handleOcrVehiculo = async (result: any) => {
                         }}
                         isClearable
                         styles={{
-                          menu: (base) => ({ ...base, zIndex: 9999 }),
-                          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                          menu: (base: any) => ({ ...base, zIndex: 9999 }),
+                          menuPortal: (base: any) => ({ ...base, zIndex: 9999 }),
                         }}
                       />
                       <FormMessage />
@@ -435,7 +454,8 @@ const handleOcrVehiculo = async (result: any) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Marca</FormLabel>
-                      <Select
+                      <SelectCatalogo
+                        {...propsCaptura}
                         value={
                           field.value?.length
                             ? { value: field.value[0], label: field.value[0] }
@@ -467,7 +487,8 @@ const handleOcrVehiculo = async (result: any) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Modelo</FormLabel>
-                      <Select
+                      <SelectCatalogo
+                        {...propsCaptura}
                         menuPlacement="top"
                         value={
                           field.value?.length

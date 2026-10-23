@@ -149,7 +149,9 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
   const esVista = modoActual === 'ver';
   const esCompletar = modoActual === 'completar';
 
-  const ESTATUS_NO_EDITABLES = ["proceso", "activo"];
+  // Solo los activos quedan bloqueados: un acompañante en proceso todavía se
+  // puede corregir (al editar el titular se actualiza también su pase).
+  const ESTATUS_NO_EDITABLES = ["activo"];
 
   // En modo "completar" nunca bloqueamos filas por estatus: todos los
   // acompañantes deben poder editarse aunque ya tengan su pase individual creado.
@@ -869,7 +871,7 @@ const MiembrosPase: React.FC<MiembrosPaseProps> = ({
                               className="flex items-center justify-center w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 transition-colors border border-red-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-red-50"
                               onClick={() => handleEliminarDirecto(m)}
                               disabled={nonDeletableIds.includes(m.id)}
-                              title={nonDeletableIds.includes(m.id) ? "No se puede eliminar — el pase ya está activo" : "Eliminar"}
+                              title={nonDeletableIds.includes(m.id) ? "No se puede eliminar — ya tiene su pase creado" : "Eliminar"}
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>

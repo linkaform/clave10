@@ -26,6 +26,7 @@ export const PaseVehiculosSection: React.FC<PaseVehiculosSectionProps> = ({
       <div className="flex items-center justify-between">
         <span className="font-semibold text-slate-700">Vehículos</span>
         <VehicleLocalPassModal
+          permitirCapturaManual
           title="Nuevo Vehiculo"
           vehicles={vehicles}
           setVehiculos={setVehiculos}

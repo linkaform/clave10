@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from "@/config/api";
+import type { SearchFacet } from "@/components/common/FacetSearch";
 import { getValidToken } from "./login/get-valid-token";
 
 // Llamadas para el explorador de Áreas del front web — mismo endpoint/shape
@@ -9,16 +10,15 @@ export const getAreasCatalogSdk = async (
   dynamicFilters: { key: string; value: any }[] = [],
   limit: number = 25,
   skip: number = 0,
-  search: string = "",
-  searchFields: string[] = [],
+  /** Filtros del buscador avanzado (FacetSearch, get_search_fields_areas). */
+  facets: SearchFacet[] = [],
 ) => {
   const payload = {
     locations,
     dynamic_filters: dynamicFilters,
     limit,
     offset: skip,
-    search,
-    search_fields: searchFields,
+    facets,
     option: "get_catalog_areas_formatted",
     script_name: "rondines_sdk.py",
   };

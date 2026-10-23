@@ -6,7 +6,7 @@ export const getCatalogoAreaEmpleado = async (location:string, bitacora:string) 
         location,
         bitacora,
         option: "catalogo_area_empleado",
-        script_name: "incidencias.py",
+        script_name: "incidencias_sdk.py",
     };
     const userJwt = await getValidToken();
     const response = await fetch(API_ENDPOINTS.runScript, {

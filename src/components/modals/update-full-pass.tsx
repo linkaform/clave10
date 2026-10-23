@@ -482,6 +482,15 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			if (value === "fotografia") acc.push("agregarFoto");
 			return acc;
 		}, [] as string[]);
+		// Con "Todas las áreas" activo se mandan todas las áreas de las ubicaciones
+		// seleccionadas; si no, quedaba la selección parcial previa de areasList.
+		const comentarioPorArea = new Map(areasList.map((a) => [a.nombre_area, a.commentario_area]));
+		const areasAEnviar: Areas[] = todasAreas
+			? Array.from(new Set(areasTodas.map((a) => a.nombre))).map((nombre) => ({
+				nombre_area: nombre,
+				commentario_area: comentarioPorArea.get(nombre) ?? "",
+			}))
+			: areasList;
 		const formattedData = {
 			_id: dataPass._id,
 			folio: dataPass.folio,
@@ -504,7 +513,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 			config_dia_de_acceso: config_dia_de_acceso === "limitar_días_de_acceso" ? config_dia_de_acceso : "cualquier_día",
 			config_dias_acceso: config_dias_acceso,
 			config_limitar_acceso: Number(data.config_limitar_acceso) || 1,
-			areas: areasList,
+			areas: areasAEnviar,
 			comentarios: comentariosList,
 			enviar_pre_sms: { from: "enviar_pre_sms", mensaje: "prueba", numero: dataPass.telefono },
 			fechaFija: date ? formatDateToString(date) : "",
@@ -545,7 +554,11 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	console.log("URL",dataPass.url_padre)
 	return (
 		<Dialog open={modalEditarAbierto} onOpenChange={setModalEditarAbierto} modal>
-			<DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0 rounded-3xl overflow-hidden border-none">
+			<DialogContent
+				className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0 rounded-3xl overflow-hidden border-none"
+				// Sin esto el Dialog enfoca el primer campo (Ubicaciones) y el
+				// Multiselect abre su lista al recibir el foco.
+				onOpenAutoFocus={(e) => e.preventDefault()}>
 				<EntryPassModalUpdate
 					title={"Confirmación"}
 					dataPass={modalData}
@@ -554,7 +567,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 					onClose={() => setIsSuccess(false)}
 					id={dataPass._id}
 					folio={dataPass.folio}
-					from={"historial"}
+					onGuardado={() => setModalEditarAbierto(false)}
 				/>
 
 				{/* Header */}
@@ -806,11 +819,9 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 											title="Acompañantes"
 											useIA
 											acompanantesActivos={acompanantesActivos}
-											nonDeletableIds={
-												(dataPass?.status_pase || dataPass?.estatus)?.toLowerCase() === "activo"
-												? Array.from(existingIds)
-												: []
-											}
+											// Los que ya tienen pase no se eliminan: el back los conserva
+											// en el grupo del titular aunque se quiten aquí.
+											nonDeletableIds={Array.from(existingIds)}
 											defaultCountry={defaultCountry}
 											/>
 									</TabsContent>

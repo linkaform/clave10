@@ -26,6 +26,7 @@ export const PaseEquiposSection: React.FC<PaseEquiposSectionProps> = ({
       <div className="flex items-center justify-between">
         <span className="font-semibold text-slate-700">Equipos</span>
         <EqipmentLocalPassModal
+          permitirCapturaManual
           title="Nuevo Equipo"
           equipos={equipos}
           setEquipos={setEquipos}
