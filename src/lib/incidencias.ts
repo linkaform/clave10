@@ -272,3 +272,36 @@ export const crearSeguimientoIncidencia = async (
   const data = await response.json();
   return data;
 };
+
+// Un cambio de la incidencia, como lo guarda el back en "Historial de incidencias".
+export interface EventoHistorialIncidencia {
+  fecha: string;
+  usuario: string;
+  tipo_evento: string; // alta, estatus, seguimiento, tarea, afectacion, datos, evidencia
+  accion: string; // agrego, edito, elimino, cambio
+  descripcion: string;
+  valor_anterior?: string;
+  valor_nuevo?: string;
+}
+
+// Historial de cambios de una incidencia (del más reciente al más antiguo).
+export const getHistorialIncidencia = async (recordId: string): Promise<EventoHistorialIncidencia[]> => {
+  const payload = {
+    record_id: recordId,
+    option: "get_historial_incidencia",
+    script_name: "incidencias_sdk.py",
+  };
+
+  const userJwt = await getValidToken();
+  const response = await fetch(API_ENDPOINTS.runScript, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${userJwt}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  return Array.isArray(data?.response?.data) ? data.response.data : [];
+};

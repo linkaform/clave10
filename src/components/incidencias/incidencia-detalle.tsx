@@ -3,16 +3,18 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Swal from "sweetalert2";
-import { Check, ClipboardCheck, Download, Eye, Mic, Paperclip, Users, FileText, ImageIcon, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
+import { Check, ClipboardCheck, Download, Eye, Flag, Loader2, MessageSquare, Mic, Paperclip, RefreshCw, FileText, ImageIcon, Pencil, Plus, Printer, Trash2, Wallet, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip } from "@/components/ui/tooltip";
-import { calcularTiempoDesdeIncidencia, convertirDateToISO, dateStringToISO, formatCurrency, formatDateToString } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useInciencias } from "@/hooks/Incidencias/useIncidencias";
+import { useHistorialIncidencia } from "@/hooks/Incidencias/useHistorialIncidencia";
+import { EventoHistorialIncidencia } from "@/lib/incidencias";
 import { useCatalogoAreaEmpleado } from "@/hooks/useCatalogoAreaEmpleado";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { AfectacionPatrimonialModal } from "@/components/modals/add-afectacion-patrimonial";
-import { AccionCorrectiva, AccionCorrectivaModal } from "@/components/modals/add-accion-correctiva";
+import { AccionCorrectiva, AccionCorrectivaModal, CLASE_TIPO_TAREA, estatusTarea } from "@/components/modals/add-accion-correctiva";
 import { SeguimientoIncidenciaLista } from "@/components/modals/add-seguimientos";
 import { SeguimientoDetalleModal } from "./seguimiento-detalle-modal";
 
@@ -31,7 +33,18 @@ interface IncidenciaDetalleProps {
   modoTabla?: boolean;
 }
 
-type Tab = "datos" | "afectacion" | "acciones" | "seguimiento";
+type Tab = "datos" | "afectacion" | "acciones" | "seguimiento" | "historial";
+
+// Icono y color de cada tipo de evento del historial.
+const EVENTO: Record<string, { icono: typeof Flag; clase: string }> = {
+  alta: { icono: Flag, clase: "bg-red-50 text-red-600" },
+  estatus: { icono: RefreshCw, clase: "bg-blue-50 text-blue-600" },
+  seguimiento: { icono: MessageSquare, clase: "bg-sky-50 text-sky-600" },
+  tarea: { icono: ClipboardCheck, clase: "bg-emerald-50 text-emerald-600" },
+  afectacion: { icono: Wallet, clase: "bg-amber-50 text-amber-600" },
+  evidencia: { icono: ImageIcon, clase: "bg-purple-50 text-purple-600" },
+  datos: { icono: Pencil, clase: "bg-gray-100 text-gray-600" },
+};
 
 const etiqueta = "text-[11px] uppercase tracking-wide text-gray-400";
 const thTab = "px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-gray-600";
@@ -175,13 +188,15 @@ const ESTATUS_AFECTACION: Record<string, string> = {
   "recuperacion parcial": "bg-amber-50 text-amber-700",
   "recuperacion total": "bg-emerald-50 text-emerald-700",
 };
+// Color por estatus de la tarea (se pasa antes por estatusTarea).
 const ESTATUS_ACCION: Record<string, string> = {
-  pendiente: "bg-amber-50 text-amber-700",
-  "en proceso": "bg-blue-50 text-blue-700",
-  completada: "bg-emerald-50 text-emerald-700",
-  cancelada: "bg-gray-100 text-gray-600",
+  Abierta: "bg-amber-50 text-amber-700",
+  Cerrada: "bg-emerald-50 text-emerald-700",
+  Cancelada: "bg-gray-100 text-gray-600",
 };
 const monto = (v: any) => Number(String(v ?? "").replace(/[^\d.]/g, "")) || 0;
+// El monto es opcional: sin monto se muestra "-" en vez de $0.00.
+const montoTexto = (v: any) => (String(v ?? "").trim() === "" ? "" : formatCurrency(monto(v)));
 
 const BotonFila = ({ titulo, onClick, peligro = false, disabled = false, children }: { titulo: string; onClick: () => void; peligro?: boolean; disabled?: boolean; children: React.ReactNode }) => (
   <button
@@ -250,7 +265,7 @@ export const IncidenciaDetalle = ({
     window.addEventListener("pointermove", mover);
     window.addEventListener("pointerup", soltar);
   };
-  // Afectaciones y acciones correctivas se editan aquí mismo: se guarda solo
+  // Afectaciones y tareas se editan aquí mismo: se guarda solo
   // el grupo que cambió (update_incidence parcha las llaves que recibe).
   const [afectaciones, setAfectaciones] = useState<any[]>([]);
   const [acciones, setAcciones] = useState<AccionCorrectiva[]>([]);
@@ -270,6 +285,10 @@ export const IncidenciaDetalle = ({
   const ubicacion = incidencia?.ubicacion_incidencia || "";
   const { data: empleados } = useCatalogoAreaEmpleado(open && accionModal, ubicacion, "Incidencias");
   const { dataAreas } = useCatalogoPaseAreaLocation(ubicacion, open && accionModal, !!ubicacion, { uso: "incidencias" });
+  const { historial, isLoading: cargandoHistorial } = useHistorialIncidencia(
+    String(incidencia?._id || ""),
+    open && tab === "historial",
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -328,37 +347,13 @@ export const IncidenciaDetalle = ({
   });
 
   // Guarda la incidencia con el grupo nuevo; si falla, regresa la lista anterior.
-  // Los avisos de éxito/error los da editarIncidenciaMutation.
-  // Entrada automática en la línea de tiempo (p. ej. "Acción correctiva completada").
-  const seguimientoAutomatico = (texto: string) => {
-    const ahora = new Date();
-    return {
-      accion_correctiva_incidencia: texto,
-      incidencia_personas_involucradas: "",
-      fecha_inicio_seg: formatDateToString(ahora),
-      tiempo_transcurrido: calcularTiempoDesdeIncidencia(dateStringToISO(incidencia?.fecha_hora_incidencia || ""), convertirDateToISO(ahora)),
-      incidencia_documento_solucion: [],
-      incidencia_evidencia_solucion: [],
-    };
-  };
-
+  // Los avisos de éxito/error los da editarIncidenciaMutation. El historial de
+  // cambios lo registra el back al guardar.
   const guardar = (
     cambio: { afectacion_patrimonial_incidencia?: any[]; acciones_correctivas_incidencia?: any[] },
     deshacer: () => void,
-    evento?: string,
   ) => {
     const data: any = { ...datosCompletos(incidencia), ...cambio };
-    if (evento) {
-      const anteriores = seguimientos;
-      const nuevos = [...seguimientos, seguimientoAutomatico(evento)];
-      setSeguimientos(nuevos);
-      data.seguimientos_incidencia = nuevos;
-      const deshacerAccion = deshacer;
-      deshacer = () => {
-        deshacerAccion();
-        setSeguimientos(anteriores);
-      };
-    }
     // Bloquea la pantalla mientras se guarda (mismo aviso que otras páginas).
     Swal.fire({
       title: "Actualizando incidencia",
@@ -379,21 +374,17 @@ export const IncidenciaDetalle = ({
     setAfectaciones(lista);
     guardar({ afectacion_patrimonial_incidencia: lista }, () => setAfectaciones(anterior));
   };
-  // evento: texto para la línea de tiempo. Si no se da y la lista creció,
-  // es una acción nueva ("Se registró acción correctiva: …").
-  const actualizarAcciones = (upd: any, evento?: string) => {
+  const actualizarAcciones = (upd: any) => {
     const anterior = acciones;
     const lista = typeof upd === "function" ? upd(acciones) : upd;
-    const nueva = lista.length > anterior.length ? lista[lista.length - 1] : null;
-    const texto = evento ?? (nueva ? `Se registró acción ${(nueva.tipo || "correctiva").toLowerCase()}: ${nueva.accion}` : undefined);
     setAcciones(lista);
-    guardar({ acciones_correctivas_incidencia: lista }, () => setAcciones(anterior), texto);
+    guardar({ acciones_correctivas_incidencia: lista }, () => setAcciones(anterior));
   };
 
   if (!incidencia) return null;
   const d = incidencia;
 
-  // Línea de tiempo: el más reciente arriba.
+  // El más reciente arriba.
   const seguimientosOrdenados: any[] = [...seguimientos].sort(
     (a, b) => new Date(b.fecha_inicio_seg).getTime() - new Date(a.fecha_inicio_seg).getTime(),
   );
@@ -413,9 +404,25 @@ export const IncidenciaDetalle = ({
   const tabs: { key: Tab; label: string; n?: number }[] = [
     { key: "datos", label: "Datos" },
     { key: "afectacion", label: "Afectación patrimonial", n: afectaciones.length },
-    { key: "acciones", label: "Acciones correctivas", n: acciones.length },
+    { key: "acciones", label: "Tareas", n: acciones.length },
     { key: "seguimiento", label: "Seguimiento", n: seguimientos.length },
+    { key: "historial", label: "Historial" },
   ];
+
+  // Las incidencias de antes del historial no tienen evento de alta: se agrega
+  // uno con la fecha del reporte para que la línea de tiempo tenga su inicio.
+  const eventos: EventoHistorialIncidencia[] = historial.some((e) => e.tipo_evento === "alta")
+    ? historial
+    : [
+        ...historial,
+        {
+          fecha: d.fecha_hora_incidencia || "",
+          usuario: d.reporta_incidencia || "",
+          tipo_evento: "alta",
+          accion: "agrego",
+          descripcion: "Se levantó el reporte",
+        },
+      ];
 
   return (
     // En tabla el panel no es modal (como Script Logs): la tabla sigue clicable
@@ -682,7 +689,7 @@ export const IncidenciaDetalle = ({
                           </p>
                         )}
                       </div>,
-                      formatCurrency(monto(a.monto_estimado)),
+                      montoTexto(a.monto_estimado),
                       a.duracion_estimada,
                       nArchivos ? (
                         <span key="e" className="flex items-center gap-1 text-gray-500">
@@ -715,14 +722,14 @@ export const IncidenciaDetalle = ({
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-baseline gap-2">
-                    <h3 className="text-base font-bold text-gray-900">Acciones correctivas</h3>
+                    <h3 className="text-base font-bold text-gray-900">Tareas</h3>
                     <span className="text-sm text-gray-500">{acciones.length}</span>
                   </div>
-                  <p className="text-sm text-gray-500">Qué se hará y quién, para que no vuelva a ocurrir.</p>
+                  <p className="text-sm text-gray-500">Qué se hará y quién es responsable.</p>
                 </div>
                 <BotonNuevo
                   disabled={guardando}
-                  texto="Nueva Acción"
+                  texto="Nueva Tarea"
                   onClick={() => {
                     setIndiceAccion(null);
                     setAccionModal(true);
@@ -732,34 +739,36 @@ export const IncidenciaDetalle = ({
               {acciones.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 py-10 text-center">
                   <ClipboardCheck className="h-8 w-8 text-gray-300" />
-                  <p className="mt-2 text-sm font-semibold text-gray-900">Sin acciones correctivas</p>
-                  <p className="text-sm text-gray-500">Agrega qué se hará y quién, para que no vuelva a ocurrir.</p>
+                  <p className="mt-2 text-sm font-semibold text-gray-900">Sin tareas</p>
+                  <p className="text-sm text-gray-500">Agrega qué se hará y quién es responsable.</p>
                 </div>
               ) : (
                 <>
                   {(() => {
-                    const completadas = acciones.filter((a) => sinAcentos(a.estatus || "") === "completada").length;
+                    // Las canceladas no cuentan para el avance.
+                    const vigentes = acciones.filter((a) => estatusTarea(a.estatus) !== "Cancelada").length;
+                    const cerradas = acciones.filter((a) => estatusTarea(a.estatus) === "Cerrada").length;
                     return (
                       <div className="mb-4">
                         <div className="mb-1.5 flex items-center justify-between">
                           <span className={etiqueta}>Avance</span>
                           <span className="text-sm font-bold text-gray-900">
-                            {completadas} de {acciones.length} completada{acciones.length === 1 ? "" : "s"}
+                            {cerradas} de {vigentes} cerrada{vigentes === 1 ? "" : "s"}
                           </span>
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-gray-100">
                           <div
                             className="h-full rounded-full bg-green-600 transition-all"
-                            style={{ width: `${acciones.length ? (completadas / acciones.length) * 100 : 0}%` }}
+                            style={{ width: `${vigentes ? (cerradas / vigentes) * 100 : 0}%` }}
                           />
                         </div>
                       </div>
                     );
                   })()}
                   <Tabla
-                    columnas={["Opciones", "Acción correctiva", "Responsable", "¿Qué la causó?", "Estatus"]}
+                    columnas={["Opciones", "Tarea", "Responsable", "¿Qué la causó?", "Estatus"]}
                     filas={acciones.map((a, i) => {
-                      const completada = sinAcentos(a.estatus || "") === "completada";
+                      const estatusFila = estatusTarea(a.estatus);
                       return [
                         <div key="o" className="flex gap-1.5">
                           <BotonFila titulo="Ver" onClick={() => setAccionVer(a)}>
@@ -777,22 +786,19 @@ export const IncidenciaDetalle = ({
                           <BotonFila titulo="Eliminar" peligro disabled={guardando} onClick={() => actualizarAcciones(acciones.filter((_, k) => k !== i))}>
                             <Trash2 className="h-4 w-4" />
                           </BotonFila>
-                          {!completada && (
+                          {estatusFila === "Abierta" && (
                             <BotonFila
-                              titulo="Marcar como completada"
+                              titulo="Marcar como cerrada"
                               disabled={guardando}
-                              onClick={() =>
-                                actualizarAcciones(
-                                  acciones.map((x, k) => (k === i ? { ...x, estatus: "Completada" } : x)),
-                                  `Acción ${(a.tipo || "correctiva").toLowerCase()} completada: ${a.accion}`,
-                                )
-                              }>
+                              onClick={() => actualizarAcciones(acciones.map((x, k) => (k === i ? { ...x, estatus: "Cerrada" } : x)))}>
                               <Check className="h-4 w-4" />
                             </BotonFila>
                           )}
                         </div>,
                         <div key="a" className="max-w-[260px]">
-                          <p className="text-xs text-gray-400">Acción {(a.tipo || "correctiva").toLowerCase()}</p>
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${CLASE_TIPO_TAREA[sinAcentos(a.tipo || "")] || CLASE_TIPO_TAREA.tarea}`}>
+                            {a.tipo || "Tarea"}
+                          </span>
                           <p className="line-clamp-2 break-words text-gray-900" title={a.accion}>{a.accion}</p>
                         </div>,
                         <span key="r" className="block max-w-[180px]">
@@ -805,9 +811,9 @@ export const IncidenciaDetalle = ({
                         <span
                           key="s"
                           className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
-                            ESTATUS_ACCION[sinAcentos(a.estatus || "")] || "bg-gray-100 text-gray-700"
+                            ESTATUS_ACCION[estatusFila]
                           }`}>
-                          {a.estatus}
+                          {estatusFila}
                         </span>,
                       ];
                     })}
@@ -827,94 +833,94 @@ export const IncidenciaDetalle = ({
                 </div>
                 <BotonNuevo texto="Nuevo Seguimiento" onClick={() => setSeguimientoModal(true)} />
               </div>
-              <ol>
-                {[
-                  ...seguimientosOrdenados.map((sg) => ({ tipo: "seguimiento" as const, sg })),
-                  // Primer evento: cuando se levantó la incidencia.
-                  { tipo: "reporte" as const, sg: null as any },
-                ].map((item, i, todos) => {
-                  const ultimo = i === todos.length - 1;
-                  const sg = item.sg;
-                  const archivos = sg
-                    ? [...(sg.incidencia_evidencia_solucion || []), ...(sg.incidencia_documento_solucion || [])].filter((x: any) => x?.file_url)
-                    : [];
-                  const imagenes = archivos.filter((x: any) => tipoArchivo(x.file_url, x.file_name) === "imagen");
-                  const audios = archivos.filter((x: any) => tipoArchivo(x.file_url, x.file_name) === "audio");
-                  const otros = archivos.filter((x: any) => !["imagen", "audio"].includes(tipoArchivo(x.file_url, x.file_name)));
-                  return (
-                    <li key={i} className="relative pl-8">
-                      {!ultimo && <span className="absolute left-[7px] top-6 bottom-0 w-px bg-gray-200" />}
-                      <span
-                        className={`absolute left-0 top-4 h-4 w-4 rounded-full border-2 border-white ring-1 ${
-                          item.tipo === "reporte" ? "bg-red-500 ring-red-200" : "bg-gray-300 ring-gray-200"
-                        }`}
-                      />
-                      <div
-                        role={sg ? "button" : undefined}
-                        tabIndex={sg ? 0 : undefined}
-                        onClick={sg ? () => setSeguimientoVer(sg) : undefined}
-                        onKeyDown={sg ? (e) => e.key === "Enter" && setSeguimientoVer(sg) : undefined}
-                        className={`rounded-xl px-3 py-3 transition-colors hover:bg-gray-50 ${sg ? "cursor-pointer" : ""}`}>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          {item.tipo === "reporte" ? (
-                            <>
-                              {d.reporta_incidencia && <span className="text-sm font-bold text-gray-900">{d.reporta_incidencia}</span>}
-                              <span className="text-xs text-gray-500">{fechaRelativa(d.fecha_hora_incidencia)}</span>
-                              <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-600">
-                                Abierto
-                              </span>
-                            </>
+              <Tabla
+                columnas={["Opciones", "Fecha", "Registrado por", "Seguimiento", "Personas", "Archivos"]}
+                filas={seguimientosOrdenados.map((sg) => {
+                  const adjuntos = [...(sg.incidencia_evidencia_solucion || []), ...(sg.incidencia_documento_solucion || [])].filter((x: any) => x?.file_url);
+                  const audios = adjuntos.filter((x: any) => tipoArchivo(x.file_url, x.file_name) === "audio").length;
+                  const otros = adjuntos.length - audios;
+                  return [
+                    <BotonFila key="o" titulo="Ver" onClick={() => setSeguimientoVer(sg)}>
+                      <Eye className="h-4 w-4" />
+                    </BotonFila>,
+                    <span key="f" className="whitespace-nowrap">{fechaRelativa(sg.fecha_inicio_seg)}</span>,
+                    sg.registrado_por,
+                    <p key="s" className="line-clamp-2 max-w-[320px] whitespace-pre-line break-words" title={sg.accion_correctiva_incidencia}>
+                      {sg.accion_correctiva_incidencia}
+                    </p>,
+                    <span key="p" className="line-clamp-2 block max-w-[180px] break-words">{sg.incidencia_personas_involucradas}</span>,
+                    adjuntos.length ? (
+                      <span key="a" className="flex items-center gap-3 text-gray-500">
+                        {otros > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Paperclip className="h-3.5 w-3.5" /> {otros}
+                          </span>
+                        )}
+                        {audios > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Mic className="h-3.5 w-3.5" /> {audios}
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      ""
+                    ),
+                  ];
+                })}
+                vacio="No hay seguimientos."
+              />
+            </section>
+          )}
+
+          {tab === "historial" && (
+            <section className="rounded-2xl border border-gray-200 bg-white p-5">
+              <div className="mb-4 flex items-baseline gap-2">
+                <h3 className="text-base font-bold text-gray-900">Historial de cambios</h3>
+                <span className="text-sm text-gray-500">Todo lo que ha cambiado en la incidencia.</span>
+              </div>
+              {cargandoHistorial ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-sm text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Cargando historial...
+                </div>
+              ) : (
+                <ol>
+                  {eventos.map((e, i) => {
+                    const { icono: Icono, clase } = EVENTO[e.tipo_evento] || EVENTO.datos;
+                    const ultimo = i === eventos.length - 1;
+                    const antes = e.valor_anterior || "";
+                    const despues = e.valor_nuevo || "";
+                    // Un cambio muestra "antes → después"; lo demás, el texto si no viene ya en la descripción.
+                    const detalle = e.accion === "cambio" || (e.accion === "edito" && antes && despues) ? null : despues || antes;
+                    return (
+                      <li key={i} className="relative pl-11">
+                        {!ultimo && <span className="absolute left-[15px] top-9 bottom-0 w-px bg-gray-200" />}
+                        <span className={`absolute left-0 top-2 flex h-8 w-8 items-center justify-center rounded-full ${clase}`}>
+                          <Icono className="h-4 w-4" />
+                        </span>
+                        <div className="pb-5 pt-2">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span className="text-sm font-semibold text-gray-900">{e.descripcion}</span>
+                            <span className="text-xs text-gray-500">{fechaRelativa(e.fecha)}</span>
+                          </div>
+                          {e.usuario && <p className="text-xs text-gray-500">{e.usuario}</p>}
+                          {detalle === null && (antes || despues) ? (
+                            <p className="mt-1 break-words text-sm">
+                              <span className="text-gray-400 line-through">{antes || "vacío"}</span>
+                              <span className="mx-1.5 text-gray-400">→</span>
+                              <span className="text-gray-900">{despues || "vacío"}</span>
+                            </p>
                           ) : (
-                            <>
-                              {sg.registrado_por && <span className="text-sm font-bold text-gray-900">{sg.registrado_por}</span>}
-                              <span className="text-xs text-gray-500">{fechaRelativa(sg.fecha_inicio_seg)}</span>
-                            </>
+                            detalle &&
+                            !e.descripcion.includes(detalle) && (
+                              <p className="mt-1 line-clamp-3 whitespace-pre-line break-words text-sm text-gray-700">{detalle}</p>
+                            )
                           )}
                         </div>
-                        <p className="mt-1 whitespace-pre-line break-words text-sm text-gray-700">
-                          {item.tipo === "reporte" ? "Se levantó el reporte." : sg.accion_correctiva_incidencia}
-                        </p>
-                        {sg?.incidencia_personas_involucradas && (
-                          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-500">
-                            <Users className="h-3.5 w-3.5" />
-                            {sg.incidencia_personas_involucradas}
-                          </p>
-                        )}
-                        {imagenes.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {imagenes.map((x: any, k: number) => (
-                              <a key={k} href={x.file_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={x.file_url} alt={x.file_name || "Evidencia"} className="h-20 w-20 rounded-lg border border-gray-100 object-cover" />
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                        {(otros.length > 0 || audios.length > 0) && (
-                          <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                            {otros.length > 0 && (
-                              <a
-                                href={otros[0].file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title={otros.map((x: any) => x.file_name).filter(Boolean).join(", ")}
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1 hover:text-blue-600">
-                                <Paperclip className="h-3.5 w-3.5" /> {otros.length}
-                              </a>
-                            )}
-                            {audios.length > 0 && (
-                              <a href={audios[0].file_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 hover:text-blue-600">
-                                <Mic className="h-3.5 w-3.5" /> {audios.length}
-                              </a>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
             </section>
           )}
         </div>
@@ -976,26 +982,26 @@ export const IncidenciaDetalle = ({
       {/* Ver un seguimiento */}
       <SeguimientoDetalleModal seguimiento={seguimientoVer} onClose={() => setSeguimientoVer(null)} />
 
-      {/* Ver una acción correctiva (texto completo) */}
+      {/* Ver una tarea (texto completo) */}
       <Dialog open={!!accionVer} onOpenChange={(o) => !o && setAccionVer(null)}>
         <DialogContent className="max-w-xl p-6 gap-0" aria-describedby={undefined}>
           <div className="flex items-center gap-2">
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                accionVer?.tipo === "Preventiva" ? "bg-purple-50 text-purple-700" : "bg-blue-50 text-blue-700"
+                CLASE_TIPO_TAREA[sinAcentos(accionVer?.tipo || "")] || CLASE_TIPO_TAREA.tarea
               }`}>
-              Acción {(accionVer?.tipo || "correctiva").toLowerCase()}
+              {accionVer?.tipo || "Tarea"}
             </span>
             {accionVer?.estatus && (
               <span
                 className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
-                  ESTATUS_ACCION[sinAcentos(accionVer.estatus)] || "bg-gray-100 text-gray-700"
+                  ESTATUS_ACCION[estatusTarea(accionVer.estatus)]
                 }`}>
-                {accionVer.estatus}
+                {estatusTarea(accionVer.estatus)}
               </span>
             )}
           </div>
-          <DialogTitle className="mt-3 text-base font-bold text-gray-900">Acción</DialogTitle>
+          <DialogTitle className="mt-3 text-base font-bold text-gray-900">Tarea</DialogTitle>
           <p className="mt-1 whitespace-pre-line break-words text-sm text-gray-700">{accionVer?.accion}</p>
 
           <p className={`${etiqueta} mt-5`}>¿Qué la causó?</p>
@@ -1024,7 +1030,7 @@ export const IncidenciaDetalle = ({
           <DialogTitle className="text-lg font-bold text-gray-900">{afectacionVer?.tipo_afectacion}</DialogTitle>
           <p className="text-sm text-gray-600 whitespace-pre-line">{afectacionVer?.descripcion_afectacion || "-"}</p>
           <div className="mt-3 grid grid-cols-3 gap-4">
-            <Dato label="Monto">{formatCurrency(monto(afectacionVer?.monto_estimado))}</Dato>
+            <Dato label="Monto">{montoTexto(afectacionVer?.monto_estimado)}</Dato>
             <Dato label="Duración">{afectacionVer?.duracion_estimada}</Dato>
             <Dato label="Estatus">{afectacionVer?.estatus_afectacion}</Dato>
           </div>

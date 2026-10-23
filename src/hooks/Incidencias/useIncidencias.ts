@@ -90,6 +90,8 @@ export const useInciencias = (
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["getListIncidencias"] });
       queryClient.invalidateQueries({ queryKey: ["getStatsIncidencias"] });
+      // Si el tipo era nuevo, el back ya lo agregó al catálogo.
+      queryClient.invalidateQueries({ queryKey: ["catIncidenciasPlano"] });
       toast.success("Incidencia creada correctamente.");
     },
     onError: (err) => {
@@ -131,6 +133,9 @@ export const useInciencias = (
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["getListIncidencias"] });
       queryClient.invalidateQueries({ queryKey: ["getStatsIncidencias"] });
+      queryClient.invalidateQueries({ queryKey: ["getHistorialIncidencia"] });
+      // Si el tipo era nuevo, el back ya lo agregó al catálogo.
+      queryClient.invalidateQueries({ queryKey: ["catIncidenciasPlano"] });
       toast.success("Incidencia editada correctamente.");
     },
     onError: (err) => {
