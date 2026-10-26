@@ -9,7 +9,7 @@ import { descargarPdfPase } from "@/lib/download-pdf";
 const TEMPLATE_PDF_CONCESION = 655;
 
 export const useDescargarPdfConcesion = () => {
-  const { userIdSoter } = useAuthStore();
+  const { userParentId } = useAuthStore();
   const [isDescargando, setIsDescargando] = useState(false);
 
   const descargarPdf = async (recordId: string, folio?: string) => {
@@ -31,7 +31,7 @@ export const useDescargarPdfConcesion = () => {
     try {
       const nombre = `Articulo_concesionado${folio ? `_${folio}` : ""}`;
       // get_pdf_incidencias: la opción que sí respeta el template_id.
-      const result = await getPdfIncidencias(recordId, TEMPLATE_PDF_CONCESION, userIdSoter, nombre, "get_pdf_incidencias");
+      const result = await getPdfIncidencias(recordId, TEMPLATE_PDF_CONCESION, userParentId ?? 0, nombre, "get_pdf_incidencias");
       const data = result?.response?.data;
       const downloadUrl = data?.json?.download_url || data?.data?.download_url;
       if (!downloadUrl) {
