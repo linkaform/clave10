@@ -50,6 +50,8 @@ export const useUserMenuAssignment = (userIds: number[]) => {
   } = useQuery<string[]>({
     queryKey,
     enabled: sortedIds.length > 0,
+    // Los menús asignados casi no cambian: no pedirlos de nuevo al recuperar el foco.
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const results = await Promise.all(sortedIds.map((id) => getUserMenuItems(id)));
       const keySet = new Set<string>();

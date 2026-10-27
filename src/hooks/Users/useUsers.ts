@@ -86,6 +86,9 @@ export const useUsers = (
   const { data, isLoading, isFetching, error, refetch } = useQuery<UsersPage>({
     queryKey: ["users", filters, limit, skip],
     placeholderData: keepPreviousData,
+    // No volver a pedir la lista (ni mostrar el skeleton) cada vez que la pestaña
+    // recupera el foco.
+    refetchOnWindowFocus: false,
     queryFn: async () =>
       unwrap(await getUsersSdk(filters, limit, skip), EMPTY_PAGE),
   });
@@ -103,6 +106,7 @@ export const useUserOptions = () =>
   useQuery<UserOptions>({
     queryKey: ["userOptions"],
     staleTime: Infinity,
+    refetchOnWindowFocus: false,
     queryFn: async () =>
       unwrap(await getUserOptionsSdk(), {
         timezones: [],
@@ -115,6 +119,7 @@ export const useUserDetail = (recordId: string | null) =>
   useQuery<UserDetail>({
     queryKey: ["userDetail", recordId],
     enabled: !!recordId,
+    refetchOnWindowFocus: false,
     queryFn: async () =>
       unwrap(await getUserDetailSdk(recordId as string), {} as UserDetail),
   });
