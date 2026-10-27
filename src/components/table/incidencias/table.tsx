@@ -23,6 +23,7 @@ import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import { IncidenciasActionButtons } from "@/components/Bitacoras/Incidencias/customActions";
+import { useIncidenciasPermisos } from "@/hooks/Incidencias/useIncidenciasPermisos";
 
 type ViewMode = "table" | "photos" | "list";
 
@@ -114,7 +115,11 @@ const IncidenciasTable: React.FC<ListProps> = ({
 
   // Las columnas se quedan mientras carga para que el esqueleto tenga su forma.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const columns = useMemo(() => getIncidenciasColumns(handleEditar, handleEliminar, handleSeguimiento, handleVer), []);
+  const { canDelete } = useIncidenciasPermisos();
+  const columns = useMemo(
+    () => getIncidenciasColumns(handleEditar, canDelete ? handleEliminar : undefined, handleSeguimiento, handleVer),
+    [canDelete]
+  );
 
   const memoizedData = useMemo(() => data || [], [data]);
 
@@ -182,7 +187,7 @@ const IncidenciasTable: React.FC<ListProps> = ({
         incidencia={incidencia}
         handleEditar={handleEditar}
         handleSeguimiento={handleSeguimiento}
-        handleEliminar={handleEliminar}
+        handleEliminar={canDelete ? handleEliminar : undefined}
       />
     );
   };
@@ -204,10 +209,10 @@ const IncidenciasTable: React.FC<ListProps> = ({
           handleEditar(incidencia);
         }}
         onImprimir={(incidencia) => generarComprobanteIncidencia(incidencia)}
-        onEliminar={(incidencia) => {
+        onEliminar={canDelete ? (incidencia) => {
           setModalVerAbierto(false);
           handleEliminar(incidencia);
-        }}
+        } : undefined}
       />
   
       {modalEditarAbierto && incidenciaSeleccionada && (

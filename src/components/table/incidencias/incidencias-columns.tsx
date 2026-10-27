@@ -85,7 +85,7 @@ export const OptionsCell: React.FC<{
   row: any;
   onEditarClick: (incidencia: Incidencia_record) => void;
   onSeguimientoClick: (seguimiento: Incidencia_record) => void;
-  onEliminarClick: (incidencia: Incidencia_record) => void;
+  onEliminarClick?: (incidencia: Incidencia_record) => void;
   onView: (incidencia: Incidencia_record) => void;
 }> = ({ row, onEditarClick, onEliminarClick, onSeguimientoClick, onView }) => {
   const incidencia = row.original;
@@ -105,16 +105,18 @@ export const OptionsCell: React.FC<{
       <BotonAccion tooltip="Imprimir comprobante" onClick={() => generarComprobanteIncidencia(incidencia)}>
         <Printer className="w-4 h-4" />
       </BotonAccion>
-      <BotonAccion tooltip="Eliminar" peligro onClick={() => onEliminarClick(incidencia)}>
-        <Trash2 className="w-4 h-4" />
-      </BotonAccion>
+      {onEliminarClick && (
+        <BotonAccion tooltip="Eliminar" peligro onClick={() => onEliminarClick(incidencia)}>
+          <Trash2 className="w-4 h-4" />
+        </BotonAccion>
+      )}
     </div>
   );
 };
 
 export const getIncidenciasColumns = (
   handleEditar: (incidencia: Incidencia_record) => void,
-  handleEliminar: (incidencia: Incidencia_record) => void,
+  handleEliminar: ((incidencia: Incidencia_record) => void) | undefined,
   handleSeguimiento: (incidencia: Incidencia_record) => void,
   handleVer: (incidencia: Incidencia_record) => void,
 ): ColumnDef<Incidencia_record>[] => [

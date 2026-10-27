@@ -9,7 +9,7 @@ interface IncidenciasActionButtonsProps {
   incidencia: Incidencia_record;
   handleEditar: (incidencia: Incidencia_record) => void;
   handleSeguimiento: (incidencia: Incidencia_record) => void;
-  handleEliminar: (incidencia: Incidencia_record) => void;
+  handleEliminar?: (incidencia: Incidencia_record) => void;
 }
 
 // Botón redondo de acción con hover y tooltip con el nombre de la acción.
@@ -61,9 +61,13 @@ export const IncidenciasActionButtons = ({
         <BotonAccion key="comprobante" tooltip="Imprimir comprobante" onClick={() => generarComprobanteIncidencia(incidencia)}>
           <Printer className="w-4 h-4" />
         </BotonAccion>,
-        <BotonAccion key="delete" tooltip="Eliminar" peligro onClick={() => handleEliminar(incidencia)}>
-          <Trash2 className="w-4 h-4" />
-        </BotonAccion>,
+        ...(handleEliminar
+          ? [
+              <BotonAccion key="delete" tooltip="Eliminar" peligro onClick={() => handleEliminar(incidencia)}>
+                <Trash2 className="w-4 h-4" />
+              </BotonAccion>,
+            ]
+          : []),
       ]}
   />
 );
