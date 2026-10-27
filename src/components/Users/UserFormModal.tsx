@@ -30,7 +30,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreateUser } from "@/hooks/Users/useUsers";
+import { useCreateUser, useUserOptions } from "@/hooks/Users/useUsers";
+import { UserLocaleFields } from "./UserLocaleFields";
 import { userBaseShape } from "./user-schema";
 
 // "none" porque Select no admite value vacío.
@@ -50,6 +51,8 @@ const createSchema = z
       .regex(/^[\w.@+-]+$/, "Solo letras, números, punto, guion, + y @"),
     empleado: z.string(),
     empleadoNombre: z.string().trim(),
+    timezone: z.string(),
+    language: z.string(),
   })
   .superRefine((v, ctx) => {
     if (v.empleado === "ligar_empleado" && !v.empleadoNombre) {
@@ -71,6 +74,8 @@ const EMPTY_CREATE: CreateValues = {
   role: "",
   empleado: "none",
   empleadoNombre: "",
+  timezone: "",
+  language: "",
 };
 
 interface Props {
@@ -90,9 +95,16 @@ export function UserFormModal({ open, onOpenChange }: Props) {
   const empleado = form.watch("empleado");
 
   // Al abrir, el formulario parte vacío.
+  // Zona e idioma parten de los valores por defecto que da el backend.
+  const { data: options } = useUserOptions();
   React.useEffect(() => {
-    if (open) form.reset(EMPTY_CREATE);
-  }, [open, form]);
+    if (open)
+      form.reset({
+        ...EMPTY_CREATE,
+        timezone: options?.defaults.timezone ?? "",
+        language: options?.defaults.language ?? "",
+      });
+  }, [open, form, options]);
 
   const onSubmit = (v: CreateValues) => {
     createUser.mutate(
@@ -104,6 +116,8 @@ export function UserFormModal({ open, onOpenChange }: Props) {
         role: v.role,
         empleado: v.empleado === "none" ? "" : v.empleado,
         empleadoNombre: v.empleado === "ligar_empleado" ? v.empleadoNombre : "",
+        timezone: v.timezone,
+        language: v.language,
       },
       {
         onSuccess: () => {
@@ -165,6 +179,7 @@ export function UserFormModal({ open, onOpenChange }: Props) {
             {textField("email", "* Email", { type: "email" })}
             {textField("phone", "* Teléfono")}
             {textField("role", "* Rol")}
+            <UserLocaleFields control={form.control} />
 
             <FormField
               control={form.control}

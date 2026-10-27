@@ -1,13 +1,14 @@
 "use client";
 
 import React from "react";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
 import { FacetSearch } from "@/components/common/FacetSearch";
 import { UsersTable } from "@/components/Users/UsersTable";
 import { UserPanel } from "@/components/Users/UserPanel";
 import { UserFormModal } from "@/components/Users/UserFormModal";
+import { UserImportModal } from "@/components/Users/UserImportModal";
 import { useUsers } from "@/hooks/Users/useUsers";
 import { useUsersFilters } from "@/hooks/Users/useUsersFilters";
 
@@ -20,6 +21,7 @@ export default function UsuariosPage() {
   });
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
 
   const { users, isLoading, refetch } = useUsers(
@@ -58,6 +60,14 @@ export default function UsuariosPage() {
           }
         >
           <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setImportOpen(true)}
+          >
+            <Upload size={16} />
+            Importar
+          </Button>
+          <Button
             className="bg-green-600 hover:bg-green-700 text-white gap-2"
             onClick={() => setCreateOpen(true)}
           >
@@ -78,6 +88,7 @@ export default function UsuariosPage() {
       </div>
 
       <UserFormModal open={createOpen} onOpenChange={setCreateOpen} />
+      <UserImportModal open={importOpen} onOpenChange={setImportOpen} />
       <UserPanel
         row={selectedRow}
         onOpenChange={(open) => {

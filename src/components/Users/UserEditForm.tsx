@@ -17,9 +17,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { UserRow, useUpdateUser } from "@/hooks/Users/useUsers";
+import { UserLocaleFields } from "./UserLocaleFields";
 import { userBaseShape } from "./user-schema";
 
-const editSchema = z.object(userBaseShape);
+// Zona e idioma pueden venir vacíos en usuarios anteriores a estos campos.
+const editSchema = z.object({
+  ...userBaseShape,
+  timezone: z.string(),
+  language: z.string(),
+});
 type EditValues = z.infer<typeof editSchema>;
 
 const toValues = (user: UserRow): EditValues => ({
@@ -27,6 +33,8 @@ const toValues = (user: UserRow): EditValues => ({
   email: user.email,
   phone: user.phone,
   role: user.role,
+  timezone: user.timezone,
+  language: user.language,
 });
 
 interface Props {
@@ -57,6 +65,8 @@ export function UserEditForm({ user, onDone }: Props) {
       email: changed("email"),
       phone: changed("phone"),
       role: changed("role"),
+      timezone: changed("timezone"),
+      language: changed("language"),
     };
     if (!Object.values(edit).some(Boolean)) {
       toast.info("No hay cambios que guardar.");
@@ -119,6 +129,7 @@ export function UserEditForm({ user, onDone }: Props) {
           )}
           {field("phone", "* Teléfono")}
           {field("role", "* Rol")}
+          <UserLocaleFields control={form.control} emptyLabel="Sin definir" />
           <div className="flex gap-2 pt-1">
             <Button
               type="button"

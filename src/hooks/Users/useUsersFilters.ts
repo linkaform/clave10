@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { SearchFacet, SearchFieldConfig } from "@/components/common/FacetSearch";
+import {
+  SearchFacet,
+  SearchFieldConfig,
+} from "@/components/common/FacetSearch";
 import { UserFiltersState } from "@/lib/users-sdk";
 
 // Campos del buscador por facets de Usuarios. Estatus es un enum (igualdad);
@@ -19,7 +22,10 @@ export const USER_SEARCH_FIELDS: SearchFieldConfig[] = [
     key: "status",
     label: "Estatus",
     type: "enum",
-    options: Object.entries(USER_STATUS_LABELS).map(([value, label]) => ({ value, label })),
+    options: Object.entries(USER_STATUS_LABELS).map(([value, label]) => ({
+      value,
+      label,
+    })),
   },
   { key: "name", label: "Nombre", type: "text" },
   { key: "email", label: "Email", type: "text" },

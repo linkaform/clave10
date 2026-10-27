@@ -192,6 +192,8 @@ export function UserPanel({
                   <Field label="Email" value={user.email} />
                   <Field label="Teléfono" value={user.phone} />
                   <Field label="Rol" value={user.role} />
+                  <Field label="Idioma" value={user.language_label} />
+                  <Field label="Uso Horario" value={user.timezone} />
                   <Field label="Id de usuario" value={user.user_id} />
                 </dl>
               </section>

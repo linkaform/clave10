@@ -97,6 +97,16 @@ export const getUsersColumns = ({
   { accessorKey: "phone", header: "Teléfono" },
   { accessorKey: "role", header: "Rol" },
   {
+    accessorKey: "language_label",
+    header: "Idioma",
+    cell: ({ row }) => row.original.language_label || "—",
+  },
+  {
+    accessorKey: "timezone",
+    header: "Uso Horario",
+    cell: ({ row }) => row.original.timezone || "—",
+  },
+  {
     accessorKey: "status",
     header: "Estatus",
     cell: ({ row }) => <UserStatusBadge status={row.original.status} />,
