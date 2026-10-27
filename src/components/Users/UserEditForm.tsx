@@ -129,7 +129,11 @@ export function UserEditForm({ user, onDone }: Props) {
           )}
           {field("phone", "* Teléfono")}
           {field("role", "* Rol")}
-          <UserLocaleFields control={form.control} emptyLabel="Sin definir" />
+          <UserLocaleFields
+            control={form.control}
+            emptyLabel="Sin definir"
+            unavailableNote="No se modificarán."
+          />
           <div className="flex gap-2 pt-1">
             <Button
               type="button"

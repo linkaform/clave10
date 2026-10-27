@@ -291,7 +291,8 @@ export function errorMsj(data: any, title = "Error", type = "warning") {
     }
 
     // Si no tiene response, no podemos seguir
-    if (!data?.response) {
+    // El runner regresa { response: '', error: { exception } } cuando el script falla.
+    if (!data?.response && !data?.error?.exception) {
       return { title, text: "Error desconocido", type };
     }
     

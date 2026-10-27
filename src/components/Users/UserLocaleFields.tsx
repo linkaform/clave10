@@ -116,6 +116,8 @@ interface Props {
   control: Control<any>;
   /** En edición, un usuario anterior a estos campos puede no tener valor. */
   emptyLabel?: string;
+  /** Qué pasa con estos campos si las opciones no se pueden cargar. */
+  unavailableNote?: string;
 }
 
 // Uso Horario e Idioma del usuario. Las listas vienen del backend (una sola
@@ -123,13 +125,25 @@ interface Props {
 export function UserLocaleFields({
   control,
   emptyLabel = "Selecciona",
+  unavailableNote = "Se usarán la zona horaria y el idioma por defecto.",
 }: Props) {
-  const { data: options } = useUserOptions();
+  const { data: options, isError, error } = useUserOptions();
   const timezones: Option[] = (options?.timezones ?? []).map((z) => ({
     value: z,
     label: z,
   }));
   const languages = options?.languages ?? [];
+
+  // Si las opciones no cargan (por ejemplo, el backend no las tiene todavía) se
+  // dice por qué en vez de mostrar selects vacíos y bloqueados.
+  if (isError) {
+    return (
+      <p className="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+        No se pudieron cargar las opciones de Uso Horario e Idioma (
+        {(error as Error).message}). {unavailableNote}
+      </p>
+    );
+  }
 
   return (
     <>

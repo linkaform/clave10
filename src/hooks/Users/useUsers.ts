@@ -75,6 +75,26 @@ const EMPTY_PAGE: UsersPage = {
 const unwrap = <T>(res: any, fallback: T): T => {
   const err = errorMsj(res);
   if (err) throw new Error(err.text);
+  // Un script que no soporta la opción pedida (por ejemplo, una versión vieja de
+  // users_sdk.py instalada en la cuenta) responde { response: { error } } con
+  // success true y errorMsj no lo ve: sin esto se usaba el fallback en silencio.
+  const nested = res?.response?.error;
+  if (nested)
+    throw new Error(
+      typeof nested === "string" ? nested : JSON.stringify(nested),
+    );
+  // Un script que imprime el error de sanic como resultado (HTTP 200, success true)
+  // deja { response: { status_code: 440, title, msg } }: tampoco es un éxito. Sin
+  // esto el alta mostraba "Usuario creado" aunque sanic respondió 440.
+  const status = res?.response?.status_code;
+  if (typeof status === "number" && status >= 400) {
+    const msg = res.response.msg;
+    throw new Error(
+      Array.isArray(msg)
+        ? msg.join(" ")
+        : String(msg ?? res.response.title ?? `Error ${status}`),
+    );
+  }
   return (res?.response?.data ?? fallback) as T;
 };
 
