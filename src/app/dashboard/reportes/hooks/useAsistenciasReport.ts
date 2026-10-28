@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAttendanceData, getAttendanceDetail, getReportAsistencias, getReportLocations } from "../endpoints/asistenciasReport";
+import { getAttendanceData, getAttendanceDayDetail, getAttendanceDetail, getReportAsistencias, getReportLocations } from "../endpoints/asistenciasReport";
 import { asistenciasReport } from "../types/report";
 
-export const useReportAsistencias = ({ enabled = false, dateRange, locations, groupBy, month, year }: asistenciasReport) => {
+export const useReportAsistencias = ({ enabled = false, dateRange, locations, groupBy, month, year, dateFrom, dateTo }: asistenciasReport) => {
     const {
         data: reportAsistencias,
         isLoading: isLoadingReportAsistencias,
@@ -10,7 +10,7 @@ export const useReportAsistencias = ({ enabled = false, dateRange, locations, gr
         refetch: refetchReportAsistencias,
         isFetching: isFetchingReportAsistencias,
     } = useQuery<any>({
-        queryKey: ["getReportAsistencias", { dateRange, locations, groupBy, month, year }],
+        queryKey: ["getReportAsistencias", { dateRange, locations, groupBy, month, year, dateFrom, dateTo }],
         enabled,
         queryFn: async () => {
             const data = await getReportAsistencias({
@@ -18,7 +18,9 @@ export const useReportAsistencias = ({ enabled = false, dateRange, locations, gr
                 locations,
                 groupBy,
                 month,
-                year
+                year,
+                dateFrom,
+                dateTo,
             });
             return data ?? [];
         },
@@ -120,3 +122,13 @@ export const useAttendanceData = ({
     };
   };
    
+export const useAttendanceDayDetail = (userId?: number, fecha?: string) => {
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["getAttendanceDayDetail", { userId, fecha }],
+    enabled: !!userId && !!fecha,
+    queryFn: () => getAttendanceDayDetail(userId!, fecha!),
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+  return { dayDetail: data ?? {}, isLoadingDayDetail: isLoading };
+};
