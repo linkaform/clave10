@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { StatusIcon, getStatusConfig, tipoDiaLibreLabel } from "./attendanceStatus";
 import { AutoCloseMark, Card, CloseButton, EvidencePhotos, Field, Fields, Warn } from "./drawerParts";
 import { useAttendanceDayDetail } from "../hooks/useAsistenciasReport";
-import { AttendanceDay, EmployeeAttendance, cierreDia, formatHoras, horaSalida, horasSolicitud, horasTrabajadas } from "../reporte_asistencias/lib/employees";
+import { AttendanceDay, EmployeeAttendance, cierreDia, formatHoras, horaSalida, horasDia, horasSolicitud, horasTrabajadas } from "../reporte_asistencias/lib/employees";
 import { useNow } from "../reporte_asistencias/lib/useNow";
 import { DIAS, MESES, fromISO } from "../reporte_asistencias/lib/period";
 
@@ -100,7 +100,8 @@ export const AttendanceDayDrawer: React.FC<AttendanceDayDrawerProps> = ({ select
             <Field label="Entrada:" value={hora(day?.fecha_inicio)} />
             <Field label="Salida:" value={salida} />
             <Field label="Horas trabajadas:" value={formatHoras(horasTrabajadas(day?.fecha_inicio, day?.fecha_cierre, enTurno, now), " h")} />
-            <Field label="Registro:" value={registro} loading={hasRecord && isLoadingDayDetail} />
+            <Field label="Horas esperadas:" value={horasDia(employee, day, false, now).esperadas != null ? `${horasDia(employee, day, false, now).esperadas!.toFixed(1)} h` : undefined} />
+            <Field label="Registro:" value={registro} loading={hasRecord && isLoadingDayDetail} full />
           </Fields>
 
           {hasRecord && (

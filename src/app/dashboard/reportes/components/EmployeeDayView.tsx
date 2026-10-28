@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { AttendanceStatus, StatusIcon, getStatusConfig, tipoDiaLibreLabel } from "./attendanceStatus";
-import { AttendanceDay, EmployeeAttendance, cierreDia, formatHoras, hora, horaSalida, horasTrabajadas, employeeSub, horasSolicitud, permisoParcial } from "../reporte_asistencias/lib/employees";
+import { AttendanceDay, EmployeeAttendance, cierreDia, formatHoras, hora, horaSalida, horasTrabajadas, employeeSub, horasDia, horasSolicitud, permisoParcial } from "../reporte_asistencias/lib/employees";
 import { AutoCloseMark, PartialPermitMark } from "./drawerParts";
 import { useNow } from "../reporte_asistencias/lib/useNow";
 import { sameDay, toISO } from "../reporte_asistencias/lib/period";
@@ -133,6 +133,7 @@ export const EmployeeDayView: React.FC<EmployeeDayViewProps> = ({ employees, dat
                 <th className={th}>ENTRADA</th>
                 <th className={th}>SALIDA</th>
                 <th className={`${th} text-right`}>HORAS</th>
+                <th className={`${th} text-right`}>ESPERADAS</th>
                 <th className={th}>REGISTRO</th>
               </tr>
             </thead>
@@ -171,6 +172,9 @@ export const EmployeeDayView: React.FC<EmployeeDayViewProps> = ({ employees, dat
                       title={cierreDia(emp, day)?.texto}
                     >
                       {formatHoras(horasTrabajadas(day?.fecha_inicio, day?.fecha_cierre, isToday && !!day?.fecha_inicio && !day?.closed, clock)) ?? "—"}
+                    </td>
+                    <td className={`${td} text-right tabular-nums text-[#475569]`}>
+                      {horasDia(emp, day, false, clock).esperadas?.toFixed(1) ?? "—"}
                     </td>
                     <td className={`${td} text-[#475569]`}>
                       {registroText(emp, day)}

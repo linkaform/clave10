@@ -1,5 +1,5 @@
 import { AttendanceResumen, buildResumen } from "../../components/attendanceStatus";
-import { MESES, fromISO } from "./period";
+import { MESES, fromISO, toISO } from "./period";
 
 // Solicitud autorizada de FORMATO_VACACIONES que cae en el día
 export type Solicitud = {
@@ -119,28 +119,28 @@ export const horaSalida = (day?: AttendanceDay) => {
 // "YYYY-MM-DD HH:MM:SS" en hora local
 const parseFecha = (value: string) => new Date(value.replace(" ", "T"));
 
-// Horas entre la entrada y la salida; si el turno sigue abierto, hasta la hora actual
+// Hora de comida no pagada: el horario no la trae, se descuenta fija en turnos de más de 6 h
+export const COMIDA_HORAS = 1;
+const sinComida = (horas: number) => (horas > 6 ? horas - COMIDA_HORAS : horas);
+
+// Horas entre la entrada y la salida (menos la comida); si el turno sigue abierto, hasta la hora actual
 export const horasTrabajadas = (inicio?: string | null, cierre?: string | null, enCurso = false, now = new Date()) => {
   if (!inicio) return null;
   const fin = cierre ? parseFecha(cierre) : enCurso ? now : null;
   if (!fin) return null;
   const horas = (fin.getTime() - parseFecha(inicio).getTime()) / 3_600_000;
-  return horas >= 0 ? { horas, enCurso: !cierre } : null;
+  return horas >= 0 ? { horas: sinComida(horas), enCurso: !cierre } : null;
 };
 
 export const formatHoras = (h: ReturnType<typeof horasTrabajadas>, unidad = "") =>
   h ? `${h.horas.toFixed(1)}${unidad}${h.enCurso ? " en curso" : ""}` : undefined;
 
-// El turno no se cerró a mano: la salida quedó en otro día y coincide con el siguiente
-// check-in (o el turno dura más de 16 h), así que las horas no reflejan lo trabajado.
-export const esCierreAutomatico = (inicio?: string | null, cierre?: string | null, siguienteInicio?: string | null) => {
-  if (!inicio || !cierre || cierre.substring(0, 10) === inicio.substring(0, 10)) return false;
-  const fin = parseFecha(cierre).getTime();
-  if (siguienteInicio) {
-    const diff = parseFecha(siguienteInicio).getTime() - fin;
-    if (diff >= 0 && diff <= 10 * 60_000) return true;
-  }
-  return fin - parseFecha(inicio).getTime() > 16 * 3_600_000;
+// Olvidó cerrar: la salida quedó en otro día y justo antes de su siguiente check-in,
+// así que las horas no reflejan lo trabajado. Los turnos largos sin ese patrón (p. ej. de 24 h) son reales.
+export const esCierreTardio = (inicio?: string | null, cierre?: string | null, siguienteInicio?: string | null) => {
+  if (!inicio || !cierre || !siguienteInicio || cierre.substring(0, 10) === inicio.substring(0, 10)) return false;
+  const diff = parseFecha(siguienteInicio).getTime() - parseFecha(cierre).getTime();
+  return diff >= 0 && diff <= 10 * 60_000;
 };
 
 export type TipoCierre = { label: string; texto: string };
@@ -154,7 +154,7 @@ export const tipoCierre = (
   comentarioAutomatico?: string | null,
 ): TipoCierre | null => {
   if (comentarioAutomatico) return { label: "Automática", texto: `El sistema cerró el turno: ${comentarioAutomatico}.` };
-  if (esCierreAutomatico(inicio, cierre, siguienteInicio)) {
+  if (esCierreTardio(inicio, cierre, siguienteInicio)) {
     return { label: "Cierre tardío", texto: "No cerró su turno ese día; lo cerró hasta el siguiente. Las horas no reflejan lo trabajado." };
   }
   return null;
@@ -180,3 +180,49 @@ export const permisoParcial = (day?: AttendanceDay) =>
 
 export const horasSolicitud = (s?: Solicitud) =>
   s?.parcial && s.hora_inicio && s.hora_fin ? `${s.hora_inicio.substring(0, 5)}–${s.hora_fin.substring(0, 5)}` : "";
+
+const toMin = (hhmmss?: string) => {
+  if (!hhmmss) return null;
+  const [h, m] = hhmmss.split(":").map(Number);
+  return Number.isNaN(h) ? null : h * 60 + (m || 0);
+};
+
+// Duración de la jornada en horas, menos la comida (turno nocturno cruza la medianoche)
+export const duracionJornada = (j?: Jornada | null) => {
+  const entrada = toMin(j?.hora_entrada);
+  const salida = toMin(j?.hora_salida);
+  if (entrada == null || salida == null) return null;
+  const min = salida > entrada ? salida - entrada : salida + 1440 - entrada;
+  return sinComida(min / 60);
+};
+
+// Estatus de días laborales que deben cubrir su jornada
+const ESPERADOS = ["presente", "retardo", "falta", "sin_salida"];
+
+export type HorasDia = { trabajadas: number | null; esperadas: number | null; enCurso: boolean; ajustada: boolean };
+
+// Horas de un día: trabajadas (entrada→salida, o hasta ahora si sigue en turno) y esperadas según su jornada.
+// En un cierre tardío las trabajadas se topan a la jornada para no inflar los totales.
+export const horasDia = (emp: EmployeeAttendance, day: AttendanceDay | undefined, enCurso: boolean, now = new Date()): HorasDia => {
+  const jornada = duracionJornada(emp.jornada);
+  const esperadas = day && ESPERADOS.includes(day.status) ? jornada : null;
+  const h = horasTrabajadas(day?.fecha_inicio, day?.fecha_cierre, enCurso, now);
+  const tardio = !!day && cierreDia(emp, day)?.label === "Cierre tardío";
+  const ajustada = !!h && tardio && jornada != null && h.horas > jornada;
+  return { trabajadas: h ? (ajustada ? jornada : h.horas) : null, esperadas, enCurso: !!h?.enCurso, ajustada };
+};
+
+export const resumenHoras = (emp: EmployeeAttendance, now = new Date()) => {
+  const hoy = toISO(now);
+  let trabajadas = 0, esperadas = 0, conJornada = false;
+  Object.values(emp.dias).forEach(day => {
+    const enCurso = day.fecha === hoy && !!day.fecha_inicio && !day.closed;
+    const h = horasDia(emp, day, enCurso, now);
+    trabajadas += h.trabajadas ?? 0;
+    if (h.esperadas != null) {
+      esperadas += h.esperadas;
+      conJornada = true;
+    }
+  });
+  return { trabajadas, esperadas: conJornada ? esperadas : null };
+};
