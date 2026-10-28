@@ -7,15 +7,14 @@ import Image from 'next/image'
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
-      <div className="relative mb-6 flex h-[600px] w-[700px] items-center justify-center overflow-hidden rounded-xl">
-        <Image 
-          src="/errors-images/404.png"
-          alt="Página no encontrada"
-          fill
-          className="object-cover"
-          priority
-        />
-      </div>
+      <Image
+        src="/errors-images/404.png"
+        alt="Página no encontrada"
+        width={700}
+        height={700}
+        className="mb-6"
+        priority
+      />
       
       <h1 className="mb-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
         Página no encontrada
