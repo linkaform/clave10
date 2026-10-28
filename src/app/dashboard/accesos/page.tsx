@@ -440,10 +440,10 @@ const AccesosContent = () => {
       <div className="flex justify-center items-center overflow-hidden mt-32">
         <div className="flex items-center flex-col gap-2">
           <Image
-            src="/guardia1.png"
+            src="/imagen_pedro_turno.png"
             alt="Next.js img"
-            width={300}
-            height={300}
+            width={700}
+            height={700}
             priority
           />
 
