@@ -1,4 +1,4 @@
-import { Box, Calendar, Eye, RotateCcw, User } from "lucide-react";
+import { Box, Calendar, Eye, RotateCcw, User, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { VerDetalleDevolucion } from "./modals/concesionados-ver-detalle-devolucion";
@@ -87,6 +87,12 @@ export const HistorialDevolucionesList: React.FC<HistorialDevolucionesListProps>
             </div>
 
             <div className="flex items-center gap-3 flex-shrink-0">
+              {["sí", "si"].includes(devItem.se_forzo_devolucion ?? "") && (
+                <span className="flex items-center gap-1 text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200 px-2.5 py-1 rounded-full">
+                  <Zap className="w-3.5 h-3.5" />
+                  Forzada
+                </span>
+              )}
               <span className="flex items-center gap-1 text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full">
                 <Box className="w-3.5 h-3.5" />
                 {(() => {
