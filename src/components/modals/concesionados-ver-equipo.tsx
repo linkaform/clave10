@@ -48,7 +48,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
       <DialogTrigger asChild>{children}</DialogTrigger>
 
       <DialogContent
-        className="max-w-4xl flex flex-col gap-0 bg-white p-0 max-h-[90vh] overflow-hidden"
+        className="max-w-[1040px] flex flex-col gap-0 bg-white p-0 max-h-[90vh] overflow-hidden"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="flex-shrink-0 bg-white px-6 py-5 border-b">

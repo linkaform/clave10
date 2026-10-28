@@ -22,6 +22,8 @@ export interface DevolucionItem {
   evidencia_entrega: { file_name: string; file_url: string }[];
   identificacion_entrega: { file_name: string; file_url: string }[];
   comentario_entrega:  string|null;
+  /** Solo viene en "sí" cuando la devolución se hizo con "Forzar devolución". */
+  se_forzo_devolucion?: string;
 }
 const labelClass = "text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5";
 
@@ -117,6 +119,13 @@ interface HistorialDevolucionesModalProps {
                       <p className="text-sm text-gray-700">{devolucion.quien_entrega_company}</p>
                     </div>
                   )}
+
+                  <div>
+                    <p className={labelClass}>¿Se forzó la devolución?</p>
+                    <p className="text-sm text-gray-700">
+                      {["sí", "si"].includes(devolucion?.se_forzo_devolucion ?? "") ? "Sí" : "No"}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-x-6 items-start border-t border-gray-100 pt-4">

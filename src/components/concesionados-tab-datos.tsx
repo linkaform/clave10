@@ -17,6 +17,8 @@ export type DevolucionItem = {
   identificacion_entrega: { file_url: string; file_name: string }[];
   quien_entrega: string;
   quien_entrega_company: string | null;
+  /** Solo viene en "sí" cuando la devolución se hizo con "Forzar devolución". */
+  se_forzo_devolucion?: string;
 };
 
 export interface EquipoConcesionado {
@@ -167,11 +169,21 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
                     <td className="px-4 py-2.5">
                     {(() => {
                       const estado = getEstadoEquipo(item);
+                      const seForzo =
+                        estado.label === "Completado" &&
+                        !!item.devoluciones?.some((dev) => ["sí", "si"].includes(dev.se_forzo_devolucion ?? ""));
 
                       return (
-                        <span className={`px-3 py-1 rounded-full text-xs whitespace-nowrap ${estado.style}`}>
-                          {estado.label}
-                        </span>
+                        <>
+                          <span className={`px-3 py-1 rounded-full text-xs whitespace-nowrap ${estado.style}`}>
+                            {estado.label}
+                          </span>
+                          {seForzo && (
+                            <p className="mt-1 text-[11px] text-gray-500 whitespace-nowrap">
+                              ¿Se forzó la devolución? <span className="font-semibold text-gray-700">Sí</span>
+                            </p>
+                          )}
+                        </>
                       );
                     })()}
                     </td>

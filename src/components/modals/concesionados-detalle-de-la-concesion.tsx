@@ -74,7 +74,7 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
 
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col bg-white p-0 overflow-hidden">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col bg-white p-0 overflow-hidden">
 
         <DialogHeader className="flex-shrink-0 bg-white px-6 py-5 border-b">
           <DialogTitle className="text-2xl text-center font-bold text-gray-800">
