@@ -7,9 +7,9 @@ import Image from 'next/image'
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
-      <div className="relative mb-6 flex h-[500px] w-[1000px] items-center justify-center overflow-hidden rounded-xl">
+      <div className="relative mb-6 flex h-[600px] w-[700px] items-center justify-center overflow-hidden rounded-xl">
         <Image 
-          src="/errors-images/404.jpg"
+          src="/errors-images/404.png"
           alt="Página no encontrada"
           fill
           className="object-cover"
