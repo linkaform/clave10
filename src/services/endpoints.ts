@@ -110,34 +110,34 @@ export const getNotasFilters = () =>
 
 export const getTransportistaFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "filters.py",
+    script_name: "filters_sdk.py",
     option: "transportistas",
     public_script: true,
   });
 
 export const createPaseTransportista = (payload: unknown) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "create_pass_transportista",
     payload,
   });
 
 export const getHorariosData = (dia?: number) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_horarios_data",
     ...(dia !== undefined && { dia }),
   });
 
 export const getAndenes = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_andenes",
   });
 
 export const getPassTransportista = (record_id: string, account_id?: number | string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_pass_transportista",
     record_id,
     ...(account_id !== undefined && { account_id }),
@@ -145,7 +145,7 @@ export const getPassTransportista = (record_id: string, account_id?: number | st
 
 export const getPassTransportistaByToken = (token: string, account_id?: number | string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_pass_transportista",
     token,
     ...(account_id !== undefined && { account_id }),
@@ -153,7 +153,7 @@ export const getPassTransportistaByToken = (token: string, account_id?: number |
 
 export const generateSubmitTokenTransportista = (record_id: string, account_id?: number | string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "generate_submit_token_transportista",
     record_id,
     ...(account_id !== undefined && { account_id }),
@@ -161,7 +161,7 @@ export const generateSubmitTokenTransportista = (record_id: string, account_id?:
 
 export const validateTokenTransportista = (record_id: string, token: string, account_id?: number | string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "validate_token",
     record_id,
     token,
@@ -170,27 +170,27 @@ export const validateTokenTransportista = (record_id: string, token: string, acc
 
 export const getLocationData = (location: string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_location_data",
     location,
   });
 
 export const getUsersDataTransportista = (location?: string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_users_data",
     ...(location && { location }),
   });
 
 export const getProveedoresTransportista = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_proveedores_transportista",
   });
 
 export const updateInformationTransportista = (payload: unknown, account_id?: number | string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "update_information_transportista",
     payload,
     ...(account_id !== undefined && { account_id }),
@@ -198,7 +198,7 @@ export const updateInformationTransportista = (payload: unknown, account_id?: nu
 
 export const createVisitTransportista = (payload: unknown) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "create_visit_transportista",
     account_id: useAuthStore.getState().userParentId,
     payload,
@@ -240,7 +240,7 @@ export const transcribirAudio = async (audio_source: string): Promise<string> =>
 
 export const saveDataTransportista = (payload: unknown) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "save_data_transportista",
     account_id: useAuthStore.getState().userParentId,
     payload,
@@ -248,14 +248,14 @@ export const saveDataTransportista = (payload: unknown) =>
 
 export const getBitacoraTransportistaRecord = (record_id: string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_bitac_transportista_record",
     record_id,
   });
 
 export const saveBitacoraTransportistaRecord = (record_id: string, seccion: string, payload: unknown) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "save_bitac_transportista_record",
     record_id,
     seccion,
@@ -310,7 +310,7 @@ export const getBitacoraTransportistaRecords = (
 
 export const saveInspeccionesTransportista = (record_id: string, inspecciones: unknown[]) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "save_inspecciones",
     record_id,
     inspecciones,
@@ -318,7 +318,7 @@ export const saveInspeccionesTransportista = (record_id: string, inspecciones: u
 
 export const saveInspeccionesSelloTransportista = (record_id: string, inspecciones: unknown[]) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "save_inspecciones_sello",
     record_id,
     inspecciones,
@@ -326,7 +326,7 @@ export const saveInspeccionesSelloTransportista = (record_id: string, inspeccion
 
 export const getInspeccionRecord = (record_id: string, tipo: string) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_inspeccion_record",
     record_id,
     tipo,
@@ -334,7 +334,7 @@ export const getInspeccionRecord = (record_id: string, tipo: string) =>
 
 export const sendAvisoCorreoTransportista = (record_id: string, email_to: string[]) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "send_aviso_correo_transportista",
     record_id,
     email_to,
@@ -342,20 +342,20 @@ export const sendAvisoCorreoTransportista = (record_id: string, email_to: string
 
 export const getFormFieldsTransportista = (form_ids: string[]) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_form_fields",
     form_ids,
   });
 
 export const getConfigFlujoTransportista = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_config_flujo_transportistas",
   });
 
 export const getFormasInspeccionTransportista = (ubicacion?: string | null) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_formas_inspeccion_transportista",
     ubicacion,
   });
@@ -364,7 +364,7 @@ export const getFotografiasTransportista = (
   registros: { record_id: string; tipo_de_registro: string }[],
 ) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "transportistas.py",
+    script_name: "transportistas_sdk.py",
     option: "get_fotografias",
     registros,
   });

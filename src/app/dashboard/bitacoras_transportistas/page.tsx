@@ -369,14 +369,14 @@ export default function BitacorasTransportistasPage() {
   // back, también en el Kanban (ver transportistas_search_fields). La fecha es
   // el rango que ya resuelve el panel (dateRange), por eso los conteos van aparte.
   const section = useFacetSection({
-    scriptName: "transportistas.py",
+    scriptName: "transportistas_sdk.py",
     panel: { externalFilters, onExternalFiltersChange, activeFiltersCount },
     status: "",
     locations: NO_LOCATIONS,
   });
   const fetchCounts = useCallback(
     async (facets: SearchFacet[], candidates: SearchCandidate[]) => {
-      const res = await runScript("transportistas.py", {
+      const res = await runScript("transportistas_sdk.py", {
         option: "get_search_counts",
         date_from: dateRange.date_from,
         date_to: dateRange.date_to,
