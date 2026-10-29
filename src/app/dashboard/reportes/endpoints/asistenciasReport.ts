@@ -97,10 +97,14 @@ export const getAttendanceData = async ({
     locations = [],
     limit = 100,
     offset = 0,
+    dateFrom,
+    dateTo,
   }: {
     locations?: string[];
     limit?: number;
     offset?: number;
+    dateFrom?: string;
+    dateTo?: string;
   }) => {
     try {
       const payload = {
@@ -109,6 +113,8 @@ export const getAttendanceData = async ({
         locations,
         limit,
         offset,
+        date_from: dateFrom,
+        date_to: dateTo,
       };
       const userJwt = await getValidToken();
       const response = await fetch(API_ENDPOINTS.runScript, {
@@ -120,7 +126,8 @@ export const getAttendanceData = async ({
         body: JSON.stringify(payload),
       });
       const data = await response.json();
-      return data?.response?.data?.records ?? [];
+      // Registros + paginación (total_records, total_pages, actual_page, records_on_page)
+      return data?.response?.data ?? null;
     } catch (error) {
       console.error("Error al obtener attendance data:", error);
       throw error;

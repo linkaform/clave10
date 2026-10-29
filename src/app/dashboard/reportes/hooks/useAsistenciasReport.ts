@@ -92,36 +92,44 @@ export const useAttendanceData = ({
     locations = [],
     limit = 100,
     offset = 0,
+    dateFrom,
+    dateTo,
   }: {
     enabled?: boolean;
     locations?: string[];
     limit?: number;
     offset?: number;
+    dateFrom?: string;
+    dateTo?: string;
   }) => {
     const {
       data,
       isLoading: isLoadingAttendance,
+      isFetching: isFetchingAttendance,
       error: errorAttendance,
       refetch: refetchAttendance,
     } = useQuery<any>({
-      queryKey: ["getAttendanceData", { locations, limit, offset }],
+      queryKey: ["getAttendanceData", { locations, limit, offset, dateFrom, dateTo }],
       enabled,
-      queryFn: async () => {
-        const records = await getAttendanceData({ locations, limit, offset });
-        return records ?? [];
-      },
+      queryFn: () => getAttendanceData({ locations, limit, offset, dateFrom, dateTo }),
       refetchOnWindowFocus: false,
       retry: 1,
     });
-   
+
     return {
-      attendanceData: data ?? [],
-      isLoadingAttendance,
+      attendanceData: data?.records ?? [],
+      pagination: {
+        total_records: data?.total_records ?? 0,
+        total_pages: data?.total_pages ?? 1,
+        actual_page: data?.actual_page ?? 1,
+        records_on_page: data?.records_on_page ?? 0,
+      },
+      isLoadingAttendance: isLoadingAttendance || isFetchingAttendance,
       errorAttendance,
       refetchAttendance,
     };
   };
-   
+
 export const useAttendanceDayDetail = (userId?: number, fecha?: string) => {
   const { data, isLoading } = useQuery<any>({
     queryKey: ["getAttendanceDayDetail", { userId, fecha }],

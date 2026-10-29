@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { CalendarDays, LayoutGrid, Search, Sheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAsistenciasView, DisplayMode } from "@/hooks/asistencias/useAsistenciasView";
 import { GroupingMode } from "../types/attendance";
@@ -14,6 +14,7 @@ import { LocationDayView } from "../components/LocationDayView";
 import { LocationPeriodView } from "../components/LocationPeriodView";
 import { ShiftDrawer } from "../components/ShiftDrawer";
 import { ReportSkeleton } from "../components/ReportSkeleton";
+import { AttendanceRecordsView } from "../components/AttendanceRecordsView";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShiftStatusIcon, StatusIcon, attendanceStatusConfig, legendStatuses, shiftLegendStatuses, shiftStatusConfig } from "../components/attendanceStatus";
 import { EmployeeLocationRow, jornadaLabel, mergeEmployees } from "./lib/employees";
@@ -40,6 +41,8 @@ const ReportPage = () => {
     search,
     setSearch,
     date,
+    from: dateFrom,
+    to: dateTo,
     reportAsistencias,
     isLoading,
     errorReportAsistencias,
@@ -88,7 +91,10 @@ const ReportPage = () => {
     setJornada("");
   };
 
+  const isCards = displayMode === "cards";
+
   const renderView = () => {
+    if (isCards) return <AttendanceRecordsView dateFrom={dateFrom} dateTo={dateTo} search={search} />;
     if (isLoading) {
       if (displayMode === "table") return <ReportSkeleton variant="table" />;
       return period === "dia" ? <ReportSkeleton variant="cards" /> : <ReportSkeleton variant="grid" columns={days.length} />;
@@ -152,7 +158,7 @@ const ReportPage = () => {
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="m-0 text-2xl font-bold tracking-[-.02em] text-[#0F172A]">Reporte de asistencia</h1>
           {isLoading && <Skeleton className="h-6 w-28" />}
-          {!isLoading && (
+          {!isLoading && !isCards && (
             <span className="inline-flex rounded-md bg-[#2F80ED] px-2 py-0.5 font-semibold tabular-nums text-white">
               {isEmployees
                 ? `${employees.length} ${employees.length === 1 ? "empleado" : "empleados"}`
@@ -180,8 +186,9 @@ const ReportPage = () => {
           </button>
           <div role="group" aria-label="Tipo de vista" className="inline-flex h-10 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white">
             {([
-              ["cal", "Vista de calendario", <svg key="cal" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" /></svg>],
-              ["table", "Vista de tabla", <svg key="table" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" /><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10" /></svg>],
+              ["cal", "Vista de calendario", <CalendarDays key="cal" size={20} aria-hidden="true" />],
+              ["cards", "Vista de registros con foto", <LayoutGrid key="cards" size={20} aria-hidden="true" />],
+              ["table", "Vista de tabla", <Sheet key="table" size={20} aria-hidden="true" />],
             ] as [DisplayMode, string, React.ReactNode][]).map(([mode, title, svg]) => (
               <button
                 key={mode}
@@ -232,7 +239,7 @@ const ReportPage = () => {
         >
           Hoy
         </button>
-        {isEmployees && (
+        {isEmployees && !isCards && (
           <>
             <select
               aria-label="Departamento"
@@ -258,7 +265,7 @@ const ReportPage = () => {
 
       <div>{renderView()}</div>
 
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2.5 py-1">
+      {!isCards && <div className="flex flex-wrap justify-center gap-x-4 gap-y-2.5 py-1">
         {isEmployees
           ? legendStatuses.map(status => (
             <span key={status} className="inline-flex items-center gap-1.5 text-xs text-[#475569]">
@@ -272,7 +279,7 @@ const ReportPage = () => {
               {shiftStatusConfig[status].label}
             </span>
           ))}
-      </div>
+      </div>}
 
       <AttendanceDayDrawer selection={daySelection} onClose={() => setDaySelection(null)} />
       <ShiftDrawer selection={shiftSelection} onClose={() => setShiftSelection(null)} />

@@ -13,7 +13,7 @@ import {
 } from "@/app/dashboard/reportes/reporte_asistencias/lib/period";
 import { useCallback, useMemo, useState } from "react";
 
-export type DisplayMode = "cal" | "table";
+export type DisplayMode = "cal" | "table" | "cards";
 
 export const useAsistenciasView = () => {
   const [groupingMode, setGroupingMode] = useState<GroupingMode>("employees");
@@ -32,7 +32,8 @@ export const useAsistenciasView = () => {
     errorReportAsistencias,
     refetchReportAsistencias,
   } = useReportAsistencias({
-    enabled: true,
+    // La vista de cards lee los registros de check-in, no el reporte
+    enabled: displayMode !== "cards",
     dateRange: period,
     locations: [],
     groupBy: groupingMode,
@@ -52,6 +53,8 @@ export const useAsistenciasView = () => {
     period,
     setPeriod,
     date,
+    from: toISO(from),
+    to: toISO(to),
     days,
     label: periodLabel(period, date),
     isCurrent: isCurrentPeriod(period, date),
