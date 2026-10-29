@@ -30,15 +30,13 @@ export default function GlobalError({
     <html lang="es">
       <body className="min-h-screen bg-background font-sans antialiased">
         <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
-          <div className="relative flex h-[500px] w-[350px] items-center justify-center overflow-hidden rounded-xl">
-            <Image
-              src="/errors-images/error-inesperado.jpg"
-              alt="Error inesperado"
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
+          <Image
+            src="/errors-images/opps.png"
+            alt="Error inesperado"
+            width={300}
+            height={450}
+            priority
+          />
 
           <h1 className="mb-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             ¡Oops! Algo salió mal

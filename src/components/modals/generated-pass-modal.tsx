@@ -1,4 +1,4 @@
-import { CheckCircleIcon, Copy, Download, Loader2, X } from "lucide-react";
+import { CheckCircleIcon, Copy, Download, Loader2, Share2, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import { toast } from "sonner";
@@ -16,6 +16,8 @@ interface GeneratedPassModalProps {
   /** Con recordId (id del pase creado) se ofrece "Descargar pase". */
   recordId?: string;
   accountId?: number;
+  /** Solo con auto activación se ofrece el botón de compartir enlace. */
+  autoActivacion?: boolean;
 }
 
 // Descarga la imagen del pase (get_pass_img, igual que view-pass-modal).
@@ -45,6 +47,7 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
   from="",
   recordId,
   accountId,
+  autoActivacion = false,
 }) => {
   const router = useRouter();
   const [descargando, setDescargando] = useState(false);
@@ -68,6 +71,20 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
       toast.error(`No se pudo descargar el pase: ${(error as Error).message}`);
     } finally {
       setDescargando(false);
+    }
+  };
+
+  // Menú nativo de compartir; si el navegador no lo soporta, se copia el link.
+  const handleCompartir = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text: "Link del pase de entrada", url: link });
+      } catch {
+        // usuario canceló el share, no hacer nada
+      }
+    } else {
+      await navigator.clipboard.writeText(link);
+      toast.success("Link copiado al portapapeles");
     }
   };
 
@@ -103,13 +120,24 @@ export const GeneratedPassModal: React.FC<GeneratedPassModalProps> = ({
 
         <Separator className="my-3" />
 
-        <div className="flex justify-center m-3">
+        <div className="flex justify-center items-center gap-2 m-3">
           <input
             className="text-gray-600 text-center w-1/2"
             disabled
             type="text"
             value={link}
           />
+          {autoActivacion && (
+            <button
+              type="button"
+              className="text-blue-600 hover:text-blue-800 p-1"
+              onClick={handleCompartir}
+              title="Compartir enlace"
+            >
+              <Share2 className="h-5 w-5" />
+              <span className="sr-only">Compartir enlace</span>
+            </button>
+          )}
         </div>
 
         <Button
