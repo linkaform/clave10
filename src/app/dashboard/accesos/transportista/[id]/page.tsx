@@ -4230,7 +4230,7 @@ export default function DetalleTransportistaPage() {
                               { key: "color",         label: "Color" },
                             ] as { key: keyof typeof vehicleDraft; label: string; mono?: boolean }[]
                           ).map(({ key, label, mono }) => (
-                            <div key={key}>
+                            <div key={key} className={cn(key === "tipo_vehiculo" && "col-span-3")}>
                               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
                               {key === "tipo_vehiculo" ? (
                                 <SelectorTipoVehiculo
