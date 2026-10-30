@@ -19,9 +19,8 @@ import {
 } from "lucide-react";
 import { useRecorridoStore } from "@/store/useRecorridoStore";
 import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
-import { capitalizeFirstLetter, formatForMultiselect } from "@/lib/utils";
+import { capitalizeFirstLetter } from "@/lib/utils";
 import { useEditarRondin } from "@/hooks/Rondines/useEditarRondin";
-import MultiSelect from "react-select";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
 import DateTimePicker from "@/components/dateTimerPicker";
 import { format } from "date-fns";
