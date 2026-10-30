@@ -4,7 +4,7 @@ import { getValidToken } from "./login/get-valid-token";
   export const getCatalogoPasesLocation = async () => {
     const payload = {
         option: "catalogos_pase_location",
-        script_name: "pase_de_acceso.py",
+        script_name: "pase_de_acceso_sdk.py",
     };
   
     const userJwt = await getValidToken();

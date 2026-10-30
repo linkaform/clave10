@@ -19,6 +19,25 @@ const EstatusBadge = ({ estatus }: { estatus: string }) => {
   );
 };
 
+type TipoAsignacion = "responsable_en_turno" | "persona_especifica" | "grupo";
+
+const TIPO_ASIGNACION_LABEL: Record<TipoAsignacion, string> = {
+  responsable_en_turno: "Responsable en turno",
+  persona_especifica: "Persona específica",
+  grupo: "Grupo",
+};
+
+// Las bitácoras viejas no guardaron el tipo: se deduce de lo que tengan asignado.
+const getTipoAsignacion = (r: BitacoraRondin): TipoAsignacion => {
+  if (r.tipo_asignacion === "grupo" || r.tipo_asignacion === "persona_especifica" || r.tipo_asignacion === "responsable_en_turno") {
+    return r.tipo_asignacion;
+  }
+  if (r.grupo_asignado) return "grupo";
+  if (r.roles?.length) return "responsable_en_turno";
+  if (r.asignado_a) return "persona_especifica";
+  return "responsable_en_turno";
+};
+
 export const getRondinesColumns = (
   handleVer: (rondin: BitacoraRondin) => void,
   handleImprimir: (rondin: BitacoraRondin) => void,
@@ -47,7 +66,7 @@ export const getRondinesColumns = (
     header: "Opciones",
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
-        <div className="cursor-pointer" onClick={() => handleVer(row.original)} title="Ver Rondín">
+        <div className="cursor-pointer" data-rondin-eye onClick={() => handleVer(row.original)} title="Ver Rondín">
           <Eye className="w-5 h-5" />
         </div>
         <div className="cursor-pointer " onClick={() => handleImprimir(row.original)} title="Imprimir">
@@ -101,11 +120,45 @@ export const getRondinesColumns = (
     enableSorting: true,
   },
   {
+    id: "tipo_asignacion",
+    accessorKey: "tipo_asignacion",
+    header: "Tipo de asignación",
+    cell: ({ row }) => (
+      <span className="px-2 py-0.5 rounded-full bg-gray-50 text-gray-600 text-xs font-medium border border-gray-100">
+        {TIPO_ASIGNACION_LABEL[getTipoAsignacion(row.original)]}
+      </span>
+    ),
+    enableSorting: true,
+  },
+  {
     accessorKey: "asignado_a",
     header: "Asignado a",
-    cell: ({ row }) => (
-      <div className="text-xs">{row.getValue("asignado_a") || "Guardia en turno"}</div>
-    ),
+    cell: ({ row }) => {
+      const r = row.original;
+      const tipo = getTipoAsignacion(r);
+      // persona -> nombre de la persona, grupo -> nombre del grupo,
+      // responsable en turno -> los roles configurados
+      const items = Array.from(new Set(
+        tipo === "persona_especifica" ? [r.asignado_a]
+        : tipo === "grupo" ? [r.grupo_asignado]
+        : r.roles ?? []
+      )).filter(Boolean) as string[];
+      const style =
+        tipo === "grupo" ? "bg-indigo-50 text-indigo-600 border-indigo-100"
+        : tipo === "persona_especifica" ? "bg-purple-50 text-purple-600 border-purple-100"
+        : "bg-amber-50 text-amber-700 border-amber-100";
+
+      if (items.length === 0) return <span className="text-slate-400">—</span>;
+      return (
+        <div className="flex flex-wrap gap-1">
+          {items.map((e, i) => (
+            <span key={i} className={`px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${style}`}>
+              {e}
+            </span>
+          ))}
+        </div>
+      );
+    },
     enableSorting: true,
   },
   {

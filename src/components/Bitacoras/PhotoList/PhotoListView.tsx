@@ -9,7 +9,8 @@ import { usePhotoListView } from "@/hooks/bitacora/usePhotoListView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoListCardModal } from "./PhotoListCardModal";
 import EquiposYVehiculosList from "../EquiposYVehiculosList";
-import { PhotoRondinCardModal } from "./PhotoRondinCardModal";
+import { RecordPanel } from "@/components/Bitacoras/PhotoGrid/RecordPanel";
+import { RondinPanel } from "@/components/Bitacoras/Rondines/panel/RondinPanel";
 import { ViewIncidenciaModal } from "../PhotoGrid/PhotoGridCardModalIncidencia";
 import { CustomSpinner } from "@/components/custom-spinner";
 import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-de-la-concesion";
@@ -50,7 +51,7 @@ export default function PhotoListView({
         selectedItems: { record_id: string; record_status: string }[],
       ) => React.ReactNode);
   getMapData?: (record: ListRecord) => MapItem[] | undefined;
-  /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
+  /** "rondines" usa RondinPanel, "normal" usa PhotoListCardModal (default) */
   modalType?:ModalType
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
@@ -202,7 +203,7 @@ export default function PhotoListView({
         </section>
       </div>
       {modalType === "rondines" ? (
-        <PhotoRondinCardModal
+        <RondinPanel
           record={selectedRecord as any}
           open={isModalOpen}
           onOpenChange={setIsModalOpen}
@@ -217,6 +218,17 @@ export default function PhotoListView({
             onOpenChange={setIsModalOpen}
           />
         ) : null
+      ) : modalType === "incidencia_rondin" ? (
+        <RecordPanel
+          record={selectedRecord as any}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          actions={modalActions?.(selectedRecord)}
+          badges={[
+            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] border border-blue-200" },
+            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] border border-purple-200" },
+          ]}
+        />
       ) : modalType === "incidencia" ? (
         <ViewIncidenciaModal
           record={selectedRecord}

@@ -28,7 +28,7 @@ import { TableRowSkeletons } from "@/components/common/RecordSkeletons";
 import { CheckAreasSearch } from "@/lib/get-all-checks";
 import { CheckArea, getCheckAreasColumns } from "./check-areas-columns";
 import { mapCheckUbicacionGrid } from "@/mappers/check-ubicaciones.grid.mapper";
-import { PhotoGridCardModal } from "@/components/Bitacoras/PhotoGrid/PhotoGridCardModal";
+import { CheckAreaPanel } from "@/components/Bitacoras/Rondines/panel/CheckAreaPanel";
 
 interface CheckUbicacionesTableProps {
   searchTags?: string[];
@@ -144,33 +144,18 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
 
   return (
     <div className="w-full">
-       {selectedRecord && (
-      <PhotoGridCardModal
-        badges={[
-          ...(selectedRecord?.status
-            ? [{
-                label: "",
-                value: selectedRecord.status,
-                customClass: "bg-slate-100 text-slate-600 text-xs font-bold border border-slate-200",
-              }]
-            : []),
-          {
-            label: "",
-            value: selectedRecord?.visit_type || "",
-            customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs",
-          },
-          {
-            label: "",
-            value: `#${selectedRecord?.folio || ""}`,
-            customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs",
-          },
-        ]}
+      <CheckAreaPanel
         record={selectedRecord}
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}>
-        {null}
-      </PhotoGridCardModal>
-    )}
+        onOpenChange={setIsModalOpen}
+        badges={[
+          ...(selectedRecord?.status
+            ? [{ label: "", value: selectedRecord.status, customClass: "bg-slate-100 text-slate-600 border border-slate-200" }]
+            : []),
+          { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4]" },
+          { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7]" },
+        ]}
+      />
       <div className="flex gap-4 items-start">
         {viewMode !== "table" && (
           <aside className="w-80 shrink-0 hidden lg:block border border-slate-200 rounded-lg bg-white p-6 sticky top-[140px] shadow-sm max-h-[calc(100vh-160px)] overflow-y-auto">

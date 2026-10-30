@@ -5,7 +5,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
     const payload = {
         rondin_data,
         option: "create_incidencia_by_rondin",
-        script_name: "rondines.py",
+        script_name: "rondines_sdk.py",
     };
   
     const userJwt = await getValidToken();
@@ -36,7 +36,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
         area,
         ...(search ? { facets: search.facets, locations: search.locations, limit: search.limit, offset: search.skip, paginated: true } : {}),
         option: "get_incidencias_rondines",
-        script_name: "rondines.py",
+        script_name: "rondines_sdk.py",
     };
   
     const userJwt = await getValidToken();
@@ -56,7 +56,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
   export const getListBitacoraRondines = async (location: string, nombre_rondin?: string, year?:number ,month?:number)=> {
     const payload = {
         option: "get_bitacora",
-        script_name: "rondines.py",
+        script_name: "rondines_sdk.py",
         ubicacion: location,
         nombre_rondin: nombre_rondin,
         year,
@@ -81,7 +81,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
     const payload = {
         dag_id,
         option: "run_rondin",
-        script_name: "rondines.py",
+        script_name: "rondines_sdk.py",
     };
   
     const userJwt = await getValidToken();
@@ -103,7 +103,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
         record_id,
         paused,
         option: "pause_or_play_rondin",
-        script_name: "rondines.py",
+        script_name: "rondines_sdk.py",
     };
   
     const userJwt = await getValidToken();
@@ -123,7 +123,7 @@ export const crearIncidenciaRondin = async (rondin_data: any)=> {
     const payload = {
         record_id,
         option: "get_check_by_id",
-        script_name: "rondines.py",
+        script_name: "rondines_sdk.py",
     };
   
     const userJwt = await getValidToken();

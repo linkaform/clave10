@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/confirm-modal";
 import { ResizableLogSheet } from "@/components/ScriptLogs/ResizableLogSheet";
 import { CopyableId } from "@/components/ScriptLogs/CopyableId";
+import { DetailField, DetailPanelHeader, DetailSection } from "@/components/common/DetailPanel";
 import { formatDate } from "@/components/ScriptLogs/ScriptLogsTable";
 import {
   LinkedEmployee,
@@ -19,19 +20,6 @@ import { UserEditForm } from "./UserEditForm";
 import { EDITABLE_USER_STATUSES, UserStatusBadge } from "./users-columns";
 
 const RECORD_URL = "https://app.linkaform.com/#/records/detail/";
-
-const Field = ({
-  label,
-  value,
-}: {
-  label: string;
-  value?: React.ReactNode;
-}) => (
-  <div className="min-w-0">
-    <dt className="text-xs uppercase tracking-wider text-slate-500">{label}</dt>
-    <dd className="text-sm text-slate-800 break-words">{value || "—"}</dd>
-  </div>
-);
 
 function EmployeeItem({ employee }: { employee: LinkedEmployee }) {
   const active = employee.status === "activo";
@@ -124,79 +112,72 @@ export function UserPanel({
     >
       {user && (
         <div className="flex flex-col h-full">
-          <div className="p-5 border-b bg-white space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-800">
-                  {user.name || user.username}
-                </h2>
-                <p className="text-xs text-slate-500">
-                  {[
-                    user.folio && `Folio ${user.folio}`,
-                    user.created_at && formatDate(user.created_at),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
+          <DetailPanelHeader
+            title={user.name || user.username}
+            subtitle={[
+              user.folio && `Folio ${user.folio}`,
+              user.created_at && formatDate(user.created_at),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+            ids={
+              <>
                 {user.username && (
                   <CopyableId id={user.username} label="Username" />
                 )}
                 <CopyableId id={user.id} />
-              </div>
-              <div className="flex items-center gap-2 pr-20">
-                <UserStatusBadge status={user.status} />
-              </div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {canEdit && !editing && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onEditingChange(true)}
-                >
-                  <Pencil size={14} className="mr-1" /> Editar
+              </>
+            }
+            badges={<UserStatusBadge status={user.status} />}
+            actions={
+              <>
+                {canEdit && !editing && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onEditingChange(true)}
+                  >
+                    <Pencil size={14} className="mr-1" /> Editar
+                  </Button>
+                )}
+                {user.status === "activado" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setConfirmOpen(true)}
+                  >
+                    <KeyRound size={14} className="mr-1" /> Restaurar contraseña
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" asChild>
+                  <a
+                    href={`${RECORD_URL}${user.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink size={14} className="mr-1" /> Ver registro
+                  </a>
                 </Button>
-              )}
-              {user.status === "activado" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setConfirmOpen(true)}
-                >
-                  <KeyRound size={14} className="mr-1" /> Restaurar contraseña
-                </Button>
-              )}
-              <Button size="sm" variant="outline" asChild>
-                <a
-                  href={`${RECORD_URL}${user.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink size={14} className="mr-1" /> Ver registro
-                </a>
-              </Button>
-            </div>
-          </div>
+              </>
+            }
+          />
 
           <div className="flex-1 overflow-auto p-4 space-y-4 bg-slate-100">
             {editing && canEdit ? (
               <UserEditForm user={user} onDone={() => onEditingChange(false)} />
             ) : (
-              <section className="rounded-md border border-slate-200 bg-white p-4">
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">
-                  Datos del usuario
-                </h3>
+              <DetailSection title="Datos del usuario">
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Field label="Nombre" value={user.name} />
-                  <Field label="Username" value={user.username} />
-                  <Field label="Email" value={user.email} />
-                  <Field label="Teléfono" value={user.phone} />
-                  <Field label="Rol" value={user.role} />
-                  <Field label="Idioma" value={user.language_label} />
-                  <Field label="Uso Horario" value={user.timezone} />
-                  <Field label="Id de usuario" value={user.user_id} />
+                  <DetailField label="Nombre" value={user.name} />
+                  <DetailField label="Username" value={user.username} />
+                  <DetailField label="Email" value={user.email} />
+                  <DetailField label="Teléfono" value={user.phone} />
+                  <DetailField label="Rol" value={user.role} />
+                  <DetailField label="Idioma" value={user.language_label} />
+                  <DetailField label="Uso Horario" value={user.timezone} />
+                  <DetailField label="Id de usuario" value={user.user_id} />
                 </dl>
-              </section>
+              </DetailSection>
             )}
 
             <section className="space-y-2">

@@ -22,7 +22,7 @@ export const getListCheckUbicaciones = async (
       nombre_rondin: nombreRondin || "",
       ...(search ? { ...search, limit_checks: search.limit } : {}),
       option: "get_all_checks",
-      script_name: "rondines.py",
+      script_name: "rondines_sdk.py",
     };
   
     const userJwt = await getValidToken();

@@ -9,9 +9,10 @@ import { usePhotoGridView } from "@/hooks/bitacora/usePhotoGridView";
 import { SelectionBar } from "../SelectionBar";
 import { PhotoGridCardModal } from "./PhotoGridCardModal";
 import EquiposYVehiculosList from "../EquiposYVehiculosList";
-import { PhotoRondinCardModal } from "../PhotoList/PhotoRondinCardModal";
+import { RondinPanel } from "@/components/Bitacoras/Rondines/panel/RondinPanel";
 import { MapItem } from "@/components/table/rondines/recorridos/table";
-import { PhotoCheckAreaModal } from "./PhotoGridCardModalRondin";
+import { CheckAreaPanel } from "@/components/Bitacoras/Rondines/panel/CheckAreaPanel";
+import { RecordPanel } from "@/components/Bitacoras/PhotoGrid/RecordPanel";
 import { ViewIncidenciaModal } from "./PhotoGridCardModalIncidencia";
 import { CustomSpinner } from "@/components/custom-spinner";
 import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-de-la-concesion";
@@ -60,7 +61,7 @@ export function PhotoGridView({
       ) => React.ReactNode);
       /** Opcional — solo en rondines. Recibe el record seleccionado y devuelve los puntos del mapa */
   getMapData?: (record: ListRecord) => MapItem[] | undefined;
-  /** "rondines" usa PhotoRondinCardModal, "normal" usa PhotoListCardModal (default) */
+  /** "rondines" usa RondinPanel, "normal" usa PhotoListCardModal (default) */
   modalType?: ModalType;
 }) {
   const { filteredRecords: baseFilteredRecords, activeFiltersCount } =
@@ -199,14 +200,14 @@ export function PhotoGridView({
       </div>
 
       {modalType === "rondines" ? (
-        <PhotoRondinCardModal
+        <RondinPanel
           record={selectedRecord as any}
           open={isModalOpen}
           onOpenChange={setIsModalOpen}
           mapData={currentMapData}
         />
       ) : modalType === "rondines_v2" ? (
-        <PhotoCheckAreaModal
+        <CheckAreaPanel
           record={selectedRecord}
           open={isModalOpen}
           onOpenChange={setIsModalOpen}
@@ -221,6 +222,17 @@ export function PhotoGridView({
               value: selectedRecord.visit_type,
               customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-bold border border-purple-200",
             }] : []),
+          ]}
+        />
+      ) : modalType === "incidencia_rondin" ? (
+        <RecordPanel
+          record={selectedRecord}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          actions={modalActions?.(selectedRecord)}
+          badges={[
+            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] border border-blue-200" },
+            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] border border-purple-200" },
           ]}
         />
       ) : modalType === "incidencia" ? (

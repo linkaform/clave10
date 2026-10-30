@@ -88,7 +88,7 @@ import { getValidToken } from "./login/get-valid-token";
             offset: offset,
             ...(facets ? { facets, paginated: true } : {}),
             option: "get_recorridos",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -115,7 +115,7 @@ import { getValidToken } from "./login/get-valid-token";
             locations,
             ...(facets ? { facets, paginated: true } : {}),
             option: "get_bitacora",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
 
         const userJwt = await getValidToken();
@@ -137,7 +137,7 @@ import { getValidToken } from "./login/get-valid-token";
         const payload = {
             rondin_data,
             option: "create_rondin",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -159,7 +159,7 @@ import { getValidToken } from "./login/get-valid-token";
             folio,
             rondin_data:rondin_data,
             option: "update_rondin",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -180,7 +180,7 @@ import { getValidToken } from "./login/get-valid-token";
         const payload = {
             folio,
             option: "delete_rondin",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -201,7 +201,7 @@ import { getValidToken } from "./login/get-valid-token";
         const payload = {
             ubicacion,
             option: "get_catalog_areas",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -222,7 +222,7 @@ import { getValidToken } from "./login/get-valid-token";
         const payload = {
             record_id,
             option: "get_rondin_by_id",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -248,7 +248,7 @@ import { getValidToken } from "./login/get-valid-token";
             limit,
             offset,
             option: "get_rondines_images",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
 
         const userJwt = await getValidToken();
@@ -273,7 +273,7 @@ import { getValidToken } from "./login/get-valid-token";
             record_id,
             folio,
             option: "edit_areas_rondin",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -295,7 +295,7 @@ import { getValidToken } from "./login/get-valid-token";
         const payload = {
             ubicacion,
             option: "get_catalog_areas_formatted",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -316,7 +316,7 @@ import { getValidToken } from "./login/get-valid-token";
         const payload = {
             record_id,
             option: "get_bitacora_by_id",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -338,7 +338,7 @@ import { getValidToken } from "./login/get-valid-token";
             folio,
             asignado_a:asignado,
             option: "asignar_recorrido",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -358,7 +358,7 @@ import { getValidToken } from "./login/get-valid-token";
     export const catalogoGrupoRecorridos= async ()=> {
         const payload = {
             option: "catalago_grupos_recorridos",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -381,7 +381,7 @@ import { getValidToken } from "./login/get-valid-token";
     export const catalogoInspeccionesRecorridos= async ()=> {
         const payload = {
             option: "catalogo_inspecciones",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
         };
     
         const userJwt = await getValidToken();
@@ -401,7 +401,7 @@ import { getValidToken } from "./login/get-valid-token";
     export const actualizarInspeccion= async (folio:string, rondin_data:any)=> {
         const payload = {
             option: "update_inspeccion",
-            script_name: "rondines.py",
+            script_name: "rondines_sdk.py",
             rondin_data,
             folio
         };

@@ -351,6 +351,7 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
               skeleton
               records={photoRecords}
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}
+              modalType="incidencia_rondin"
               showStatusBadge = {false} >
               {renderActions}
             </PhotoGridView>
@@ -359,6 +360,7 @@ const IncidenciasRondinesTable: React.FC<ListProps> = ({
               isLoading={isLoadingListIncidencias}
               skeleton
               records={photoListRecords}
+              modalType="incidencia_rondin"
               selectionActions={(ids) => <OutSelectedItemsButton selectedItems={ids} />}>
               {renderActions}
             </PhotoListView>

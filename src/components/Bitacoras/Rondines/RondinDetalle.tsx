@@ -10,10 +10,9 @@ import { EliminarRondinModal } from "@/components/modals/delete-rondin-modal";
 import { AreasList } from "@/components/areas-list-draggable";
 import { Button } from "@/components/ui/button";
 import {
-  Loader2, MoveLeft, Pause, Play, Search, Trash2,
+  ListChecks, Loader2, MoveLeft, Pause, Play, Search, Trash2,
   MapPin, Clock, RefreshCw, User, AlertCircle, CalendarDays,
   Tag,
-  Layers,
   FilePenLine,
   ShieldCheck,
   X,
@@ -84,7 +83,6 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const {actualizarInspeccionMutation}= useActualizarInspeccion();
   const [duracion, setDuracion] = useState("");
   const [tipoRondin, setTipoRondin] = useState("");
-  const [areaSeleccionada, setAreaSeleccionada] = useState("");
   const [rolesSeleccionados, setRolesSeleccionados] = useState<string[]>([]);
 
   const { dataAreas } = useCatalogoPaseAreaLocation(
@@ -201,7 +199,6 @@ const RondinDetalle = ({ id }: { id: string }) => {
     setRecurrenciaSeleccionada(parseRecurrencia(rondin.se_repite_cada));
     setDuracion(rondin.duracion_esperada_rondin?.replace(" minutos", "") || "");
     setTipoRondin(rondin.tipo_rondin || "");
-    setAreaSeleccionada(rondin.area || "");
     // Roles (llegan del backend como array de strings)
     setRolesSeleccionados(Array.isArray(rondin.roles) ? rondin.roles : []);
     if (rondin.fecha_inicio_rondin) setFechaProgramada(new Date(rondin.fecha_inicio_rondin));
@@ -217,9 +214,6 @@ const RondinDetalle = ({ id }: { id: string }) => {
         set_en_que_semana_sucede(rondin.en_que_semana_sucede);
       }
     }
-    // Área
-    setAreaSeleccionada(rondin.ubicacion_area || rondin.area || "");
-
     // Días de la semana
     if (rondin.que_dias_de_la_semana?.length) {
       set_que_dias_de_la_semana(Array.isArray(rondin.que_dias_de_la_semana) ? rondin.que_dias_de_la_semana : []);
@@ -328,7 +322,6 @@ const handleActualizar = () => {
         duracion_estimada: duracion ? `${duracion} minutos` : "",
         tipo_rondin: tipoRondin,
         se_repite_cada: recurrenciaSeleccionada,
-        area: areaSeleccionada,
         roles: tipoAsignado === "guardia"
           ? rolesSeleccionados.map((r) => ROLES_FALLBACK.find((rol) => rol.value === r)?.label ?? r)
           : [],
@@ -432,6 +425,16 @@ const handleActualizar = () => {
 
             <button
               type="button"
+              onClick={() => router.push(
+                `/dashboard/rondines?tab=rondines&recorrido=${encodeURIComponent(rondin.nombre_del_rondin ?? "")}`
+              )}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-sm">
+              <ListChecks className="w-4 h-4" />
+              Ver Rondines
+            </button>
+
+            <button
+              type="button"
               onClick={() => handleEjecutar(rondin.dag_id)}
               disabled={anyLoading}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-sm disabled:opacity-50">
@@ -466,25 +469,6 @@ const handleActualizar = () => {
           </select>
         </div>
 
-        {/* Área */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
-            <Layers className="w-3 h-3" /> Área
-          </label>
-          <MultiSelect
-            placeholder="Área"
-            className="text-xs"
-            styles={{
-              control: (base) => ({ ...base, minHeight: "38px", fontSize: "12px", borderColor: "#bfdbfe", borderRadius: "8px" }),
-              valueContainer: (base) => ({ ...base, padding: "0 8px" }),
-              indicatorsContainer: (base) => ({ ...base, height: "32px" }),
-            }}
-            value={areaSeleccionada ? { value: areaSeleccionada, label: areaSeleccionada } : null}
-            options={formatForMultiselect(dataAreas ?? [])}
-            onChange={(opt: any) => setAreaSeleccionada(opt ? opt.value : "")}
-            isClearable
-          />
-        </div>
         {/* Duración */}
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
@@ -543,6 +527,83 @@ const handleActualizar = () => {
           </select>
         </div>
 
+        {/* Asignado a */}
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+          <User className="w-3 h-3" /> Asignado a
+        </label>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button type="button"
+            onClick={() => { setTipoAsignado("guardia"); setGrupoSeleccionado(""); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
+              tipoAsignado === "guardia" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+            }`}>
+            Responsable en turno
+          </button>
+          <button type="button"
+            onClick={() => { setTipoAsignado("persona"); setGrupoSeleccionado(""); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
+              tipoAsignado === "persona" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+            }`}>
+            Persona específica
+          </button>
+          <button type="button"
+            onClick={() => { setTipoAsignado("grupo");}}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
+              tipoAsignado === "grupo" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+            }`}>
+            Grupo
+          </button>
+
+        </div>
+      </div>
+
+        {/* Persona / Grupo: junto a Asignado a */}
+        {tipoAsignado === "persona" && (
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+            <User className="w-3 h-3" /> Personas
+          </label>
+
+          <Select
+            isMulti
+            placeholder="Selecciona personas"
+            options={dataEmpleados?.map((e: string) => ({ value: e, label: e })) ?? []}
+            isLoading={loadingEmpleados}
+            loadingMessage={() => "Cargando..."}
+            value={empleadosSeleccionados.map((e) => ({ value: e, label: e }))}
+            onChange={(selected:any) => setEmpleadosSeleccionados(selected.map((s: any) => s.value))}
+            className="text-xs"
+            styles={{
+              control: (base: any) => ({ ...base, minHeight: "38px", fontSize: "12px", borderColor: "#bfdbfe", borderRadius: "8px" }),
+              valueContainer: (base:any) => ({ ...base, padding: "0 8px" }),
+            }}
+            isClearable
+          />
+        
+        </div>
+        )}
+        {tipoAsignado === "grupo" && (
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+            <User className="w-3 h-3" /> Grupo
+          </label>
+
+            <select value={grupoSeleccionado} onChange={(e) => setGrupoSeleccionado(e.target.value)}
+              className="w-full h-[38px] px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none">
+              <option value="">Selecciona un grupo</option>
+              {loadingGrupos ? <option disabled>Cargando...</option> : 
+                dataGrupos?.length > 0 ? (
+                  dataGrupos.map((g: string, i: number) => <option key={i} value={g}>{g}</option>)
+                ) : (
+                  <option disabled>Sin grupos disponibles</option>
+                )
+              }
+            </select>
+          
+        </div>
+        )}
+
         {/* Roles: solo aplican a "Responsable en turno" */}
         {tipoAsignado === "guardia" && (
         <div className="flex flex-col gap-1">
@@ -569,68 +630,6 @@ const handleActualizar = () => {
           />
         </div>
         )}
-
-        {/* Asignado a */}
-      <div className="flex flex-col gap-1 col-span-2">
-        <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
-          <User className="w-3 h-3" /> Asignado a
-        </label>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <button type="button"
-            onClick={() => { setTipoAsignado("guardia"); setGrupoSeleccionado(""); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
-              tipoAsignado === "guardia" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-            }`}>
-            Responsable en turno
-          </button>
-          <button type="button"
-            onClick={() => { setTipoAsignado("persona"); setGrupoSeleccionado(""); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
-              tipoAsignado === "persona" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-            }`}>
-            Persona específica
-          </button>
-          <button type="button"
-            onClick={() => { setTipoAsignado("grupo");}}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
-              tipoAsignado === "grupo" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-            }`}>
-            Grupo
-          </button>
-
-         {tipoAsignado === "persona" && (
-          <Select
-            isMulti
-            placeholder="Selecciona personas"
-            options={dataEmpleados?.map((e: string) => ({ value: e, label: e })) ?? []}
-            isLoading={loadingEmpleados}
-            loadingMessage={() => "Cargando..."}
-            value={empleadosSeleccionados.map((e) => ({ value: e, label: e }))}
-            onChange={(selected:any) => setEmpleadosSeleccionados(selected.map((s: any) => s.value))}
-            className="flex-1 min-w-[200px] text-xs"
-            styles={{
-              control: (base: any) => ({ ...base, minHeight: "38px", fontSize: "12px", borderColor: "#bfdbfe", borderRadius: "8px" }),
-              valueContainer: (base:any) => ({ ...base, padding: "0 8px" }),
-            }}
-            isClearable
-          />
-        )}
-          {tipoAsignado === "grupo" && (
-            <select value={grupoSeleccionado} onChange={(e) => setGrupoSeleccionado(e.target.value)}
-              className="flex-1 h-[38px] min-w-[140px] px-2 py-1.5 rounded-lg border border-blue-200 bg-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 appearance-none">
-              <option value="">Selecciona un grupo</option>
-              {loadingGrupos ? <option disabled>Cargando...</option> : 
-                dataGrupos?.length > 0 ? (
-                  dataGrupos.map((g: string, i: number) => <option key={i} value={g}>{g}</option>)
-                ) : (
-                  <option disabled>Sin grupos disponibles</option>
-                )
-              }
-            </select>
-          )}
-        </div>
-      </div>
-
       
 
       </div>

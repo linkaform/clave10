@@ -5,6 +5,7 @@ import { FacetSearch } from "@/components/common/FacetSearch";
 import { useFacetSection } from "@/hooks/common/useFacetSection";
 import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useShiftStore } from "@/store/useShiftStore";
 import { dateToString, ViewMode } from "@/lib/utils";
@@ -28,6 +29,14 @@ import { useRouter } from "next/navigation";
 
 // Recorridos no filtra por ubicación.
 const NO_LOCATIONS: string[] = [];
+
+// Query de listado de cada pestaña; el boton de recargar invalida la de la pestaña activa.
+const LIST_QUERY_KEY: Record<string, string> = {
+  recorridos: "getListRecorridos",
+  rondines: "getListRondines",
+  "check-areas": "getListCheckUbicaciones",
+  "incidencias-rondines": "getListIncidenciasRondin",
+};
 
 const RondinesContent = () => {
 
@@ -54,6 +63,9 @@ const RondinesContent = () => {
   const [openCrearRecorrido, setOpenCrearRecorrido] = useState(false);
 
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const listQueryKey = [LIST_QUERY_KEY[subTab] ?? LIST_QUERY_KEY.recorridos];
+  const isRefreshing = useIsFetching({ queryKey: listQueryKey }) > 0;
   
   useEffect(() => {
     const actionParam = searchParams.get("action");
@@ -87,7 +99,7 @@ const RondinesContent = () => {
   // Buscador avanzado de Recorridos: chips + panel comparten filtro y se
   // resuelven en el back (rondines.py, opciones *_recorridos).
   const recorridosSearch = useFacetSection({
-    scriptName: "rondines.py",
+    scriptName: "rondines_sdk.py",
     optionSuffix: "_recorridos",
     panel: {
       externalFilters: recorridosFilters,
@@ -108,7 +120,7 @@ const RondinesContent = () => {
 
   // Buscador avanzado de la bitácora de rondines (rondines.py, *_rondines).
   const rondinesSearch = useFacetSection({
-    scriptName: "rondines.py",
+    scriptName: "rondines_sdk.py",
     optionSuffix: "_rondines",
     panel: {
       externalFilters: rondinesFilters,
@@ -119,6 +131,20 @@ const RondinesContent = () => {
     locations: selectedLocations,
   });
 
+  // Enlaces hacia el listado de rondines: ?recorrido=<nombre> ("Ver Rondines" del detalle de
+  // un recorrido) o ?folio=<folio> ("Ir al rondín" de un check de área). Se aplican como
+  // filtro exacto del buscador.
+  const recorridoParam = searchParams.get("recorrido");
+  const folioParam = searchParams.get("folio");
+  const { setFacets: setRondinesFacets } = rondinesSearch;
+  useEffect(() => {
+    const facets = [
+      recorridoParam && { key: "nombre_recorrido", values: [recorridoParam], exact: true },
+      folioParam && { key: "folio", values: [folioParam], exact: true },
+    ].filter(Boolean) as { key: string; values: string[]; exact: boolean }[];
+    if (facets.length) setRondinesFacets(facets);
+  }, [recorridoParam, folioParam, setRondinesFacets]);
+
   const {
     externalFilters: checkAreasFilters,
     onExternalFiltersChange: onCheckAreasFiltersChange,
@@ -128,7 +154,7 @@ const RondinesContent = () => {
 
   // Buscador avanzado de Check de áreas (rondines.py, *_check_areas).
   const checkAreasSearch = useFacetSection({
-    scriptName: "rondines.py",
+    scriptName: "rondines_sdk.py",
     optionSuffix: "_check_areas",
     panel: {
       externalFilters: checkAreasFilters,
@@ -166,7 +192,7 @@ const RondinesContent = () => {
 
   // Buscador avanzado de incidencias de rondín (rondines.py, *_incidencias_rondines).
   const incidenciasSearch = useFacetSection({
-    scriptName: "rondines.py",
+    scriptName: "rondines_sdk.py",
     optionSuffix: "_incidencias_rondines",
     panel: {
       externalFilters: incidenciasFilters,
@@ -237,6 +263,7 @@ const RondinesContent = () => {
           onFiltersChange={recorridosSearch.onFiltersChange}
           filtersConfig={recorridosFiltersConfig}
           filtroUbicacion={false}
+          hideFecha
         />
       )}
       {viewMode === "table" && subTab === "rondines" && (
@@ -278,6 +305,8 @@ const RondinesContent = () => {
         <PageHeader
           title={titulo}
           totalRecords={totalRegistros}
+          onRefresh={() => queryClient.invalidateQueries({ queryKey: listQueryKey })}
+          isRefreshing={isRefreshing}
           search={
             subTab === "recorridos" || subTab === "rondines" || subTab === "check-areas" || subTab === "incidencias-rondines" ? (
               <FacetSearch

@@ -14,7 +14,7 @@ export const getCatalogoPasesAreaNoApi = async (
     const payload: Record<string, unknown> = {
         location,
         option: "catalogos_pase_area",
-        script_name: "pase_de_acceso.py",
+        script_name: "pase_de_acceso_sdk.py",
     };
     if (uso) payload.uso = uso;
 

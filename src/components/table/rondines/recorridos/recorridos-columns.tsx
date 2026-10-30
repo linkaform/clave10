@@ -46,11 +46,31 @@
     }[];
     tipo_asignacion?: string;
     empleados_asignado?: string[];
+    roles?: string[];
     en_que_semana_sucede?: string;
     tiempo_para_ejecutar_tarea?: number;
     duracion_promedio?: any;
     la_recurrencia_cuenta_con_fecha_final?: string;
   }
+
+  type TipoAsignacion = "responsable_en_turno" | "persona_especifica" | "grupo";
+
+  const TIPO_ASIGNACION_LABEL: Record<TipoAsignacion, string> = {
+    responsable_en_turno: "Responsable en turno",
+    persona_especifica: "Persona específica",
+    grupo: "Grupo",
+  };
+
+  // Los recorridos viejos no guardaron el tipo: se deduce de lo que tengan asignado.
+  const getTipoAsignacion = (r: Recorrido): TipoAsignacion => {
+    if (r.tipo_asignacion === "grupo" || r.tipo_asignacion === "persona_especifica" || r.tipo_asignacion === "responsable_en_turno") {
+      return r.tipo_asignacion;
+    }
+    if (r.grupo_asignado) return "grupo";
+    if (r.roles?.length) return "responsable_en_turno";
+    if (r.empleados_asignado?.length) return "persona_especifica";
+    return "responsable_en_turno";
+  };
 
   export const getRecorridosColumns = (
     onEliminarClick: (rondin: Recorrido) => void,
@@ -167,36 +187,45 @@
       enableSorting: true,
     },
     {
+      id: "tipo_asignacion",
+      accessorKey: "tipo_asignacion",
+      header: "Tipo de asignación",
+      cell: ({ row }) => (
+        <span className="px-2 py-0.5 rounded-full bg-gray-50 text-gray-600 text-xs font-medium border border-gray-100">
+          {TIPO_ASIGNACION_LABEL[getTipoAsignacion(row.original)]}
+        </span>
+      ),
+      enableSorting: true,
+    },
+    {
       accessorKey: "asignado_a",
       header: "Asignado a",
       cell: ({ row }) => {
-        const empleados = row.original?.empleados_asignado;
-        const grupo = row.original?.grupo_asignado;
+        const r = row.original;
+        const tipo = getTipoAsignacion(r);
+        const unicos = (v?: string[]) => Array.from(new Set((v ?? []).filter(Boolean)));
+        // persona -> nombre de la persona, grupo -> nombre del grupo,
+        // responsable en turno -> los roles configurados (si los hay)
+        const items =
+          tipo === "persona_especifica" ? unicos(r.empleados_asignado)
+          : tipo === "grupo" ? unicos(r.grupo_asignado ? [r.grupo_asignado] : [])
+          : unicos(r.roles);
+        const style =
+          tipo === "grupo" ? "bg-indigo-50 text-indigo-600 border-indigo-100"
+          : tipo === "persona_especifica" ? "bg-purple-50 text-purple-600 border-purple-100"
+          : "bg-amber-50 text-amber-700 border-amber-100";
 
-        if (Array.isArray(empleados) && empleados.length > 0) {
-          return (
-            <div className="flex flex-wrap gap-1">
-              {empleados.map((e: string, i: number) => (
-                <span key={i} className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-xs font-medium border border-purple-100 capitalize">
-                  {e}
-                </span>
-              ))}
-            </div>
-          );
+        if (items.length === 0) {
+          return <span className="text-slate-400">—</span>;
         }
-
-        if (grupo) {
-          return (
-            <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-medium border border-indigo-100 capitalize">
-              {grupo}
-            </span>
-          );
-        }
-
         return (
-          <span className="px-2 py-0.5 rounded-full bg-gray-50 text-gray-500 text-xs font-medium border border-gray-100">
-            Responsable en turno
-          </span>
+          <div className="flex flex-wrap gap-1">
+            {items.map((e, i) => (
+              <span key={i} className={`px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${style}`}>
+                {e}
+              </span>
+            ))}
+          </div>
         );
       },
       enableSorting: true,

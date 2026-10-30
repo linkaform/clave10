@@ -22,7 +22,7 @@ import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
 import OutSelectedItemsButton from "@/components/Bitacoras/OutSelectedItemsButton";
 import { ListRecord, PhotoRecord } from "@/types/bitacoras";
 import { formatListRecord, formatPhotoRecord } from "@/utils/formatRecords";
-import { PhotoRondinCardModal } from "@/components/Bitacoras/PhotoList/PhotoRondinCardModal";
+import { RondinPanel } from "@/components/Bitacoras/Rondines/panel/RondinPanel";
 import { useGetListRondines } from "@/hooks/Rondines/useGetListRecorridos";
 import { getRondinesColumns } from "./rondines-columnas";
 import { mapRondinBitacoraList } from "@/mappers/rondin.bitacora.list.mapper";
@@ -45,6 +45,9 @@ export interface BitacoraRondin {
   ubicacion: string;
   nombre_recorrido: string;
   asignado_a: string;
+  tipo_asignacion?: string;
+  grupo_asignado?: string;
+  roles?: string[];
   tipo_rondin: string;
   fecha_hora_programada_inicio: string;
   fecha_hora_inicio: string;
@@ -372,7 +375,7 @@ const RondinesTable: React.FC<RondinesTableProps> = ({
         </div>
       </div>
 
-      <PhotoRondinCardModal
+      <RondinPanel
         record={rondinSeleccionado as any}
         open={modalVerAbierto}
         onOpenChange={setModalVerAbierto}

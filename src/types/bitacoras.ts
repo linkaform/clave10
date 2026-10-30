@@ -74,7 +74,7 @@ export interface Equipo {
   imagen?: string;
   foto_equipo?: Imagen[];
 }
-export type ModalType = "rondines" | "normal" | "rondines_v2" | "incidencia" | "art_concesionado";
+export type ModalType = "rondines" | "normal" | "rondines_v2" | "incidencia" | "incidencia_rondin" | "art_concesionado";
 
 export interface ListRecord {
   id: string;

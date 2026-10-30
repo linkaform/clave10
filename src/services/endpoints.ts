@@ -12,21 +12,21 @@ export const getBitacoraFilters = () =>
 
 export const getRecorridosFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "filters.py",
+    script_name: "filters_sdk.py",
     option: "recorridos",
     public_script: true,
   });
 
 export const getRondinesFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "filters.py",
+    script_name: "filters_sdk.py",
     option: "rondines",
     public_script: true,
   });
 
 export const getCheckAreasFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "filters.py",
+    script_name: "filters_sdk.py",
     option: "check_areas",
     public_script: true,
   });
@@ -54,7 +54,7 @@ export const getIncidenciasFilters = () =>
 
 export const getIncidenciasRondinesFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: "filters.py",
+    script_name: "filters_sdk.py",
     option: "incidencias_rondines",
     public_script: true,
   });
