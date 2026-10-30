@@ -24,6 +24,8 @@ export interface DevolucionItem {
   comentario_entrega:  string|null;
   /** Solo viene en "sí" cuando la devolución se hizo con "Forzar devolución". */
   se_forzo_devolucion?: string;
+  /** Usuario logueado que dio click en "Forzar devolución". */
+  devolucion_forzada_por?: string;
 }
 const labelClass = "text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5";
 
@@ -126,6 +128,13 @@ interface HistorialDevolucionesModalProps {
                       {["sí", "si"].includes(devolucion?.se_forzo_devolucion ?? "") ? "Sí" : "No"}
                     </p>
                   </div>
+
+                  {devolucion?.devolucion_forzada_por && (
+                    <div>
+                      <p className={labelClass}>Devolución forzada por</p>
+                      <p className="text-sm text-gray-700">{devolucion.devolucion_forzada_por}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-x-6 items-start border-t border-gray-100 pt-4">

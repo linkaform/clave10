@@ -80,6 +80,7 @@ export default function MapaSelectorPunto({
   const [buscarDireccionOpen, setBuscarDireccionOpen] = useState(false);
   const [ubicandome, setUbicandome] = useState(false);
   const [errorUbicacion, setErrorUbicacion] = useState("");
+  const [avisoCtrl, setAvisoCtrl] = useState(false);
 
   const tileUrl = user?.userIdSoter === 126 ? osm.maptiler.url_126 : osm.maptiler.url;
   const apiKey = keyDeUrl(tileUrl);
@@ -116,7 +117,8 @@ export default function MapaSelectorPunto({
     if (!containerRef.current) return;
     fixLeafletIcon();
 
-    const map = L.map(containerRef.current).setView(
+    const container = containerRef.current;
+    const map = L.map(container, { dragging: false, scrollWheelZoom: false }).setView(
       value ? [value.latitude, value.longitude] : CENTRO_DEFAULT,
       value ? 16 : 12,
     );
@@ -124,12 +126,45 @@ export default function MapaSelectorPunto({
     map.on("click", (e: L.LeafletMouseEvent) => elegirPunto({ latitude: e.latlng.lat, longitude: e.latlng.lng }));
     mapRef.current = map;
 
+    // Arrastrar y hacer zoom con la rueda solo con Ctrl presionado: dentro de
+    // un modal con scroll, la rueda y el arrastre no se quedan atrapados en el
+    // mapa. Clic para elegir punto y arrastrar el marcador siguen sin Ctrl.
+    const permitirMovimiento = (activo: boolean) => {
+      if (activo) {
+        map.dragging.enable();
+        map.scrollWheelZoom.enable();
+      } else {
+        map.dragging.disable();
+        map.scrollWheelZoom.disable();
+      }
+    };
+    const onTecla = (e: KeyboardEvent) => {
+      if (e.key === "Control" || e.key === "Meta") permitirMovimiento(e.type === "keydown");
+    };
+    const onBlur = () => permitirMovimiento(false);
+    let avisoTimer: ReturnType<typeof setTimeout> | undefined;
+    const onRueda = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) return;
+      setAvisoCtrl(true);
+      clearTimeout(avisoTimer);
+      avisoTimer = setTimeout(() => setAvisoCtrl(false), 1500);
+    };
+    window.addEventListener("keydown", onTecla);
+    window.addEventListener("keyup", onTecla);
+    window.addEventListener("blur", onBlur);
+    container.addEventListener("wheel", onRueda);
+
     // Dentro de un Dialog el mapa se monta mientras el modal todavía anima y
     // Leaflet calcula mal su tamaño (tiles grises); se recalcula al abrir.
     const timer = setTimeout(() => map.invalidateSize(), 250);
 
     return () => {
       clearTimeout(timer);
+      clearTimeout(avisoTimer);
+      window.removeEventListener("keydown", onTecla);
+      window.removeEventListener("keyup", onTecla);
+      window.removeEventListener("blur", onBlur);
+      container.removeEventListener("wheel", onRueda);
       map.remove();
       mapRef.current = null;
       markerRef.current = null;
@@ -372,7 +407,19 @@ export default function MapaSelectorPunto({
         {errorUbicacion && <span className="text-xs text-red-500">{errorUbicacion}</span>}
       </div>
 
-      <div ref={containerRef} className="h-64 w-full rounded-lg border border-gray-200 z-0" />
+      <div className="relative">
+        <div ref={containerRef} className="h-64 w-full rounded-lg border border-gray-200 z-0" />
+        {avisoCtrl && (
+          // z-[1000]: por encima de los panes de Leaflet (z-index 400-800).
+          <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center rounded-lg bg-black/40">
+            <span className="text-sm font-semibold text-white">Mantén presionada Ctrl para mover el mapa</span>
+          </div>
+        )}
+      </div>
+      <p className="text-xs text-gray-400">
+        Mantén presionada <span className="font-semibold">Ctrl</span> para arrastrar el mapa o hacer zoom con la
+        rueda. Haz clic para colocar el punto.
+      </p>
 
       <div className="grid grid-cols-2 gap-4 text-sm">
         {(
