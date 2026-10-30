@@ -17,9 +17,8 @@ import { NuevaDevolucionMiniEquipoModal } from "./modals/concesionados-nueva-dev
 import LoadImage, { Imagen } from "./upload-Image";
 import ViewImage from "./modals/view-image";
 import { Button } from "./ui/button";
-import { VerDetalleDevolucion } from "./modals/concesionados-ver-detalle-devolucion";
 import { HistorialDevolucionesList } from "./concesionados-historial-devoluciones-list";
-import { EquipoConcesionado, DevolucionItem } from "./concesionados-tab-datos";
+import { EquipoConcesionado } from "./concesionados-tab-datos";
 
 export type EquipoForm = {
   unidades: number;
@@ -136,8 +135,6 @@ const DetalleSeguimientoTable: React.FC<DetalleSeguimientoTableProps> = ({
 
   const [filtroActivo, setFiltroActivo] = useState<FiltroEstatus>("todos");
   const [busqueda, setBusqueda] = useState("");
-  const [verDevolucionModal, setVerDevolucionModal] = useState(false);
-  const [devolucionSeleccionada] = useState<DevolucionItem | null>(null);
 
   const [loadingEvidencia, setLoadingEvidencia] = useState<Record<string, boolean>>({});
 
@@ -231,14 +228,6 @@ const setEvidenciaLoading = (key: string, val: boolean) =>
         >
           <div />
         </NuevaDevolucionMiniEquipoModal>
-
-        <VerDetalleDevolucion
-          devolucion={devolucionSeleccionada}
-          isSuccess={verDevolucionModal}
-          setIsSuccess={setVerDevolucionModal}
-        >
-          <div />
-        </VerDetalleDevolucion>
       </div>
 
       <div className="flex gap-2 flex-wrap justify-between mb-4">

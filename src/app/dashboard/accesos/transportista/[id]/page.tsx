@@ -3344,7 +3344,7 @@ export default function DetalleTransportistaPage() {
     return (
       <div className="flex justify-center items-center overflow-hidden mt-32">
         <div className="flex items-center flex-col gap-2">
-          <Image src="/guardia1.png" alt="Next.js img" width={300} height={300} priority />
+          <Image src="/imagen_pedro_turno.png" alt="Next.js img" width={300} height={300} priority />
           <div className="text-2xl font-bold">Inicia turno para comenzar...</div>
           <p className="text-gray-500">Activa tus funciones registrando el inicio de turno.</p>
           <Link href="/dashboard/turnos">
@@ -4230,7 +4230,7 @@ export default function DetalleTransportistaPage() {
                               { key: "color",         label: "Color" },
                             ] as { key: keyof typeof vehicleDraft; label: string; mono?: boolean }[]
                           ).map(({ key, label, mono }) => (
-                            <div key={key}>
+                            <div key={key} className={cn(key === "tipo_vehiculo" && "col-span-3")}>
                               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
                               {key === "tipo_vehiculo" ? (
                                 <SelectorTipoVehiculo

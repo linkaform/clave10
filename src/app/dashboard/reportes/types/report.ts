@@ -5,4 +5,6 @@ export interface asistenciasReport {
     groupBy: string;
     month?: number;
     year?: number;
+    dateFrom?: string;
+    dateTo?: string;
 }

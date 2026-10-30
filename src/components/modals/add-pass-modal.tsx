@@ -643,6 +643,7 @@ export const EntryPassModal: React.FC<EntryPassUpdateModalProps> = ({
 						from={from}
 						recordId={dataPass?.auto_activacion === "sí" ? responseCreatePase?.json?.id : undefined}
 						accountId={userParentId ?? undefined}
+						autoActivacion={dataPass?.auto_activacion === "sí"}
 					/>
 				)}
 			</div>

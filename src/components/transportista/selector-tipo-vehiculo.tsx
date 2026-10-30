@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Image from "next/image";
 import { LayoutGrid, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,29 +12,10 @@ import { cn } from "@/lib/utils";
 // texto en el mismo campo "Tipo de Vehiculo" de la bitácora, así que la forma
 // no cambia. Todavía no decide qué inspección aplica a cada tipo.
 
-// Siluetas de perfil (mirando a la derecha), mismo trazo que los íconos.
-export const Rueda = ({ x }: { x: number }) => (
-  <>
-    <circle cx={x} cy={38} r={5} fill="white" />
-    <circle cx={x} cy={38} r={1.5} fill="currentColor" stroke="none" />
-  </>
-);
-
-const Cabina = ({ x }: { x: number }) => (
-  <>
-    <path d={`M${x} 34 V12 H${x + 16} L${x + 26} 22 H${x + 32} V34 Z`} />
-    <path d={`M${x + 17} 14.5 L${x + 23.5} 21 H${x + 17} Z`} />
-  </>
-);
-
-export const Silueta = ({ children }: { children: ReactNode }) => (
-  <svg viewBox="0 0 128 48" fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" className="w-full h-full">
-    {children}
-  </svg>
-);
-
-export const Auto = ({ x, y }: { x: number; y: number }) => (
-  <path d={`M${x} ${y} V${y - 4} H${x + 4} L${x + 8} ${y - 8} H${x + 18} L${x + 22} ${y - 4} H${x + 26} V${y}`} />
+// Ilustraciones PNG de perfil (mirando a la derecha), 360×180 con la misma
+// línea de piso en todas; las de remolque viven en /transportistas/remolque.
+export const Icono = ({ src }: { src: string }) => (
+  <Image src={src} alt="" width={360} height={180} className="w-full h-full object-contain" />
 );
 
 export interface TipoVehiculo {
@@ -54,88 +36,44 @@ export const TIPOS_VEHICULO: TipoVehiculo[] = [
     // Junta 19 oct: solo el cabezote; la caja, madrina o pipa se elige como
     // tipo de remolque.
     alias: ["tractocamion", "tracto", "tractor", "trailer", "quinta rueda", "articulado"],
-    silueta: (
-      <Silueta>
-        <path d="M32 30 H64 M36 30 V26 H52 V30" />
-        <Cabina x={64} />
-        <Rueda x={44} /><Rueda x={74} /><Rueda x={89} />
-      </Silueta>
-    ),
+    silueta: <Icono src="/transportistas/vehiculo/tractocamion.png" />,
   },
   {
     value: "Torton",
     rigido: true,
     alias: ["torton"],
-    silueta: (
-      <Silueta>
-        <rect x={6} y={8} width={74} height={26} rx={2} />
-        <Cabina x={82} />
-        <Rueda x={22} /><Rueda x={35} /><Rueda x={106} />
-      </Silueta>
-    ),
+    silueta: <Icono src="/transportistas/vehiculo/torton.png" />,
   },
   {
     value: "Rabón",
     rigido: true,
     alias: ["rabon"],
-    silueta: (
-      <Silueta>
-        <rect x={18} y={10} width={62} height={24} rx={2} />
-        <Cabina x={82} />
-        <Rueda x={36} /><Rueda x={106} />
-      </Silueta>
-    ),
+    silueta: <Icono src="/transportistas/vehiculo/rabon.png" />,
   },
   {
     value: "Camioneta 3.5 t",
     rigido: true,
     alias: ["3.5", "3 1/2", "tres y media", "camioneta de carga", "caja seca chica"],
-    silueta: (
-      <Silueta>
-        <rect x={26} y={14} width={54} height={20} rx={2} />
-        <path d="M82 34 V16 H95 L104 25 H110 V34 Z" />
-        <path d="M96 18.5 L101.5 24 H96 Z" />
-        <Rueda x={40} /><Rueda x={100} />
-      </Silueta>
-    ),
+    silueta: <Icono src="/transportistas/vehiculo/camioneta_3_5t.png" />,
   },
   {
     value: "Pickup",
     rigido: true,
     alias: ["pickup", "pick up", "pick-up", "camioneta"],
-    silueta: (
-      <Silueta>
-        <path d="M18 34 V24 H64 V16 H84 L94 24 H106 Q110 24 110 28 V34 Z" />
-        <path d="M68 18.5 H82 L88 24 H68 Z" />
-        <Rueda x={34} /><Rueda x={96} />
-      </Silueta>
-    ),
+    silueta: <Icono src="/transportistas/vehiculo/pickup.png" />,
   },
   {
     value: "Automóvil",
     detalle: "Vehículo normal",
     rigido: true,
     alias: ["automovil", "carro", "sedan", "coche", "particular"],
-    silueta: (
-      <Silueta>
-        <path d="M22 34 V26 Q22 23 26 23 H40 L52 14 H80 L94 23 H104 Q108 23 108 27 V34 Z" />
-        <path d="M55 17 H66 V23 H46 Z M70 17 H79 L88 23 H70 Z" />
-        <Rueda x={40} /><Rueda x={92} />
-      </Silueta>
-    ),
+    silueta: <Icono src="/transportistas/vehiculo/automovil.png" />,
   },
 ];
 
 const OTRO = "Otro";
 
-const SiluetaOtro = (
-  <Silueta>
-    <rect x={18} y={10} width={62} height={24} rx={2} strokeDasharray="4 3" />
-    <path d="M82 34 V14 H98 L108 24 H114 V34 Z" strokeDasharray="4 3" />
-    <path d="M44 18 Q44 14 49 14 Q54 14 54 18 Q54 21 49 22 V25 M49 29 V29.5" />
-    <Rueda x={36} /><Rueda x={106} />
-  </Silueta>
-);
+const SiluetaOtro = <Icono src="/transportistas/vehiculo/otro.png" />;
 
 const normalizar = (s: string) =>
   s.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -272,7 +210,7 @@ export function SelectorTipoVehiculo({
       >
         {value ? (
           <>
-            <span className="w-9 h-5 text-gray-600 shrink-0">{tipo ? tipo.silueta : SiluetaOtro}</span>
+            <span className="w-12 h-6 shrink-0">{tipo ? tipo.silueta : SiluetaOtro}</span>
             <span className="truncate text-gray-800">{value}</span>
             <span className="ml-auto flex items-center gap-1.5 shrink-0">
               {aiFilled && (
