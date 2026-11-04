@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import React, { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,7 +70,7 @@ const areasSchema = z.array(
 	})
 );
 
-const formSchema = z
+const createFormSchema = (requiereEmailModulo: boolean, requiereTelefonoModulo: boolean) => z
 	.object({
 		created_from: z.string().optional(),
 		nombre: z.string().min(2, { message: "Por favor, ingresa tu nombre completo" }),
@@ -114,9 +114,13 @@ const formSchema = z
 		return true;
 	}, { message: "Ambas fechas son requeridas.", path: ['fecha_desde_visita'] })
 	.refine((data) => {
-		if (!data.email && !data.telefono) return false;
+		if (requiereEmailModulo && !data.email?.trim()) return false;
 		return true;
-	}, { message: "Se requiere un email o teléfono.", path: ['email'] });
+	}, { message: "El correo es requerido.", path: ['email'] })
+	.refine((data) => {
+		if (requiereTelefonoModulo && !data.telefono?.trim()) return false;
+		return true;
+	}, { message: "El teléfono es requerido.", path: ['telefono'] });
 
 interface updatedFullPassModalProps {
 	dataPass: any;
@@ -160,6 +164,14 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 	const userIdSoter = typeof window !== "undefined" ? parseInt(localStorage.getItem("userId_soter") || "0", 10) : 0;
 
 	const { data: dataConfigLocation, isLoading: loadingConfigLocation } = useGetConfSeguridad(ubicacionesSeleccionadas?.[0]?.id ?? []);
+	// useGetConfSeguridad regresa directo la lista de "Datos Requeridos" de la
+	// ubicación: email/teléfono son requeridos solo si traen "correo"/"telefono".
+	const requiereEmailModulo = Array.isArray(dataConfigLocation) && dataConfigLocation.includes("correo");
+	const requiereTelefonoModulo = Array.isArray(dataConfigLocation) && dataConfigLocation.includes("telefono");
+	const formSchema = useMemo(
+		() => createFormSchema(requiereEmailModulo, requiereTelefonoModulo),
+		[requiereEmailModulo, requiereTelefonoModulo],
+	);
 	const ubicacionesFormatted = ubicaciones?.map((u: any) => ({ id: u, name: u }));
 	const [formatedDocs, setFormatedDocs] = useState<string[]>([]);
 	const [formatedEnvio, setFormatedEnvio] = useState<string[]>([]);
@@ -707,7 +719,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 													render={({ field }: any) => (
 														<FormItem>
 															<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-																<span className="text-red-400">*</span> Email
+																{requiereEmailModulo && <span className="text-red-400">*</span>} Email
 															</FormLabel>
 															<FormControl>
 																<Input placeholder="example@example.com" className="rounded-xl border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-300" {...field} />
@@ -724,7 +736,7 @@ const UpdateFullPassModal: React.FC<updatedFullPassModalProps> = ({ dataPass, se
 													name="telefono"
 													render={({ field }: any) => (
 														<FormItem>
-														<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Teléfono</FormLabel>
+														<FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{requiereTelefonoModulo && <span className="text-red-400">*</span>} Teléfono</FormLabel>
 														<FormControl>
 															<PhoneInput
 															{...field}

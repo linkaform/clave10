@@ -471,13 +471,14 @@ const PaseEntradaPage = () => {
     ),
   );
 
-  // Igual con email/teléfono: si el módulo de seguridad de la ubicación
-  // pide envío por "correo" y/o "sms", ese campo se vuelve requerido en el
-  // formulario. Si no pide ninguno de los dos, ninguno es requerido.
+  // Email/teléfono son requeridos solo si vienen en los "Datos Requeridos"
+  // del módulo de seguridad de la ubicación ("correo" / "telefono"). Los
+  // `envios` ("correo" / "sms") ya no deciden esto: solo indican por dónde
+  // se comparte el pase.
   const requiereEmailModulo =
-    dataConfigLocation?.envios?.includes("correo") ?? false;
+    dataConfigLocation?.requerimientos?.includes("correo") ?? false;
   const requiereTelefonoModulo =
-    dataConfigLocation?.envios?.includes("sms") ?? false;
+    dataConfigLocation?.requerimientos?.includes("telefono") ?? false;
 
   const formSchema = useMemo(
     () => createFormSchema(requiereEmailModulo, requiereTelefonoModulo),

@@ -2,7 +2,7 @@
 
 import React, { Suspense, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LayoutGrid, LayoutList, Plus, Sheet } from "lucide-react";
+import { LayoutGrid, LayoutList, Plus, QrCode, Sheet } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { FacetSearch } from "@/components/common/FacetSearch";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { AreasExplorerTable } from "@/components/table/areas-explorer/table";
 import { ViewMode } from "@/lib/utils";
 import PaginationPases from "@/components/pages/pases/PaginationPases";
 import { NuevaAreaModal } from "@/components/Areas/NuevaAreaModal";
+import { ImprimirPlantillaQrModal } from "@/components/Areas/ImprimirPlantillaQrModal";
 
 const AreasContent = () => {
   const router = useRouter();
@@ -27,6 +28,7 @@ const AreasContent = () => {
   const [viewMode, setViewMode] = React.useState<ViewMode>("photos");
   const [selectedAreaId, setSelectedAreaId] = React.useState<string | null>(idParam);
   const [nuevaAreaOpen, setNuevaAreaOpen] = React.useState(false);
+  const [plantillaQrOpen, setPlantillaQrOpen] = React.useState(false);
 
   useEffect(() => {
     setSelectedAreaId(idParam);
@@ -150,6 +152,14 @@ const AreasContent = () => {
             Nueva área
           </Button>
 
+          <Button
+            onClick={() => setPlantillaQrOpen(true)}
+            className="gap-2 bg-blue-500 hover:bg-blue-600 text-white"
+          >
+            <QrCode size={16} />
+            Imprimir plantilla QR
+          </Button>
+
           <AreasUbicacionesTabs active="areas" />
 
           <div className="flex items-center bg-slate-100/50 h-10 border border-slate-300 rounded-lg divide-x divide-slate-300 overflow-hidden shadow-sm">
@@ -189,6 +199,7 @@ const AreasContent = () => {
       </div>
 
       <NuevaAreaModal open={nuevaAreaOpen} onOpenChange={handleNuevaAreaOpenChange} />
+      <ImprimirPlantillaQrModal open={plantillaQrOpen} onOpenChange={setPlantillaQrOpen} />
     </div>
   );
 };

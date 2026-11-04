@@ -309,6 +309,30 @@ export const createAreaSdk = async (data: CreateAreaData) => {
 };
 
 /**
+ * Registro en la forma Impresión de QR (update_area_sdk.py → /accesos/create_impresion_qr)
+ * con las páginas de la plantilla a imprimir.
+ */
+export const createImpresionQrSdk = async (paginas: number) => {
+  const payload = {
+    paginas,
+    option: "create_impresion_qr",
+    script_name: "update_area_sdk.py",
+  };
+
+  const userJwt = await getValidToken();
+  const response = await fetch(API_ENDPOINTS.runScript, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${userJwt}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return response.json();
+};
+
+/**
  * Cambios del modal de edición (update_area_sdk.py → /accesos/update_full_area).
  * Solo se mandan las llaves que cambiaron: el back parcha esas y deja lo demás.
  */
