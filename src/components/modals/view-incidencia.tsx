@@ -19,7 +19,7 @@ import { Depositos } from "@/lib/incidencias";
 import { CircleAlert, Download, Eye, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { useGetPdfIncidencias } from "@/hooks/Incidencias/usePdfIncidencias";
+import { useGetPdfIncidenciaV2 } from "@/hooks/Incidencias/usePdfIncidencias";
 import { descargarPdfPase } from "@/lib/download-pdf";
 import { toast } from "sonner";
 import useAuthStore from "@/store/useAuthStore";
@@ -49,7 +49,7 @@ export const ViewIncidencia: React.FC<ViewFallaModalProps> = ({
 }) => {
 
 	const { userIdSoter } = useAuthStore()
-	const {refetch, isLoading, isFetching} = useGetPdfIncidencias(data._id, 592, userIdSoter, `Seguimiento_de_Incidente_145636-${data.folio}`)
+	const {refetch, isLoading, isFetching} = useGetPdfIncidenciaV2(data._id, userIdSoter, `Seguimiento_de_Incidente_145636-${data.folio}`)
 	const [ openVerSeg, setOpenVerSeg] = useState(false)
 	const [activeIndex, setActiveIndex] = useState(0);
 	const seguimientosOrdenados = [...data.seguimientos_incidencia].sort((a, b) => {

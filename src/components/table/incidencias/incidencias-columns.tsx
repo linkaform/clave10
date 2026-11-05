@@ -1,6 +1,6 @@
 import { LoadingModal } from "@/components/modals/loading-modal";
 import { AccionesTomadas, AfectacionPatrimonial, Depositos, PersonasInvolucradas } from "@/lib/incidencias";
-import { generarComprobanteIncidencia } from "@/lib/generar-comprobante";
+import { descargarPdfIncidencia } from "@/lib/get-pdf-incidencias";
 import { Eye, MessageSquarePlus, Pencil, Printer, Trash2 } from "lucide-react";
 import { BotonAccion } from "@/components/Bitacoras/Incidencias/customActions";
 import { useState } from "react";
@@ -102,7 +102,7 @@ export const OptionsCell: React.FC<{
       <BotonAccion tooltip="Agregar seguimiento" onClick={() => onSeguimientoClick(incidencia)}>
         <MessageSquarePlus className="w-4 h-4" />
       </BotonAccion>
-      <BotonAccion tooltip="Imprimir comprobante" onClick={() => generarComprobanteIncidencia(incidencia)}>
+      <BotonAccion tooltip="Imprimir comprobante" onClick={() => descargarPdfIncidencia(incidencia)}>
         <Printer className="w-4 h-4" />
       </BotonAccion>
       {onEliminarClick && (
