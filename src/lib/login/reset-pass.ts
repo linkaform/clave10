@@ -10,7 +10,7 @@ export const resetPasswordConfirm = async ({
   token,
 }: ResetPasswordConfirmParams) => {
   const response = await fetch(
-    "https://app.linkaform.com/api/infosync/user_admin/reset_password_confirm/",
+    "https://app.linkaform.com/api/clave10/user_admin/reset_password_confirm/",
     {
       method: "POST",
       headers: {
@@ -47,7 +47,7 @@ export const resetPasswordEmail = async ({
   username,
 }: ResetPasswordEmailParams) => {
   const response = await fetch(
-    "https://app.linkaform.com/api/infosync/pwd_reset/",
+    "https://app.linkaform.com/api/clave10/pwd_reset/",
     {
       method: "POST",
       headers: {

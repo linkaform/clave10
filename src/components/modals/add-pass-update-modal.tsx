@@ -190,7 +190,7 @@ export const EntryPassModal: React.FC<EntryPassModalProps> = ({
             <GeneratedPassModal
               title="Pase de Entrada Generado "
               description="El pase de entrada se ha generado correctamente. Por favor, copie el siguiente enlace y compártalo con el visitante para completar el proceso."
-              link={"https://app.linkaform.com/api/infosync/scripts/run/"} 
+              link={"https://app.linkaform.com/api/clave10/scripts/run/"} 
               openGeneratedPass={openGeneratedPass}
               setOpenGeneratedPass={setOpenGeneratedPass}
               from={"historial"}

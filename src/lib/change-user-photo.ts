@@ -2,7 +2,7 @@ import { toast } from "sonner";
 import { getValidToken } from "./login/get-valid-token";
 
 export const changeUserPhoto = async (userId:number, file:File) => {            
-    const urlChangeImage= `https://app.linkaform.com/api/infosync/user_admin/${userId}/profile_picture/`
+    const urlChangeImage= `https://app.linkaform.com/api/clave10/user_admin/${userId}/profile_picture/`
     const formData = new FormData();
     formData.append('name', 'profile_picture');
     formData.append('profile_picture', file);
@@ -30,7 +30,7 @@ export const changeUserPhotoPatch = async (userId:number, thumb:number) => {
         }),
         headers: { 'Content-Type': 'application/json','Authorization': 'Bearer '+ jwt },
     }     
-    const responseData=  await fetch(`https://app.linkaform.com/api/` + `infosync/user_admin/${userId}/`, body)
+    const responseData=  await fetch(`https://app.linkaform.com/api/` + `clave10/user_admin/${userId}/`, body)
     if(responseData.status == 200 || responseData.status == 202 || responseData.status == 201){
         return true
     }else{
