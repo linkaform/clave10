@@ -14,7 +14,7 @@ import { EliminarIncidenciaModal } from "@/components/modals/delete-incidencia-m
 import { convertirDateToISO } from "@/lib/utils";
 import { EditarIncidenciaModal } from "@/components/modals/editar-incidencia";
 import { IncidenciaDetalle } from "@/components/incidencias/incidencia-detalle";
-import { generarComprobanteIncidencia } from "@/lib/generar-comprobante";
+import { descargarPdfIncidencia } from "@/lib/get-pdf-incidencias";
 import { SeguimientoIncidenciaLista } from "@/components/modals/add-seguimientos";
 import { PhotoGridView } from "@/components/Bitacoras/PhotoGrid/PhotoGridView";
 import PhotoListView from "@/components/Bitacoras/PhotoList/PhotoListView";
@@ -208,7 +208,7 @@ const IncidenciasTable: React.FC<ListProps> = ({
           setModalVerAbierto(false);
           handleEditar(incidencia);
         }}
-        onImprimir={(incidencia) => generarComprobanteIncidencia(incidencia)}
+        onImprimir={(incidencia) => descargarPdfIncidencia(incidencia)}
         onEliminar={canDelete ? (incidencia) => {
           setModalVerAbierto(false);
           handleEliminar(incidencia);

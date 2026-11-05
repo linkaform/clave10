@@ -2,7 +2,7 @@ import React from "react";
 import { PhotoGridActionButtons } from "@/components/Bitacoras/PhotoGrid/PhotoGridActionButtons";
 import { Trash2, MessageSquarePlus, Pencil, Printer } from "lucide-react";
 import { Incidencia_record } from "@/components/table/incidencias/incidencias-columns";
-import { generarComprobanteIncidencia } from "@/lib/generar-comprobante";
+import { descargarPdfIncidencia } from "@/lib/get-pdf-incidencias";
 import { Tooltip } from "@/components/ui/tooltip";
 
 interface IncidenciasActionButtonsProps {
@@ -58,7 +58,7 @@ export const IncidenciasActionButtons = ({
         <BotonAccion key="seguimiento" tooltip="Agregar seguimiento" onClick={() => handleSeguimiento(incidencia)}>
           <MessageSquarePlus className="w-4 h-4" />
         </BotonAccion>,
-        <BotonAccion key="comprobante" tooltip="Imprimir comprobante" onClick={() => generarComprobanteIncidencia(incidencia)}>
+        <BotonAccion key="comprobante" tooltip="Imprimir comprobante" onClick={() => descargarPdfIncidencia(incidencia)}>
           <Printer className="w-4 h-4" />
         </BotonAccion>,
         ...(handleEliminar
