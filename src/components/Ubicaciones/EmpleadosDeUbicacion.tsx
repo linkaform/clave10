@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Search } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { useEmpleadosByUbicacion } from "@/hooks/Ubicaciones/useEmpleadosByUbicacion";
 import { normalizeEmpleadoUbicacion } from "@/lib/ubicaciones";
 import { normalizeText } from "@/lib/utils";
@@ -32,10 +32,15 @@ export function EmpleadosDeUbicacion({ ubicacion }: EmpleadosDeUbicacionProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <span className="font-semibold text-sm text-gray-800">
-          Empleados con acceso
-          <span className="ml-2 text-blue-600 font-bold">{empleadosNormalizados.length}</span>
-        </span>
+        <div className="flex items-center gap-2.5">
+          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-600">
+            <Users className="w-4 h-4" />
+          </span>
+          <h3 className="text-sm font-semibold text-gray-800">
+            Empleados con acceso
+            <span className="ml-2 text-blue-600 font-bold">{empleadosNormalizados.length}</span>
+          </h3>
+        </div>
       </div>
 
       <div className="relative mb-3">

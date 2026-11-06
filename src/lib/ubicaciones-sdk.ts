@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from "@/config/api";
 import type { SearchFacet } from "@/components/common/FacetSearch";
 import { getValidToken } from "./login/get-valid-token";
+import type { ConfigSeguridadUbicacion } from "./ubicaciones";
 
 // Llamadas al SDK nuevo (lkf-sanic-apps) para el explorador de Ubicaciones del
 // front web — mismo endpoint/shape que el resto del script-runner, script_name
@@ -106,6 +107,34 @@ export const getEmpleadosByUbicacionSdk = async (ubicacion: string) => {
   return runScript({
     ubicacion,
     option: "get_empleados_by_ubicacion",
+    script_name: "location_sdk.py",
+  });
+};
+
+// Opciones avanzadas (configuración del módulo de seguridad) de UNA ubicación:
+// el back regresa solo la fila del grupo "Requisitos de Accesos" de esa
+// ubicación (o null si todavía no tiene), nunca el registro completo.
+// Pendiente en el back: options "get_config_seguridad_ubicacion" y
+// "update_config_seguridad_ubicacion" en location_sdk.py.
+export const getConfigSeguridadUbicacionSdk = async (ubicacion: string) => {
+  return runScript({
+    ubicacion,
+    option: "get_config_seguridad_ubicacion",
+    script_name: "location_sdk.py",
+  });
+};
+
+// Solo se mandan los campos que cambiaron; el back toma el registro de la
+// cuenta, mezcla estos campos sobre la fila de la ubicación (o la agrega si no
+// existe) y guarda. La cuenta sale de la sesión, no del payload.
+export const updateConfigSeguridadUbicacionSdk = async (
+  ubicacion: string,
+  config: Partial<ConfigSeguridadUbicacion>,
+) => {
+  return runScript({
+    ubicacion,
+    config,
+    option: "update_config_seguridad_ubicacion",
     script_name: "location_sdk.py",
   });
 };
