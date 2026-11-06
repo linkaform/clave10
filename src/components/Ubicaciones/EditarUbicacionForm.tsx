@@ -41,11 +41,13 @@ export function EditarUbicacionForm({ ubicacion }: EditarUbicacionFormProps) {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-5">
+    <div className="flex flex-col gap-6 p-1">
       <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-1">
-          <Building2 className="text-blue-500 w-5 h-5" />
-          <h3 className="font-semibold text-gray-700">Información general</h3>
+        <div className="flex items-center gap-2.5">
+          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-600">
+            <Building2 className="w-4 h-4" />
+          </span>
+          <h3 className="text-sm font-semibold text-gray-800">Información general</h3>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="editar-ubicacion-nombre" className={labelClass}>Nombre</Label>
@@ -57,9 +59,11 @@ export function EditarUbicacionForm({ ubicacion }: EditarUbicacionFormProps) {
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-1">
-          <MapPin className="text-blue-500 w-5 h-5" />
-          <h3 className="font-semibold text-gray-700">Dirección</h3>
+        <div className="flex items-center gap-2.5">
+          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-600">
+            <MapPin className="w-4 h-4" />
+          </span>
+          <h3 className="text-sm font-semibold text-gray-800">Dirección</h3>
         </div>
         <SelectorContacto value={contacto} onChange={setContacto} />
       </div>

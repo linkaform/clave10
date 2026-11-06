@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, X, Search, Tag as TagIcon } from "lucide-react";
+import { Layers, Plus, X, Search, Tag as TagIcon } from "lucide-react";
 import { useAreasCatalog } from "@/hooks/Areas/useAreasCatalog";
 import { useAreaActions } from "@/hooks/Areas/useAreaActions";
 import { normalizeArea } from "@/lib/areas";
@@ -34,10 +34,15 @@ export function AreasDeUbicacion({ ubicacion }: AreasDeUbicacionProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <span className="font-semibold text-sm text-gray-800">
-          Áreas registradas
-          <span className="ml-2 text-blue-600 font-bold">{areasActivas.length}</span>
-        </span>
+        <div className="flex items-center gap-2.5">
+          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-600">
+            <Layers className="w-4 h-4" />
+          </span>
+          <h3 className="text-sm font-semibold text-gray-800">
+            Áreas registradas
+            <span className="ml-2 text-blue-600 font-bold">{areasActivas.length}</span>
+          </h3>
+        </div>
         <Button size="sm" onClick={() => setIsCreateOpen(true)} className="gap-1.5 bg-blue-500 hover:bg-blue-600 text-white">
           <Plus size={14} />
           Agregar área

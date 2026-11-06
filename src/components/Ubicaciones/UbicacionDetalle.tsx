@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   MoveLeft,
   MapPin,
@@ -11,21 +12,25 @@ import {
   Building2,
   Users,
   Settings,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useGetUbicacionById } from "@/hooks/Ubicaciones/useGetUbicacionById";
 import { useCatalogDirecciones } from "@/hooks/Areas/useCatalogDirecciones";
+import { configSeguridadUbicacionQuery } from "@/hooks/Ubicaciones/useConfigSeguridadUbicacion";
 import { normalizeUbicacion } from "@/lib/ubicaciones";
 import { EditarUbicacionForm } from "./EditarUbicacionForm";
 import { AreasDeUbicacion } from "./AreasDeUbicacion";
 import { EmpleadosDeUbicacion } from "./EmpleadosDeUbicacion";
+import { OpcionesAvanzadasUbicacion } from "./OpcionesAvanzadasUbicacion";
 
-export type UbicacionTab = "generales" | "areas" | "empleados" | "configuracion";
+export type UbicacionTab = "generales" | "areas" | "empleados" | "configuracion" | "avanzadas";
 
 const TABS: { key: UbicacionTab; label: string; icon: typeof Building2 }[] = [
   { key: "generales", label: "Generales", icon: Building2 },
   { key: "areas", label: "Áreas", icon: Layers },
   { key: "empleados", label: "Empleados", icon: Users },
   { key: "configuracion", label: "Configuración", icon: Settings },
+  { key: "avanzadas", label: "Opciones avanzadas", icon: SlidersHorizontal },
 ];
 
 const UbicacionDetalle = ({
@@ -45,6 +50,16 @@ const UbicacionDetalle = ({
   // La forma de Ubicaciones no trae el teléfono del contacto: se toma del catálogo.
   const { direcciones } = useCatalogDirecciones();
   const contactoCatalogo = direcciones.find((d) => d.nombre_direccion === normalized?.contacto);
+
+  // Las opciones avanzadas se piden desde que abre el panel, para que la
+  // pestaña ya las tenga al hacer clic.
+  const queryClient = useQueryClient();
+  const nombreUbicacion = normalized?.nombre;
+  useEffect(() => {
+    if (nombreUbicacion && nombreUbicacion !== "-") {
+      queryClient.prefetchQuery(configSeguridadUbicacionQuery(nombreUbicacion));
+    }
+  }, [nombreUbicacion, queryClient]);
 
   if (isLoadingUbicacion) {
     return (
@@ -119,7 +134,12 @@ const UbicacionDetalle = ({
         <div className="px-2 pb-2">
           {activeTab === "generales" && (
             <div>
-              <h3 className="font-semibold text-gray-800 text-sm mb-3">Dirección y contacto</h3>
+              <div className="flex items-center gap-2.5 mb-4">
+                <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-600">
+                  <MapPin className="w-4 h-4" />
+                </span>
+                <h3 className="text-sm font-semibold text-gray-800">Dirección y contacto</h3>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1 col-span-2">
                   <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1">
@@ -180,6 +200,12 @@ const UbicacionDetalle = ({
           {activeTab === "configuracion" && (
             <div className="max-w-2xl">
               <EditarUbicacionForm ubicacion={normalized} />
+            </div>
+          )}
+
+          {activeTab === "avanzadas" && (
+            <div className="max-w-2xl">
+              <OpcionesAvanzadasUbicacion ubicacion={nombre} />
             </div>
           )}
         </div>
