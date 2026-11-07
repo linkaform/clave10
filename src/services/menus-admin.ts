@@ -177,3 +177,83 @@ export const migrateLegacyMenus = (user_ids: number[], dry_run = false) =>
     user_ids,
     dry_run,
   });
+
+// Compartir masivo (1509): un item por llamada con todos los usuarios que lo necesitan
+// (topado por tiempo en el back), con intervalo entre llamadas y verificacion despues.
+export type MassShareEstado =
+  | "planeando"
+  | "listo"
+  | "corriendo"
+  | "pausado"
+  | "enviado"
+  | "terminado";
+
+export interface MassShareItem {
+  item: string;
+  tipo: PermissionItemType;
+  nombre: string;
+  pendientes: number;
+  grande: boolean;
+  enviados: number;
+  llamadas: number;
+  llamadas_fallidas: number;
+  segundos: number;
+  saltados: number;
+  ok: number;
+  faltan: number[];
+  catalogos?: number | null;
+  llamadas_estimadas?: number | null;
+  seg_estimados?: number | null;
+}
+
+export interface MassShareJob {
+  job_id: string;
+  estado: MassShareEstado;
+  usuarios: number;
+  revisados: number;
+  por_revisar: number;
+  sin_lectura: number[];
+  items: number;
+  pendientes: number;
+  enviados: number;
+  saltados: number;
+  llamadas: number;
+  llamadas_fallidas: number;
+  seg_por_llamada: number | null;
+  ok: number;
+  faltan: number;
+  estimado_min: number;
+  llamadas_estimadas?: number;
+  items_pendientes: number;
+  items_grandes: string[];
+  ultimo_envio_at: number | null;
+  created_at: number | null;
+  msg?: string;
+  error?: string;
+  espera_seg?: number;
+  requiere_confirmar?: string;
+  detalle?: MassShareItem[];
+}
+
+const massShare = (option: string, extra: Record<string, unknown> = {}) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option,
+    ...extra,
+  });
+
+export const planMassShare = (job_id?: string, user_ids?: number[]) =>
+  massShare("plan_mass_share", { job_id, user_ids });
+
+export const runMassShare = (job_id: string, intervalo: number, confirmar = false) =>
+  massShare("run_mass_share", { job_id, intervalo, confirmar });
+
+export const verifyMassShare = (job_id: string) => massShare("verify_mass_share", { job_id });
+
+export const resendMassShare = (job_id: string) => massShare("resend_mass_share", { job_id });
+
+export const pauseMassShare = (job_id: string) => massShare("pause_mass_share", { job_id });
+
+export const getMassShare = (job_id: string) => massShare("get_mass_share", { job_id });
+
+export const listMassShare = () => massShare("list_mass_share");

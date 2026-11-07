@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRightLeft, RefreshCw, ScanSearch, ShieldCheck } from "lucide-react";
+import { ArrowRightLeft, RefreshCw, ScanSearch } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
 import { MenuUser, PermissionGapUser, PermissionItemType } from "@/services/menus-admin";
 import { MigrateLegacyMenusDialog } from "@/components/modals/migrate-legacy-menus-dialog";
 import { ReapplyPermissionsDialog } from "@/components/modals/reapply-permissions-dialog";
+import { MassShareSection } from "@/components/menus-admin/mass-share-section";
 
 export const MenuConfigDiagnosticsPanel = () => {
   const {
@@ -122,6 +123,8 @@ export const MenuConfigDiagnosticsPanel = () => {
       </section>
 
       <PermissionGapsSection />
+
+      <MassShareSection />
 
       <MigrateLegacyMenusDialog
         open={migrateOpen}
@@ -232,22 +235,16 @@ const PermissionGapsSection = () => {
           <h2 className="text-lg font-semibold">Usuarios con permisos incompletos</h2>
           <p className="text-sm text-muted-foreground">
             Tienen configuración de menús, pero les falta compartida alguna Forma, Catálogo o
-            Script que piden sus menús. Reaplicar vuelve a compartir directo, sin cambiar sus
-            menús.
+            Script que piden sus menús. Reaplicar vuelve a compartir directo a un usuario, sin
+            cambiar sus menús. Para varios usuarios usa Compartir masivo (abajo).
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
+          {/* Sin "Reaplicar todos" (1509): reaplicar usuario por usuario a muchos es la
+              carga que tumbó el servicio. Para varios usuarios se usa Compartir masivo. */}
           <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={isAnalyzing || isReapplying}>
             <ScanSearch size={14} className={isAnalyzing ? "animate-pulse" : ""} />
             {isAnalyzing ? "Analizando..." : "Analizar"}
-          </Button>
-          <Button
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-            onClick={() => setSeleccion(usuarios)}
-            disabled={usuarios.length === 0 || isAnalyzing || isReapplying}>
-            <ShieldCheck size={14} />
-            {`Reaplicar todos (${usuarios.length})`}
           </Button>
         </div>
       </div>
