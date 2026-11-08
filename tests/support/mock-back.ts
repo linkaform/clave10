@@ -15,7 +15,12 @@ import type { Page } from "@playwright/test";
  *   2. Lectura (la option empieza con get_, catalogo, assets_, load_, search...):
  *      sigue al back real, para que la pantalla cargue.
  *   3. Cualquier otra = posible escritura: SE BLOQUEA y el test falla al
- *      terminar. Los tests del front nunca crean, editan ni borran en prod;
+ *      terminar.
+ *
+ * Modo offline (TESTS_OFFLINE=1, GitHub Actions): no hay back. Se simulan
+ * solas las respuestas comunes de tests/support/respuestas/ (las del layout,
+ * como el menú) y una lectura sin respuesta guardada también se bloquea y
+ * hace fallar el test, diciendo cuál falta. Los tests del front nunca crean, editan ni borran en prod;
  *      si una escritura cambia de nombre o de ruta, el test truena aqui en
  *      vez de escribir de verdad.
  *
@@ -25,6 +30,14 @@ import type { Page } from "@playwright/test";
 type Respuesta = unknown | ((body: any) => unknown);
 
 const LECTURA = /^(get_|get[A-Z]|catalogo|assets_|load_|search|buscar|list|ver_|obtener)/;
+const OFFLINE = !!process.env.TESTS_OFFLINE;
+const COMUNES = path.resolve(process.cwd(), "tests", "support", "respuestas");
+
+/** "<script>__<option>.json" -> ["<script>.py:<option>", contenido] */
+function leerRespuesta(file: string): [string, any] {
+  const [script, option] = path.basename(file, ".json").split("__");
+  return [`${script}.py:${option}`, JSON.parse(fs.readFileSync(file, "utf8"))];
+}
 
 export interface Back {
   /** Responde `respuesta` a la llave "script.py:option" en vez de llamar al back. */
@@ -45,6 +58,14 @@ export async function instalarBack(page: Page): Promise<Back> {
   const simuladas = new Map<string, Respuesta>();
   const llamadas: { llave: string; body: any }[] = [];
   const bloqueadas: string[] = [];
+  const faltantes: string[] = [];
+
+  if (OFFLINE && fs.existsSync(COMUNES)) {
+    for (const f of fs.readdirSync(COMUNES).filter((f) => f.endsWith(".json"))) {
+      const [llave, json] = leerRespuesta(path.join(COMUNES, f));
+      simuladas.set(llave, json);
+    }
+  }
 
   await page.route("**/scripts/run/", async (route) => {
     const body = route.request().postDataJSON() ?? {};
@@ -56,7 +77,11 @@ export async function instalarBack(page: Page): Promise<Back> {
       const json = typeof r === "function" ? (r as (b: any) => unknown)(body) : r;
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(json) });
     }
-    if (LECTURA.test(body.option ?? "")) return route.continue();
+    if (LECTURA.test(body.option ?? "")) {
+      if (!OFFLINE) return route.continue();
+      faltantes.push(llave);
+      return route.abort("blockedbyclient");
+    }
 
     bloqueadas.push(llave);
     return route.abort("blockedbyclient");
@@ -68,17 +93,21 @@ export async function instalarBack(page: Page): Promise<Back> {
     },
     simularDesde(ruta, archivos, cambios = {}) {
       for (const archivo of archivos) {
-        const file = path.resolve(process.cwd(), "tests", ruta, "respuestas", `${archivo}.json`);
-        const [script, option] = archivo.split("__");
-        const json = JSON.parse(fs.readFileSync(file, "utf8"));
+        const [llave, json] = leerRespuesta(path.resolve(process.cwd(), "tests", ruta, "respuestas", `${archivo}.json`));
         cambios[archivo]?.(json.response.data);
-        simuladas.set(`${script}.py:${option}`, json);
+        simuladas.set(llave, json);
       }
     },
     llamadas(llave) {
       return llamadas.filter((l) => l.llave === llave).map((l) => l.body);
     },
     verificar() {
+      if (faltantes.length) {
+        throw new Error(
+          `Modo offline: lectura(s) sin respuesta guardada: ${[...new Set(faltantes)].join(", ")}. ` +
+            "Guárdala en tests/<ruta>/respuestas/ (o en tests/support/respuestas/ si es del layout).",
+        );
+      }
       if (bloqueadas.length) {
         throw new Error(
           `Llamada(s) de escritura sin simular, bloqueadas para no tocar prod: ${[...new Set(bloqueadas)].join(", ")}. ` +

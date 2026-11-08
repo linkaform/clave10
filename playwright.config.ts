@@ -92,11 +92,14 @@ export default defineConfig({
     },
   ],
 
-  // Para que Playwright levante el server en vez de usar
-  // docker compose, descomentar esto (requiere `yarn dev` funcional en host):
-  // webServer: {
-  //   command: "yarn dev",
-  //   url: "http://localhost:3010",
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  // En CI (GitHub Actions) Playwright construye y levanta el front él mismo.
+  // En local se usa el que ya corre en docker (localhost:3010).
+  webServer: process.env.CI
+    ? {
+        command: "yarn build && yarn start -p 3010",
+        url: "http://localhost:3010/auth/login",
+        timeout: 300_000,
+        reuseExistingServer: false,
+      }
+    : undefined,
 });

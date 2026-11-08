@@ -1,6 +1,7 @@
 import { test as setup } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { escribirSesionOffline } from "./sesion-offline";
 
 /**
  * Corre una sola vez antes de los tests del proyecto "autenticado"
@@ -11,6 +12,9 @@ import path from "node:path";
  * Si la sesión guardada sigue vigente (el JWT de access_token vence en más
  * de 10 min), se reusa y no se hace login: ahorra ~9 s por corrida (el
  * login espera load_shift). FORZAR_LOGIN=1 hace login de todos modos.
+ *
+ * Con TESTS_OFFLINE=1 (GitHub Actions) no hay login: escribe una sesión
+ * falsa (ver sesion-offline.ts) y todo el back se simula.
  *
  * tests/.auth/ nunca se sube a git (ver .gitignore) porque contiene un
  * token de sesión real.
@@ -34,7 +38,12 @@ function minutosDeSesion(): number | null {
   }
 }
 
-setup("autenticarse con la cuenta de pruebas", async ({ page }) => {
+setup("autenticarse con la cuenta de pruebas", async ({ page, baseURL }) => {
+  if (process.env.TESTS_OFFLINE) {
+    escribirSesionOffline(authFile, new URL(baseURL!).origin);
+    return;
+  }
+
   const minutos = process.env.FORZAR_LOGIN ? null : minutosDeSesion();
   if (minutos !== null) {
     setup.info().annotations.push({

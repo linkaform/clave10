@@ -1,0 +1,53 @@
+# Tests del front en cada PR: capas "pintado" y "formulario" de todas las rutas.
+#
+# Corren en modo offline (TESTS_OFFLINE=1): sesión falsa y todo el back
+# simulado con las respuestas guardadas en tests/. No usa secretos ni toca
+# prod. El build de la app lo hace Vercel; aquí Playwright construye y levanta
+# el front solo para probarlo (webServer en playwright.config.ts).
+#
+# Corre en todos los PRs para que el check exista siempre (un check
+# obligatorio que no se dispara deja el PR esperando).
+name: tests-front
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-front-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pintado-y-formulario:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "1"
+      TESTS_OFFLINE: "1"
+      # No se usa: en offline todas las llamadas al back se interceptan.
+      NEXT_PUBLIC_API_BASE_URL: http://back.invalido.local/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      - name: Navegador de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Tests (pintado + formulario)
+        run: yarn test:ci
+
+      - name: Reporte si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            tests/playwright-report
+            tests/test_logs
+          retention-days: 7

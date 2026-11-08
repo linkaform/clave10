@@ -9,6 +9,7 @@
     "lint": "next lint",
     "test": "node scripts/test-changed.mjs",
     "test:all": "playwright test",
+    "test:ci": "TESTS_OFFLINE=1 playwright test pintado.spec formulario.spec",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

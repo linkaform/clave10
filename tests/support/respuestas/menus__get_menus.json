@@ -1,0 +1,698 @@
+{
+  "response": {
+    "data": {
+      "modules": [
+        {
+          "id": "accesos",
+          "key": "accesos",
+          "label": "Accesos",
+          "icon": "account-group-outline",
+          "order": 1,
+          "columns": 5,
+          "sections": [
+            {
+              "id": "nuevo-acceso",
+              "key": "nuevo_acceso",
+              "label": "Accesos",
+              "order": 1,
+              "column": 1,
+              "items": [
+                {
+                  "key": "nuevo_acceso",
+                  "label": "+ Nuevo Acceso",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/accesos"
+                }
+              ],
+              "href": "/bitacoras"
+            },
+            {
+              "id": "entradas-salidas",
+              "key": "entradas_salidas",
+              "label": "Entradas & Salidas",
+              "order": 2,
+              "column": 2,
+              "items": [
+                {
+                  "key": "entradas",
+                  "label": "Entradas",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/bitacoras?status=entrada"
+                },
+                {
+                  "key": "salidas",
+                  "label": "Salidas",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/bitacoras?status=salida"
+                },
+                {
+                  "key": "accesos_hoy",
+                  "label": "Accesos de hoy",
+                  "type": "link",
+                  "order": 3,
+                  "href": "/bitacoras?date=today"
+                },
+                {
+                  "key": "todos_accesos",
+                  "label": "Todos",
+                  "type": "link",
+                  "order": 4,
+                  "href": "/bitacoras"
+                }
+              ],
+              "href": "/bitacoras"
+            },
+            {
+              "id": "transportistas",
+              "key": "transportistas",
+              "label": "Transportistas",
+              "order": 3,
+              "column": 3,
+              "items": [
+                {
+                  "key": "bitacora_transportista",
+                  "label": "Control de patio",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/bitacoras_transportistas"
+                }
+              ],
+              "href": "/bitacoras_transportistas"
+            },
+            {
+              "id": "vehiculos",
+              "key": "vehiculos",
+              "label": "Vehículos",
+              "order": 4,
+              "column": 4,
+              "items": [
+                {
+                  "key": "vehiculos_dentro",
+                  "label": "Dentro",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/bitacoras?tab=vehiculos&status=entrada"
+                },
+                {
+                  "key": "vehiculos_todos",
+                  "label": "Todos",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/bitacoras?tab=vehiculos"
+                }
+              ],
+              "href": "/bitacoras?tab=vehiculos"
+            },
+            {
+              "id": "equipos",
+              "key": "equipos",
+              "label": "Equipos",
+              "order": 5,
+              "column": 5,
+              "items": [
+                {
+                  "key": "equipos_dentro",
+                  "label": "Dentro",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/bitacoras?tab=equipos&status=entrada"
+                },
+                {
+                  "key": "equipos_todos",
+                  "label": "Todos",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/bitacoras?tab=equipos"
+                }
+              ],
+              "href": "/bitacoras?tab=equipos"
+            }
+          ]
+        },
+        {
+          "id": "pases-entrada",
+          "key": "pases_entrada",
+          "label": "Pases de Entrada",
+          "icon": "badge-account-horizontal-outline",
+          "order": 2,
+          "columns": 2,
+          "sections": [
+            {
+              "id": "pases-de-entrada",
+              "key": "pases_de_entrada",
+              "label": "Pases de Entrada",
+              "order": 1,
+              "column": 1,
+              "items": [
+                {
+                  "key": "nuevo_pase",
+                  "label": "+ Nuevo Pase",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/pase-entrada"
+                },
+                {
+                  "key": "pases_activos",
+                  "label": "Activos",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/pases?status=activos"
+                },
+                {
+                  "key": "pases_por_autorizar",
+                  "label": "Por autorizar",
+                  "type": "link",
+                  "order": 3,
+                  "href": "/pases?status=por_autorizar"
+                },
+                {
+                  "key": "pases_en_proceso",
+                  "label": "En Proceso",
+                  "type": "link",
+                  "order": 4,
+                  "href": "/pases?status=en_proceso"
+                },
+                {
+                  "key": "todos_pases",
+                  "label": "Todos",
+                  "type": "link",
+                  "order": 5,
+                  "href": "/pases"
+                }
+              ],
+              "href": "/pases"
+            },
+            {
+              "id": "pases-transportistas",
+              "key": "pases_transportistas",
+              "label": "Transportistas",
+              "order": 2,
+              "column": 2,
+              "items": [
+                {
+                  "key": "nuevo_pase_transportistas",
+                  "label": "+ Nuevo Pase Transportistas",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/dashboard/pase-entrada-transportista"
+                }
+              ],
+              "href": "/dashboard/pases"
+            }
+          ]
+        },
+        {
+          "id": "caseta",
+          "key": "caseta",
+          "label": "Caseta",
+          "icon": "home-outline",
+          "order": 3,
+          "columns": 2,
+          "sections": [
+            {
+              "id": "turnos",
+              "key": "turnos",
+              "label": "Turnos",
+              "order": 1,
+              "column": 1,
+              "items": [
+                {
+                  "key": "turno_inicio_cierre",
+                  "label": "Inicio/Cierre",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/turnos"
+                }
+              ],
+              "href": "/turnos"
+            },
+            {
+              "id": "turno-reportes",
+              "key": "turno_reportes",
+              "label": "Reportes",
+              "order": 2,
+              "column": 1,
+              "items": [
+                {
+                  "key": "turno_reportes",
+                  "label": "Reporte de Asistencias",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/reportes/reporte_asistencias"
+                }
+              ],
+              "href": "/reportes"
+            },
+            {
+              "id": "turno-notas",
+              "key": "turno_notas",
+              "label": "Notas",
+              "order": 3,
+              "column": 2,
+              "items": [
+                {
+                  "key": "turno_nueva_nota",
+                  "label": "+ Nueva Nota",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/notas?action=nueva_nota"
+                },
+                {
+                  "key": "turno_notas_pendientes",
+                  "label": "Pendientes",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/notas?status=abierto"
+                },
+                {
+                  "key": "turno_cerrada_nota",
+                  "label": "Cerradas",
+                  "type": "link",
+                  "order": 3,
+                  "href": "/notas?status=cerrado"
+                },
+                {
+                  "key": "turno_todas_nota",
+                  "label": "Todos",
+                  "type": "link",
+                  "order": 4,
+                  "href": "/notas"
+                }
+              ],
+              "href": "/notas"
+            }
+          ]
+        },
+        {
+          "id": "seguridad",
+          "key": "seguridad",
+          "label": "Seguridad",
+          "icon": "alert-outline",
+          "order": 4,
+          "columns": 3,
+          "sections": [
+            {
+              "id": "incidencias",
+              "key": "incidencias",
+              "label": "Incidencias",
+              "order": 1,
+              "column": 1,
+              "items": [
+                {
+                  "key": "nueva_incidencia",
+                  "label": "+ Nuevo Incidente",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/incidencias?tab=incidencia&action=nueva_incidencia"
+                },
+                {
+                  "key": "incidencias_abiertas",
+                  "label": "Abiertas",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/incidencias?tab=incidencia&status=abierto"
+                },
+                {
+                  "key": "incidencias_cerradas",
+                  "label": "Cerradas",
+                  "type": "link",
+                  "order": 3,
+                  "href": "/incidencias?tab=incidencia&status=cerrado"
+                },
+                {
+                  "key": "incidencias_todos",
+                  "label": "Todos",
+                  "type": "link",
+                  "order": 4,
+                  "href": "/incidencias?tab=incidencia"
+                }
+              ],
+              "href": "/incidencias?tab=incidencia"
+            },
+            {
+              "id": "fallas",
+              "key": "fallas",
+              "label": "Fallas",
+              "order": 2,
+              "column": 2,
+              "items": [
+                {
+                  "key": "nueva_falla",
+                  "label": "+ Nueva Falla",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/incidencias?tab=falla&action=nueva_falla"
+                },
+                {
+                  "key": "fallas_abiertas",
+                  "label": "Abiertas",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/incidencias?tab=falla&status=abierto"
+                },
+                {
+                  "key": "fallas_cerradas",
+                  "label": "Cerradas",
+                  "type": "link",
+                  "order": 3,
+                  "href": "/incidencias?tab=falla&status=resuelto"
+                },
+                {
+                  "key": "fallas_todos",
+                  "label": "Todos",
+                  "type": "link",
+                  "order": 4,
+                  "href": "/incidencias?tab=falla"
+                }
+              ],
+              "href": "/incidencias?tab=falla"
+            },
+            {
+              "id": "rondines",
+              "key": "rondines",
+              "label": "Rondines",
+              "order": 3,
+              "column": 3,
+              "items": [
+                {
+                  "key": "nuevo_rondin",
+                  "label": "+ Programar / Nuevo Rondín",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/rondines?tab=rondines&action=programar_rondin"
+                },
+                {
+                  "key": "rondines_recorridos",
+                  "label": "Recorridos",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/rondines?tab=recorridos"
+                },
+                {
+                  "key": "rondines_check_areas",
+                  "label": "Check de Areas",
+                  "type": "link",
+                  "order": 3,
+                  "href": "/rondines?tab=check-areas"
+                },
+                {
+                  "key": "rondines_incidencias",
+                  "label": "Incidencias",
+                  "type": "link",
+                  "order": 4,
+                  "href": "/rondines?tab=incidencias-rondines"
+                }
+              ],
+              "href": "/rondines?tab=rondines"
+            }
+          ]
+        },
+        {
+          "id": "activos",
+          "key": "activos",
+          "label": "Activos",
+          "icon": "glasses",
+          "order": 5,
+          "columns": 3,
+          "sections": [
+            {
+              "id": "paqueteria",
+              "key": "paqueteria",
+              "label": "Paquetería",
+              "order": 1,
+              "column": 1,
+              "items": [
+                {
+                  "key": "nuevo_paquete",
+                  "label": "+ Nuevo Paquete",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/articulos?tab=paqueteria&action=nuevo_paquete"
+                },
+                {
+                  "key": "paquetes_pendientes",
+                  "label": "Pendientes",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/articulos?tab=paqueteria&status=guardado"
+                },
+                {
+                  "key": "paquetes_entregados",
+                  "label": "Entregados",
+                  "type": "link",
+                  "order": 3,
+                  "href": "/articulos?tab=paqueteria&status=entregado"
+                },
+                {
+                  "key": "paquetes_todos",
+                  "label": "Todos",
+                  "type": "link",
+                  "order": 4,
+                  "href": "/articulos?tab=paqueteria"
+                }
+              ],
+              "href": "/articulos?tab=paqueteria"
+            },
+            {
+              "id": "articulos-perdidos",
+              "key": "articulos_perdidos",
+              "label": "Artículos Perdidos",
+              "order": 2,
+              "column": 2,
+              "items": [
+                {
+                  "key": "nuevo_articulo_perdido",
+                  "label": "+ Nuevo Artículo",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/articulos?tab=articulos_perdidos&action=nuevo_articulo_perdido"
+                },
+                {
+                  "key": "articulos_perdidos_pendientes",
+                  "label": "Pendientes",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/articulos?tab=articulos_perdidos&status=pendiente"
+                },
+                {
+                  "key": "articulos_perdidos_entregados",
+                  "label": "Entregados",
+                  "type": "link",
+                  "order": 3,
+                  "href": "/articulos?tab=articulos_perdidos&status=entregado"
+                },
+                {
+                  "key": "articulos_perdidos_todos",
+                  "label": "Todos",
+                  "type": "link",
+                  "order": 4,
+                  "href": "/articulos?tab=articulos_perdidos"
+                }
+              ],
+              "href": "/articulos?tab=articulos_perdidos"
+            },
+            {
+              "id": "articulos-concesionados",
+              "key": "articulos_concesionados",
+              "label": "Artículos Concesionados",
+              "order": 3,
+              "column": 3,
+              "items": [
+                {
+                  "key": "nuevo_articulo_concesionado",
+                  "label": "+ Nuevo Concesión",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/articulos?tab=articulos_concesionados&action=nuevo_articulo_concesionado"
+                },
+                {
+                  "key": "articulos_concesionados_pendientes",
+                  "label": "Pendientes",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/articulos?tab=articulos_concesionados&status=abierto"
+                },
+                {
+                  "key": "articulos_concesionados_parciales",
+                  "label": "Parciales",
+                  "type": "link",
+                  "order": 3,
+                  "href": "/articulos?tab=articulos_concesionados&status=parcial"
+                },
+                {
+                  "key": "articulos_concesionados_devueltos",
+                  "label": "Devueltos",
+                  "type": "link",
+                  "order": 4,
+                  "href": "/articulos?tab=articulos_concesionados&status=devuelto"
+                },
+                {
+                  "key": "articulos_concesionados_todos",
+                  "label": "Todos",
+                  "type": "link",
+                  "order": 5,
+                  "href": "/articulos?tab=articulos_concesionados"
+                }
+              ],
+              "href": "/articulos?tab=articulos_concesionados"
+            }
+          ]
+        },
+        {
+          "id": "empleados",
+          "key": "empleados",
+          "label": "Empleados",
+          "icon": "account-hard-hat-outline",
+          "order": 6,
+          "columns": 1,
+          "sections": [
+            {
+              "id": "usuarios",
+              "key": "usuarios",
+              "label": "Usuarios",
+              "order": 1,
+              "column": 1,
+              "items": [
+                {
+                  "key": "nuevo_empleado",
+                  "label": "+ Nuevo Empleado",
+                  "type": "option",
+                  "order": 1
+                },
+                {
+                  "key": "empleados_activos",
+                  "label": "Activos",
+                  "type": "option",
+                  "order": 2
+                },
+                {
+                  "key": "empleados_inactivos",
+                  "label": "Inactivos",
+                  "type": "option",
+                  "order": 3
+                },
+                {
+                  "key": "empleados_todos",
+                  "label": "Todos",
+                  "type": "option",
+                  "order": 4
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ubicaciones",
+          "key": "ubicaciones",
+          "label": "Ubicaciones",
+          "icon": "map-marker-outline",
+          "order": 7,
+          "columns": 2,
+          "sections": [
+            {
+              "id": "ubicaciones",
+              "key": "ubicaciones",
+              "label": "Ubicaciones",
+              "order": 1,
+              "column": 1,
+              "items": [
+                {
+                  "key": "nueva_ubicacion",
+                  "label": "+ Nueva Ubicación",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/ubicaciones?action=nueva_ubicacion"
+                }
+              ],
+              "href": "/ubicaciones"
+            },
+            {
+              "id": "areas",
+              "key": "areas",
+              "label": "Áreas",
+              "order": 2,
+              "column": 2,
+              "items": [
+                {
+                  "key": "nueva_area",
+                  "label": "+ Nueva Área",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/areas?action=nueva_area"
+                },
+                {
+                  "key": "areas_disponibles",
+                  "label": "Disponibles",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/areas?status=disponible"
+                }
+              ],
+              "href": "/areas"
+            }
+          ]
+        },
+        {
+          "id": "administracion",
+          "key": "administracion",
+          "label": "Administración",
+          "icon": "book-outline",
+          "order": 8,
+          "columns": 1,
+          "sections": [
+            {
+              "id": "configuracion",
+              "key": "configuracion",
+              "label": "Configuración",
+              "order": 1,
+              "column": 1,
+              "items": [
+                {
+                  "key": "admin_menus",
+                  "label": "Configuración de Menús",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/admin/menus"
+                },
+                {
+                  "key": "admin_users",
+                  "label": "Users",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/dashboard/users"
+                }
+              ]
+            },
+            {
+              "id": "logs",
+              "key": "logs",
+              "label": "Logs",
+              "order": 2,
+              "column": 1,
+              "items": [
+                {
+                  "key": "script_logs",
+                  "label": "Script Log",
+                  "type": "link",
+                  "order": 1,
+                  "href": "/dashboard/script-logs"
+                },
+                {
+                  "key": "workflow_log",
+                  "label": "Workflow Log",
+                  "type": "link",
+                  "order": 2,
+                  "href": "/dashboard/workflow-logs"
+                }
+              ],
+              "href": "/script-logs"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
