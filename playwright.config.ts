@@ -32,11 +32,9 @@ if (fs.existsSync(envTestPath)) {
 }
 
 export default defineConfig({
-  // Los specs viven anidados por módulo: tests/<módulo>/e2e/*.spec.ts
-  // (ej. tests/pases/e2e/, tests/auth/e2e/), así que el testDir cubre
-  // todo tests/ y cada project de abajo filtra con testMatch/testIgnore
-  // por convención de carpeta "e2e", no por módulo — así un módulo nuevo
-  // (tests/turnos/e2e/, etc.) se detecta solo, sin tocar este archivo.
+  // Estructura: tests/<ruta>/<capa>.spec.ts, con <ruta> igual a la carpeta
+  // de src/app/dashboard/ y <capa> = humo | pintado | formulario. Una ruta
+  // nueva se detecta sola, sin tocar este archivo.
   testDir: "./tests",
 
   // Falla el build si algún test.only quedó olvidado en CI.
@@ -65,32 +63,27 @@ export default defineConfig({
 
   projects: [
     // Inicia sesión una sola vez con la cuenta de pruebas y guarda el
-    // localStorage resultante (la app usa useAuthStore + localStorage,
-    // no cookies) para que los tests de pantallas protegidas no tengan
-    // que loguearse en cada test. Vive en tests/support/ (no es un test
-    // de negocio, es infraestructura compartida — el equivalente a un
-    // conftest.py de pytest), por eso trae su propio testDir.
+    // localStorage (useAuthStore) para que los tests de pantallas protegidas
+    // arranquen ya logueados. Es infraestructura, no un test de negocio.
     {
       name: "setup",
       testDir: "./tests/support",
       testMatch: /auth\.setup\.ts/,
     },
 
-    // login.spec.ts (tests/auth/e2e/) prueba la propia pantalla de login:
-    // debe correr sin sesión guardada.
+    // tests/login/ prueba la propia pantalla de login: corre sin sesión.
     {
-      name: "public",
-      testMatch: "**/e2e/**/login.spec.ts",
+      name: "publico",
+      testMatch: "login/**/*.spec.ts",
       use: { ...devices["Desktop Chrome"] },
     },
 
-    // Todo lo demás vive detrás de login (pases, dashboard, etc.) y corre
-    // ya autenticado gracias al storageState generado por "setup". Solo
-    // toma specs dentro de una carpeta "e2e/" de cualquier módulo.
+    // Todo lo demás: una carpeta por ruta de src/app/dashboard/
+    // (tests/<ruta>/{humo,pintado,formulario}.spec.ts), ya autenticado.
     {
-      name: "authenticated",
-      testMatch: "**/e2e/**/*.spec.ts",
-      testIgnore: "**/e2e/**/login.spec.ts",
+      name: "autenticado",
+      testMatch: "**/*.spec.ts",
+      testIgnore: ["login/**", "support/**"],
       use: {
         ...devices["Desktop Chrome"],
         storageState: "./tests/.auth/user.json",

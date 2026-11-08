@@ -157,6 +157,8 @@ export default function LoginPage() {
                               type={showPassword ? "password" : "text"}
                             />
                             <div
+                              role="button"
+                              aria-label="Mostrar contraseña"
                               className="absolute right-3 top-3 cursor-pointer text-gray-400 hover:text-gray-600"
                               onClick={() => setShowPassword(!showPassword)}>
                               {showPassword ? (

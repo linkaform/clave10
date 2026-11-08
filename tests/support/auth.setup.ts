@@ -2,7 +2,7 @@ import { test as setup } from "@playwright/test";
 import path from "node:path";
 
 /**
- * Corre una sola vez antes de los tests del proyecto "authenticated"
+ * Corre una sola vez antes de los tests del proyecto "autenticado"
  * (ver playwright.config.ts). Inicia sesión con la cuenta de pruebas y
  * guarda el estado resultante (localStorage, donde useAuthStore guarda
  * el token) para que esos tests arranquen ya logueados.
@@ -28,7 +28,9 @@ setup("autenticarse con la cuenta de pruebas", async ({ page }) => {
   await page.getByPlaceholder("Usuario").fill(username);
   await page.getByPlaceholder("Password").fill(password);
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  await page.waitForURL("/", { timeout: 10_000 });
+  // El login espera a load_shift antes de redirigir, y load_shift solo
+  // tarda ~7s; 10s no alcanzaba.
+  await page.waitForURL("/", { timeout: 30_000 });
 
   await page.context().storageState({ path: authFile });
 });
