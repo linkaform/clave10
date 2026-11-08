@@ -266,6 +266,9 @@ const createFormSchema = (
   );
 
 const PaseEntradaPage = () => {
+  // PRUEBA: error de tipos a propósito para ver cómo lo muestra Vercel (no mergear)
+  const pruebaBuildRoto: number = "esto no es un número";
+  console.log(pruebaBuildRoto);
   const [tipoVisita, setTipoVisita] = useState("rango_de_fechas");
   const { excludes, grupoRequisitos } = useMenuStore();
   const [config_dias_acceso, set_config_dias_acceso] = useState<string[]>([]);
