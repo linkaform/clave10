@@ -6,9 +6,16 @@
  *   yarn test --build      igual, y al final next build
  *   yarn test --listar     solo dice qué rutas/tests correría
  *   yarn test:all          toda la suite (playwright test)
+ *   yarn test --no-publicar  corre sin publicar en el PR
  *
  * Qué cuenta como cambio: tu rama contra el merge-base con origin/master,
- * más lo que tengas sin commit (es una herramienta local; no publica nada).
+ * más lo que tengas sin commit.
+ *
+ * Al terminar publica el resultado en el PR de tu rama (como ./lkf test en
+ * el back): commit status "front-test" sobre el último commit + un comentario
+ * (uno solo, se edita en cada corrida) con las rutas y los tests. Solo publica
+ * si la rama tiene PR abierto, el commit está pusheado y no hay cambios sin
+ * commit (si no, lo probado no es lo que está en el PR). Requiere `gh`.
  *
  * Cómo llega de un archivo a una ruta: arma el grafo de imports de src/
  * (rutas relativas y el alias "@/") y sube desde cada archivo cambiado hasta
@@ -181,17 +188,106 @@ else if (aCorrer.length) pwArgs = aCorrer.map((r) => `tests/${r}/`);
 
 if (args.has("--listar")) process.exit(0);
 
+const T0 = Date.now();
+const jsonOut = path.join(ROOT, "tests", "test_logs", "front-test.json");
 let code = 0;
+let pw = null; // resumen de Playwright para publicar
 if (pwArgs) {
   console.log(`\n> playwright test ${pwArgs.join(" ")}\n`);
-  code = spawnSync(bin("playwright"), ["test", ...pwArgs], { cwd: ROOT, stdio: "inherit" }).status ?? 1;
+  fs.mkdirSync(path.dirname(jsonOut), { recursive: true });
+  code = spawnSync(bin("playwright"), ["test", ...pwArgs, "--reporter=line,json"], {
+    cwd: ROOT, stdio: "inherit", env: { ...process.env, PLAYWRIGHT_JSON_OUTPUT_NAME: jsonOut },
+  }).status ?? 1;
+  pw = resumenPlaywright(jsonOut);
 } else {
   console.log("\nNo hay tests de Playwright para estas rutas.");
 }
 
+let build = null;
 if (code === 0 && args.has("--build")) {
   console.log("\n> next build\n");
   code = spawnSync(bin("next"), ["build"], { cwd: ROOT, stdio: "inherit" }).status ?? 1;
+  build = code === 0;
 }
 console.log(code === 0 ? "\n✓ yarn test en verde" : `\n✗ yarn test en rojo (código ${code})`);
+
+if (!simulados && !args.has("--no-publicar")) publicar();
 process.exit(code);
+
+// ---------- resumen y publicación ----------
+function resumenPlaywright(file) {
+  try {
+    const d = JSON.parse(fs.readFileSync(file, "utf8"));
+    const fallados = [];
+    const walk = (s) => {
+      for (const sp of s.specs ?? []) for (const t of sp.tests)
+        if (t.status === "unexpected") fallados.push(`${t.projectName} › ${sp.file} › ${sp.title}`);
+      (s.suites ?? []).forEach(walk);
+    };
+    d.suites.forEach(walk);
+    return { ok: d.stats.expected, mal: d.stats.unexpected, flaky: d.stats.flaky, saltados: d.stats.skipped, fallados };
+  } catch {
+    return null;
+  }
+}
+
+function gh(argsGh, input) {
+  const r = spawnSync("gh", argsGh, { cwd: ROOT, encoding: "utf8", input });
+  if (r.status !== 0) throw new Error((r.stderr || r.stdout).trim().slice(0, 300));
+  return r.stdout;
+}
+
+function publicar() {
+  const MARCA = "<!-- front-test -->";
+  const avisar = (m) => console.log(`\npublicación: ${m}`);
+  try {
+    const rama = sh("git rev-parse --abbrev-ref HEAD");
+    const sha = sh("git rev-parse HEAD");
+    if (rama === "HEAD" || rama === "master") return avisar(`no se publica en '${rama}'`);
+    if (sh("git status --porcelain")) return avisar("no se publica: hay cambios sin commit (lo probado no es lo que está en el PR)");
+    try { sh(`git fetch -q origin ${rama}`); } catch { /* rama sin remoto */ }
+    let remoto = "";
+    try { remoto = sh(`git rev-parse origin/${rama}`); } catch { /* sin remoto */ }
+    if (remoto !== sha) return avisar(`${sha.slice(0, 8)} no está pusheado; haz push y vuelve a correr yarn test`);
+    const slug = sh("git remote get-url origin").match(/github\.com[:/](.+?)(?:\.git)?$/)[1];
+
+    const estado = code === 0 ? "success" : "failure";
+    const detalle = !pwArgs
+      ? "sin tests para estas rutas"
+      : pw ? `${pw.ok} passed${pw.mal ? `, ${pw.mal} failed` : ""}${pw.flaky ? `, ${pw.flaky} flaky` : ""}` : `código ${code}`;
+    const alcance = base.length ? "toda la suite (cambio base)" : aCorrer.map((r) => `tests/${r}/`).join(", ") || "ninguno";
+    gh(["api", "-X", "POST", `repos/${slug}/statuses/${sha}`, "-f", `state=${estado}`, "-f", "context=front-test",
+        "-f", `description=${`${code === 0 ? "verde" : "rojo"}: ${detalle} · ${alcance}`.slice(0, 139)}`]);
+
+    const prs = JSON.parse(gh(["pr", "list", "-R", slug, "--head", rama, "--state", "open", "--json", "number,url"]));
+    if (!prs.length) return avisar(`status front-test=${estado} en ${sha.slice(0, 8)} (sin PR abierto para ${rama}, no hay comentario)`);
+
+    const seg = Math.round((Date.now() - T0) / 1000);
+    const lineas = [
+      MARCA,
+      `${code === 0 ? "✅ **front-test: verde**" : "❌ **front-test: rojo**"} · ${seg} s`,
+      "",
+      "| | |",
+      "|---|---|",
+      `| Rama | \`${rama}\` @ \`${sha.slice(0, 8)}\` |`,
+      `| Archivos cambiados | ${files.length} |`,
+      `| Rutas afectadas | ${base.length ? `todas (cambio base: ${base.map((b) => `\`${b}\``).join(", ")})` : [...routes].sort().join(", ") || "ninguna"} |`,
+      `| Tests corridos | ${alcance} |`,
+      `| Resultado | ${detalle} |`,
+    ];
+    if (sinTests.length) lineas.push(`| ⚠️ Rutas sin tests | ${sinTests.join(", ")} |`);
+    if (build !== null) lineas.push(`| next build | ${build ? "✅" : "❌"} |`);
+    if (pw?.fallados.length) lineas.push("", "**Fallaron:**", ...pw.fallados.map((f) => `- ${f}`));
+    lineas.push("", `<sub>Generado por \`yarn test\` en local. Status atado a \`${sha.slice(0, 8)}\`: un push nuevo pide volver a correrlo.</sub>`);
+
+    const n = prs[0].number;
+    const comentarios = JSON.parse(gh(["api", `repos/${slug}/issues/${n}/comments`, "--paginate"]));
+    const mio = comentarios.filter((c) => (c.body || "").includes(MARCA)).pop();
+    const payload = JSON.stringify({ body: lineas.join("\n") });
+    if (mio) gh(["api", "-X", "PATCH", `repos/${slug}/issues/comments/${mio.id}`, "--input", "-"], payload);
+    else gh(["api", "-X", "POST", `repos/${slug}/issues/${n}/comments`, "--input", "-"], payload);
+    avisar(`status front-test=${estado} en ${sha.slice(0, 8)}, comentario ${mio ? "editado" : "nuevo"} en ${prs[0].url}`);
+  } catch (e) {
+    avisar(`x falló al publicar: ${e.message}`);
+  }
+}
