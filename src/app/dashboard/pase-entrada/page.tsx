@@ -1861,7 +1861,7 @@ const PaseEntradaPage = () => {
                       </div>
                       <div>
                         <p className="font-semibold text-gray-700">Identificación</p>
-                        <p className="text-xs text-gray-400">Habilitar captura de identificación</p>
+                        <p className="text-xs text-gray-400">Habilitar la captura de la identificación del visitante</p>
                       </div>
                     </div>
                     <Switch
