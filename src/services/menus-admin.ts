@@ -146,6 +146,7 @@ export interface ReapplyPermissionsResult {
   user_id: number;
   ok: boolean;
   error: string | null;
+  msg?: string;
 }
 
 export const getMenuPermissionGaps = () =>

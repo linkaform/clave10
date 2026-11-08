@@ -241,14 +241,17 @@ export const useReapplyPermissions = () => {
       if (failed.length) {
         console.warn("reapply_menu_permissions: usuarios con error", failed);
         toast.warning(
-          `Permisos reaplicados a ${results.length - failed.length} de ${results.length} usuario(s); ${failed.length} con error.`,
+          `Permisos enviados a ${results.length - failed.length} de ${results.length} usuario(s); ${failed.length} con error.`,
           {
             description: failed.slice(0, 3).map((r) => `Usuario ${r.user_id}: ${r.error}`).join("\n"),
             duration: 15000,
           },
         );
       } else {
-        toast.success(`Permisos reaplicados a ${results.length} usuario(s).`);
+        toast.success(`Permisos enviados a ${results.length} usuario(s).`, {
+          description: "Pueden tardar unos minutos en reflejarse. Vuelve a Analizar después para confirmarlo.",
+          duration: 10000,
+        });
       }
     },
     onError: (err: Error) => toast.error(err.message),
