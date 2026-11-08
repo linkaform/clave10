@@ -2,8 +2,8 @@
 /**
  * yarn test: corre solo los tests de Playwright de las rutas que tocó tu cambio.
  *
- *   yarn test              detecta cambios -> corre los tests de esas rutas -> next build
- *   yarn test --sin-build  igual, sin el build al final
+ *   yarn test              detecta cambios -> corre los tests de esas rutas
+ *   yarn test --build      igual, y al final next build
  *   yarn test --listar     solo dice qué rutas/tests correría
  *   yarn test:all          toda la suite (playwright test)
  *
@@ -150,6 +150,9 @@ function testFolders() {
   );
 }
 
+// Binarios de node_modules/.bin directo (con npx salen avisos "npm warn" de yarn).
+const bin = (name) => path.join(ROOT, "node_modules", ".bin", name);
+
 // ---------- main ----------
 const files = simulados || changedFiles();
 const base = files.filter((f) => BASE.some((re) => re.test(f)));
@@ -181,14 +184,14 @@ if (args.has("--listar")) process.exit(0);
 let code = 0;
 if (pwArgs) {
   console.log(`\n> playwright test ${pwArgs.join(" ")}\n`);
-  code = spawnSync("npx", ["playwright", "test", ...pwArgs], { cwd: ROOT, stdio: "inherit" }).status ?? 1;
+  code = spawnSync(bin("playwright"), ["test", ...pwArgs], { cwd: ROOT, stdio: "inherit" }).status ?? 1;
 } else {
   console.log("\nNo hay tests de Playwright para estas rutas.");
 }
 
-if (code === 0 && !args.has("--sin-build")) {
+if (code === 0 && args.has("--build")) {
   console.log("\n> next build\n");
-  code = spawnSync("npx", ["next", "build"], { cwd: ROOT, stdio: "inherit" }).status ?? 1;
+  code = spawnSync(bin("next"), ["build"], { cwd: ROOT, stdio: "inherit" }).status ?? 1;
 }
 console.log(code === 0 ? "\n✓ yarn test en verde" : `\n✗ yarn test en rojo (código ${code})`);
 process.exit(code);
