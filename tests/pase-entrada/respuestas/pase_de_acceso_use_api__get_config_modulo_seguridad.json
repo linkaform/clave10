@@ -1,0 +1,60 @@
+{
+  "response": {
+    "data": {
+      "ubicaciones": [
+        "Planta Monterrey"
+      ],
+      "ubicaciones_info": [
+        {
+          "name": "Planta Monterrey",
+          "city": "Monterrey",
+          "state": "Nuevo León",
+          "address": "Monterrey #4321"
+        }
+      ],
+      "requerimientos": [
+        "identificacion",
+        "correo"
+      ],
+      "envios": [
+        "correo",
+        "sms"
+      ],
+      "tipos": [
+        "Auditor de Gobierno",
+        "Chófer de Camión",
+        "Consultor",
+        "Contratista Repse",
+        "Electricista",
+        "Gruista",
+        "Obrero",
+        "Operador de Excavadora",
+        "Visita General",
+        "Visitantes de Planta"
+      ],
+      "condiciones_servicio": {
+        "opcion_condiciones_servicio": "",
+        "desc_condiciones_servicio": "Este es un texto de prueba sobre las condiciones servicio, ir a la forma de configuracion modulo seguridad para actualizar este texto con condiciones de servicio reales.",
+        "doc_condiciones_servicio": [
+          {
+            "file_name": "EHS-P-000-PROCEDIMIENTO PARA EL CONTROL DE INGRESO Y ADMINISTRACIÓN DE CONTRATISTAS, PROVEEDORES Y VISITANTES.doc",
+            "file_url": "https://f001.backblazeb2.com/file/app-linkaform/public-client-10/127775/6a4c673722f825e7b3e46469/6a61de8bb8c806643cc9d649.doc"
+          }
+        ],
+        "url_condiciones_servicio": "https://www.youtube.com/watch?v=hIyW8Rg5ka4"
+      },
+      "permisos_certificaciones": "",
+      "logotipo_pase": {
+        "file_name": "FLORES.png",
+        "file_url": "https://f001.backblazeb2.com/file/app-linkaform/public-client-10/127775/6abc34ba059be8a67a72dc0b/6abc383a7159aba605f9616b.png"
+      },
+      "auto_activacion": "sí",
+      "acompanantes_requeridos": "sí",
+      "empresa": {
+        "nombre": "",
+        "email": "",
+        "telefono": ""
+      }
+    }
+  }
+}

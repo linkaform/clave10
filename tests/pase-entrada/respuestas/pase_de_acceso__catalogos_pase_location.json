@@ -1,0 +1,561 @@
+{
+  "response": {
+    "data": {
+      "ubicaciones_user": [
+        "Litoprocess",
+        "Planta Durango",
+        "Planta Guadalajara",
+        "Planta Monterrey"
+      ],
+      "ubicaciones_default": [
+        "Planta Monterrey"
+      ],
+      "ubicaciones_escritura": [
+        "Litoprocess",
+        "Planta Guadalajara",
+        "Planta Monterrey"
+      ],
+      "ubicaciones_detalle": [
+        {
+          "ubicacion": "Litoprocess",
+          "es_default": false,
+          "escritura": true,
+          "areas": [
+            {
+              "nombre_area": "Sala de Juntas",
+              "es_default": false
+            }
+          ]
+        },
+        {
+          "ubicacion": "Planta Durango",
+          "es_default": false,
+          "escritura": false,
+          "areas": [
+            {
+              "nombre_area": "Almacen de equipos industriales",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Caseta 2 - Dro",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Caseta Principal -Dro",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cuarto de servidoress",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Papeleria",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Refrigerador industrial",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Techo",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Techo 2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Techo nuevo",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Ventiladores",
+              "es_default": false
+            }
+          ]
+        },
+        {
+          "ubicacion": "Planta Guadalajara",
+          "es_default": false,
+          "escritura": true,
+          "areas": [
+            {
+              "nombre_area": "Azotea",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Azotea 2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Camion",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Caseta Vigilancia Sur 5",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cocina",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cortinas 2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cubículo 12",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Estacionamiento 2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Linkaform 4",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Linkaform 5",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Servidores",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Servidores 2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Servidores 3",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Techo",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Techo 5",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Test auto save",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Test id",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Test id 2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Test id 3",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer 10",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer 11",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer 2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer 22",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer 3",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer 4",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer 5",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer 6",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer 7",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer 8",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailer 9",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Ventilador 3",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Ventiladores",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Ventiladores techo",
+              "es_default": false
+            },
+            {
+              "nombre_area": "linkaform 1",
+              "es_default": false
+            },
+            {
+              "nombre_area": "linkaform 3",
+              "es_default": false
+            },
+            {
+              "nombre_area": "test linkaform 2",
+              "es_default": false
+            }
+          ]
+        },
+        {
+          "ubicacion": "Planta Monterrey",
+          "es_default": true,
+          "escritura": true,
+          "areas": [
+            {
+              "nombre_area": "Almacen Materia Prima",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Almacén de inventario",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Andén 1",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Andén 2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Andén 3",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Antenas",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Area Multiubicacion",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Baños",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Blue Bottle Cafe",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Bocina",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Camiones",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Casa de mari",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Casa2 mari",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Caseta 1 - Mty",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Caseta 2 - Mty",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Caseta 6 Poniente",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Caseta Principal",
+              "es_default": true
+            },
+            {
+              "nombre_area": "ClaudeTest2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Comedro",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Corte",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cortinas",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cortinas 3",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cortinas 4",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cortinas 5",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cortinas 6c",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cortinas Hawaiana",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cuarto MC",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cuarto de Conferencia",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cuarto de bombas",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cuarto superior",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Cuartos",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Debug Claude",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Debug Claude EDITADO",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Debug Claude EDITADO 2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Debug Claude Refactor",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Demo",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Embarques",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Ensamble",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Escalera Paco",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Escalera Tamaulipas",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Escalera Victoria",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Escritorio",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Gimnasio Paco",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Laboratorio",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Lapicera",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Nueva Area2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Nueva area",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Officina Finanzas",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Oficina Admin",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Oficina Diseño",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Oficina Gerardo",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Oficina Maricruz",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Oficina Paco",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Oficina RH",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Pasillo",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Pasillos 2",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Piso de Producción",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Prueba jp",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Puerta Oficina",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Recursos de agua potable",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Recursos eléctricos",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Sala de Juntas",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Sala de Juntas Planta Baja",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Stand",
+              "es_default": false
+            },
+            {
+              "nombre_area": "TEST AREA UNO",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Tableta",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Techo 3",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Techo 4",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Test",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Test de area",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Torniquetes",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailers",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailers linkaform",
+              "es_default": false
+            },
+            {
+              "nombre_area": "Trailers upp",
+              "es_default": false
+            },
+            {
+              "nombre_area": "area de prueba 1 - 07-22-11:24:07 - e4cfd92c",
+              "es_default": false
+            },
+            {
+              "nombre_area": "area de prueba 2 - 07-22-11:24:07 - e4cfd92c",
+              "es_default": false
+            },
+            {
+              "nombre_area": "area de prueba 3 - 07-22-11:24:07 - e4cfd92c",
+              "es_default": false
+            },
+            {
+              "nombre_area": "area de prueba 4 - 07-22-11:24:07 - e4cfd92c",
+              "es_default": false
+            }
+          ]
+        }
+      ],
+      "roles_usuario": [
+        "Admin",
+        "Rondinero",
+        "Guardia de Acceso",
+        "Supervisor de Seguridad",
+        "Supervisor EHS"
+      ]
+    }
+  }
+}

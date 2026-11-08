@@ -1865,6 +1865,7 @@ const PaseEntradaPage = () => {
                       </div>
                     </div>
                     <Switch
+                      aria-label="Habilitar identificación"
                       className="data-[state=checked]:bg-blue-600"
                       checked={habilitarIdentificacion}
                       onCheckedChange={setHabilitarIdentificacion}
