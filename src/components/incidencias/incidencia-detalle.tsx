@@ -543,6 +543,8 @@ export const IncidenciaDetalle = ({
                   <Dato label="Área">{d.area_incidencia}</Dato>
                   <Dato label="Fecha y hora">{fechaCorta(d.fecha_hora_incidencia)}</Dato>
                   <Dato label="Reporta">{d.reporta_incidencia}</Dato>
+                  {/* Lo calcula el back al cerrar (desde la creación del registro). */}
+                  <Dato label="Tiempo al cierre">{d.tiempo_transcurrido_cierre}</Dato>
                 </div>
                 <hr className="my-4 border-gray-100" />
                 <p className={etiqueta}>Descripción</p>
