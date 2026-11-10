@@ -24,6 +24,7 @@ export function mapIncidenciaGrid(raw: any, base: any) {
       description: raw?.ubicacion_incidencia || "Sin ubicación",
       images,
       status,
+      ...(status === "cerrado" && { statusClassName: "bg-green-50 text-green-700 border border-green-200" }),
       estatus: raw?.estatus,
       prioridad_incidencia: raw?.prioridad_incidencia,
       ubicacion_incidencia: raw?.ubicacion_incidencia,
