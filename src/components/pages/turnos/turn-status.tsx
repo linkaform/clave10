@@ -10,6 +10,7 @@ import Image from "next/image";
 import { ViewPhotoGuard } from "@/components/modals/view-photo-guard";
 import DeletePhotoGuard from "@/components/modals/eliminar-photo-guard";
 import useAuthStore from "@/store/useAuthStore";
+import { prefetchDeviceLocation } from "@/lib/geolocation";
 import { Imagen } from "@/components/upload-Image";
 
 const TurnStatus = ({
@@ -95,6 +96,12 @@ const TurnStatus = ({
 			}, 800);
 		}
 	}, [openStartPhotoModal, evidencia]);
+
+	// Pide la ubicación (y el permiso) al empezar el flujo de inicio de turno,
+	// no al confirmar: así ya está lista cuando se manda el check-in.
+	useEffect(() => {
+		if (openStartPhotoModal || openStartShift) prefetchDeviceLocation();
+	}, [openStartPhotoModal, openStartShift]);
 
 	useEffect(() => {
 		if (forceOpenStartPhoto) {
