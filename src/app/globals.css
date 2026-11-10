@@ -52,7 +52,8 @@ body {
 
     /* Tokens de color Clave 10 por rol (spec de Inicio.dc.html). Cada uno tiene
        su valor oscuro en .dark, tomado de la paleta del diseño. Usar estos
-       (bg-c10-surface, text-c10-title...) en lugar de hex fijos. */
+       (bg-c10-surface, text-c10-title...) en lugar de hex fijos.
+       Reglas del modo oscuro y cómo probar: docs/modo-oscuro.md */
     --c10-canvas: #F3F5F8;       /* lienzo de la app */
     --c10-surface: #FFFFFF;      /* tarjetas, header, menús */
     --c10-panel: #F8FAFC;        /* cuerpo de panel, zona sutil */
