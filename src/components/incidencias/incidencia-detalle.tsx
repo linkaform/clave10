@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Swal from "sweetalert2";
-import { Check, ClipboardCheck, Download, Eye, Flag, Loader2, MessageSquare, Mic, Paperclip, RefreshCw, FileText, ImageIcon, Pencil, Plus, Printer, Trash2, Wallet, X } from "lucide-react";
+import { Check, CheckCircle2, ClipboardCheck, Download, Eye, Flag, Loader2, MessageSquare, Mic, Paperclip, RefreshCw, FileText, ImageIcon, Pencil, Plus, Printer, Trash2, Wallet, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useInciencias } from "@/hooks/Incidencias/useIncidencias";
 import { useHistorialIncidencia } from "@/hooks/Incidencias/useHistorialIncidencia";
 import { EventoHistorialIncidencia } from "@/lib/incidencias";
@@ -276,6 +277,7 @@ export const IncidenciaDetalle = ({
   const [accionModal, setAccionModal] = useState(false);
   const [seguimientos, setSeguimientos] = useState<any[]>([]);
   const [estatusActual, setEstatusActual] = useState("");
+  const [confirmarCierre, setConfirmarCierre] = useState(false);
   const [seguimientoModal, setSeguimientoModal] = useState(false);
   const [indiceAccion, setIndiceAccion] = useState<number | null>(null);
   const [accionVer, setAccionVer] = useState<AccionCorrectiva | null>(null);
@@ -350,7 +352,7 @@ export const IncidenciaDetalle = ({
   // Los avisos de éxito/error los da editarIncidenciaMutation. El historial de
   // cambios lo registra el back al guardar.
   const guardar = (
-    cambio: { afectacion_patrimonial_incidencia?: any[]; acciones_correctivas_incidencia?: any[] },
+    cambio: { afectacion_patrimonial_incidencia?: any[]; acciones_correctivas_incidencia?: any[]; estatus?: string },
     deshacer: () => void,
   ) => {
     const data: any = { ...datosCompletos(incidencia), ...cambio };
@@ -379,6 +381,13 @@ export const IncidenciaDetalle = ({
     const lista = typeof upd === "function" ? upd(acciones) : upd;
     setAcciones(lista);
     guardar({ acciones_correctivas_incidencia: lista }, () => setAcciones(anterior));
+  };
+
+  const cerrarIncidencia = () => {
+    setConfirmarCierre(false);
+    const anterior = estatusActual;
+    setEstatusActual("cerrado");
+    guardar({ estatus: "cerrado" }, () => setEstatusActual(anterior));
   };
 
   if (!incidencia) return null;
@@ -925,13 +934,23 @@ export const IncidenciaDetalle = ({
           )}
         </div>
 
-        <div className="flex justify-end border-t border-gray-100 px-6 py-4">
+        <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-6 py-4">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
             className="rounded-lg bg-gray-100 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
             Cerrar
           </button>
+          {abierto && (
+            <button
+              type="button"
+              onClick={() => setConfirmarCierre(true)}
+              disabled={guardando}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+              <CheckCircle2 className="h-4 w-4" />
+              Cerrar incidencia
+            </button>
+          )}
         </div>
       </SheetContent>
 
@@ -983,6 +1002,44 @@ export const IncidenciaDetalle = ({
       <SeguimientoDetalleModal seguimiento={seguimientoVer} onClose={() => setSeguimientoVer(null)} />
 
       {/* Ver una tarea (texto completo) */}
+      <Dialog open={confirmarCierre} onOpenChange={setConfirmarCierre} modal>
+        <DialogContent
+          className="max-w-md p-6 gap-0"
+          aria-describedby=""
+          onInteractOutside={(e) => e.preventDefault()}
+          onOpenAutoFocus={(e) => e.preventDefault()}>
+          <div className="flex items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-50">
+              <CheckCircle2 className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="min-w-0">
+              <DialogTitle className="text-lg font-bold text-gray-900">Cerrar incidencia</DialogTitle>
+              <p className="mt-1 text-sm text-gray-500">
+                ¿Seguro que quieres cerrar esta incidencia? Su estatus pasará a Cerrado.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-1.5 rounded-lg bg-gray-50 p-3">
+            <span className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-xs font-semibold text-gray-700">
+              {d.folio}
+            </span>
+          </div>
+
+          <div className="mt-6 flex gap-3">
+            <Button
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+              onClick={() => setConfirmarCierre(false)}
+              disabled={guardando}>
+              Cancelar
+            </Button>
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={cerrarIncidencia} disabled={guardando}>
+              Cerrar incidencia
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!accionVer} onOpenChange={(o) => !o && setAccionVer(null)}>
         <DialogContent className="max-w-xl p-6 gap-0" aria-describedby={undefined}>
           <div className="flex items-center gap-2">
