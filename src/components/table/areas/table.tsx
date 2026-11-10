@@ -96,7 +96,7 @@ export const AreasTable: React.FC<AreasTableProps> = ({ setSelected, data , isLo
 
       <ScrollArea className="h-100 w-full border rounded-md">
         <Table>
-        <TableHeader className="bg-[#F0F2F5]">
+        <TableHeader className="bg-c10-sunken">
         {table.getHeaderGroups().map((headerGroup: { id: React.Key | null | undefined; headers: any[]; }) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header: { id: React.Key | null | undefined; isPlaceholder: any; column: { columnDef: { header: any; }; }; getContext: () => any; }) => {

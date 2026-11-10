@@ -1,5 +1,6 @@
 "use client";
 
+import { DiagBlock, DiagEmpty, diagTableWrap } from "./diag-ui";
 import { useEffect, useState } from "react";
 import { CheckCheck, ListChecks, Loader2, Pause, Play, RotateCcw, Share2, X } from "lucide-react";
 
@@ -80,18 +81,11 @@ export const MassShareSection = () => {
   const detalle = job?.detalle ?? [];
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-2 gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">Compartir masivo</h2>
-          <p className="text-sm text-muted-foreground">
-            Revisa qué le falta a cada usuario según sus menús y lo comparte un ítem a la vez,
-            con todos los usuarios que lo necesitan en una sola llamada y una pausa entre
-            llamadas. Las formas con muchos catálogos se parten para no pasar de ~3 min por
-            llamada. La página debe quedarse abierta mientras envía.
-          </p>
-        </div>
-        <div className="flex gap-2 shrink-0">
+    <DiagBlock
+      title="Compartir masivo"
+      description="Revisa qué le falta a cada usuario según sus menús y lo comparte un ítem a la vez, con todos los usuarios que lo necesitan en una sola llamada y una pausa entre llamadas. Las formas con muchos catálogos se parten para no pasar de ~3 min por llamada. La página debe quedarse abierta mientras envía."
+      actions={
+        <>
           {!job && (
             <Button size="sm" variant="outline" onClick={() => planear()} disabled={ocupado || isLoading}>
               {isPlanning ? <Loader2 size={14} className="animate-spin" /> : <ListChecks size={14} />}
@@ -104,20 +98,20 @@ export const MassShareSection = () => {
               Cerrar
             </Button>
           )}
-        </div>
-      </div>
+        </>
+      }>
 
       {isLoading && !job ? (
-        <div className="text-center py-6 text-muted-foreground text-sm">Buscando trabajos sin terminar...</div>
+        <DiagEmpty>Buscando trabajos sin terminar...</DiagEmpty>
       ) : isPlanning && !job ? (
-        <div className="text-center py-6 text-muted-foreground text-sm">
+        <DiagEmpty>
           Revisando qué le falta a cada usuario... puede tardar en cuentas con muchos usuarios.
-        </div>
+        </DiagEmpty>
       ) : !job ? (
-        <div className="text-center py-6 text-muted-foreground text-sm">
+        <DiagEmpty>
           Presiona &quot;Armar plan&quot; para ver qué falta compartir en la cuenta. Solo lee; no
           manda nada hasta que inicies.
-        </div>
+        </DiagEmpty>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -209,7 +203,7 @@ export const MassShareSection = () => {
           )}
 
           {detalle.length > 0 && (
-            <div className="border rounded-lg">
+            <div className={diagTableWrap}>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -258,6 +252,6 @@ export const MassShareSection = () => {
           )}
         </div>
       )}
-    </section>
+    </DiagBlock>
   );
 };

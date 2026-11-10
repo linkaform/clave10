@@ -100,7 +100,7 @@ export default function LoginPage() {
             <Card className="">
               <CardContent className="flex  w-full md:w-[400px] h-[600px]  flex-col justify-center items-center ">
                 <Image
-                  className="mb-10 flex mx-auto"
+                  className="mb-10 flex mx-auto dark:brightness-0 dark:invert"
                   src="https://f001.backblazeb2.com/file/app-linkaform/public-client-126/71202/60b81349bde5588acca320e1/694ace05f1bef74262302cc9.png"
                   alt="Clave 10"
                   width={174}
@@ -118,7 +118,7 @@ export default function LoginPage() {
                           <Input
                             {...field}
                             placeholder="Usuario"
-                            className="placeholder:text-[#3D4D5C] bg-[#F0F2F5] h-[56px]  rounded-lg"
+                            className="placeholder:text-c10-faint bg-c10-sunken h-[56px]  rounded-lg"
                             type="text"
                           />
                         </FormControl>
@@ -139,7 +139,7 @@ export default function LoginPage() {
                             <Input
                               {...field}
                               placeholder="Password"
-                              className="w-full mb-5 placeholder:text-[#3D4D5C] bg-[#F0F2F5]  h-[56px]  rounded-lg"
+                              className="w-full mb-5 placeholder:text-c10-faint bg-c10-sunken  h-[56px]  rounded-lg"
                               type={showPassword ? "password" : "text"}
                             />
 
@@ -172,7 +172,7 @@ export default function LoginPage() {
                           <Input
                             {...field}
                             placeholder="Bypass User"
-                            className="mb-5 placeholder:text-[#3D4D5C] bg-[#F0F2F5] h-[56px]  rounded-lg"
+                            className="mb-5 placeholder:text-c10-faint bg-c10-sunken h-[56px]  rounded-lg"
                             type="text"
                           />
                         </FormControl>

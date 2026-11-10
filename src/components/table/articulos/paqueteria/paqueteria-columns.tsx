@@ -48,8 +48,8 @@ const OptionsCell: React.FC<{ row: any }> = ({ row}) => {
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         badges={[
-          { label: "", value: record?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-semibold" },
-          { label: "", value: `#${record?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-semibold" },
+          { label: "", value: record?.visit_type || "", customClass: "bg-purple-100 text-[#9159F4] text-xs font-semibold" },
+          { label: "", value: `#${record?.folio || ""}`, customClass: "bg-c10-blue-light text-[#2987F7] text-xs font-semibold" },
         ]}
       >
         <PaqueteriaActionButtons paquete={paquete} />

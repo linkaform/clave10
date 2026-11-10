@@ -83,3 +83,21 @@ export function separateItemsByType(items: MenuItem[]): {
     actions: sorted.filter((item) => item.type === "action"),
   };
 }
+
+/**
+ * Lo que se pinta en el header (mega-menú y menú móvil). Los items `action` son
+ * permisos atómicos (una pestaña, un botón dentro de una pantalla, como en la app):
+ * se asignan desde el catálogo pero no son enlaces. Se quitan, y con ellos las
+ * secciones y módulos que se quedan vacíos.
+ */
+export function navigableMenuConfig(config: MenuConfig): MenuConfig {
+  const modules = config.modules
+    .map((m) => {
+      const sections = m.sections
+        .map((s) => ({ ...s, items: s.items.filter((i) => i.type !== "action") }))
+        .filter((s) => s.items.length > 0);
+      return { ...m, sections };
+    })
+    .filter((m) => m.sections.length > 0 || !!m.href);
+  return { ...config, modules };
+}

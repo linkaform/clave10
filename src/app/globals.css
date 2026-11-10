@@ -48,38 +48,87 @@ body {
        nombres de variable que ahí (prefijo c10-) para que sea fácil
        relacionar uno a uno. */
     --c10-border: #E2E8F0;
-    --c10-text-primary: #171717
+    --c10-text-primary: #171717;
+
+    /* Tokens de color Clave 10 por rol (spec de Inicio.dc.html). Cada uno tiene
+       su valor oscuro en .dark, tomado de la paleta del diseño. Usar estos
+       (bg-c10-surface, text-c10-title...) en lugar de hex fijos. */
+    --c10-canvas: #F3F5F8;       /* lienzo de la app */
+    --c10-surface: #FFFFFF;      /* tarjetas, header, menús */
+    --c10-panel: #F8FAFC;        /* cuerpo de panel, zona sutil */
+    --c10-sunken: #F1F5F9;       /* botón de ícono, hover, zona hundida */
+    --c10-skeleton: #EEF2F6;
+    --c10-line: #E2E8F0;         /* bordes de control y tabla */
+    --c10-line-card: #E5E7EB;    /* bordes de tarjeta */
+    --c10-line-strong: #CBD5E1;  /* separadores fuertes, punteados */
+    --c10-blue-subtle: #EFF6FF;  /* fondos activos */
+    --c10-blue-light: #DBEAFE;   /* encabezado de tabla, chip */
+    --c10-blue-border: #BFDBFE;
+    --c10-red-subtle: #FEE2E2;
+    --c10-title: #0F172A;        /* títulos y datos */
+    --c10-text: #171717;         /* texto de interfaz */
+    --c10-label: #334155;
+    --c10-secondary: #475569;
+    --c10-meta: #64748B;
+    --c10-faint: #94A3B8;        /* placeholder, íconos inactivos */
+    --c10-grip: #CBD5E1;         /* ícono de arrastre */
 
   }
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 220 49% 9%;
+    --foreground: 210 40% 96%;
+    --card: 222 46% 12%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 46% 12%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 210 40% 96%;
+    --primary-foreground: 222 46% 12%;
+    --secondary: 221 39% 19%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 221 39% 19%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 221 39% 19%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 220 32% 22%;
+    --input: 220 32% 22%;
+    --ring: 214 84% 56%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* Clave 10 en oscuro (paleta DK_* de Inicio.dc.html) */
+    --c10-canvas: #0B1220;
+    --c10-surface: #111A2E;
+    --c10-panel: #17223A;
+    --c10-sunken: #1E2A44;
+    --c10-skeleton: #1E2A44;
+    --c10-line: #26324A;
+    --c10-line-card: #26324A;
+    --c10-line-strong: #3A4762;
+    --c10-blue-subtle: #16284A;
+    --c10-blue-light: #1B3560;
+    --c10-blue-border: #24477F;
+    --c10-red-subtle: #3A1A22;
+    --c10-title: #F1F5F9;
+    --c10-text: #E5E7EB;
+    --c10-label: #CBD5E1;
+    --c10-secondary: #AEB9CA;
+    --c10-meta: #94A3B8;
+    --c10-faint: #7C8AA0;
+    --c10-grip: #475569;
+    --c10-border: #26324A;
+    --c10-text-primary: #E5E7EB;
   }
 }
 
 @layer base {
+  .dark {
+    color-scheme: dark;
+  }
   * {
     @apply border-border;
   }

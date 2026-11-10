@@ -47,8 +47,8 @@ const registroText = (emp: EmployeeAttendance, day?: AttendanceDay) => {
   }
 };
 
-const th = "whitespace-nowrap bg-[#DBEAFE] px-3 py-2.5 text-left text-xs font-bold tracking-[.03em] text-[#192A4E]";
-const td = "whitespace-nowrap border-t border-[#E2E8F0] px-3 py-[9px] group-hover:bg-[#F8FAFC]";
+const th = "whitespace-nowrap bg-c10-blue-light px-3 py-2.5 text-left text-xs font-bold tracking-[.03em] text-c10-title";
+const td = "whitespace-nowrap border-t border-c10-line px-3 py-[9px] group-hover:bg-c10-panel";
 
 export const EmployeeDayView: React.FC<EmployeeDayViewProps> = ({ employees, date, mode, onOpenDay }) => {
   const [selected, setSelected] = useState<string[]>([]);
@@ -70,7 +70,7 @@ export const EmployeeDayView: React.FC<EmployeeDayViewProps> = ({ employees, dat
   return (
     <div className="flex flex-col gap-3.5">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-sm text-[#475569]">{isToday ? `Actualizado hoy a las ${updatedAt}` : "Día cerrado"}</span>
+        <span className="text-sm text-c10-secondary">{isToday ? `Actualizado hoy a las ${updatedAt}` : "Día cerrado"}</span>
         {groups.map(([key, label, icon, statuses]) => {
           const n = rows.filter(r => statuses.includes(statusOf(r))).length;
           const pressed = selected.includes(key);
@@ -81,23 +81,23 @@ export const EmployeeDayView: React.FC<EmployeeDayViewProps> = ({ employees, dat
               type="button"
               aria-pressed={pressed}
               onClick={() => toggle(key)}
-              className={`inline-flex h-9 items-center gap-2 rounded-full border px-3.5 ${pressed ? "border-[#2F80ED] bg-[#EFF6FF] text-[#2F80ED]" : "border-[#E2E8F0] bg-white text-[#475569]"}`}
+              className={`inline-flex h-9 items-center gap-2 rounded-full border px-3.5 ${pressed ? "border-[#2F80ED] bg-c10-blue-subtle text-[#2F80ED]" : "border-c10-line bg-white text-c10-secondary"}`}
             >
               <StatusIcon status={icon} size={20} />
               {label}
-              {mode === "table" && <strong className="tabular-nums text-[#0F172A]">{n}</strong>}
+              {mode === "table" && <strong className="tabular-nums text-c10-title">{n}</strong>}
             </button>
           );
         })}
         {selected.length > 0 && (
-          <button type="button" onClick={() => setSelected([])} className="inline-flex h-9 items-center rounded-full border border-dashed border-[#E2E8F0] bg-white px-3.5 text-[#475569]">
+          <button type="button" onClick={() => setSelected([])} className="inline-flex h-9 items-center rounded-full border border-dashed border-c10-line bg-white px-3.5 text-c10-secondary">
             Mostrar todos ×
           </button>
         )}
       </div>
 
       {!shown.length ? (
-        <div className="rounded-xl border border-dashed border-[#CBD5E1] p-7 text-center text-[#64748B]">
+        <div className="rounded-xl border border-dashed border-c10-line-strong p-7 text-center text-c10-meta">
           No se encontraron empleados con ese filtro
         </div>
       ) : mode === "cal" ? (
@@ -108,13 +108,13 @@ export const EmployeeDayView: React.FC<EmployeeDayViewProps> = ({ employees, dat
               type="button"
               onClick={() => onOpenDay(emp, fecha)}
               aria-label={`${emp.nombre}: ${getStatusConfig(day?.status).label}`}
-              className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-white p-3.5 text-left hover:border-[#2F80ED] hover:bg-[#F8FAFC]"
+              className="flex items-center gap-3 rounded-xl border border-c10-line bg-white p-3.5 text-left hover:border-[#2F80ED] hover:bg-c10-panel"
             >
               <StatusIcon status={day?.status} size={44} />
               <span className="flex min-w-0 flex-col gap-0.5">
-                <span className="truncate font-bold text-[#0F172A]">{emp.nombre}</span>
-                <span className="truncate text-xs text-[#64748B]">{employeeSub(emp)}</span>
-                <span className="text-[13px] tabular-nums text-[#475569]">
+                <span className="truncate font-bold text-c10-title">{emp.nombre}</span>
+                <span className="truncate text-xs text-c10-meta">{employeeSub(emp)}</span>
+                <span className="text-[13px] tabular-nums text-c10-secondary">
                   {getStatusConfig(day?.status).label}
                   {permisoParcial(day) && ` · permiso ${horasSolicitud(permisoParcial(day))}`}
                 </span>
@@ -123,7 +123,7 @@ export const EmployeeDayView: React.FC<EmployeeDayViewProps> = ({ employees, dat
           ))}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
+        <div className="overflow-x-auto rounded-xl border border-c10-line bg-white">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -147,14 +147,14 @@ export const EmployeeDayView: React.FC<EmployeeDayViewProps> = ({ employees, dat
                         type="button"
                         aria-label={`Ver detalle de ${emp.nombre}`}
                         onClick={() => onOpenDay(emp, fecha)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#F1F5F9] text-[#475569] hover:bg-[#DBEAFE] hover:text-[#2F80ED]"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-c10-sunken text-c10-secondary hover:bg-c10-blue-light hover:text-[#2F80ED]"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
                       </button>
                     </td>
                     <td className={td}>
-                      <div className="font-bold text-[#0F172A]">{emp.nombre}</div>
-                      <div className="text-xs text-[#64748B]">{employeeSub(emp)}</div>
+                      <div className="font-bold text-c10-title">{emp.nombre}</div>
+                      <div className="text-xs text-c10-meta">{employeeSub(emp)}</div>
                     </td>
                     <td className={td}>
                       <span className="inline-flex items-center gap-1.5">
@@ -163,20 +163,20 @@ export const EmployeeDayView: React.FC<EmployeeDayViewProps> = ({ employees, dat
                       </span>
                     </td>
                     <td className={`${td} font-bold tabular-nums`}>{hora(day?.fecha_inicio) || "—"}</td>
-                    <td className={`${td} tabular-nums text-[#475569]`}>
+                    <td className={`${td} tabular-nums text-c10-secondary`}>
                       {horaSalida(day) || "—"}
                       {cierreDia(emp, day) && <AutoCloseMark text={cierreDia(emp, day)!.texto} label={cierreDia(emp, day)!.label} />}
                     </td>
                     <td
-                      className={`${td} text-right font-bold tabular-nums ${cierreDia(emp, day) ? "text-[#92400E]" : ""}`}
+                      className={`${td} text-right font-bold tabular-nums ${cierreDia(emp, day) ? "text-amber-800" : ""}`}
                       title={cierreDia(emp, day)?.texto}
                     >
                       {formatHoras(horasTrabajadas(day?.fecha_inicio, day?.fecha_cierre, isToday && !!day?.fecha_inicio && !day?.closed, clock)) ?? "—"}
                     </td>
-                    <td className={`${td} text-right tabular-nums text-[#475569]`}>
+                    <td className={`${td} text-right tabular-nums text-c10-secondary`}>
                       {horasDia(emp, day, false, clock).esperadas?.toFixed(1) ?? "—"}
                     </td>
-                    <td className={`${td} text-[#475569]`}>
+                    <td className={`${td} text-c10-secondary`}>
                       {registroText(emp, day)}
                       {permisoParcial(day) && <PartialPermitMark horas={horasSolicitud(permisoParcial(day))} />}
                     </td>

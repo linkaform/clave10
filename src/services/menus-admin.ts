@@ -86,6 +86,18 @@ export const getUserMenuItems = (user_id: number) =>
     user_id,
   });
 
+export interface UserMenuItems {
+  user_id: number;
+  item_keys: string[];
+}
+
+/** Keys asignadas a todos los usuarios de la cuenta, en una sola llamada. */
+export const listUsersMenuItems = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "list_users_menu_items",
+  });
+
 export const saveUserMenuItems = (user_id: number, item_keys: string[]) =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: SCRIPT_NAME,

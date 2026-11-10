@@ -21,12 +21,12 @@ type StatusConfig = { label: string; className: string; path: React.ReactNode };
 export const attendanceStatusConfig: Record<AttendanceStatus, StatusConfig> = {
   presente: {
     label: "Asistencia",
-    className: "bg-[#DCFCE7] text-[#166534]",
+    className: "bg-green-100 text-green-800",
     path: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   },
   retardo: {
     label: "Retardo",
-    className: "bg-[#FEF3C7] text-[#92400E]",
+    className: "bg-amber-100 text-amber-800",
     path: (<><circle cx="12" cy="12" r="7" /><path d="M12 8.5V12l2.5 1.5" /></>),
   },
   falta: {
@@ -36,27 +36,27 @@ export const attendanceStatusConfig: Record<AttendanceStatus, StatusConfig> = {
   },
   sin_salida: {
     label: "Sin salida",
-    className: "bg-[#FFEDD5] text-[#9A3412]",
+    className: "bg-orange-100 text-orange-800",
     path: <path d="M4 12h9M10 8.5l3.5 3.5-3.5 3.5M18 6v12" />,
   },
   en_turno: {
     label: "En turno",
-    className: "bg-[#F0FDF4] text-[#15803D] border-[#15803D]",
+    className: "bg-green-50 text-[#15803D] border-[#15803D]",
     path: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   },
   por_llegar: {
     label: "Por llegar",
-    className: "bg-[#F8FAFC] text-[#475569] border-[#E2E8F0]",
+    className: "bg-c10-panel text-c10-secondary border-c10-line",
     path: <path d="M8 12h.01M12 12h.01M16 12h.01" />,
   },
   dia_libre: {
     label: "Descanso",
-    className: "bg-[#F1F5F9] text-[#475569] border-[#E2E8F0]",
+    className: "bg-c10-sunken text-c10-secondary border-c10-line",
     path: <path d="M7 12h10" />,
   },
   vacaciones: {
     label: "Vacaciones",
-    className: "bg-[#DBEAFE] text-[#1E40AF]",
+    className: "bg-c10-blue-light text-blue-800",
     path: (<><circle cx="12" cy="12" r="3.5" /><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.6 6.6l1.4 1.4M16 16l1.4 1.4M6.6 17.4 8 16M16 8l1.4-1.4" /></>),
   },
   incapacidad: {
@@ -71,17 +71,17 @@ export const attendanceStatusConfig: Record<AttendanceStatus, StatusConfig> = {
   },
   home_office: {
     label: "Home office",
-    className: "bg-[#CCFBF1] text-[#0F766E]",
+    className: "bg-teal-100 text-teal-700",
     path: <path d="M4 11.5 12 5l8 6.5M6.5 10v8.5h11V10M10 18.5v-5h4v5" />,
   },
   trabajo_fuera: {
     label: "Trabajo fuera de oficina",
-    className: "bg-[#E0F2FE] text-[#0369A1]",
+    className: "bg-sky-100 text-sky-700",
     path: (<><path d="M12 20s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z" /><circle cx="12" cy="10" r="2.2" /></>),
   },
   sin_registro: {
     label: "Pendiente",
-    className: "bg-transparent text-[#94A3B8] border-dashed border-[#CBD5E1]",
+    className: "bg-transparent text-c10-faint border-dashed border-c10-line-strong",
     path: null,
   },
 };
@@ -174,7 +174,7 @@ export const shiftStatusConfig: Record<ShiftStatus, StatusConfig> = {
   tarde: { label: "Abierto tarde", className: attendanceStatusConfig.retardo.className, path: attendanceStatusConfig.retardo.path },
   en_curso: {
     label: "En curso",
-    className: "bg-[#CCFBF1] text-[#0F766E] border-[#0F766E]",
+    className: "bg-teal-100 text-teal-700 border-[#0F766E]",
     path: (<><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2.6" fill="currentColor" /></>),
   },
   sin_abrir: { label: "Sin abrir", className: attendanceStatusConfig.falta.className, path: attendanceStatusConfig.falta.path },

@@ -50,7 +50,7 @@ export default function Home() {
   return (
     <>
       <link rel="icon" href="/turnos.svg" type="image/svg+xml" /><div className="flex flex-col lg:flex-row">
-        <div className="w-full lg:w-1/4 h-full px-6 py-6 border border-[#F0F2F5]">
+        <div className="w-full lg:w-1/4 h-full px-6 py-6 border border-c10-sunken">
           <Sidebar key={shift?.location?.name} shift={shift} nombreSuplente={nombreSuplente} setNombreSuplente={setNombreSuplente} onSuplenteConfirmado={() => setForceOpenStartPhoto(true)} />
         </div>
         <div className="w-full lg:w-3/4 p-8 flex flex-col">

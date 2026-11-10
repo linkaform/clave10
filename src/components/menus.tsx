@@ -6,6 +6,7 @@ import { useMenuStore } from "@/store/useGetMenuStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetMenus } from "@/hooks/useGetMenus";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
+import { navigableMenuConfig } from "@/types/menu-types";
 
 export default function Menus() {
   const queryClient = useQueryClient();
@@ -24,10 +25,11 @@ export default function Menus() {
 
   return (
     <Header
-      menuConfig={menuConfig ?? { modules: [] }}
+      menuConfig={navigableMenuConfig(menuConfig ?? { modules: [] })}
       user={{
-        name: newUserUsername || userNameSoter || "Usuario",
-        email: userEmailSoter || "usuario@empresa.com",
+        name: userNameSoter || newUserUsername || "Usuario",
+        email: userEmailSoter || undefined,
+        login: newUserUsername || userEmailSoter || undefined,
         avatar: userPhoto || undefined,
       }}
       onLogout={handleLogout}

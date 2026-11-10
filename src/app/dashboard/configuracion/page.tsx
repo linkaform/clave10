@@ -1,105 +1,90 @@
-import React from "react";
-import Link from "next/link";
-import PageTitle from "@/components/page-title";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Settings, Users, Shield, Lock } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { SyncButton } from "@/components/configuracion/sync-button";
-import { CleanDbButton } from "@/components/configuracion/clean-db-button";
+"use client";
 
-const ConfiguracionPage = () => {
-  const settingsGroups: {
-    title: string;
-    icon: React.ReactNode;
-    items: { label: string; enabled: boolean; href?: string }[];
-  }[] = [
-    {
-      title: "Administración del Sistema",
-      icon: <Settings className="w-5 h-5 text-slate-500" />,
-      items: [
-        { label: "Logs de scripts", enabled: true, href: "/dashboard/script-logs" },
-        { label: "Catálogos generales", enabled: false },
-        { label: "Configuración de módulos", enabled: false },
-        { label: "Parámetros de operación", enabled: false },
-      ],
-    },
-    {
-      title: "Control de Acceso",
-      icon: <Shield className="w-5 h-5 text-green-500" />,
-      items: [
-        { label: "Gestión de Roles", enabled: false },
-        { label: "Permisos por usuario", enabled: false },
-        { label: "Auditoría de cambios", enabled: false },
-      ],
-    },
-    {
-      title: "Recursos y Ayuda",
-      icon: <Users className="w-5 h-5 text-blue-500" />,
-      items: [
-        { label: "Centro de ayuda", enabled: false },
-        { label: "Documentación técnica", enabled: false },
-        { label: "Soporte técnico", enabled: false },
-      ],
-    },
-  ];
+import { Suspense, useEffect, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMenuKeys } from "@/hooks/useMenuKeys";
+import {
+  CONFIG_TABS,
+  ConfigSidebar,
+  type ConfigTab,
+} from "@/components/configuracion/config-sidebar";
+import { ConfigPendingSection } from "@/components/configuracion/config-pending-section";
+import { SistemaSection } from "@/components/configuracion/sistema-section";
+import { MiPerfilSection } from "@/components/configuracion/mi-perfil-section";
+import { MenusAdminSection } from "@/components/menus-admin/menus-admin-section";
+
+function ConfiguracionContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { keys, isChecking: checkingAccess, error } = useMenuKeys();
+  const canSee = (requiredKey?: string) =>
+    !requiredKey || (!error && keys.includes(requiredKey));
+
+  // Cada pestaña puede pedir una key. Mientras se revisa se muestran todas,
+  // para no saltar de pestaña.
+  const tabs = useMemo(
+    () => CONFIG_TABS.filter((t) => checkingAccess || canSee(t.requiredKey)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [keys, checkingAccess, error],
+  );
+
+  const requested = searchParams.get("tab") as ConfigTab | null;
+  // Al entrar sin ?tab se abre Mi perfil (lo tiene todo usuario).
+  const fallback: ConfigTab = "perfil";
+  const active: ConfigTab =
+    requested && tabs.some((t) => t.key === requested) ? requested : fallback;
+
+  // Si piden Menús sin tener acceso, se cae a Sistema y se limpia la URL.
+  useEffect(() => {
+    if (checkingAccess) return;
+    if (requested && requested !== active) {
+      router.replace(`${pathname}?tab=${active}`);
+    }
+  }, [checkingAccess, requested, active, pathname, router]);
+
+  const selectTab = (tab: ConfigTab) => {
+    router.replace(`${pathname}?tab=${tab}`, { scroll: false });
+  };
+
+  const activeDef = tabs.find((t) => t.key === active);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <PageTitle title="Configuración" />
-          <p className="text-sm text-muted-foreground">
-            Administra tus ajustes personales y de seguridad.
-          </p>
+    <div className="min-h-[calc(100vh-var(--c10-header-h,65px))] bg-c10-canvas font-[Arial,Helvetica,sans-serif]">
+      <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 pb-20 pt-6 min-[1080px]:px-5 min-[1080px]:pt-10 min-[1440px]:px-6 min-[1440px]:pt-12">
+        <div className="sticky top-[var(--c10-header-h,65px)] z-20 -mx-4 bg-c10-canvas px-4 py-2 min-[1080px]:mx-0 min-[1080px]:px-0">
+          <h1 className="text-2xl font-semibold leading-tight tracking-[-0.025em] text-c10-title min-[1080px]:text-[32px]">
+            Configuración
+          </h1>
         </div>
-        <div className="flex gap-2">
-          <SyncButton />
-          <CleanDbButton />
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {settingsGroups.map((group, index) => (
-          <Card key={index} className="border-none shadow-none bg-accent/20">
-            <CardHeader className="flex flex-row items-center gap-3 pb-2 border-b border-border/40">
-              {group.icon}
-              <CardTitle className="text-lg font-semibold">
-                {group.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 px-4">
-              <ul className="space-y-3">
-                {group.items.map((item, i) => {
-                  const row = (
-                    <li
-                      key={i}
-                      className={cn(
-                        "flex items-center justify-between p-2 rounded-md transition-colors",
-                        item.enabled
-                          ? "hover:bg-accent cursor-pointer"
-                          : "opacity-60 cursor-not-allowed",
-                      )}>
-                      <span className="text-sm">{item.label}</span>
-                      {!item.enabled && (
-                        <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                      )}
-                    </li>
-                  );
-                  return item.href ? (
-                    <Link key={i} href={item.href} className="block">
-                      {row}
-                    </Link>
-                  ) : (
-                    row
-                  );
-                })}
-              </ul>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+        <div className="flex flex-col gap-4 min-[1080px]:flex-row min-[1080px]:items-start min-[1080px]:gap-5">
+          <ConfigSidebar tabs={tabs} active={active} onSelect={selectTab} />
+
+          <div className="min-w-0 flex-1">
+            {checkingAccess && active === "menus" ? (
+              <div className="h-64 animate-pulse rounded-[20px] bg-c10-surface" />
+            ) : active === "menus" ? (
+              <MenusAdminSection />
+            ) : active === "perfil" ? (
+              <MiPerfilSection />
+            ) : active === "sistema" ? (
+              <SistemaSection />
+            ) : (
+              <ConfigPendingSection title={activeDef?.label ?? ""} />
+            )}
+          </div>
+        </div>
+      </main>
     </div>
   );
-};
+}
 
-export default ConfiguracionPage;
+export default function ConfiguracionPage() {
+  return (
+    <Suspense fallback={null}>
+      <ConfiguracionContent />
+    </Suspense>
+  );
+}

@@ -12,10 +12,10 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { MenuSectionCard } from "./menu-section-card";
 import { ModuleGroup, SectionGroup } from "@/lib/menus-admin-tree";
 import { MenuItemAdmin } from "@/services/menus-admin";
+import { RenameProps } from "./rename";
 
 const MAX_COLUMNS = 6;
 
@@ -38,7 +38,7 @@ function compactColumns(sections: SectionGroup[]): SectionGroup[][] {
     .filter((sections) => sections.length > 0);
 }
 
-interface MenuSectionsBoardProps {
+interface MenuSectionsBoardProps extends RenameProps {
   module: ModuleGroup;
   onChange: (sections: SectionGroup[]) => void;
   onEditSection: (section: SectionGroup) => void;
@@ -58,6 +58,7 @@ export const MenuSectionsBoard: React.FC<MenuSectionsBoardProps> = ({
   onEditItem,
   onDeleteItem,
   onAddItem,
+  ...rename
 }) => {
   const [columns, setColumns] = useState<SectionGroup[][]>(() =>
     compactColumns(module.sections),
@@ -162,7 +163,7 @@ export const MenuSectionsBoard: React.FC<MenuSectionsBoardProps> = ({
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] items-start gap-3.5">
         {Array.from({ length: slotsToRender }, (_, i) => i).map((columnIdx) => (
           <BoardColumn
             key={columnIdx}
@@ -174,6 +175,7 @@ export const MenuSectionsBoard: React.FC<MenuSectionsBoardProps> = ({
             onAddItem={onAddItem}
             onEditItem={onEditItem}
             onDeleteItem={onDeleteItem}
+            {...rename}
           />
         ))}
       </div>
@@ -181,7 +183,7 @@ export const MenuSectionsBoard: React.FC<MenuSectionsBoardProps> = ({
   );
 };
 
-interface BoardColumnProps {
+interface BoardColumnProps extends RenameProps {
   columnNumber: number;
   sections: SectionGroup[];
   onAddSection: () => void;
@@ -201,13 +203,14 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
   onAddItem,
   onEditItem,
   onDeleteItem,
+  ...rename
 }) => {
   const { setNodeRef } = useDroppable({ id: `column-${columnNumber}` });
 
   return (
     <div
       ref={setNodeRef}
-      className="flex flex-col gap-3 min-h-[120px] bg-muted/20 rounded-lg p-2">
+      className="flex min-h-[96px] min-w-0 flex-col gap-3.5">
       <SortableContext
         items={sections.map((s) => s.seccionKey)}
         strategy={verticalListSortingStrategy}>
@@ -220,12 +223,20 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
             onAddItem={() => onAddItem(section.seccionKey)}
             onEditItem={onEditItem}
             onDeleteItem={onDeleteItem}
+            {...rename}
           />
         ))}
       </SortableContext>
-      <Button type="button" variant="ghost" size="sm" onClick={onAddSection}>
-        <Plus size={14} /> Sección
-      </Button>
+      <button
+        type="button"
+        onClick={onAddSection}
+        className={
+          sections.length === 0
+            ? "flex min-h-[96px] items-center justify-center gap-1.5 rounded-xl border border-dashed border-c10-line-strong bg-c10-surface text-sm font-medium text-c10-secondary transition-colors duration-150 hover:border-[#2F80ED] hover:bg-c10-panel hover:text-[#2F80ED]"
+            : "flex h-9 items-center justify-center gap-1.5 rounded-xl border border-dashed border-c10-line-strong bg-c10-surface text-[13px] font-medium text-c10-meta transition-colors duration-150 hover:border-[#2F80ED] hover:text-[#2F80ED]"
+        }>
+        <Plus size={16} /> Sección
+      </button>
     </div>
   );
 };

@@ -94,7 +94,7 @@ const AuditoriasTable: React.FC<AuditoriasTableProps> = ({
             {/* Tabla con scroll */}
             <ScrollArea className="h-100 w-full border rounded-md">
                 <Table>
-                    <TableHeader className="bg-[#F0F2F5]">
+                    <TableHeader className="bg-c10-sunken">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (

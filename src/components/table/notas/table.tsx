@@ -127,7 +127,7 @@ export const NotasTable = ({ data }: ListaNotasTableProps) => {
 
       <div className=''>
         <Table>
-          <TableHeader className='bg-[#F0F2F5]'>
+          <TableHeader className='bg-c10-sunken'>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
