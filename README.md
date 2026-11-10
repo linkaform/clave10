@@ -59,3 +59,8 @@ docker logs -f clave10
 ```
 
 
+
+# Modo oscuro
+
+Componentes nuevos: colores con tokens `c10-*` o clases normales de Tailwind,
+nunca hex fijos. Reglas, tokens y cómo probar en [docs/modo-oscuro.md](docs/modo-oscuro.md).

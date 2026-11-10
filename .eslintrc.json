@@ -1,6 +1,21 @@
 {
   "extends": ["next/core-web-vitals", "next/typescript"],
   "rules": {
-    "@typescript-eslint/no-explicit-any": "off"
+    "@typescript-eslint/no-explicit-any": "off",
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/-\\[#[0-9a-fA-F]{3,8}\\]/]",
+        "message": "Color hex fijo en clase: rompe el modo oscuro. Usa tokens c10-* (bg-c10-surface, text-c10-title...) o clases Tailwind normales. Ver docs/modo-oscuro.md"
+      },
+      {
+        "selector": "TemplateElement[value.raw=/-\\[#[0-9a-fA-F]{3,8}\\]/]",
+        "message": "Color hex fijo en clase: rompe el modo oscuro. Usa tokens c10-* (bg-c10-surface, text-c10-title...) o clases Tailwind normales. Ver docs/modo-oscuro.md"
+      },
+      {
+        "selector": "Property[key.name=/^(color|background|backgroundColor|borderColor|fill|stroke)$/] > Literal[value=/^#[0-9a-fA-F]{3,8}$/]",
+        "message": "Color hex fijo en style: rompe el modo oscuro. Usa var(--c10-*) o una clase con token c10-*. Ver docs/modo-oscuro.md"
+      }
+    ]
   }
 }

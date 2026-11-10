@@ -13,6 +13,9 @@
  *    con la superficie; text 500/600 = tono 400 y text 700/800/900 = 300/200/100.
  *  - Texto gris tenue (gray/slate 200-300) sube un poco para que se lea.
  * Valores RGB sin coma para que funcionen los modificadores de opacidad (/50).
+ *
+ * Reglas para componentes nuevos (nada de hex fijos) y cómo probar:
+ * docs/modo-oscuro.md
  */
 :root {
   --gray-50: 249 250 251;
