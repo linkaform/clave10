@@ -1238,6 +1238,7 @@ function InspeccionEntradaModalContent({
 interface SelloVVTT { view: boolean; verify: boolean; tug: boolean; twist: boolean; }
 type SelloClasificacion = string;
 interface SelloUnitData {
+  noAplica: boolean;
   noSelloRevisado: string;
   clasificacion: SelloClasificacion | null;
   vvtt: SelloVVTT;
@@ -1355,6 +1356,7 @@ function InspeccionSelloModalContent({
   const fotoIdentificacion = documentosAdicionales?.find((d) => d.tipo === "identificacion" || d.tipo === "identificacion_chofer" || d.tipo === "LICENCIA CONDUCIR");
 
   const emptySelloUnit = (): SelloUnitData => ({
+    noAplica: false,
     noSelloRevisado: "",
     clasificacion: null,
     vvtt: { view: false, verify: false, tug: false, twist: false },
@@ -1368,15 +1370,22 @@ function InspeccionSelloModalContent({
     comentario: "",
   });
 
+  // Recolección solo con tractor (HLmando): sin remolques igual se inspecciona
+  // el sello de salida — una sola pestaña, con captura opcional de la caja.
+  const sinCaja = unidades.length === 0;
+  const totalTabs = Math.max(unidades.length, 1);
+  const [cajaLibre, setCajaLibre] = useState({ tipo: "", noCaja: "", placas: "" });
   const [activeTab, setActiveTab] = useState(0);
-  const [unitsData, setUnitsData] = useState<SelloUnitData[]>(() => unidades.map(emptySelloUnit));
+  const [unitsData, setUnitsData] = useState<SelloUnitData[]>(() =>
+    Array.from({ length: totalTabs }, emptySelloUnit));
   const [uploadingSlots, setUploadingSlots] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<string | null>(null);
 
-  const refUnidad = (u: UnidadItem) =>
-    u.config === "remolque_contenedor"
+  const refUnidad = (u?: UnidadItem) =>
+    !u ? { noCaja: cajaLibre.noCaja, noSello: "" }
+    : u.config === "remolque_contenedor"
       ? { noCaja: u.contenedor.noContenedor || u.contenedor.noCaja, noSello: u.contenedor.noSello }
       : { noCaja: u.remolque.noCaja, noSello: u.remolque.noSello };
 
@@ -1426,18 +1435,21 @@ function InspeccionSelloModalContent({
     setUnitsData((p) => p.map((d, i) => i !== ui ? d : { ...d, evidencias: { ...d.evidencias, [slotKey]: null } }));
 
   const buildPayload = () =>
-    unidades.map((u, i) => {
-      const d = unitsData[i];
-      const { noCaja, noSello } = refUnidad(u);
+    unitsData.map((d, i) => {
+      const { noCaja, noSello } = refUnidad(unidades[i]);
+      const hayCaja = sinCaja && !!(cajaLibre.tipo || cajaLibre.noCaja || cajaLibre.placas);
       return {
         tipo: withPrefix("sello"),
         unidad: i + 1,
+        no_aplica: d.noAplica,
+        ...(hayCaja ? { caja: { tipo: cajaLibre.tipo, no_caja: cajaLibre.noCaja, placas: cajaLibre.placas } } : {}),
         no_caja: noCaja,
         no_sello_sistema: noSello,
-        no_sello_revisado: d.noSelloRevisado,
-        clasificacion_iso: d.clasificacion,
-        vvtt: selloVvttPuntos.map((v) => ({ punto: v.label, verificado: d.vvtt[v.key] })),
-        evidencias: selloEvidenciaSlots
+        // Con N/A no se manda nada del sello: el registro queda con aplica_sello + comentario.
+        no_sello_revisado: d.noAplica ? "" : d.noSelloRevisado,
+        clasificacion_iso: d.noAplica ? null : d.clasificacion,
+        vvtt: d.noAplica ? [] : selloVvttPuntos.map((v) => ({ punto: v.label, verificado: d.vvtt[v.key] })),
+        evidencias: d.noAplica ? [] : selloEvidenciaSlots
           .filter((s) => d.evidencias[s.key])
           .map((s) => ({ slot: s.key, ...(d.evidencias[s.key] as EvidenciaImg) })),
         comentario: d.comentario,
@@ -1460,10 +1472,10 @@ function InspeccionSelloModalContent({
 
   const d = unitsData[activeTab];
   const u = unidades[activeTab];
-  if (!d || !u) return null;
+  if (!d || (!u && !sinCaja)) return null;
   const { noCaja, noSello } = refUnidad(u);
   const vvttCompletos = selloVvttPuntos.filter((v) => d.vvtt[v.key]).length;
-  const todasUnidadesDone = unidades.every((_, i) => isDone(i + 1));
+  const todasUnidadesDone = Array.from({ length: totalTabs }).every((_, i) => isDone(i + 1));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -1500,7 +1512,7 @@ function InspeccionSelloModalContent({
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           <div className="rounded-lg bg-gray-50 px-3 py-2">
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-              {activeTab === 0 ? "Remolque principal" : `Remolque #${activeTab + 1}`}
+              {sinCaja ? "Sin caja registrada" : activeTab === 0 ? "Remolque principal" : `Remolque #${activeTab + 1}`}
               {noCaja ? ` · ${noCaja}` : ""}
             </p>
           </div>
@@ -1530,6 +1542,50 @@ function InspeccionSelloModalContent({
             </div>
           ) : (
             <>
+              {sinCaja && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 space-y-2">
+                  <p className="text-[11px] text-amber-700 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    Esta bitácora no tiene caja registrada. Captúrala si aplica (opcional).
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([["tipo", "Tipo de caja"], ["noCaja", "No. de caja"], ["placas", "Placas"]] as const).map(([k, label]) => (
+                      <input
+                        key={k}
+                        placeholder={label}
+                        value={cajaLibre[k]}
+                        onChange={(e) => setCajaLibre((p) => ({ ...p, [k]: e.target.value }))}
+                        className="h-9 rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-700 placeholder-gray-300 focus:outline-none focus:border-teal-400"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Mismo estilo que los renglones de la matriz VVTT */}
+              <button type="button" role="checkbox" aria-checked={d.noAplica}
+                onClick={() => updateUnit(activeTab, { noAplica: !d.noAplica })}
+                className={cn(
+                  "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors text-left",
+                  d.noAplica ? "bg-teal-50 border-teal-200" : "bg-white border-gray-100 hover:border-gray-200",
+                )}>
+                <span className={cn(
+                  "w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0",
+                  d.noAplica ? "bg-teal-600 text-white" : "bg-gray-100 text-gray-400",
+                )}>N/A</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-800">No aplica</p>
+                  <p className="text-[11px] text-gray-400 leading-snug">No hay sello que inspeccionar</p>
+                </div>
+                <span className={cn(
+                  "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
+                  d.noAplica ? "bg-teal-600 border-teal-600" : "border-gray-300",
+                )}>
+                  {d.noAplica && <Check className="w-3 h-3 text-white" />}
+                </span>
+              </button>
+
+              {!d.noAplica && (<>
               {/* Número de sello */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -1646,7 +1702,9 @@ function InspeccionSelloModalContent({
                 </div>
               </div>
 
-              {/* Comentarios */}
+              </>)}
+
+              {/* Comentarios — siempre visible, también con N/A */}
               <div>
                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Comentarios</p>
                 <textarea
@@ -1669,14 +1727,14 @@ function InspeccionSelloModalContent({
             className="h-9 px-4 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors">
             Cancelar
           </button>
-          {activeTab < unidades.length - 1 && (
+          {activeTab < totalTabs - 1 && (
             <button type="button" onClick={handleGuardar} disabled={saving || todasUnidadesDone}
               title={todasUnidadesDone ? "Todas las unidades ya fueron inspeccionadas" : undefined}
               className="h-9 px-4 rounded-xl border border-teal-200 text-teal-700 hover:bg-teal-50 disabled:opacity-60 disabled:cursor-not-allowed text-xs font-semibold transition-colors flex items-center justify-center gap-2 shrink-0">
               {saving ? "Guardando…" : "Guardar"}
             </button>
           )}
-          {activeTab < unidades.length - 1 ? (
+          {activeTab < totalTabs - 1 ? (
             <button type="button" onClick={() => setActiveTab(activeTab + 1)}
               className="flex-1 h-9 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-2">
               Siguiente · Remolque #{activeTab + 2}
@@ -3237,6 +3295,8 @@ export default function DetalleTransportistaPage() {
   const salidaDone  = etapasActivas.includes("inspeccion_salida") && estatusIdx > ORDEN_ESTATUS.indexOf("inspeccion_salida");
 
   // Inspecciones — valores estructurales (no vienen del API aún)
+  // Misma lista que recibe el modal de sello de salida (sin solo_vehiculo).
+  const unidadesConSello = unidades.filter((u) => u.config !== "solo_vehiculo");
   const inspecciones = {
     entrada: { completados: 0, total: 17 },
     salida: { completados: 0, total: 17 },
@@ -3246,7 +3306,9 @@ export default function DetalleTransportistaPage() {
     },
     selloSalida: {
       completados: (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("salida_sello_")).length,
-      total: unidades.length,
+      // Recolección: el sello de salida siempre se pide, aunque no haya caja
+      // (HLmando sale solo con tractor). Sin esto tampoco aparece "Terminar proceso".
+      total: esRecoleccion ? Math.max(1, unidadesConSello.length) : unidadesConSello.length,
     },
   };
 
@@ -4995,7 +5057,7 @@ export default function DetalleTransportistaPage() {
               const salidaHabilitada = etapasActivas.includes("inspeccion_salida") && estatusIdx >= ORDEN_ESTATUS.indexOf("inspeccion_salida");
               if (!esRecoleccion || !salidaHabilitada) return null;
               const selloSalidaTodasDone = inspecciones.selloSalida.total > 0 && inspecciones.selloSalida.completados >= inspecciones.selloSalida.total;
-              const sinUnidades = unidades.length === 0;
+              const sinUnidades = unidadesConSello.length === 0;
               return (
                 <div key="sello-salida" className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -5018,13 +5080,18 @@ export default function DetalleTransportistaPage() {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-gray-700 mb-0.5">
-                        {sinUnidades ? "Agrega un remolque para poder inspeccionar el sello" : selloSalidaTodasDone ? "Inspección de sello de salida completa" : "Inspección de sello de salida pendiente"}
+                        {selloSalidaTodasDone ? "Inspección de sello de salida completa" : "Inspección de sello de salida pendiente"}
                       </p>
+                      {sinUnidades && !selloSalidaTodasDone && (
+                        <p className="text-[11px] text-amber-600 flex items-center gap-1 mt-1">
+                          <AlertTriangle className="w-3 h-3 shrink-0" />
+                          Esta bitácora no tiene caja registrada. Puedes capturarla en la inspección o marcar N/A.
+                        </p>
+                      )}
                       <p className="text-xs text-gray-500 leading-relaxed">Método VVTT (View · Verify · Tug · Twist) sobre el precinto colocado al salir.</p>
                     </div>
                     <button
                       type="button"
-                      disabled={sinUnidades}
                       onClick={() => {
                         if (selloSalidaTodasDone) {
                           const sellosDone = (data?.inspecciones ?? []).filter((i) => i.tipo.startsWith("salida_sello_"));
