@@ -200,7 +200,10 @@ const IncidenciasTable: React.FC<ListProps> = ({
   
       {/* Detalle (panel lateral): se abre desde la tabla, las tarjetas y la lista. */}
       <IncidenciaDetalle
-        incidencia={incidenciaSeleccionada}
+        // La versión recargada de la lista (tras guardar se invalida
+        // getListIncidencias): así el panel ve lo que calcula el back, como el
+        // tiempo al cierre, sin cerrarlo y volverlo a abrir.
+        incidencia={memoizedData.find((b: any) => b._id === incidenciaSeleccionada?._id) ?? incidenciaSeleccionada}
         open={modalVerAbierto}
         onOpenChange={setModalVerAbierto}
         modoTabla={viewMode === "table"}
