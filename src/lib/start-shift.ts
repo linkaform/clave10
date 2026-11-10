@@ -1,6 +1,7 @@
 import { Imagen } from "@/components/upload-Image";
 import { API_ENDPOINTS } from "@/config/api";
 import { getValidToken } from "./login/get-valid-token";
+import { takeDeviceLocation } from "./geolocation";
 
 interface GetShiftParams {
   area?: string;
@@ -21,6 +22,8 @@ interface GetShiftParams {
     checkin_id="",
     roles=[]
   }: GetShiftParams = {}) => {
+    // Sin permiso o sin respuesta del GPS el turno inicia igual, sin geo.
+    const geolocation = await takeDeviceLocation();
     const payload = {
       area,
       location,
@@ -30,7 +33,8 @@ interface GetShiftParams {
       fotografia,
       nombre_suplente,
       checkin_id,
-      roles
+      roles,
+      ...(geolocation && { geolocation }),
     };
   
     const userJwt = await getValidToken();
