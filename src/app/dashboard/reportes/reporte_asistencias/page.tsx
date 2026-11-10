@@ -22,7 +22,7 @@ import { ShiftRow, ShiftSelection, filterShifts } from "./lib/shifts";
 import { PERIOD_VIEWS, PeriodView, periodRange } from "./lib/period";
 
 const segBtn = (active: boolean) =>
-  `h-full px-5 border-l border-[#E2E8F0] first:border-l-0 ${active ? "bg-[#2F80ED] text-white font-semibold" : "bg-transparent text-[#475569]"}`;
+  `h-full px-5 border-l border-c10-line first:border-l-0 ${active ? "bg-[#2F80ED] text-white font-semibold" : "bg-transparent text-c10-secondary"}`;
 
 const ReportPage = () => {
   const {
@@ -110,7 +110,7 @@ const ReportPage = () => {
     if (!isEmployees) {
       if (!shifts.length) {
         return (
-          <div className="rounded-xl border border-dashed border-[#CBD5E1] p-8 text-center text-[#64748B]">
+          <div className="rounded-xl border border-dashed border-c10-line-strong p-8 text-center text-c10-meta">
             No se encontraron casetas con ese filtro
           </div>
         );
@@ -121,7 +121,7 @@ const ReportPage = () => {
     }
     if (!employees.length) {
       return (
-        <div className="rounded-xl border border-dashed border-[#CBD5E1] p-8 text-center text-[#64748B]">
+        <div className="rounded-xl border border-dashed border-c10-line-strong p-8 text-center text-c10-meta">
           No se encontraron empleados con ese filtro
         </div>
       );
@@ -152,11 +152,11 @@ const ReportPage = () => {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-[18px] px-8 pb-12 pt-6 text-sm text-[#171717] max-md:px-4">
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-[18px] px-8 pb-12 pt-6 text-sm text-c10-text max-md:px-4">
       {/* Barra principal */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="m-0 text-2xl font-bold tracking-[-.02em] text-[#0F172A]">Reporte de asistencia</h1>
+          <h1 className="m-0 text-2xl font-bold tracking-[-.02em] text-c10-title">Reporte de asistencia</h1>
           {isLoading && <Skeleton className="h-6 w-28" />}
           {!isLoading && !isCards && (
             <span className="inline-flex rounded-md bg-[#2F80ED] px-2 py-0.5 font-semibold tabular-nums text-white">
@@ -165,7 +165,7 @@ const ReportPage = () => {
                 : `${casetas} ${casetas === 1 ? "caseta" : "casetas"}`}
             </span>
           )}
-          <label className="flex h-10 w-[240px] items-center gap-2 rounded-lg border border-[#E2E8F0] bg-white px-3 text-[#64748B] max-md:w-full">
+          <label className="flex h-10 w-[240px] items-center gap-2 rounded-lg border border-c10-line bg-white px-3 text-c10-meta max-md:w-full">
             <Search size={16} />
             <input
               type="search"
@@ -173,18 +173,18 @@ const ReportPage = () => {
               onChange={e => setSearch(e.target.value)}
               placeholder={isEmployees ? "Buscar empleado..." : "Buscar caseta o guardia..."}
               aria-label={isEmployees ? "Buscar empleado" : "Buscar caseta o guardia"}
-              className="w-full border-none bg-transparent text-[#171717] outline-none"
+              className="w-full border-none bg-transparent text-c10-text outline-none"
             />
           </label>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" disabled title="Pendiente" className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-lg border border-[#E2E8F0] bg-white px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-50">
+          <button type="button" disabled title="Pendiente" className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-lg border border-c10-line bg-white px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-50">
             Reglas de Jornada
           </button>
-          <button type="button" disabled title="Pendiente" className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-lg border border-[#E2E8F0] bg-white px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-50">
+          <button type="button" disabled title="Pendiente" className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-lg border border-c10-line bg-white px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-50">
             Exportar Excel
           </button>
-          <div role="group" aria-label="Tipo de vista" className="inline-flex h-10 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white">
+          <div role="group" aria-label="Tipo de vista" className="inline-flex h-10 overflow-hidden rounded-lg border border-c10-line bg-white">
             {([
               ["cal", "Vista de calendario", <CalendarDays key="cal" size={20} aria-hidden="true" />],
               ["cards", "Vista de registros con foto", <LayoutGrid key="cards" size={20} aria-hidden="true" />],
@@ -208,7 +208,7 @@ const ReportPage = () => {
 
       {/* Periodo */}
       <div className="flex flex-wrap items-center gap-3">
-        <div role="group" aria-label="Reporte por" className="inline-flex h-10 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white">
+        <div role="group" aria-label="Reporte por" className="inline-flex h-10 overflow-hidden rounded-lg border border-c10-line bg-white">
           {([["employees", "Empleados"], ["locations", "Ubicaciones"]] as [GroupingMode, string][]).map(([mode, text]) => (
             <button key={mode} type="button" aria-pressed={groupingMode === mode} onClick={() => changeGrouping(mode)} className={segBtn(groupingMode === mode)}>
               {text}
@@ -219,23 +219,23 @@ const ReportPage = () => {
           aria-label="Periodo"
           value={period}
           onChange={e => setPeriod(e.target.value as PeriodView)}
-          className="h-10 min-w-[130px] rounded-lg border border-[#E2E8F0] bg-white px-2.5 text-[#475569]"
+          className="h-10 min-w-[130px] rounded-lg border border-c10-line bg-white px-2.5 text-c10-secondary"
         >
           {PERIOD_VIEWS.map(v => (
             <option key={v.value} value={v.value}>{v.label}</option>
           ))}
         </select>
-        <div className="inline-flex h-10 items-center overflow-hidden rounded-lg border border-[#E2E8F0] bg-white">
-          <button type="button" aria-label="Periodo anterior" onClick={goPrev} className="h-10 w-10 text-lg text-[#475569] hover:bg-[#F8FAFC]">‹</button>
-          <strong className="whitespace-nowrap px-3.5 tabular-nums text-[#0F172A]">{label}</strong>
-          <button type="button" aria-label="Periodo siguiente" onClick={goNext} className="h-10 w-10 text-lg text-[#475569] hover:bg-[#F8FAFC]">›</button>
+        <div className="inline-flex h-10 items-center overflow-hidden rounded-lg border border-c10-line bg-white">
+          <button type="button" aria-label="Periodo anterior" onClick={goPrev} className="h-10 w-10 text-lg text-c10-secondary hover:bg-c10-panel">‹</button>
+          <strong className="whitespace-nowrap px-3.5 tabular-nums text-c10-title">{label}</strong>
+          <button type="button" aria-label="Periodo siguiente" onClick={goNext} className="h-10 w-10 text-lg text-c10-secondary hover:bg-c10-panel">›</button>
         </div>
         <button
           type="button"
           onClick={goToday}
           disabled={isCurrent}
           title={isCurrent ? "Ya estás viendo el periodo actual" : "Regresar al periodo actual"}
-          className="h-10 rounded-lg border border-[#2F80ED] bg-[#2F80ED] px-3.5 font-semibold text-white hover:bg-[#1E6FDB] disabled:cursor-default disabled:border-[#E2E8F0] disabled:bg-white disabled:text-[#64748B] disabled:opacity-70"
+          className="h-10 rounded-lg border border-[#2F80ED] bg-[#2F80ED] px-3.5 font-semibold text-white hover:bg-[#1E6FDB] disabled:cursor-default disabled:border-c10-line disabled:bg-white disabled:text-c10-meta disabled:opacity-70"
         >
           Hoy
         </button>
@@ -245,7 +245,7 @@ const ReportPage = () => {
               aria-label="Departamento"
               value={departamento}
               onChange={e => setDepartamento(e.target.value)}
-              className="h-10 rounded-lg border border-[#E2E8F0] bg-white px-2.5 text-[#475569]"
+              className="h-10 rounded-lg border border-c10-line bg-white px-2.5 text-c10-secondary"
             >
               <option value="">Departamento: Todos</option>
               {departamentos.map(d => <option key={d} value={d}>{d}</option>)}
@@ -254,7 +254,7 @@ const ReportPage = () => {
               aria-label="Jornada"
               value={jornada}
               onChange={e => setJornada(e.target.value)}
-              className="h-10 max-w-[240px] rounded-lg border border-[#E2E8F0] bg-white px-2.5 text-[#475569]"
+              className="h-10 max-w-[240px] rounded-lg border border-c10-line bg-white px-2.5 text-c10-secondary"
             >
               <option value="">Jornada: Todas</option>
               {jornadas.map(j => <option key={j} value={j}>{j}</option>)}
@@ -268,13 +268,13 @@ const ReportPage = () => {
       {!isCards && <div className="flex flex-wrap justify-center gap-x-4 gap-y-2.5 py-1">
         {isEmployees
           ? legendStatuses.map(status => (
-            <span key={status} className="inline-flex items-center gap-1.5 text-xs text-[#475569]">
+            <span key={status} className="inline-flex items-center gap-1.5 text-xs text-c10-secondary">
               <StatusIcon status={status} size={22} />
               {attendanceStatusConfig[status].label}
             </span>
           ))
           : shiftLegendStatuses.map(status => (
-            <span key={status} className="inline-flex items-center gap-1.5 text-xs text-[#475569]">
+            <span key={status} className="inline-flex items-center gap-1.5 text-xs text-c10-secondary">
               <ShiftStatusIcon status={status} size={22} />
               {shiftStatusConfig[status].label}
             </span>

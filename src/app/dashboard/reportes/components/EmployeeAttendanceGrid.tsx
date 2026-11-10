@@ -15,11 +15,11 @@ export const EmployeeAttendanceGrid: React.FC<EmployeeAttendanceGridProps> = ({ 
   const iconSize = days.length > 7 ? 26 : 32;
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
+    <div className="overflow-x-auto rounded-xl border border-c10-line bg-white">
       <table className="w-full border-collapse">
         <thead>
           <tr>
-            <th className="sticky left-0 z-[1] min-w-[180px] whitespace-nowrap bg-[#DBEAFE] px-3 py-2.5 text-left text-xs font-bold tracking-[.03em] text-[#192A4E]">
+            <th className="sticky left-0 z-[1] min-w-[180px] whitespace-nowrap bg-c10-blue-light px-3 py-2.5 text-left text-xs font-bold tracking-[.03em] text-c10-title">
               EMPLEADO
             </th>
             {days.map(d => {
@@ -27,7 +27,7 @@ export const EmployeeAttendanceGrid: React.FC<EmployeeAttendanceGridProps> = ({ 
               return (
                 <th
                   key={toISO(d)}
-                  className={`min-w-[30px] px-0.5 py-1.5 text-center text-[11px] font-bold ${isToday ? "bg-[#2F80ED] text-white" : "bg-[#DBEAFE] text-[#192A4E]"}`}
+                  className={`min-w-[30px] px-0.5 py-1.5 text-center text-[11px] font-bold ${isToday ? "bg-[#2F80ED] text-white" : "bg-c10-blue-light text-c10-title"}`}
                 >
                   {String(d.getDate()).padStart(2, "0")}
                   <small className="block font-normal">{DIAS_CORTOS[d.getDay()]}</small>
@@ -39,9 +39,9 @@ export const EmployeeAttendanceGrid: React.FC<EmployeeAttendanceGridProps> = ({ 
         <tbody>
           {employees.map(emp => (
             <tr key={emp.employee_id} className="group">
-              <td className="sticky left-0 z-[1] whitespace-nowrap border-t border-[#E2E8F0] bg-white px-3 py-2 group-hover:bg-[#F8FAFC]">
-                <div className="font-bold text-[#0F172A]">{emp.nombre}</div>
-                <div className="text-xs text-[#64748B]">{employeeSub(emp)}</div>
+              <td className="sticky left-0 z-[1] whitespace-nowrap border-t border-c10-line bg-white px-3 py-2 group-hover:bg-c10-panel">
+                <div className="font-bold text-c10-title">{emp.nombre}</div>
+                <div className="text-xs text-c10-meta">{employeeSub(emp)}</div>
               </td>
               {days.map(d => {
                 const fecha = toISO(d);
@@ -49,7 +49,7 @@ export const EmployeeAttendanceGrid: React.FC<EmployeeAttendanceGridProps> = ({ 
                 const parcial = permisoParcial(day);
                 const label = `${getStatusConfig(day?.status).label}${parcial ? ` · permiso ${horasSolicitud(parcial)}` : ""}`;
                 return (
-                  <td key={fecha} className="border-t border-[#E2E8F0] px-0.5 py-1.5 text-center group-hover:bg-[#F8FAFC]">
+                  <td key={fecha} className="border-t border-c10-line px-0.5 py-1.5 text-center group-hover:bg-c10-panel">
                     <button
                       type="button"
                       onClick={() => onOpenDay(emp, fecha)}

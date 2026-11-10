@@ -15,7 +15,7 @@ const SearchInput: React.FC<SearchInputProps> = ({ value, onChange }) => {
         value={value}
         onChange={onChange}
         placeholder="Buscar"
-        className="pl-10 w-full bg-[#F0F2F5]"
+        className="pl-10 w-full bg-c10-sunken"
       />
       <div className="absolute top-2 left-2">
         <Search />

@@ -8,6 +8,8 @@ import {
   reapplyMenuPermissions,
   getUserMenuItems,
   listMenuUsers,
+  listUsersMenuItems,
+  UserMenuItems,
   listUsersMissingMenuConfig,
   listUsersOnlyInLegacyAccesos,
   migrateLegacyMenus,
@@ -305,5 +307,89 @@ export const useMenuConfigDiagnostics = () => {
     isFetchingOnlyLegacy,
     errorOnlyLegacy,
     refetchOnlyLegacy,
+  };
+};
+
+/**
+ * Menús asignados de todos los usuarios (tabla de Asignación) y guardado de
+ * los usuarios que cambiaron. Guarda de uno en uno: cada guardado dispara el
+ * workflow que comparte permisos, y en lote eso carga de más el servicio.
+ */
+export const useAllUsersMenuItems = (enabled = true) => {
+  const queryClient = useQueryClient();
+  const queryKey = ["menuAdminAllUserMenuItems"];
+
+  const { data, isLoading, isFetching, error, refetch } = useQuery<Record<number, string[]>>({
+    queryKey,
+    enabled,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const res = await listUsersMenuItems();
+      if (!res?.success) {
+        throw new Error("Error al obtener los menús de los usuarios");
+      }
+      const rows = (res.response?.data ?? []) as UserMenuItems[];
+      const map: Record<number, string[]> = {};
+      for (const row of Array.isArray(rows) ? rows : []) {
+        map[row.user_id] = row.item_keys ?? [];
+      }
+      return map;
+    },
+  });
+
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const saveManyMutation = useMutation({
+    mutationFn: async (changes: { userId: number; keys: string[] }[]) => {
+      const failed: { userId: number; error: string }[] = [];
+      setProgress({ done: 0, total: changes.length });
+      for (const [i, change] of changes.entries()) {
+        try {
+          const response = await saveUserMenuItems(change.userId, change.keys);
+          const statusCode = response?.response?.data?.status_code;
+          if (!response?.success || (statusCode && statusCode >= 400)) {
+            const textMsj = errorMsj(response?.response?.data);
+            failed.push({ userId: change.userId, error: textMsj?.text || "Error al guardar" });
+          }
+        } catch (err) {
+          failed.push({ userId: change.userId, error: (err as Error).message });
+        }
+        setProgress({ done: i + 1, total: changes.length });
+      }
+      return { total: changes.length, failed };
+    },
+    onSuccess: ({ total, failed }) => {
+      if (failed.length) {
+        console.warn("save_user_menu_items: usuarios con error", failed);
+        toast.warning(`Se guardaron ${total - failed.length} de ${total} usuario(s).`, {
+          description: failed
+            .slice(0, 3)
+            .map((f) => `Usuario ${f.userId}: ${f.error}`)
+            .join("\n"),
+          duration: 15000,
+        });
+      } else {
+        toast.success(`Menús guardados para ${total} usuario(s).`, {
+          description: "Los permisos pueden tardar unos minutos en reflejarse.",
+        });
+      }
+    },
+    onError: (err: Error) => toast.error(err.message || "No se pudo guardar."),
+    onSettled: () => {
+      setProgress(null);
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["userMenuAssignment"] });
+      queryClient.invalidateQueries({ queryKey: ["menuAdminUsersMissingConfig"] });
+    },
+  });
+
+  return {
+    keysByUser: data,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+    saveManyMutation,
+    progress,
   };
 };

@@ -27,7 +27,7 @@ function ListItem({ label, value }: ListItemProps) {
   return (
     <div className="py-2 first:pt-0 last:pb-0">
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8] mb-0.5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-c10-faint mb-0.5">
           {label}
         </p>
         <div className="flex flex-wrap gap-2 items-center">
@@ -36,14 +36,14 @@ function ListItem({ label, value }: ListItemProps) {
               <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
                 <Image src="/sin_imagen_rondines.png" alt="Gafete" fill className="object-cover" />
               </div>
-              <span className={`text-[15px] font-medium ${value && value !== "No asignado" ? "text-[#1e293b]" : "text-slate-400"}`}>
+              <span className={`text-[15px] font-medium ${value && value !== "No asignado" ? "text-slate-800" : "text-slate-400"}`}>
                 {value || "No asignado"}
               </span>
             </div>
           ) : Array.isArray(value) ? (
             <ArrayBadgeList values={value} tooltipTitle="Todos" max={10} />
           ) : (
-            <p className="text-[15px] font-medium text-[#1e293b] leading-snug">
+            <p className="text-[15px] font-medium text-slate-800 leading-snug">
               {value || "\u00A0"}
             </p>
           )}
@@ -147,14 +147,14 @@ export function PhotoListCardModal({
                   <EstatusBadge estatus={record.statusLabel} />
                 )}
                 {record.visit_type && (
-                  <div className="inline-flex items-center px-2 py-0.5 rounded-full border bg-[#F3E8FF] border-[#F3E8FF] text-[#9159F4]">
+                  <div className="inline-flex items-center px-2 py-0.5 rounded-full border bg-purple-100 border-purple-100 text-[#9159F4]">
                     <span className="text-[9px] font-black uppercase tracking-[0.1em]">
                       {record.visit_type}
                     </span>
                   </div>
                 )}
                 {record.folio && (
-                  <div className="inline-flex items-center px-2 py-0.5 rounded-full border bg-[#DBEAFE] border-[#DBEAFE] text-[#2987F7]">
+                  <div className="inline-flex items-center px-2 py-0.5 rounded-full border bg-c10-blue-light border-blue-100 text-[#2987F7]">
                     <span className="text-[9px] font-black uppercase tracking-[0.1em]">
                       #{record.folio}
                     </span>

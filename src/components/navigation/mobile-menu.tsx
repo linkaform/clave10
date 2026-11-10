@@ -62,8 +62,11 @@ export function MobileMenu({ modules, basePath = "/dashboard" }: MobileMenuProps
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="lg:hidden">
-          <Menu className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="-ml-1 h-9 w-9 rounded-lg text-c10-title hover:bg-c10-sunken min-[1080px]:hidden">
+          <Menu className="!h-6 !w-6" strokeWidth={2} />
           <span className="sr-only">Abrir menú</span>
         </Button>
       </SheetTrigger>

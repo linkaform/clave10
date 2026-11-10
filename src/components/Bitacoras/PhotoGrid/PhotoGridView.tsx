@@ -215,12 +215,12 @@ export function PhotoGridView({
             {
               label: "",
               value: `#${selectedRecord?.folio || ""}`,
-              customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-bold border border-blue-200",
+              customClass: "bg-c10-blue-light text-[#2987F7] text-xs font-bold border border-blue-200",
             },
             ...(selectedRecord?.visit_type ? [{
               label: "",
               value: selectedRecord.visit_type,
-              customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-bold border border-purple-200",
+              customClass: "bg-purple-100 text-[#9159F4] text-xs font-bold border border-purple-200",
             }] : []),
           ]}
         />
@@ -231,8 +231,8 @@ export function PhotoGridView({
           onOpenChange={setIsModalOpen}
           actions={modalActions?.(selectedRecord)}
           badges={[
-            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] border border-blue-200" },
-            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] border border-purple-200" },
+            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-c10-blue-light text-[#2987F7] border border-blue-200" },
+            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-purple-100 text-[#9159F4] border border-purple-200" },
           ]}
         />
       ) : modalType === "incidencia" ? (
@@ -245,7 +245,7 @@ export function PhotoGridView({
             {
               label: "",
               value: `#${selectedRecord?.folio || ""}`,
-              customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-bold border border-blue-200",
+              customClass: "bg-c10-blue-light text-[#2987F7] text-xs font-bold border border-blue-200",
             },
             ...(showStatusBadge && (selectedRecord as any)?.rawData?.estatus ? [{
               label: "",
@@ -272,8 +272,8 @@ export function PhotoGridView({
       ) : (
         <PhotoGridCardModal
           badges={[
-            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] text-xs font-semibold" },
-            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-semibold" },
+            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-purple-100 text-[#9159F4] text-xs font-semibold" },
+            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-c10-blue-light text-[#2987F7] text-xs font-semibold" },
           ]}
           record={selectedRecord}
           open={isModalOpen}

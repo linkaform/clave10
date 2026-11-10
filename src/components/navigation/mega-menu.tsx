@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   NavigationMenu,
@@ -15,6 +16,9 @@ import {
 import type { MenuModule, MenuSection, MenuItem } from "@/types/menu-types";
 import { groupSectionsByColumn } from "@/types/menu-types";
 
+const TRIGGER_CLASS =
+  "inline-flex h-8 w-max items-center rounded-lg bg-transparent px-[7px] text-[13px] min-[1200px]:px-[9px] min-[1200px]:text-sm min-[1440px]:px-[11px] font-medium text-c10-label whitespace-nowrap transition-colors duration-150 hover:bg-c10-sunken hover:text-c10-title focus:bg-c10-sunken focus:outline-none";
+
 interface MegaMenuProps {
   modules: MenuModule[];
   basePath?: string;
@@ -25,8 +29,8 @@ export function MegaMenu({ modules, basePath = "/dashboard" }: MegaMenuProps) {
   const sortedModules = [...modules].sort((a, b) => a.order - b.order);
 
   return (
-    <NavigationMenu viewport={false}>
-      <NavigationMenuList>
+    <NavigationMenu viewport={false} className="max-w-full justify-end">
+      <NavigationMenuList className="flex-wrap justify-end gap-0.5 py-2">
         {sortedModules.map((module) => (
           <MegaMenuItem
             key={module.id}
@@ -55,8 +59,8 @@ function MegaMenuItem({ module, basePath, isActive }: MegaMenuItemProps) {
           <Link
             href={module.href}
             className={cn(
-              "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-              isActive && "text-primary font-semibold",
+              TRIGGER_CLASS,
+              isActive && "text-[#2F80ED]",
             )}>
             {module.label}
           </Link>
@@ -71,41 +75,24 @@ function MegaMenuItem({ module, basePath, isActive }: MegaMenuItemProps) {
     .map(([, sections]) => sections);
   const maxColumns = populatedColumns.length || 1;
   const hasSidebar = module.sidebar && module.sidebar.items.length > 0;
-  // Con más de 4 columnas el menú ya no cabe centrado bajo su trigger sin
-  // salirse de la ventana, así que se vuelve una barra de ancho completo.
-  const isFullWidth = maxColumns > 4;
 
   return (
     <NavigationMenuItem>
       <NavigationMenuTrigger
         className={cn(
-          "bg-transparent data-[state=open]:bg-accent/50",
-          isActive && "text-primary font-semibold",
+          TRIGGER_CLASS,
+          "[&>svg]:hidden data-[state=open]:bg-c10-sunken data-[state=open]:text-[#2F80ED] data-[state=open]:hover:bg-c10-sunken data-[state=open]:focus:bg-c10-sunken",
+          isActive && "text-[#2F80ED]",
         )}>
         {module.label}
       </NavigationMenuTrigger>
-      <NavigationMenuContent
-        className={
-          isFullWidth
-            ? "md:!fixed md:!top-[57px] md:!left-0 md:!right-0 md:!mt-0 md:!w-screen md:!translate-x-0"
-            : "md:left-1/2 md:-translate-x-1/2"
-        }>
-        <div className={cn("flex", isFullWidth && "mx-auto max-w-[1400px] px-6 lg:px-12")}>
-          {/* Contenido principal del menú */}
+      <NavigationMenuContent className="md:!fixed md:!top-[var(--c10-header-h,65px)] md:!left-0 md:!right-0 md:!mt-0 md:!w-screen md:!translate-x-0 md:!rounded-none md:!border-0 md:!border-b md:!border-c10-line-card md:!bg-c10-surface md:!p-0 md:!shadow-[0_16px_32px_rgba(15,23,42,.08)] max-h-[calc(100vh-var(--c10-header-h,65px))] overflow-y-auto">
+        <div className="flex justify-center px-6 pb-8 pt-7 font-[Arial,Helvetica,sans-serif]">
           <div
-            className={cn(
-              "grid gap-6 p-6",
-              !isFullWidth && maxColumns === 1 && "w-[220px]",
-              !isFullWidth && maxColumns === 2 && "w-[420px] grid-cols-2",
-              !isFullWidth && maxColumns === 3 && "w-[580px] grid-cols-3",
-              !isFullWidth && maxColumns === 4 && "w-[750px] grid-cols-4",
-              isFullWidth && "w-full",
-            )}
-            style={
-              isFullWidth
-                ? { gridTemplateColumns: `repeat(${maxColumns}, minmax(160px, 1fr))` }
-                : undefined
-            }>
+            className="grid w-fit max-w-full gap-x-10 gap-y-7 min-[1440px]:gap-x-14"
+            style={{
+              gridTemplateColumns: `repeat(${maxColumns}, minmax(168px, max-content))`,
+            }}>
             {populatedColumns.map((sections, i) => (
               <MenuColumn
                 key={i}
@@ -118,7 +105,7 @@ function MegaMenuItem({ module, basePath, isActive }: MegaMenuItemProps) {
 
           {/* Sidebar opcional */}
           {hasSidebar && (
-            <div className="border-l border-border bg-muted/30 p-6 w-[180px]">
+            <div className="ml-12 w-[180px] border-l border-c10-line-card pl-8">
               <MenuSidebar items={module.sidebar!.items} basePath={basePath} />
             </div>
           )}
@@ -138,7 +125,7 @@ function MenuColumn({ sections, basePath, moduleKey }: MenuColumnProps) {
   const sortedSections = [...sections].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
       {sortedSections.map((section) => (
         <MenuSectionComponent
           key={section.id}
@@ -167,18 +154,15 @@ function MenuSectionComponent({
   const SectionLabel = () => (
     <h4
       className={cn(
-        "text-sm font-semibold mb-2 text-foreground transition-colors",
-        section.href && "hover:text-primary relative group/section w-max",
+        "mb-2.5 text-sm font-bold text-c10-title transition-colors duration-150",
+        section.href && "w-max hover:text-[#2F80ED]",
       )}>
       {section.label}
-      {section.href && (
-        <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover/section:w-1/2" />
-      )}
     </h4>
   );
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col [&+&]:mt-4 [&+&]:border-t [&+&]:border-c10-line-card [&+&]:pt-3.5">
       {section.href ? (
         <Link
           href={
@@ -191,7 +175,7 @@ function MenuSectionComponent({
       ) : (
         <SectionLabel />
       )}
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-0.5">
         {sortedItems.map((item) => (
           <MenuItemComponent
             key={item.key}
@@ -230,18 +214,24 @@ function MenuItemComponent({
     href = `${basePath}/${moduleKey}/${sectionKey}/${item.key}`;
   }
 
+  const isAction = item.label.trim().startsWith("+");
+
   return (
     <li>
       <Link
         href={href}
         className={cn(
-          "block text-sm py-1 transition-colors text-foreground hover:text-primary relative group/item",
-          item.type === "link" &&
-            item.variant === "primary" &&
-            "text-primary font-medium",
+          "flex items-center gap-1.5 py-1 text-sm text-c10-secondary transition-colors duration-150 hover:text-[#2F80ED]",
+          item.type === "link" && item.variant === "primary" && "text-[#2F80ED]",
         )}>
-        {item.label}
-        <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover/item:w-1/2" />
+        {isAction ? (
+          <>
+            <Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+            <span className="italic">{item.label.trim().replace(/^\+\s*/, "")}</span>
+          </>
+        ) : (
+          item.label
+        )}
       </Link>
     </li>
   );
@@ -270,23 +260,19 @@ function MenuSidebar({ items, basePath }: MenuSidebarProps) {
               <Link
                 href={href}
                 className={cn(
-                  "block text-sm py-1 transition-colors relative group/sidebar-item",
-                  item.variant === "primary"
-                    ? "text-primary hover:text-primary/80 font-medium"
-                    : "text-foreground hover:text-primary",
+                  "block py-1 text-sm transition-colors duration-150 hover:text-[#2F80ED]",
+                  item.variant === "primary" ? "text-[#2F80ED]" : "text-c10-secondary",
                 )}>
                 {item.label}
-                <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover/sidebar-item:w-1/2" />
               </Link>
             ) : (
               <button
-                className="block text-sm py-1 text-foreground hover:text-primary transition-colors w-full text-left relative group/sidebar-btn"
+                className="block w-full py-1 text-left text-sm text-c10-secondary transition-colors duration-150 hover:text-[#2F80ED]"
                 onClick={() => {
                   // Aquí puedes manejar acciones personalizadas
                   console.log(`Action triggered: ${item.key}`);
                 }}>
                 {item.label}
-                <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover/sidebar-btn:w-1/2" />
               </button>
             )}
           </li>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowRightLeft, RefreshCw, ScanSearch } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { DiagBlock, DiagEmpty, diagBtn, diagTableWrap } from "./diag-ui";
 import {
   Table,
   TableBody,
@@ -56,71 +56,60 @@ export const MenuConfigDiagnosticsPanel = () => {
   };
 
   return (
-    <div className="flex flex-col gap-8">
-      <section>
-        <div className="flex items-center justify-between mb-2 gap-4">
-          <div>
-            <h2 className="text-lg font-semibold">Usuarios sin configuración de menús</h2>
-            <p className="text-sm text-muted-foreground">
-              Existen en el catálogo de usuarios pero nunca se les asignó ningún menú
-              (CONFIGURACION_MENUS).
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
+    <div className="flex flex-col gap-4">
+      <DiagBlock
+        title="Usuarios sin menús"
+        count={isLoadingMissingConfig ? undefined : missingConfig.length}
+        description="Existen en el catálogo de usuarios pero nunca se les asignó ningún menú. Al iniciar sesión verán una pantalla vacía."
+        actions={
+          <button
+            type="button"
+            className={diagBtn.secondary}
             onClick={() => handleRefetch(refetchMissingConfig)}
             disabled={isFetchingMissingConfig}>
             <RefreshCw size={14} className={isFetchingMissingConfig ? "animate-spin" : ""} />
             Actualizar
-          </Button>
-        </div>
+          </button>
+        }>
         <UsersDiagnosticTable
           users={missingConfig}
           isLoading={isLoadingMissingConfig}
           error={errorMissingConfig}
           emptyMessage="Todos los usuarios tienen configuración de menús."
         />
-      </section>
+      </DiagBlock>
 
-      <section>
-        <div className="flex items-center justify-between mb-2 gap-4">
-          <div>
-            <h2 className="text-lg font-semibold">
-              Usuarios solo en Configuración Accesos (legacy)
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Tienen registro en la forma legacy de permisos (Configuración Accesos) pero
-              nunca se migraron a CONFIGURACION_MENUS — pueden estar operando con permisos
-              desactualizados.
-            </p>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
+      <DiagBlock
+        title="Usuarios con configuración anterior"
+        count={isLoadingOnlyLegacy ? undefined : onlyLegacy.length}
+        description="Sus permisos siguen en la configuración de accesos anterior y no se han migrado. Pueden estar operando con permisos desactualizados."
+        actions={
+          <>
+            <button
+              type="button"
+              className={diagBtn.secondary}
               onClick={() => handleRefetch(refetchOnlyLegacy)}
               disabled={isFetchingOnlyLegacy}>
               <RefreshCw size={14} className={isFetchingOnlyLegacy ? "animate-spin" : ""} />
               Actualizar
-            </Button>
-            <Button
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+            </button>
+            <button
+              type="button"
+              className={diagBtn.primary}
               onClick={() => setMigrateOpen(true)}
               disabled={onlyLegacy.length === 0 || isMigrateRunning}>
               <ArrowRightLeft size={14} className={isMigrateRunning ? "animate-spin" : ""} />
-              {isMigrateRunning ? "Migrando..." : `Migrar (${onlyLegacy.length})`}
-            </Button>
-          </div>
-        </div>
+              {isMigrateRunning ? "Migrando..." : `Migrar Todos (${onlyLegacy.length})`}
+            </button>
+          </>
+        }>
         <UsersDiagnosticTable
           users={onlyLegacy}
           isLoading={isLoadingOnlyLegacy}
           error={errorOnlyLegacy}
-          emptyMessage="Ningún usuario quedó solo en Configuración Accesos."
+          emptyMessage="Ningún usuario quedó en la configuración anterior."
         />
-      </section>
+      </DiagBlock>
 
       <PermissionGapsSection />
 
@@ -151,36 +140,34 @@ const UsersDiagnosticTable: React.FC<UsersDiagnosticTableProps> = ({
   emptyMessage,
 }) => {
   if (isLoading) {
-    return <div className="text-center py-6 text-muted-foreground text-sm">Cargando...</div>;
+    return <DiagEmpty>Cargando...</DiagEmpty>;
   }
   if (error) {
     return (
-      <div className="text-center py-6 text-red-600 text-sm">
-        Error al cargar la lista. Intenta actualizar de nuevo.
-      </div>
+      <DiagEmpty tone="error">Error al cargar la lista. Intenta actualizar de nuevo.</DiagEmpty>
     );
   }
   if (users.length === 0) {
-    return <div className="text-center py-6 text-muted-foreground text-sm">{emptyMessage}</div>;
+    return <DiagEmpty>{emptyMessage}</DiagEmpty>;
   }
   return (
-    <div className="border rounded-lg">
+    <div className={diagTableWrap}>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>User ID</TableHead>
             <TableHead>Nombre</TableHead>
-            <TableHead>Username</TableHead>
-            <TableHead>Email</TableHead>
+            <TableHead>Usuario</TableHead>
+            <TableHead>Correo</TableHead>
+            <TableHead>ID</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {users.map((user) => (
             <TableRow key={user.user_id}>
-              <TableCell>{user.user_id}</TableCell>
-              <TableCell>{user.nombre}</TableCell>
+              <TableCell className="font-semibold">{user.nombre || "—"}</TableCell>
               <TableCell>{user.username}</TableCell>
               <TableCell>{user.email}</TableCell>
+              <TableCell className="tabular-nums text-c10-meta">{user.user_id}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -229,51 +216,44 @@ const PermissionGapsSection = () => {
   };
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-2 gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">Usuarios con permisos incompletos</h2>
-          <p className="text-sm text-muted-foreground">
-            Tienen configuración de menús, pero les falta compartida alguna Forma, Catálogo o
-            Script que piden sus menús. Reaplicar vuelve a compartir directo a un usuario, sin
-            cambiar sus menús. Para varios usuarios usa Compartir masivo (abajo).
-          </p>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          {/* Sin "Reaplicar todos" (1509): reaplicar usuario por usuario a muchos es la
-              carga que tumbó el servicio. Para varios usuarios se usa Compartir masivo. */}
-          <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={isAnalyzing || isReapplying}>
-            <ScanSearch size={14} className={isAnalyzing ? "animate-pulse" : ""} />
-            {isAnalyzing ? "Analizando..." : "Analizar"}
-          </Button>
-        </div>
-      </div>
+    <DiagBlock
+      title="Usuarios con permisos incompletos"
+      count={gaps ? usuarios.length : undefined}
+      description="Tienen menús asignados, pero les falta acceso a alguna forma, catálogo o script que esos menús necesitan. Reaplicar vuelve a compartirlos sin cambiar sus menús. Para varios usuarios usa Compartir masivo (abajo)."
+      actions={
+        /* Sin "Reaplicar todos" (1509): reaplicar usuario por usuario a muchos es la
+            carga que tumbó el servicio. Para varios usuarios se usa Compartir masivo. */
+        <button
+          type="button"
+          className={diagBtn.secondary}
+          onClick={handleAnalyze}
+          disabled={isAnalyzing || isReapplying}>
+          <ScanSearch size={14} className={isAnalyzing ? "animate-pulse" : ""} />
+          {isAnalyzing ? "Analizando..." : "Analizar"}
+        </button>
+      }>
 
       {isAnalyzing && !gaps ? (
-        <div className="text-center py-6 text-muted-foreground text-sm">
+        <DiagEmpty>
           Analizando permisos de cada usuario... puede tardar en cuentas con muchos usuarios.
-        </div>
+        </DiagEmpty>
       ) : error ? (
-        <div className="text-center py-6 text-red-600 text-sm">
-          Error al analizar. Intenta de nuevo.
-        </div>
+        <DiagEmpty tone="error">Error al analizar. Intenta de nuevo.</DiagEmpty>
       ) : !gaps ? (
-        <div className="text-center py-6 text-muted-foreground text-sm">
+        <DiagEmpty>
           Presiona &quot;Analizar&quot; para revisar los permisos compartidos de cada usuario.
-        </div>
+        </DiagEmpty>
       ) : (
         <>
-          <p className="text-xs text-muted-foreground mb-2">
+          <p className="text-xs text-c10-meta">
             Revisados: {gaps.revisados} · Con faltantes: {usuarios.length}
             {gaps.borrados > 0 && ` · Usuarios borrados en Linkaform (se omiten): ${gaps.borrados}`}
             {gaps.errores.length > 0 && ` · No se pudieron revisar: ${gaps.errores.length}`}
           </p>
           {usuarios.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground text-sm">
-              Todos los usuarios tienen completos los permisos de sus menús.
-            </div>
+            <DiagEmpty>Todos los usuarios tienen completos los permisos de sus menús.</DiagEmpty>
           ) : (
-            <div className="border rounded-lg">
+            <div className={diagTableWrap}>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -292,7 +272,7 @@ const PermissionGapsSection = () => {
                       {TIPOS.map((t) => <TableCell key={t.key}>{u.faltan[t.key]?.length ?? 0}</TableCell>)}
                       <TableCell className="max-w-xs">
                         <details className="text-xs">
-                          <summary className="cursor-pointer text-blue-600">
+                          <summary className="cursor-pointer text-[#2F80ED]">
                             {u.total} faltante(s){u.total_sobran > 0 && ` · ${u.total_sobran} de más`}
                           </summary>
                           <ul className="mt-1 space-y-0.5">
@@ -304,9 +284,13 @@ const PermissionGapsSection = () => {
                         </details>
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline" disabled={isReapplying} onClick={() => setSeleccion([u])}>
+                        <button
+                          type="button"
+                          className={diagBtn.secondary}
+                          disabled={isReapplying}
+                          onClick={() => setSeleccion([u])}>
                           Reaplicar
-                        </Button>
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -326,6 +310,6 @@ const PermissionGapsSection = () => {
         isReapplying={isReapplying}
         onConfirm={handleConfirm}
       />
-    </section>
+    </DiagBlock>
   );
 };

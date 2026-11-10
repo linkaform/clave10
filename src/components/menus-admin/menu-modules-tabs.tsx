@@ -16,7 +16,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ModuleGroup } from "@/lib/menus-admin-tree";
 
@@ -26,6 +25,8 @@ interface MenuModulesTabsProps {
   onSelect: (menuKey: string) => void;
   onReorder: (modules: ModuleGroup[]) => void;
   onAddModule: () => void;
+  /** Botones extra al final de la fila (p. ej. Exportar). */
+  extra?: React.ReactNode;
 }
 
 export const MenuModulesTabs: React.FC<MenuModulesTabsProps> = ({
@@ -34,6 +35,7 @@ export const MenuModulesTabs: React.FC<MenuModulesTabsProps> = ({
   onSelect,
   onReorder,
   onAddModule,
+  extra,
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -50,7 +52,7 @@ export const MenuModulesTabs: React.FC<MenuModulesTabsProps> = ({
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <div className="flex items-center gap-2 border-b pb-2 mb-4 overflow-x-auto">
+      <div className="flex flex-wrap items-center gap-2">
         <SortableContext
           items={modules.map((m) => m.menuKey)}
           strategy={horizontalListSortingStrategy}>
@@ -63,9 +65,13 @@ export const MenuModulesTabs: React.FC<MenuModulesTabsProps> = ({
             />
           ))}
         </SortableContext>
-        <Button type="button" variant="outline" size="sm" onClick={onAddModule}>
+        <button
+          type="button"
+          onClick={onAddModule}
+          className="flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-c10-line-strong bg-c10-surface pl-2.5 pr-3 text-sm font-medium text-c10-secondary transition-colors duration-150 hover:border-[#2F80ED] hover:text-[#2F80ED]">
           <Plus size={14} /> Módulo
-        </Button>
+        </button>
+        {extra}
       </div>
     </DndContext>
   );
@@ -80,6 +86,7 @@ interface ModuleTabProps {
 const ModuleTab: React.FC<ModuleTabProps> = ({ module, isSelected, onSelect }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: module.menuKey });
+  const itemCount = module.sections.reduce((n, s) => n + s.items.length, 0);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -92,17 +99,26 @@ const ModuleTab: React.FC<ModuleTabProps> = ({ module, isSelected, onSelect }) =
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-1 rounded-md border px-2 py-1 text-sm cursor-pointer shrink-0 cursor-grab active:cursor-grabbing",
-        isSelected ? "bg-blue-600 text-white border-blue-600" : "bg-white hover:bg-slate-50",
+        "flex h-9 shrink-0 cursor-grab items-center gap-1.5 rounded-lg border pl-1.5 pr-2 text-sm transition-colors duration-150 active:cursor-grabbing",
+        isSelected
+          ? "border-[#2F80ED] bg-[#2F80ED] font-semibold text-white"
+          : "border-c10-line bg-c10-surface text-c10-text hover:bg-c10-panel",
       )}
       onClick={onSelect}
       {...attributes}
       {...listeners}>
       <GripVertical
         size={14}
-        className={isSelected ? "text-white/80" : "text-muted-foreground"}
+        className={isSelected ? "text-white/70" : "text-c10-faint"}
       />
       {module.menu}
+      <span
+        className={cn(
+          "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold tabular-nums",
+          isSelected ? "bg-white/20 text-white" : "bg-c10-sunken text-c10-secondary",
+        )}>
+        {itemCount}
+      </span>
     </div>
   );
 };

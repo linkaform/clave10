@@ -114,7 +114,7 @@ export default function LoginPage() {
             <Card className="w-[440px] shadow-md border-0 rounded-2xl">
               <CardContent className="flex flex-col items-center px-10 py-12">
                 <Image
-                  className="mb-10"
+                  className="mb-10 dark:brightness-0 dark:invert"
                   src="https://f001.backblazeb2.com/file/app-linkaform/public-client-126/71202/60b81349bde5588acca320e1/694ace05f1bef74262302cc9.png"
                   alt="Clave 10"
                   width={174}

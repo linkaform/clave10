@@ -152,8 +152,8 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
           ...(selectedRecord?.status
             ? [{ label: "", value: selectedRecord.status, customClass: "bg-slate-100 text-slate-600 border border-slate-200" }]
             : []),
-          { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4]" },
-          { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7]" },
+          { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-purple-100 text-[#9159F4]" },
+          { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-c10-blue-light text-[#2987F7]" },
         ]}
       />
       <div className="flex gap-4 items-start">
@@ -173,7 +173,7 @@ const CheckUbicacionesTable: React.FC<CheckUbicacionesTableProps> = ({
             <>
               <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
                 <Table className="text-xs">
-                  <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
+                  <TableHeader className="bg-c10-blue-light hover:bg-c10-blue-light border-b border-slate-200">
                     {table.getHeaderGroups().map((headerGroup) => (
                       <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
                         {headerGroup.headers.map((header) => (

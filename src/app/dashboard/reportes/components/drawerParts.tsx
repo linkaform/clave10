@@ -5,31 +5,31 @@ import { Skeleton } from "@/components/ui/skeleton";
 // Piezas comunes de los paneles de detalle (día de empleado y turno de caseta)
 
 export const CloseButton = ({ onClick, label = "Cerrar" }: { onClick: () => void; label?: string }) => (
-  <button type="button" aria-label={label} onClick={onClick} className="h-9 w-9 flex-none rounded-lg border-none bg-[#F1F5F9] text-lg text-[#475569] hover:bg-[#E2E8F0]">
+  <button type="button" aria-label={label} onClick={onClick} className="h-9 w-9 flex-none rounded-lg border-none bg-c10-sunken text-lg text-c10-secondary hover:bg-c10-line">
     ×
   </button>
 );
 
 export const Fields = ({ children }: { children: React.ReactNode }) => (
-  <div className="grid grid-cols-2 gap-3 rounded-xl border border-[#E2E8F0] bg-white p-3.5">{children}</div>
+  <div className="grid grid-cols-2 gap-3 rounded-xl border border-c10-line bg-white p-3.5">{children}</div>
 );
 
 export const Field = ({ label, value, full, loading }: { label: string; value?: React.ReactNode; full?: boolean; loading?: boolean }) => (
   <div className={full ? "col-span-2" : ""}>
-    <span className="block text-xs text-[#64748B]">{label}</span>
-    {loading ? <Skeleton className="mt-1 h-4 w-24" /> : <b className="tabular-nums text-[#0F172A]">{value || "---"}</b>}
+    <span className="block text-xs text-c10-meta">{label}</span>
+    {loading ? <Skeleton className="mt-1 h-4 w-24" /> : <b className="tabular-nums text-c10-title">{value || "---"}</b>}
   </div>
 );
 
 export const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div className="flex flex-col gap-2.5 rounded-xl border border-[#E2E8F0] bg-white p-3.5">
-    <h3 className="m-0 text-sm font-bold text-[#0F172A]">{title}</h3>
+  <div className="flex flex-col gap-2.5 rounded-xl border border-c10-line bg-white p-3.5">
+    <h3 className="m-0 text-sm font-bold text-c10-title">{title}</h3>
     {children}
   </div>
 );
 
 export const Warn = ({ children }: { children: React.ReactNode }) => (
-  <div className="rounded-lg bg-[#FFEDD5] px-2.5 py-2 text-[13px] text-[#9A3412]">{children}</div>
+  <div className="rounded-lg bg-orange-100 px-2.5 py-2 text-[13px] text-orange-800">{children}</div>
 );
 
 export type EvidencePhoto = {
@@ -90,19 +90,19 @@ export const EvidencePhotos: React.FC<EvidencePhotosProps> = ({ photos, fecha, p
                 type="button"
                 aria-label={`Ampliar foto de ${photo.label.toLowerCase()}`}
                 onClick={() => setOpen(photo)}
-                className="block aspect-[4/5] w-full overflow-hidden rounded-[10px] border border-[#E2E8F0] bg-[#F1F5F9] p-0 hover:outline hover:outline-2 hover:outline-offset-1 hover:outline-[#2F80ED]"
+                className="block aspect-[4/5] w-full overflow-hidden rounded-[10px] border border-c10-line bg-c10-sunken p-0 hover:outline hover:outline-2 hover:outline-offset-1 hover:outline-[#2F80ED]"
               >
                 <StampedPhoto photo={photo} fecha={fecha} />
               </button>
             ) : loading ? (
               <Skeleton className="aspect-[4/5] w-full rounded-[10px]" />
             ) : (
-              <div className="flex aspect-[4/5] items-center justify-center rounded-[10px] border border-dashed border-[#CBD5E1] p-3 text-center text-xs text-[#64748B]">
+              <div className="flex aspect-[4/5] items-center justify-center rounded-[10px] border border-dashed border-c10-line-strong p-3 text-center text-xs text-c10-meta">
                 {photo.emptyText}
               </div>
             )}
-            <figcaption className="text-[13px] text-[#475569]">
-              <b className="text-[#0F172A]">{photo.label}</b>
+            <figcaption className="text-[13px] text-c10-secondary">
+              <b className="text-c10-title">{photo.label}</b>
               {photo.url && photo.time ? ` · ${photo.time}` : ""}
               <br />
               {photo.url && registro ? registro : " "}
@@ -123,9 +123,9 @@ export const EvidencePhotos: React.FC<EvidencePhotosProps> = ({ photos, fecha, p
             <div className="aspect-[4/5] overflow-hidden rounded-[10px]">
               <StampedPhoto photo={open} fecha={fecha} />
             </div>
-            <figcaption className="flex items-start justify-between gap-3 text-[13px] text-[#475569]">
+            <figcaption className="flex items-start justify-between gap-3 text-[13px] text-c10-secondary">
               <div>
-                <b className="text-sm text-[#0F172A]">{open.label} · {open.time}</b>
+                <b className="text-sm text-c10-title">{open.label} · {open.time}</b>
                 <br />
                 {person ? `${person} · ` : ""}{d.getDate()} de {MESES[d.getMonth()]}
                 {registro && (<><br />{registro}</>)}
@@ -141,7 +141,7 @@ export const EvidencePhotos: React.FC<EvidencePhotosProps> = ({ photos, fecha, p
 
 // Marca para turnos que se cerraron solos con el siguiente check-in
 export const AutoCloseMark = ({ text, label }: { text: string; label: string }) => (
-  <span title={text} className="ml-1.5 inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-semibold text-[#92400E]">
+  <span title={text} className="ml-1.5 inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 3 2 21h20L12 3z" /><path d="M12 10v5M12 18v.5" /></svg>
     {label}
   </span>

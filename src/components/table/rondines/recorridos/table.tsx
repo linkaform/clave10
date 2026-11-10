@@ -630,7 +630,7 @@ const RecorridosTable: React.FC<ListProps> = ({
                 {viewMode === "table" && (
                   <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm mt-2">
                     <Table className="text-xs">
-                      <TableHeader className="bg-[#DBEAFE] hover:bg-[#DBEAFE] border-b border-slate-200">
+                      <TableHeader className="bg-c10-blue-light hover:bg-c10-blue-light border-b border-slate-200">
                         {table.getHeaderGroups().map((headerGroup) => (
                           <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
                             {headerGroup.headers.map((header) => (

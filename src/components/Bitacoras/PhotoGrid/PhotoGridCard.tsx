@@ -152,7 +152,7 @@ export function PhotoGridCard({
           {cardConfig?.folioTag && record?.folio && (
             <Badge
               variant={"default"}
-              className="bg-[#DBEAFE] hover:bg-[#DBEAFE] text-[0.65rem] py-0 px-2 h-5 text-blue-700 rounded-slg">
+              className="bg-c10-blue-light hover:bg-c10-blue-light text-[0.65rem] py-0 px-2 h-5 text-blue-700 rounded-slg">
               {record.folio}
             </Badge>
           )}
@@ -199,7 +199,7 @@ export function PhotoGridCard({
           <div className="self-start">
             <Badge
               variant={"default"}
-              className="bg-[#F3E8FF] hover:bg-[#F3E8FF] text-[0.7rem] text-[#B44BFB] rounded-sm">
+              className="bg-purple-100 hover:bg-purple-100 text-[0.7rem] text-[#B44BFB] rounded-sm">
               {headerBadge}
             </Badge>
           </div>

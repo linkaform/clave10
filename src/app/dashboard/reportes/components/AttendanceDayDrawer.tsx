@@ -72,19 +72,19 @@ export const AttendanceDayDrawer: React.FC<AttendanceDayDrawerProps> = ({ select
       <aside
         role="dialog"
         aria-labelledby="attendance-day-title"
-        className="fixed bottom-0 right-0 top-0 z-[60] flex w-[min(420px,100%)] flex-col border-l border-[#E2E8F0] bg-white shadow-[0_10px_30px_rgba(15,23,42,.12)]"
+        className="fixed bottom-0 right-0 top-0 z-[60] flex w-[min(420px,100%)] flex-col border-l border-c10-line bg-white shadow-[0_10px_30px_rgba(15,23,42,.12)]"
       >
-        <header className="flex items-start justify-between gap-3 border-b border-[#E2E8F0] px-5 pb-3 pt-5">
+        <header className="flex items-start justify-between gap-3 border-b border-c10-line px-5 pb-3 pt-5">
           <div>
-            <h2 id="attendance-day-title" className="m-0 text-lg font-bold text-[#0F172A]">{employee.nombre}</h2>
-            <div className="text-xs text-[#64748B]">
+            <h2 id="attendance-day-title" className="m-0 text-lg font-bold text-c10-title">{employee.nombre}</h2>
+            <div className="text-xs text-c10-meta">
               {fechaLarga(fecha)}{employee.departamento ? ` · ${employee.departamento}` : ""}{ubicacion ? ` · ${ubicacion}` : ""}
             </div>
           </div>
           <CloseButton onClick={onClose} />
         </header>
 
-        <div className="flex flex-1 flex-col gap-4 overflow-auto bg-[#F8FAFC] px-5 py-4">
+        <div className="flex flex-1 flex-col gap-4 overflow-auto bg-c10-panel px-5 py-4">
           <div>
             <span className="inline-flex items-center gap-1.5">
               <StatusIcon status={status} size={22} />
@@ -135,7 +135,7 @@ export const AttendanceDayDrawer: React.FC<AttendanceDayDrawerProps> = ({ select
 
           {status === "dia_libre" && (
             <Card title="Día no laboral">
-              <span className="text-[#475569]">Según sus días libres, este día es descanso. No cuenta como falta.</span>
+              <span className="text-c10-secondary">Según sus días libres, este día es descanso. No cuenta como falta.</span>
             </Card>
           )}
 
@@ -160,7 +160,7 @@ export const AttendanceDayDrawer: React.FC<AttendanceDayDrawerProps> = ({ select
 
           {comentarios.length > 0 && (
             <Card title="Comentarios">
-              <ul className="m-0 flex list-disc flex-col gap-1 pl-5 text-[#475569]">
+              <ul className="m-0 flex list-disc flex-col gap-1 pl-5 text-c10-secondary">
                 {comentarios.map((c, i) => <li key={i}>{c}</li>)}
               </ul>
             </Card>

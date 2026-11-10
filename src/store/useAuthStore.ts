@@ -23,6 +23,9 @@ interface AuthState {
   logout: (queryClient?: any) => void;
 }
 
+/** Claves de localStorage que no se borran al cerrar sesión. */
+const PRESERVED_KEYS = ["c10-theme"];
+
 const useAuthStore = create<AuthState>((set) => {
   // Leer valores desde localStorage al inicializar el store
   const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
@@ -102,7 +105,14 @@ const useAuthStore = create<AuthState>((set) => {
       useMenuStore.getState().clearMenu();
       useGuardSelectionStore.getState().clearSelectedGuards();
       useShiftStore.getState().clearShift();
+      // Preferencias del dispositivo que no son de la sesión (p. ej. el modo
+      // oscuro): sobreviven al cerrar sesión para que el login y el siguiente
+      // inicio de sesión se vean igual.
+      const preserved = PRESERVED_KEYS.map((k) => [k, localStorage.getItem(k)] as const);
       localStorage.clear();
+      preserved.forEach(([k, v]) => {
+        if (v !== null) localStorage.setItem(k, v);
+      });
     },
   };
 });

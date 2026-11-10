@@ -20,7 +20,7 @@ export const SuplenteItem: React.FC<SuplenteItemProps> = ({
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
 //   const {updateSuplenteMutation, isLoading} = useUpdateSuplenteTurnos();
   return (
-    <div className="bg-[#F7F9FC] rounded-md p-3 mt-3">
+    <div className="bg-c10-panel rounded-md p-3 mt-3">
       <p className="text-xs text-gray-500">Suplente</p>
 
       <div className="flex justify-between items-center mt-1">

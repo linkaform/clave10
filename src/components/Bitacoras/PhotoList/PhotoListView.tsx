@@ -225,8 +225,8 @@ export default function PhotoListView({
           onOpenChange={setIsModalOpen}
           actions={modalActions?.(selectedRecord)}
           badges={[
-            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-[#DBEAFE] text-[#2987F7] border border-blue-200" },
-            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-[#F3E8FF] text-[#9159F4] border border-purple-200" },
+            { label: "", value: `#${selectedRecord?.folio || ""}`, customClass: "bg-c10-blue-light text-[#2987F7] border border-blue-200" },
+            { label: "", value: selectedRecord?.visit_type || "", customClass: "bg-purple-100 text-[#9159F4] border border-purple-200" },
           ]}
         />
       ) : modalType === "incidencia" ? (
@@ -239,7 +239,7 @@ export default function PhotoListView({
             {
               label: "",
               value: `#${selectedRecord?.folio || ""}`,
-              customClass: "bg-[#DBEAFE] text-[#2987F7] text-xs font-bold border border-blue-200",
+              customClass: "bg-c10-blue-light text-[#2987F7] text-xs font-bold border border-blue-200",
             },
             ...((selectedRecord as any)?.rawData?.estatus ? [{
               label: "",

@@ -66,18 +66,18 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose }) 
   return (
     <>
       <div className="fixed inset-0 z-[55] bg-white/70" onClick={onClose} />
-      <aside role="dialog" aria-labelledby="shift-title" className="fixed bottom-0 right-0 top-0 z-[60] flex w-[min(420px,100%)] flex-col border-l border-[#E2E8F0] bg-white shadow-[0_10px_30px_rgba(15,23,42,.12)]">
-        <header className="flex items-start justify-between gap-3 border-b border-[#E2E8F0] px-5 pb-3 pt-5">
+      <aside role="dialog" aria-labelledby="shift-title" className="fixed bottom-0 right-0 top-0 z-[60] flex w-[min(420px,100%)] flex-col border-l border-c10-line bg-white shadow-[0_10px_30px_rgba(15,23,42,.12)]">
+        <header className="flex items-start justify-between gap-3 border-b border-c10-line px-5 pb-3 pt-5">
           <div>
-            <h2 id="shift-title" className="m-0 text-lg font-bold text-[#0F172A]">{row.caseta}</h2>
-            <div className="text-xs text-[#64748B]">
+            <h2 id="shift-title" className="m-0 text-lg font-bold text-c10-title">{row.caseta}</h2>
+            <div className="text-xs text-c10-meta">
               {row.ubicacion} · {DIAS[d.getDay()]} {d.getDate()} de {MESES[d.getMonth()]} · {turnoLabel(row)}
             </div>
           </div>
           <CloseButton onClick={onClose} />
         </header>
 
-        <div className="flex flex-1 flex-col gap-4 overflow-auto bg-[#F8FAFC] px-5 py-4">
+        <div className="flex flex-1 flex-col gap-4 overflow-auto bg-c10-panel px-5 py-4">
           <div>
             <span className="inline-flex items-center gap-1.5">
               <ShiftStatusIcon status={day.status} size={22} />
@@ -125,17 +125,17 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose }) 
                       aria-pressed={selected}
                       onClick={() => setGuardId(g.employee_id)}
                       title="Ver su evidencia"
-                      className={`flex items-center gap-3 rounded-lg border p-2 text-left ${selected ? "border-[#2F80ED] bg-[#EFF6FF]" : "border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]"}`}
+                      className={`flex items-center gap-3 rounded-lg border p-2 text-left ${selected ? "border-[#2F80ED] bg-c10-blue-subtle" : "border-c10-line bg-white hover:bg-c10-panel"}`}
                     >
                       <span className={`inline-flex h-8 w-8 flex-none items-center justify-center rounded-[7px] border border-transparent text-[11px] font-bold ${getShiftConfig(gs).className}`}>
                         {initials(g.nombre)}
                       </span>
                       <span className="flex min-w-0 flex-col">
-                        <b className="truncate text-[13px] text-[#0F172A]">
+                        <b className="truncate text-[13px] text-c10-title">
                           {g.nombre}
-                          {g.employee_id === opener?.employee_id && <span className="ml-1.5 text-[11px] font-semibold text-[#64748B]">abrió</span>}
+                          {g.employee_id === opener?.employee_id && <span className="ml-1.5 text-[11px] font-semibold text-c10-meta">abrió</span>}
                         </b>
-                        <span className="text-xs tabular-nums text-[#475569]">
+                        <span className="text-xs tabular-nums text-c10-secondary">
                           {hora(g.fecha_inicio)}{gDiff != null && gDiff > 0 ? ` (+${gDiff} min)` : ""} → {salidaG}{horasG ? ` · ${horasG}` : ""}
                         </span>
                       </span>
@@ -175,9 +175,9 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose }) 
 
           <Card title="Bitácora del turno">
             {eventos.length ? (
-              <ul className="m-0 flex list-disc flex-col gap-1 pl-5 text-[#475569]">{eventos.map((e, i) => <li key={i}>{e}</li>)}</ul>
+              <ul className="m-0 flex list-disc flex-col gap-1 pl-5 text-c10-secondary">{eventos.map((e, i) => <li key={i}>{e}</li>)}</ul>
             ) : (
-              <span className="text-[#64748B]">{day.status === "por_abrir" ? `El turno abre a las ${row.hora_entrada.substring(0, 5)}.` : "Sin movimientos"}</span>
+              <span className="text-c10-meta">{day.status === "por_abrir" ? `El turno abre a las ${row.hora_entrada.substring(0, 5)}.` : "Sin movimientos"}</span>
             )}
           </Card>
         </div>

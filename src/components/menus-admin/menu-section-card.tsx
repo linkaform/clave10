@@ -4,13 +4,15 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Ellipsis, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { IconAction } from "./icon-action";
+import { InlineName } from "./inline-name";
+import { RenameProps } from "./rename";
 import { MenuItemRow } from "./menu-item-row";
 import { SectionGroup } from "@/lib/menus-admin-tree";
 import { MenuItemAdmin } from "@/services/menus-admin";
 
-interface MenuSectionCardProps {
+interface MenuSectionCardProps extends RenameProps {
   section: SectionGroup;
   onEditSection: () => void;
   onDeleteSection: () => void;
@@ -26,7 +28,13 @@ export const MenuSectionCard: React.FC<MenuSectionCardProps> = ({
   onAddItem,
   onEditItem,
   onDeleteItem,
+  renamingId,
+  onStartRename,
+  onRename,
+  onCancelRename,
 }) => {
+  const sectionId = `section:${section.seccionKey}`;
+  const renamingSection = renamingId === sectionId;
   const [collapsed, setCollapsed] = useState(false);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -45,30 +53,34 @@ export const MenuSectionCard: React.FC<MenuSectionCardProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-slate-50 border rounded-lg p-2 flex flex-col gap-2">
+      className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-c10-panel p-2.5">
       <div
-        className="flex items-center gap-1 cursor-grab active:cursor-grabbing"
+        className="flex min-h-8 cursor-grab items-center gap-1 pl-0.5 active:cursor-grabbing"
         {...attributes}
         {...listeners}>
-        <GripVertical size={16} className="text-muted-foreground shrink-0" />
-        <button
-          type="button"
-          className="flex-1 text-left font-semibold text-sm truncate flex items-center gap-1.5"
-          onClick={() => setCollapsed((c) => !c)}>
-          <span className="truncate">{section.seccion}</span>
-        </button>
-        <button
-          title="Editar sección"
-          className="text-blue-500 hover:text-blue-600 shrink-0"
-          onClick={onEditSection}>
-          <Pencil size={14} />
-        </button>
-        <button
-          title="Eliminar sección"
-          className="text-red-500 hover:text-red-600 shrink-0"
-          onClick={onDeleteSection}>
-          <Trash2 size={14} />
-        </button>
+        <GripVertical size={14} className="shrink-0 text-c10-faint" />
+        <InlineName
+          value={section.seccion}
+          editing={renamingSection}
+          onSubmit={(name) => onRename(sectionId, name)}
+          onCancel={onCancelRename}
+          onClick={() => setCollapsed((c) => !c)}
+          onDoubleClick={onEditSection}
+          className="cursor-pointer pl-1 text-left text-sm font-bold text-c10-title"
+        />
+        {!renamingSection && (
+          <>
+            <IconAction title="Cambiar nombre" onClick={() => onStartRename(sectionId)}>
+              <Pencil size={14} />
+            </IconAction>
+            <IconAction title="Más opciones" onClick={onEditSection}>
+              <Ellipsis size={15} />
+            </IconAction>
+            <IconAction title="Eliminar sección" onClick={onDeleteSection} danger>
+              <Trash2 size={14} />
+            </IconAction>
+          </>
+        )}
       </div>
 
       {!collapsed && (
@@ -76,7 +88,7 @@ export const MenuSectionCard: React.FC<MenuSectionCardProps> = ({
           <SortableContext
             items={section.items.map((i) => i.key)}
             strategy={verticalListSortingStrategy}>
-            <div className="flex flex-col gap-1 pl-2">
+            <div className="flex flex-col gap-1.5">
               {section.items.map((item) => (
                 <MenuItemRow
                   key={item.key}
@@ -84,18 +96,25 @@ export const MenuSectionCard: React.FC<MenuSectionCardProps> = ({
                   sectionKey={section.seccionKey}
                   onEdit={() => onEditItem(item)}
                   onDelete={() => onDeleteItem(item)}
+                  isRenaming={renamingId === `item:${item.key}`}
+                  onStartRename={() => onStartRename(`item:${item.key}`)}
+                  onRename={(name) => onRename(`item:${item.key}`, name)}
+                  onCancelRename={onCancelRename}
                 />
               ))}
+              {section.items.length === 0 && (
+                <div className="rounded-lg border border-dashed border-c10-line-strong p-2.5 text-center text-[13px] text-c10-faint">
+                  Sin menús
+                </div>
+              )}
             </div>
           </SortableContext>
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
-            className="justify-start text-muted-foreground"
-            onClick={onAddItem}>
-            <Plus size={14} /> Item
-          </Button>
+            onClick={onAddItem}
+            className="flex h-[30px] items-center gap-1 self-start rounded-lg pl-2 pr-2.5 text-[13px] font-medium text-c10-meta transition-colors duration-150 hover:bg-c10-blue-subtle hover:text-[#2F80ED]">
+            <Plus size={14} /> Menú
+          </button>
         </>
       )}
     </div>

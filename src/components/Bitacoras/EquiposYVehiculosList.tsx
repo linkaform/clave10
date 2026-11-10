@@ -12,7 +12,7 @@ interface EquiposYVehiculosListProps {
 
 const SectionHeader = ({ title }: { title: string }) => (
   <div className="py-3 border-b border-border/40 mb-4">
-    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#94a3b8]">
+    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-c10-faint">
       {title}
     </p>
   </div>
@@ -63,17 +63,17 @@ const CardItem = ({
       />
     </div>
     <div className="flex flex-col justify-center min-w-0 flex-1">
-      <h4 className="text-[15px] font-bold text-[#1e293b] truncate mb-0.5">
+      <h4 className="text-[15px] font-bold text-slate-800 truncate mb-0.5">
         {title}
       </h4>
       {subtitle && <div className="mb-1">{subtitle}</div>}
       <div className="space-y-0.5">
         {fields.map((field, idx) => (
           <div key={idx} className="flex items-center gap-1.5 text-[11px]">
-            <span className="text-[#94a3b8] font-medium whitespace-nowrap">
+            <span className="text-c10-faint font-medium whitespace-nowrap">
               {field.label}:
             </span>
-            <span className="text-[#1e293b] font-bold truncate">
+            <span className="text-slate-800 font-bold truncate">
               {field.value}
             </span>
           </div>
@@ -103,7 +103,7 @@ const EquiposYVehiculosList = ({ record }: EquiposYVehiculosListProps) => {
                 image={v.foto_vehiculo?.[0]?.file_url || DEFAULT_IMAGE}
                 title={`${v.marca_vehiculo} ${v.modelo_vehiculo}`}
                 subtitle={
-                  <span className="text-[12px] text-[#64748b] font-medium">
+                  <span className="text-[12px] text-c10-meta font-medium">
                     {v.tipo} {v.nombre_estado ? `(${v.nombre_estado})` : ""}
                   </span>
                 }
@@ -150,7 +150,7 @@ const EquiposYVehiculosList = ({ record }: EquiposYVehiculosListProps) => {
                   `${e.marca_articulo} ${e.modelo_articulo}`
                 }
                 subtitle={
-                  <span className="text-[12px] text-[#64748b] font-medium">
+                  <span className="text-[12px] text-c10-meta font-medium">
                     {e.tipo_equipo}
                   </span>
                 }

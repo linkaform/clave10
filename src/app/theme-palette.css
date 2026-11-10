@@ -1,0 +1,520 @@
+/*
+ * Paleta de Tailwind remapeada para el modo oscuro (ver tailwind.config.ts).
+ * Las clases existentes (bg-white, bg-gray-100, text-slate-700, bg-blue-50,
+ * text-green-800, border-red-200...) toman su color de estas variables, así
+ * que cambian solas al poner la clase .dark en <html>.
+ *
+ * Claro = valores originales de Tailwind (nada cambia en modo claro).
+ * Oscuro:
+ *  - gray/slate se invierten con la paleta oscura del diseño (Inicio.dc.html).
+ *    bg-gray/slate-700..950 NO se remapean: ya son oscuros (botones, tooltips).
+ *  - bg-white = superficie oscura (#111A2E). text-white no cambia.
+ *  - Tintes de color: bg 50/100/200, border y ring 50/100/200/300 = el tono 500 mezclado
+ *    con la superficie; text 500/600 = tono 400 y text 700/800/900 = 300/200/100.
+ *  - Texto gris tenue (gray/slate 200-300) sube un poco para que se lea.
+ * Valores RGB sin coma para que funcionen los modificadores de opacidad (/50).
+ */
+:root {
+  --gray-50: 249 250 251;
+  --gray-100: 243 244 246;
+  --gray-200: 229 231 235;
+  --gray-300: 209 213 219;
+  --gray-400: 156 163 175;
+  --gray-500: 107 114 128;
+  --gray-600: 75 85 99;
+  --gray-700: 55 65 81;
+  --gray-800: 31 41 55;
+  --gray-900: 17 24 39;
+  --gray-950: 3 7 18;
+  --slate-50: 248 250 252;
+  --slate-100: 241 245 249;
+  --slate-200: 226 232 240;
+  --slate-300: 203 213 225;
+  --slate-400: 148 163 184;
+  --slate-500: 100 116 139;
+  --slate-600: 71 85 105;
+  --slate-700: 51 65 85;
+  --slate-800: 30 41 59;
+  --slate-900: 15 23 42;
+  --slate-950: 2 6 23;
+  --bg-white: 255 255 255;
+  --blue-bg-50: 239 246 255;
+  --blue-bg-100: 219 234 254;
+  --blue-bg-200: 191 219 254;
+  --blue-tx-700: 29 78 216;
+  --blue-tx-800: 30 64 175;
+  --blue-tx-900: 30 58 138;
+  --blue-bd-50: 239 246 255;
+  --blue-bd-100: 219 234 254;
+  --blue-bd-200: 191 219 254;
+  --blue-bd-300: 147 197 253;
+  --red-bg-50: 254 242 242;
+  --red-bg-100: 254 226 226;
+  --red-bg-200: 254 202 202;
+  --red-tx-700: 185 28 28;
+  --red-tx-800: 153 27 27;
+  --red-tx-900: 127 29 29;
+  --red-bd-50: 254 242 242;
+  --red-bd-100: 254 226 226;
+  --red-bd-200: 254 202 202;
+  --red-bd-300: 252 165 165;
+  --green-bg-50: 240 253 244;
+  --green-bg-100: 220 252 231;
+  --green-bg-200: 187 247 208;
+  --green-tx-700: 21 128 61;
+  --green-tx-800: 22 101 52;
+  --green-tx-900: 20 83 45;
+  --green-bd-50: 240 253 244;
+  --green-bd-100: 220 252 231;
+  --green-bd-200: 187 247 208;
+  --green-bd-300: 134 239 172;
+  --yellow-bg-50: 254 252 232;
+  --yellow-bg-100: 254 249 195;
+  --yellow-bg-200: 254 240 138;
+  --yellow-tx-700: 161 98 7;
+  --yellow-tx-800: 133 77 14;
+  --yellow-tx-900: 113 63 18;
+  --yellow-bd-50: 254 252 232;
+  --yellow-bd-100: 254 249 195;
+  --yellow-bd-200: 254 240 138;
+  --yellow-bd-300: 253 224 71;
+  --amber-bg-50: 255 251 235;
+  --amber-bg-100: 254 243 199;
+  --amber-bg-200: 253 230 138;
+  --amber-tx-700: 180 83 9;
+  --amber-tx-800: 146 64 14;
+  --amber-tx-900: 120 53 15;
+  --amber-bd-50: 255 251 235;
+  --amber-bd-100: 254 243 199;
+  --amber-bd-200: 253 230 138;
+  --amber-bd-300: 252 211 77;
+  --orange-bg-50: 255 247 237;
+  --orange-bg-100: 255 237 213;
+  --orange-bg-200: 254 215 170;
+  --orange-tx-700: 194 65 12;
+  --orange-tx-800: 154 52 18;
+  --orange-tx-900: 124 45 18;
+  --orange-bd-50: 255 247 237;
+  --orange-bd-100: 255 237 213;
+  --orange-bd-200: 254 215 170;
+  --orange-bd-300: 253 186 116;
+  --emerald-bg-50: 236 253 245;
+  --emerald-bg-100: 209 250 229;
+  --emerald-bg-200: 167 243 208;
+  --emerald-tx-700: 4 120 87;
+  --emerald-tx-800: 6 95 70;
+  --emerald-tx-900: 6 78 59;
+  --emerald-bd-50: 236 253 245;
+  --emerald-bd-100: 209 250 229;
+  --emerald-bd-200: 167 243 208;
+  --emerald-bd-300: 110 231 183;
+  --indigo-bg-50: 238 242 255;
+  --indigo-bg-100: 224 231 255;
+  --indigo-bg-200: 199 210 254;
+  --indigo-tx-700: 67 56 202;
+  --indigo-tx-800: 55 48 163;
+  --indigo-tx-900: 49 46 129;
+  --indigo-bd-50: 238 242 255;
+  --indigo-bd-100: 224 231 255;
+  --indigo-bd-200: 199 210 254;
+  --indigo-bd-300: 165 180 252;
+  --sky-bg-50: 240 249 255;
+  --sky-bg-100: 224 242 254;
+  --sky-bg-200: 186 230 253;
+  --sky-tx-700: 3 105 161;
+  --sky-tx-800: 7 89 133;
+  --sky-tx-900: 12 74 110;
+  --sky-bd-50: 240 249 255;
+  --sky-bd-100: 224 242 254;
+  --sky-bd-200: 186 230 253;
+  --sky-bd-300: 125 211 252;
+  --purple-bg-50: 250 245 255;
+  --purple-bg-100: 243 232 255;
+  --purple-bg-200: 233 213 255;
+  --purple-tx-700: 126 34 206;
+  --purple-tx-800: 107 33 168;
+  --purple-tx-900: 88 28 135;
+  --purple-bd-50: 250 245 255;
+  --purple-bd-100: 243 232 255;
+  --purple-bd-200: 233 213 255;
+  --purple-bd-300: 216 180 254;
+  --teal-bg-50: 240 253 250;
+  --teal-bg-100: 204 251 241;
+  --teal-bg-200: 153 246 228;
+  --teal-tx-700: 15 118 110;
+  --teal-tx-800: 17 94 89;
+  --teal-tx-900: 19 78 74;
+  --teal-bd-50: 240 253 250;
+  --teal-bd-100: 204 251 241;
+  --teal-bd-200: 153 246 228;
+  --teal-bd-300: 94 234 212;
+  --violet-bg-50: 245 243 255;
+  --violet-bg-100: 237 233 254;
+  --violet-bg-200: 221 214 254;
+  --violet-tx-700: 109 40 217;
+  --violet-tx-800: 91 33 182;
+  --violet-tx-900: 76 29 149;
+  --violet-bd-50: 245 243 255;
+  --violet-bd-100: 237 233 254;
+  --violet-bd-200: 221 214 254;
+  --violet-bd-300: 196 181 253;
+  --pink-bg-50: 253 242 248;
+  --pink-bg-100: 252 231 243;
+  --pink-bg-200: 251 207 232;
+  --pink-tx-700: 190 24 93;
+  --pink-tx-800: 157 23 77;
+  --pink-tx-900: 131 24 67;
+  --pink-bd-50: 253 242 248;
+  --pink-bd-100: 252 231 243;
+  --pink-bd-200: 251 207 232;
+  --pink-bd-300: 249 168 212;
+  --rose-bg-50: 255 241 242;
+  --rose-bg-100: 255 228 230;
+  --rose-bg-200: 254 205 211;
+  --rose-tx-700: 190 18 60;
+  --rose-tx-800: 159 18 57;
+  --rose-tx-900: 136 19 55;
+  --rose-bd-50: 255 241 242;
+  --rose-bd-100: 255 228 230;
+  --rose-bd-200: 254 205 211;
+  --rose-bd-300: 253 164 175;
+  --cyan-bg-50: 236 254 255;
+  --cyan-bg-100: 207 250 254;
+  --cyan-bg-200: 165 243 252;
+  --cyan-tx-700: 14 116 144;
+  --cyan-tx-800: 21 94 117;
+  --cyan-tx-900: 22 78 99;
+  --cyan-bd-50: 236 254 255;
+  --cyan-bd-100: 207 250 254;
+  --cyan-bd-200: 165 243 252;
+  --cyan-bd-300: 103 232 249;
+  --lime-bg-50: 247 254 231;
+  --lime-bg-100: 236 252 203;
+  --lime-bg-200: 217 249 157;
+  --lime-tx-700: 77 124 15;
+  --lime-tx-800: 63 98 18;
+  --lime-tx-900: 54 83 20;
+  --lime-bd-50: 247 254 231;
+  --lime-bd-100: 236 252 203;
+  --lime-bd-200: 217 249 157;
+  --lime-bd-300: 190 242 100;
+  --blue-tx-500: 59 130 246;
+  --blue-tx-600: 37 99 235;
+  --red-tx-500: 239 68 68;
+  --red-tx-600: 220 38 38;
+  --green-tx-500: 34 197 94;
+  --green-tx-600: 22 163 74;
+  --yellow-tx-500: 234 179 8;
+  --yellow-tx-600: 202 138 4;
+  --amber-tx-500: 245 158 11;
+  --amber-tx-600: 217 119 6;
+  --orange-tx-500: 249 115 22;
+  --orange-tx-600: 234 88 12;
+  --emerald-tx-500: 16 185 129;
+  --emerald-tx-600: 5 150 105;
+  --indigo-tx-500: 99 102 241;
+  --indigo-tx-600: 79 70 229;
+  --sky-tx-500: 14 165 233;
+  --sky-tx-600: 2 132 199;
+  --purple-tx-500: 168 85 247;
+  --purple-tx-600: 147 51 234;
+  --teal-tx-500: 20 184 166;
+  --teal-tx-600: 13 148 136;
+  --violet-tx-500: 139 92 246;
+  --violet-tx-600: 124 58 237;
+  --pink-tx-500: 236 72 153;
+  --pink-tx-600: 219 39 119;
+  --rose-tx-500: 244 63 94;
+  --rose-tx-600: 225 29 72;
+  --cyan-tx-500: 6 182 212;
+  --cyan-tx-600: 8 145 178;
+  --lime-tx-500: 132 204 22;
+  --lime-tx-600: 101 163 13;
+  --gray-tx-200: 229 231 235;
+  --gray-tx-300: 209 213 219;
+  --slate-tx-200: 226 232 240;
+  --slate-tx-300: 203 213 225;
+}
+
+.dark {
+  --gray-50: 23 34 58;
+  --gray-100: 30 42 68;
+  --gray-200: 38 50 74;
+  --gray-300: 58 71 98;
+  --gray-400: 124 138 160;
+  --gray-500: 148 163 184;
+  --gray-600: 174 185 202;
+  --gray-700: 203 213 225;
+  --gray-800: 226 232 240;
+  --gray-900: 241 245 249;
+  --gray-950: 248 250 252;
+  --slate-50: 23 34 58;
+  --slate-100: 30 42 68;
+  --slate-200: 38 50 74;
+  --slate-300: 58 71 98;
+  --slate-400: 124 138 160;
+  --slate-500: 148 163 184;
+  --slate-600: 174 185 202;
+  --slate-700: 203 213 225;
+  --slate-800: 226 232 240;
+  --slate-900: 241 245 249;
+  --slate-950: 248 250 252;
+  --bg-white: 17 26 46;
+  --blue-bg-50: 22 38 70;
+  --blue-bg-100: 25 45 82;
+  --blue-bg-200: 28 53 98;
+  --blue-tx-700: 147 197 253;
+  --blue-tx-800: 191 219 254;
+  --blue-tx-900: 219 234 254;
+  --blue-bd-50: 24 43 78;
+  --blue-bd-100: 26 49 90;
+  --blue-bd-200: 30 57 106;
+  --blue-bd-300: 34 68 126;
+  --red-bg-50: 44 31 49;
+  --red-bg-100: 57 34 50;
+  --red-bg-200: 75 37 52;
+  --red-tx-700: 252 165 165;
+  --red-tx-800: 254 202 202;
+  --red-tx-900: 254 226 226;
+  --red-bd-50: 53 33 50;
+  --red-bd-100: 66 35 51;
+  --red-bd-200: 84 39 53;
+  --red-bd-300: 106 43 55;
+  --green-bg-50: 19 47 52;
+  --green-bg-100: 20 57 55;
+  --green-bg-200: 21 70 58;
+  --green-tx-700: 134 239 172;
+  --green-tx-800: 187 247 208;
+  --green-tx-900: 220 252 231;
+  --green-bd-50: 20 53 54;
+  --green-bd-100: 21 64 57;
+  --green-bd-200: 22 77 60;
+  --green-bd-300: 24 94 65;
+  --yellow-bg-50: 43 44 41;
+  --yellow-bg-100: 56 54 39;
+  --yellow-bg-200: 73 66 36;
+  --yellow-tx-700: 253 224 71;
+  --yellow-tx-800: 254 240 138;
+  --yellow-tx-900: 254 249 195;
+  --yellow-bd-50: 52 50 40;
+  --yellow-bd-100: 65 60 38;
+  --yellow-bd-200: 82 72 35;
+  --yellow-bd-300: 104 87 31;
+  --amber-bg-50: 44 42 42;
+  --amber-bg-100: 58 50 40;
+  --amber-bg-200: 76 60 37;
+  --amber-tx-700: 252 211 77;
+  --amber-tx-800: 253 230 138;
+  --amber-tx-900: 254 243 199;
+  --amber-bd-50: 53 47 40;
+  --amber-bd-100: 67 55 38;
+  --amber-bd-200: 85 66 35;
+  --amber-bd-300: 108 79 32;
+  --orange-bg-50: 45 37 43;
+  --orange-bg-100: 59 42 42;
+  --orange-bg-200: 77 49 40;
+  --orange-tx-700: 253 186 116;
+  --orange-tx-800: 254 215 170;
+  --orange-tx-900: 255 237 213;
+  --orange-bd-50: 54 40 42;
+  --orange-bd-100: 68 46 41;
+  --orange-bd-200: 87 53 39;
+  --orange-bd-300: 110 62 36;
+  --emerald-bg-50: 17 45 56;
+  --emerald-bg-100: 17 55 61;
+  --emerald-bg-200: 17 67 68;
+  --emerald-tx-700: 110 231 183;
+  --emerald-tx-800: 167 243 208;
+  --emerald-tx-900: 209 250 229;
+  --emerald-bd-50: 17 51 59;
+  --emerald-bd-100: 17 61 64;
+  --emerald-bd-200: 17 74 71;
+  --emerald-bd-300: 17 90 79;
+  --indigo-bg-50: 27 35 69;
+  --indigo-bg-100: 32 40 81;
+  --indigo-bg-200: 38 46 97;
+  --indigo-tx-700: 165 180 252;
+  --indigo-tx-800: 199 210 254;
+  --indigo-tx-900: 224 231 255;
+  --indigo-bd-50: 30 38 77;
+  --indigo-bd-100: 35 43 89;
+  --indigo-bd-200: 42 49 104;
+  --indigo-bd-300: 50 56 124;
+  --sky-bg-50: 17 43 68;
+  --sky-bg-100: 16 51 80;
+  --sky-bg-200: 16 62 95;
+  --sky-tx-700: 125 211 252;
+  --sky-tx-800: 186 230 253;
+  --sky-tx-900: 224 242 254;
+  --sky-bd-50: 17 48 76;
+  --sky-bd-100: 16 57 87;
+  --sky-bd-200: 16 68 102;
+  --sky-bd-300: 16 82 121;
+  --purple-bg-50: 35 33 70;
+  --purple-bg-100: 44 37 82;
+  --purple-bg-200: 56 41 98;
+  --purple-tx-700: 216 180 254;
+  --purple-tx-800: 233 213 255;
+  --purple-tx-900: 243 232 255;
+  --purple-bd-50: 41 35 78;
+  --purple-bd-100: 50 39 90;
+  --purple-bd-200: 62 44 106;
+  --purple-bd-300: 77 50 126;
+  --teal-bg-50: 17 45 60;
+  --teal-bg-100: 18 54 68;
+  --teal-bg-200: 18 67 77;
+  --teal-tx-700: 94 234 212;
+  --teal-tx-800: 153 246 228;
+  --teal-tx-900: 204 251 241;
+  --teal-bd-50: 17 51 65;
+  --teal-bd-100: 18 61 72;
+  --teal-bd-200: 18 73 82;
+  --teal-bd-300: 18 89 94;
+  --violet-bg-50: 32 34 70;
+  --violet-bg-100: 39 38 82;
+  --violet-bg-200: 49 43 98;
+  --violet-tx-700: 196 181 253;
+  --violet-tx-800: 221 214 254;
+  --violet-tx-900: 237 233 254;
+  --violet-bd-50: 37 37 78;
+  --violet-bd-100: 44 41 90;
+  --violet-bd-200: 54 46 106;
+  --violet-bd-300: 66 52 126;
+  --pink-bg-50: 43 32 59;
+  --pink-bg-100: 56 34 65;
+  --pink-bg-200: 74 38 74;
+  --pink-tx-700: 249 168 212;
+  --pink-tx-800: 251 207 232;
+  --pink-tx-900: 252 231 243;
+  --pink-bd-50: 52 33 63;
+  --pink-bd-100: 65 36 70;
+  --pink-bd-200: 83 40 78;
+  --pink-bd-300: 105 44 89;
+  --rose-bg-50: 44 30 52;
+  --rose-bg-100: 58 33 55;
+  --rose-bg-200: 76 36 58;
+  --rose-tx-700: 253 164 175;
+  --rose-tx-800: 254 205 211;
+  --rose-tx-900: 255 228 230;
+  --rose-bd-50: 53 32 54;
+  --rose-bd-100: 67 34 57;
+  --rose-bd-200: 85 37 60;
+  --rose-bd-300: 108 41 65;
+  --cyan-bg-50: 16 45 66;
+  --cyan-bg-100: 15 54 76;
+  --cyan-bg-200: 14 67 89;
+  --cyan-tx-700: 103 232 249;
+  --cyan-tx-800: 165 243 252;
+  --cyan-tx-900: 207 250 254;
+  --cyan-bd-50: 15 51 73;
+  --cyan-bd-100: 15 60 83;
+  --cyan-bd-200: 14 73 96;
+  --cyan-bd-300: 13 88 112;
+  --lime-bg-50: 31 47 43;
+  --lime-bg-100: 38 58 42;
+  --lime-bg-200: 47 72 40;
+  --lime-tx-700: 190 242 100;
+  --lime-tx-800: 217 249 157;
+  --lime-tx-900: 236 252 203;
+  --lime-bd-50: 35 54 42;
+  --lime-bd-100: 42 65 41;
+  --lime-bd-200: 52 79 39;
+  --lime-bd-300: 63 97 36;
+  --blue-tx-500: 96 165 250;
+  --blue-tx-600: 96 165 250;
+  --red-tx-500: 248 113 113;
+  --red-tx-600: 248 113 113;
+  --green-tx-500: 74 222 128;
+  --green-tx-600: 74 222 128;
+  --yellow-tx-500: 250 204 21;
+  --yellow-tx-600: 250 204 21;
+  --amber-tx-500: 251 191 36;
+  --amber-tx-600: 251 191 36;
+  --orange-tx-500: 251 146 60;
+  --orange-tx-600: 251 146 60;
+  --emerald-tx-500: 52 211 153;
+  --emerald-tx-600: 52 211 153;
+  --indigo-tx-500: 129 140 248;
+  --indigo-tx-600: 129 140 248;
+  --sky-tx-500: 56 189 248;
+  --sky-tx-600: 56 189 248;
+  --purple-tx-500: 192 132 252;
+  --purple-tx-600: 192 132 252;
+  --teal-tx-500: 45 212 191;
+  --teal-tx-600: 45 212 191;
+  --violet-tx-500: 167 139 250;
+  --violet-tx-600: 167 139 250;
+  --pink-tx-500: 244 114 182;
+  --pink-tx-600: 244 114 182;
+  --rose-tx-500: 251 113 133;
+  --rose-tx-600: 251 113 133;
+  --cyan-tx-500: 34 211 238;
+  --cyan-tx-600: 34 211 238;
+  --lime-tx-500: 163 230 53;
+  --lime-tx-600: 163 230 53;
+  --gray-tx-200: 100 116 139;
+  --gray-tx-300: 94 110 136;
+  --slate-tx-200: 100 116 139;
+  --slate-tx-300: 94 110 136;
+}
+
+/*
+ * react-select pone sus colores con estilos propios (clases css-xxxx-control,
+ * -menu, -option...). En oscuro se sobreescriben aquí para no tocar cada uso.
+ * El resaltado de opción queda en :hover (el foco por teclado de la librería
+ * no deja una clase estable).
+ */
+.dark div[class*="-container"] > div[class*="-control"] {
+  background-color: var(--c10-surface) !important;
+  border-color: var(--c10-line) !important;
+}
+.dark div[class*="-container"] div[class*="-singleValue"],
+.dark div[class*="-container"] div[class*="-Input"],
+.dark div[class*="-container"] input {
+  color: var(--c10-text) !important;
+}
+.dark div[class*="-container"] div[class*="-placeholder"] {
+  color: var(--c10-faint) !important;
+}
+.dark div[class*="-container"] div[class*="-menu"] {
+  background-color: var(--c10-surface) !important;
+  box-shadow: 0 0 0 1px var(--c10-line), 0 12px 32px rgba(0, 0, 0, 0.4) !important;
+}
+.dark div[class*="-container"] div[class*="-option"] {
+  background-color: transparent !important;
+  color: var(--c10-text) !important;
+}
+.dark div[class*="-container"] div[class*="-option"]:hover {
+  background-color: var(--c10-sunken) !important;
+}
+.dark div[class*="-container"] div[class*="-option"][aria-selected="true"] {
+  background-color: var(--c10-blue-light) !important;
+}
+.dark div[class*="-container"] div[class*="-indicatorSeparator"] {
+  background-color: var(--c10-line) !important;
+}
+
+/* multiselect-react-dropdown (ubicaciones / responsables en pases) */
+.dark .multiSelectContainer .searchWrapper {
+  background-color: var(--c10-surface) !important;
+  border-color: var(--c10-line) !important;
+}
+.dark .multiSelectContainer input.searchBox {
+  color: var(--c10-text) !important;
+  background: transparent !important;
+}
+.dark .multiSelectContainer input.searchBox::placeholder {
+  color: var(--c10-faint) !important;
+}
+.dark .multiSelectContainer .optionListContainer,
+.dark .multiSelectContainer .optionContainer {
+  background-color: var(--c10-surface) !important;
+  border-color: var(--c10-line) !important;
+}
+.dark .multiSelectContainer li.option {
+  color: var(--c10-text) !important;
+}
+.dark .multiSelectContainer li.option:hover,
+.dark .multiSelectContainer li.highlightOption {
+  background-color: var(--c10-sunken) !important;
+}

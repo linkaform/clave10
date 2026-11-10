@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Ellipsis, Pencil, Trash2 } from "lucide-react";
+import { IconAction } from "./icon-action";
+import { InlineName } from "./inline-name";
 import { MenuModulesTabs } from "./menu-modules-tabs";
 import { MenuSectionsBoard } from "./menu-sections-board";
 import { EditModuleDialog } from "@/components/modals/edit-module-dialog";
@@ -24,6 +25,8 @@ interface MenuCatalogBoardProps {
   onSave: (rows: MenuItemAdmin[], deletedIds: string[]) => void;
   onDirtyChange?: (dirty: boolean) => void;
   isSaving: boolean;
+  /** Botones extra junto a "+ Módulo" (Exportar). */
+  toolbarExtra?: React.ReactNode;
 }
 
 export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
@@ -32,6 +35,7 @@ export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
   onSave,
   onDirtyChange,
   isSaving,
+  toolbarExtra,
 }) => {
   const [modules, setModules] = useState<ModuleGroup[]>([]);
   const [selectedMenuKey, setSelectedMenuKey] = useState<string | null>(null);
@@ -293,6 +297,52 @@ export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
     setDeleteItemTarget(null);
   };
 
+  // ---- renombrar en línea ----
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+
+  const handleRename = (id: string, name: string) => {
+    const [kind, ...rest] = id.split(":");
+    const key = rest.join(":");
+    if (kind === "module") {
+      updateModules((mods) => mods.map((m) => (m.menuKey === key ? { ...m, menu: name } : m)));
+    } else if (kind === "section") {
+      updateModules((mods) =>
+        mods.map((m) =>
+          m.menuKey !== selectedMenuKey
+            ? m
+            : {
+                ...m,
+                sections: m.sections.map((s) =>
+                  s.seccionKey === key ? { ...s, seccion: name } : s,
+                ),
+              },
+        ),
+      );
+    } else if (kind === "item") {
+      updateModules((mods) =>
+        mods.map((m) =>
+          m.menuKey !== selectedMenuKey
+            ? m
+            : {
+                ...m,
+                sections: m.sections.map((s) => ({
+                  ...s,
+                  items: s.items.map((i) => (i.key === key ? { ...i, elemento: name } : i)),
+                })),
+              },
+        ),
+      );
+    }
+    setRenamingId(null);
+  };
+
+  const renameProps = {
+    renamingId,
+    onStartRename: setRenamingId,
+    onRename: handleRename,
+    onCancelRename: () => setRenamingId(null),
+  };
+
   const handleDiscard = () => {
     setModules(groupByModule(items));
     setPendingDeletes([]);
@@ -312,31 +362,65 @@ export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
   }));
 
   return (
-    <div className="flex flex-col gap-4 pb-20">
+    <div className="flex flex-col gap-4">
       <MenuModulesTabs
         modules={modules}
         selectedKey={selectedMenuKey}
         onSelect={setSelectedMenuKey}
         onReorder={(next) => updateModules(() => next)}
         onAddModule={handleAddModule}
+        extra={toolbarExtra}
       />
+
+      {modules.length === 0 && (
+        <div className="rounded-xl bg-c10-panel p-5 text-center text-sm text-c10-meta">
+          No hay módulos en esta plataforma. Agrega el primero con &quot;+ Módulo&quot;.
+        </div>
+      )}
 
       {selectedModule && (
         <>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">{selectedModule.menu}</h2>
-            <button
-              title="Editar módulo"
-              className="text-blue-500 hover:text-blue-600"
-              onClick={handleEditModule}>
-              <Pencil size={14} />
-            </button>
-            <button
-              title="Eliminar módulo"
-              className="text-red-500 hover:text-red-600"
-              onClick={() => setDeleteModuleTarget(selectedModule)}>
-              <Trash2 size={14} />
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-c10-sunken pt-3.5">
+            <div className="flex min-w-0 flex-[1_1_280px] items-center gap-1">
+              <div
+                className={
+                  renamingId === `module:${selectedModule.menuKey}`
+                    ? "mr-1 flex w-[320px] min-w-0 max-w-full"
+                    : "mr-1 flex min-w-0"
+                }>
+                <InlineName
+                  value={selectedModule.menu}
+                  editing={renamingId === `module:${selectedModule.menuKey}`}
+                  onSubmit={(name) => handleRename(`module:${selectedModule.menuKey}`, name)}
+                  onCancel={() => setRenamingId(null)}
+                  onDoubleClick={handleEditModule}
+                  className="flex-none text-lg font-semibold tracking-[-0.01em] text-c10-title"
+                />
+              </div>
+              {renamingId !== `module:${selectedModule.menuKey}` && (
+                <>
+                  <IconAction
+                    title="Cambiar nombre"
+                    onClick={() => setRenamingId(`module:${selectedModule.menuKey}`)}>
+                    <Pencil size={15} />
+                  </IconAction>
+                  <IconAction title="Más opciones" onClick={handleEditModule}>
+                    <Ellipsis size={16} />
+                  </IconAction>
+                </>
+              )}
+              <IconAction
+                title="Eliminar módulo"
+                onClick={() => setDeleteModuleTarget(selectedModule)}
+                danger>
+                <Trash2 size={15} />
+              </IconAction>
+            </div>
+            <span className="text-[13px] tabular-nums text-c10-meta">
+              {selectedModule.sections.length}{" "}
+              {selectedModule.sections.length === 1 ? "sección" : "secciones"} ·{" "}
+              {selectedModule.sections.reduce((n, s) => n + s.items.length, 0)} menús
+            </span>
           </div>
 
           <MenuSectionsBoard
@@ -348,23 +432,35 @@ export const MenuCatalogBoard: React.FC<MenuCatalogBoardProps> = ({
             onEditItem={handleEditItem}
             onDeleteItem={setDeleteItemTarget}
             onAddItem={handleAddItem}
+            {...renameProps}
           />
+          <p className="text-xs text-c10-faint">
+            Arrastra módulos, secciones y menús para reordenarlos. Nada se guarda hasta
+            que le das &quot;Guardar cambios&quot;.
+          </p>
         </>
       )}
 
       {dirty && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg px-6 py-3 flex items-center justify-end gap-3 z-40">
-          <span className="text-sm text-muted-foreground mr-auto">Tienes cambios sin guardar</span>
-          <Button type="button" variant="outline" onClick={handleDiscard} disabled={isSaving}>
-            Descartar
-          </Button>
-          <Button
+        <div className="sticky bottom-4 z-30 flex items-center justify-end gap-3 rounded-2xl bg-c10-surface px-4 py-3 shadow-[0_0_0_1px_var(--c10-line-card),0_12px_32px_rgba(15,23,42,.14)]">
+          <span className="mr-auto flex items-center gap-2 text-sm text-c10-secondary">
+            <span className="h-2 w-2 rounded-full bg-[#F59E0B]" />
+            Tienes cambios sin guardar
+          </span>
+          <button
             type="button"
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={handleDiscard}
+            disabled={isSaving}
+            className="h-10 rounded-lg border border-c10-line bg-c10-surface px-4 text-sm font-medium text-c10-text transition-colors duration-150 hover:bg-c10-sunken disabled:opacity-50">
+            Descartar
+          </button>
+          <button
+            type="button"
             onClick={handleSave}
-            disabled={isSaving}>
-            Guardar cambios
-          </Button>
+            disabled={isSaving}
+            className="h-10 rounded-lg bg-[#2F80ED] px-4 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#1E6FDB] disabled:opacity-50">
+            {isSaving ? "Guardando..." : "Guardar cambios"}
+          </button>
         </div>
       )}
 
