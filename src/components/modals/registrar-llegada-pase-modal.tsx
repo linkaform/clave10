@@ -8,24 +8,16 @@ import { ScanQrCameraModal } from "@/components/modals/scan-qr-camera-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  AlertTriangle,
   Camera,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   FileText,
-  GripVertical,
   Link2,
   Loader2,
   Package,
-  Pencil,
-  Plus,
   Search,
   Sparkles,
-  Trash2,
   Truck,
-  Unlink,
-  User,
-  X,
 } from "lucide-react";
 import { cn, errorMsj, reemplazarGuionMinuscula } from "@/lib/utils";
 import { useUploadImage } from "@/hooks/useUploadImage";
@@ -40,23 +32,30 @@ import {
   emptyUnidad,
   emptyMaterial,
   emptyContenedorData,
-  materialesDeUnidad,
-  refDeUnidad,
-  labelDeUnidad,
-  resolveColorSwatch,
-  UnidadEditorCard,
   serializeUnidades,
   faltantesCarga,
   cajaRapidaOpcional,
   unidadesARegistrar,
+  soloMaterialDelVehiculo,
   emptyCajaRapida,
-  CapturaCajaRapida,
   type CajaRapida,
-  SelectorColorVehiculo,
+  materialesDeUnidad,
 } from "@/components/transportista/agregar-unidad-modal";
-import { SelectorTipoVehiculo, resolverTipoVehiculo } from "@/components/transportista/selector-tipo-vehiculo";
+import { CapturaFotosDocumentos, etiquetaDeFoto, type OpcionFoto } from "@/components/transportista/captura-fotos-documentos";
+import { VisorFotosModal } from "@/components/transportista/visor-fotos-modal";
+import { RenglonesRemolque } from "@/components/transportista/renglones-remolque";
+import { MaterialesCarga } from "@/components/transportista/materiales-carga";
+import { SelectorTipoVehiculo, GaleriaTipoVehiculo, resolverTipoVehiculo, camposDeVehiculo } from "@/components/transportista/selector-tipo-vehiculo";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
+
+// Registrar llegada de pase — mismo flujo simplificado que Nuevo Acceso
+// Transportista (2610-1323 / 2610-1382): buscar pase → fotos primero →
+// formulario de pantalla única. Lo propio de este modal es el buscador del
+// pase, la precarga de sus datos y mandar num_de_pase para que el back
+// convierta la bitácora "programado" en "arribo".
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 // Material tal como lo regresa el análisis de IA — puede venir suelto a nivel
 // del documento o ya ligado dentro de un remolque/contenedor específico.
@@ -69,17 +68,75 @@ interface RawMaterialAI {
   no_orden_compra?: string; // aún sin campo propio en MaterialCarga — no se mapea
 }
 
-interface Props {
-  open: boolean;
-  onClose: () => void;
-  // Cuando ya se sabe a qué pase corresponde (ej. desde el detalle de una
-  // bitácora "programada", que ya trae su num_de_pase) se salta el buscador
-  // manual y se busca este pase directo al abrir.
-  initialPaseId?: string;
-  onLlegadaConfirmada?: (bitacoraId: string) => void;
+type TipoOperacion = "Entrega" | "Recolección";
+
+// Mismo vocabulario que Nuevo Acceso y el detalle de la visita
+// (config/documentos-transportista.ts).
+const DOC_TYPES = TIPOS_DOCUMENTO_SUBIDA;
+
+interface DocItem {
+  id:        string;
+  file_url:  string;
+  file_name: string;
+  uploading: boolean;
+  preview:   string | null;
+  tipo?:     string;
+  // Opción de la cámara (Conductor, Vehículo, Carga) y pista para la IA.
+  opcion?:   string;
+  hint?:     string;
+  // true cuando el tipo quedó fijo — la IA no lo sobrescribe.
+  tipoManual?: boolean;
 }
 
-// ─── Shared field UI — mismo look que Nuevo Acceso Transportista ─────────────
+// Documento capturado al crear el pase (BL, factura, etc.) — de solo lectura
+// aquí, no se sube de nuevo.
+interface DocumentoDelPase {
+  tipo: string;
+  noDoc: string;
+  archivo: { file_name?: string; file_url?: string } | null;
+}
+
+interface ArchivoPase { file_name?: string; file_url?: string }
+
+// El QR del pase codifica la URL completa del preview público
+// (/transportistas/preview/transportista/{id}?p_id=...), no el id en texto
+// plano — se extrae el último segmento de la ruta antes de buscar. Si el
+// texto escaneado no es una URL (QRs antiguos o folio tecleado a mano), se
+// usa tal cual.
+const extraerIdDePase = (raw: string): string => {
+  const texto = raw.trim();
+  try {
+    const url = new URL(texto);
+    const segmentos = url.pathname.split("/").filter(Boolean);
+    const ultimo = segmentos.at(-1);
+    if (ultimo) return decodeURIComponent(ultimo);
+  } catch {
+    // no es una URL válida — se usa el texto tal cual
+  }
+  return texto;
+};
+
+// El campo "Vigencia de Licencia" de la bitácora es tipo fecha: Linkaform
+// rechaza el registro completo ("Este campo debe ser una fecha") si recibe
+// otro formato. La vigencia que trae el pase la captura el transportista en
+// el formulario público, así que se normaliza a YYYY-MM-DD; si no se
+// reconoce como fecha se descarta en vez de bloquear el registro.
+const normalizarFecha = (valor: string): string => {
+  const v = (valor || "").trim();
+  if (!v) return "";
+  const valida = (y: string, m: string, d: string) => {
+    const iso = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    const fecha = new Date(`${iso}T00:00:00`);
+    return !Number.isNaN(fecha.getTime()) && fecha.toISOString().startsWith(iso) ? iso : "";
+  };
+  const isoMatch = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) return valida(isoMatch[1], isoMatch[2], isoMatch[3]);
+  const mxMatch = v.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
+  if (mxMatch) return valida(mxMatch[3], mxMatch[2], mxMatch[1]);
+  return "";
+};
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
@@ -87,69 +144,6 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
       {children}
       {required && <span className="text-red-400 ml-0.5">*</span>}
     </label>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  mono,
-  required,
-  aiFilled,
-  showValidation,
-  minChars,
-  type,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  mono?: boolean;
-  required?: boolean;
-  aiFilled?: boolean;
-  showValidation?: boolean;
-  // Mínimo de caracteres en vez de solo "no vacío" (licencia, factura/OC).
-  minChars?: number;
-  type?: string;
-}) {
-  const missing = required && showValidation && (minChars ? !tieneMinCaracteres(value, minChars) : !value.trim());
-  return (
-    <div>
-      <FieldLabel required={required}>{label}</FieldLabel>
-      <div className="relative">
-        <Input
-          className={cn(
-            "text-sm",
-            mono && "font-mono uppercase",
-            aiFilled && "border-violet-200 bg-violet-50/40",
-            missing && "border-red-300 bg-red-50",
-          )}
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-        />
-        {aiFilled && (
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none">
-            <Sparkles className="w-2.5 h-2.5" /> IA
-          </span>
-        )}
-      </div>
-      {missing && <p className="text-[10px] text-red-500 mt-1">{minChars ? `Mínimo ${minChars} caracteres` : "Campo obligatorio"}</p>}
-    </div>
-  );
-}
-
-function MiniField({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
-  return (
-    <div>
-      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{label}</p>
-      <p className={cn("text-xs text-gray-700 leading-snug", mono && "font-mono", !value && "text-gray-300 italic")}>
-        {value || "Sin información"}
-      </p>
-    </div>
   );
 }
 
@@ -165,67 +159,82 @@ function SectionDivider({ label, icon }: { label: string; icon?: React.ReactNode
   );
 }
 
-// ─── Documentos — mismo vocabulario que Nuevo Acceso y el detalle de la visita
-// (config/documentos-transportista.ts). El guardia sube el archivo y elige el
-// tipo manualmente; también puede analizarse con IA usando ese tipo como hint. ──
-
-const DOC_TYPES = TIPOS_DOCUMENTO_SUBIDA;
-
-interface DocItem {
-  id: string;
-  file_url: string;
-  file_name: string;
-  uploading: boolean;
-  preview: string | null;
-  tipo: string;
-  // true cuando el guardia asignó el tipo a mano — evita que el resultado de
-  // "Analizar con IA" lo sobrescriba con su propia detección automática.
-  tipoManual?: boolean;
+function IaBadge() {
+  return (
+    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-100 border border-violet-200 rounded px-1.5 py-0.5 pointer-events-none">
+      <Sparkles className="w-2.5 h-2.5" /> IA
+    </span>
+  );
 }
 
-// Documento capturado al crear el pase (BL, factura, etc.) — de solo lectura
-// aquí, no se sube de nuevo. Distinto de `documentos` (DocItem[]), que son
-// archivos nuevos capturados en este momento de la llegada (foto de placa,
-// conductor, licencia...).
-interface DocumentoDelPase {
-  tipo: string;
-  noDoc: string;
-  archivo: { file_name?: string; file_url?: string } | null;
+function ListaDocumentosPase({ documentos, fotoLicencia }: { documentos: DocumentoDelPase[]; fotoLicencia: ArchivoPase | null }) {
+  if (!documentos.length && !fotoLicencia) return null;
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Documentos del pase</p>
+      <div className="space-y-1.5">
+        {fotoLicencia?.file_url && (
+          <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+            <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <span className="flex-1 min-w-0 text-xs font-medium text-gray-700 truncate">Licencia del conductor</span>
+            <a href={fotoLicencia.file_url} target="_blank" rel="noopener noreferrer"
+              className="text-[11px] font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2 shrink-0">
+              Ver archivo
+            </a>
+          </div>
+        )}
+        {documentos.map((doc, i) => (
+          <div key={i} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+            <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <div className="flex-1 min-w-0 flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-700 truncate">{doc.tipo || "Sin tipo"}</span>
+              {doc.noDoc && <span className="text-xs text-gray-400 font-mono truncate">{doc.noDoc}</span>}
+            </div>
+            {doc.archivo?.file_url ? (
+              <a href={doc.archivo.file_url} target="_blank" rel="noopener noreferrer"
+                className="text-[11px] font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2 shrink-0">
+                Ver archivo
+              </a>
+            ) : (
+              <span className="text-[11px] text-gray-300 italic shrink-0">Sin archivo</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-const esPdf = (fileName: string) => fileName.toLowerCase().endsWith(".pdf");
+// ─── Main Modal ───────────────────────────────────────────────────────────────
 
-// El QR del pase codifica la URL completa del preview público
-// (/transportistas/preview/transportista/{id}?p_id=...), no el id en texto
-// plano — se extrae el último segmento de la ruta antes de buscar. Si el
-// texto escaneado no es una URL (compatibilidad con QRs antiguos o folio
-// tecleado a mano), se usa tal cual.
-const extraerIdDePase = (raw: string): string => {
-  const texto = raw.trim();
-  try {
-    const url = new URL(texto);
-    const segmentos = url.pathname.split("/").filter(Boolean);
-    const ultimo = segmentos.at(-1);
-    if (ultimo) return decodeURIComponent(ultimo);
-  } catch {
-    // no es una URL válida — se usa el texto tal cual
-  }
-  return texto;
-};
-
-type Tab = "vehiculo" | "remolques";
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: "vehiculo", label: "Vehículo" },
-  { key: "remolques", label: "Carga" },
-];
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  // Cuando ya se sabe a qué pase corresponde (ej. desde el detalle de una
+  // bitácora "programada", que ya trae su num_de_pase) se salta el buscador
+  // manual y se busca este pase directo al abrir.
+  initialPaseId?: string;
+  onLlegadaConfirmada?: (bitacoraId: string) => void;
+}
 
 export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLlegadaConfirmada }: Props) {
   const router = useRouter();
   const { uploadImageMutation } = useUploadImage();
   const { area, location } = useBoothStore();
 
-  const [tab, setTab] = useState<Tab>("vehiculo");
+  // Buscador del pase
+  const [busqueda, setBusqueda] = useState("");
+  const [buscando, setBuscando] = useState(false);
+  const [showScanQr, setShowScanQr] = useState(false);
+  const [numDePase, setNumDePase] = useState<string | null>(null);
+  const [paseInfo, setPaseInfo] = useState<{ folio: string | null } | null>(null);
+
+  // Ya con pase: fotos primero, luego la captura de pantalla única.
+  const [modo, setModo] = useState<"fotos" | "manual">("fotos");
+  const [visorFoto, setVisorFoto] = useState<number | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+
   // La confirmación de cierre solo aplica DESPUÉS de encontrar un pase (una
   // vez que hay datos capturados que se perderían) — antes de buscar, el
   // modal solo tiene el buscador vacío, así que cerrar sin avisar es correcto.
@@ -235,24 +244,46 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
     else { resetForm(); onClose(); }
   };
   const confirmCancel = () => { setShowCancelConfirm(false); resetForm(); onClose(); };
-  const [busqueda, setBusqueda] = useState("");
-  const [buscando, setBuscando] = useState(false);
-  const [showScanQr, setShowScanQr] = useState(false);
-  const [numDePase, setNumDePase] = useState<string | null>(null);
-  const [paseInfo, setPaseInfo] = useState<{
-    folio: string | null;
-    tipoOperacionLabel: string;
-  } | null>(null);
-  const [confirmando, setConfirmando] = useState(false);
-  const [showValidation, setShowValidation] = useState(false);
+
+  // Vehículo — el tipo de operación viene fijo del pase.
+  const [tipoOperacion, setTipoOperacion] = useState<TipoOperacion>("Entrega");
+  const [transportista, setTransportista] = useState("");
+  const [procedencia, setProcedencia] = useState("");
+  const [tipoVehiculo, setTipoVehiculo] = useState("");
+  const [placa, setPlaca] = useState("");
+  const [noEconomico, setNoEconomico] = useState("");
+  const [marcaVehiculo, setMarcaVehiculo] = useState("");
+  const [modeloVehiculo, setModeloVehiculo] = useState("");
+  const [colorVehiculo, setColorVehiculo] = useState("");
+  const [conductor, setConductor] = useState("");
+  // Para avisarle al chofer su andén por SMS (2610-1323).
+  const [celular, setCelular] = useState("");
+  const [noLicencia, setNoLicencia] = useState("");
+  const [vigenciaLicencia, setVigenciaLicencia] = useState("");
+  const [rfcConductor, setRfcConductor] = useState("");
+  const [acompanante, setAcompanante] = useState("");
+  // Placa leída en la tarjeta de circulación del vehículo — sin campo visual,
+  // se manda al confirmar la llegada.
+  const [placaTarjetaVehiculo, setPlacaTarjetaVehiculo] = useState<string | null>(null);
+
+  // Fotos nuevas de la llegada + documentos que ya trae el pase (solo lectura)
+  const [documentos, setDocumentos] = useState<DocItem[]>([]);
+  const [documentosPase, setDocumentosPase] = useState<DocumentoDelPase[]>([]);
+  // Foto de la licencia que el transportista subió en el formulario público
+  // del pase — cuenta como la foto obligatoria de la licencia.
+  const [fotoLicenciaPase, setFotoLicenciaPase] = useState<ArchivoPase | null>(null);
 
   // IA
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
-  const [documentosDetectados, setDocumentosDetectados] = useState<string[]>([]);
-  // Placa leída en la tarjeta de circulación del vehículo — sin campo visual
-  // en este modal todavía, pero se manda al confirmar la llegada.
-  const [placaTarjetaVehiculo, setPlacaTarjetaVehiculo] = useState<string | null>(null);
+
+  // Fotos que ya se analizaron (url + tipo elegido): si al volver a "fotos" no
+  // cambió nada, se continúa sin volver a llamar a la IA.
+  const [firmaAnalizada, setFirmaAnalizada] = useState<string | null>(null);
+  const firmaFotos = () =>
+    documentos.filter((d) => d.file_url).map((d) => `${d.file_url}|${d.opcion ?? ""}`).sort().join(",");
+  // Remolques tal como los dejó la IA, para saber si alguien los editó.
+  const unidadesDeIA = useRef<string | null>(null);
 
   const clearAiField = (field: string) =>
     setAiFilledFields((prev) => {
@@ -261,55 +292,20 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
       return next;
     });
 
-  const [tipoOperacion, setTipoOperacion] = useState<"Entrega" | "Recolección">("Entrega");
-  const [transportista, setTransportista] = useState("");
-  const [procedencia, setProcedencia] = useState("");
+  // Embarque
   const [proveedorCliente, setProveedorCliente] = useState("");
   const [ordenCompra, setOrdenCompra] = useState("");
-  const [tipoVehiculo, setTipoVehiculo] = useState("");
-  const [marcaVehiculo, setMarcaVehiculo] = useState("");
-  const [modeloVehiculo, setModeloVehiculo] = useState("");
-  const [colorVehiculo, setColorVehiculo] = useState("");
-  const [placa, setPlaca] = useState("");
-  const [noEconomico, setNoEconomico] = useState("");
-  const [conductor, setConductor] = useState("");
-  // Para avisarle al chofer su andén por SMS (2610-1323).
-  const [celular, setCelular] = useState("");
-  const [noLicencia, setNoLicencia] = useState("");
-  const [vigenciaLicencia, setVigenciaLicencia] = useState("");
-  const [rfcConductor, setRfcConductor] = useState("");
-  const [acompanante, setAcompanante] = useState("");
 
-  // Documentos del pase (solo lectura) + documentos nuevos capturados ahora
-  const [documentosPase, setDocumentosPase] = useState<DocumentoDelPase[]>([]);
-  const [documentos, setDocumentos] = useState<DocItem[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragCounter = useRef(0);
-
-  // Remolques / contenedores — mismo modelo de unidades que "Nuevo Acceso
-  // Transportista" y el detalle de transportista, para que capturar carga
-  // (y decidir si va a un contenedor o un remolque) se vea y funcione igual
-  // sin importar por cuál de los dos flujos entró el transportista.
+  // Remolques / contenedores — mismo modelo de unidades que Nuevo Acceso y el
+  // detalle de transportista.
   const [unidades, setUnidades] = useState<UnidadItem[]>([]);
-  const [showAgregarUnidad, setShowAgregarUnidad] = useState(false);
-  // Caja y placas rápidas de la pestaña Carga cuando no se agregan unidades.
+  // Caja rápida sin UI (los remolques van en renglones, 2610-1382); se queda
+  // vacía y solo alimenta los helpers de validación y registro.
   const [cajaRapida, setCajaRapida] = useState<CajaRapida>(emptyCajaRapida());
-  const [editingUnit, setEditingUnit] = useState<UnidadItem | null>(null);
-  const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
-
-  const toggleUnit = (id: string) =>
-    setExpandedUnits((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
 
   // Contenedores detectados por IA que no se pudieron ligar automáticamente
-  // a un remolque (más de un remolque y/o contenedor detectados) — se ligan
-  // arrastrándolos sobre la tarjeta del remolque correspondiente.
+  // a un remolque — se ligan eligiendo su caja en los renglones de Remolque.
   const [contenedoresSueltos, setContenedoresSueltos] = useState<(ContenedorData & { id: string })[]>([]);
-  const [dragOverUnidadId, setDragOverUnidadId] = useState<string | null>(null);
 
   const linkContenedorSuelto = (unidadId: string, contenedorId: string) => {
     const target = unidades.find((x) => x.id === unidadId);
@@ -343,71 +339,64 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
         }
       : u));
     setContenedoresSueltos((prev) => prev.filter((c) => c.id !== contenedorId));
-    setExpandedUnits((prev) => new Set(prev).add(unidadId));
-  };
-
-  const unlinkContenedor = (unidadId: string) => {
-    const u = unidades.find((x) => x.id === unidadId);
-    if (!u || u.config !== "remolque_contenedor") return;
-    setContenedoresSueltos((prev) => [...prev, { id: Math.random().toString(36).slice(2), ...u.contenedor }]);
-    setUnidades((prev) => prev.map((x) => x.id === unidadId
-      ? { ...x, config: "solo_remolque", contenedor: emptyContenedorData() }
-      : x));
   };
 
   const resetForm = () => {
-    setTab("vehiculo");
     setBusqueda("");
     setBuscando(false);
     setNumDePase(null);
     setPaseInfo(null);
-    setConfirmando(false);
+    setModo("fotos");
+    setVisorFoto(null);
     setShowValidation(false);
-    setAiAnalyzing(false);
-    setAiFilledFields(new Set());
-    setDocumentosDetectados([]);
-    setPlacaTarjetaVehiculo(null);
-    setContenedoresSueltos([]);
-    setDragOverUnidadId(null);
+    setConfirmando(false);
+    setFirmaAnalizada(null);
+    unidadesDeIA.current = null;
     setTipoOperacion("Entrega");
     setTransportista("");
     setProcedencia("");
-    setProveedorCliente("");
-    setOrdenCompra("");
     setTipoVehiculo("");
+    setPlaca("");
+    setNoEconomico("");
     setMarcaVehiculo("");
     setModeloVehiculo("");
     setColorVehiculo("");
-    setPlaca("");
-    setNoEconomico("");
     setConductor("");
     setCelular("");
     setNoLicencia("");
     setVigenciaLicencia("");
     setRfcConductor("");
     setAcompanante("");
-    setDocumentosPase([]);
+    setPlacaTarjetaVehiculo(null);
     setDocumentos([]);
-    setIsDragging(false);
-    dragCounter.current = 0;
+    setDocumentosPase([]);
+    setFotoLicenciaPase(null);
+    setAiAnalyzing(false);
+    setAiFilledFields(new Set());
+    setProveedorCliente("");
+    setOrdenCompra("");
     setUnidades([]);
     setCajaRapida(emptyCajaRapida());
-    setShowAgregarUnidad(false);
-    setEditingUnit(null);
-    setExpandedUnits(new Set());
+    setContenedoresSueltos([]);
   };
 
-  // ── Upload helpers ────────────────────────────────────────────────────────
+  // ── Upload helpers ────────────────────────────────────────────────────────────
 
-  const uploadDocumento = async (file: File) => {
+  // tipo: el que eligió el guardia al tomar la foto (modo fotos); queda como
+  // manual para que "Analizar con IA" no lo sobrescriba.
+  const uploadDocumento = async (file: File, opcion?: OpcionFoto) => {
     const id = Math.random().toString(36).slice(2);
-    setDocumentos((p) => [...p, { id, file_url: "", file_name: "", uploading: true, preview: URL.createObjectURL(file), tipo: "" }]);
+    setDocumentos((p) => [...p, {
+      id, file_url: "", file_name: "", uploading: true, preview: URL.createObjectURL(file),
+      // `fijo` = la IA no puede cambiarle el tipo (conductor → licencia).
+      ...(opcion ? { opcion: opcion.value, hint: opcion.hint, tipo: opcion.tipo, tipoManual: opcion.fijo } : {}),
+    }]);
     try {
       const renamed = new File([file], reemplazarGuionMinuscula(file.name), { type: file.type });
       const result = await uploadImageMutation.mutateAsync({ img: renamed });
       setDocumentos((p) => p.map((d) => d.id === id ? {
         ...d,
-        file_url: result?.file_url ?? "",
+        file_url:  result?.file_url  ?? "",
         file_name: result?.file_name ?? file.name,
         uploading: false,
       } : d));
@@ -416,22 +405,25 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
     }
   };
   const removeDocumento = (id: string) => setDocumentos((p) => p.filter((d) => d.id !== id));
-  const setDocumentoTipo = (id: string, tipo: string) =>
-    setDocumentos((p) => p.map((d) => d.id === id ? { ...d, tipo, tipoManual: !!tipo } : d));
 
+  // Igual que Nuevo Acceso Transportista — no cambiar aquí sin cambiar allá.
   const analyzePhotosWithAI = async () => {
     setAiAnalyzing(true);
     try {
       const result = await ocrAccesoTransportista(
         documentos
           .filter((d) => d.file_url)
-          .map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo_hint: d.tipo ? DOC_TYPES.find((t) => t.value === d.tipo)?.label : undefined })),
+          .map((d) => ({
+            file_url: d.file_url,
+            file_name: d.file_name,
+            tipo_hint: d.hint ?? (d.tipo ? DOC_TYPES.find((t) => t.value === d.tipo)?.label : undefined),
+          })),
       );
       const hasError = !result?.success || (result?.response?.data?.status_code ?? 0) >= 400;
       if (hasError) {
         const textMsj = errorMsj(result);
         toast.error(textMsj?.text || "Error al analizar los documentos con IA.");
-        return;
+        return false;
       }
       const d = (result?.response?.data?.data ?? {}) as Partial<{
         vehiculo: Partial<{
@@ -470,32 +462,40 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
           volumen:      m.volumen       ?? "",
         }));
 
-      const filled = new Set<string>();
+      // Al re-analizar se respeta lo capturado a mano: solo se llenan los
+      // campos vacíos o los que llenó la IA y nadie tocó (clearAiField los
+      // saca de aiFilledFields al editarlos).
+      const filled = new Set<string>(aiFilledFields);
+      const poner = (campo: string, actual: string, valor: string | undefined, set: (v: string) => void) => {
+        if (!valor || (actual.trim() && !aiFilledFields.has(campo))) return;
+        set(valor);
+        filled.add(campo);
+      };
 
       // Vehículo
-      if (d.vehiculo?.transportista)  { setTransportista(d.vehiculo.transportista);    filled.add("transportista"); }
-      if (d.vehiculo?.tipo_vehiculo)  { setTipoVehiculo(resolverTipoVehiculo(d.vehiculo.tipo_vehiculo)?.value ?? d.vehiculo.tipo_vehiculo);      filled.add("tipoVehiculo"); }
-      if (d.vehiculo?.placa)          { setPlaca(d.vehiculo.placa);                     filled.add("placa"); }
-      if (d.vehiculo?.procedencia)    { setProcedencia(d.vehiculo.procedencia);         filled.add("procedencia"); }
-      if (d.vehiculo?.no_economico)   { setNoEconomico(d.vehiculo.no_economico);        filled.add("noEconomico"); }
-      if (d.vehiculo?.marca)           { setMarcaVehiculo(d.vehiculo.marca);            filled.add("marcaVehiculo"); }
-      if (d.vehiculo?.modelo)          { setModeloVehiculo(d.vehiculo.modelo);           filled.add("modeloVehiculo"); }
-      if (d.vehiculo?.color)           { setColorVehiculo(d.vehiculo.color);             filled.add("colorVehiculo"); }
+      const tipoIA = d.vehiculo?.tipo_vehiculo;
+      poner("transportista",    transportista,    d.vehiculo?.transportista, setTransportista);
+      poner("tipoVehiculo",     tipoVehiculo,     tipoIA && (resolverTipoVehiculo(tipoIA)?.value ?? tipoIA), setTipoVehiculo);
+      poner("placa",            placa,            d.vehiculo?.placa,         setPlaca);
+      poner("procedencia",      procedencia,      d.vehiculo?.procedencia,   setProcedencia);
+      poner("noEconomico",      noEconomico,      d.vehiculo?.no_economico,  setNoEconomico);
+      poner("marcaVehiculo",    marcaVehiculo,    d.vehiculo?.marca,         setMarcaVehiculo);
+      poner("modeloVehiculo",   modeloVehiculo,   d.vehiculo?.modelo,        setModeloVehiculo);
+      poner("colorVehiculo",    colorVehiculo,    d.vehiculo?.color,         setColorVehiculo);
 
       // Conductor
-      if (d.conductor?.nombre)        { setConductor(d.conductor.nombre);               filled.add("conductor"); }
-      if (d.conductor?.no_licencia)   { setNoLicencia(d.conductor.no_licencia);         filled.add("noLicencia"); }
-      if (d.conductor?.vigencia_licencia) { setVigenciaLicencia(d.conductor.vigencia_licencia); filled.add("vigenciaLicencia"); }
-      if (d.conductor?.rfc)            { setRfcConductor(d.conductor.rfc);                filled.add("rfcConductor"); }
-      if (d.conductor?.acompanante)    { setAcompanante(d.conductor.acompanante);         filled.add("acompanante"); }
+      poner("conductor",        conductor,        d.conductor?.nombre,            setConductor);
+      poner("noLicencia",       noLicencia,       d.conductor?.no_licencia,       setNoLicencia);
+      poner("vigenciaLicencia", vigenciaLicencia, d.conductor?.vigencia_licencia, setVigenciaLicencia);
+      poner("rfcConductor",     rfcConductor,     d.conductor?.rfc,               setRfcConductor);
+      poner("acompanante",      acompanante,      d.conductor?.acompanante,       setAcompanante);
 
       // Documentos detectados — asigna tipo a cada DocItem por URL
       if (Array.isArray(d.documentos_detectados) && d.documentos_detectados.length) {
         const byUrl = new Map(d.documentos_detectados.map((dd) => [dd.url, dd.tipo]));
         setDocumentos((prev) =>
-          prev.map((doc) => byUrl.has(doc.file_url) && !doc.tipoManual ? { ...doc, tipo: byUrl.get(doc.file_url) ?? doc.tipo } : doc),
+          prev.map((doc) => byUrl.has(doc.file_url) && !doc.tipoManual ? { ...doc, tipo: byUrl.get(doc.file_url) } : doc),
         );
-        setDocumentosDetectados([...new Set(d.documentos_detectados.map((dd) => dd.tipo))]);
       }
 
       // Remolques y contenedores llegan en arreglos separados — la IA no
@@ -504,7 +504,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
       // sobrante y se ligan automáticamente 1:1 (el usuario corrige después
       // si en realidad son remolques distintos). Si se detectaron 2+
       // remolques reales, la correspondencia es ambigua y los contenedores
-      // quedan "sueltos" para que el usuario los ligue arrastrándolos.
+      // quedan "sueltos" para que el usuario los ligue.
       const remolquesAI = d.remolques ?? [];
       const contenedoresAI = d.contenedores ?? [];
       const unidadesFromAI: UnidadItem[] = remolquesAI.map((r) => {
@@ -541,9 +541,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
 
       // Si se detectó un único remolque real y hay más contenedores que
       // remolques, se duplica la info de ese remolque para cada contenedor
-      // sobrante — el usuario la ajusta después si en realidad corresponde
-      // a un remolque distinto. Con 2+ remolques reales no se rellena nada:
-      // la correspondencia ya es ambigua tal como venía de la IA.
+      // sobrante. Con 2+ remolques reales no se rellena nada.
       const remolquesRealesDetectados = unidadesFromAI.length;
       if (remolquesRealesDetectados === 1) {
         while (unidadesFromAI.length < contenedoresParaLigar.length) {
@@ -558,7 +556,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
         unidadesFromAI.length > 0 &&
         unidadesFromAI.length === contenedoresParaLigar.length
       ) {
-        // Correspondencia 1:1 sin ambigüedad (0-1 remolque real, resto duplicado) — se ligan automáticamente
+        // Correspondencia 1:1 sin ambigüedad — se ligan automáticamente
         contenedoresParaLigar.forEach((c, i) => {
           const { tipo, noSello, noContenedor, noCaja, color, comentarios, materiales } = c;
           unidadesFromAI[i] = {
@@ -567,20 +565,16 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
             contenedor: { tipo, noSello, noContenedor, noCaja, color, comentarios, materiales },
           };
         });
-      } else if (contenedoresParaLigar.length) {
-        setContenedoresSueltos(contenedoresParaLigar);
       }
 
       // Materiales — formato legado: cuando el servicio no liga cada material
       // a su remolque/contenedor, llegan sueltos en un arreglo plano y se
       // anexan a la primera unidad con contenedor (o a la primera unidad).
-      // Si ya llegaron ligados por entidad (ver arriba), este bloque no hace nada.
       if (!materialesYaLigadosPorEntidad && d.materiales?.length) {
         const materialesCarga = toMaterialesCarga(d.materiales);
         if (!unidadesFromAI.length && !contenedoresParaLigar.length) {
           // Ni remolque ni contenedor detectados: el material va directo
-          // sobre el vehículo (pickup, caja integrada) en vez de crear un
-          // remolque fantasma para sostenerlo.
+          // sobre el vehículo (pickup, caja integrada).
           const u = emptyUnidad();
           u.config = "solo_vehiculo";
           u.vehiculo = { materiales: materialesCarga };
@@ -598,28 +592,44 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
         filled.add("carga");
       }
 
-      if (unidadesFromAI.length) {
-        setUnidades(unidadesFromAI);
-        setExpandedUnits(new Set(unidadesFromAI.map((u) => u.id)));
-        filled.add("remolques");
+      const sinCaptura = unidades.every((u) =>
+        !u.remolque.tipo && !u.remolque.placas.trim() && !u.remolque.noCaja.trim()
+        && !materialesDeUnidad(u).some((m) => m.producto));
+      const intactas = unidadesDeIA.current === JSON.stringify(unidades);
+      if (unidadesFromAI.length || contenedoresParaLigar.length) {
+        if (sinCaptura || intactas) {
+          const ligados = unidadesFromAI.some((u) => u.config === "remolque_contenedor");
+          setContenedoresSueltos(ligados ? [] : contenedoresParaLigar);
+          if (unidadesFromAI.length) {
+            setUnidades(unidadesFromAI);
+            unidadesDeIA.current = JSON.stringify(unidadesFromAI);
+            filled.add("remolques");
+          }
+        } else {
+          toast.info("Se conservaron los remolques y materiales que ya estaban capturados.");
+        }
       }
 
       // Embarque
-      if (d.embarque?.proveedor_cliente) { setProveedorCliente(d.embarque.proveedor_cliente); filled.add("proveedorCliente"); }
-      if (d.embarque?.no_orden_compra)   { setOrdenCompra(d.embarque.no_orden_compra);        filled.add("ordenCompra"); }
+      poner("proveedorCliente", proveedorCliente, d.embarque?.proveedor_cliente, setProveedorCliente);
+      poner("ordenCompra",      ordenCompra,      d.embarque?.no_orden_compra,   setOrdenCompra);
 
-      // Placa de la tarjeta de circulación del vehículo — sin campo visual,
-      // se guarda para mandarla al confirmar la llegada.
+      // Placa de la tarjeta de circulación del vehículo — sin campo visual.
       if (d.vehiculo?.placa_tarjeta_circulacion) setPlacaTarjetaVehiculo(d.vehiculo.placa_tarjeta_circulacion);
 
       setAiFilledFields(filled);
+      setFirmaAnalizada(firmaFotos());
+      return true;
     } catch (err) {
       const textMsj = errorMsj(err instanceof Error ? err.message : err);
       toast.error(textMsj?.text || "Error al analizar los documentos con IA.");
+      return false;
     } finally {
       setAiAnalyzing(false);
     }
   };
+
+  // ── Buscar pase y precargar sus datos ─────────────────────────────────────────
 
   const handleBuscar = async (idOverride?: string) => {
     const id = extraerIdDePase(idOverride ?? busqueda);
@@ -649,8 +659,9 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
         conductor_no_licencia: string;
         conductor_vigencia: string;
         conductor_rfc: string;
+        conductor_foto_licencia: ArchivoPase[];
         ayudante_nombre: string;
-        documentos: { tipo?: string; no_doc?: string; archivo?: { file_name?: string; file_url?: string }[] }[];
+        documentos: { tipo?: string; no_doc?: string; archivo?: ArchivoPase[] }[];
         contenedores: { numero?: string; sello?: string; tipo?: string }[];
         materiales: {
           tipo?: string; cantidad?: string; volumen?: string; peso?: string;
@@ -676,9 +687,10 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
       setNoEconomico(d.vehiculo_no_economico || "");
       setConductor(d.conductor_nombre || "");
       setNoLicencia(d.conductor_no_licencia || "");
-      setVigenciaLicencia(d.conductor_vigencia || "");
+      setVigenciaLicencia(normalizarFecha(d.conductor_vigencia || ""));
       setRfcConductor(d.conductor_rfc || "");
       setAcompanante(d.ayudante_nombre || "");
+      setFotoLicenciaPase(d.conductor_foto_licencia?.find((a) => a?.file_url) ?? null);
 
       setDocumentosPase(
         (d.documentos || [])
@@ -690,11 +702,10 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
           })),
       );
 
-      // El pase captura contenedores (lista formal, grupo_contenedores) y
-      // materiales (cada uno con su propio texto libre de "contenedor") por
-      // separado, sin ligarlos entre sí — se convierten a unidades aquí para
-      // que el guardia pueda revisar/corregir esa asignación con el mismo
-      // editor que usa "Nuevo Acceso Transportista".
+      // El pase captura contenedores (lista formal) y materiales (cada uno con
+      // su propio texto libre de "contenedor") por separado, sin ligarlos — se
+      // convierten a unidades aquí para revisarlos con los mismos renglones
+      // que Nuevo Acceso.
       const contenedoresPase = (d.contenedores || []).filter((c) => c.numero || c.sello || c.tipo);
       const materialesPase = d.materiales || [];
 
@@ -741,24 +752,17 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
         }
       });
 
-      // Toda unidad que se haya quedado sin ningún material (ej. un
-      // contenedor del pase que ningún material referenció) empieza con un
+      // Toda unidad que se haya quedado sin ningún material empieza con un
       // renglón vacío, igual que hace emptyUnidad() por defecto.
-      const unidadesConMaterialesPorDefecto = unidadesIniciales.map((u) => ({
+      setUnidades(unidadesIniciales.map((u) => ({
         ...u,
         remolque: { ...u.remolque, materiales: u.remolque.materiales.length ? u.remolque.materiales : [emptyMaterial()] },
         contenedor: { ...u.contenedor, materiales: u.contenedor.materiales.length ? u.contenedor.materiales : [emptyMaterial()] },
-      }));
-
-      setUnidades(unidadesConMaterialesPorDefecto);
-      setExpandedUnits(new Set(unidadesConMaterialesPorDefecto.map((u) => u.id)));
+      })));
 
       setNumDePase(id);
-      setPaseInfo({
-        folio: d.folio ?? null,
-        tipoOperacionLabel: esRecoleccion ? "Recolección" : "Entrega",
-      });
-      setTab("vehiculo");
+      setPaseInfo({ folio: d.folio ?? null });
+      setModo("fotos");
     } catch (err) {
       const textMsj = errorMsj(err instanceof Error ? err.message : err);
       toast.error(textMsj?.text || "No se pudo buscar el pase.");
@@ -777,35 +781,57 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialPaseId]);
 
-  // Flujo simplificado (2610-1323), igual que Nuevo Acceso Transportista.
+  // ── Validación y registro ─────────────────────────────────────────────────────
+
+  // Igual que Nuevo Acceso (juntas 14 y 19 oct): conductor, celular, no. de
+  // licencia y no. de tracto opcionales; se exige la foto de la licencia — la
+  // tomada aquí o la que el transportista ya subió al pase.
+  const tieneFotoLicenciaModal = documentos.some((d) => d.tipo === "licencia" && d.file_url);
+  const tieneFotoLicencia = tieneFotoLicenciaModal || !!fotoLicenciaPase?.file_url;
+  const licenciaVencida = !!vigenciaLicencia && new Date(vigenciaLicencia) < new Date();
+  // Rígidos y pickup no piden no. de tracto ni caja.
+  const campos = camposDeVehiculo(tipoVehiculo);
   const camposFaltantes = [
     !transportista.trim() && "Línea",
     !tipoVehiculo.trim() && "Tipo de vehículo",
-    !placa.trim() && "Placa de tracto",
-    !noEconomico.trim() && "No. de tracto",
-    !conductor.trim() && "Conductor",
-    !celular.trim() && "Celular del conductor",
-    !tieneMinCaracteres(noLicencia) && "No. de licencia (mín. 4)",
+    !placa.trim() && (campos.tracto ? "Placa de tracto" : "Placa del vehículo"),
+    !tieneFotoLicencia && "Foto de la licencia",
     !tieneMinCaracteres(ordenCompra) && "Factura / Orden de compra (mín. 4)",
-    ...faltantesCarga(unidades, cajaRapida, cajaRapidaOpcional(tipoVehiculo)),
+    // Las unidades "Solo vehículo" solo llevan material sin ligar: no cuentan como caja.
+    // Sin caja (rígidos, pickup) los remolques ocultos no se validan.
+    ...(campos.caja
+      ? faltantesCarga(unidades.filter((u) => u.config !== "solo_vehiculo"), cajaRapida, cajaRapidaOpcional(tipoVehiculo))
+      : []),
   ].filter((v): v is string => Boolean(v));
 
   const handleConfirmar = async () => {
     if (!numDePase) return;
     if (camposFaltantes.length > 0) {
       setShowValidation(true);
-      setTab("vehiculo");
       toast.error(`Completa los campos obligatorios: ${camposFaltantes.join(", ")}`);
       return;
     }
     if (contenedoresSueltos.length > 0) {
-      setTab("remolques");
       toast.error("Liga los contenedores pendientes antes de registrar.");
       return;
     }
     setConfirmando(true);
     try {
-      const { remolques, contenedores, materiales } = serializeUnidades(unidadesARegistrar(unidades, cajaRapida));
+      const { remolques, contenedores, materiales } = serializeUnidades(
+        campos.caja ? unidadesARegistrar(unidades, cajaRapida) : soloMaterialDelVehiculo(unidades),
+      );
+      const documentosAdicionales = documentos
+        .filter((d) => d.file_url)
+        .map((d) => ({ file_url: d.file_url, file_name: d.file_name, ...(d.tipo ? { tipo: d.tipo } : {}) }));
+      // Si la licencia no se fotografió aquí, se guarda la del pase en la
+      // bitácora para que el detalle y las inspecciones la vean igual.
+      if (!tieneFotoLicenciaModal && fotoLicenciaPase?.file_url) {
+        documentosAdicionales.push({
+          file_url: fotoLicenciaPase.file_url,
+          file_name: fotoLicenciaPase.file_name || "licencia",
+          tipo: "licencia",
+        });
+      }
       const payload = {
         num_de_pase: numDePase,
         tipo_operacion: tipoOperacion,
@@ -826,7 +852,8 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
           nombre: conductor || null,
           celular: celular || null,
           no_licencia: noLicencia || null,
-          vigencia_licencia: vigenciaLicencia || null,
+          // Campo fecha en la bitácora: solo se manda si es una fecha válida.
+          vigencia_licencia: normalizarFecha(vigenciaLicencia) || null,
           rfc: rfcConductor || null,
           acompanante: acompanante || null,
         },
@@ -834,9 +861,7 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
           proveedor_cliente: proveedorCliente || null,
           no_orden_compra: ordenCompra || null,
         },
-        documentos_adicionales: documentos
-          .filter((d) => d.file_url)
-          .map((d) => ({ file_url: d.file_url, file_name: d.file_name, ...(d.tipo ? { tipo: d.tipo } : {}) })),
+        documentos_adicionales: documentosAdicionales,
         remolques,
         contenedores,
         materiales,
@@ -862,7 +887,9 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
     }
   };
 
-  const unidadesConMaterial = unidades.some((u) => materialesDeUnidad(u).some((m) => m.producto));
+  // ── Render ────────────────────────────────────────────────────────────────────
+
+  const enFotos = !!numDePase && modo === "fotos";
 
   return (
     <>
@@ -878,24 +905,29 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
         onPointerDownOutside={(e) => { if (paseInfo) e.preventDefault(); }}
         onInteractOutside={(e) => { if (paseInfo) e.preventDefault(); }}
         onEscapeKeyDown={(e) => { if (paseInfo) e.preventDefault(); }}
-        className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
+        className={cn("p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl", enFotos ? "max-w-5xl" : "max-w-3xl")}>
         <DialogTitle className="sr-only">Registrar llegada de pase</DialogTitle>
 
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200 shrink-0">
-            <Truck className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h2 className="text-[15px] font-semibold text-gray-800 leading-tight">
-              Registrar llegada de pase
-            </h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Liga un pase de entrada ya creado con su llegada física
-            </p>
+        {/* ── Header ────────────────────────────────── */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-500 opacity-[0.06] pointer-events-none" />
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200 shrink-0">
+              <Truck className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-[15px] font-semibold text-gray-800 leading-tight">
+                Registrar llegada de pase
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Liga un pase de entrada ya creado con su llegada física
+              </p>
+            </div>
           </div>
         </div>
 
         {!numDePase ? (
+          /* ── Paso 1: buscar el pase ─────────────────── */
           <div className="px-6 py-5">
             <div className="flex items-center gap-2">
               <Input
@@ -932,13 +964,14 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
           </div>
         ) : (
           <>
+            {/* ── Pase encontrado ──────────────────────── */}
             <div className="px-6 pt-4">
               <div className="flex items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
                 <div className="flex items-center gap-2 text-sm text-green-700">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>
                     Pase <span className="font-semibold">{paseInfo?.folio || numDePase}</span>
-                    {" — "}{paseInfo?.tipoOperacionLabel}
+                    {" — "}{tipoOperacion}
                   </span>
                 </div>
                 <button
@@ -950,203 +983,148 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
               </div>
             </div>
 
-            {/* ── Tab navigation ────────────────────────── */}
-            <div className="px-6 pt-4 pb-0">
-              <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
-                {TABS.map(({ key, label }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setTab(key)}
-                    className={cn(
-                      "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                      tab === key
-                        ? "bg-white text-gray-800 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700",
-                    )}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="overflow-y-auto max-h-[58vh] px-6 py-5 space-y-5">
-              {/* ══ TAB: VEHÍCULO ════════════════════════ */}
-              {tab === "vehiculo" && (
+            <div className={cn("overflow-y-auto px-6 py-5 space-y-5", enFotos ? "max-h-[70vh]" : "max-h-[58vh]")}>
+              {modo === "fotos" ? (
+                /* ── Paso 2: fotos primero ──────────────── */
+                <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-6 items-stretch">
+                  {/* Izquierda: tipo de vehículo (define qué campos aplican) y
+                      lo que ya trae el pase. Derecha: la cámara. */}
+                  <div className="space-y-4">
+                    <div>
+                      <FieldLabel required>Tipo de vehículo</FieldLabel>
+                      <GaleriaTipoVehiculo
+                        compacta
+                        value={tipoVehiculo}
+                        onChange={(t) => { setTipoVehiculo(t); clearAiField("tipoVehiculo"); }}
+                      />
+                    </div>
+                    <ListaDocumentosPase documentos={documentosPase} fotoLicencia={fotoLicenciaPase} />
+                  </div>
+                  <div className="min-w-0">
+                    <CapturaFotosDocumentos
+                      llenarAlto
+                      fotos={documentos}
+                      onCapturar={(file, opcion) => uploadDocumento(file, opcion)}
+                      onQuitar={removeDocumento}
+                      onCambiarTipo={(id, opcion) => setDocumentos((p) => p.map((d) => d.id === id
+                        ? { ...d, opcion: opcion.value, hint: opcion.hint, tipo: opcion.tipo, tipoManual: opcion.fijo }
+                        : d))}
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* ── Paso 3: formulario de pantalla única ── */
                 <>
-                  <SectionDivider label="Documentos" icon={<FileText className="w-3 h-3" />} />
+                  {/* Fotos ya tomadas en el paso anterior: compactas, para verlas o volver. */}
+                  <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-2.5">
+                    <span className="text-xs font-medium text-gray-500">
+                      {documentos.length
+                        ? `${documentos.length} foto${documentos.length > 1 ? "s" : ""} de la llegada`
+                        : "Sin fotos de la llegada"}
+                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {documentos.map((d, i) => (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => setVisorFoto(i)}
+                          aria-label="Ver foto en grande"
+                          className="relative w-10 h-8 rounded-md overflow-hidden border border-gray-200 bg-white shrink-0 hover:border-blue-400">
+                          {d.preview && <Image src={d.preview} fill className="object-cover" alt="" unoptimized />}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setModo("fotos")}
+                        className="ml-1 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 shrink-0">
+                        <Camera className="w-3.5 h-3.5" /> {documentos.length ? "Ver fotos" : "Tomar fotos"}
+                      </button>
+                    </div>
+                  </div>
+                  {showValidation && !tieneFotoLicencia && (
+                    <p className="text-[11px] text-red-500 -mt-3">Falta la foto del documento del conductor.</p>
+                  )}
+                  {!tieneFotoLicenciaModal && fotoLicenciaPase?.file_url && (
+                    <p className="text-[11px] text-gray-400 -mt-3">Se usará la foto de la licencia que viene en el pase.</p>
+                  )}
+                  <VisorFotosModal
+                    fotos={documentos.map((d) => ({ id: d.id, src: d.preview, etiqueta: etiquetaDeFoto(d) }))}
+                    indice={visorFoto}
+                    onIndice={setVisorFoto}
+                  />
 
-                  {documentosPase.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Documentos del pase</p>
-                      <div className="space-y-1.5">
-                        {documentosPase.map((doc, i) => (
-                          <div key={i} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                            <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                            <div className="flex-1 min-w-0 flex items-center gap-2">
-                              <span className="text-xs font-medium text-gray-700 truncate">{doc.tipo || "Sin tipo"}</span>
-                              {doc.noDoc && <span className="text-xs text-gray-400 font-mono truncate">{doc.noDoc}</span>}
-                            </div>
-                            {doc.archivo?.file_url ? (
-                              <a href={doc.archivo.file_url} target="_blank" rel="noopener noreferrer"
-                                className="text-[11px] font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2 shrink-0">
-                                Ver archivo
-                              </a>
-                            ) : (
-                              <span className="text-[11px] text-gray-300 italic shrink-0">Sin archivo</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                  <SectionDivider label="Conductor" icon={<Search className="w-3 h-3" />} />
+
+                  {/* Vigencia y RFC no se muestran: los lee la IA de la licencia (o
+                      vienen del pase) y se guardan igual; la vigencia solo se
+                      avisa si viene vencida. */}
+                  {licenciaVencida && (
+                    <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      Licencia vencida (vigencia {vigenciaLicencia})
                     </div>
                   )}
 
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Documentos adicionales</p>
-                  <div
-                    className="rounded-xl border border-gray-200 bg-gray-50/40 p-4 space-y-3"
-                    onDragEnter={(e) => { e.preventDefault(); dragCounter.current++; setIsDragging(true); }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDragLeave={() => { dragCounter.current--; if (dragCounter.current === 0) setIsDragging(false); }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      dragCounter.current = 0;
-                      setIsDragging(false);
-                      Array.from(e.dataTransfer.files).forEach(uploadDocumento);
-                    }}
-                  >
-                    <label className="block cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*,application/pdf"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => {
-                          Array.from(e.target.files ?? []).forEach(uploadDocumento);
-                          e.target.value = "";
-                        }}
+                  <div>
+                    <FieldLabel>Nombre del conductor</FieldLabel>
+                    <div className="relative">
+                      <Input
+                        className={cn("text-sm", aiFilledFields.has("conductor") && "border-violet-200 bg-violet-50/40")}
+                        placeholder="Nombre completo"
+                        value={conductor}
+                        onChange={(e) => { setConductor(e.target.value); clearAiField("conductor"); }}
                       />
-                      <div className={`w-full rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-1.5 py-5 ${isDragging ? "border-blue-400 bg-blue-50/60" : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"}`}>
-                        <Camera className={`w-5 h-5 ${isDragging ? "text-blue-400" : "text-gray-300"}`} />
-                        <span className="text-sm text-gray-400 font-medium">{isDragging ? "Suelta aquí" : "Subir imágenes o archivos"}</span>
-                        <span className="text-[11px] text-gray-300">Puedes seleccionar múltiples archivos</span>
-                      </div>
-                    </label>
-
-                    {documentos.length > 0 && (
-                      <div className="space-y-2">
-                        {documentos.map((doc) => (
-                          <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-2">
-                            <div className="relative w-10 h-10 rounded-md overflow-hidden border border-gray-200 bg-gray-50 shrink-0">
-                              {doc.uploading ? (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <span className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                                </div>
-                              ) : esPdf(doc.file_name) ? (
-                                <div className="w-full h-full flex items-center justify-center bg-red-50">
-                                  <FileText className="w-4 h-4 text-red-400" />
-                                </div>
-                              ) : doc.preview ? (
-                                <Image src={doc.preview} fill className="object-cover" alt="" unoptimized />
-                              ) : null}
-                            </div>
-                            <select
-                              value={doc.tipo}
-                              onChange={(e) => setDocumentoTipo(doc.id, e.target.value)}
-                              className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-700 outline-none focus:ring-2 focus:ring-blue-200">
-                              <option value="">Selecciona tipo de documento...</option>
-                              {DOC_TYPES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
-                            </select>
-                            <button
-                              type="button"
-                              onClick={() => removeDocumento(doc.id)}
-                              className="w-6 h-6 rounded-md hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors shrink-0">
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {(() => {
-                      const anyUploading = documentos.some((d) => d.uploading);
-                      const canAnalyze = documentos.some((d) => d.file_url) && !anyUploading;
-                      return (
-                        <>
-                          <button
-                            type="button"
-                            disabled={!canAnalyze || aiAnalyzing}
-                            onClick={analyzePhotosWithAI}
-                            className={cn(
-                              "w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all border-2",
-                              canAnalyze && !aiAnalyzing
-                                ? "border-violet-300 bg-violet-50 text-violet-600 hover:bg-violet-100 hover:border-violet-400"
-                                : "border-gray-200 bg-white text-gray-300 cursor-not-allowed",
-                            )}>
-                            {aiAnalyzing ? (
-                              <>
-                                <span className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
-                                Analizando imágenes...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-4 h-4" />
-                                Analizar con IA
-                              </>
-                            )}
-                          </button>
-
-                          {aiFilledFields.size > 0 && !aiAnalyzing && (
-                            <p className="text-[11px] text-violet-500 font-medium flex items-center gap-1.5">
-                              <Sparkles className="w-3 h-3" />
-                              {aiFilledFields.size} campo
-                              {aiFilledFields.size > 1 ? "s completados" : " completado"}{" "}
-                              automáticamente — puedes editarlos si es necesario
-                            </p>
-                          )}
-
-                          {documentosDetectados.length > 0 && !aiAnalyzing && (
-                            <div className="space-y-1.5">
-                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                Documentos detectados
-                              </p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {documentosDetectados.map((doc) => (
-                                  <span
-                                    key={doc}
-                                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100">
-                                    {doc.replace(/_/g, " ")}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
+                      {aiFilledFields.has("conductor") && <IaBadge />}
+                    </div>
                   </div>
 
-                  <SectionDivider label="Información general" />
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field
-                      label="Línea"
-                      value={transportista}
-                      onChange={(v) => { setTransportista(v); clearAiField("transportista"); }}
-                      required
-                      aiFilled={aiFilledFields.has("transportista")}
-                      showValidation={showValidation}
-                    />
-                    <Field
-                      label="Procedencia"
-                      placeholder="Ej. Bodega central del proveedor"
-                      value={procedencia}
-                      onChange={(v) => { setProcedencia(v); clearAiField("procedencia"); }}
-                      aiFilled={aiFilledFields.has("procedencia")}
-                      showValidation={showValidation}
-                    />
-                  </div>
-
-                  <SectionDivider label="Vehículo" icon={<Truck className="w-3.5 h-3.5" />} />
                   <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <FieldLabel>Celular</FieldLabel>
+                      <PhoneInput
+                        limitMaxLength
+                        defaultCountry="MX"
+                        placeholder="81 1234 5678"
+                        value={celular}
+                        onChange={(v) => setCelular(v || "")}
+                        containerComponentProps={{
+                          className: "flex h-10 w-full rounded-md border border-input bg-background pl-3 py-0 text-sm focus-within:ring-2 focus-within:ring-ring",
+                        }}
+                        numberInputProps={{ className: "pl-3 bg-transparent outline-none text-sm font-mono" }}
+                      />
+                    </div>
+                    <div>
+                      <FieldLabel>No. de licencia</FieldLabel>
+                      <div className="relative">
+                        <Input
+                          className={cn(
+                            "text-sm font-mono uppercase placeholder:normal-case placeholder:font-sans",
+                            aiFilledFields.has("noLicencia") && "border-violet-200 bg-violet-50/40",
+                          )}
+                          placeholder="Ej. AB123456"
+                          value={noLicencia}
+                          onChange={(e) => { setNoLicencia(e.target.value); clearAiField("noLicencia"); }}
+                        />
+                        {aiFilledFields.has("noLicencia") && <IaBadge />}
+                      </div>
+                    </div>
+                    <div>
+                      <FieldLabel>Acompañante</FieldLabel>
+                      <div className="relative">
+                        <Input
+                          className={cn("text-sm", aiFilledFields.has("acompanante") && "border-violet-200 bg-violet-50/40")}
+                          placeholder="Nombre del acompañante"
+                          value={acompanante}
+                          onChange={(e) => { setAcompanante(e.target.value); clearAiField("acompanante"); }}
+                        />
+                        {aiFilledFields.has("acompanante") && <IaBadge />}
+                      </div>
+                    </div>
+                  </div>
+
+                  <SectionDivider label="Vehículo" icon={<Truck className="w-3 h-3" />} />
+
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <FieldLabel required>Tipo de vehículo</FieldLabel>
                       <SelectorTipoVehiculo
@@ -1155,354 +1133,141 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
                         aiFilled={aiFilledFields.has("tipoVehiculo")}
                         invalid={showValidation && !tipoVehiculo.trim()}
                       />
-                      {showValidation && !tipoVehiculo.trim() && <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>}
+                      {showValidation && !tipoVehiculo.trim() && (
+                        <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
+                      )}
                     </div>
-                    <Field
-                      label="Placa de tracto" value={placa} mono
-                      onChange={(v) => { setPlaca(v); clearAiField("placa"); }}
-                      required aiFilled={aiFilledFields.has("placa")} showValidation={showValidation}
-                    />
-                    <Field
-                      label="No. de tracto" value={noEconomico}
-                      onChange={(v) => { setNoEconomico(v); clearAiField("noEconomico"); }}
-                      required aiFilled={aiFilledFields.has("noEconomico")} showValidation={showValidation}
-                    />
-                  </div>
-                  {/* Marca y modelo no se muestran (2610-1323): los llena la IA y se
-                      guardan igual, pero no estorban la captura. */}
-                  <div>
-                    <FieldLabel>Color</FieldLabel>
-                    <SelectorColorVehiculo
-                      value={colorVehiculo}
-                      onChange={(c) => { setColorVehiculo(c); clearAiField("colorVehiculo"); }}
-                      aiFilled={aiFilledFields.has("colorVehiculo")}
-                    />
-                  </div>
-
-                  <SectionDivider label="Conductor" icon={<User className="w-3.5 h-3.5" />} />
-                  <div className="grid grid-cols-3 gap-4">
-                    <Field
-                      label="Nombre" value={conductor}
-                      onChange={(v) => { setConductor(v); clearAiField("conductor"); }}
-                      required aiFilled={aiFilledFields.has("conductor")} showValidation={showValidation}
-                    />
                     <div>
-                      <FieldLabel required>Celular</FieldLabel>
-                      <PhoneInput
-                        limitMaxLength
-                        defaultCountry="MX"
-                        placeholder="81 1234 5678"
-                        value={celular}
-                        onChange={(v) => setCelular(v || "")}
-                        containerComponentProps={{
-                          className: cn(
-                            "flex h-9 w-full rounded-md border border-input bg-transparent pl-3 py-0 text-sm shadow-sm focus-within:ring-1 focus-within:ring-ring",
-                            showValidation && !celular.trim() && "border-red-300 bg-red-50",
-                          ),
-                        }}
-                        numberInputProps={{ className: "pl-3 bg-transparent outline-none text-sm font-mono" }}
-                      />
-                      {showValidation && !celular.trim() && <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>}
+                      <FieldLabel required>Línea</FieldLabel>
+                      <div className="relative">
+                        <Input
+                          className={cn(
+                            "text-sm",
+                            aiFilledFields.has("transportista") && "border-violet-200 bg-violet-50/40",
+                            showValidation && !transportista.trim() && "border-red-300 bg-red-50",
+                          )}
+                          placeholder="Nombre de la línea transportista"
+                          value={transportista}
+                          onChange={(e) => { setTransportista(e.target.value); clearAiField("transportista"); }}
+                        />
+                        {aiFilledFields.has("transportista") && <IaBadge />}
+                      </div>
+                      {showValidation && !transportista.trim() && (
+                        <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
+                      )}
                     </div>
-                    <Field
-                      label="No. de licencia" value={noLicencia} mono placeholder="Mín. 4 caracteres"
-                      onChange={(v) => { setNoLicencia(v); clearAiField("noLicencia"); }}
-                      required minChars={4} aiFilled={aiFilledFields.has("noLicencia")} showValidation={showValidation}
-                    />
                   </div>
-                  {/* RFC no se muestra (2610-1323); si la IA lo detecta se guarda igual. */}
+
                   <div className="grid grid-cols-2 gap-4">
-                    <Field
-                      label="Vigencia" value={vigenciaLicencia}
-                      onChange={(v) => { setVigenciaLicencia(v); clearAiField("vigenciaLicencia"); }}
-                      aiFilled={aiFilledFields.has("vigenciaLicencia")}
-                    />
-                    <Field
-                      label="Ayudante" value={acompanante}
-                      onChange={(v) => { setAcompanante(v); clearAiField("acompanante"); }}
-                      aiFilled={aiFilledFields.has("acompanante")}
-                    />
-                  </div>
-
-                  <SectionDivider label="Proveedor / Cliente" />
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field
-                      label="Proveedor / Cliente" value={proveedorCliente}
-                      onChange={(v) => { setProveedorCliente(v); clearAiField("proveedorCliente"); }}
-                      aiFilled={aiFilledFields.has("proveedorCliente")}
-                    />
-                    <Field
-                      label="Factura / Orden de compra" value={ordenCompra} placeholder="Mín. 4 caracteres"
-                      onChange={(v) => { setOrdenCompra(v); clearAiField("ordenCompra"); }}
-                      required minChars={4} aiFilled={aiFilledFields.has("ordenCompra")} showValidation={showValidation}
-                    />
-                  </div>
-
-                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-3 flex items-start gap-2.5">
-                    <Package className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-gray-500 leading-relaxed">
-                      El material de carga se captura por cada remolque, contenedor o vehículo —
-                      agrégalo en la pestaña <span className="font-semibold text-gray-600">Carga</span>.
-                    </p>
-                  </div>
-
-                  {unidadesConMaterial && (
-                    <div className="space-y-2 pt-1 border-t border-gray-50">
-                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Resumen de material capturado</p>
-                      {unidades.map((u) => {
-                        const mats = materialesDeUnidad(u);
-                        const ref = refDeUnidad(u);
-                        const withProduct = mats.filter((m) => m.producto);
-                        if (!withProduct.length) return null;
-                        const UnidadIcon = u.config === "remolque_contenedor" ? Package : Truck;
-                        const badgeColor = u.config === "remolque_contenedor"
-                          ? "text-violet-600 bg-violet-50 border-violet-100"
-                          : u.config === "solo_vehiculo"
-                          ? "text-emerald-600 bg-emerald-50 border-emerald-100"
-                          : "text-blue-600 bg-blue-50 border-blue-100";
-                        return (
-                          <div key={u.id} className="flex flex-wrap items-center gap-1.5">
-                            <span className={cn("flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 shrink-0 border", badgeColor)}>
-                              <UnidadIcon className="w-2.5 h-2.5" />
-                              {labelDeUnidad(u)}{ref ? ` · ${ref}` : ""}
-                            </span>
-                            {withProduct.map((m) => (
-                              <span key={m.id} className="flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-100 rounded-full px-2 py-0.5">
-                                <CheckCircle2 className="w-2.5 h-2.5" /> {m.producto}
-                              </span>
-                            ))}
-                          </div>
-                        );
-                      })}
+                    <div>
+                      <FieldLabel required>{campos.tracto ? "Placa de tracto" : "Placa del vehículo"}</FieldLabel>
+                      <div className="relative">
+                        <Input
+                          className={cn(
+                            "text-sm font-mono uppercase",
+                            aiFilledFields.has("placa") && "border-violet-200 bg-violet-50/40",
+                            showValidation && !placa.trim() && "border-red-300 bg-red-50",
+                          )}
+                          placeholder="AB-1234-C"
+                          value={placa}
+                          onChange={(e) => { setPlaca(e.target.value); clearAiField("placa"); }}
+                        />
+                        {aiFilledFields.has("placa") && <IaBadge />}
+                      </div>
+                      {showValidation && !placa.trim() && (
+                        <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
+                      )}
                     </div>
-                  )}
-                </>
-              )}
-
-              {/* ══ TAB: REMOLQUES ═══════════════════════ */}
-              {tab === "remolques" && (
-                <div className="space-y-3">
-                  <CapturaCajaRapida
-                    caja={cajaRapida}
-                    onChange={setCajaRapida}
-                    deshabilitada={unidades.length > 0}
-                    showValidation={showValidation}
-                    opcional={cajaRapidaOpcional(tipoVehiculo)}
-                  />
-                  {unidades.map((u, idx) => {
-                    if (editingUnit?.id === u.id) return null;
-                    const isUnitExpanded = expandedUnits.has(u.id);
-                    const yaTieneContenedor = u.config === "remolque_contenedor";
-                    const isDropTarget = dragOverUnidadId === u.id;
-                    return (
-                      <div key={u.id}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.dataTransfer.dropEffect = yaTieneContenedor ? "none" : "move";
-                          if (!yaTieneContenedor && dragOverUnidadId !== u.id) setDragOverUnidadId(u.id);
-                        }}
-                        onDragLeave={() => setDragOverUnidadId((prev) => prev === u.id ? null : prev)}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          setDragOverUnidadId(null);
-                          const contenedorId = e.dataTransfer.getData("text/plain");
-                          if (contenedorId) linkContenedorSuelto(u.id, contenedorId);
-                        }}
-                        className={cn(
-                          "rounded-xl border overflow-hidden transition-colors",
-                          isDropTarget ? "border-violet-400 ring-2 ring-violet-100 bg-violet-50/30" : "border-gray-200",
-                        )}>
-                        <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                          <button type="button" onClick={() => toggleUnit(u.id)} className="flex items-center gap-2 flex-1 text-left">
-                            <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                              {idx + 1}
-                            </span>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                              {labelDeUnidad(u)}
-                            </span>
-                          </button>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button type="button" onClick={() => setEditingUnit(u)}
-                              className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
-                              <Pencil className="w-3 h-3" />
-                            </button>
-                            <button type="button" onClick={() => setUnidades((p) => p.filter((x) => x.id !== u.id))}
-                              className="w-6 h-6 rounded-md hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors">
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                            <button type="button" onClick={() => toggleUnit(u.id)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                              {isUnitExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
+                    {campos.tracto && (
+                      <div>
+                        <FieldLabel>No. de tracto</FieldLabel>
+                        <div className="relative">
+                          <Input
+                            className={cn("text-sm", aiFilledFields.has("noEconomico") && "border-violet-200 bg-violet-50/40")}
+                            placeholder="Ej. ECO-001"
+                            value={noEconomico}
+                            onChange={(e) => { setNoEconomico(e.target.value); clearAiField("noEconomico"); }}
+                          />
+                          {aiFilledFields.has("noEconomico") && <IaBadge />}
                         </div>
-                        {isUnitExpanded && (
-                          <div className="p-4 space-y-3 bg-white divide-y divide-gray-50">
-                            {u.config === "solo_vehiculo" ? (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-1.5">
-                                <Truck className="w-3 h-3 text-emerald-500" />
-                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Vehículo</span>
-                              </div>
-                              {u.vehiculo.materiales.some((m) => m.producto) ? (
-                                <div className="pt-1">
-                                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {u.vehiculo.materiales.filter((m) => m.producto).map((m) => (
-                                      <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
-                                        <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              ) : <p className="text-xs text-gray-300 italic">Sin material capturado</p>}
-                            </div>
-                            ) : (<>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-1.5">
-                                <Truck className="w-3 h-3 text-blue-500" />
-                                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Remolque</span>
-                              </div>
-                              <div className="grid grid-cols-4 gap-3">
-                                <MiniField label="Tipo" value={u.remolque.tipo} />
-                                <MiniField label="No. de caja" value={u.remolque.noCaja} mono />
-                                <MiniField label="Placas" value={u.remolque.placas} mono />
-                                <div>
-                                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Color</p>
-                                  {u.remolque.color ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <div className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ background: resolveColorSwatch(u.remolque.color)?.hex ?? "transparent" }} />
-                                      <span className="text-xs text-gray-600">{resolveColorSwatch(u.remolque.color)?.label}</span>
-                                    </div>
-                                  ) : <p className="text-xs text-gray-300 italic">Sin información</p>}
-                                </div>
-                              </div>
-                              {u.remolque.materiales.some((m) => m.producto) && (
-                                <div className="pt-1">
-                                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {u.remolque.materiales.filter((m) => m.producto).map((m) => (
-                                      <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
-                                        <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            {u.config === "remolque_contenedor" && (
-                              <div className="pt-3 space-y-2">
-                                <div className="flex items-center gap-1.5 justify-between">
-                                  <div className="flex items-center gap-1.5">
-                                    <Package className="w-3 h-3 text-violet-500" />
-                                    <span className="text-[10px] font-bold text-violet-600 uppercase tracking-widest">Contenedor</span>
-                                  </div>
-                                  <button type="button" onClick={() => unlinkContenedor(u.id)}
-                                    className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 hover:text-red-500 transition-colors">
-                                    <Unlink className="w-3 h-3" /> Desligar
-                                  </button>
-                                </div>
-                                <div className="grid grid-cols-4 gap-3">
-                                  <MiniField label="Tipo contenedor" value={u.contenedor.tipo} />
-                                  <MiniField label="No. Contenedor" value={u.contenedor.noContenedor} mono />
-                                  <MiniField label="No. de Caja" value={u.contenedor.noCaja} mono />
-                                  <div>
-                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Color</p>
-                                    {u.contenedor.color ? (
-                                      <div className="flex items-center gap-1.5">
-                                        <div className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ background: resolveColorSwatch(u.contenedor.color)?.hex ?? "transparent" }} />
-                                        <span className="text-xs text-gray-600">{resolveColorSwatch(u.contenedor.color)?.label}</span>
-                                      </div>
-                                    ) : <p className="text-xs text-gray-300 italic">Sin información</p>}
-                                  </div>
-                                </div>
-                                {u.contenedor.materiales.some((m) => m.producto) && (
-                                  <div className="pt-1">
-                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Material</p>
-                                    <div className="flex flex-wrap gap-1">
-                                      {u.contenedor.materiales.filter((m) => m.producto).map((m) => (
-                                        <span key={m.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 border border-green-100">
-                                          <CheckCircle2 className="w-2.5 h-2.5" />{m.producto}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            </>)}
-                          </div>
-                        )}
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
 
-                  {contenedoresSueltos.length > 0 && (
-                    <div className="rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-3.5 space-y-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <Link2 className="w-3.5 h-3.5 text-violet-500" />
-                        <p className="text-[11px] font-bold text-violet-700">Contenedores por ligar</p>
-                      </div>
-                      <p className="text-[11px] text-violet-500/80 leading-relaxed">
-                        La IA detectó más de un remolque y/o contenedor y no pudo saber cuál va con cuál.
-                        Arrastra cada contenedor sobre el remolque que lo carga.
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {contenedoresSueltos.map((c) => (
-                          <div key={c.id}
-                            draggable
-                            onDragStart={(e) => { e.dataTransfer.setData("text/plain", c.id); e.dataTransfer.effectAllowed = "move"; }}
-                            onDragEnd={() => setDragOverUnidadId(null)}
-                            className="flex items-center gap-2 rounded-lg border border-violet-200 bg-white pl-2 pr-3 py-2 cursor-grab active:cursor-grabbing shadow-sm">
-                            <GripVertical className="w-3.5 h-3.5 text-violet-300 shrink-0" />
-                            <Package className="w-3.5 h-3.5 text-violet-500 shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-[11px] font-semibold text-gray-700 truncate">{c.noContenedor || c.tipo || "Contenedor"}</p>
-                              <p className="text-[10px] text-gray-400 truncate">{[c.tipo, c.noSello && `Sello ${c.noSello}`].filter(Boolean).join(" · ") || "Sin datos"}</p>
-                            </div>
-                          </div>
-                        ))}
+                  {/* Pickup y rígidos (torton, rabón, 3.5 t) no traen remolque. */}
+                  {campos.caja && (
+                    <>
+                      <SectionDivider label="Remolque" icon={<Package className="w-3 h-3" />} />
+                      <RenglonesRemolque
+                        unidades={unidades}
+                        setUnidades={setUnidades}
+                        sueltos={contenedoresSueltos}
+                        onLigarSuelto={linkContenedorSuelto}
+                        requerido={campos.caja && !cajaRapidaOpcional(tipoVehiculo)}
+                        showValidation={showValidation}
+                        tipoVehiculo={tipoVehiculo}
+                        conSello={tipoOperacion !== "Recolección"}
+                      />
+                    </>
+                  )}
+
+                  <SectionDivider label="Material" icon={<Package className="w-3 h-3" />} />
+                  <MaterialesCarga unidades={unidades} setUnidades={setUnidades} sinCajas={!campos.caja} />
+
+                  <SectionDivider label="Origen y documento" />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <FieldLabel>Procedencia</FieldLabel>
+                      <div className="relative">
+                        <Input
+                          className={cn("text-sm", aiFilledFields.has("procedencia") && "border-violet-200 bg-violet-50/40")}
+                          placeholder="Ej. Bodega central del proveedor"
+                          value={procedencia}
+                          onChange={(e) => { setProcedencia(e.target.value); clearAiField("procedencia"); }}
+                        />
+                        {aiFilledFields.has("procedencia") && <IaBadge />}
                       </div>
                     </div>
-                  )}
+                    <div>
+                      <FieldLabel required>Factura / Orden de compra</FieldLabel>
+                      <Input
+                        className={cn("text-sm", showValidation && !tieneMinCaracteres(ordenCompra) && "border-red-300 bg-red-50")}
+                        placeholder="Mín. 4 caracteres"
+                        value={ordenCompra}
+                        onChange={(e) => { setOrdenCompra(e.target.value); clearAiField("ordenCompra"); }}
+                      />
+                      {showValidation && !tieneMinCaracteres(ordenCompra) && (
+                        <p className="text-[10px] text-red-500 mt-1">Mínimo 4 caracteres</p>
+                      )}
+                    </div>
+                  </div>
 
-                  {showAgregarUnidad || editingUnit ? (
-                    <UnidadEditorCard
-                      initialData={editingUnit ?? undefined}
-                      tipoVehiculo={tipoVehiculo}
-                    prefillRemolque={!editingUnit && unidades.length === 0 ? cajaRapida : undefined}
-                      onCancel={() => { setShowAgregarUnidad(false); setEditingUnit(null); }}
-                      onSave={(u) => {
-                        if (editingUnit) {
-                          setUnidades((p) => p.map((x) => x.id === u.id ? u : x));
-                        } else {
-                          setUnidades((p) => [...p, u]);
-                        setCajaRapida(emptyCajaRapida());
-                          setExpandedUnits((prev) => new Set(prev).add(u.id));
-                        }
-                        setShowAgregarUnidad(false);
-                        setEditingUnit(null);
-                      }}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowAgregarUnidad(true)}
-                      className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
-                      <Plus className="w-4 h-4" />
-                      Agregar unidad
-                    </button>
-                  )}
-                </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <FieldLabel>Proveedor / Cliente</FieldLabel>
+                      <Input
+                        className="text-sm"
+                        placeholder="Nombre del proveedor o cliente"
+                        value={proveedorCliente}
+                        onChange={(e) => { setProveedorCliente(e.target.value); clearAiField("proveedorCliente"); }}
+                      />
+                    </div>
+                  </div>
+
+                  <ListaDocumentosPase documentos={documentosPase} fotoLicencia={fotoLicenciaPase} />
+                </>
               )}
             </div>
           </>
         )}
 
+        {/* ── Footer ────────────────────────────────── */}
         <div className="flex flex-col gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/80">
           {contenedoresSueltos.length > 0 && (
             <p className="text-[11px] font-medium text-violet-600 flex items-center gap-1.5">
               <Link2 className="w-3 h-3" />
-              Liga {contenedoresSueltos.length === 1 ? "el contenedor pendiente" : "los contenedores pendientes"} en la pestaña Carga antes de registrar.
+              Liga {contenedoresSueltos.length === 1 ? "el contenedor pendiente" : "los contenedores pendientes"} en la sección Remolque antes de registrar.
             </p>
           )}
           <div className="flex items-center gap-3">
@@ -1512,16 +1277,52 @@ export function RegistrarLlegadaPaseModal({ open, onClose, initialPaseId, onLleg
               className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-100">
               Cancelar
             </Button>
-            <Button
-              disabled={!numDePase || confirmando || contenedoresSueltos.length > 0}
-              onClick={handleConfirmar}
-              className={cn(
-                "flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-2",
-                (!numDePase || confirmando || contenedoresSueltos.length > 0) && "opacity-50 cursor-not-allowed",
-              )}>
-              {confirmando && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              Confirmar llegada
-            </Button>
+            {enFotos && (() => {
+              // Con tipo de vehículo se puede continuar: con fotos, la IA llena
+              // lo que falte; sin fotos, directo a la captura manual.
+              const listas = documentos.filter((d) => d.file_url).length;
+              const subiendo = documentos.some((d) => d.uploading);
+              // Mismas fotos que ya se analizaron: se regresa sin llamar a la IA.
+              const yaAnalizadas = listas > 0 && firmaFotos() === firmaAnalizada;
+              const puede = !!tipoVehiculo.trim() && !subiendo && !aiAnalyzing;
+              return (
+                <Button
+                  disabled={!puede}
+                  onClick={async () => {
+                    if (listas === 0 || yaAnalizadas) { setModo("manual"); return; }
+                    // La IA llena el formulario; lo que falte queda marcado en rojo.
+                    if (await analyzePhotosWithAI()) { setShowValidation(true); setModo("manual"); }
+                  }}
+                  className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                  {aiAnalyzing ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Analizando…
+                    </>
+                  ) : !tipoVehiculo.trim() ? (
+                    "Elige el tipo de vehículo"
+                  ) : subiendo ? (
+                    "Subiendo fotos…"
+                  ) : listas > 0 && !yaAnalizadas ? (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Analizar y continuar
+                    </>
+                  ) : (
+                    "Continuar"
+                  )}
+                </Button>
+              );
+            })()}
+            {!enFotos && (
+              <Button
+                disabled={!numDePase || confirmando || contenedoresSueltos.length > 0}
+                onClick={handleConfirmar}
+                className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                {confirmando && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Confirmar llegada
+              </Button>
+            )}
           </div>
         </div>
 
