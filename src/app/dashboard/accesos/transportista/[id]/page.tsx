@@ -35,7 +35,6 @@ import {
   HelpCircle,
   Check,
   Sparkles,
-  ArrowLeftRight,
   IdCard,
   Images,
   Mail,
@@ -80,13 +79,14 @@ import { SeleccionAndenModal } from "@/components/modals/SeleccionAndenModal";
 import { InspeccionRecordModal, InspeccionRecordContent } from "@/components/transportista/InspeccionRecordModal";
 import { DesgloseMaterialesModal } from "@/components/transportista/desglose-materiales-modal";
 import {
-  TIPOS_DOCUMENTO_TRANSPORTISTA,
   IDENTIFICACION_CHOFER_LABEL,
   FOTO_CAJA_VACIA_LABEL,
+  TIPOS_DOCUMENTO_SUBIDA,
   tipoRequeridoSlug,
   labelDeTipoRequerido,
 } from "@/config/documentos-transportista";
 import { SelectorTipoVehiculo } from "@/components/transportista/selector-tipo-vehiculo";
+import { CapturaFotosDocumentos, type FotoDocumento, type OpcionFoto } from "@/components/transportista/captura-fotos-documentos";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -2223,19 +2223,6 @@ function Skeleton({ className }: { className?: string }) {
   );
 }
 
-// ─── Documentos requeridos ──────────────────────────────────────────────────
-// Vocabulario de "tipo de documento" (labels, slugs, descripciones) vive en
-// config/documentos-transportista.ts — compartido con Nuevo Acceso Transportista
-// y Registrar llegada de pase, para que un documento subido desde cualquiera
-// de los 3 flujos se reconozca igual en los demás (mismo campo real en Mongo).
-const documentosRequeridosNombres = TIPOS_DOCUMENTO_TRANSPORTISTA
-  .filter((t) => !t.soloRecoleccion && !t.retirado)
-  .map((t) => t.label);
-
-const DOCUMENTOS_REQUERIDOS_DESCRIPCION: Record<string, string> = Object.fromEntries(
-  TIPOS_DOCUMENTO_TRANSPORTISTA.filter((t) => t.descripcion).map((t) => [t.label, t.descripcion as string]),
-);
-
 const ESTATUS_CON_DOCS_COLAPSADOS = ["carga_/_descarga", "inspeccion_salida", "terminado"];
 
 // ─── Aviso por correo ───────────────────────────────────────────────────────────
@@ -2617,9 +2604,9 @@ export default function DetalleTransportistaPage() {
       return next;
     });
 
-  const [docTab, setDocTab] = useState<"pendientes" | "subidos">("pendientes");
-  const [isDraggingDocs, setIsDraggingDocs] = useState(false);
-  const dragCounterDocsRef = useRef(0);
+  // "Tomar foto a otro documento" abre la captura (mismo componente que
+  // Nuevo acceso transportista) dentro de la tarjeta de Documentos.
+  const [capturandoDocs, setCapturandoDocs] = useState(false);
   const [docsExpanded, setDocsExpanded] = useState(true);
   const docsExpandedInitialized = useRef(false);
   useEffect(() => {
@@ -2689,74 +2676,18 @@ export default function DetalleTransportistaPage() {
   const tipoFromField = (field: "foto_conductor" | "foto_licencia") =>
     field === "foto_conductor" ? "foto_conductor" : tipoRequeridoSlug(IDENTIFICACION_CHOFER_LABEL);
 
-  // Subida de un documento requerido específico — se guarda de inmediato
-  // enviando el nombre del documento como `tipo` al servicio de guardado.
-  const [uploadingReqDoc, setUploadingReqDoc] = useState<string | null>(null);
-  const reqDocInputRef = useRef<HTMLInputElement>(null);
-  const reqDocTargetRef = useRef<string | null>(null);
-
-  const triggerReqDocUpload = (nombre: string) => {
-    reqDocTargetRef.current = nombre;
-    reqDocInputRef.current?.click();
-  };
-
-  const handleReqDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    const nombre = reqDocTargetRef.current;
-    e.target.value = "";
-    reqDocTargetRef.current = null;
-    if (!file || !nombre) return;
-    setUploadingReqDoc(nombre);
-    try {
-      const res = await uploadImage(file);
-      if (!res?.file) throw new Error("upload failed");
-      await saveBitacoraTransportistaRecord(id, "documentos", {
-        documentos_adicionales: { file_url: res.file, file_name: res.file_name ?? file.name, tipo: tipoRequeridoSlug(nombre), index: null },
-      });
-      refetch();
-      toast.success("Documento guardado");
-    } catch {
-      toast.error("Error al subir el documento");
-    } finally {
-      setUploadingReqDoc(null);
-    }
-  };
-
-  // Picker para encajar un documento pendiente con algo ya subido — misma
-  // idea que el selector de foto de conductor/identificación.
-  const [docAssignPicker, setDocAssignPicker] = useState<string | null>(null);
-
-  const assignExistingDocToPendiente = async (nombre: string, fileUrl: string, fileName: string, index: number) => {
-    setDocAssignPicker(null);
-    const slug = tipoRequeridoSlug(nombre);
-    const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
-    queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
-      ["visitaTransportista", id],
-      (old) => old ? { ...old, documentos_adicionales: old.documentos_adicionales?.map((d, i) => i === index ? { ...d, tipo: slug } : d) } : old
-    );
-    try {
-      await saveBitacoraTransportistaRecord(id, "documentos", {
-        documentos_adicionales: { file_url: fileUrl, file_name: fileName, tipo: slug, index },
-      });
-      refetch();
-      toast.success("Documento asignado");
-    } catch {
-      queryClient.setQueryData(["visitaTransportista", id], previous);
-      toast.error("Error al asignar el documento");
-    }
-  };
-
-  const [uploadingNewDoc, setUploadingNewDoc] = useState(false);
   const [analyzingDocs, setAnalyzingDocs] = useState(false);
-  const newDocInputRef = useRef<HTMLInputElement>(null);
 
-  // Documentos subidos en bloque desde "Pendientes" — solo se suben al storage
-  // (para previsualizar/analizar), no se guardan en la bitácora hasta que el
-  // usuario confirme con "Guardar documentos". `asignadoA` es el nombre del
-  // documento pendiente al que quedó ligado (manual o por IA), en espera de guardar.
-  type StagedDoc = { id: string; file_url: string; file_name: string; uploading: boolean; preview: string | null; tipo?: string; asignadoA?: string };
+  // Fotos tomadas con "Tomar foto a otro documento": se suben al storage
+  // (para previsualizar/analizar) pero no se guardan en la bitácora hasta
+  // "Guardar documentos". La categoría elegida en la captura (conductor,
+  // vehículo, carga) da el `tipo` inicial y la pista para la IA — igual que
+  // en nuevo-acceso-transportista-modal; `tipoManual` = la IA no lo cambia.
+  type StagedDoc = FotoDocumento & { file_url: string; file_name: string; hint?: string; tipoManual?: boolean };
   const [stagedDocs, setStagedDocs] = useState<StagedDoc[]>([]);
   const stagingUpload = stagedDocs.some((d) => d.uploading);
+
+  const datosDeOpcion = (opcion: OpcionFoto) => ({ opcion: opcion.value, hint: opcion.hint, tipo: opcion.tipo, tipoManual: opcion.fijo });
 
   const removeStagedDoc = (id: string) =>
     setStagedDocs((p) => {
@@ -2765,9 +2696,18 @@ export default function DetalleTransportistaPage() {
       return p.filter((d) => d.id !== id);
     });
 
-  const stageDocumento = async (file: File) => {
+  const cambiarTipoStaged = (id: string, opcion: OpcionFoto) =>
+    setStagedDocs((p) => p.map((d) => d.id === id ? { ...d, ...datosDeOpcion(opcion) } : d));
+
+  const cancelarCapturaDocs = () => {
+    stagedDocs.forEach((d) => { if (d.preview) URL.revokeObjectURL(d.preview); });
+    setStagedDocs([]);
+    setCapturandoDocs(false);
+  };
+
+  const stageDocumento = async (file: File, opcion: OpcionFoto) => {
     const id = Math.random().toString(36).slice(2);
-    setStagedDocs((p) => [...p, { id, file_url: "", file_name: file.name, uploading: true, preview: URL.createObjectURL(file) }]);
+    setStagedDocs((p) => [...p, { id, file_url: "", file_name: file.name, uploading: true, preview: URL.createObjectURL(file), ...datosDeOpcion(opcion) }]);
     try {
       const res = await uploadImage(file);
       setStagedDocs((p) => p.map((d) => d.id === id ? { ...d, file_url: res?.file ?? "", file_name: res?.file_name ?? file.name, uploading: false } : d));
@@ -2777,24 +2717,14 @@ export default function DetalleTransportistaPage() {
     }
   };
 
-  // Ligar (o quitar) un documento recién subido a un pendiente — no guarda
-  // nada todavía, solo lo marca para que "Guardar documentos" lo persista.
-  const marcarAsignacionStaged = (stagedId: string, nombre: string) =>
-    setStagedDocs((p) => p.map((d) => d.id === stagedId ? { ...d, asignadoA: nombre } : d));
-
-  const desasignarStaged = (stagedId: string) =>
-    setStagedDocs((p) => p.map((d) => d.id === stagedId ? { ...d, asignadoA: undefined } : d));
-
   const [savingStagedDocs, setSavingStagedDocs] = useState(false);
   // Vehículo, Material/Embarque y Documentos guardan sobre el mismo registro —
   // mientras cualquiera de las tres esté en curso, se bloquean los "Guardar"
   // de las otras dos para no mandar peticiones concurrentes.
   const savingRegistroCompartido = savingVehicle || savingMaterial || savingStagedDocs;
   const guardarDocumentosPendientes = async () => {
-    // Se guardan todos los documentos listos, tengan o no un tipo asignado —
-    // no hace falta analizar con IA ni asignar tipo para poder guardarlos;
-    // los que queden "sin asignar" se les puede poner tipo después desde
-    // la pestaña "Subidos".
+    // Se guardan todas las fotos listas con el tipo de su categoría (o el
+    // que sugirió la IA); no hace falta analizar para poder guardarlas.
     const listos = stagedDocs.filter((d) => d.file_url && !d.uploading);
     if (!listos.length) return;
     setSavingStagedDocs(true);
@@ -2802,7 +2732,7 @@ export default function DetalleTransportistaPage() {
       const toSave = listos.map((d) => ({
         file_url: d.file_url,
         file_name: d.file_name,
-        ...(d.asignadoA ? { tipo: tipoRequeridoSlug(d.asignadoA) } : {}),
+        ...(d.tipo ? { tipo: d.tipo } : {}),
         index: null,
       }));
       await saveBitacoraTransportistaRecord(id, "documentos", {
@@ -2819,6 +2749,7 @@ export default function DetalleTransportistaPage() {
         } : old
       );
       setStagedDocs((p) => p.filter((d) => !listos.includes(d)));
+      if (listos.length === stagedDocs.length) setCapturandoDocs(false);
       refetch();
       toast.success(listos.length > 1 ? "Documentos guardados" : "Documento guardado");
     } catch {
@@ -2828,44 +2759,10 @@ export default function DetalleTransportistaPage() {
     }
   };
 
-  const addDocumentos = async (files: File[]) => {
-    if (!files.length || isLocked) return;
-
-    // Pendientes: solo subir a storage, sin llamar al servicio de guardado
-    if (docTab === "pendientes") {
-      files.forEach(stageDocumento);
-      return;
-    }
-
-    // Subidos: sube y guarda de inmediato en la bitácora
-    setUploadingNewDoc(true);
-    try {
-      for (const file of files) {
-        const res = await uploadImage(file);
-        if (!res?.file) continue;
-        await saveBitacoraTransportistaRecord(id, "documentos", {
-          documentos_adicionales: { file_url: res.file, file_name: res.file_name, index: null },
-        });
-      }
-      refetch();
-      toast.success(files.length > 1 ? "Documentos agregados" : "Documento agregado");
-    } catch {
-      toast.error("Error al subir el documento");
-    } finally {
-      setUploadingNewDoc(false);
-    }
-  };
-
-  const handleAddDocumento = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = "";
-    await addDocumentos(files);
-  };
-
   const handleAnalizarDocumentos = async () => {
-    // En "pendientes" se analizan los documentos recién subidos (aún no guardados);
-    // en "subidos" se analizan los ya persistidos en la bitácora.
-    const usingStaged = docTab === "pendientes";
+    // Con la captura abierta se analizan las fotos recién tomadas (aún no
+    // guardadas); si no, los documentos ya persistidos en la bitácora.
+    const usingStaged = capturandoDocs;
     // Para "subidos" leer directo del caché de React Query — más fresco que
     // la variable `data` del hook, que puede estar un render atrás.
     const subidosDocs = usingStaged
@@ -2874,7 +2771,7 @@ export default function DetalleTransportistaPage() {
          ?? data?.documentos_adicionales
          ?? []);
     const source = usingStaged
-      ? stagedDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo_hint: d.asignadoA }))
+      ? stagedDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo_hint: d.hint }))
       : subidosDocs.filter((d) => d.file_url).map((d) => ({ file_url: d.file_url, file_name: d.file_name, tipo_hint: d.tipo ? labelDeTipoRequerido(d.tipo) : undefined }));
     if (!source.length) return;
     setAnalyzingDocs(true);
@@ -2885,38 +2782,11 @@ export default function DetalleTransportistaPage() {
         const byUrl = new Map(detectados.map((dd) => [dd.url, dd.tipo]));
 
         if (usingStaged) {
-          // Solo actualiza tipo/asignación localmente — sin llamar al servicio
-          // de guardado. Si el tipo detectado coincide con un pendiente que
-          // sigue sin resolver, se coloca ahí automáticamente (sin duplicar
-          // el mismo pendiente entre dos documentos de este lote).
-          // El updater debe ser puro (React lo invoca 2 veces en modo estricto
-          // de desarrollo para detectar efectos secundarios): todo el cálculo
-          // de "quién queda asignado a quién" vive dentro de la propia función,
-          // sin mutar nada externo entre invocaciones.
-          let autoColocados = 0;
-          setStagedDocs((prev) => {
-            const yaAsignados = new Set(prev.filter((d) => d.asignadoA).map((d) => d.asignadoA));
-            let colocadosEnEstaPasada = 0;
-            const next = prev.map((d) => {
-              if (!byUrl.has(d.file_url)) return d;
-              const detectedTipo = byUrl.get(d.file_url);
-              let asignadoA = d.asignadoA;
-              if (!asignadoA) {
-                const nombreMatch = documentosRequeridosNombresRecord.find((n) =>
-                  tipoRequeridoSlug(n) === detectedTipo && docsPendientesReq.includes(n) && !yaAsignados.has(n)
-                );
-                if (nombreMatch) { asignadoA = nombreMatch; yaAsignados.add(nombreMatch); colocadosEnEstaPasada++; }
-              }
-              return { ...d, tipo: detectedTipo, asignadoA };
-            });
-            autoColocados = colocadosEnEstaPasada;
-            return next;
-          });
-          toast.success(
-            autoColocados > 0
-              ? `Documentos analizados — ${autoColocados} colocado${autoColocados > 1 ? "s" : ""} automáticamente`
-              : "Documentos analizados — ninguno coincidió con un pendiente, revisa las sugerencias",
-          );
+          // Solo actualiza el tipo localmente (sin guardar); respeta las
+          // categorías fijas (conductor → licencia), como en Nuevo acceso.
+          setStagedDocs((prev) => prev.map((d) =>
+            byUrl.has(d.file_url) && !d.tipoManual ? { ...d, tipo: byUrl.get(d.file_url) } : d));
+          toast.success("Documentos analizados — revisa y guarda");
         } else {
           const docs = subidosDocs;
           const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
@@ -3311,23 +3181,6 @@ export default function DetalleTransportistaPage() {
       total: esRecoleccion ? Math.max(1, unidadesConSello.length) : unidadesConSello.length,
     },
   };
-
-  const documentosRequeridosNombresRecord = esRecoleccion
-    ? [...documentosRequeridosNombres, FOTO_CAJA_VACIA_LABEL]
-    : documentosRequeridosNombres;
-
-  const tiposSubidos = new Set(
-    (data?.documentos_adicionales ?? [])
-      .map((d) => d.tipo)
-      .filter((t): t is string => !!t)
-      .map(tipoRequeridoSlug),
-  );
-  const docsPendientesReq = documentosRequeridosNombresRecord.filter((nombre) => !tiposSubidos.has(tipoRequeridoSlug(nombre)));
-
-  // Selecciona "subidos" automáticamente cuando no quedan pendientes
-  useEffect(() => {
-    if (docsPendientesReq.length === 0) setDocTab("subidos");
-  }, [docsPendientesReq.length]);
 
   const tipo_accion = data?.tipo_operacion?.toLowerCase().includes("entrega")
     ? "ENTRADA"
@@ -3773,194 +3626,17 @@ export default function DetalleTransportistaPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5 shrink-0">
-                <button
-                  onClick={() => { setDocTab("pendientes"); setDocsExpanded(true); }}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all",
-                    docTab === "pendientes" && docsExpanded
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700",
-                  )}>
-                  Pendientes
-                  <span className={cn(
-                    "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                    docTab === "pendientes" && docsExpanded ? "bg-red-100 text-red-600" : "bg-gray-200 text-gray-400",
-                  )}>
-                    {docsPendientesReq.length}
-                  </span>
-                </button>
-                <button
-                  onClick={() => { setDocTab("subidos"); setDocsExpanded(true); }}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all",
-                    docTab === "subidos" && docsExpanded
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700",
-                  )}>
-                  Subidos
-                  <span className={cn(
-                    "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                    docTab === "subidos" && docsExpanded ? "bg-emerald-100 text-emerald-600" : "bg-gray-200 text-gray-400",
-                  )}>
-                    {data?.documentos_adicionales?.length ?? 0}
-                  </span>
-                </button>
-              </div>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-600 shrink-0">
+                {data?.documentos_adicionales?.length ?? 0}
+              </span>
             </div>
             {docsExpanded && <>
             <div className="p-4 space-y-2">
-              {docTab === "pendientes" && docsPendientesReq.map((nombre) => {
-                const isUploading = uploadingReqDoc === nombre;
-                const staged = stagedDocs.find((d) => d.asignadoA === nombre);
-
-                if (staged) {
-                  return (
-                    <div key={nombre}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-violet-200 bg-violet-50/40">
-                      <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-violet-100 bg-white shrink-0 flex items-center justify-center">
-                        {staged.preview
-                          ? <Image src={staged.preview} fill className="object-cover" alt="" unoptimized />
-                          : <FileText className="w-4 h-4 text-violet-300" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-gray-800 truncate">{nombre}</p>
-                        <p className="text-[11px] truncate mt-0.5 text-violet-600 flex items-center gap-1">
-                          <Sparkles className="w-2.5 h-2.5" /> Listo para guardar — {staged.file_name}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => desasignarStaged(staged.id)}
-                        title="Quitar asignación"
-                        className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:border-red-300 hover:bg-red-50 flex items-center justify-center shrink-0 transition-colors text-gray-400 hover:text-red-500">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div
-                    key={nombre}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-red-100 bg-red-50/30 hover:bg-red-50/60 transition-colors">
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-red-100 text-red-500">
-                      <FileText className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-800 truncate">{nombre}</p>
-                      <p className="text-[11px] truncate mt-0.5 text-red-500">
-                        {DOCUMENTOS_REQUERIDOS_DESCRIPCION[nombre] ?? "Pendiente de subir"}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={isUploading || isLocked}
-                      onClick={() => triggerReqDocUpload(nombre)}
-                      title="Tomar / subir nueva foto"
-                      className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors disabled:opacity-60">
-                      {isUploading
-                        ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        : <Camera className="w-3.5 h-3.5 text-white" />}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isUploading || isLocked}
-                      onClick={() => setDocAssignPicker(nombre)}
-                      title="Asignar documento ya subido"
-                      className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 flex items-center justify-center shrink-0 transition-colors disabled:opacity-60">
-                      <ArrowLeftRight className="w-3.5 h-3.5 text-gray-500" />
-                    </button>
-                  </div>
-                );
-              })}
-              <input ref={reqDocInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleReqDocUpload} />
-
-              {/* Picker para encajar un documento pendiente — subir nuevo o elegir uno ya subido */}
-              {docAssignPicker && typeof document !== "undefined" && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setDocAssignPicker(null)}>
-                  <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
-                      <p className="text-sm font-bold text-gray-800">{docAssignPicker}</p>
-                      <button type="button" onClick={() => setDocAssignPicker(null)} className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* Opción: recién subidos (aún sin guardar) */}
-                    {stagedDocs.filter((d) => d.file_url && !d.uploading).length > 0 && (
-                      <div className="px-4 py-2 border-b border-gray-50">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Recién subidos</p>
-                        <div className="space-y-1.5">
-                          {stagedDocs.filter((d) => d.file_url && !d.uploading).map((doc) => (
-                            <button key={doc.id} type="button"
-                              onClick={() => { const nombre = docAssignPicker; setDocAssignPicker(null); marcarAsignacionStaged(doc.id, nombre); }}
-                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-blue-50 transition-colors text-left disabled:opacity-50">
-                              <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
-                                {doc.preview && <Image src={doc.preview} fill className="object-cover" alt="" unoptimized />}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-semibold text-gray-700 truncate">{doc.file_name}</p>
-                                {doc.asignadoA && <p className="text-[10px] text-gray-400 truncate">Actualmente: {doc.asignadoA}</p>}
-                                {doc.tipo && !doc.asignadoA && <p className="text-[10px] text-violet-500 truncate">Sugerido por IA: {doc.tipo}</p>}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Opción: seleccionar de documentos existentes */}
-                    {(() => {
-                      const docs = data?.documentos_adicionales ?? [];
-                      if (docs.length === 0) return null;
-                      return (
-                        <div className="px-4 py-2">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Del registro</p>
-                          <div className="space-y-1.5">
-                            {docs.map((doc, docIdx) => (
-                              <button key={doc.file_url} type="button"
-                                onClick={() => assignExistingDocToPendiente(docAssignPicker, doc.file_url, doc.file_name ?? "", docIdx)}
-                                className="w-full flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-blue-50 transition-colors text-left">
-                                <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-100 shrink-0">
-                                  <Image src={doc.file_url} fill className="object-cover" alt="" unoptimized />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[11px] font-semibold text-gray-700 truncate">
-                                    {doc.tipo ? doc.tipo.replace(/_/g, " ") : doc.file_name}
-                                  </p>
-                                  <p className="text-[10px] text-gray-400 truncate">{doc.file_name}</p>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {stagedDocs.filter((d) => d.file_url && !d.uploading).length === 0
-                      && (data?.documentos_adicionales?.length ?? 0) === 0 && (
-                      <p className="px-4 py-6 text-center text-xs text-gray-400">
-                        Aún no hay documentos subidos para asignar.
-                      </p>
-                    )}
-
-                    <div className="px-4 pb-4 pt-2">
-                      <button type="button" onClick={() => setDocAssignPicker(null)}
-                        className="w-full py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                </div>,
-                document.body
-              )}
-
               {/* Input oculto para reemplazar archivo al editar */}
               <input ref={editDocInputRef} type="file" className="hidden" onChange={handleEditDocUpload} />
 
               {/* Documentos subidos desde el acceso (documentos_adicionales) */}
-              {docTab === "subidos" && data?.documentos_adicionales?.map((doc, docIdx) => {
+              {data?.documentos_adicionales?.map((doc, docIdx) => {
                 const isEditing = editingDocIdx === docIdx;
                 const draft = isEditing ? editingDocDraft : null;
                 const displayUrl = draft?.file_url ?? doc.file_url;
@@ -3973,7 +3649,10 @@ export default function DetalleTransportistaPage() {
                   // identificaciones) — el backend ya los guarda como filas
                   // independientes, así que el select ofrece todos los tipos
                   // sin excluir los ya usados por otro documento.
-                  const tipoOptions = documentosRequeridosNombresRecord;
+                  const tipoOptions = [
+                    ...TIPOS_DOCUMENTO_SUBIDA.map((t) => t.label),
+                    ...(esRecoleccion ? [FOTO_CAJA_VACIA_LABEL] : []),
+                  ];
                   return (
                     <div key={doc.file_url} className="rounded-xl border-2 border-blue-200 bg-blue-50/30 p-3.5 space-y-3">
                       <div className="flex items-center gap-3">
@@ -4062,114 +3741,37 @@ export default function DetalleTransportistaPage() {
                 );
               })}
 
-              {docTab === "pendientes" && stagedDocs.some((d) => !d.asignadoA) && (
-                <div className="space-y-1.5 pb-1">
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Sin asignar</p>
-                  <div className="flex flex-wrap gap-2">
-                    {stagedDocs.filter((d) => !d.asignadoA).map((doc) => (
-                      <div key={doc.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shrink-0">
-                        {doc.uploading ? (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                          </div>
-                        ) : doc.preview ? (
-                          <Image src={doc.preview} fill className="object-cover" alt="" unoptimized />
-                        ) : null}
-                        {doc.tipo && !doc.uploading && (
-                          <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] font-bold text-center py-0.5 truncate px-1">
-                            {doc.tipo.replace(/_/g, " ")}
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeStagedDoc(doc.id)}
-                          className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-                          <X className="w-2.5 h-2.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {stagedDocs.length === 0 && (docTab === "pendientes" ? docsPendientesReq.length === 0 : !data?.documentos_adicionales?.length) && (
+              {!capturandoDocs && !data?.documentos_adicionales?.length && (
                 <div className="flex flex-col items-center justify-center py-8 text-gray-300">
                   <FileText className="w-8 h-8 mb-2" />
-                  <p className="text-xs">
-                    {docTab === "pendientes"
-                      ? "No hay documentos pendientes"
-                      : "Aún no hay documentos subidos"}
-                  </p>
+                  <p className="text-xs">Aún no hay documentos subidos</p>
                 </div>
               )}
-              <input ref={newDocInputRef} type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={handleAddDocumento} />
-              {docTab === "pendientes" && stagedDocs.length === 0 ? (
-                <button
-                  type="button"
-                  disabled={stagingUpload || isLocked}
-                  onClick={() => newDocInputRef.current?.click()}
-                  onDragEnter={(e) => { e.preventDefault(); dragCounterDocsRef.current++; setIsDraggingDocs(true); }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDragLeave={() => { dragCounterDocsRef.current--; if (dragCounterDocsRef.current === 0) setIsDraggingDocs(false); }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    dragCounterDocsRef.current = 0;
-                    setIsDraggingDocs(false);
-                    addDocumentos(Array.from(e.dataTransfer.files));
-                  }}
-                  className={cn(
-                    "w-full rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-1.5 py-5 disabled:opacity-60 disabled:cursor-not-allowed",
-                    isDraggingDocs ? "border-blue-400 bg-blue-50/60" : "border-gray-200 bg-gray-50/40 hover:border-blue-300 hover:bg-blue-50/40",
-                  )}>
-                  {stagingUpload ? (
-                    <>
-                      <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-sm text-gray-400 font-medium">Subiendo...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Camera className={cn("w-5 h-5", isDraggingDocs ? "text-blue-400" : "text-gray-300")} />
-                      <span className="text-sm text-gray-400 font-medium">{isDraggingDocs ? "Suelta aquí" : "Subir imágenes o archivos"}</span>
-                      <span className="text-[11px] text-gray-300">Puedes seleccionar múltiples archivos</span>
-                    </>
-                  )}
-                </button>
+              {/* Misma captura que Nuevo acceso: se elige la categoría
+                  (conductor / vehículo / carga) antes de tomar la foto, y las
+                  miniaturas quedan arriba de "Analizar con IA". */}
+              {capturandoDocs ? (
+                <CapturaFotosDocumentos
+                  fotos={stagedDocs}
+                  onCapturar={stageDocumento}
+                  onQuitar={removeStagedDoc}
+                  onCambiarTipo={cambiarTipoStaged}
+                />
               ) : (
                 <button
                   type="button"
-                  disabled={(docTab === "pendientes" ? stagingUpload : uploadingNewDoc) || isLocked}
-                  onClick={() => newDocInputRef.current?.click()}
-                  onDragEnter={(e) => { e.preventDefault(); dragCounterDocsRef.current++; setIsDraggingDocs(true); }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDragLeave={() => { dragCounterDocsRef.current--; if (dragCounterDocsRef.current === 0) setIsDraggingDocs(false); }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    dragCounterDocsRef.current = 0;
-                    setIsDraggingDocs(false);
-                    addDocumentos(Array.from(e.dataTransfer.files));
-                  }}
-                  className={cn(
-                    "w-full h-9 mt-1 rounded-xl border border-dashed text-xs font-medium transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed",
-                    isDraggingDocs ? "border-blue-400 bg-blue-50/60 text-blue-600" : "border-gray-300 hover:border-blue-300 hover:bg-blue-50/40 text-gray-400 hover:text-blue-600",
-                  )}>
-                  {(docTab === "pendientes" ? stagingUpload : uploadingNewDoc) ? (
-                    <>
-                      <span className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                      Subiendo...
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="w-3.5 h-3.5" />
-                      {isDraggingDocs ? "Suelta aquí" : docTab === "pendientes" ? "Agregar más documentos" : "Tomar foto a otro documento"}
-                    </>
-                  )}
+                  disabled={isLocked}
+                  onClick={() => setCapturandoDocs(true)}
+                  className="w-full h-9 mt-1 rounded-xl border border-dashed border-gray-300 hover:border-blue-300 hover:bg-blue-50/40 text-gray-400 hover:text-blue-600 text-xs font-medium transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
+                  <Camera className="w-3.5 h-3.5" />
+                  Tomar foto a otro documento
                 </button>
               )}
               {(() => {
-                const hasAnalyzable = docTab === "pendientes"
+                const hasAnalyzable = capturandoDocs
                   ? stagedDocs.some((d) => d.file_url)
                   : (data?.documentos_adicionales?.some((d) => d.file_url) ?? false);
-                const analyzeDisabled = analyzingDocs || !hasAnalyzable || isLocked;
+                const analyzeDisabled = analyzingDocs || !hasAnalyzable || isLocked || (capturandoDocs && stagingUpload);
                 return (
                   <button
                     type="button"
@@ -4195,33 +3797,42 @@ export default function DetalleTransportistaPage() {
                   </button>
                 );
               })()}
-              {!isLocked && docTab === "pendientes" && (() => {
+              {!isLocked && capturandoDocs && (() => {
                 const listos = stagedDocs.filter((d) => d.file_url && !d.uploading);
                 const guardarDisabled = savingRegistroCompartido || listos.length === 0;
                 return (
-                  <button
-                    type="button"
-                    disabled={guardarDisabled}
-                    title={!savingStagedDocs && savingRegistroCompartido ? "Espera a que termine el otro guardado en curso" : undefined}
-                    onClick={guardarDocumentosPendientes}
-                    className={cn(
-                      "w-full h-9 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
-                      guardarDisabled
-                        ? "bg-gray-100 text-gray-300 cursor-not-allowed"
-                        : "bg-emerald-600 hover:bg-emerald-700 text-white",
-                    )}>
-                    {savingStagedDocs ? (
-                      <>
-                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-3.5 h-3.5" />
-                        Guardar documentos{listos.length > 0 ? ` (${listos.length})` : ""}
-                      </>
-                    )}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      disabled={guardarDisabled}
+                      title={!savingStagedDocs && savingRegistroCompartido ? "Espera a que termine el otro guardado en curso" : undefined}
+                      onClick={guardarDocumentosPendientes}
+                      className={cn(
+                        "w-full h-9 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                        guardarDisabled
+                          ? "bg-gray-100 text-gray-300 cursor-not-allowed"
+                          : "bg-emerald-600 hover:bg-emerald-700 text-white",
+                      )}>
+                      {savingStagedDocs ? (
+                        <>
+                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3.5 h-3.5" />
+                          Guardar documentos{listos.length > 0 ? ` (${listos.length})` : ""}
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingStagedDocs}
+                      onClick={cancelarCapturaDocs}
+                      className="w-full h-8 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50">
+                      Cancelar
+                    </button>
+                  </>
                 );
               })()}
             </div>
