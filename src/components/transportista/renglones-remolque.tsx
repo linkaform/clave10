@@ -101,7 +101,7 @@ export function RenglonesRemolque({ unidades, setUnidades, sueltos, onLigarSuelt
         </div>
       )}
 
-      {renglones.map((u, i) => {
+      {renglones.map((u) => {
         const r = u?.remolque;
         const editar = (campo: "tipo" | "placas" | "noCaja" | "noSello", v: string) =>
           u ? setRemolque(u.id, campo, v) : editarFantasma(campo, v);
@@ -136,8 +136,10 @@ export function RenglonesRemolque({ unidades, setUnidades, sueltos, onLigarSuelt
                   onChange={(e) => editar("noSello", e.target.value)}
                 />
               )}
-              {/* El primer renglón no se quita cuando el vehículo pide caja. */}
-              {u && !(requerido && i === 0) ? (
+              {/* Siempre se puede quitar. Si el vehículo pide caja y era la
+                  única, vuelve el renglón vacío y la validación sigue
+                  exigiéndola. */}
+              {u ? (
                 <button type="button" onClick={() => quitar(u.id)} aria-label="Quitar remolque" className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500">
                   <Trash2 className="w-4 h-4" />
                 </button>

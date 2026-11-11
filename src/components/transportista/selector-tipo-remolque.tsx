@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutGrid } from "lucide-react";
+import { LayoutGrid, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Icono, resolverTipoVehiculo } from "@/components/transportista/selector-tipo-vehiculo";
@@ -189,6 +189,18 @@ export function SelectorTipoRemolque({
             </>
           ) : (
             <div className="grid grid-cols-4 gap-3">{otros.map(tarjeta)}</div>
+          )}
+
+          {value && (
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => elegir("")}
+                className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-red-500"
+              >
+                <X className="w-3.5 h-3.5" /> Quitar selección
+              </button>
+            </div>
           )}
         </DialogContent>
       </Dialog>
