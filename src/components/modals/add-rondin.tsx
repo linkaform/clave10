@@ -253,7 +253,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     catalogAreasRondin && catalogAreasRondin.length > 0 ? catalogAreasRondin : areasFallback;
 
   const { data: dataEmpleados, isLoading: loadingEmpleados } =
-    useCatalogoAreaEmpleado(isSuccess, location ?? "", "Incidencias");
+    useCatalogoAreaEmpleado(isSuccess, ubicacionSeleccionada ?? "", "Incidencias");
   const { data: dataGrupos, isLoading: loadingGrupos } =
     useCatalogoGrupos(isSuccess);
 
@@ -402,7 +402,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     const payload = {
       nombre_rondin: values.nombre_rondin,
       duracion_estimada: values.duracion_estimada + " minutos",
-      ubicacion: location,
+      ubicacion: ubicacionSeleccionada || location,
       areas,
       grupo_asignado: "",
       fecha_hora_programada: formattedDate,
@@ -824,6 +824,10 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                           onChange={(selectedOption) => {
                             field.onChange(selectedOption ? selectedOption.value : "");
                             setUbicacionSeleccionada(selectedOption?.value ?? "");
+                            // La persona elegida pertenece al catálogo de la
+                            // ubicación anterior; se limpia para no guardar
+                            // a alguien que no está asignado a la nueva.
+                            setPersonaEspecifica("");
                           }}
                           isClearable
                         />
