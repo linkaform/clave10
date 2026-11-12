@@ -5,9 +5,12 @@ import { CalendarDays, ChartColumn, ChevronLeft, Info, LayoutDashboard, LayoutGr
 import { Button } from "@/components/ui/button";
 import { DisplayMode, MODE_PERIODS, useAsistenciasView } from "@/hooks/asistencias/useAsistenciasView";
 import { GroupingMode } from "../types/attendance";
-import { EMPLOYEE_QUICK, SHIFT_QUICK, ShiftStatusIcon, StatusIcon } from "../components/attendanceStatus";
+import { EMPLOYEE_QUICK, PLAZA_QUICK, PlazaStatusIcon, SHIFT_QUICK, ShiftStatusIcon, StatusIcon } from "../components/attendanceStatus";
 import { AttendanceDayDrawer, DaySelection } from "../components/AttendanceDayDrawer";
 import { ShiftDrawer } from "../components/ShiftDrawer";
+import { PlazasDrawer } from "../components/PlazasDrawer";
+import { CovFilter, CoverageFilters, CoverageView, coverageLocations } from "../components/asistencia/CoverageView";
+import { usePlantilla } from "../hooks/useAsistenciasReport";
 import { ReportSkeleton } from "../components/ReportSkeleton";
 import { EmployeeDayCalendar, EmployeeDayTable, EmployeePeriodGrid, EmployeePeriodTable, matchQuick } from "../components/asistencia/EmployeeViews";
 import { LocationDayCalendar, LocationDayTable, LocationPeriodGrid, LocationPeriodTable, matchShift, shiftQuickKey } from "../components/asistencia/LocationViews";
@@ -18,6 +21,7 @@ import { EmployeeLocationRow, jornadaLabel, mergeEmployees } from "./lib/employe
 import { ShiftRow, ShiftSelection, filterShifts } from "./lib/shifts";
 import { MESES, PERIOD_VIEWS, PeriodView, periodRange, toISO } from "./lib/period";
 import { employeeMetrics } from "./lib/metrics";
+import { PlazasSelection, plantillaTurnoLabel, plazaQuickKey, resumenPlazas, turnoActual, turnoKey } from "./lib/plantilla";
 
 const MODES: { mode: DisplayMode; label: string; icon: React.ReactNode }[] = [
   { mode: "cov", label: "Vista de cobertura", icon: <LayoutDashboard size={16} aria-hidden="true" /> },
@@ -60,10 +64,14 @@ const ReportPage = () => {
   const [quick, setQuick] = useState<string[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
   const [toastOpen, setToastOpen] = useState(true);
+  const [covTurno, setCovTurno] = useState<string>();
+  const [covFilter, setCovFilter] = useState<CovFilter>("all");
+  const [plazasSel, setPlazasSel] = useState<PlazasSelection | null>(null);
 
   const openDay = useCallback((employee: DaySelection["employee"], fecha: string) => setDaySelection({ employee, fecha }), []);
   const closeDay = useCallback(() => setDaySelection(null), []);
   const closeShift = useCallback(() => setShiftSelection(null), []);
+  const closePlazas = useCallback(() => setPlazasSel(null), []);
 
   // Al cambiar de periodo se limpian los filtros rápidos y la selección
   useEffect(() => {
@@ -76,6 +84,7 @@ const ReportPage = () => {
   const fecha = toISO(date);
   const isDay = period === "dia";
   const mode = displayMode;
+  const isCov = mode === "cov";
 
   // ───── Empleados ─────
   const allEmployees = useMemo(
@@ -109,9 +118,47 @@ const ReportPage = () => {
     return baseShifts.filter(r => isDay ? matchShift(quick, r.dias.find(d => d.fecha === fecha)) : r.dias.some(d => fechas.includes(d.fecha) && matchShift(quick, d)));
   }, [baseShifts, quick, mode, isDay, fecha, fechas]);
 
+  // ───── Cobertura (plantilla por caseta, solo Ubicaciones · Día) ─────
+  const { plantilla, isLoadingPlantilla, isFetchingPlantilla, errorPlantilla, refetchPlantilla } = usePlantilla({
+    enabled: !isEmployees && isCov,
+    dateFrom: fecha,
+    dateTo: fecha,
+  });
+  const covTurnos = useMemo(
+    () => Array.from(new Map(plantilla.map(r => [turnoKey(r), r])).values()).sort((a, b) => a.hora_entrada.localeCompare(b.hora_entrada) || a.horario.localeCompare(b.horario)),
+    [plantilla]
+  );
+  const covTurnoRow = covTurnos.find(t => turnoKey(t) === covTurno) ?? turnoActual(plantilla);
+  const covKey = covTurnoRow ? turnoKey(covTurnoRow) : undefined;
+  const covAll = useMemo(() => {
+    const rows = plantilla.filter(r =>
+      (!fCas.length || fCas.includes(`${r.ubicacion} · ${r.caseta}`)) &&
+      (matches(`${r.ubicacion} ${r.caseta}`, search) || r.dias.some(d => d.plazas.some(p => matches(p.guardia, search))))
+    );
+    return coverageLocations(rows, covKey, fecha);
+  }, [plantilla, fCas, search, covKey, fecha]);
+  // Con filtro rápido solo quedan las ubicaciones con alguna plaza en ese estatus
+  const covVisible = useMemo(() => covAll.filter(l => !quick.length || l.plazas.some(p => quick.includes(plazaQuickKey(p)))), [covAll, quick]);
+  const covCounts = {
+    all: covVisible.length,
+    f: covVisible.filter(l => resumenPlazas(l.plazas).sinEntrada > 0).length,
+    ok: covVisible.filter(l => resumenPlazas(l.plazas).sinEntrada === 0).length,
+  };
+  const covShown = covVisible.filter(l => covFilter === "all" || (covFilter === "f") === resumenPlazas(l.plazas).sinEntrada > 0);
+  const covTotal = resumenPlazas(covAll.flatMap(l => l.plazas));
+
   // ───── Filtros rápidos con conteo ─────
   const pills: QuickPill[] = useMemo(() => {
     const isToday = fecha === toISO(new Date());
+    if (!isEmployees && isCov) {
+      const keys = covAll.flatMap(l => l.plazas.map(plazaQuickKey));
+      return PLAZA_QUICK.map(q => ({
+        key: q.key,
+        label: q.label,
+        count: keys.filter(k => k === q.key).length,
+        icon: <PlazaStatusIcon status={q.key} size={18} />,
+      }));
+    }
     if (isEmployees) {
       const statuses = baseEmployees.flatMap(e => (isDay ? [e.dias[fecha]?.status] : fechas.map(f => e.dias[f]?.status)));
       return EMPLOYEE_QUICK.filter(q => q.key !== "por_llegar" || (isDay && isToday)).map(q => ({
@@ -128,7 +175,7 @@ const ReportPage = () => {
       count: keys.filter(k => k === q.key).length,
       icon: <ShiftStatusIcon status={q.status} size={18} />,
     }));
-  }, [isEmployees, baseEmployees, baseShifts, isDay, fecha, fechas]);
+  }, [isEmployees, isCov, covAll, baseEmployees, baseShifts, isDay, fecha, fechas]);
 
   // ───── Opciones de los filtros del panel ─────
   const opts = useMemo(() => ({
@@ -141,12 +188,14 @@ const ReportPage = () => {
 
   const activeFilters = isEmployees ? fEmp.length + fDep.length + fJor.length : fGua.length + fCas.length;
   const clearFilters = () => {
-    setFEmp([]); setFDep([]); setFJor([]); setFGua([]); setFCas([]); setQuick([]);
+    setFEmp([]); setFDep([]); setFJor([]); setFGua([]); setFCas([]); setQuick([]); setCovFilter("all");
   };
 
   const changeGrouping = (g: GroupingMode) => {
     if (g === groupingMode) return;
     v.setGroupingMode(g);
+    // Cobertura solo existe agrupando por Ubicaciones
+    if (g === "employees" && isCov) v.setDisplayMode("cal");
     setSearch("");
     clearFilters();
     setSelected([]);
@@ -157,7 +206,8 @@ const ReportPage = () => {
   };
 
   const casetas = new Set(shifts.map(s => `${s.ubicacion}|${s.caseta}`)).size;
-  const showKpi = !isLoading && mode !== "cal" && mode !== "gallery";
+  const loading = isCov ? isLoadingPlantilla : isLoading;
+  const showKpi = !loading && mode !== "cal" && mode !== "gallery";
   const showPanel = wide ? panelOpen : narrowOpen;
   const quincena = period === "quincena";
   const resetKey = `${v.from}|${groupingMode}|${quick.join()}|${search}|${activeFilters}`;
@@ -165,6 +215,21 @@ const ReportPage = () => {
   // ───── Contenido ─────
   const renderView = () => {
     if (mode === "gallery") return <div className="p-3"><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} /></div>;
+    if (isCov) {
+      if (isLoadingPlantilla) return <div className="p-3"><ReportSkeleton variant="cards" /></div>;
+      if (errorPlantilla) {
+        return (
+          <div className="p-8 text-center">
+            <p className="mb-2 text-red-600">Error al cargar la plantilla</p>
+            <Button onClick={() => refetchPlantilla()}>Reintentar</Button>
+          </div>
+        );
+      }
+      if (!plantilla.length) {
+        return <div className="p-8 text-center text-c10-meta">No hay plantilla configurada. Agrega caseta, rol y guardia a los horarios en la forma Horarios.</div>;
+      }
+      return <CoverageView locations={covShown} fecha={fecha} turnoLabel={covTurnoRow ? plantillaTurnoLabel(covTurnoRow) : undefined} quick={quick} onOpen={setPlazasSel} />;
+    }
     if (isLoading) {
       if (mode === "table") return <div className="p-3"><ReportSkeleton variant="table" /></div>;
       return <div className="p-3">{isDay ? <ReportSkeleton variant="cards" /> : <ReportSkeleton variant="grid" columns={Math.min(days.length, 31)} />}</div>;
@@ -219,7 +284,9 @@ const ReportPage = () => {
         </span>
         <button type="button" onClick={clearFilters} className="text-sm font-semibold text-button-primary hover:underline">Limpiar</button>
       </div>
-      {isEmployees ? (
+      {!isEmployees && isCov ? (
+        <CoverageFilters turnos={covTurnos} turno={covKey} onTurno={setCovTurno} filter={covFilter} onFilter={setCovFilter} counts={covCounts} />
+      ) : isEmployees ? (
         <>
           <MultiCombo label="Empleado" placeholder="Buscar empleado" options={opts.emp} value={fEmp} onChange={setFEmp} />
           <div className="border-t border-c10-sunken" />
@@ -243,7 +310,7 @@ const ReportPage = () => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <h1 className="m-0 text-2xl font-semibold tracking-[-.02em] text-c10-title">Reporte de asistencia</h1>
-          {showKpi && <KpiChip>{isEmployees ? plural(employees.length, "empleado", "empleados") : plural(casetas, "caseta", "casetas")}</KpiChip>}
+          {showKpi && <KpiChip>{isEmployees ? plural(employees.length, "empleado", "empleados") : isCov ? plural(covShown.length, "ubicación", "ubicaciones") : plural(casetas, "caseta", "casetas")}</KpiChip>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!wide && (
@@ -278,7 +345,7 @@ const ReportPage = () => {
           <div role="tablist" aria-label="Modo de vista" className="inline-flex h-10 overflow-hidden rounded-lg border border-c10-line bg-c10-surface">
             {MODES.map(m => {
               const on = mode === m.mode;
-              const disabled = m.mode === "cov";
+              const disabled = m.mode === "cov" && isEmployees;
               return (
                 <button
                   key={m.mode}
@@ -286,7 +353,7 @@ const ReportPage = () => {
                   role="tab"
                   aria-selected={on}
                   aria-label={m.label}
-                  title={disabled ? `${m.label} · Pendiente` : m.label}
+                  title={disabled ? `${m.label} · solo en Ubicaciones` : m.label}
                   disabled={disabled}
                   onClick={() => v.setDisplayMode(m.mode)}
                   className={`inline-flex h-full w-10 items-center justify-center border-l border-c10-line transition-colors first:border-l-0 disabled:cursor-not-allowed disabled:opacity-40 ${on ? "bg-button-primary text-white" : "text-c10-secondary hover:bg-c10-sunken hover:text-button-primary"}`}
@@ -333,11 +400,11 @@ const ReportPage = () => {
                   type="button"
                   title="Recargar"
                   aria-label="Recargar"
-                  onClick={() => v.refetchReportAsistencias()}
-                  disabled={v.isFetching || mode === "gallery"}
+                  onClick={() => (isCov ? refetchPlantilla() : v.refetchReportAsistencias())}
+                  disabled={(isCov ? isFetchingPlantilla : v.isFetching) || mode === "gallery"}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-c10-sunken text-c10-secondary transition-colors hover:bg-c10-blue-light hover:text-button-primary disabled:opacity-40"
                 >
-                  <RotateCw size={16} className={v.isFetching ? "animate-spin" : ""} />
+                  <RotateCw size={16} className={(isCov ? isFetchingPlantilla : v.isFetching) ? "animate-spin" : ""} />
                 </button>
                 <SegTabs<PeriodView>
                   label="Periodo"
@@ -348,12 +415,19 @@ const ReportPage = () => {
                 />
               </div>
             </div>
-            {mode !== "gallery" && !isLoading && (
-              <QuickFilters
-                pills={pills}
-                active={quick}
-                onToggle={k => setQuick(q => (q.includes(k) ? q.filter(x => x !== k) : [...q, k]))}
-              />
+            {mode !== "gallery" && !loading && (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <QuickFilters
+                  pills={pills}
+                  active={quick}
+                  onToggle={k => setQuick(q => (q.includes(k) ? q.filter(x => x !== k) : [...q, k]))}
+                />
+                {isCov && covTotal.total > 0 && (
+                  <span className="ml-auto text-[13px] text-c10-secondary">
+                    <b className="text-lg font-bold tabular-nums tracking-[-.01em] text-c10-title">{covTotal.entradas} de {covTotal.total}</b> plazas cubiertas
+                  </span>
+                )}
+              </div>
             )}
           </div>
           {renderView()}
@@ -395,7 +469,8 @@ const ReportPage = () => {
       )}
 
       <AttendanceDayDrawer selection={daySelection} onClose={closeDay} />
-      <ShiftDrawer selection={shiftSelection} onClose={closeShift} />
+      <ShiftDrawer selection={shiftSelection} onClose={closeShift} onOpenPlazas={s => { setShiftSelection(null); setPlazasSel(s); }} />
+      <PlazasDrawer selection={plazasSel} onClose={closePlazas} />
     </div>
   );
 };

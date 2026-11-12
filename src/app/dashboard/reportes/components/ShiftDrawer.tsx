@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { ShiftStatusChip, getShiftConfig } from "./attendanceStatus";
 import { AutoCloseMark, Card, DrawerShell, EvidencePhotos, Field, Fields, Warn } from "./drawerParts";
-import { useAttendanceDayDetail } from "../hooks/useAsistenciasReport";
+import { useAttendanceDayDetail, usePlantilla } from "../hooks/useAsistenciasReport";
+import { PlazaBar, plazasSubtitle } from "./asistencia/CoverageView";
+import { PlazasSelection, plantillaTurnoLabel, plazasDe, resumenPlazas } from "../reporte_asistencias/lib/plantilla";
 import { OPENED, ShiftGuard, ShiftSelection, diffText, initials, minutosDiferencia, siguienteInicio, turnoLabel } from "../reporte_asistencias/lib/shifts";
 import { DIAS, MESES, fromISO } from "../reporte_asistencias/lib/period";
 import { tipoCierre, formatHoras, horaSalida, horasTrabajadas } from "../reporte_asistencias/lib/employees";
@@ -10,6 +12,7 @@ import { useNow } from "../reporte_asistencias/lib/useNow";
 interface ShiftDrawerProps {
   selection: ShiftSelection | null;
   onClose: () => void;
+  onOpenPlazas?: (s: PlazasSelection) => void;
 }
 
 const hora = (value?: string | null) => value?.substring(11, 16);
@@ -22,7 +25,7 @@ const guardStatus = (g: ShiftGuard, esHoy: boolean) => {
 };
 
 // Panel lateral con el detalle de un turno de caseta en un día
-export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose }) => {
+export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose, onOpenPlazas }) => {
   const opener = selection && OPENED.includes(selection.day.status) ? selection.day.guardias[0] : undefined;
   // Guardia cuya evidencia se muestra (por defecto, quien abrió)
   const [guardId, setGuardId] = useState<number | undefined>(opener?.employee_id);
@@ -30,6 +33,11 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose }) 
   const guard = selection?.day.guardias.find(g => g.employee_id === guardId) ?? opener;
   const { dayDetail, isLoadingDayDetail } = useAttendanceDayDetail(guard?.employee_id, selection?.day.fecha);
   const now = useNow();
+  // Plazas de esta caseta y turno en la plantilla (si está configurada)
+  const { plantilla } = usePlantilla({ enabled: !!selection && !!onOpenPlazas, dateFrom: selection?.day.fecha, dateTo: selection?.day.fecha });
+  const plazaRows = selection
+    ? plantilla.filter(p => p.ubicacion === selection.row.ubicacion && p.caseta === selection.row.caseta && p.horario === selection.row.horario)
+    : [];
 
   if (!selection) return null;
 
@@ -82,6 +90,28 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose }) 
             <Field label="Horas cubiertas" value={formatHoras(horasTrabajadas(opener?.fecha_inicio, cierre, day.status === "en_curso", now), " h")} />
             <Field label="Tolerancia" value={opener?.tolerancia_retardo != null ? `${opener.tolerancia_retardo} min` : undefined} />
           </Fields>
+
+          {onOpenPlazas && plazaRows.length > 0 && (() => {
+            const plazas = plazasDe(plazaRows, day.fecha);
+            const r = resumenPlazas(plazas);
+            return (
+              <button
+                type="button"
+                onClick={() => onOpenPlazas({ title: row.caseta, subtitle: plazasSubtitle(row.ubicacion, day.fecha, plantillaTurnoLabel(plazaRows[0])), fecha: day.fecha, rows: plazaRows })}
+                className="flex flex-col gap-2 rounded-xl bg-c10-surface p-4 text-left shadow-[0_0_0_1px_var(--c10-line-card)] hover:shadow-[0_0_0_1px_var(--c10-line-card),0_6px_16px_rgba(15,23,42,.08)]"
+              >
+                <span className="flex items-center justify-between gap-3">
+                  <b className="text-sm font-semibold text-c10-title">Plantilla</b>
+                  <b className={`text-[13px] font-semibold tabular-nums ${r.sinEntrada ? "text-red-700" : r.entradas === r.total ? "text-green-700" : "text-c10-secondary"}`}>{r.entradas}/{r.total} entradas</b>
+                </span>
+                <PlazaBar plazas={plazas} />
+                <span className="flex items-center justify-between gap-2 text-xs text-c10-secondary">
+                  <span>{[r.sinEntrada ? `${r.sinEntrada} sin entrada` : "", r.porLlegar ? `${r.porLlegar} por llegar` : ""].filter(Boolean).join(" · ") || "Plantilla completa"}</span>
+                  <span className="whitespace-nowrap font-semibold text-button-primary">Ver plazas ›</span>
+                </span>
+              </button>
+            );
+          })()}
 
           {varios && (
             <Card title={`Guardias en el turno (${day.guardias.length})`}>

@@ -182,3 +182,28 @@ export const SHIFT_QUICK: { key: string; label: string; status: ShiftStatus }[] 
   { key: "sin_cierre", label: "Sin cierre", status: "sin_cierre" },
   { key: "por_abrir", label: "Programado", status: "por_abrir" },
 ];
+
+// Estatus de plazas de la plantilla por caseta (get_plantilla)
+export type PlazaStatusKey = "A" | "R" | "F" | "PL" | "PE";
+export const plazaStatusConfig: Record<PlazaStatusKey, StatusConfig> = {
+  A: { ...A.presente, label: "Con entrada" },
+  R: { ...A.retardo, label: "Entrada con retardo" },
+  F: { ...A.falta, label: "Sin entrada" },
+  PL: { ...A.por_llegar, label: "Por llegar" },
+  PE: { ...A.sin_registro, chip: "bg-slate-100 text-slate-500", label: "Programado" },
+};
+
+export const getPlazaConfig = (status?: string) =>
+  plazaStatusConfig[status as PlazaStatusKey] || plazaStatusConfig.PE;
+
+export const PlazaStatusIcon = ({ status, size = 26 }: { status?: string; size?: number }) => (
+  <IconBox config={getPlazaConfig(status)} size={size} />
+);
+
+// Filtros rápidos de Cobertura ("Por llegar" incluye lo programado)
+export const PLAZA_QUICK: { key: PlazaStatusKey; label: string }[] = [
+  { key: "A", label: "Con entrada" },
+  { key: "R", label: "Entrada con retardo" },
+  { key: "F", label: "Sin entrada" },
+  { key: "PL", label: "Por llegar" },
+];

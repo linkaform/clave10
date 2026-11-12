@@ -13,7 +13,7 @@ import {
 } from "@/app/dashboard/reportes/reporte_asistencias/lib/period";
 import { useCallback, useMemo, useState } from "react";
 
-// cov = Cobertura (pendiente: requiere plantilla por caseta)
+// cov = Cobertura (plantilla por caseta, solo Ubicaciones · Día)
 export type DisplayMode = "cov" | "cal" | "gallery" | "table" | "charts";
 
 // Periodos que admite cada modo de vista

@@ -151,3 +151,23 @@ export const getAttendanceDayDetail = async (userId: number, fecha: string) => {
   const data = await response.json();
   return data?.response?.data ?? {};
 };
+
+// Plantilla por caseta: plazas por caseta × turno × rol con su estado por día
+export const getPlantilla = async (dateFrom: string, dateTo: string) => {
+  const userJwt = await getValidToken();
+  const response = await fetch(API_ENDPOINTS.runScript, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${userJwt}`,
+    },
+    body: JSON.stringify({
+      option: "get_plantilla",
+      script_name: "asistencia_report.py",
+      date_from: dateFrom,
+      date_to: dateTo,
+    }),
+  });
+  const data = await response.json();
+  return data?.response?.data ?? [];
+};

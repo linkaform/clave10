@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAttendanceData, getAttendanceDayDetail, getAttendanceDetail, getReportAsistencias, getReportLocations } from "../endpoints/asistenciasReport";
+import { getAttendanceData, getAttendanceDayDetail, getAttendanceDetail, getPlantilla, getReportAsistencias, getReportLocations } from "../endpoints/asistenciasReport";
+import { PlantillaRow } from "../reporte_asistencias/lib/plantilla";
 import { asistenciasReport } from "../types/report";
 
 // El reporte cambia poco mientras se navega: se reusa la respuesta 5 min por periodo y se guarda 30 min.
@@ -149,4 +150,23 @@ export const useAttendanceDayDetail = (userId?: number, fecha?: string) => {
     retry: 1,
   });
   return { dayDetail: data ?? {}, isLoadingDayDetail: isLoading };
+};
+
+// Plantilla por caseta del rango (Cobertura y "Ver plazas")
+export const usePlantilla = ({ enabled = false, dateFrom, dateTo }: { enabled?: boolean; dateFrom?: string; dateTo?: string }) => {
+  const { data, isLoading, isFetching, error, refetch } = useQuery<PlantillaRow[]>({
+    queryKey: ["getPlantilla", { dateFrom, dateTo }],
+    enabled: enabled && !!dateFrom && !!dateTo,
+    ...CACHE,
+    queryFn: async () => (await getPlantilla(dateFrom!, dateTo!)) ?? [],
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+  return {
+    plantilla: Array.isArray(data) ? data : [],
+    isLoadingPlantilla: isLoading,
+    isFetchingPlantilla: isFetching,
+    errorPlantilla: error,
+    refetchPlantilla: refetch,
+  };
 };
