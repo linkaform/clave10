@@ -2,6 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { getAttendanceData, getAttendanceDayDetail, getAttendanceDetail, getReportAsistencias, getReportLocations } from "../endpoints/asistenciasReport";
 import { asistenciasReport } from "../types/report";
 
+// El reporte cambia poco mientras se navega: se reusa la respuesta 5 min por periodo y se guarda 30 min.
+// "Recargar" sigue pidiendo de nuevo (refetch ignora staleTime).
+const CACHE = { staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000 };
+
 export const useReportAsistencias = ({ enabled = false, dateRange, locations, groupBy, month, year, dateFrom, dateTo }: asistenciasReport) => {
     const {
         data: reportAsistencias,
@@ -10,8 +14,10 @@ export const useReportAsistencias = ({ enabled = false, dateRange, locations, gr
         refetch: refetchReportAsistencias,
         isFetching: isFetchingReportAsistencias,
     } = useQuery<any>({
-        queryKey: ["getReportAsistencias", { dateRange, locations, groupBy, month, year, dateFrom, dateTo }],
+        // El back solo usa month/year si no llega el rango; con el rango basta para la llave
+        queryKey: ["getReportAsistencias", { locations, groupBy, dateFrom, dateTo }],
         enabled,
+        ...CACHE,
         queryFn: async () => {
             const data = await getReportAsistencias({
                 dateRange,
@@ -111,6 +117,7 @@ export const useAttendanceData = ({
     } = useQuery<any>({
       queryKey: ["getAttendanceData", { locations, limit, offset, dateFrom, dateTo }],
       enabled,
+      ...CACHE,
       queryFn: () => getAttendanceData({ locations, limit, offset, dateFrom, dateTo }),
       refetchOnWindowFocus: false,
       retry: 1,
@@ -124,7 +131,9 @@ export const useAttendanceData = ({
         actual_page: data?.actual_page ?? 1,
         records_on_page: data?.records_on_page ?? 0,
       },
-      isLoadingAttendance: isLoadingAttendance || isFetchingAttendance,
+      // Solo la primera carga de una página; al regresar a una ya vista se muestra lo guardado
+      isLoadingAttendance,
+      isFetchingAttendance,
       errorAttendance,
       refetchAttendance,
     };
@@ -134,6 +143,7 @@ export const useAttendanceDayDetail = (userId?: number, fecha?: string) => {
   const { data, isLoading } = useQuery<any>({
     queryKey: ["getAttendanceDayDetail", { userId, fecha }],
     enabled: !!userId && !!fecha,
+    ...CACHE,
     queryFn: () => getAttendanceDayDetail(userId!, fecha!),
     refetchOnWindowFocus: false,
     retry: 1,

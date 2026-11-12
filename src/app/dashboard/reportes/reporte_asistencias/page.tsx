@@ -1,288 +1,401 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { CalendarDays, LayoutGrid, Search, Sheet } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { CalendarDays, ChartColumn, ChevronLeft, Info, LayoutDashboard, LayoutGrid, RotateCw, Search, SlidersHorizontal, Table2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAsistenciasView, DisplayMode } from "@/hooks/asistencias/useAsistenciasView";
+import { DisplayMode, MODE_PERIODS, useAsistenciasView } from "@/hooks/asistencias/useAsistenciasView";
 import { GroupingMode } from "../types/attendance";
-import { EmployeeAttendanceGrid } from "../components/EmployeeAttendanceGrid";
-import { EmployeeSummaryTable } from "../components/EmployeeSummaryTable";
-import { EmployeeDayView } from "../components/EmployeeDayView";
-import { QuincenaBanner } from "../components/QuincenaBanner";
+import { EMPLOYEE_QUICK, SHIFT_QUICK, ShiftStatusIcon, StatusIcon } from "../components/attendanceStatus";
 import { AttendanceDayDrawer, DaySelection } from "../components/AttendanceDayDrawer";
-import { LocationDayView } from "../components/LocationDayView";
-import { LocationPeriodView } from "../components/LocationPeriodView";
 import { ShiftDrawer } from "../components/ShiftDrawer";
 import { ReportSkeleton } from "../components/ReportSkeleton";
-import { AttendanceRecordsView } from "../components/AttendanceRecordsView";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ShiftStatusIcon, StatusIcon, attendanceStatusConfig, legendStatuses, shiftLegendStatuses, shiftStatusConfig } from "../components/attendanceStatus";
+import { EmployeeDayCalendar, EmployeeDayTable, EmployeePeriodGrid, EmployeePeriodTable, matchQuick } from "../components/asistencia/EmployeeViews";
+import { LocationDayCalendar, LocationDayTable, LocationPeriodGrid, LocationPeriodTable, matchShift, shiftQuickKey } from "../components/asistencia/LocationViews";
+import { GalleryView } from "../components/asistencia/GalleryView";
+import { EmployeeCharts, LocationCharts } from "../components/asistencia/Charts";
+import { KpiChip, MultiCombo, PeriodNav, QuickFilters, QuickPill, SegTabs, matches } from "../components/asistencia/ui";
 import { EmployeeLocationRow, jornadaLabel, mergeEmployees } from "./lib/employees";
 import { ShiftRow, ShiftSelection, filterShifts } from "./lib/shifts";
-import { PERIOD_VIEWS, PeriodView, periodRange } from "./lib/period";
+import { MESES, PERIOD_VIEWS, PeriodView, periodRange, toISO } from "./lib/period";
+import { employeeMetrics } from "./lib/metrics";
 
-const segBtn = (active: boolean) =>
-  `h-full px-5 border-l border-c10-line first:border-l-0 ${active ? "bg-[#2F80ED] text-white font-semibold" : "bg-transparent text-c10-secondary"}`;
+const MODES: { mode: DisplayMode; label: string; icon: React.ReactNode }[] = [
+  { mode: "cov", label: "Vista de cobertura", icon: <LayoutDashboard size={16} aria-hidden="true" /> },
+  { mode: "cal", label: "Vista de calendario", icon: <CalendarDays size={16} aria-hidden="true" /> },
+  { mode: "gallery", label: "Vista de galería", icon: <LayoutGrid size={16} aria-hidden="true" /> },
+  { mode: "table", label: "Vista de tabla", icon: <Table2 size={16} aria-hidden="true" /> },
+  { mode: "charts", label: "Vista de gráficas", icon: <ChartColumn size={16} aria-hidden="true" /> },
+];
+
+const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+// Ancho de pantalla: debajo de 1100 px el panel de filtros se vuelve botón
+const useWide = () => {
+  const [wide, setWide] = useState(true);
+  useEffect(() => {
+    const q = window.matchMedia("(min-width: 1100px)");
+    const up = () => setWide(q.matches);
+    up();
+    q.addEventListener("change", up);
+    return () => q.removeEventListener("change", up);
+  }, []);
+  return wide;
+};
 
 const ReportPage = () => {
-  const {
-    groupingMode,
-    setGroupingMode,
-    period,
-    setPeriod,
-    days,
-    label,
-    isCurrent,
-    goPrev,
-    goNext,
-    goToday,
-    displayMode,
-    setDisplayMode,
-    search,
-    setSearch,
-    date,
-    from: dateFrom,
-    to: dateTo,
-    reportAsistencias,
-    isLoading,
-    errorReportAsistencias,
-    refetchReportAsistencias,
-  } = useAsistenciasView();
+  const v = useAsistenciasView();
+  const { groupingMode, period, date, days, displayMode, search, setSearch, reportAsistencias, isLoading } = v;
+  const isEmployees = groupingMode === "employees";
+  const wide = useWide();
+
   const [daySelection, setDaySelection] = useState<DaySelection | null>(null);
   const [shiftSelection, setShiftSelection] = useState<ShiftSelection | null>(null);
-  const [departamento, setDepartamento] = useState("");
-  const [jornada, setJornada] = useState("");
-  const openDay = (employee: DaySelection["employee"], fecha: string) => setDaySelection({ employee, fecha });
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [narrowOpen, setNarrowOpen] = useState(false);
+  const [fEmp, setFEmp] = useState<string[]>([]);
+  const [fDep, setFDep] = useState<string[]>([]);
+  const [fJor, setFJor] = useState<string[]>([]);
+  const [fGua, setFGua] = useState<string[]>([]);
+  const [fCas, setFCas] = useState<string[]>([]);
+  const [quick, setQuick] = useState<string[]>([]);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [toastOpen, setToastOpen] = useState(true);
 
-  const isEmployees = groupingMode === "employees";
+  const openDay = useCallback((employee: DaySelection["employee"], fecha: string) => setDaySelection({ employee, fecha }), []);
+  const closeDay = useCallback(() => setDaySelection(null), []);
+  const closeShift = useCallback(() => setShiftSelection(null), []);
 
+  // Al cambiar de periodo se limpian los filtros rápidos y la selección
+  useEffect(() => {
+    setQuick([]);
+    setSelected([]);
+    setToastOpen(true);
+  }, [period, v.from]);
+
+  const fechas = useMemo(() => days.map(toISO), [days]);
+  const fecha = toISO(date);
+  const isDay = period === "dia";
+  const mode = displayMode;
+
+  // ───── Empleados ─────
   const allEmployees = useMemo(
     () => (isEmployees ? mergeEmployees(reportAsistencias as EmployeeLocationRow[]) : []),
     [isEmployees, reportAsistencias]
   );
-  const departamentos = useMemo(
-    () => Array.from(new Set(allEmployees.map(e => e.departamento).filter(Boolean))).sort(),
-    [allEmployees]
-  );
-  const jornadas = useMemo(
-    () => Array.from(new Set(allEmployees.map(e => jornadaLabel(e.jornada)).filter(Boolean))).sort(),
-    [allEmployees]
-  );
+  const baseEmployees = useMemo(() => allEmployees.filter(e =>
+    matches(e.nombre, search) &&
+    (!fEmp.length || fEmp.includes(e.nombre)) &&
+    (!fDep.length || fDep.includes(e.departamento)) &&
+    (!fJor.length || fJor.includes(jornadaLabel(e.jornada)))
+  ), [allEmployees, search, fEmp, fDep, fJor]);
+  // En tabla los filtros rápidos quitan filas; en calendario y gráficas solo atenúan o filtran series
   const employees = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return allEmployees.filter(e =>
-      (!q || e.nombre.toLowerCase().includes(q)) &&
-      (!departamento || e.departamento === departamento) &&
-      (!jornada || jornadaLabel(e.jornada) === jornada)
-    );
-  }, [allEmployees, search, departamento, jornada]);
+    if (!quick.length || mode !== "table") return baseEmployees;
+    return baseEmployees.filter(e => isDay ? matchQuick(quick, e.dias[fecha]?.status) : fechas.some(f => e.dias[f] && matchQuick(quick, e.dias[f].status)));
+  }, [baseEmployees, quick, mode, isDay, fecha, fechas]);
+  const metrics = useMemo(() => {
+    const now = new Date();
+    return new Map(employees.map(e => [e.employee_id, employeeMetrics(e, fechas, now)]));
+  }, [employees, fechas]);
 
-  const shifts = useMemo(
-    () => (isEmployees ? [] : filterShifts(reportAsistencias as ShiftRow[], search)),
-    [isEmployees, reportAsistencias, search]
-  );
-  const casetas = new Set(shifts.map(s => `${s.ubicacion}|${s.caseta}`)).size;
+  // ───── Ubicaciones ─────
+  const allShifts = useMemo(() => (isEmployees ? [] : (reportAsistencias as ShiftRow[])), [isEmployees, reportAsistencias]);
+  const baseShifts = useMemo(() => filterShifts(allShifts, search).filter(r =>
+    (!fCas.length || fCas.includes(`${r.ubicacion} · ${r.caseta}`)) &&
+    (!fGua.length || r.dias.some(d => d.guardias.some(g => fGua.includes(g.nombre))))
+  ), [allShifts, search, fCas, fGua]);
+  const shifts = useMemo(() => {
+    if (!quick.length || mode !== "table") return baseShifts;
+    return baseShifts.filter(r => isDay ? matchShift(quick, r.dias.find(d => d.fecha === fecha)) : r.dias.some(d => fechas.includes(d.fecha) && matchShift(quick, d)));
+  }, [baseShifts, quick, mode, isDay, fecha, fechas]);
 
-  const changeGrouping = (mode: GroupingMode) => {
-    if (mode === groupingMode) return;
-    setGroupingMode(mode);
+  // ───── Filtros rápidos con conteo ─────
+  const pills: QuickPill[] = useMemo(() => {
+    const isToday = fecha === toISO(new Date());
+    if (isEmployees) {
+      const statuses = baseEmployees.flatMap(e => (isDay ? [e.dias[fecha]?.status] : fechas.map(f => e.dias[f]?.status)));
+      return EMPLOYEE_QUICK.filter(q => q.key !== "por_llegar" || (isDay && isToday)).map(q => ({
+        key: q.key,
+        label: q.label,
+        count: statuses.filter(s => s && q.match.includes(s)).length,
+        icon: <StatusIcon status={q.status} size={18} />,
+      }));
+    }
+    const keys = baseShifts.flatMap(r => r.dias.filter(d => (isDay ? d.fecha === fecha : fechas.includes(d.fecha))).map(shiftQuickKey));
+    return SHIFT_QUICK.filter(q => q.key !== "por_abrir" || (isDay && isToday)).map(q => ({
+      key: q.key,
+      label: q.label,
+      count: keys.filter(k => k === q.key).length,
+      icon: <ShiftStatusIcon status={q.status} size={18} />,
+    }));
+  }, [isEmployees, baseEmployees, baseShifts, isDay, fecha, fechas]);
+
+  // ───── Opciones de los filtros del panel ─────
+  const opts = useMemo(() => ({
+    emp: allEmployees.map(e => e.nombre),
+    dep: Array.from(new Set(allEmployees.map(e => e.departamento).filter(Boolean))).sort(),
+    jor: Array.from(new Set(allEmployees.map(e => jornadaLabel(e.jornada)).filter(Boolean))).sort(),
+    gua: Array.from(new Set(allShifts.flatMap(r => r.dias.flatMap(d => d.guardias.map(g => g.nombre))))).sort(),
+    cas: Array.from(new Set(allShifts.map(r => `${r.ubicacion} · ${r.caseta}`))).sort(),
+  }), [allEmployees, allShifts]);
+
+  const activeFilters = isEmployees ? fEmp.length + fDep.length + fJor.length : fGua.length + fCas.length;
+  const clearFilters = () => {
+    setFEmp([]); setFDep([]); setFJor([]); setFGua([]); setFCas([]); setQuick([]);
+  };
+
+  const changeGrouping = (g: GroupingMode) => {
+    if (g === groupingMode) return;
+    v.setGroupingMode(g);
     setSearch("");
-    setDepartamento("");
-    setJornada("");
+    clearFilters();
+    setSelected([]);
+  };
+  const selectEmployee = (nombre: string) => {
+    setFEmp([nombre]);
+    v.setDisplayMode("cal");
   };
 
-  const isCards = displayMode === "cards";
+  const casetas = new Set(shifts.map(s => `${s.ubicacion}|${s.caseta}`)).size;
+  const showKpi = !isLoading && mode !== "cal" && mode !== "gallery";
+  const showPanel = wide ? panelOpen : narrowOpen;
+  const quincena = period === "quincena";
+  const resetKey = `${v.from}|${groupingMode}|${quick.join()}|${search}|${activeFilters}`;
 
+  // ───── Contenido ─────
   const renderView = () => {
-    if (isCards) return <AttendanceRecordsView dateFrom={dateFrom} dateTo={dateTo} search={search} />;
+    if (mode === "gallery") return <div className="p-3"><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} /></div>;
     if (isLoading) {
-      if (displayMode === "table") return <ReportSkeleton variant="table" />;
-      return period === "dia" ? <ReportSkeleton variant="cards" /> : <ReportSkeleton variant="grid" columns={days.length} />;
+      if (mode === "table") return <div className="p-3"><ReportSkeleton variant="table" /></div>;
+      return <div className="p-3">{isDay ? <ReportSkeleton variant="cards" /> : <ReportSkeleton variant="grid" columns={Math.min(days.length, 31)} />}</div>;
     }
-    if (errorReportAsistencias) {
+    if (v.errorReportAsistencias) {
       return (
-        <div className="text-center p-8">
-          <p className="text-red-500 mb-2">Error al cargar los datos</p>
-          <Button onClick={() => refetchReportAsistencias()}>Reintentar</Button>
+        <div className="p-8 text-center">
+          <p className="mb-2 text-red-600">Error al cargar los datos</p>
+          <Button onClick={() => v.refetchReportAsistencias()}>Reintentar</Button>
         </div>
       );
     }
-    if (!isEmployees) {
-      if (!shifts.length) {
-        return (
-          <div className="rounded-xl border border-dashed border-c10-line-strong p-8 text-center text-c10-meta">
-            No se encontraron casetas con ese filtro
-          </div>
-        );
+    const sel = { ids: selected, set: setSelected };
+    if (isEmployees) {
+      if (mode === "charts") return <div className="p-4"><EmployeeCharts employees={employees} days={days} quick={quick} onSelectEmployee={selectEmployee} /></div>;
+      if (mode === "table") {
+        return isDay
+          ? <EmployeeDayTable employees={employees} date={date} sel={sel} onOpenDay={openDay} />
+          : <EmployeePeriodTable employees={employees} metrics={metrics} quincena={quincena} sel={sel} resetKey={resetKey} onSelectEmployee={selectEmployee} />;
       }
-      return period === "dia"
-        ? <LocationDayView rows={shifts} date={date} mode={displayMode} onOpenShift={setShiftSelection} />
-        : <LocationPeriodView rows={shifts} days={days} mode={displayMode} onOpenShift={setShiftSelection} />;
+      return isDay
+        ? <EmployeeDayCalendar employees={employees} date={date} quick={quick} onOpenDay={openDay} />
+        : <EmployeePeriodGrid employees={employees} days={days} quick={quick} metrics={metrics} onOpenDay={openDay} />;
     }
-    if (!employees.length) {
-      return (
-        <div className="rounded-xl border border-dashed border-c10-line-strong p-8 text-center text-c10-meta">
-          No se encontraron empleados con ese filtro
-        </div>
-      );
+    if (mode === "charts") return <div className="p-4"><LocationCharts rows={shifts} days={days} quick={quick} /></div>;
+    if (mode === "table") {
+      return isDay
+        ? <LocationDayTable rows={shifts} date={date} onOpenShift={setShiftSelection} />
+        : <LocationPeriodTable rows={shifts} resetKey={resetKey} />;
     }
-    if (period === "dia") {
-      return <EmployeeDayView employees={employees} date={date} mode={displayMode} onOpenDay={openDay} />;
-    }
-    const content = displayMode === "table"
-      ? (
-        <EmployeeSummaryTable
-          employees={employees}
-          showReview={period === "quincena"}
-          onSelectEmployee={nombre => {
-            setSearch(nombre);
-            setDisplayMode("cal");
-          }}
-        />
-      )
-      : <EmployeeAttendanceGrid employees={employees} days={days} onOpenDay={openDay} />;
-    if (period !== "quincena") return content;
-    const [from, to] = periodRange(period, date);
-    return (
-      <div className="flex flex-col gap-3.5">
-        <QuincenaBanner employees={employees} from={from} to={to} />
-        {content}
-      </div>
-    );
+    return isDay
+      ? <LocationDayCalendar rows={shifts} date={date} quick={quick} onOpenShift={setShiftSelection} />
+      : <LocationPeriodGrid rows={shifts} days={days} quick={quick} onOpenShift={setShiftSelection} />;
   };
+
+  // Resumen de la quincena (Empleados)
+  const [qFrom, qTo] = periodRange(period, date);
+  const quincenaToast = isEmployees && quincena && !isLoading && mode !== "gallery" && mode !== "charts" && toastOpen && employees.length > 0;
+  const porRevisar = Array.from(metrics.values()).filter(m => m.revisar).length;
+  const sinSalida = employees.reduce((n, e) => n + fechas.filter(f => e.dias[f]?.status === "sin_salida").length, 0);
+  const enCurso = qTo >= new Date(new Date().toDateString());
+
+  const filterPanel = (
+    <aside aria-label="Filtros" className={`flex w-[280px] flex-none flex-col gap-4 rounded-2xl bg-c10-surface p-4 shadow-[0_1px_2px_rgba(15,23,42,.04),0_6px_20px_rgba(15,23,42,.04)] ${wide ? "sticky top-[84px]" : "fixed bottom-0 left-0 top-0 z-[58] overflow-auto rounded-none"}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2">
+          <button type="button" title="Ocultar filtros" aria-label="Ocultar filtros" onClick={() => (wide ? setPanelOpen(false) : setNarrowOpen(false))} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-c10-sunken text-c10-secondary hover:bg-c10-blue-light hover:text-button-primary">
+            <ChevronLeft size={16} />
+          </button>
+          <b className="text-base font-semibold text-c10-title">Filtros</b>
+          {activeFilters > 0 && <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-button-primary px-1 text-[11px] font-semibold text-white">{activeFilters}</span>}
+        </span>
+        <button type="button" onClick={clearFilters} className="text-sm font-semibold text-button-primary hover:underline">Limpiar</button>
+      </div>
+      {isEmployees ? (
+        <>
+          <MultiCombo label="Empleado" placeholder="Buscar empleado" options={opts.emp} value={fEmp} onChange={setFEmp} />
+          <div className="border-t border-c10-sunken" />
+          <MultiCombo label="Departamento" placeholder="Buscar departamento" options={opts.dep} value={fDep} onChange={setFDep} />
+          <div className="border-t border-c10-sunken" />
+          <MultiCombo label="Jornada" placeholder="Buscar jornada" options={opts.jor} value={fJor} onChange={setFJor} />
+        </>
+      ) : (
+        <>
+          <MultiCombo label="Guardia" placeholder="Buscar guardia" options={opts.gua} value={fGua} onChange={setFGua} />
+          <div className="border-t border-c10-sunken" />
+          <MultiCombo label="Caseta" placeholder="Buscar caseta" options={opts.cas} value={fCas} onChange={setFCas} />
+        </>
+      )}
+    </aside>
+  );
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-[18px] px-8 pb-12 pt-6 text-sm text-c10-text max-md:px-4">
-      {/* Barra principal */}
+    <div className="flex min-h-[calc(100vh-64px)] w-full flex-col gap-4 bg-c10-canvas px-6 pb-12 pt-5 text-sm text-c10-text max-md:px-4">
+      {/* Cabecera de sección */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="m-0 text-2xl font-bold tracking-[-.02em] text-c10-title">Reporte de asistencia</h1>
-          {isLoading && <Skeleton className="h-6 w-28" />}
-          {!isLoading && !isCards && (
-            <span className="inline-flex rounded-md bg-[#2F80ED] px-2 py-0.5 font-semibold tabular-nums text-white">
-              {isEmployees
-                ? `${employees.length} ${employees.length === 1 ? "empleado" : "empleados"}`
-                : `${casetas} ${casetas === 1 ? "caseta" : "casetas"}`}
-            </span>
+        <div className="flex items-center gap-2.5">
+          <h1 className="m-0 text-2xl font-semibold tracking-[-.02em] text-c10-title">Reporte de asistencia</h1>
+          {showKpi && <KpiChip>{isEmployees ? plural(employees.length, "empleado", "empleados") : plural(casetas, "caseta", "casetas")}</KpiChip>}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {!wide && (
+            <button
+              type="button"
+              title="Filtros"
+              aria-label="Filtros"
+              onClick={() => setNarrowOpen(true)}
+              className={`relative inline-flex h-10 w-10 items-center justify-center rounded-lg border transition-colors hover:border-button-primary hover:text-button-primary ${activeFilters ? "border-button-primary bg-c10-blue-subtle text-button-primary" : "border-c10-line bg-c10-surface text-c10-meta"}`}
+            >
+              <SlidersHorizontal size={16} />
+              {activeFilters > 0 && <span className="absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-button-primary px-1 text-[11px] font-semibold text-white">{activeFilters}</span>}
+            </button>
           )}
-          <label className="flex h-10 w-[240px] items-center gap-2 rounded-lg border border-c10-line bg-white px-3 text-c10-meta max-md:w-full">
-            <Search size={16} />
+          <label className="flex h-10 w-[260px] items-center gap-2 rounded-lg border border-c10-line bg-c10-surface px-3 transition-colors focus-within:border-button-primary focus-within:shadow-[0_0_0_3px_rgba(59,130,246,.15)] max-md:w-full">
+            <Search size={16} className="flex-none text-c10-faint" aria-hidden="true" />
             <input
               type="search"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder={isEmployees ? "Buscar empleado..." : "Buscar caseta o guardia..."}
+              placeholder={isEmployees ? "Buscar empleado" : "Buscar caseta o guardia"}
               aria-label={isEmployees ? "Buscar empleado" : "Buscar caseta o guardia"}
-              className="w-full border-none bg-transparent text-c10-text outline-none"
+              className="w-full border-none bg-transparent text-sm text-c10-title outline-none placeholder:text-c10-faint"
             />
           </label>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button" disabled title="Pendiente" className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-lg border border-c10-line bg-white px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-50">
-            Reglas de Jornada
-          </button>
-          <button type="button" disabled title="Pendiente" className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-lg border border-c10-line bg-white px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-50">
-            Exportar Excel
-          </button>
-          <div role="group" aria-label="Tipo de vista" className="inline-flex h-10 overflow-hidden rounded-lg border border-c10-line bg-white">
-            {([
-              ["cal", "Vista de calendario", <CalendarDays key="cal" size={20} aria-hidden="true" />],
-              ["cards", "Vista de registros con foto", <LayoutGrid key="cards" size={20} aria-hidden="true" />],
-              ["table", "Vista de tabla", <Sheet key="table" size={20} aria-hidden="true" />],
-            ] as [DisplayMode, string, React.ReactNode][]).map(([mode, title, svg]) => (
-              <button
-                key={mode}
-                type="button"
-                title={title}
-                aria-label={title}
-                aria-pressed={displayMode === mode}
-                onClick={() => setDisplayMode(mode)}
-                className={`${segBtn(displayMode === mode)} inline-flex items-center justify-center !px-3.5`}
-              >
-                {svg}
-              </button>
-            ))}
+          <SegTabs<GroupingMode>
+            label="Agrupar por"
+            value={groupingMode}
+            onChange={changeGrouping}
+            options={[{ value: "employees", label: "Empleados" }, { value: "locations", label: "Ubicaciones" }]}
+          />
+          <div role="tablist" aria-label="Modo de vista" className="inline-flex h-10 overflow-hidden rounded-lg border border-c10-line bg-c10-surface">
+            {MODES.map(m => {
+              const on = mode === m.mode;
+              const disabled = m.mode === "cov";
+              return (
+                <button
+                  key={m.mode}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  aria-label={m.label}
+                  title={disabled ? `${m.label} · Pendiente` : m.label}
+                  disabled={disabled}
+                  onClick={() => v.setDisplayMode(m.mode)}
+                  className={`inline-flex h-full w-10 items-center justify-center border-l border-c10-line transition-colors first:border-l-0 disabled:cursor-not-allowed disabled:opacity-40 ${on ? "bg-button-primary text-white" : "text-c10-secondary hover:bg-c10-sunken hover:text-button-primary"}`}
+                >
+                  {m.icon}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Periodo */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div role="group" aria-label="Reporte por" className="inline-flex h-10 overflow-hidden rounded-lg border border-c10-line bg-white">
-          {([["employees", "Empleados"], ["locations", "Ubicaciones"]] as [GroupingMode, string][]).map(([mode, text]) => (
-            <button key={mode} type="button" aria-pressed={groupingMode === mode} onClick={() => changeGrouping(mode)} className={segBtn(groupingMode === mode)}>
-              {text}
-            </button>
-          ))}
-        </div>
-        <select
-          aria-label="Periodo"
-          value={period}
-          onChange={e => setPeriod(e.target.value as PeriodView)}
-          className="h-10 min-w-[130px] rounded-lg border border-c10-line bg-white px-2.5 text-c10-secondary"
-        >
-          {PERIOD_VIEWS.map(v => (
-            <option key={v.value} value={v.value}>{v.label}</option>
-          ))}
-        </select>
-        <div className="inline-flex h-10 items-center overflow-hidden rounded-lg border border-c10-line bg-white">
-          <button type="button" aria-label="Periodo anterior" onClick={goPrev} className="h-10 w-10 text-lg text-c10-secondary hover:bg-c10-panel">‹</button>
-          <strong className="whitespace-nowrap px-3.5 tabular-nums text-c10-title">{label}</strong>
-          <button type="button" aria-label="Periodo siguiente" onClick={goNext} className="h-10 w-10 text-lg text-c10-secondary hover:bg-c10-panel">›</button>
-        </div>
-        <button
-          type="button"
-          onClick={goToday}
-          disabled={isCurrent}
-          title={isCurrent ? "Ya estás viendo el periodo actual" : "Regresar al periodo actual"}
-          className="h-10 rounded-lg border border-[#2F80ED] bg-[#2F80ED] px-3.5 font-semibold text-white hover:bg-[#1E6FDB] disabled:cursor-default disabled:border-c10-line disabled:bg-white disabled:text-c10-meta disabled:opacity-70"
-        >
-          Hoy
-        </button>
-        {isEmployees && !isCards && (
-          <>
-            <select
-              aria-label="Departamento"
-              value={departamento}
-              onChange={e => setDepartamento(e.target.value)}
-              className="h-10 rounded-lg border border-c10-line bg-white px-2.5 text-c10-secondary"
-            >
-              <option value="">Departamento: Todos</option>
-              {departamentos.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-            <select
-              aria-label="Jornada"
-              value={jornada}
-              onChange={e => setJornada(e.target.value)}
-              className="h-10 max-w-[240px] rounded-lg border border-c10-line bg-white px-2.5 text-c10-secondary"
-            >
-              <option value="">Jornada: Todas</option>
-              {jornadas.map(j => <option key={j} value={j}>{j}</option>)}
-            </select>
-          </>
+      <div className="flex items-start gap-4">
+        {showPanel && !wide && <div className="fixed inset-0 z-[57] bg-white/70" onClick={() => setNarrowOpen(false)} />}
+        {showPanel && filterPanel}
+        {wide && !panelOpen && (
+          <button
+            type="button"
+            title="Mostrar filtros"
+            aria-label="Mostrar filtros"
+            onClick={() => setPanelOpen(true)}
+            className="fixed left-0 top-1/2 z-40 inline-flex h-[52px] w-[38px] -translate-y-1/2 items-center justify-center rounded-r-full bg-button-primary text-white shadow-[0_4px_12px_rgba(47,128,237,.3)] hover:bg-button-primary-hover"
+          >
+            <SlidersHorizontal size={18} />
+            {activeFilters > 0 && <span className="absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">{activeFilters}</span>}
+          </button>
+        )}
+
+        <section className="flex min-w-0 flex-1 flex-col rounded-2xl bg-c10-surface shadow-[0_1px_2px_rgba(15,23,42,.04),0_6px_20px_rgba(15,23,42,.04)]">
+          <div className="flex flex-col gap-3 border-b border-c10-line p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <PeriodNav
+                view={period}
+                date={date}
+                label={v.label}
+                isCurrent={v.isCurrent}
+                onPrev={v.goPrev}
+                onNext={v.goNext}
+                onToday={v.goToday}
+                onPick={v.setDate}
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  title="Recargar"
+                  aria-label="Recargar"
+                  onClick={() => v.refetchReportAsistencias()}
+                  disabled={v.isFetching || mode === "gallery"}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-c10-sunken text-c10-secondary transition-colors hover:bg-c10-blue-light hover:text-button-primary disabled:opacity-40"
+                >
+                  <RotateCw size={16} className={v.isFetching ? "animate-spin" : ""} />
+                </button>
+                <SegTabs<PeriodView>
+                  label="Periodo"
+                  variant="outline"
+                  value={period}
+                  onChange={v.setPeriod}
+                  options={PERIOD_VIEWS.filter(p => MODE_PERIODS[mode].includes(p.value))}
+                />
+              </div>
+            </div>
+            {mode !== "gallery" && !isLoading && (
+              <QuickFilters
+                pills={pills}
+                active={quick}
+                onToggle={k => setQuick(q => (q.includes(k) ? q.filter(x => x !== k) : [...q, k]))}
+              />
+            )}
+          </div>
+          {renderView()}
+        </section>
+
+        {isEmployees && mode === "table" && (
+          <button
+            type="button"
+            disabled
+            title="Reglas de Jornada · Pendiente"
+            className="sticky top-[84px] flex h-40 w-9 flex-none cursor-not-allowed items-center justify-center rounded-xl bg-c10-surface text-[11px] font-semibold uppercase tracking-[.08em] text-c10-meta opacity-60 shadow-[0_0_0_1px_var(--c10-line)] [writing-mode:vertical-rl] max-md:hidden"
+          >
+            Reglas de Jornada
+          </button>
         )}
       </div>
 
-      <div>{renderView()}</div>
+      {/* Barra de selección (tabla) */}
+      {mode === "table" && isEmployees && selected.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 flex-wrap items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm text-white shadow-[0_12px_32px_rgba(15,23,42,.16)]">
+          <b className="mr-2 tabular-nums">{plural(selected.length, "seleccionado", "seleccionados")}</b>
+          <button type="button" disabled title="Pendiente" className="h-9 cursor-not-allowed rounded-lg bg-white/10 px-3 font-semibold opacity-60">Descargar Registros</button>
+          {quincena && <button type="button" disabled title="Pendiente" className="h-9 cursor-not-allowed rounded-lg bg-white/10 px-3 font-semibold opacity-60">Exportar Nómina</button>}
+          {quincena && <button type="button" disabled title="Pendiente" className="h-9 cursor-not-allowed rounded-lg bg-button-primary px-3 font-semibold opacity-60">Cerrar Quincena</button>}
+          <button type="button" aria-label="Quitar selección" title="Quitar selección" onClick={() => setSelected([])} className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-white/10"><X size={16} /></button>
+        </div>
+      )}
 
-      {!isCards && <div className="flex flex-wrap justify-center gap-x-4 gap-y-2.5 py-1">
-        {isEmployees
-          ? legendStatuses.map(status => (
-            <span key={status} className="inline-flex items-center gap-1.5 text-xs text-c10-secondary">
-              <StatusIcon status={status} size={22} />
-              {attendanceStatusConfig[status].label}
-            </span>
-          ))
-          : shiftLegendStatuses.map(status => (
-            <span key={status} className="inline-flex items-center gap-1.5 text-xs text-c10-secondary">
-              <ShiftStatusIcon status={status} size={22} />
-              {shiftStatusConfig[status].label}
-            </span>
-          ))}
-      </div>}
+      {quincenaToast && !(mode === "table" && selected.length > 0) && (
+        <div role="status" className="fixed bottom-6 right-6 z-50 flex w-[360px] max-w-[calc(100%-48px)] animate-[c10-menu-in_200ms_ease-in-out] items-start gap-3 rounded-xl bg-button-primary p-3.5 text-white shadow-[0_10px_15px_-3px_rgba(15,23,42,.08),0_4px_6px_-4px_rgba(15,23,42,.06)]">
+          <Info size={18} className="mt-0.5 flex-none" aria-hidden="true" />
+          <div className="flex flex-1 flex-col gap-1 text-[13px]">
+            <b className="text-sm">{enCurso ? "Quincena en curso" : "Quincena abierta"}</b>
+            <span>Corte de nómina del {qFrom.getDate()} al {qTo.getDate()} de {MESES[qTo.getMonth()]}</span>
+            <span>{plural(porRevisar, "empleado", "empleados")} por revisar · {plural(sinSalida, "registro", "registros")} sin salida</span>
+          </div>
+          <button type="button" aria-label="Cerrar aviso" onClick={() => setToastOpen(false)} className="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full hover:bg-white/15"><X size={14} /></button>
+        </div>
+      )}
 
-      <AttendanceDayDrawer selection={daySelection} onClose={() => setDaySelection(null)} />
-      <ShiftDrawer selection={shiftSelection} onClose={() => setShiftSelection(null)} />
+      <AttendanceDayDrawer selection={daySelection} onClose={closeDay} />
+      <ShiftDrawer selection={shiftSelection} onClose={closeShift} />
     </div>
   );
 };
