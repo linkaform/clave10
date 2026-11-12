@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { ShiftStatusIcon, getShiftConfig } from "./attendanceStatus";
-import { AutoCloseMark, Card, CloseButton, EvidencePhotos, Field, Fields, Warn } from "./drawerParts";
+import { ShiftStatusChip, getShiftConfig } from "./attendanceStatus";
+import { AutoCloseMark, Card, DrawerShell, EvidencePhotos, Field, Fields, Warn } from "./drawerParts";
 import { useAttendanceDayDetail } from "../hooks/useAsistenciasReport";
 import { OPENED, ShiftGuard, ShiftSelection, diffText, initials, minutosDiferencia, siguienteInicio, turnoLabel } from "../reporte_asistencias/lib/shifts";
 import { DIAS, MESES, fromISO } from "../reporte_asistencias/lib/period";
@@ -31,19 +31,9 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose }) 
   const { dayDetail, isLoadingDayDetail } = useAttendanceDayDetail(guard?.employee_id, selection?.day.fecha);
   const now = useNow();
 
-  useEffect(() => {
-    if (!selection) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selection, onClose]);
-
   if (!selection) return null;
 
   const { row, day } = selection;
-  const config = getShiftConfig(day.status);
   const d = fromISO(day.fecha);
   const diff = minutosDiferencia(row, opener);
   const cierre = opener?.fecha_cierre;
@@ -64,47 +54,33 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose }) 
   if (day.status === "sin_cierre") eventos.push("No se registró el cierre del turno");
 
   return (
-    <>
-      <div className="fixed inset-0 z-[55] bg-white/70" onClick={onClose} />
-      <aside role="dialog" aria-labelledby="shift-title" className="fixed bottom-0 right-0 top-0 z-[60] flex w-[min(420px,100%)] flex-col border-l border-c10-line bg-white shadow-[0_10px_30px_rgba(15,23,42,.12)]">
-        <header className="flex items-start justify-between gap-3 border-b border-c10-line px-5 pb-3 pt-5">
-          <div>
-            <h2 id="shift-title" className="m-0 text-lg font-bold text-c10-title">{row.caseta}</h2>
-            <div className="text-xs text-c10-meta">
-              {row.ubicacion} · {DIAS[d.getDay()]} {d.getDate()} de {MESES[d.getMonth()]} · {turnoLabel(row)}
-            </div>
-          </div>
-          <CloseButton onClick={onClose} />
-        </header>
-
-        <div className="flex flex-1 flex-col gap-4 overflow-auto bg-c10-panel px-5 py-4">
-          <div>
-            <span className="inline-flex items-center gap-1.5">
-              <ShiftStatusIcon status={day.status} size={22} />
-              <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${config.className}`}>{config.label}</span>
-            </span>
-          </div>
-
+    <DrawerShell
+      labelledBy="shift-title"
+      onClose={onClose}
+      title={row.caseta}
+      subtitle={`${row.ubicacion} · ${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]} · ${turnoLabel(row)}`}
+      chips={<ShiftStatusChip status={day.status} />}
+    >
           {day.status === "sin_abrir" && (
             <Warn>
               Nadie inició este turno. La caseta quedó sin guardia registrado de {row.hora_entrada.substring(0, 5)} a {row.hora_salida.substring(0, 5)}.
             </Warn>
           )}
-          {day.status === "sin_cierre" && <Warn>Se inició el turno pero nadie lo cerró.</Warn>}
+          {day.status === "sin_cierre" && <Warn>Se inició el turno pero nadie lo cerró ni lo entregó al siguiente guardia.</Warn>}
           {automatica && <Warn>{automatica.texto}</Warn>}
 
           <Fields>
-            <Field label="Inició turno:" value={opener?.nombre} />
-            <Field label="Hora de inicio:" value={opener ? `${hora(opener.fecha_inicio)}${diff != null ? ` · ${diffText(diff)}` : ""}` : undefined} />
-            <Field label="Cerró turno:" value={cierre ? opener?.nombre : undefined} />
+            <Field label="Inició turno" value={opener?.nombre} />
+            <Field label="Hora de inicio" value={opener ? `${hora(opener.fecha_inicio)}${diff != null ? ` · ${diffText(diff)}` : ""}` : undefined} />
+            <Field label="Cerró turno" value={cierre ? opener?.nombre : undefined} />
             <Field
-              label="Hora de cierre:"
+              label="Hora de cierre"
               value={cierre
                 ? <>{horaSalida({ fecha: day.fecha, dia: 0, status: day.status, fecha_cierre: cierre })}{automatica && <AutoCloseMark text={automatica.texto} label={automatica.label} />}</>
                 : day.status === "en_curso" ? "En turno" : undefined}
             />
-            <Field label="Horas cubiertas:" value={formatHoras(horasTrabajadas(opener?.fecha_inicio, cierre, day.status === "en_curso", now), " h")} />
-            <Field label="Tolerancia:" value={opener?.tolerancia_retardo != null ? `${opener.tolerancia_retardo} min` : undefined} />
+            <Field label="Horas cubiertas" value={formatHoras(horasTrabajadas(opener?.fecha_inicio, cierre, day.status === "en_curso", now), " h")} />
+            <Field label="Tolerancia" value={opener?.tolerancia_retardo != null ? `${opener.tolerancia_retardo} min` : undefined} />
           </Fields>
 
           {varios && (
@@ -125,9 +101,9 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose }) 
                       aria-pressed={selected}
                       onClick={() => setGuardId(g.employee_id)}
                       title="Ver su evidencia"
-                      className={`flex items-center gap-3 rounded-lg border p-2 text-left ${selected ? "border-[#2F80ED] bg-c10-blue-subtle" : "border-c10-line bg-white hover:bg-c10-panel"}`}
+                      className={`flex items-center gap-3 rounded-lg border p-2 text-left ${selected ? "border-button-primary bg-c10-blue-subtle" : "border-c10-line bg-c10-surface hover:bg-c10-panel"}`}
                     >
-                      <span className={`inline-flex h-8 w-8 flex-none items-center justify-center rounded-[7px] border border-transparent text-[11px] font-bold ${getShiftConfig(gs).className}`}>
+                      <span className={`inline-flex h-8 w-8 flex-none items-center justify-center rounded-full text-[11px] font-bold ${getShiftConfig(gs).chip}`}>
                         {initials(g.nombre)}
                       </span>
                       <span className="flex min-w-0 flex-col">
@@ -175,13 +151,11 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose }) 
 
           <Card title="Bitácora del turno">
             {eventos.length ? (
-              <ul className="m-0 flex list-disc flex-col gap-1 pl-5 text-c10-secondary">{eventos.map((e, i) => <li key={i}>{e}</li>)}</ul>
+              <ul className="m-0 flex list-disc flex-col gap-1 pl-5 text-sm text-c10-label">{eventos.map((e, i) => <li key={i}>{e}</li>)}</ul>
             ) : (
               <span className="text-c10-meta">{day.status === "por_abrir" ? `El turno abre a las ${row.hora_entrada.substring(0, 5)}.` : "Sin movimientos"}</span>
             )}
           </Card>
-        </div>
-      </aside>
-    </>
+    </DrawerShell>
   );
 };

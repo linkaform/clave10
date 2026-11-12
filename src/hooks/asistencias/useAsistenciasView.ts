@@ -13,14 +13,36 @@ import {
 } from "@/app/dashboard/reportes/reporte_asistencias/lib/period";
 import { useCallback, useMemo, useState } from "react";
 
-export type DisplayMode = "cal" | "table" | "cards";
+// cov = Cobertura (pendiente: requiere plantilla por caseta)
+export type DisplayMode = "cov" | "cal" | "gallery" | "table" | "charts";
+
+// Periodos que admite cada modo de vista
+export const MODE_PERIODS: Record<DisplayMode, PeriodView[]> = {
+  cov: ["dia"],
+  cal: ["dia", "semana", "quincena", "mes"],
+  gallery: ["dia", "semana", "quincena", "mes"],
+  table: ["dia", "semana", "quincena", "mes", "anio"],
+  charts: ["semana", "quincena", "mes", "anio"],
+};
+
+const fitPeriod = (mode: DisplayMode, period: PeriodView): PeriodView => {
+  const allowed = MODE_PERIODS[mode];
+  if (allowed.includes(period)) return period;
+  return period === "anio" ? "mes" : period === "dia" ? "mes" : allowed[0];
+};
 
 export const useAsistenciasView = () => {
   const [groupingMode, setGroupingMode] = useState<GroupingMode>("employees");
-  const [period, setPeriod] = useState<PeriodView>("dia");
+  const [period, setPeriodState] = useState<PeriodView>("dia");
   const [date, setDate] = useState<Date>(() => new Date());
-  const [displayMode, setDisplayMode] = useState<DisplayMode>("cal");
+  const [displayMode, setDisplayModeState] = useState<DisplayMode>("cal");
   const [search, setSearch] = useState("");
+
+  const setDisplayMode = useCallback((mode: DisplayMode) => {
+    setDisplayModeState(mode);
+    setPeriodState(p => fitPeriod(mode, p));
+  }, []);
+  const setPeriod = useCallback((p: PeriodView) => setPeriodState(fitPeriod(displayMode, p)), [displayMode]);
 
   const [from, to] = periodRange(period, date);
   const days = useMemo(() => periodDays(period, date), [period, date]);
@@ -32,8 +54,8 @@ export const useAsistenciasView = () => {
     errorReportAsistencias,
     refetchReportAsistencias,
   } = useReportAsistencias({
-    // La vista de cards lee los registros de check-in, no el reporte
-    enabled: displayMode !== "cards",
+    // La galería lee los registros de check-in, no el reporte
+    enabled: displayMode !== "gallery" && displayMode !== "cov",
     dateRange: period,
     locations: [],
     groupBy: groupingMode,
@@ -53,6 +75,7 @@ export const useAsistenciasView = () => {
     period,
     setPeriod,
     date,
+    setDate,
     from: toISO(from),
     to: toISO(to),
     days,
@@ -66,7 +89,9 @@ export const useAsistenciasView = () => {
     search,
     setSearch,
     reportAsistencias: Array.isArray(reportAsistencias) ? reportAsistencias : [],
-    isLoading: isLoadingReportAsistencias || isFetchingReportAsistencias,
+    // isLoading: no hay datos guardados para este periodo (skeleton). isFetching: se está pidiendo (spinner en Recargar).
+    isLoading: isLoadingReportAsistencias,
+    isFetching: isFetchingReportAsistencias,
     errorReportAsistencias,
     refetchReportAsistencias,
   };
