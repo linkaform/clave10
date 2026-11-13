@@ -1,5 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { getInspeccionRecord } from "@/services/endpoints";
+import { getFormFieldsTransportista, getInspeccionRecord } from "@/services/endpoints";
+import {
+  extractPuntos,
+  type ApiFormField,
+  type ApiFormFieldsResult,
+} from "@/hooks/transportistas/useInspeccionPuntosTransportista";
 
 export interface EvidenciaFile {
   file_name: string;
@@ -291,6 +296,121 @@ function mapRaw(data: Record<string, unknown>, tipo: string): InspeccionRecord {
   };
 }
 
+// ─── Formas custom (resueltas por ubicación, ej. BASC) ────────────────────────
+// El back regresa { form_id, answers: { [field_id]: valor } } sin slugs. Se
+// piden los campos reales de la forma y se arma una sección por página, con
+// el mismo emparejamiento radio → comentario → evidencia que usa la captura
+// (extractPuntos), para que el visor muestre lo mismo que se capturó.
+function unwrapData(res: unknown): unknown {
+  return ((res as Record<string, unknown>)?.response as Record<string, unknown>)?.data
+    ?? (res as Record<string, unknown>)?.data;
+}
+
+function hasValue(v: unknown): boolean {
+  if (v === null || v === undefined) return false;
+  if (typeof v === "string") return v.trim() !== "";
+  if (Array.isArray(v)) return v.length > 0;
+  return true;
+}
+
+function optionLabel(field: ApiFormField, value: unknown): string {
+  const s = String(value ?? "");
+  return field.options?.find((o) => o.value === s)?.label ?? s;
+}
+
+function filesOf(v: unknown): EvidenciaFile[] {
+  return isPhotoArray(v) ? v.filter((f) => f?.file_url) : [];
+}
+
+function buildCustomSections(
+  answers: Record<string, unknown>,
+  pages: ApiFormFieldsResult["pages"],
+): InspeccionSection[] {
+  const sections: InspeccionSection[] = [];
+  const fotosSueltas: InspeccionField[] = [];
+
+  for (const page of pages) {
+    const fields = page.fields ?? [];
+    const puntos = extractPuntos(fields);
+    const puntoById = new Map(puntos.map((p) => [p.field_id, p]));
+    // Comentarios/evidencias que pertenecen a un punto se muestran dentro de él.
+    const usados = new Set<string>();
+    for (const p of puntos) {
+      if (p.comentarioFieldId) usados.add(p.comentarioFieldId);
+      if (p.evidenciaFieldId) usados.add(p.evidenciaFieldId);
+    }
+
+    const campos: InspeccionField[] = [];
+    for (const field of fields) {
+      if (usados.has(field.field_id)) continue;
+      const raw = answers[field.field_id];
+      if (!hasValue(raw)) continue;
+      const label = field.label.replace(/^\d+\.\s*/, "");
+      const punto = puntoById.get(field.field_id);
+
+      if (punto) {
+        const comentarioRaw = punto.comentarioFieldId ? answers[punto.comentarioFieldId] : undefined;
+        const comment = typeof comentarioRaw === "string" && comentarioRaw.trim() ? comentarioRaw.trim() : undefined;
+        const evidenciaFiles = punto.evidenciaFieldId ? filesOf(answers[punto.evidenciaFieldId]) : [];
+        const evidencia = evidenciaFiles.length ? evidenciaFiles : undefined;
+        const s = String(raw);
+        if (punto.siValue !== undefined && s === punto.siValue) {
+          campos.push({ key: field.field_id, label, value: { kind: "bool", value: true, comment, evidencia } });
+        } else if (punto.noValue !== undefined && s === punto.noValue) {
+          campos.push({ key: field.field_id, label, value: { kind: "bool", value: false, comment, evidencia } });
+        } else {
+          // Radio que no es Sí/No: se muestra la opción elegida como texto.
+          campos.push({ key: field.field_id, label, value: { kind: "text", value: optionLabel(field, raw) } });
+        }
+        continue;
+      }
+
+      if (isPhotoArray(raw)) {
+        campos.push({ key: field.field_id, label, value: { kind: "photos", files: filesOf(raw) } });
+      } else if (Array.isArray(raw)) {
+        campos.push({ key: field.field_id, label, value: { kind: "array", items: raw.map((v) => optionLabel(field, v)) } });
+      } else if (typeof raw === "object") {
+        // Grupos repetitivos u otros objetos: no hay forma genérica de pintarlos.
+        continue;
+      } else {
+        campos.push({ key: field.field_id, label, value: { kind: "text", value: optionLabel(field, raw) } });
+      }
+    }
+
+    // Las fotos sueltas se juntan al final en "Evidencia fotográfica" (título
+    // exacto que SectionBlock pinta como tarjetas de foto).
+    fotosSueltas.push(...campos.filter((c) => c.value.kind === "photos"));
+    const resto = campos.filter((c) => c.value.kind !== "photos");
+    // "Página N" es el nombre genérico que Linkaform pone por default.
+    const nombre = page.page_name?.trim() ?? "";
+    const titulo = !nombre || /^p[áa]gina\s*\d+$/i.test(nombre) ? "Puntos de inspección" : nombre;
+    if (resto.length) {
+      const repetido = sections.filter((sec) => sec.titulo === titulo || sec.titulo.startsWith(`${titulo} (`)).length;
+      sections.push({ titulo: repetido ? `${titulo} (${repetido + 1})` : titulo, campos: resto });
+    }
+  }
+
+  if (fotosSueltas.length) sections.push({ titulo: "Evidencia fotográfica", campos: fotosSueltas });
+  return sections;
+}
+
+async function mapCustom(data: Record<string, unknown>, tipo: string): Promise<InspeccionRecord> {
+  const answers = (data.answers as Record<string, unknown>) ?? {};
+  const formId = data.form_id != null ? String(data.form_id) : "";
+  let pages: ApiFormFieldsResult["pages"] = [];
+  if (formId) {
+    const res = await getFormFieldsTransportista([formId]);
+    const forms = (unwrapData(res) as ApiFormFieldsResult[] | undefined) ?? [];
+    pages = forms.find((f) => String(f.form_id) === formId)?.pages ?? forms[0]?.pages ?? [];
+  }
+  return {
+    folio: (data.folio as string | null) ?? null,
+    createdAt: (data.created_at as string | null) ?? null,
+    tipo,
+    secciones: buildCustomSections(answers, pages),
+  };
+}
+
 function extractId(url: string): string {
   return url.split("/").filter(Boolean).pop() ?? url;
 }
@@ -302,10 +422,13 @@ export const useGetInspeccionRecord = (url: string | undefined, tipo: string) =>
     queryKey: ["inspeccionRecord", recordId, tipo],
     queryFn: async () => {
       const res = await getInspeccionRecord(recordId, tipo);
-      const raw = ((res as Record<string, unknown>)?.response as Record<string, unknown>)?.data
-        ?? (res as Record<string, unknown>)?.data;
+      const raw = unwrapData(res) as Record<string, unknown> | undefined;
       if (!raw) return null;
-      return mapRaw(raw as Record<string, unknown>, tipo);
+      // Forma custom: respuestas crudas por field_id (ver get_inspeccion_record).
+      if (raw.answers && typeof raw.answers === "object" && !Array.isArray(raw.answers)) {
+        return mapCustom(raw, tipo);
+      }
+      return mapRaw(raw, tipo);
     },
     enabled: !!recordId && !!tipo,
     staleTime: 1000 * 60 * 10,
