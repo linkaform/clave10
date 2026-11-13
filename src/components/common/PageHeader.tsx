@@ -56,7 +56,7 @@ export const PageHeader = ({
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between w-full gap-x-4 gap-y-2 sticky top-[57px] z-40 bg-white py-2">
+    <div className="flex flex-wrap items-center justify-between w-full gap-x-4 gap-y-2 sticky top-[65px] z-40 bg-white -mt-3 pt-5 pb-2">
       <div className="flex items-baseline gap-2 min-w-fit">
         <h1 className="text-xl font-bold text-slate-900 whitespace-nowrap">
           {title}
