@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { MESES, PeriodView, addDays, periodRange, sameDay, toISO } from "../../reporte_asistencias/lib/period";
 
@@ -67,7 +67,7 @@ export function SegTabs<T extends string>({ value, options, onChange, label, var
           ? variant === "fill"
             ? "bg-button-primary font-semibold text-white"
             : "font-semibold text-button-primary shadow-[inset_0_0_0_1px_var(--button-primary)]"
-          : "font-medium text-c10-secondary hover:text-button-primary";
+          : "font-medium text-c10-label hover:bg-c10-sunken";
         return (
           <button
             key={o.value}
@@ -76,7 +76,7 @@ export function SegTabs<T extends string>({ value, options, onChange, label, var
             aria-selected={on}
             disabled={o.disabled}
             onClick={() => onChange(o.value)}
-            className={`h-full border-l border-c10-line px-4 text-sm transition-colors first:border-l-0 disabled:cursor-not-allowed disabled:opacity-40 ${cls}`}
+            className={`h-full border-l border-c10-line px-4 text-sm transition-colors first:rounded-l-[7px] first:border-l-0 last:rounded-r-[7px] disabled:cursor-not-allowed disabled:opacity-40 ${cls}`}
           >
             {o.label}
           </button>
@@ -243,8 +243,9 @@ export const PeriodNav = ({ view, date, label, isCurrent, onPrev, onNext, onToda
   const ref = useRef<HTMLDivElement>(null);
   useOutside(ref, open, () => setOpen(false));
   const round = "inline-flex h-8 w-8 items-center justify-center rounded-full bg-c10-sunken text-c10-secondary transition-colors hover:bg-c10-blue-light hover:text-button-primary disabled:cursor-not-allowed disabled:opacity-40";
-  const [, end] = periodRange(view, date);
-  const atEnd = end >= new Date(new Date().toDateString());
+  // Se puede avanzar hasta el periodo siguiente al actual (p. ej. ver las vacaciones de la próxima semana)
+  const [start] = periodRange(view, date);
+  const atEnd = start > new Date(new Date().toDateString());
 
   return (
     <div ref={ref} className="relative flex items-center gap-2">
@@ -294,11 +295,11 @@ export const QuickFilters = ({ pills, active, onToggle }: { pills: QuickPill[]; 
             type="button"
             aria-pressed={on}
             onClick={() => onToggle(p.key)}
-            className={`inline-flex h-[30px] items-center gap-1.5 rounded-full border pl-1.5 pr-2 text-[13px] transition-colors ${on ? "border-button-primary bg-button-primary font-semibold text-white" : "border-c10-line bg-c10-surface font-medium text-c10-label hover:border-c10-line-strong hover:bg-c10-sunken"}`}
+            className={`inline-flex h-[30px] items-center gap-1.5 rounded-full pl-[5px] pr-2 text-[13px] transition-colors duration-150 ${on ? "bg-c10-blue-light font-semibold text-button-primary-hover" : "bg-transparent font-normal text-c10-label hover:bg-c10-sunken"}`}
           >
-            <span className={on ? "[&>span]:!bg-transparent [&>span]:!text-white" : ""}>{p.icon}</span>
+            {p.icon}
             {p.label}
-            <span className={`inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-semibold tabular-nums ${on ? "bg-white text-button-primary" : "bg-c10-blue-light text-button-primary-hover"}`}>
+            <span className={`inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-semibold tabular-nums ${on ? "bg-button-primary text-white" : "bg-c10-blue-light text-button-primary"}`}>
               {p.count}
             </span>
           </button>
@@ -310,7 +311,7 @@ export const QuickFilters = ({ pills, active, onToggle }: { pills: QuickPill[]; 
 
 // Paginación estilo Bitácoras: Mostrar 10/25/50 · rango · páginas
 export const usePaged = <T,>(rows: T[], resetKey: unknown) => {
-  const [size, setSize] = useState(10);
+  const [size, setSize] = useState(25);
   const [page, setPage] = useState(1);
   useEffect(() => setPage(1), [resetKey, size]);
   const pages = Math.max(1, Math.ceil(rows.length / size));
@@ -319,7 +320,7 @@ export const usePaged = <T,>(rows: T[], resetKey: unknown) => {
   return { slice, size, setSize, page: cur, setPage, pages, total: rows.length };
 };
 
-export const Pager = ({ size, setSize, page, setPage, pages, total, sizes = [10, 25, 50] }: {
+export const Pager = ({ size, setSize, page, setPage, pages, total, sizes = [25, 50, 100, 250] }: {
   size: number; setSize: (n: number) => void; page: number; setPage: (n: number) => void; pages: number; total: number; sizes?: number[];
 }) => {
   if (!total) return null;
@@ -342,7 +343,7 @@ export const Pager = ({ size, setSize, page, setPage, pages, total, sizes = [10,
           {nums.map((n, i) => (
             <React.Fragment key={n}>
               {i > 0 && n - nums[i - 1] > 1 && <span className="px-1 text-c10-faint">…</span>}
-              <button type="button" aria-current={n === page} onClick={() => setPage(n)} className={`${btn} ${n === page ? "bg-button-primary font-semibold text-white" : "text-c10-label hover:bg-c10-sunken"}`}>{n}</button>
+              <button type="button" aria-current={n === page} onClick={() => setPage(n)} className={`${btn} !rounded-full font-semibold ${n === page ? "bg-button-primary text-white" : "text-c10-label hover:bg-c10-sunken"}`}>{n}</button>
             </React.Fragment>
           ))}
           <button type="button" aria-label="Página siguiente" disabled={page === pages} onClick={() => setPage(page + 1)} className={`${btn} text-c10-secondary hover:bg-c10-sunken disabled:opacity-40`}><ChevronRight size={16} /></button>
@@ -353,6 +354,124 @@ export const Pager = ({ size, setSize, page, setPage, pages, total, sizes = [10,
 };
 
 // Clases comunes de tabla
+// ───── Ancho de la primera columna (compartido entre tablas, se guarda en el navegador) ─────
+const PCW_KEY = "c10-asis-pcw";
+let pcw = 240;
+const pcwSubs = new Set<() => void>();
+const readPcw = () => {
+  try { const v = Number(localStorage.getItem(PCW_KEY)); if (v >= 140 && v <= 600) pcw = v; } catch { /* sin almacenamiento */ }
+};
+let pcwLoaded = false;
+export const usePcw = () => useSyncExternalStore(
+  (cb: () => void) => { if (!pcwLoaded) { pcwLoaded = true; readPcw(); } pcwSubs.add(cb); return () => { pcwSubs.delete(cb); }; },
+  () => pcw,
+  () => 240,
+);
+const setPcw = (w: number) => { pcw = w; pcwSubs.forEach(f => f()); };
+// Estilo para la tabla y clases para la primera columna
+export const pcwVar = (w: number) => ({ ["--pcw" as string]: `${w}px` }) as React.CSSProperties;
+export const PCW = "w-[var(--pcw)] min-w-[var(--pcw)] max-w-[var(--pcw)]";
+
+// Agarradera para arrastrar el ancho de la primera columna (140–600 px)
+export const ResizeHandle = () => (
+  <span
+    title="Arrastra para ajustar el ancho"
+    onClick={e => e.stopPropagation()}
+    onMouseDown={e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const th = (e.currentTarget as HTMLElement).closest("th");
+      const x0 = e.clientX, w0 = th?.getBoundingClientRect().width ?? pcw;
+      const hd = e.currentTarget as HTMLElement;
+      hd.dataset.on = "1";
+      document.body.style.cursor = "col-resize";
+      const mv = (ev: MouseEvent) => setPcw(Math.round(Math.max(140, Math.min(600, w0 + ev.clientX - x0))));
+      const up = () => {
+        window.removeEventListener("mousemove", mv);
+        window.removeEventListener("mouseup", up);
+        delete hd.dataset.on;
+        document.body.style.cursor = "";
+        try { localStorage.setItem(PCW_KEY, String(pcw)); } catch { /* sin almacenamiento */ }
+      };
+      window.addEventListener("mousemove", mv);
+      window.addEventListener("mouseup", up);
+    }}
+    className="group/rsz absolute inset-y-0 right-0 z-[6] w-[7px] cursor-col-resize"
+  >
+    <i className="absolute inset-y-1.5 right-0.5 w-[3px] rounded-sm bg-transparent transition-colors duration-150 group-hover/rsz:bg-slate-400 group-data-[on]/rsz:bg-slate-400" />
+  </span>
+);
+
+// Contenedor con scroll horizontal: si queda contenido a la derecha, se difumina el borde (como el diseño)
+export const ScrollBox = ({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const up = () => setMore(el.scrollWidth - el.clientWidth - el.scrollLeft > 2);
+    up();
+    el.addEventListener("scroll", up, { passive: true });
+    const ro = new ResizeObserver(up);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => { el.removeEventListener("scroll", up); ro.disconnect(); };
+  }, []);
+  const mask = "linear-gradient(to left, transparent 0, #000 64px)";
+  return (
+    <div ref={ref} className={`overflow-x-auto ${className}`} style={{ ...style, ...(more ? { maskImage: mask, WebkitMaskImage: mask } : {}) }}>
+      {children}
+    </div>
+  );
+};
+
+// Panel de filtros que se abre y se cierra suave (250 ms) en lugar de aparecer de golpe.
+// En línea anima el ancho; en modo flotante (pantalla angosta) se desliza desde la izquierda.
+const FX = { duration: 250, easing: "ease-in-out" };
+export const PanelAnim = ({ open, gap = 16, children }: { open: boolean; gap?: number; children: React.ReactNode }) => {
+  const [show, setShow] = useState(open);
+  const ref = useRef<HTMLDivElement>(null);
+  const mounted = useRef(false);
+  const aside = () => ref.current?.querySelector("aside") as HTMLElement | null;
+
+  useEffect(() => {
+    if (open) { setShow(true); return; }
+    const el = aside();
+    if (!el) { setShow(false); return; }
+    const cs = getComputedStyle(el);
+    const a = cs.position === "fixed"
+      ? el.animate([{ transform: "none" }, { transform: "translateX(-100%)" }], { ...FX, fill: "forwards" })
+      : (el.style.overflow = "hidden", el.animate([
+          { width: cs.width, minWidth: "0px", paddingLeft: cs.paddingLeft, paddingRight: cs.paddingRight, marginRight: "0px", opacity: 1 },
+          { opacity: 0, offset: 0.4 },
+          { width: "0px", minWidth: "0px", paddingLeft: "0px", paddingRight: "0px", marginRight: `${-gap}px`, opacity: 0 },
+        ], { ...FX, fill: "forwards" }));
+    a.onfinish = () => setShow(false);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    // Sin animación al cargar la página; solo cuando el usuario lo abre
+    if (!mounted.current) { mounted.current = true; return; }
+    if (!show || !open) return;
+    const el = aside();
+    if (!el) return;
+    const cs = getComputedStyle(el);
+    if (cs.position === "fixed") {
+      el.animate([{ transform: "translateX(-100%)" }, { transform: "none" }], FX);
+      return;
+    }
+    const ov = el.style.overflow;
+    el.style.overflow = "hidden";
+    el.animate([
+      { width: "0px", minWidth: "0px", paddingLeft: "0px", paddingRight: "0px", marginRight: `${-gap}px`, opacity: 0 },
+      { opacity: 0, offset: 0.45 },
+      { width: cs.width, minWidth: "0px", paddingLeft: cs.paddingLeft, paddingRight: cs.paddingRight, marginRight: "0px", opacity: 1 },
+    ], FX).onfinish = () => { el.style.overflow = ov; };
+  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return show ? <div ref={ref} className="contents">{children}</div> : null;
+};
+
 export const T = {
   box: "overflow-x-auto",
   th: "sticky top-0 whitespace-nowrap bg-c10-blue-light px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-[.05em] text-c10-secondary",

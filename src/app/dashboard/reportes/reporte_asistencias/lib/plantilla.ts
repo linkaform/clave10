@@ -50,6 +50,10 @@ export const plantillaTurnoLabel = (r: Pick<PlantillaRow, "horario" | "hora_entr
 export const plazasDe = (rows: PlantillaRow[], fecha: string) =>
   rows.flatMap(r => r.dias.find(d => d.fecha === fecha)?.plazas ?? []);
 
+// Entradas que no cubren plaza (otro rol, sin rol o ya no había plaza)
+export const extrasDe = (rows: PlantillaRow[], fecha: string) =>
+  rows.flatMap(r => r.dias.find(d => d.fecha === fecha)?.extras ?? []);
+
 // "Por llegar" agrupa también lo programado
 export const plazaQuickKey = (p: Plaza) => (p.status === "PE" ? "PL" : p.status);
 

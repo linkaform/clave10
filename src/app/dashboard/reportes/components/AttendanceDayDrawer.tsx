@@ -1,4 +1,5 @@
 import React from "react";
+import { CalendarDays } from "lucide-react";
 import { StatusChip, tipoDiaLibreLabel } from "./attendanceStatus";
 import { AutoCloseMark, Card, DrawerShell, EvidencePhotos, Field, Fields, Warn } from "./drawerParts";
 import { useAttendanceDayDetail } from "../hooks/useAsistenciasReport";
@@ -11,6 +12,8 @@ export type DaySelection = { employee: EmployeeAttendance; fecha: string };
 interface AttendanceDayDrawerProps {
   selection: DaySelection | null;
   onClose: () => void;
+  // Abre el mes completo del empleado en el calendario
+  onViewMonth?: (nombre: string, fecha: string) => void;
 }
 
 type Photo = { file_url?: string; file_name?: string };
@@ -24,19 +27,24 @@ const fechaCorta = (fecha: string) => {
   const d = fromISO(fecha);
   return `${d.getDate()} ${MESES[d.getMonth()].slice(0, 3)}`;
 };
-const firstPhoto = (value?: Photo[] | Photo) => (Array.isArray(value) ? value[0] : value)?.file_url;
+const firstPhoto = (value?: Photo[] | Photo | string) =>
+  typeof value === "string" ? value || undefined : (Array.isArray(value) ? value[0] : value)?.file_url;
 
 const SIN_FOTOS = ["falta", "vacaciones", "incapacidad", "permiso", "por_llegar", "sin_registro"];
 
 // Panel lateral con el detalle de un empleado en un día
-export const AttendanceDayDrawer: React.FC<AttendanceDayDrawerProps> = ({ selection, onClose }) => {
+export const AttendanceDayDrawer: React.FC<AttendanceDayDrawerProps> = ({ selection, onClose, onViewMonth }) => {
   const day: AttendanceDay | undefined = selection ? selection.employee.dias[selection.fecha] : undefined;
   const hasRecord = !!day?.fecha_inicio;
   const now = useNow();
-  const { dayDetail, isLoadingDayDetail } = useAttendanceDayDetail(
-    hasRecord ? selection?.employee.employee_id : undefined,
+  // La lista (y la galería) ya traen el detalle del día; solo se consulta si no viene
+  const preset = day?.detalle;
+  const fetched = useAttendanceDayDetail(
+    hasRecord && !preset ? selection?.employee.employee_id : undefined,
     selection?.fecha
   );
+  const dayDetail = preset ?? fetched.dayDetail;
+  const isLoadingDayDetail = !preset && fetched.isLoadingDayDetail;
 
   if (!selection) return null;
 
@@ -55,10 +63,12 @@ export const AttendanceDayDrawer: React.FC<AttendanceDayDrawerProps> = ({ select
   const salida = day?.fecha_cierre
     ? <>{horaSalida(day)}{automatica && <AutoCloseMark text={automatica.texto} label={automatica.label} />}</>
     : enTurno ? "En turno" : undefined;
-  const esperadas = horasDia(employee, day, false, now).esperadas;
+  // La jornada del detalle del día sirve cuando el empleado llega sin ella (p. ej. desde la galería)
+  const esperadas = horasDia(employee.jornada ? employee : { ...employee, jornada: jornada ?? null }, day, false, now).esperadas;
   const comentarios = [dayDetail.comentario_inicio, dayDetail.comentario_cierre].filter(Boolean);
   const registroTxt =
     status === "dia_libre" && !hasRecord ? "Día no laboral"
+    : status === "asueto" ? day?.asueto || "Asueto"
     : status === "falta" ? "Sin registro"
     : status === "por_llegar" ? (employee.jornada?.hora_entrada ? `Entrada a las ${hora(employee.jornada.hora_entrada)}` : undefined)
     : ["vacaciones", "incapacidad", "permiso", "home_office", "trabajo_fuera"].includes(status ?? "") ? "Justificado"
@@ -71,11 +81,26 @@ export const AttendanceDayDrawer: React.FC<AttendanceDayDrawerProps> = ({ select
       onClose={onClose}
       title={employee.nombre}
       subtitle={`${fechaLarga(fecha)}${ubicacion ? ` · ${ubicacion}` : ""}`}
-      chips={<StatusChip status={status} />}
+      chips={
+        <>
+          <StatusChip status={status} />
+          {onViewMonth && (
+            <button
+              type="button"
+              onClick={() => onViewMonth(employee.nombre, fecha)}
+              className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg border border-c10-line bg-c10-surface px-3 text-[13px] font-semibold text-c10-label transition-colors hover:border-button-primary hover:text-button-primary"
+            >
+              <CalendarDays size={14} aria-hidden="true" />
+              Ver su mes
+            </button>
+          )}
+        </>
+      }
     >
       {automatica && <Warn>{automatica.texto}</Warn>}
       {status === "sin_salida" && <Warn>Hay entrada sin salida. Corrige el registro para que sume horas y se pueda cerrar la quincena.</Warn>}
       {status === "dia_libre" && !hasRecord && <Warn>Día no laboral. No cuenta como falta ni suma horas esperadas.</Warn>}
+      {status === "asueto" && <Warn>Asueto{day?.asueto ? ` · ${day.asueto}` : ""}. No cuenta como falta ni suma horas esperadas.</Warn>}
 
       <Fields>
         <Field label="Departamento" value={employee.departamento} />
@@ -101,7 +126,7 @@ export const AttendanceDayDrawer: React.FC<AttendanceDayDrawerProps> = ({ select
                 label: "Check out",
                 stamp: "SALIDA",
                 url: firstPhoto(dayDetail.foto_cierre),
-                time: hora(day?.fecha_cierre),
+                time: horaSalida(day),
                 emptyText: enTurno ? "Aún no registra salida" : day?.fecha_cierre ? "Salida sin foto" : "No registró salida",
               },
             ]}
@@ -136,7 +161,7 @@ export const AttendanceDayDrawer: React.FC<AttendanceDayDrawerProps> = ({ select
         </Card>
       )}
 
-      {status !== "dia_libre" && (
+      {status !== "dia_libre" && status !== "asueto" && (
         <Card title="Justificar o corregir">
           <fieldset disabled title="Pendiente" className="flex flex-col gap-3 opacity-50">
             <label className="flex flex-col gap-1.5">
