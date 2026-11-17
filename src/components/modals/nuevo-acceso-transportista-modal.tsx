@@ -14,6 +14,7 @@ import {
   Package,
   Search,
   Sparkles,
+  Trash2,
   Truck,
 } from "lucide-react";
 import { cn, errorMsj, reemplazarGuionMinuscula } from "@/lib/utils";
@@ -922,12 +923,23 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <FieldLabel required>Tipo de vehículo</FieldLabel>
-                  <SelectorTipoVehiculo
-                    value={tipoVehiculo}
-                    onChange={(t) => { setTipoVehiculo(t); clearAiField("tipoVehiculo"); }}
-                    aiFilled={aiFilledFields.has("tipoVehiculo")}
-                    invalid={showValidation && !tipoVehiculo.trim()}
-                  />
+                  {/* Mismo bote que el renglón de remolque: deshace una
+                      elección equivocada (la galería no tiene "ninguno"). */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <SelectorTipoVehiculo
+                        value={tipoVehiculo}
+                        onChange={(t) => { setTipoVehiculo(t); clearAiField("tipoVehiculo"); }}
+                        aiFilled={aiFilledFields.has("tipoVehiculo")}
+                        invalid={showValidation && !tipoVehiculo.trim()}
+                      />
+                    </div>
+                    {tipoVehiculo && (
+                      <button type="button" onClick={() => { setTipoVehiculo(""); clearAiField("tipoVehiculo"); }} aria-label="Quitar tipo de vehículo" className="w-8 h-8 shrink-0 flex items-center justify-center text-gray-300 hover:text-red-500">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                   {showValidation && !tipoVehiculo.trim() && (
                     <p className="text-[10px] text-red-500 mt-1">Campo obligatorio</p>
                   )}
