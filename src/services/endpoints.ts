@@ -59,7 +59,7 @@ export const getIncidenciasRondinesFilters = () =>
     public_script: true,
   });
 
-    
+// Para el buscador avanzado de transportistas (panel + chips), ver transportistas_search_fields.
 export const getFallasFilters = () =>
   apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "filters.py",
