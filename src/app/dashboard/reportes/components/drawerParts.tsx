@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { MESES, fromISO } from "../reporte_asistencias/lib/period";
+import { DIAS_3, MESES, fromISO } from "../reporte_asistencias/lib/period";
+import { thumbUrl } from "../reporte_asistencias/lib/employees";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Piezas comunes de los paneles de detalle (día de empleado y turno de caseta)
@@ -122,7 +123,7 @@ const fechaCorta = (fecha: string) => {
 const StampedPhoto = ({ photo, fecha }: { photo: EvidencePhoto; fecha: string }) => (
   <span className="relative block h-full w-full">
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img src={photo.url} alt={`Foto de ${photo.label.toLowerCase()}`} className="block h-full w-full object-cover" />
+    <img src={thumbUrl(photo.url)} onError={e => { if (photo.url && e.currentTarget.src !== photo.url) e.currentTarget.src = photo.url; }} alt={`Foto de ${photo.label.toLowerCase()}`} className="block h-full w-full object-cover" />
     <span className="absolute inset-x-0 bottom-0 flex flex-col bg-black/60 px-3 py-2 text-left text-white">
       <b className="text-[15px] leading-tight">{photo.stamp} {photo.time}</b>
       <span className="text-xs">{fechaCorta(fecha)}</span>
@@ -130,16 +131,18 @@ const StampedPhoto = ({ photo, fecha }: { photo: EvidencePhoto; fecha: string })
   </span>
 );
 
-export const EvidencePhotos: React.FC<EvidencePhotosProps> = ({ photos, fecha, person, registro, loading }) => {
-  const [open, setOpen] = useState<EvidencePhoto | null>(null);
+export const EvidencePhotos: React.FC<EvidencePhotosProps> = ({ photos, fecha, registro, loading }) => {
+  // El visor muestra entrada y salida juntas para compararlas
+  const [open, setOpen] = useState(false);
   const d = fromISO(fecha);
+  const conFoto = photos.filter(p => p.url);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.stopImmediatePropagation();
-      setOpen(null);
+      setOpen(false);
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
@@ -154,7 +157,7 @@ export const EvidencePhotos: React.FC<EvidencePhotosProps> = ({ photos, fecha, p
               <button
                 type="button"
                 aria-label={`Ampliar foto de ${photo.label.toLowerCase()}`}
-                onClick={() => setOpen(photo)}
+                onClick={() => setOpen(true)}
                 className="block aspect-[4/5] w-full overflow-hidden rounded-[10px] border border-c10-line bg-c10-sunken p-0 hover:outline hover:outline-2 hover:outline-offset-1 hover:outline-button-primary"
               >
                 <StampedPhoto photo={photo} fecha={fecha} />
@@ -180,24 +183,31 @@ export const EvidencePhotos: React.FC<EvidencePhotosProps> = ({ photos, fecha, p
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Foto del registro"
+          aria-label="Fotos del registro"
           className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 p-6"
-          onClick={() => setOpen(null)}
+          onClick={() => setOpen(false)}
         >
-          <figure className="m-0 flex w-[min(380px,100%)] flex-col gap-2.5 rounded-[14px] bg-c10-surface p-3.5" onClick={e => e.stopPropagation()}>
-            <div className="aspect-[4/5] overflow-hidden rounded-[10px]">
-              <StampedPhoto photo={open} fecha={fecha} />
+          <div className={`relative flex max-h-full flex-col gap-3 rounded-[14px] bg-c10-surface p-3.5 ${conFoto.length > 1 ? "w-[min(720px,100%)]" : "w-[min(380px,100%)]"}`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              {registro ? <span className="pt-1.5 text-[13px] text-c10-meta">{registro}</span> : <span />}
+              <CloseButton onClick={() => setOpen(false)} label="Cerrar fotos" />
             </div>
-            <figcaption className="flex items-start justify-between gap-3 text-[13px] text-c10-secondary">
-              <div>
-                <b className="text-sm text-c10-title">{open.label} · {open.time}</b>
-                <br />
-                {person ? `${person} · ` : ""}{d.getDate()} de {MESES[d.getMonth()]}
-                {registro && (<><br />{registro}</>)}
-              </div>
-              <CloseButton onClick={() => setOpen(null)} label="Cerrar foto" />
-            </figcaption>
-          </figure>
+            <div className={`grid gap-3 ${conFoto.length > 1 ? "grid-cols-2 max-sm:grid-cols-1" : "grid-cols-1"}`}>
+              {conFoto.map(p => (
+                <figure key={p.stamp} className="m-0 flex min-w-0 flex-col gap-2">
+                  <div className="aspect-[4/5] overflow-hidden rounded-[10px] bg-c10-sunken">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.url} alt={`Foto de ${p.label.toLowerCase()}`} className="block h-full w-full object-cover" />
+                  </div>
+                  <figcaption className="text-[13px] text-c10-secondary">
+                    <b className="text-sm font-semibold text-c10-title">{p.stamp === "ENTRADA" ? "Entrada" : "Salida"} · {p.time}</b>
+                    {/* Si la hora ya trae su propio día (salida otro día), no se repite la fecha del registro */}
+                    {!p.time?.includes(" · ") && <>{" · "}{DIAS_3[d.getDay()].toLowerCase()} {d.getDate()} {MESES[d.getMonth()].slice(0, 3)}</>}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </>

@@ -1,6 +1,6 @@
 import { AttendanceResumen, buildResumen } from "../../components/attendanceStatus";
 import { EmployeeAttendance, duracionJornada, horasDia } from "./employees";
-import { MESES, fromISO, toISO, weekStart } from "./period";
+import { DIAS_3, MESES, fromISO, toISO, weekStart } from "./period";
 
 // Reglas de ley (reforma art. 123). Por ahora fijas; "Reglas de Jornada" las hará configurables.
 export const LAW = { week: 48, xw: 12, xd: 4, xdays: 4, rest: 6, warn: 75 };
@@ -9,7 +9,7 @@ export type LawAlert = { level: "alerta" | "aviso"; text: string; week: string; 
 
 const TRABAJADO = ["presente", "retardo", "en_turno", "sin_salida"];
 // Días que no cuentan para el % de asistencia (no se esperaba que viniera)
-const NO_ESPERADO = ["sin_registro", "dia_libre", "vacaciones", "incapacidad", "permiso", "home_office", "trabajo_fuera", "por_llegar"];
+const NO_ESPERADO = ["sin_registro", "dia_libre", "asueto", "vacaciones", "incapacidad", "permiso", "home_office", "trabajo_fuera", "por_llegar"];
 
 export type EmployeeMetrics = {
   resumen: AttendanceResumen; // conteos por estatus solo de los días del periodo
@@ -18,12 +18,19 @@ export type EmployeeMetrics = {
   esperadas: number | null;
   pct: number | null;     // horas ÷ esperadas
   extra: number;          // suma por semana de (hechas − esperadas) cuando es ≥ 0.5 h
+  extraDias: { fecha: string; horas: number }[]; // días con ≥ 0.5 h arriba de su jornada
   triple: number;         // extra arriba de LAW.xw por semana
   alerts: LawAlert[];
   laborales: number;
   aPagar: number;
   asistPct: number | null; // días con asistencia ÷ días esperados (calendario)
   revisar: boolean;
+};
+
+// "Mié 18 nov"
+export const diaCorto = (fecha: string) => {
+  const d = fromISO(fecha);
+  return `${DIAS_3[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()].slice(0, 3)}`;
 };
 
 const explain = (t: string, level: "alerta" | "aviso") => {
@@ -42,7 +49,8 @@ export const employeeMetrics = (emp: EmployeeAttendance, fechas: string[], now =
   const jornada = duracionJornada(emp.jornada);
   let horas = 0, horasVivo = 0, esperadas = 0, conJornada = false;
   let laborales = 0, faltas = 0, incap = 0, asist = 0, esperados = 0, sinSalida = 0;
-  const weeks = new Map<string, { done: number; exp: number; days: number; maxd: number }>();
+  const weeks = new Map<string, { done: number; exp: number; days: number; maxd: number; maxdFecha: string }>();
+  const extraDias: { fecha: string; horas: number }[] = [];
 
   fechas.forEach(fecha => {
     const day = emp.dias[fecha];
@@ -56,7 +64,7 @@ export const employeeMetrics = (emp: EmployeeAttendance, fechas: string[], now =
       esperadas += h.esperadas;
       conJornada = true;
     }
-    if (status !== "dia_libre" && status !== "sin_registro") laborales++;
+    if (status !== "dia_libre" && status !== "asueto" && status !== "sin_registro") laborales++;
     if (status === "falta") faltas++;
     if (status === "incapacidad") incap++;
     if (status === "sin_salida") sinSalida++;
@@ -66,14 +74,18 @@ export const employeeMetrics = (emp: EmployeeAttendance, fechas: string[], now =
     }
     if (enCurso) return;
     const wk = toISO(weekStart(fromISO(fecha)));
-    const w = weeks.get(wk) ?? { done: 0, exp: 0, days: 0, maxd: 0 };
+    const w = weeks.get(wk) ?? { done: 0, exp: 0, days: 0, maxd: 0, maxdFecha: "" };
     w.done += t;
     w.exp += h.esperadas ?? 0;
-    const base = status === "dia_libre" ? 0 : jornada ?? 0;
+    const base = status === "dia_libre" || status === "asueto" ? 0 : jornada ?? 0;
     const excedente = t - base;
     if (t > 0 && jornada != null && excedente >= 0.5) {
       w.days++;
-      w.maxd = Math.max(w.maxd, excedente);
+      extraDias.push({ fecha, horas: excedente });
+      if (excedente > w.maxd) {
+        w.maxd = excedente;
+        w.maxdFecha = fecha;
+      }
     }
     weeks.set(wk, w);
   });
@@ -91,7 +103,7 @@ export const employeeMetrics = (emp: EmployeeAttendance, fechas: string[], now =
     const push = (level: "alerta" | "aviso", text: string) => alerts.push({ level, text, week, explain: explain(text, level) });
     if (xw > LAW.xw) push("alerta", `Extra semanal ${xw.toFixed(1)} h (máx. ${LAW.xw})`);
     else if (xw >= (LAW.xw * LAW.warn) / 100) push("aviso", `Extra semanal ${xw.toFixed(1)} de ${LAW.xw} h`);
-    if (w.maxd > LAW.xd) push("alerta", `Extra en un día ${w.maxd.toFixed(1)} h (máx. ${LAW.xd})`);
+    if (w.maxd > LAW.xd) push("alerta", `Extra en un día ${w.maxd.toFixed(1)} h (máx. ${LAW.xd}) · ${diaCorto(w.maxdFecha)}`);
     if (w.days > LAW.xdays) push("alerta", `${w.days} días con extra (máx. ${LAW.xdays})`);
   });
 
@@ -118,6 +130,7 @@ export const employeeMetrics = (emp: EmployeeAttendance, fechas: string[], now =
     esperadas: esp,
     pct: esp ? (horas / esp) * 100 : null,
     extra,
+    extraDias,
     triple,
     alerts,
     laborales,

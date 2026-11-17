@@ -6,7 +6,7 @@ import { PlazaBar, plazasSubtitle } from "./asistencia/CoverageView";
 import { PlazasSelection, plantillaTurnoLabel, plazasDe, resumenPlazas } from "../reporte_asistencias/lib/plantilla";
 import { OPENED, ShiftGuard, ShiftSelection, diffText, initials, minutosDiferencia, siguienteInicio, turnoLabel } from "../reporte_asistencias/lib/shifts";
 import { DIAS, MESES, fromISO } from "../reporte_asistencias/lib/period";
-import { tipoCierre, formatHoras, horaSalida, horasTrabajadas } from "../reporte_asistencias/lib/employees";
+import { tipoCierre, formatHoras, horasTrabajadas, salidaConDia } from "../reporte_asistencias/lib/employees";
 import { useNow } from "../reporte_asistencias/lib/useNow";
 
 interface ShiftDrawerProps {
@@ -56,7 +56,7 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose, on
   day.guardias.forEach(g => {
     if (!g.fecha_cierre) return;
     const auto = tipoCierre(g.fecha_inicio, g.fecha_cierre, siguienteInicio(row, g), g.cierre_automatico);
-    const cuando = horaSalida({ fecha: day.fecha, dia: 0, status: day.status, fecha_cierre: g.fecha_cierre });
+    const cuando = salidaConDia(g.fecha_inicio, g.fecha_cierre);
     eventos.push(`${cuando} · ${auto?.label === "Automática" ? `el sistema cerró el turno de ${g.nombre}` : auto ? `${g.nombre} cerró su turno hasta el día siguiente` : `${g.nombre} cerró turno`}`);
   });
   if (day.status === "sin_cierre") eventos.push("No se registró el cierre del turno");
@@ -84,7 +84,7 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose, on
             <Field
               label="Hora de cierre"
               value={cierre
-                ? <>{horaSalida({ fecha: day.fecha, dia: 0, status: day.status, fecha_cierre: cierre })}{automatica && <AutoCloseMark text={automatica.texto} label={automatica.label} />}</>
+                ? <>{salidaConDia(opener?.fecha_inicio, cierre)}{automatica && <AutoCloseMark text={automatica.texto} label={automatica.label} />}</>
                 : day.status === "en_curso" ? "En turno" : undefined}
             />
             <Field label="Horas cubiertas" value={formatHoras(horasTrabajadas(opener?.fecha_inicio, cierre, day.status === "en_curso", now), " h")} />
@@ -121,7 +121,7 @@ export const ShiftDrawer: React.FC<ShiftDrawerProps> = ({ selection, onClose, on
                   const gDiff = minutosDiferencia(row, g);
                   const selected = g.employee_id === guard?.employee_id;
                   const salidaG = g.fecha_cierre
-                    ? horaSalida({ fecha: day.fecha, dia: 0, status: gs, fecha_cierre: g.fecha_cierre })
+                    ? salidaConDia(g.fecha_inicio, g.fecha_cierre)
                     : gs === "en_curso" ? "en turno" : "sin salida";
                   const horasG = formatHoras(horasTrabajadas(g.fecha_inicio, g.fecha_cierre, gs === "en_curso", now), " h");
                   return (

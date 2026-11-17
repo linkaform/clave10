@@ -17,7 +17,7 @@ const STATUS_TEXT: Record<Plaza["status"], string> = {
 const statusText = (p: Plaza, row: PlantillaRow) => {
   if (p.status === "A") return `Entrada ${hhmm(p.hora)}`;
   if (p.status === "R") return `Retardo · ${hhmm(p.hora)}`;
-  if (p.status === "F") return "Sin entrada";
+  if (p.status === "F") return p.guardia_programado ? "No ha entrado" : "Sin entrada";
   if (p.status === "PL") return `Entra a las ${hhmm(row.hora_entrada)}`;
   return "Programado";
 };
@@ -36,6 +36,7 @@ const PlazaList = ({ row, plazas }: { row: PlantillaRow; plazas: Plaza[] }) => (
           <b className="truncate text-[13px] font-semibold text-c10-title">{p.guardia || "Sin guardia asignado"}</b>
           <span className="truncate text-xs text-c10-secondary">
             {p.rol || "Plaza"}
+            {!p.hora && p.guardia_programado && (p.status === "F" || p.status === "PL" || p.status === "PE") ? " · asignado" : ""}
             {p.suplente && p.guardia_programado ? ` · cubre a ${p.guardia_programado}` : p.suplente ? " · suplente" : ""}
           </span>
           {p.sin_rol && <span className="text-xs text-amber-700" title="El check-in no trae rol; se cuenta en esta plaza">Sin rol registrado en el check-in</span>}
@@ -82,12 +83,13 @@ export const PlazasDrawer = ({ selection, onClose }: { selection: PlazasSelectio
       })}
       {extras.length > 0 && (
         <div className="flex flex-col gap-1 rounded-xl bg-c10-surface px-5 py-3 shadow-[0_0_0_1px_var(--c10-line-card)]">
-          <span className="py-1 text-[13px] font-semibold text-c10-title">Entradas fuera de la plantilla</span>
+          <span className="pt-1 text-[13px] font-semibold text-c10-title">Extras / otros</span>
+          <span className="pb-1 text-xs text-c10-meta">Entraron con otro rol o sin rol, o ya no había plaza; no cubren plazas de la plantilla.</span>
           {extras.map((e, i) => (
             <div key={i} className="flex items-center justify-between gap-3 border-t border-c10-sunken py-2 text-[13px] first:border-t-0">
               <span className="flex min-w-0 flex-col">
                 <span className="truncate text-c10-title">{e.guardia}</span>
-                {!!e.roles?.length && <span className="truncate text-xs text-c10-secondary">{e.roles.join(", ")}</span>}
+                <span className={`truncate text-xs ${e.roles?.length ? "text-c10-secondary" : "text-amber-700"}`}>{e.roles?.length ? e.roles.join(", ") : "Sin rol registrado"}</span>
               </span>
               <span className="tabular-nums text-c10-secondary">Entrada {hhmm(e.hora)}</span>
             </div>

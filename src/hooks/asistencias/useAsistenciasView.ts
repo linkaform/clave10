@@ -43,6 +43,11 @@ export const useAsistenciasView = () => {
     setPeriodState(p => fitPeriod(mode, p));
   }, []);
   const setPeriod = useCallback((p: PeriodView) => setPeriodState(fitPeriod(displayMode, p)), [displayMode]);
+  // Cambia modo y periodo juntos (p. ej. al abrir el mes de un empleado o al regresar)
+  const setView = useCallback((mode: DisplayMode, p: PeriodView) => {
+    setDisplayModeState(mode);
+    setPeriodState(fitPeriod(mode, p));
+  }, []);
 
   const [from, to] = periodRange(period, date);
   const days = useMemo(() => periodDays(period, date), [period, date]);
@@ -86,6 +91,7 @@ export const useAsistenciasView = () => {
     goToday,
     displayMode,
     setDisplayMode,
+    setView,
     search,
     setSearch,
     reportAsistencias: Array.isArray(reportAsistencias) ? reportAsistencias : [],

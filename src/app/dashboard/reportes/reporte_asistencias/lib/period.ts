@@ -103,3 +103,5 @@ export const amd = (d: Date) =>
   `${String(d.getFullYear()).slice(2)}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 export const DIAS_3 = D3;
+// Vista de mes: una letra por día para que no se amontone
+export const DIAS_1 = ["D", "L", "M", "M", "J", "V", "S"];
