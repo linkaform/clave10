@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { AssignCheckbox, CheckState, checkState } from "./assign-checkbox";
 import { MenuAssignmentDrawer } from "./menu-assignment-drawer";
 import { DiagEmpty } from "./diag-ui";
+import { PendingChangesFooter } from "@/components/common/PendingChangesFooter";
 
 interface MenuAssignmentGridProps {
   /** Items del catálogo de la plataforma que se está viendo (web o móvil). */
@@ -324,28 +325,13 @@ export function MenuAssignmentGrid({ items, onDirtyChange }: MenuAssignmentGridP
       </div>
 
       {dirty && (
-        <div className="sticky bottom-4 z-30 flex items-center justify-end gap-3 rounded-2xl bg-c10-surface px-4 py-3 shadow-[0_0_0_1px_var(--c10-line-card),0_12px_32px_rgba(15,23,42,.14)]">
-          <span className="mr-auto flex items-center gap-2 text-sm text-c10-secondary">
-            <span className="h-2 w-2 rounded-full bg-[#F59E0B]" />
-            {isSaving && progress
-              ? `Guardando ${progress.done} de ${progress.total}...`
-              : `${changedIds.length} usuario${changedIds.length === 1 ? "" : "s"} con cambios sin guardar`}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPending({})}
-            disabled={isSaving}
-            className="h-10 rounded-lg border border-c10-line bg-c10-surface px-4 text-sm font-medium text-c10-text transition-colors duration-150 hover:bg-c10-sunken disabled:opacity-50">
-            Descartar
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="h-10 rounded-lg bg-[#2F80ED] px-4 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#1E6FDB] disabled:opacity-50">
-            {isSaving ? "Guardando..." : "Guardar cambios"}
-          </button>
-        </div>
+        <PendingChangesFooter
+          label={`${changedIds.length} usuario${changedIds.length === 1 ? "" : "s"} con cambios sin guardar`}
+          saving={isSaving}
+          progress={progress}
+          onDiscard={() => setPending({})}
+          onSave={handleSave}
+        />
       )}
 
       <MenuAssignmentDrawer
