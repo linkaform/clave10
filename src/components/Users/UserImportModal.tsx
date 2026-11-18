@@ -30,6 +30,7 @@ import {
 import { useCreateUsers, useUserOptions } from "@/hooks/Users/useUsers";
 import {
   ParsedUserRow,
+  USER_IMPORT_MIN_PASSWORD,
   USER_IMPORT_REQUIRED_COLUMNS,
   downloadUsersTemplate,
   parseUsersFromExcel,
@@ -103,6 +104,7 @@ export function UserImportModal({ open, onOpenChange }: Props) {
       role: r.role,
       timezone: r.timezone,
       language: r.language,
+      password: r.password,
     }));
     setProgress({ done: 0, total: payload.length });
     createUsers.mutate(
@@ -130,6 +132,12 @@ export function UserImportModal({ open, onOpenChange }: Props) {
         (r) => !(r.name && r.username && r.email && r.phone && r.role),
       ).length
     : 0;
+  const withPassword = rows ? rows.filter((r) => r.password).length : 0;
+  const shortPassword = rows
+    ? rows.filter(
+        (r) => r.password && r.password.length < USER_IMPORT_MIN_PASSWORD,
+      ).length
+    : 0;
   const defaultTz = options?.defaults.timezone ?? "";
   const defaultLang =
     options?.languages.find((l) => l.value === options.defaults.language)
@@ -146,8 +154,8 @@ export function UserImportModal({ open, onOpenChange }: Props) {
             Alta masiva de usuarios
           </DialogTitle>
           <DialogDescription className="text-center">
-            Crea usuarios nuevos desde un Excel. Cada usuario recibe un correo
-            para activar su cuenta.
+            Crea usuarios nuevos desde un Excel. Con contraseña quedan activos;
+            sin contraseña reciben un correo para activar su cuenta.
           </DialogDescription>
         </DialogHeader>
 
@@ -211,7 +219,8 @@ export function UserImportModal({ open, onOpenChange }: Props) {
                     : vacíos toman {defaultTz} y {defaultLang}
                   </>
                 )}
-                .
+                . Contraseña es opcional (mínimo {USER_IMPORT_MIN_PASSWORD}{" "}
+                caracteres): con ella el usuario queda activo sin correo.
               </p>
               <Button
                 type="button"
@@ -247,10 +256,20 @@ export function UserImportModal({ open, onOpenChange }: Props) {
                     className="shrink-0 mt-0.5 text-amber-600"
                   />
                   <div>
-                    Se crearán hasta <strong>{rows.length}</strong> usuario(s) y
-                    se enviarán hasta <strong>{rows.length}</strong> correo(s)
-                    de activación. Si un username ya existe, esa fila se rechaza
-                    y las demás siguen.
+                    Se crearán hasta <strong>{rows.length}</strong> usuario(s):{" "}
+                    <strong>{withPassword}</strong> quedarán activos con su
+                    contraseña y se enviarán hasta{" "}
+                    <strong>{rows.length - withPassword}</strong> correo(s) de
+                    activación. Si un username ya existe, esa fila se rechaza y
+                    las demás siguen.
+                    {shortPassword > 0 && (
+                      <>
+                        {" "}
+                        <strong>{shortPassword}</strong> fila(s) tienen una
+                        contraseña de menos de {USER_IMPORT_MIN_PASSWORD}{" "}
+                        caracteres y serán rechazadas.
+                      </>
+                    )}
                     {incomplete > 0 && (
                       <>
                         {" "}
@@ -284,6 +303,7 @@ export function UserImportModal({ open, onOpenChange }: Props) {
                         <TableHead>Rol</TableHead>
                         <TableHead>Uso Horario</TableHead>
                         <TableHead>Idioma</TableHead>
+                        <TableHead>Contraseña</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -313,6 +333,17 @@ export function UserImportModal({ open, onOpenChange }: Props) {
                             }
                           >
                             {r.language || defaultLang || "—"}
+                          </TableCell>
+                          <TableCell
+                            className={
+                              !r.password
+                                ? "text-muted-foreground"
+                                : r.password.length < USER_IMPORT_MIN_PASSWORD
+                                  ? "text-red-600"
+                                  : ""
+                            }
+                          >
+                            {r.password ? "••••••••" : "Correo"}
                           </TableCell>
                         </TableRow>
                       ))}
