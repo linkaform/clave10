@@ -55,11 +55,19 @@ export const getPdfIncidenciaV2 = async (qr_code: string, name_pdf?: string) => 
   return response.json();
 }
 
-// v2 y, si la cuenta aún no tiene la opción en el script, el PDF de siempre.
+// Siempre la plantilla v2 (la más nueva). Solo se usa el PDF de siempre si la cuenta
+// todavía no tiene la opción en el script: incidencias.py responde {msg: "Empty"}.
+// Cualquier otro error (red, token, timeout) se reintenta una vez y, si sigue fallando,
+// se regresa el error: antes caía a la plantilla vieja y el PDF salía en otra versión.
 export const getPdfIncidenciaConFallback = async (qr_code: string, account_id: number, name_pdf?: string) => {
-  const v2 = await getPdfIncidenciaV2(qr_code, name_pdf);
-  if (v2?.response?.data?.status_code === 200) return v2;
-  return getPdfIncidencias(qr_code, 592, account_id, name_pdf);
+  const intentar = () => getPdfIncidenciaV2(qr_code, name_pdf).catch((error) => ({ error: String(error) }));
+  const ok = (r: any) => r?.response?.data?.status_code === 200;
+  const sinOpcion = (r: any) => r?.response?.data?.msg === "Empty";
+
+  const v2 = await intentar();
+  if (ok(v2)) return v2;
+  if (sinOpcion(v2)) return getPdfIncidencias(qr_code, 592, account_id, name_pdf);
+  return intentar();
 }
 
 // Botón "Imprimir PDF" de tabla, tarjetas y detalle de incidencias.
