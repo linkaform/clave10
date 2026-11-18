@@ -11,7 +11,7 @@ export interface AutoReloadConfig {
 }
 
 // Todas las vistas arrancan con el auto-refresh apagado.
-export const getDefaultAutoReload = (_viewKey: string): AutoReloadConfig => ({
+export const getDefaultAutoReload = (): AutoReloadConfig => ({
   enabled: false,
   intervalSec: 60,
   inBackground: false,

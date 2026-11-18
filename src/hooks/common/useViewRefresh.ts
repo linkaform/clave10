@@ -13,10 +13,10 @@ import {
 export function useAutoReloadConfig(viewKey: string) {
   const saved = useAutoReloadStore((s) => s.views[viewKey]);
   const setView = useAutoReloadStore((s) => s.setView);
-  const config: AutoReloadConfig = { ...getDefaultAutoReload(viewKey), ...saved };
+  const config: AutoReloadConfig = { ...getDefaultAutoReload(), ...saved };
   // Intervalos guardados con opciones anteriores (15 s, 30 s...) ya no existen.
   if (!(AUTO_RELOAD_INTERVALS as readonly number[]).includes(config.intervalSec)) {
-    config.intervalSec = getDefaultAutoReload(viewKey).intervalSec;
+    config.intervalSec = getDefaultAutoReload().intervalSec;
   }
   const update = useCallback(
     (patch: Partial<AutoReloadConfig>) => setView(viewKey, patch),
