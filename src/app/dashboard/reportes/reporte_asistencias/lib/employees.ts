@@ -1,5 +1,5 @@
 import { AttendanceResumen, buildResumen } from "../../components/attendanceStatus";
-import { MESES, fromISO, toISO } from "./period";
+import { MESES, addDays, fromISO, toISO } from "./period";
 
 // Solicitud autorizada de FORMATO_VACACIONES que cae en el día
 export type Solicitud = {
@@ -25,7 +25,26 @@ export type AttendanceDay = {
   cierre_automatico?: string;
   solicitud?: Solicitud;
   ubicacion?: string;
+  roles?: string[]; // roles con los que hizo check-in ese día
+  asueto?: string;  // nombre del asueto (Configuración de Asuetos)
+  detalle?: DayDetail; // lo que muestra el panel del día (viene en la lista; ya no se consulta al dar clic)
 };
+
+export type DayDetail = {
+  foto_inicio?: string;
+  foto_cierre?: string;
+  comentario_inicio?: string;
+  comentario_cierre?: string;
+  ubicacion?: string;
+  area?: string;
+  nombre_horario?: string;
+  hora_entrada?: string;
+  hora_salida?: string;
+  tolerancia_retardo?: number | null;
+};
+
+// Miniatura que sube LinkaForm junto con cada foto: misma URL con extensión .thumbnail
+export const thumbUrl = (url?: string) => url?.replace(/\.[a-zA-Z0-9]+$/, ".thumbnail");
 
 export type Jornada = {
   nombre: string;
@@ -69,6 +88,7 @@ const statusPriority: Record<string, number> = {
   retardo: 5,
   sin_salida: 4,
   dia_libre: 3,
+  asueto: 3,
   por_llegar: 2,
   falta: 1,
   sin_registro: 0,
@@ -107,14 +127,19 @@ export const mergeEmployees = (rows: EmployeeLocationRow[]): EmployeeAttendance[
 
 export const hora = (fecha?: string) => fecha?.substring(11, 16);
 
-// Si la salida quedó en otro día (p. ej. la cerró el check-in siguiente) se indica la fecha
-export const horaSalida = (day?: AttendanceDay) => {
-  if (!day?.fecha_cierre) return undefined;
-  const cierre = day.fecha_cierre.substring(0, 10);
-  if (cierre === day.fecha) return hora(day.fecha_cierre);
-  const d = fromISO(cierre);
-  return `${hora(day.fecha_cierre)} · ${d.getDate()} ${MESES[d.getMonth()].slice(0, 3)}`;
+// Hora de salida; si quedó en otro día (turno nocturno o cerrado por el check-in siguiente)
+// se indica "día siguiente" o la fecha, para que no se lea como una salida antes de la entrada
+export const salidaConDia = (inicio?: string | null, cierre?: string | null) => {
+  if (!cierre) return undefined;
+  const fc = cierre.substring(0, 10);
+  const fi = inicio?.substring(0, 10);
+  if (!fi || fc === fi) return hora(cierre);
+  const d = fromISO(fc);
+  const siguiente = toISO(addDays(fromISO(fi), 1)) === fc;
+  return `${hora(cierre)} · ${siguiente ? "día siguiente" : `${d.getDate()} ${MESES[d.getMonth()].slice(0, 3)}`}`;
 };
+
+export const horaSalida = (day?: AttendanceDay) => (day?.fecha_cierre ? salidaConDia(day.fecha_inicio ?? day.fecha, day.fecha_cierre) : undefined);
 
 // "YYYY-MM-DD HH:MM:SS" en hora local
 const parseFecha = (value: string) => new Date(value.replace(" ", "T"));

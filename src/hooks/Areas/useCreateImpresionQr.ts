@@ -35,7 +35,7 @@ export const useCreateImpresionQr = () => {
 
   // Mismo servicio get_pdf que el QR de un área, pero solo abre el diálogo de
   // impresión (imprimirUrlEnIframe): sin descarga ni pestaña nueva.
-  const handlePrintPlantillaQr = async (recordId: string) => {
+  const handlePrintPlantillaQr = async (recordId: string, templateId?: string) => {
     Swal.fire({
       title: "Preparando documento",
       html: "Cargando PDF para imprimir...",
@@ -47,7 +47,7 @@ export const useCreateImpresionQr = () => {
     });
 
     try {
-      const result = await getAreaPdfSdk(recordId);
+      const result = await getAreaPdfSdk(recordId, templateId);
       const data = result?.response?.data;
       if (!data || data.status_code !== 200) {
         toast.error(`Error del servidor: ${data?.json?.error || "Error desconocido del servidor"}`);

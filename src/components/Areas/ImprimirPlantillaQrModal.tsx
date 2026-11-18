@@ -11,7 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateImpresionQr } from "@/hooks/Areas/useCreateImpresionQr";
+import { usePlantillasImpresionQr } from "@/hooks/Areas/usePlantillasImpresionQr";
+
+// Valor del selector para la plantilla por defecto de la forma Impresión de QR
+// (se pide el PDF sin template_id). Las demás opciones son los ids de plantilla
+// de la cuenta, que regresa el back.
+const PLANTILLA_DEFAULT = "default";
 
 interface ImprimirPlantillaQrModalProps {
   open: boolean;
@@ -20,11 +27,16 @@ interface ImprimirPlantillaQrModalProps {
 
 export const ImprimirPlantillaQrModal = ({ open, onOpenChange }: ImprimirPlantillaQrModalProps) => {
   const [paginas, setPaginas] = React.useState("1");
+  const [plantilla, setPlantilla] = React.useState(PLANTILLA_DEFAULT);
   const { handleCreateImpresionQr, handlePrintPlantillaQr, isCreating } = useCreateImpresionQr();
+  const { plantillas, isLoadingPlantillas } = usePlantillasImpresionQr(open);
 
-  // Cada vez que se abre arranca en 1 página.
+  // Cada vez que se abre arranca en 1 página y la plantilla por defecto.
   React.useEffect(() => {
-    if (open) setPaginas("1");
+    if (open) {
+      setPaginas("1");
+      setPlantilla(PLANTILLA_DEFAULT);
+    }
   }, [open]);
 
   const numPaginas = Number(paginas);
@@ -36,7 +48,7 @@ export const ImprimirPlantillaQrModal = ({ open, onOpenChange }: ImprimirPlantil
     const recordId = await handleCreateImpresionQr(numPaginas);
     if (!recordId) return;
     onOpenChange(false);
-    handlePrintPlantillaQr(recordId);
+    handlePrintPlantillaQr(recordId, plantilla === PLANTILLA_DEFAULT ? undefined : plantilla);
   };
 
   const labelClass = "text-xs font-semibold text-gray-500 uppercase tracking-wide";
@@ -47,6 +59,23 @@ export const ImprimirPlantillaQrModal = ({ open, onOpenChange }: ImprimirPlantil
         <DialogHeader className="bg-white px-6 py-5 border-b">
           <DialogTitle className="text-xl text-center font-bold text-gray-800">Imprimir plantilla QR</DialogTitle>
         </DialogHeader>
+
+        <div className="px-6 pt-5 flex flex-col gap-1.5">
+          <Label htmlFor="plantilla-qr-tamano" className={labelClass}>Plantilla</Label>
+          <Select value={plantilla} onValueChange={setPlantilla} disabled={isCreating || isLoadingPlantillas}>
+            <SelectTrigger id="plantilla-qr-tamano" className="bg-white border-gray-200">
+              <SelectValue placeholder={isLoadingPlantillas ? "Cargando plantillas..." : "Selecciona una plantilla"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={PLANTILLA_DEFAULT}>Predeterminada</SelectItem>
+              {plantillas.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)}>
+                  {p.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="px-6 py-5 flex flex-col gap-1.5">
           <Label htmlFor="plantilla-qr-paginas" className={labelClass}>Número de páginas</Label>

@@ -2,13 +2,13 @@
 
 import React, { useMemo, useState } from "react";
 import { ArrowUpDown } from "lucide-react";
-import { EMPLOYEE_QUICK, StatusChip, StatusIcon, getStatusConfig } from "../attendanceStatus";
+import { EMPLOYEE_QUICK, StatusChip, StatusIcon, getStatusConfig, headerIconClass } from "../attendanceStatus";
 import { AttendanceDay, EmployeeAttendance, cierreDia, horaSalida, horasDia, jornadaLabel, horasSolicitud, permisoParcial } from "../../reporte_asistencias/lib/employees";
-import { DIAS, DIAS_3, sameDay, toISO } from "../../reporte_asistencias/lib/period";
-import { EmployeeMetrics, LawAlert, asistTone, pctTone } from "../../reporte_asistencias/lib/metrics";
+import { DIAS, DIAS_1, DIAS_3, sameDay, toISO } from "../../reporte_asistencias/lib/period";
+import { EmployeeMetrics, LawAlert, asistTone, diaCorto, pctTone } from "../../reporte_asistencias/lib/metrics";
 import { useNow } from "../../reporte_asistencias/lib/useNow";
 import { AutoCloseMark } from "../drawerParts";
-import { Avatar, Checkbox, Empty, Pager, T, fmtH, usePaged } from "./ui";
+import { Avatar, Checkbox, Empty, PCW, Pager, ResizeHandle, ScrollBox, T, fmtH, pcwVar, usePaged, usePcw } from "./ui";
 
 export type OpenDay = (employee: EmployeeAttendance, fecha: string) => void;
 
@@ -37,6 +37,8 @@ const registroText = (emp: EmployeeAttendance, day?: AttendanceDay) => {
       return "Justificado";
     case "dia_libre":
       return day.fecha_inicio ? "Trabajó en día de descanso" : "Día no laboral";
+    case "asueto":
+      return day.asueto || "Asueto";
     case "por_llegar":
       return emp.jornada?.hora_entrada ? `Entrada a las ${hhmm(emp.jornada.hora_entrada)}` : "---";
     case "sin_registro":
@@ -114,20 +116,21 @@ export const EmployeeDayCalendar = ({ employees, date, quick, onOpenDay }: { emp
 export const EmployeePeriodGrid = ({ employees, days, quick, metrics, onOpenDay }: {
   employees: EmployeeAttendance[]; days: Date[]; quick: string[]; metrics: Map<number, EmployeeMetrics>; onOpenDay: OpenDay;
 }) => {
+  const pcw = usePcw();
   const today = new Date();
   if (!employees.length) return <Empty />;
   const size = days.length > 7 ? 22 : 28;
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
+    <ScrollBox>
+      <table className="w-full border-collapse" style={pcwVar(pcw)}>
         <thead>
           <tr>
-            <th className="sticky left-0 z-[2] min-w-[200px] bg-c10-surface px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-[.05em] text-c10-secondary">Empleado</th>
+            <th className={`sticky left-0 z-[2] ${PCW} bg-c10-surface px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-[.05em] text-c10-secondary`}>Empleado<ResizeHandle /></th>
             {days.map(d => {
               const isToday = sameDay(d, today);
               return (
                 <th key={toISO(d)} className={`min-w-[30px] px-0.5 py-1.5 text-center ${isToday ? "bg-c10-blue-subtle" : ""}`}>
-                  <span className={`block text-[10px] font-semibold uppercase ${isToday ? "text-button-primary" : "text-c10-meta"}`}>{DIAS_3[d.getDay()]}</span>
+                  <span className={`block text-[10px] font-semibold uppercase ${isToday ? "text-button-primary" : "text-c10-meta"}`}>{(days.length > 16 ? DIAS_1 : DIAS_3)[d.getDay()]}</span>
                   <span className={`mx-auto mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-semibold tabular-nums ${isToday ? "bg-button-primary text-white" : "text-c10-title"}`}>{d.getDate()}</span>
                 </th>
               );
@@ -140,8 +143,8 @@ export const EmployeePeriodGrid = ({ employees, days, quick, metrics, onOpenDay 
             const pct = metrics.get(emp.employee_id)?.asistPct;
             return (
               <tr key={emp.employee_id} className="group">
-                <td className="sticky left-0 z-[1] border-t border-c10-line bg-c10-surface px-3 py-2 group-hover:bg-c10-panel">
-                  <span className="flex items-center gap-2.5">
+                <td className={`sticky left-0 z-[1] ${PCW} border-t border-c10-line bg-c10-surface px-3 py-2 group-hover:bg-c10-panel`}>
+                  <span className="flex min-w-0 items-center gap-2.5">
                     <Avatar name={emp.nombre} size={28} />
                     <span className="min-w-0">
                       <span className="block truncate text-[13px] font-semibold text-c10-title">{emp.nombre}</span>
@@ -183,7 +186,7 @@ export const EmployeePeriodGrid = ({ employees, days, quick, metrics, onOpenDay 
           })}
         </tbody>
       </table>
-    </div>
+    </ScrollBox>
   );
 };
 
@@ -233,6 +236,7 @@ const PctBar = ({ pct }: { pct: number | null }) => {
 
 // ───────── Tabla · Día ─────────
 export const EmployeeDayTable = ({ employees, date, sel, onOpenDay }: { employees: EmployeeAttendance[]; date: Date; sel: Selection; onOpenDay: OpenDay }) => {
+  const pcw = usePcw();
   const fecha = toISO(date);
   const now = useNow();
   const isToday = sameDay(date, now);
@@ -240,12 +244,12 @@ export const EmployeeDayTable = ({ employees, date, sel, onOpenDay }: { employee
   if (!employees.length) return <Empty />;
   return (
     <>
-      <div className={T.box}>
-        <table className="w-full border-collapse">
+      <ScrollBox>
+        <table className="w-full border-collapse" style={pcwVar(pcw)}>
           <thead>
             <tr>
               <th className={`${T.th} w-10`}><HeadCheck rows={paged.slice} sel={sel} /></th>
-              <th className={T.th}><NameHead asc={asc} setAsc={setAsc} /></th>
+              <th className={`${T.th} relative ${PCW}`}><NameHead asc={asc} setAsc={setAsc} /><ResizeHandle /></th>
               <th className={T.th}>Jornada</th>
               <th className={T.th}>Entrada</th>
               <th className={T.th}>Salida</th>
@@ -265,9 +269,9 @@ export const EmployeeDayTable = ({ employees, date, sel, onOpenDay }: { employee
               return (
                 <tr key={emp.employee_id} onClick={() => onOpenDay(emp, fecha)} className="cursor-pointer hover:bg-c10-panel">
                   <td className={T.td}><RowCheck id={emp.employee_id} sel={sel} name={emp.nombre} /></td>
-                  <td className={T.td}>
-                    <div className="font-semibold text-c10-title">{emp.nombre}</div>
-                    <div className="text-xs text-c10-meta">{emp.departamento || emp.ubicaciones[0] || "---"}</div>
+                  <td className={`${T.td} ${PCW}`}>
+                    <div className="truncate font-semibold text-c10-title">{emp.nombre}</div>
+                    <div className="truncate text-xs text-c10-meta">{emp.departamento || emp.ubicaciones[0] || "---"}</div>
                   </td>
                   <td className={`${T.td} text-c10-label`}>{jornadaLabel(emp.jornada) || "---"}</td>
                   <td className={`${T.td} font-semibold tabular-nums ${ESTATUS_ENTRADA[day?.status ?? ""] ?? "text-c10-faint"}`}>{hh(day?.fecha_inicio) || "---"}</td>
@@ -286,7 +290,7 @@ export const EmployeeDayTable = ({ employees, date, sel, onOpenDay }: { employee
             })}
           </tbody>
         </table>
-      </div>
+      </ScrollBox>
       <Pager {...paged} />
     </>
   );
@@ -325,21 +329,22 @@ const COUNT_COLS: { key: keyof EmployeeMetrics["resumen"]; status: string; label
 export const EmployeePeriodTable = ({ employees, metrics, quincena, sel, resetKey, onSelectEmployee }: {
   employees: EmployeeAttendance[]; metrics: Map<number, EmployeeMetrics>; quincena: boolean; sel: Selection; resetKey: unknown; onSelectEmployee: (nombre: string) => void;
 }) => {
+  const pcw = usePcw();
   const { asc, setAsc, paged } = useTableState(employees, resetKey);
   if (!employees.length) return <Empty />;
   const cols = COUNT_COLS.filter(c => c.key !== "fuera_oficina" || employees.some(e => (metrics.get(e.employee_id)?.resumen.fuera_oficina ?? 0) > 0));
   return (
     <>
-      <div className={T.box}>
-        <table className="w-full border-collapse">
+      <ScrollBox>
+        <table className="w-full border-collapse" style={pcwVar(pcw)}>
           <thead>
             <tr>
               <th className={`${T.th} sticky left-0 z-[2] w-10`}><HeadCheck rows={paged.slice} sel={sel} /></th>
-              <th className={`${T.th} sticky left-10 z-[2]`}><NameHead asc={asc} setAsc={setAsc} /></th>
+              <th className={`${T.th} sticky left-10 z-[2] ${PCW}`}><NameHead asc={asc} setAsc={setAsc} /><ResizeHandle /></th>
               {quincena && <th className={`${T.th} text-right`}>Días laborales</th>}
               {cols.map(c => (
                 <th key={c.key} className={`${T.th} text-right`}>
-                  <span className="inline-flex items-center gap-1.5"><StatusIcon status={c.status} size={18} />{c.label}</span>
+                  <span className="inline-flex items-center gap-1.5"><StatusIcon status={c.status} size={20} boxClass={headerIconClass(c.status)} />{c.label}</span>
                 </th>
               ))}
               <th className={`${T.th} text-right`}>Horas</th>
@@ -357,10 +362,10 @@ export const EmployeePeriodTable = ({ employees, metrics, quincena, sel, resetKe
               return (
                 <tr key={emp.employee_id} className="group hover:bg-c10-panel">
                   <td className={`${T.td} sticky left-0 z-[1] bg-c10-surface group-hover:bg-c10-panel`}><RowCheck id={emp.employee_id} sel={sel} name={emp.nombre} /></td>
-                  <td className={`${T.td} sticky left-10 z-[1] bg-c10-surface group-hover:bg-c10-panel`}>
-                    <button type="button" title="Ver sus días" onClick={() => onSelectEmployee(emp.nombre)} className="group/name text-left">
-                      <div className="font-semibold text-c10-title group-hover/name:text-button-primary group-hover/name:underline">{emp.nombre}</div>
-                      <div className="text-xs text-c10-meta">{emp.departamento || jornadaLabel(emp.jornada) || "---"}</div>
+                  <td className={`${T.td} sticky left-10 z-[1] ${PCW} bg-c10-surface group-hover:bg-c10-panel`}>
+                    <button type="button" title="Ver sus días" onClick={() => onSelectEmployee(emp.nombre)} className="group/name block w-full min-w-0 text-left">
+                      <div className="truncate font-semibold text-c10-title group-hover/name:text-button-primary group-hover/name:underline">{emp.nombre}</div>
+                      <div className="truncate text-xs text-c10-meta">{emp.departamento || jornadaLabel(emp.jornada) || "---"}</div>
                     </button>
                   </td>
                   {quincena && <td className={`${T.td} ${T.num}`}>{m.laborales || "–"}</td>}
@@ -371,7 +376,12 @@ export const EmployeePeriodTable = ({ employees, metrics, quincena, sel, resetKe
                   })}
                   <td className={`${T.td} ${T.num} font-semibold`}>{m.horasVivo ? fmtH(m.horasVivo) : "–"}</td>
                   <td className={T.td}><PctBar pct={m.pct} /></td>
-                  <td className={`${T.td} ${T.num} ${m.extra ? "font-semibold text-c10-title" : "text-c10-faint"}`}>{m.extra ? fmtH(m.extra) : "–"}</td>
+                  <td
+                    title={m.extra && m.extraDias.length ? `Días con horas extra:\n${m.extraDias.map(d => `${diaCorto(d.fecha)}: +${fmtH(d.horas)}`).join("\n")}` : undefined}
+                    className={`${T.td} ${T.num} ${m.extra ? "font-semibold text-c10-title" : "text-c10-faint"} ${m.extra && m.extraDias.length ? "cursor-help" : ""}`}
+                  >
+                    {m.extra ? fmtH(m.extra) : "–"}
+                  </td>
                   {quincena && <td className={`${T.td} ${T.num} font-semibold`}>{m.aPagar}</td>}
                   {quincena && <td className={`${T.td} ${T.num} ${m.triple ? "font-semibold text-red-700" : "text-c10-faint"}`}>{m.triple ? fmtH(m.triple) : "–"}</td>}
                   <td className={T.td}><AlertChips alerts={m.alerts} /></td>
@@ -387,8 +397,9 @@ export const EmployeePeriodTable = ({ employees, metrics, quincena, sel, resetKe
             })}
           </tbody>
         </table>
-      </div>
+      </ScrollBox>
       <Pager {...paged} />
     </>
   );
 };
+

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AreasUbicacionesTabs } from "@/components/common/AreasUbicacionesTabs";
 import { FloatingFiltersDrawer } from "@/components/Bitacoras/PhotoGrid/FloatingFiltersDrawer";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
+import { useLocationOptions } from "@/hooks/useLocationOptions";
 import { useAreasCatalog } from "@/hooks/Areas/useAreasCatalog";
 import { useAreasFilters } from "@/hooks/Areas/useAreasFilters";
 import { useFacetSection } from "@/hooks/common/useFacetSection";
@@ -25,6 +26,10 @@ const AreasContent = () => {
   const idParam = searchParams.get("id");
 
   const { selectedLocations } = useSelectedLocationsStore();
+  // Sin ubicación seleccionada en el header se muestran las áreas de todas las
+  // ubicaciones del usuario (el back exige al menos una).
+  const locationOptions = useLocationOptions();
+  const locations = selectedLocations.length > 0 ? selectedLocations : locationOptions;
   const [viewMode, setViewMode] = React.useState<ViewMode>("photos");
   const [selectedAreaId, setSelectedAreaId] = React.useState<string | null>(idParam);
   const [nuevaAreaOpen, setNuevaAreaOpen] = React.useState(false);
@@ -81,7 +86,7 @@ const AreasContent = () => {
     optionSuffix: "_areas",
     panel: { externalFilters, onExternalFiltersChange, activeFiltersCount },
     status: "",
-    locations: selectedLocations,
+    locations,
   });
 
   // Los filtros iniciales del panel (Estatus "activa", y Disponibilidad con
@@ -96,7 +101,7 @@ const AreasContent = () => {
   }, []);
 
   const { areasCatalog, isLoading } = useAreasCatalog(
-    selectedLocations,
+    locations,
     [],
     sec.paging.limit,
     sec.paging.skip,

@@ -27,7 +27,7 @@ const SELLO_EVIDENCIA_FIELD_IDS: Record<string, string> = {
   identificacion_operador: "718a0a37c5a6965b2127d2c0",
 };
 
-interface ApiFormField {
+export interface ApiFormField {
   field_id: string;
   label: string;
   field_type: string;
@@ -35,12 +35,12 @@ interface ApiFormField {
   required?: boolean;
 }
 
-interface ApiFormPage {
+export interface ApiFormPage {
   page_name: string;
   fields: ApiFormField[];
 }
 
-interface ApiFormFieldsResult {
+export interface ApiFormFieldsResult {
   form_id: string;
   pages: ApiFormPage[];
 }
@@ -161,7 +161,7 @@ interface InspeccionPuntos {
 // un textarea es su comentario; el campo de imágenes que sigue es su evidencia.
 // Así el guardado deja de depender de una lista fija por posición — sobrevive
 // a que se agreguen/quiten/reordenen puntos en Linkaform.
-function extractPuntos(fields: ApiFormField[]): PuntoConId[] {
+export function extractPuntos(fields: ApiFormField[]): PuntoConId[] {
   const puntos: PuntoConId[] = [];
   fields.forEach((f, i) => {
     if (f.field_type !== "radio") return;

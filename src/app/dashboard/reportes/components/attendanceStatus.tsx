@@ -9,6 +9,7 @@ export type AttendanceStatus =
   | "en_turno"
   | "por_llegar"
   | "dia_libre"
+  | "asueto"
   | "vacaciones"
   | "incapacidad"
   | "permiso"
@@ -33,6 +34,7 @@ const P = {
   pin: (<><path d="M12 20s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z" /><circle cx="12" cy="10" r="2.2" /></>),
   calClock: (<><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5M16 2v4M8 2v4M3 10h5M17.5 17.5 16 16.3V14" /><circle cx="16" cy="16" r="6" /></>),
   dash: <path d="M9 12h6" />,
+  flag: <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7" />,
 };
 
 export const attendanceStatusConfig: Record<AttendanceStatus, StatusConfig> = {
@@ -42,6 +44,7 @@ export const attendanceStatusConfig: Record<AttendanceStatus, StatusConfig> = {
   sin_salida: { label: "Sin salida", chip: "bg-orange-100 text-orange-700", icon: "text-orange-600", bar: "bg-orange-500", path: P.exit },
   falta: { label: "Falta", chip: "bg-red-100 text-red-700", icon: "text-red-600", bar: "bg-red-600", path: P.x },
   dia_libre: { label: "Descanso", chip: "bg-slate-100 text-slate-600", icon: "text-slate-500", bar: "bg-slate-400", path: P.moon },
+  asueto: { label: "Asueto", chip: "bg-indigo-100 text-indigo-700", icon: "text-indigo-600", bar: "bg-indigo-500", path: P.flag },
   vacaciones: { label: "Vacaciones", chip: "bg-blue-100 text-blue-700", icon: "text-blue-600", bar: "bg-blue-500", path: P.palm },
   incapacidad: { label: "Incapacidad", chip: "bg-purple-100 text-purple-700", icon: "text-purple-700", bar: "bg-purple-600", path: P.heart },
   permiso: { label: "Permiso", chip: "bg-teal-100 text-teal-700", icon: "text-teal-700", bar: "bg-teal-600", path: P.fileCheck },
@@ -61,10 +64,10 @@ const svgOf = (config: StatusConfig, size: number) => (
 );
 
 // Cuadro de ícono (celdas del calendario, columnas de tabla)
-const IconBox = ({ config, size }: { config: StatusConfig; size: number }) => (
+const IconBox = ({ config, size, boxClass }: { config: StatusConfig; size: number; boxClass?: string }) => (
   <span
     title={config.label}
-    className={`inline-flex flex-none items-center justify-center rounded-md ${config.chip.split(" ")[0]} ${config.icon}`}
+    className={`inline-flex flex-none items-center justify-center rounded-md ${boxClass || `${config.chip.split(" ")[0]} ${config.icon}`}`}
     style={{ width: size, height: size }}
   >
     {svgOf(config, Math.round(size * 0.58))}
@@ -79,9 +82,12 @@ const Chip = ({ config, label }: { config: StatusConfig; label?: string }) => (
   </span>
 );
 
-export const StatusIcon = ({ status, size = 26 }: { status?: string; size?: number }) => (
-  <IconBox config={getStatusConfig(status)} size={size} />
+export const StatusIcon = ({ status, size = 26, boxClass }: { status?: string; size?: number; boxClass?: string }) => (
+  <IconBox config={getStatusConfig(status)} size={size} boxClass={boxClass} />
 );
+
+// Sobre el encabezado azul de las tablas, el cuadrito azul claro de Vacaciones se pierde; se usa uno más fuerte
+export const headerIconClass = (status: string) => (status === "vacaciones" ? "bg-blue-200 text-blue-700" : undefined);
 
 export const StatusChip = ({ status, label }: { status?: string; label?: string }) => (
   <Chip config={getStatusConfig(status)} label={label} />
@@ -122,6 +128,7 @@ const statusToResumen: Partial<Record<AttendanceStatus, keyof AttendanceResumen>
   home_office: "fuera_oficina",
   trabajo_fuera: "fuera_oficina",
   dia_libre: "descansos",
+  asueto: "descansos",
 };
 
 export const buildResumen = (dias: { status: string }[]): AttendanceResumen => {
@@ -145,6 +152,7 @@ export const EMPLOYEE_QUICK: { key: string; label: string; status: AttendanceSta
   { key: "home_office", label: "Home office", status: "home_office", match: ["home_office"] },
   { key: "trabajo_fuera", label: "Trabajo fuera de oficina", status: "trabajo_fuera", match: ["trabajo_fuera"] },
   { key: "dia_libre", label: "Descanso", status: "dia_libre", match: ["dia_libre"] },
+  { key: "asueto", label: "Asueto", status: "asueto", match: ["asueto"] },
   { key: "por_llegar", label: "Por llegar", status: "por_llegar", match: ["por_llegar"] },
 ];
 

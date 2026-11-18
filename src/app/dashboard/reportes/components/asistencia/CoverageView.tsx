@@ -9,6 +9,7 @@ import {
   ordenPlazas,
   plantillaTurnoLabel,
   plazaQuickKey,
+  extrasDe,
   plazasDe,
   resumenPlazas,
   turnoKey,
@@ -46,7 +47,9 @@ const tone = (plazas: Plaza[]) => {
   return "bg-slate-100 text-slate-600";
 };
 
-const CountPill = ({ label, plazas, total, onClick, title }: { label: string; plazas: Plaza[]; total?: boolean; onClick: () => void; title: string }) => {
+const CountPill = ({ label, plazas, extras, total, onClick, title }: {
+  label: string; plazas: Plaza[]; extras: PlantillaRow["dias"][number]["extras"]; total?: boolean; onClick: () => void; title: string;
+}) => {
   const r = resumenPlazas(plazas);
   return (
     <button
@@ -57,6 +60,14 @@ const CountPill = ({ label, plazas, total, onClick, title }: { label: string; pl
     >
       {label}
       <span className={`inline-flex h-5 items-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${tone(plazas)}`}>{r.entradas} de {r.total}</span>
+      {extras.length > 0 && (
+        <span
+          title={`Otros en la caseta (no cubren plaza):\n${extras.map(e => `${e.guardia} · ${e.roles?.length ? e.roles.join(", ") : "sin rol"}`).join("\n")}`}
+          className="inline-flex h-5 items-center rounded-full bg-slate-100 px-1.5 text-[11px] font-semibold tabular-nums text-slate-600"
+        >
+          +{extras.length} {extras.length === 1 ? "otro" : "otros"}
+        </span>
+      )}
     </button>
   );
 };
@@ -98,6 +109,7 @@ export const CoverageView = ({ locations, fecha, turnoLabel, quick, onOpen }: {
                 key={r.caseta}
                 label={r.caseta}
                 plazas={plazasDe([r], fecha)}
+                extras={extrasDe([r], fecha)}
                 title={`${l.ubicacion} · ${r.caseta}`}
                 onClick={() => onOpen({ title: r.caseta, subtitle: plazasSubtitle(l.ubicacion, fecha, turnoLabel), fecha, rows: [r] })}
               />
@@ -107,6 +119,7 @@ export const CoverageView = ({ locations, fecha, turnoLabel, quick, onOpen }: {
                 total
                 label="Total"
                 plazas={l.plazas}
+                extras={extrasDe(l.rows, fecha)}
                 title={`${l.ubicacion} · Total`}
                 onClick={() => onOpen({ title: l.ubicacion, subtitle: plazasSubtitle(`${l.rows.length} casetas`, fecha, turnoLabel), fecha, rows: l.rows })}
               />

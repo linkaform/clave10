@@ -56,9 +56,11 @@ export const getAreaByIdSdk = async (record_id: string) => {
   return response.json();
 };
 
-export const getAreaPdfSdk = async (record_id: string) => {
+/** template_id: plantilla PDF de LinkaForm; sin él se usa la plantilla por defecto de la forma. */
+export const getAreaPdfSdk = async (record_id: string, template_id?: string) => {
   const payload = {
     qr_code: record_id,
+    ...(template_id ? { template_id } : {}),
     option: "get_area_pdf",
     script_name: "rondines_sdk.py",
   };
@@ -316,6 +318,30 @@ export const createImpresionQrSdk = async (paginas: number) => {
   const payload = {
     paginas,
     option: "create_impresion_qr",
+    script_name: "update_area_sdk.py",
+  };
+
+  const userJwt = await getValidToken();
+  const response = await fetch(API_ENDPOINTS.runScript, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${userJwt}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return response.json();
+};
+
+/**
+ * Plantillas PDF de la forma Impresión de QR en la cuenta activa
+ * (update_area_sdk.py → /accesos/get_plantillas_impresion_qr). No incluye la
+ * plantilla por defecto de la forma (se usa pidiendo el PDF sin template_id).
+ */
+export const getPlantillasImpresionQrSdk = async () => {
+  const payload = {
+    option: "get_plantillas_impresion_qr",
     script_name: "update_area_sdk.py",
   };
 

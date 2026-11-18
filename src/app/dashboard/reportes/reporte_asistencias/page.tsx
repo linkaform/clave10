@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, ChartColumn, ChevronLeft, Info, LayoutDashboard, LayoutGrid, RotateCw, Search, SlidersHorizontal, Table2, X } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, CalendarDays, ChartColumn, ChevronLeft, Info, LayoutDashboard, LayoutGrid, RotateCw, SlidersHorizontal, Table2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DisplayMode, MODE_PERIODS, useAsistenciasView } from "@/hooks/asistencias/useAsistenciasView";
 import { GroupingMode } from "../types/attendance";
@@ -14,17 +14,20 @@ import { usePlantilla } from "../hooks/useAsistenciasReport";
 import { ReportSkeleton } from "../components/ReportSkeleton";
 import { EmployeeDayCalendar, EmployeeDayTable, EmployeePeriodGrid, EmployeePeriodTable, matchQuick } from "../components/asistencia/EmployeeViews";
 import { LocationDayCalendar, LocationDayTable, LocationPeriodGrid, LocationPeriodTable, matchShift, shiftQuickKey } from "../components/asistencia/LocationViews";
-import { GalleryView } from "../components/asistencia/GalleryView";
+import { GalleryView, galleryToDay } from "../components/asistencia/GalleryView";
 import { EmployeeCharts, LocationCharts } from "../components/asistencia/Charts";
-import { KpiChip, MultiCombo, PeriodNav, QuickFilters, QuickPill, SegTabs, matches } from "../components/asistencia/ui";
-import { EmployeeLocationRow, jornadaLabel, mergeEmployees } from "./lib/employees";
-import { ShiftRow, ShiftSelection, filterShifts } from "./lib/shifts";
-import { MESES, PERIOD_VIEWS, PeriodView, periodRange, toISO } from "./lib/period";
+import { FacetSearch, SearchCandidate, SearchFacet, SearchFieldConfig } from "@/components/common/FacetSearch";
+import { KpiChip, MultiCombo, PanelAnim, PeriodNav, QuickFilters, QuickPill, SegTabs, matches } from "../components/asistencia/ui";
+import { EmployeeAttendance, EmployeeLocationRow, jornadaLabel, mergeEmployees } from "./lib/employees";
+import { ShiftRow, ShiftSelection } from "./lib/shifts";
+import { MESES, PERIOD_VIEWS, PeriodView, fromISO, periodRange, toISO } from "./lib/period";
 import { employeeMetrics } from "./lib/metrics";
+import { exportNomina, exportRegistros } from "./lib/exportExcel";
 import { PlazasSelection, plantillaTurnoLabel, plazaQuickKey, resumenPlazas, turnoActual, turnoKey } from "./lib/plantilla";
+import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 
 const MODES: { mode: DisplayMode; label: string; icon: React.ReactNode }[] = [
-  { mode: "cov", label: "Vista de cobertura", icon: <LayoutDashboard size={16} aria-hidden="true" /> },
+  { mode: "cov", label: "Vista de tablero", icon: <LayoutDashboard size={16} aria-hidden="true" /> },
   { mode: "cal", label: "Vista de calendario", icon: <CalendarDays size={16} aria-hidden="true" /> },
   { mode: "gallery", label: "Vista de galería", icon: <LayoutGrid size={16} aria-hidden="true" /> },
   { mode: "table", label: "Vista de tabla", icon: <Table2 size={16} aria-hidden="true" /> },
@@ -32,6 +35,32 @@ const MODES: { mode: DisplayMode; label: string; icon: React.ReactNode }[] = [
 ];
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+type FacetKey = "nombre" | "departamento" | "jornada" | "rol" | "guardia" | "caseta";
+type FacetValues = Partial<Record<FacetKey, string[]>>;
+
+// Valores de cada campo del buscador por empleado (rol: los de sus check-ins del periodo)
+const employeeValues = (e: EmployeeAttendance, fechas: string[]): FacetValues => ({
+  nombre: [e.nombre],
+  departamento: [e.departamento],
+  jornada: [jornadaLabel(e.jornada)],
+  rol: Array.from(new Set(fechas.flatMap(f => e.dias[f]?.roles ?? []))),
+});
+const shiftValues = (r: ShiftRow): FacetValues => ({
+  guardia: Array.from(new Set(r.dias.flatMap(d => d.guardias.map(g => g.nombre)))),
+  caseta: [`${r.ubicacion} · ${r.caseta}`],
+});
+// AND entre chips, OR entre valores del mismo chip; exacto = igual, texto = contiene
+const passFacets = (vals: FacetValues, facets: SearchFacet[]) =>
+  facets.every(f => {
+    const have = vals[f.key as FacetKey];
+    if (!have) return true;
+    return f.values.some(q => have.some(h => (f.exact ? h === q : matches(h, q))));
+  });
+
+// Estatus del día que cuentan como "ya entró" y como "se esperaba que viniera"
+const PRESENTE = ["presente", "retardo", "en_turno", "sin_salida"];
+const ESPERADO = [...PRESENTE, "falta", "por_llegar"];
 
 // Ancho de pantalla: debajo de 1100 px el panel de filtros se vuelve botón
 const useWide = () => {
@@ -48,30 +77,53 @@ const useWide = () => {
 
 const ReportPage = () => {
   const v = useAsistenciasView();
-  const { groupingMode, period, date, days, displayMode, search, setSearch, reportAsistencias, isLoading } = v;
+  const { groupingMode, period, date, days, displayMode, reportAsistencias, isLoading } = v;
   const isEmployees = groupingMode === "employees";
   const wide = useWide();
 
   const [daySelection, setDaySelection] = useState<DaySelection | null>(null);
   const [shiftSelection, setShiftSelection] = useState<ShiftSelection | null>(null);
-  const [panelOpen, setPanelOpen] = useState(true);
+  // En Calendario y Tabla los filtros arrancan colapsados para dar espacio a la vista
+  const [panelOpen, setPanelOpen] = useState(false);
+  // Altura del botón flotante de filtros (se puede arrastrar arriba/abajo para que no tape la tabla)
+  const [fbY, setFbY] = useState<number | null>(null);
+  const fbDrag = useRef<{ y0: number; top0: number; moved: boolean } | null>(null);
   const [narrowOpen, setNarrowOpen] = useState(false);
-  const [fEmp, setFEmp] = useState<string[]>([]);
-  const [fDep, setFDep] = useState<string[]>([]);
-  const [fJor, setFJor] = useState<string[]>([]);
-  const [fGua, setFGua] = useState<string[]>([]);
-  const [fCas, setFCas] = useState<string[]>([]);
+  // Buscador y panel son el mismo filtro: cada chip exacto es una selección del panel,
+  // los chips de texto libre filtran por "contiene"
+  const [facets, setFacets] = useState<SearchFacet[]>([]);
+  const exact = (key: FacetKey) => facets.find(f => f.key === key && f.exact)?.values ?? [];
+  const setExact = (key: FacetKey) => (values: string[]) =>
+    setFacets(prev => [...prev.filter(f => !(f.key === key && f.exact)), ...(values.length ? [{ key, values, exact: true }] : [])]);
+  const fEmp = exact("nombre"), setFEmp = setExact("nombre");
+  const fDep = exact("departamento"), setFDep = setExact("departamento");
+  const fJor = exact("jornada"), setFJor = setExact("jornada");
+  const fRol = exact("rol"), setFRol = setExact("rol");
+  const fGua = exact("guardia"), setFGua = setExact("guardia");
+  const fCas = exact("caseta"), setFCas = setExact("caseta");
+  // Texto libre (para galería y cobertura, que buscan con un solo texto)
+  const search = facets.find(f => !f.exact)?.values[0] ?? "";
   const [quick, setQuick] = useState<string[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
   const [toastOpen, setToastOpen] = useState(true);
   const [covTurno, setCovTurno] = useState<string>();
   const [covFilter, setCovFilter] = useState<CovFilter>("all");
   const [plazasSel, setPlazasSel] = useState<PlazasSelection | null>(null);
+  // Vista desde la que se abrió un empleado (para el botón Regresar)
+  const [prevView, setPrevView] = useState<{ mode: DisplayMode; period: PeriodView; date: Date; fEmp: string[] } | null>(null);
+  // Ubicaciones elegidas en el selector del header (vacío = todas)
+  const { selectedLocations } = useSelectedLocationsStore();
+  const inLoc = useCallback((u?: string) => !selectedLocations.length || (!!u && selectedLocations.includes(u)), [selectedLocations]);
 
   const openDay = useCallback((employee: DaySelection["employee"], fecha: string) => setDaySelection({ employee, fecha }), []);
   const closeDay = useCallback(() => setDaySelection(null), []);
   const closeShift = useCallback(() => setShiftSelection(null), []);
   const closePlazas = useCallback(() => setPlazasSel(null), []);
+
+  // Al cambiar de vista o agrupación: colapsados en Calendario y Tabla, abiertos en el resto
+  useEffect(() => {
+    setPanelOpen(!["cal", "table"].includes(displayMode));
+  }, [displayMode, groupingMode]);
 
   // Al cambiar de periodo se limpian los filtros rápidos y la selección
   useEffect(() => {
@@ -91,12 +143,20 @@ const ReportPage = () => {
     () => (isEmployees ? mergeEmployees(reportAsistencias as EmployeeLocationRow[]) : []),
     [isEmployees, reportAsistencias]
   );
-  const baseEmployees = useMemo(() => allEmployees.filter(e =>
-    matches(e.nombre, search) &&
-    (!fEmp.length || fEmp.includes(e.nombre)) &&
-    (!fDep.length || fDep.includes(e.departamento)) &&
-    (!fJor.length || fJor.includes(jornadaLabel(e.jornada)))
-  ), [allEmployees, search, fEmp, fDep, fJor]);
+  // El registro de la galería no trae departamento, puesto ni jornada: se toman del empleado del reporte
+  const withEmployeeData = useCallback((sel: DaySelection): DaySelection => {
+    const g = sel.employee;
+    const nombre = g.nombre.trim().toLowerCase();
+    const e = allEmployees.find(x => x.employee_id === g.employee_id) ?? allEmployees.find(x => x.nombre.trim().toLowerCase() === nombre);
+    if (!e) return sel;
+    // El estatus del día sale del reporte (el de la galería no distingue retardo en turno abierto)
+    const rep = e.dias[sel.fecha];
+    const day = g.dias[sel.fecha];
+    const dias = rep ? { [sel.fecha]: { ...day, status: rep.status, asueto: rep.asueto, roles: rep.roles } } : g.dias;
+    return { ...sel, employee: { ...g, departamento: e.departamento, puesto: e.puesto, jornada: g.jornada ?? e.jornada, dias } };
+  }, [allEmployees]);
+  const locEmployees = useMemo(() => allEmployees.filter(e => !selectedLocations.length || e.ubicaciones.some(inLoc)), [allEmployees, selectedLocations, inLoc]);
+  const baseEmployees = useMemo(() => locEmployees.filter(e => passFacets(employeeValues(e, fechas), facets)), [locEmployees, fechas, facets]);
   // En tabla los filtros rápidos quitan filas; en calendario y gráficas solo atenúan o filtran series
   const employees = useMemo(() => {
     if (!quick.length || mode !== "table") return baseEmployees;
@@ -109,10 +169,8 @@ const ReportPage = () => {
 
   // ───── Ubicaciones ─────
   const allShifts = useMemo(() => (isEmployees ? [] : (reportAsistencias as ShiftRow[])), [isEmployees, reportAsistencias]);
-  const baseShifts = useMemo(() => filterShifts(allShifts, search).filter(r =>
-    (!fCas.length || fCas.includes(`${r.ubicacion} · ${r.caseta}`)) &&
-    (!fGua.length || r.dias.some(d => d.guardias.some(g => fGua.includes(g.nombre))))
-  ), [allShifts, search, fCas, fGua]);
+  const locShifts = useMemo(() => allShifts.filter(r => inLoc(r.ubicacion)), [allShifts, inLoc]);
+  const baseShifts = useMemo(() => locShifts.filter(r => passFacets(shiftValues(r), facets)), [locShifts, facets]);
   const shifts = useMemo(() => {
     if (!quick.length || mode !== "table") return baseShifts;
     return baseShifts.filter(r => isDay ? matchShift(quick, r.dias.find(d => d.fecha === fecha)) : r.dias.some(d => fechas.includes(d.fecha) && matchShift(quick, d)));
@@ -132,11 +190,12 @@ const ReportPage = () => {
   const covKey = covTurnoRow ? turnoKey(covTurnoRow) : undefined;
   const covAll = useMemo(() => {
     const rows = plantilla.filter(r =>
+      inLoc(r.ubicacion) &&
       (!fCas.length || fCas.includes(`${r.ubicacion} · ${r.caseta}`)) &&
       (matches(`${r.ubicacion} ${r.caseta}`, search) || r.dias.some(d => d.plazas.some(p => matches(p.guardia, search))))
     );
     return coverageLocations(rows, covKey, fecha);
-  }, [plantilla, fCas, search, covKey, fecha]);
+  }, [plantilla, inLoc, fCas, search, covKey, fecha]);
   // Con filtro rápido solo quedan las ubicaciones con alguna plaza en ese estatus
   const covVisible = useMemo(() => covAll.filter(l => !quick.length || l.plazas.some(p => quick.includes(plazaQuickKey(p)))), [covAll, quick]);
   const covCounts = {
@@ -156,7 +215,7 @@ const ReportPage = () => {
         key: q.key,
         label: q.label,
         count: keys.filter(k => k === q.key).length,
-        icon: <PlazaStatusIcon status={q.key} size={18} />,
+        icon: <PlazaStatusIcon status={q.key} size={20} />,
       }));
     }
     if (isEmployees) {
@@ -165,7 +224,7 @@ const ReportPage = () => {
         key: q.key,
         label: q.label,
         count: statuses.filter(s => s && q.match.includes(s)).length,
-        icon: <StatusIcon status={q.status} size={18} />,
+        icon: <StatusIcon status={q.status} size={20} />,
       }));
     }
     const keys = baseShifts.flatMap(r => r.dias.filter(d => (isDay ? d.fecha === fecha : fechas.includes(d.fecha))).map(shiftQuickKey));
@@ -173,22 +232,42 @@ const ReportPage = () => {
       key: q.key,
       label: q.label,
       count: keys.filter(k => k === q.key).length,
-      icon: <ShiftStatusIcon status={q.status} size={18} />,
+      icon: <ShiftStatusIcon status={q.status} size={20} />,
     }));
   }, [isEmployees, isCov, covAll, baseEmployees, baseShifts, isDay, fecha, fechas]);
 
-  // ───── Opciones de los filtros del panel ─────
+  // ───── Opciones de los filtros del panel (solo de las ubicaciones elegidas) ─────
   const opts = useMemo(() => ({
-    emp: allEmployees.map(e => e.nombre),
-    dep: Array.from(new Set(allEmployees.map(e => e.departamento).filter(Boolean))).sort(),
-    jor: Array.from(new Set(allEmployees.map(e => jornadaLabel(e.jornada)).filter(Boolean))).sort(),
-    gua: Array.from(new Set(allShifts.flatMap(r => r.dias.flatMap(d => d.guardias.map(g => g.nombre))))).sort(),
-    cas: Array.from(new Set(allShifts.map(r => `${r.ubicacion} · ${r.caseta}`))).sort(),
-  }), [allEmployees, allShifts]);
+    emp: locEmployees.map(e => e.nombre),
+    dep: Array.from(new Set(locEmployees.map(e => e.departamento).filter(Boolean))).sort(),
+    jor: Array.from(new Set(locEmployees.map(e => jornadaLabel(e.jornada)).filter(Boolean))).sort(),
+    rol: Array.from(new Set(locEmployees.flatMap(e => fechas.flatMap(f => e.dias[f]?.roles ?? [])))).sort(),
+    gua: Array.from(new Set(locShifts.flatMap(r => r.dias.flatMap(d => d.guardias.map(g => g.nombre))))).sort(),
+    cas: Array.from(new Set(locShifts.map(r => `${r.ubicacion} · ${r.caseta}`))).sort(),
+  }), [locEmployees, locShifts, fechas]);
 
-  const activeFilters = isEmployees ? fEmp.length + fDep.length + fJor.length : fGua.length + fCas.length;
+  const searchFields: SearchFieldConfig[] = useMemo(() => {
+    const enumField = (key: FacetKey, label: string, values: string[]): SearchFieldConfig =>
+      ({ key, label, type: "enum", options: values.map(o => ({ value: o, label: o })) });
+    return isEmployees
+      ? [
+          enumField("nombre", "Empleado", opts.emp),
+          enumField("departamento", "Departamento", opts.dep),
+          enumField("jornada", "Jornada", opts.jor),
+          ...(opts.rol.length ? [enumField("rol", "Rol", opts.rol)] : []),
+        ]
+      : [enumField("guardia", "Guardia", opts.gua), enumField("caseta", "Caseta", opts.cas)];
+  }, [isEmployees, opts]);
+  // Conteo del menú: cuántos quedarían con los chips actuales más la fila
+  const fetchCounts = useCallback(async (current: SearchFacet[], candidates: SearchCandidate[]) => {
+    const rows = isEmployees ? locEmployees.map(e => employeeValues(e, fechas)) : locShifts.map(shiftValues);
+    return candidates.map(c => rows.filter(r => passFacets(r, [...current, { key: c.key, values: [c.value], exact: c.exact }])).length);
+  }, [isEmployees, locEmployees, locShifts, fechas]);
+
+  const activeFilters = isEmployees ? fEmp.length + fDep.length + fJor.length + fRol.length : fGua.length + fCas.length;
   const clearFilters = () => {
-    setFEmp([]); setFDep([]); setFJor([]); setFGua([]); setFCas([]); setQuick([]); setCovFilter("all");
+    setFacets([]); setQuick([]); setCovFilter("all");
+    setPrevView(null);
   };
 
   const changeGrouping = (g: GroupingMode) => {
@@ -196,25 +275,42 @@ const ReportPage = () => {
     v.setGroupingMode(g);
     // Cobertura solo existe agrupando por Ubicaciones
     if (g === "employees" && isCov) v.setDisplayMode("cal");
-    setSearch("");
     clearFilters();
     setSelected([]);
   };
-  const selectEmployee = (nombre: string) => {
+  // Abre el mes del empleado en el calendario (desde tabla, gráficas o el detalle del día)
+  const selectEmployee = (nombre: string, fechaMes?: string) => {
+    setPrevView(p => p ?? { mode, period, date, fEmp });
     setFEmp([nombre]);
-    v.setDisplayMode("cal");
+    setDaySelection(null);
+    v.setView("cal", "mes");
+    if (fechaMes) v.setDate(fromISO(fechaMes));
+  };
+  const goBack = () => {
+    if (!prevView) return;
+    v.setView(prevView.mode, prevView.period);
+    v.setDate(prevView.date);
+    setFEmp(prevView.fEmp);
+    setPrevView(null);
   };
 
   const casetas = new Set(shifts.map(s => `${s.ubicacion}|${s.caseta}`)).size;
   const loading = isCov ? isLoadingPlantilla : isLoading;
-  const showKpi = !loading && mode !== "cal" && mode !== "gallery";
+  const showKpi = !loading && mode !== "gallery";
+  // Día: cuántos de los que se esperaban hoy ya registraron entrada
+  const kpiDia = isEmployees && isDay
+    ? {
+        presentes: baseEmployees.filter(e => PRESENTE.includes(e.dias[fecha]?.status ?? "")).length,
+        esperados: baseEmployees.filter(e => ESPERADO.includes(e.dias[fecha]?.status ?? "")).length,
+      }
+    : null;
   const showPanel = wide ? panelOpen : narrowOpen;
   const quincena = period === "quincena";
-  const resetKey = `${v.from}|${groupingMode}|${quick.join()}|${search}|${activeFilters}`;
+  const resetKey = `${v.from}|${groupingMode}|${quick.join()}|${JSON.stringify(facets)}`;
 
   // ───── Contenido ─────
   const renderView = () => {
-    if (mode === "gallery") return <div className="p-3"><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} /></div>;
+    if (mode === "gallery") return <div className="p-3"><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} ubicaciones={selectedLocations} onOpen={r => setDaySelection(withEmployeeData(galleryToDay(r)))} /></div>;
     if (isCov) {
       if (isLoadingPlantilla) return <div className="p-3"><ReportSkeleton variant="cards" /></div>;
       if (errorPlantilla) {
@@ -265,6 +361,8 @@ const ReportPage = () => {
       : <LocationPeriodGrid rows={shifts} days={days} quick={quick} onOpenShift={setShiftSelection} />;
   };
 
+  const selectedEmployees = employees.filter(e => selected.includes(e.employee_id));
+
   // Resumen de la quincena (Empleados)
   const [qFrom, qTo] = periodRange(period, date);
   const quincenaToast = isEmployees && quincena && !isLoading && mode !== "gallery" && mode !== "charts" && toastOpen && employees.length > 0;
@@ -293,6 +391,15 @@ const ReportPage = () => {
           <MultiCombo label="Departamento" placeholder="Buscar departamento" options={opts.dep} value={fDep} onChange={setFDep} />
           <div className="border-t border-c10-sunken" />
           <MultiCombo label="Jornada" placeholder="Buscar jornada" options={opts.jor} value={fJor} onChange={setFJor} />
+          <div className="border-t border-c10-sunken" />
+          {opts.rol.length > 0 || fRol.length > 0 ? (
+            <MultiCombo label="Rol" placeholder="Buscar rol" options={opts.rol} value={fRol} onChange={setFRol} />
+          ) : (
+            <div>
+              <span className="mb-1.5 block text-[13px] font-semibold text-c10-title">Rol</span>
+              <p className="m-0 text-xs text-c10-meta">Ningún check-in del periodo trae rol. Asigna roles a los usuarios para filtrar por rol.</p>
+            </div>
+          )}
         </>
       ) : (
         <>
@@ -309,8 +416,19 @@ const ReportPage = () => {
       {/* Cabecera de sección */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
+          {prevView && (
+            <button type="button" title="Regresar" aria-label="Regresar" onClick={goBack} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-c10-sunken text-c10-secondary hover:bg-c10-blue-light hover:text-button-primary">
+              <ArrowLeft size={16} />
+            </button>
+          )}
           <h1 className="m-0 text-2xl font-semibold tracking-[-.02em] text-c10-title">Reporte de asistencia</h1>
-          {showKpi && <KpiChip>{isEmployees ? plural(employees.length, "empleado", "empleados") : isCov ? plural(covShown.length, "ubicación", "ubicaciones") : plural(casetas, "caseta", "casetas")}</KpiChip>}
+          {showKpi && (
+            <KpiChip>
+              {kpiDia && kpiDia.esperados > 0
+                ? `${kpiDia.presentes} de ${plural(kpiDia.esperados, "empleado", "empleados")}`
+                : isEmployees ? plural(employees.length, "empleado", "empleados") : isCov ? plural(covShown.length, "ubicación", "ubicaciones") : plural(casetas, "caseta", "casetas")}
+            </KpiChip>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!wide && (
@@ -325,17 +443,14 @@ const ReportPage = () => {
               {activeFilters > 0 && <span className="absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-button-primary px-1 text-[11px] font-semibold text-white">{activeFilters}</span>}
             </button>
           )}
-          <label className="flex h-10 w-[260px] items-center gap-2 rounded-lg border border-c10-line bg-c10-surface px-3 transition-colors focus-within:border-button-primary focus-within:shadow-[0_0_0_3px_rgba(59,130,246,.15)] max-md:w-full">
-            <Search size={16} className="flex-none text-c10-faint" aria-hidden="true" />
-            <input
-              type="search"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={isEmployees ? "Buscar empleado" : "Buscar caseta o guardia"}
-              aria-label={isEmployees ? "Buscar empleado" : "Buscar caseta o guardia"}
-              className="w-full border-none bg-transparent text-sm text-c10-title outline-none placeholder:text-c10-faint"
-            />
-          </label>
+          <FacetSearch
+            fields={searchFields}
+            facets={facets}
+            onChange={setFacets}
+            fetchCounts={fetchCounts}
+            placeholder={isEmployees ? "Buscar empleado, departamento, jornada..." : "Buscar caseta o guardia"}
+            className="w-[340px] max-md:w-full"
+          />
           <SegTabs<GroupingMode>
             label="Agrupar por"
             value={groupingMode}
@@ -368,14 +483,30 @@ const ReportPage = () => {
 
       <div className="flex items-start gap-4">
         {showPanel && !wide && <div className="fixed inset-0 z-[57] bg-white/70" onClick={() => setNarrowOpen(false)} />}
-        {showPanel && filterPanel}
+        <PanelAnim open={showPanel}>{filterPanel}</PanelAnim>
         {wide && !panelOpen && (
           <button
             type="button"
-            title="Mostrar filtros"
+            title="Filtros · arrastra para moverlo"
             aria-label="Mostrar filtros"
-            onClick={() => setPanelOpen(true)}
-            className="fixed left-0 top-1/2 z-40 inline-flex h-[52px] w-[38px] -translate-y-1/2 items-center justify-center rounded-r-full bg-button-primary text-white shadow-[0_4px_12px_rgba(47,128,237,.3)] hover:bg-button-primary-hover"
+            onPointerDown={e => {
+              const r = e.currentTarget.getBoundingClientRect();
+              fbDrag.current = { y0: e.clientY, top0: r.top + r.height / 2, moved: false };
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={e => {
+              const d = fbDrag.current;
+              if (!d) return;
+              if (Math.abs(e.clientY - d.y0) > 4) d.moved = true;
+              if (d.moved) setFbY(Math.min(window.innerHeight - 34, Math.max(110, d.top0 + e.clientY - d.y0)));
+            }}
+            onPointerUp={() => {
+              const moved = fbDrag.current?.moved;
+              fbDrag.current = null;
+              if (!moved) setPanelOpen(true);
+            }}
+            style={{ top: fbY ?? "50%", touchAction: "none" }}
+            className="fixed left-0 z-40 inline-flex h-[52px] w-[38px] -translate-y-1/2 cursor-grab items-center active:cursor-grabbing justify-center rounded-r-full bg-button-primary text-white shadow-[0_4px_12px_rgba(47,128,237,.3)] hover:bg-button-primary-hover"
           >
             <SlidersHorizontal size={18} />
             {activeFilters > 0 && <span className="absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">{activeFilters}</span>}
@@ -449,8 +580,13 @@ const ReportPage = () => {
       {mode === "table" && isEmployees && selected.length > 0 && (
         <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 flex-wrap items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm text-white shadow-[0_12px_32px_rgba(15,23,42,.16)]">
           <b className="mr-2 tabular-nums">{plural(selected.length, "seleccionado", "seleccionados")}</b>
-          <button type="button" disabled title="Pendiente" className="h-9 cursor-not-allowed rounded-lg bg-white/10 px-3 font-semibold opacity-60">Descargar Registros</button>
-          {quincena && <button type="button" disabled title="Pendiente" className="h-9 cursor-not-allowed rounded-lg bg-white/10 px-3 font-semibold opacity-60">Exportar Nómina</button>}
+          {selected.length < employees.length && (
+            <button type="button" onClick={() => setSelected(employees.map(e => e.employee_id))} className="h-9 rounded-lg px-2 font-semibold text-blue-300 hover:underline">
+              Seleccionar los {employees.length}
+            </button>
+          )}
+          <button type="button" onClick={() => exportRegistros(selectedEmployees, fechas, v.label)} className="h-9 rounded-lg bg-white/10 px-3 font-semibold hover:bg-white/20">Descargar Registros</button>
+          <button type="button" onClick={() => exportNomina(selectedEmployees, metrics, fechas, v.label)} className="h-9 rounded-lg bg-white/10 px-3 font-semibold hover:bg-white/20">Exportar Nómina</button>
           {quincena && <button type="button" disabled title="Pendiente" className="h-9 cursor-not-allowed rounded-lg bg-button-primary px-3 font-semibold opacity-60">Cerrar Quincena</button>}
           <button type="button" aria-label="Quitar selección" title="Quitar selección" onClick={() => setSelected([])} className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-white/10"><X size={16} /></button>
         </div>
@@ -468,7 +604,7 @@ const ReportPage = () => {
         </div>
       )}
 
-      <AttendanceDayDrawer selection={daySelection} onClose={closeDay} />
+      <AttendanceDayDrawer selection={daySelection} onClose={closeDay} onViewMonth={isEmployees ? selectEmployee : undefined} />
       <ShiftDrawer selection={shiftSelection} onClose={closeShift} onOpenPlazas={s => { setShiftSelection(null); setPlazasSel(s); }} />
       <PlazasDrawer selection={plazasSel} onClose={closePlazas} />
     </div>

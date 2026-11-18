@@ -3,11 +3,11 @@
 import React, { useMemo } from "react";
 import { ShiftStatusChip, ShiftStatusIcon, getShiftConfig } from "../attendanceStatus";
 import { OPENED, ShiftDay, ShiftRow, ShiftSelection, groupShifts, minutosDiferencia, siguienteInicio, turnoLabel } from "../../reporte_asistencias/lib/shifts";
-import { DIAS, DIAS_3, sameDay, toISO } from "../../reporte_asistencias/lib/period";
-import { formatHoras, horaSalida, horasTrabajadas, tipoCierre } from "../../reporte_asistencias/lib/employees";
+import { DIAS, DIAS_1, DIAS_3, sameDay, toISO } from "../../reporte_asistencias/lib/period";
+import { formatHoras, horasTrabajadas, salidaConDia, tipoCierre } from "../../reporte_asistencias/lib/employees";
 import { useNow } from "../../reporte_asistencias/lib/useNow";
 import { AutoCloseMark } from "../drawerParts";
-import { Avatar, Empty, Pager, T, initials, usePaged } from "./ui";
+import { Avatar, Empty, PCW, Pager, ResizeHandle, ScrollBox, T, initials, pcwVar, usePaged, usePcw } from "./ui";
 
 type OpenShift = (s: ShiftSelection) => void;
 
@@ -114,7 +114,7 @@ export const LocationDayTable = ({ rows, date, onOpenShift }: { rows: ShiftRow[]
   if (!recs.length) return <Empty />;
   const groups = groupShifts(recs.map(x => x.row));
   return (
-    <div className={T.box}>
+    <ScrollBox>
       <table className="w-full border-collapse">
         <thead>
           <tr>
@@ -143,7 +143,7 @@ export const LocationDayTable = ({ rows, date, onOpenShift }: { rows: ShiftRow[]
                     </td>
                     <td className={T.td}>{gd?.fecha_cierre ? gd.nombre : "---"}</td>
                     <td className={`${T.td} tabular-nums`}>
-                      {gd?.fecha_cierre ? horaSalida({ fecha: day.fecha, dia: 0, status: day.status, fecha_cierre: gd.fecha_cierre }) : day.status === "en_curso" ? "En turno" : "---"}
+                      {gd?.fecha_cierre ? salidaConDia(gd.fecha_inicio, gd.fecha_cierre) : day.status === "en_curso" ? "En turno" : "---"}
                       {auto && <AutoCloseMark text={auto.texto} label={auto.label} />}
                     </td>
                     <td className={`${T.td} ${T.num}`}>{formatHoras(horasTrabajadas(gd?.fecha_inicio, gd?.fecha_cierre, day.status === "en_curso", now)) ?? "---"}</td>
@@ -154,27 +154,28 @@ export const LocationDayTable = ({ rows, date, onOpenShift }: { rows: ShiftRow[]
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollBox>
   );
 };
 
 // ───────── Calendario · periodo: caseta+turno × días ─────────
 export const LocationPeriodGrid = ({ rows, days, quick, onOpenShift }: { rows: ShiftRow[]; days: Date[]; quick: string[]; onOpenShift: OpenShift }) => {
+  const pcw = usePcw();
   const today = new Date();
   if (!rows.length) return <Empty />;
   const size = days.length > 7 ? 22 : 28;
   const groups = groupShifts(rows);
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
+    <ScrollBox>
+      <table className="w-full border-collapse" style={pcwVar(pcw)}>
         <thead>
           <tr>
-            <th className="sticky left-0 z-[2] min-w-[220px] bg-c10-surface px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-[.05em] text-c10-secondary">Caseta</th>
+            <th className={`sticky left-0 z-[2] ${PCW} bg-c10-surface px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-[.05em] text-c10-secondary`}>Caseta<ResizeHandle /></th>
             {days.map(d => {
               const isToday = sameDay(d, today);
               return (
                 <th key={toISO(d)} className={`min-w-[30px] px-0.5 py-1.5 text-center ${isToday ? "bg-c10-blue-subtle" : ""}`}>
-                  <span className={`block text-[10px] font-semibold uppercase ${isToday ? "text-button-primary" : "text-c10-meta"}`}>{DIAS_3[d.getDay()]}</span>
+                  <span className={`block text-[10px] font-semibold uppercase ${isToday ? "text-button-primary" : "text-c10-meta"}`}>{(days.length > 16 ? DIAS_1 : DIAS_3)[d.getDay()]}</span>
                   <span className={`mx-auto mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-semibold tabular-nums ${isToday ? "bg-button-primary text-white" : "text-c10-title"}`}>{d.getDate()}</span>
                 </th>
               );
@@ -187,9 +188,9 @@ export const LocationPeriodGrid = ({ rows, days, quick, onOpenShift }: { rows: S
               <tr><td colSpan={days.length + 1} className="sticky left-0 border-t border-c10-line bg-c10-panel px-3 py-2 text-[13px] font-semibold text-c10-title">{g.ubicacion}</td></tr>
               {g.casetas.flatMap(c => c.rows).map(row => (
                 <tr key={`${row.caseta}|${turnoLabel(row)}`} className="group">
-                  <td className="sticky left-0 z-[1] border-t border-c10-line bg-c10-surface px-3 py-2 group-hover:bg-c10-panel">
-                    <div className="text-[13px] font-semibold text-c10-title">{row.caseta}</div>
-                    <div className="text-xs tabular-nums text-c10-meta">{turnoLabel(row)}</div>
+                  <td className={`sticky left-0 z-[1] ${PCW} border-t border-c10-line bg-c10-surface px-3 py-2 group-hover:bg-c10-panel`}>
+                    <div className="truncate text-[13px] font-semibold text-c10-title">{row.caseta}</div>
+                    <div className="truncate text-xs tabular-nums text-c10-meta">{turnoLabel(row)}</div>
                   </td>
                   {days.map(d => {
                     const fecha = toISO(d);
@@ -226,7 +227,7 @@ export const LocationPeriodGrid = ({ rows, days, quick, onOpenShift }: { rows: S
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollBox>
   );
 };
 
@@ -266,7 +267,7 @@ export const LocationPeriodTable = ({ rows, resetKey }: { rows: ShiftRow[]; rese
         <span>Cobertura <b className="tabular-nums text-c10-title">{programados ? Math.round((abiertos / programados) * 100) : 0}%</b></span>
         <span className="text-xs text-c10-meta">(turnos abiertos ÷ turnos programados)</span>
       </div>
-      <div className={T.box}>
+      <ScrollBox>
         <table className="w-full border-collapse">
           <thead>
             <tr>
@@ -312,7 +313,7 @@ export const LocationPeriodTable = ({ rows, resetKey }: { rows: ShiftRow[]; rese
             })}
           </tbody>
         </table>
-      </div>
+      </ScrollBox>
       <Pager {...paged} />
     </>
   );

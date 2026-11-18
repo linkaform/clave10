@@ -55,6 +55,7 @@ import {
 } from "@/hooks/transportistas/useInspeccionPuntosTransportista";
 import { useConfigFlujoTransportista } from "@/hooks/transportistas/useConfigFlujoTransportista";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { PendingChangesFooter } from "@/components/common/PendingChangesFooter";
 import { saveBitacoraTransportistaRecord, saveInspeccionesTransportista, saveInspeccionesSelloTransportista, ocrAccesoTransportista, sendAvisoCorreoTransportista } from "@/services/endpoints";
 import { uploadImage } from "@/lib/get-upload-image";
 import { toast } from "sonner";
@@ -99,6 +100,11 @@ function numeroDeUnidad(tipo: string): number {
 }
 function ordenarPorUnidad<T extends { tipo: string }>(items: T[]): T[] {
   return [...items].sort((a, b) => numeroDeUnidad(a.tipo) - numeroDeUnidad(b.tipo));
+}
+
+/** Compara dos objetos planos de strings campo por campo. */
+function mismosCampos<T extends Record<string, string>>(a: T, b: T): boolean {
+  return (Object.keys(a) as (keyof T)[]).every((k) => a[k] === b[k]);
 }
 
 function formatTimestamp(ts: string | number): string {
@@ -2217,6 +2223,15 @@ function InspeccionCargaModal({
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
+/** Marca una sección con cambios pendientes del footer global (mismo estilo que Menús). */
+function SinGuardarBadge() {
+  return (
+    <span className="inline-flex h-[18px] shrink-0 items-center rounded-full bg-[rgba(245,158,11,.14)] px-[7px] text-[11px] font-semibold text-amber-700">
+      Sin guardar
+    </span>
+  );
+}
+
 function Skeleton({ className }: { className?: string }) {
   return (
     <div className={cn("animate-pulse bg-gray-100 rounded-lg", className)} />
@@ -2437,108 +2452,75 @@ export default function DetalleTransportistaPage() {
   const [vehicleExpanded, setVehicleExpanded] = useState(true);
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
 
-  // Vehicle inline edit
-  const [vehicleEditMode, setVehicleEditMode] = useState(false);
-  const [vehicleDraft, setVehicleDraft] = useState({
-    tipo_vehiculo: "", placa: "", no_economico: "", marca: "", modelo: "", color: "",
-  });
+  // ── Edición directa con footer global ──────────────────────────────────────
+  // Cada sección guarda su draft; `null` = sin tocar y el campo muestra lo
+  // guardado. Así un refetch nunca pisa lo que el usuario está escribiendo y
+  // "Descartar" solo regresa los drafts a null. Todo se guarda desde el
+  // footer (handleSaveAll), una sección a la vez.
+  type VehicleDraft = { tipo_vehiculo: string; placa: string; no_economico: string; marca: string; modelo: string; color: string };
+  type MaterialDraft = { proveedor_cliente: string; no_orden_compra: string; procedencia: string };
 
-  const startVehicleEdit = () => {
-    setVehicleDraft({
-      tipo_vehiculo: data?.vehiculo?.tipo_vehiculo ?? "",
-      placa: data?.vehiculo?.placa ?? "",
-      no_economico: data?.vehiculo?.no_economico ?? "",
-      marca: data?.vehiculo?.marca ?? "",
-      modelo: data?.vehiculo?.modelo ?? "",
-      color: data?.vehiculo?.color ?? "",
+  const savedVehicle = useMemo<VehicleDraft>(() => ({
+    tipo_vehiculo: data?.vehiculo?.tipo_vehiculo ?? "",
+    placa:         data?.vehiculo?.placa ?? "",
+    no_economico:  data?.vehiculo?.no_economico ?? "",
+    marca:         data?.vehiculo?.marca ?? "",
+    modelo:        data?.vehiculo?.modelo ?? "",
+    color:         data?.vehiculo?.color ?? "",
+  }), [data]);
+  const [vehicleDraft, setVehicleDraft] = useState<VehicleDraft | null>(null);
+  const vehicleValue = vehicleDraft ?? savedVehicle;
+  const vehicleDirty = !!vehicleDraft && !mismosCampos(vehicleDraft, savedVehicle);
+  const setVehicleField = (key: keyof VehicleDraft, value: string) =>
+    setVehicleDraft((p) => ({ ...(p ?? savedVehicle), [key]: value }));
+
+  const savedMaterial = useMemo<MaterialDraft>(() => ({
+    proveedor_cliente: data?.embarque?.proveedor_cliente ?? "",
+    no_orden_compra:   data?.embarque?.no_orden_compra   ?? "",
+    procedencia:       data?.vehiculo?.procedencia       ?? "",
+  }), [data]);
+  const [materialDraft, setMaterialDraft] = useState<MaterialDraft | null>(null);
+  const materialValue = materialDraft ?? savedMaterial;
+  const materialDirty = !!materialDraft && !mismosCampos(materialDraft, savedMaterial);
+  const setMaterialField = (key: keyof MaterialDraft, value: string) =>
+    setMaterialDraft((p) => ({ ...(p ?? savedMaterial), [key]: value }));
+
+  // Lanza el error para que handleSaveAll detenga la cola.
+  const saveMaterial = async (draft: MaterialDraft) => {
+    await saveBitacoraTransportistaRecord(id, "embarque", {
+      embarque: {
+        proveedor_cliente: draft.proveedor_cliente,
+        no_orden_compra:   draft.no_orden_compra,
+        procedencia:       draft.procedencia,
+      },
     });
-    setVehicleEditMode(true);
-    setVehicleExpanded(true);
-  };
-
-  const cancelVehicleEdit = () => setVehicleEditMode(false);
-
-  const [savingVehicle, setSavingVehicle] = useState(false);
-
-  // Material Carga / Descarga edit
-  const [materialEditMode, setMaterialEditMode] = useState(false);
-  const [materialDraft, setMaterialDraft] = useState({ proveedor_cliente: "", no_orden_compra: "", procedencia: "" });
-  const [savingMaterial, setSavingMaterial] = useState(false);
-
-  const startMaterialEdit = () => {
-    setMaterialDraft({
-      proveedor_cliente: data?.embarque?.proveedor_cliente ?? "",
-      no_orden_compra:   data?.embarque?.no_orden_compra   ?? "",
-      procedencia:       data?.vehiculo?.procedencia       ?? "",
+    queryClient.setQueryData(["visitaTransportista", id], (old: import("@/hooks/useGetVisitTransportista").VisitaTransportista | null) => {
+      if (!old) return old;
+      return {
+        ...old,
+        embarque: { proveedor_cliente: draft.proveedor_cliente, no_orden_compra: draft.no_orden_compra },
+        vehiculo: old.vehiculo ? { ...old.vehiculo, procedencia: draft.procedencia } : old.vehiculo,
+      };
     });
-    setMaterialEditMode(true);
   };
 
-  const cancelMaterialEdit = () => setMaterialEditMode(false);
-
-  const saveMaterial = async () => {
-    setSavingMaterial(true);
-    try {
-      await saveBitacoraTransportistaRecord(id, "embarque", {
-        embarque: {
-          proveedor_cliente: materialDraft.proveedor_cliente,
-          no_orden_compra:   materialDraft.no_orden_compra,
-          procedencia:       materialDraft.procedencia,
-        },
-      });
-      queryClient.setQueryData(["visitaTransportista", id], (old: import("@/hooks/useGetVisitTransportista").VisitaTransportista | null) => {
-        if (!old) return old;
-        return {
-          ...old,
-          embarque: { proveedor_cliente: materialDraft.proveedor_cliente, no_orden_compra: materialDraft.no_orden_compra },
-          vehiculo: old.vehiculo ? { ...old.vehiculo, procedencia: materialDraft.procedencia } : old.vehiculo,
-        };
-      });
-      setMaterialEditMode(false);
-      refetch();
-    } catch (err) {
-      console.error("[saveMaterial]", err);
-    } finally {
-      setSavingMaterial(false);
-    }
-  };
-
-  const saveVehicle = async () => {
-    setSavingVehicle(true);
-    try {
-      await saveBitacoraTransportistaRecord(id, "vehiculo", {
-        vehiculo: {
-          tipo_de_vehiculo:   vehicleDraft.tipo_vehiculo,
-          placas_de_vehiculo: vehicleDraft.placa,
-          num_eco_num_rotulo: vehicleDraft.no_economico,
-          marca:  vehicleDraft.marca,
-          modelo: vehicleDraft.modelo,
-          color:  vehicleDraft.color,
-        },
-      });
-      // Optimistic: actualizar cache inmediatamente
-      queryClient.setQueryData(["visitaTransportista", id], (old: import("@/hooks/useGetVisitTransportista").VisitaTransportista | null) => {
-        if (!old) return old;
-        return {
-          ...old,
-          vehiculo: {
-            ...old.vehiculo,
-            tipo_vehiculo: vehicleDraft.tipo_vehiculo,
-            placa:         vehicleDraft.placa,
-            no_economico:  vehicleDraft.no_economico,
-            marca:         vehicleDraft.marca,
-            modelo:        vehicleDraft.modelo,
-            color:         vehicleDraft.color,
-          },
-        };
-      });
-      setVehicleEditMode(false);
-      refetch(); // confirma con el servidor en background
-    } catch (err) {
-      console.error("[saveVehicle]", err);
-    } finally {
-      setSavingVehicle(false);
-    }
+  // Lanza el error para que handleSaveAll detenga la cola.
+  const saveVehicle = async (draft: VehicleDraft) => {
+    await saveBitacoraTransportistaRecord(id, "vehiculo", {
+      vehiculo: {
+        tipo_de_vehiculo:   draft.tipo_vehiculo,
+        placas_de_vehiculo: draft.placa,
+        num_eco_num_rotulo: draft.no_economico,
+        marca:  draft.marca,
+        modelo: draft.modelo,
+        color:  draft.color,
+      },
+    });
+    // Optimistic: actualizar cache inmediatamente
+    queryClient.setQueryData(["visitaTransportista", id], (old: import("@/hooks/useGetVisitTransportista").VisitaTransportista | null) => {
+      if (!old) return old;
+      return { ...old, vehiculo: { ...old.vehiculo, ...draft } };
+    });
   };
 
   const [savingUnidades, setSavingUnidades] = useState(false);
@@ -2618,57 +2600,76 @@ export default function DetalleTransportistaPage() {
   const [uploadingFotoConductor, setUploadingFotoConductor] = useState(false);
   const fotoInputRef = useRef<HTMLInputElement>(null);
 
-  const [editingDocIdx, setEditingDocIdx] = useState<number | null>(null);
-  const [editingDocDraft, setEditingDocDraft] = useState<{ tipo: string; file_url: string; file_name: string } | null>(null);
-  const [uploadingDoc, setUploadingDoc] = useState(false);
+  // Documentos ya guardados: tipo y archivo editables en línea. El draft va
+  // por índice (el backend actualiza por `index`) y solo existe para los que
+  // el usuario o la IA tocaron. "Reemplazar" sube al storage al momento, pero
+  // a la bitácora solo llega al guardar desde el footer.
+  type DocDraft = { tipo: string; file_url: string; file_name: string };
+  const [docDrafts, setDocDrafts] = useState<Record<number, DocDraft>>({});
+  const [uploadingDocIdx, setUploadingDocIdx] = useState<number | null>(null);
+  const replacingDocIdx = useRef<number | null>(null);
   const editDocInputRef = useRef<HTMLInputElement>(null);
 
-  const startEditDoc = (idx: number) => {
+  const savedDoc = (idx: number): DocDraft | null => {
     const doc = data?.documentos_adicionales?.[idx];
-    if (!doc) return;
-    setEditingDocIdx(idx);
-    setEditingDocDraft({ tipo: doc.tipo ?? "", file_url: doc.file_url, file_name: doc.file_name });
+    return doc ? { tipo: doc.tipo ?? "", file_url: doc.file_url, file_name: doc.file_name } : null;
+  };
+  const docValue = (idx: number): DocDraft | null => docDrafts[idx] ?? savedDoc(idx);
+  const setDocField = (idx: number, patch: Partial<DocDraft>) =>
+    setDocDrafts((p) => {
+      const base = p[idx] ?? savedDoc(idx);
+      return base ? { ...p, [idx]: { ...base, ...patch } } : p;
+    });
+
+  const docsCambiados = Object.entries(docDrafts)
+    .map(([k, draft]) => [Number(k), draft] as const)
+    .filter(([idx, draft]) => {
+      const saved = savedDoc(idx);
+      return saved && !mismosCampos(draft, saved);
+    });
+  const docsDirty = docsCambiados.length > 0;
+
+  // Varios documentos cambiados se mandan uno por uno (mismo registro). Cada
+  // uno que se guarda deja de estar pendiente; si uno falla se lanza el error
+  // y los que faltan conservan su draft.
+  const saveEditDocs = async (cambios: (readonly [number, DocDraft])[]) => {
+    for (const [idx, draft] of cambios) {
+      await saveBitacoraTransportistaRecord(id, "documentos", {
+        documentos_adicionales: { ...draft, index: idx },
+      });
+      queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
+        ["visitaTransportista", id],
+        (old) => old ? { ...old, documentos_adicionales: old.documentos_adicionales?.map((d, i) =>
+          i === idx ? { ...d, ...draft } : d
+        ) } : old
+      );
+      setDocDrafts((p) => { const next = { ...p }; delete next[idx]; return next; });
+    }
   };
 
-  const cancelEditDoc = () => { setEditingDocIdx(null); setEditingDocDraft(null); };
-
-  const saveEditDoc = async () => {
-    if (editingDocIdx === null || !editingDocDraft) return;
-    const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
-    queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
-      ["visitaTransportista", id],
-      (old) => old ? { ...old, documentos_adicionales: old.documentos_adicionales?.map((d, i) =>
-        i === editingDocIdx ? { ...d, ...editingDocDraft } : d
-      ) } : old
-    );
-    cancelEditDoc();
-    try {
-      await saveBitacoraTransportistaRecord(id, "documentos", {
-        documentos_adicionales: { ...editingDocDraft, index: editingDocIdx },
-      });
-      refetch();
-      toast.success("Documento actualizado");
-    } catch {
-      queryClient.setQueryData(["visitaTransportista", id], previous);
-      toast.error("Error al actualizar el documento");
-    }
+  const startReplaceDoc = (idx: number) => {
+    replacingDocIdx.current = idx;
+    editDocInputRef.current?.click();
   };
 
   const handleEditDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !editingDocDraft) return;
+    const idx = replacingDocIdx.current;
     e.target.value = "";
-    setUploadingDoc(true);
+    if (!file || idx === null) return;
+    const anterior = docValue(idx);
+    if (!anterior) return;
+    setUploadingDocIdx(idx);
     const localUrl = URL.createObjectURL(file);
-    setEditingDocDraft((p) => p ? { ...p, file_url: localUrl, file_name: file.name } : p);
+    setDocField(idx, { file_url: localUrl, file_name: file.name });
     try {
       const res = await uploadImage(file);
-      setEditingDocDraft((p) => p ? { ...p, file_url: res.file, file_name: res.file_name } : p);
+      setDocField(idx, { file_url: res.file, file_name: res.file_name });
     } catch {
-      setEditingDocDraft((p) => p ? { ...p, file_url: p.file_url === localUrl ? "" : p.file_url } : p);
+      setDocField(idx, { file_url: anterior.file_url, file_name: anterior.file_name });
       toast.error("Error al subir el archivo");
     } finally {
-      setUploadingDoc(false);
+      setUploadingDocIdx(null);
       URL.revokeObjectURL(localUrl);
     }
   };
@@ -2718,10 +2719,62 @@ export default function DetalleTransportistaPage() {
   };
 
   const [savingStagedDocs, setSavingStagedDocs] = useState(false);
-  // Vehículo, Material/Embarque y Documentos guardan sobre el mismo registro —
-  // mientras cualquiera de las tres esté en curso, se bloquean los "Guardar"
-  // de las otras dos para no mandar peticiones concurrentes.
-  const savingRegistroCompartido = savingVehicle || savingMaterial || savingStagedDocs;
+  // Footer global: secciones con cambios y avance del guardado.
+  const [saveProgress, setSaveProgress] = useState<{ done: number; total: number } | null>(null);
+  const savingAll = saveProgress !== null;
+  const seccionesConCambios = [vehicleDirty, materialDirty, docsDirty].filter(Boolean).length;
+
+  // Footer, documentos nuevos y unidades guardan sobre el mismo registro —
+  // mientras cualquiera esté en curso, se bloquean los demás guardados para no
+  // mandar peticiones concurrentes.
+  const savingRegistroCompartido = savingAll || savingStagedDocs || savingUnidades;
+
+  const descartarCambios = () => {
+    setVehicleDraft(null);
+    setMaterialDraft(null);
+    setDocDrafts({});
+  };
+
+  // Recorre las secciones con cambios UNA POR UNA (nunca Promise.all): todas
+  // llaman a saveBitacoraTransportistaRecord sobre el mismo registro y en
+  // paralelo una podría pisar a otra. Si una falla se detiene; las ya
+  // guardadas quedan guardadas y la que falló conserva su draft.
+  const handleSaveAll = async () => {
+    const pendientes: { nombre: string; run: () => Promise<void> }[] = [];
+    if (vehicleDirty && vehicleDraft) {
+      const draft = vehicleDraft;
+      pendientes.push({ nombre: "Datos del Vehículo", run: async () => { await saveVehicle(draft); setVehicleDraft(null); } });
+    }
+    if (materialDirty && materialDraft) {
+      const draft = materialDraft;
+      pendientes.push({ nombre: "Material Carga / Descarga", run: async () => { await saveMaterial(draft); setMaterialDraft(null); } });
+    }
+    if (docsDirty) {
+      const cambios = docsCambiados;
+      pendientes.push({ nombre: "Documentos", run: () => saveEditDocs(cambios) });
+    }
+    if (!pendientes.length) return;
+
+    let guardadas = 0;
+    setSaveProgress({ done: 0, total: pendientes.length });
+    try {
+      for (const seccion of pendientes) {
+        setSaveProgress({ done: guardadas + 1, total: pendientes.length });
+        try {
+          await seccion.run();
+          guardadas++;
+        } catch (err) {
+          console.error("[handleSaveAll]", seccion.nombre, err);
+          toast.error(`Error al guardar ${seccion.nombre}${guardadas ? ` — ${guardadas} de ${pendientes.length} secciones sí se guardaron` : ""}`);
+          return;
+        }
+      }
+      toast.success("Cambios guardados");
+    } finally {
+      setSaveProgress(null);
+      if (guardadas) refetch();
+    }
+  };
   const guardarDocumentosPendientes = async () => {
     // Se guardan todas las fotos listas con el tipo de su categoría (o el
     // que sugirió la IA); no hace falta analizar para poder guardarlas.
@@ -2788,28 +2841,19 @@ export default function DetalleTransportistaPage() {
             byUrl.has(d.file_url) && !d.tipoManual ? { ...d, tipo: byUrl.get(d.file_url) } : d));
           toast.success("Documentos analizados — revisa y guarda");
         } else {
-          const docs = subidosDocs;
-          const previous = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
-          queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
-            ["visitaTransportista", id],
-            (old) => old ? { ...old, documentos_adicionales: old.documentos_adicionales?.map((d) => byUrl.has(d.file_url) ? { ...d, tipo: byUrl.get(d.file_url) } : d) } : old
-          );
-          try {
-            await Promise.all(
-              docs.map((d, idx) =>
-                byUrl.has(d.file_url)
-                  ? saveBitacoraTransportistaRecord(id, "documentos", {
-                      documentos_adicionales: { file_url: d.file_url, file_name: d.file_name, tipo: byUrl.get(d.file_url), index: idx },
-                    })
-                  : null
-              )
-            );
-            refetch();
-            toast.success("Documentos analizados");
-          } catch {
-            queryClient.setQueryData(["visitaTransportista", id], previous);
-            toast.error("Error al guardar el análisis");
-          }
+          // Ya no se autoguarda: el tipo detectado se escribe en el draft de
+          // cada documento y queda como cambio pendiente en el footer.
+          setDocDrafts((prev) => {
+            const next = { ...prev };
+            subidosDocs.forEach((d, idx) => {
+              const tipo = byUrl.get(d.file_url);
+              if (!tipo) return;
+              const base = next[idx] ?? { tipo: d.tipo ?? "", file_url: d.file_url, file_name: d.file_name };
+              next[idx] = { ...base, tipo };
+            });
+            return next;
+          });
+          toast.success("Documentos analizados — revisa y guarda los cambios pendientes");
         }
       } else {
         toast.success("Análisis completado, sin documentos por clasificar");
@@ -2843,13 +2887,12 @@ export default function DetalleTransportistaPage() {
         // que la variable `data` del hook, que puede estar un render atrás.
         const fresh = queryClient.getQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(["visitaTransportista", id]);
 
-        // Vehículo — ya NO se autoguarda: se precargan los valores detectados
-        // en el formulario de "Datos del Vehículo" y se deja abierto para que
-        // el usuario revise y confirme con su propio "Guardar cambios". Antes
-        // se guardaba solo, en paralelo con Embarque/Conductor/Remolques,
-        // varias peticiones concurrentes sobre el mismo registro.
+        // Vehículo — NO se autoguarda: los valores detectados se escriben en el
+        // draft de "Datos del Vehículo" y quedan como cambios pendientes en el
+        // footer; el usuario decide si los guarda o descarta. Se mezclan sobre
+        // el draft actual para no pisar lo que ya haya escrito.
         const veh = aiData.vehiculo;
-        const vehiculoDraftAI: Partial<typeof vehicleDraft> = {};
+        const vehiculoDraftAI: Partial<VehicleDraft> = {};
         if (veh?.tipo_vehiculo && !fresh?.vehiculo?.tipo_vehiculo) { vehiculoDraftAI.tipo_vehiculo = veh.tipo_vehiculo; camposLlenados++; }
         if (veh?.placa && !fresh?.vehiculo?.placa) { vehiculoDraftAI.placa = veh.placa; camposLlenados++; }
         if (veh?.no_economico && !fresh?.vehiculo?.no_economico) { vehiculoDraftAI.no_economico = veh.no_economico; camposLlenados++; }
@@ -2857,34 +2900,36 @@ export default function DetalleTransportistaPage() {
         if (veh?.modelo && !fresh?.vehiculo?.modelo) { vehiculoDraftAI.modelo = veh.modelo; camposLlenados++; }
         if (veh?.color && !fresh?.vehiculo?.color) { vehiculoDraftAI.color = veh.color; camposLlenados++; }
         if (Object.keys(vehiculoDraftAI).length > 0) {
-          setVehicleDraft({
-            tipo_vehiculo: fresh?.vehiculo?.tipo_vehiculo ?? "",
-            placa:         fresh?.vehiculo?.placa ?? "",
-            no_economico:  fresh?.vehiculo?.no_economico ?? "",
-            marca:         fresh?.vehiculo?.marca ?? "",
-            modelo:        fresh?.vehiculo?.modelo ?? "",
-            color:         fresh?.vehiculo?.color ?? "",
+          setVehicleDraft((p) => ({
+            ...(p ?? {
+              tipo_vehiculo: fresh?.vehiculo?.tipo_vehiculo ?? "",
+              placa:         fresh?.vehiculo?.placa ?? "",
+              no_economico:  fresh?.vehiculo?.no_economico ?? "",
+              marca:         fresh?.vehiculo?.marca ?? "",
+              modelo:        fresh?.vehiculo?.modelo ?? "",
+              color:         fresh?.vehiculo?.color ?? "",
+            }),
             ...vehiculoDraftAI,
-          });
-          setVehicleEditMode(true);
+          }));
           setVehicleExpanded(true);
         }
 
-        // Embarque + Procedencia — mismo criterio: se precarga "Material Carga
-        // / Descarga" en modo edición en vez de autoguardarlo.
+        // Embarque + Procedencia — mismo criterio: van al draft de "Material
+        // Carga / Descarga" como cambios pendientes en vez de autoguardarse.
         const emb = aiData.embarque;
-        const materialDraftAI: Partial<typeof materialDraft> = {};
+        const materialDraftAI: Partial<MaterialDraft> = {};
         if (emb?.proveedor_cliente && !fresh?.embarque?.proveedor_cliente) { materialDraftAI.proveedor_cliente = emb.proveedor_cliente; camposLlenados++; }
         if (emb?.no_orden_compra && !fresh?.embarque?.no_orden_compra) { materialDraftAI.no_orden_compra = emb.no_orden_compra; camposLlenados++; }
         if (veh?.procedencia && !fresh?.vehiculo?.procedencia) { materialDraftAI.procedencia = veh.procedencia; camposLlenados++; }
         if (Object.keys(materialDraftAI).length > 0) {
-          setMaterialDraft({
-            proveedor_cliente: fresh?.embarque?.proveedor_cliente ?? "",
-            no_orden_compra:   fresh?.embarque?.no_orden_compra ?? "",
-            procedencia:       fresh?.vehiculo?.procedencia ?? "",
+          setMaterialDraft((p) => ({
+            ...(p ?? {
+              proveedor_cliente: fresh?.embarque?.proveedor_cliente ?? "",
+              no_orden_compra:   fresh?.embarque?.no_orden_compra ?? "",
+              procedencia:       fresh?.vehiculo?.procedencia ?? "",
+            }),
             ...materialDraftAI,
-          });
-          setMaterialEditMode(true);
+          }));
         }
 
         // Conductor y Remolques/Contenedores sí se guardan automáticamente,
@@ -3018,10 +3063,10 @@ export default function DetalleTransportistaPage() {
           // siempre (el guardado incremental de save_bitac_transportista_record
           // nunca borra filas por su cuenta).
           await refetch();
-          const abrioFormularios = Object.keys(vehiculoDraftAI).length > 0 || Object.keys(materialDraftAI).length > 0;
+          const dejoPendientes = Object.keys(vehiculoDraftAI).length > 0 || Object.keys(materialDraftAI).length > 0;
           toast.success(
-            abrioFormularios
-              ? `IA detectó ${camposLlenados} campo${camposLlenados !== 1 ? "s" : ""} — revisa y confirma los que quedaron abiertos para edición`
+            dejoPendientes
+              ? `IA detectó ${camposLlenados} campo${camposLlenados !== 1 ? "s" : ""} — revisa los cambios pendientes y guarda o descarta`
               : `IA llenó ${camposLlenados} campo${camposLlenados !== 1 ? "s" : ""} del formulario automáticamente`,
             { id: "ai-autofill" },
           );
@@ -3088,12 +3133,25 @@ export default function DetalleTransportistaPage() {
       ["visitaTransportista", id],
       (old) => old ? { ...old, documentos_adicionales: old.documentos_adicionales?.filter((_, i) => i !== index) } : old
     );
+    // Los drafts van por índice: se quita el del borrado y se recorren los de
+    // después para que sigan apuntando a su documento.
+    const draftsPrevios = docDrafts;
+    setDocDrafts((p) => {
+      const next: Record<number, DocDraft> = {};
+      Object.entries(p).forEach(([k, d]) => {
+        const i = Number(k);
+        if (i < index) next[i] = d;
+        else if (i > index) next[i - 1] = d;
+      });
+      return next;
+    });
     try {
       await saveBitacoraTransportistaRecord(id, "documentos", { delete_documentos: [index] });
       refetch();
       toast.success("Archivo eliminado");
     } catch {
       queryClient.setQueryData(["visitaTransportista", id], previous);
+      setDocDrafts(draftsPrevios);
       toast.error("Error al eliminar el archivo");
     }
   };
@@ -3632,86 +3690,26 @@ export default function DetalleTransportistaPage() {
             </div>
             {docsExpanded && <>
             <div className="p-4 space-y-2">
-              {/* Input oculto para reemplazar archivo al editar */}
+              {/* Input oculto para reemplazar el archivo de un documento */}
               <input ref={editDocInputRef} type="file" className="hidden" onChange={handleEditDocUpload} />
 
               {/* Documentos subidos desde el acceso (documentos_adicionales) */}
               {data?.documentos_adicionales?.map((doc, docIdx) => {
-                const isEditing = editingDocIdx === docIdx;
-                const draft = isEditing ? editingDocDraft : null;
-                const displayUrl = draft?.file_url ?? doc.file_url;
-                const displayName = draft?.file_name ?? doc.file_name;
-                const isImg = /\.(jpe?g|png|gif|webp)$/i.test(displayName);
+                const value = docValue(docIdx) ?? { tipo: doc.tipo ?? "", file_url: doc.file_url, file_name: doc.file_name };
+                const saved = savedDoc(docIdx);
+                const cambiado = !!docDrafts[docIdx] && !!saved && !mismosCampos(docDrafts[docIdx], saved);
+                const subiendo = uploadingDocIdx === docIdx;
+                const isImg = /\.(jpe?g|png|gif|webp)$/i.test(value.file_name);
                 const tipoLabel = doc.tipo ? doc.tipo.replace(/_/g, " ").toUpperCase() : doc.file_name;
 
-                if (isEditing && draft) {
-                  // Se permiten varios documentos del mismo tipo (ej. dos
-                  // identificaciones) — el backend ya los guarda como filas
-                  // independientes, así que el select ofrece todos los tipos
-                  // sin excluir los ya usados por otro documento.
-                  const tipoOptions = [
-                    ...TIPOS_DOCUMENTO_SUBIDA.map((t) => t.label),
-                    ...(esRecoleccion ? [FOTO_CAJA_VACIA_LABEL] : []),
-                  ];
+                if (isLocked) {
                   return (
-                    <div key={doc.file_url} className="rounded-xl border-2 border-blue-200 bg-blue-50/30 p-3.5 space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-white shadow-sm bg-white shrink-0 flex items-center justify-center">
-                          {isImg && displayUrl ? (
-                            <Image src={displayUrl} fill className="object-cover" alt="" unoptimized />
-                          ) : (
-                            <FileText className="w-5 h-5 text-gray-300" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-700 truncate">{displayName || "Sin archivo"}</p>
-                          <p className="text-[10px] text-gray-400 mt-0.5">Editando documento</p>
-                        </div>
-                        <button type="button" disabled={uploadingDoc}
-                          onClick={() => editDocInputRef.current?.click()}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors shrink-0">
-                          {uploadingDoc
-                            ? <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                            : <Camera className="w-3 h-3" />}
-                          Reemplazar
-                        </button>
-                      </div>
-
-                      <div>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tipo de documento</p>
-                        <select
-                          value={draft.tipo}
-                          onChange={(e) => setEditingDocDraft((p) => p ? { ...p, tipo: e.target.value } : p)}
-                          className="w-full h-9 rounded-lg border border-gray-200 px-2.5 text-xs bg-white focus:outline-none focus:border-blue-400">
-                          <option value="">Sin asignar</option>
-                          {tipoOptions.map((nombre) => (
-                            <option key={nombre} value={tipoRequeridoSlug(nombre)}>{nombre}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="flex gap-2 justify-end pt-1 border-t border-blue-100">
-                        <button type="button" onClick={cancelEditDoc}
-                          className="px-3 py-1.5 text-[10px] font-semibold text-gray-500 hover:text-gray-700 transition-colors">
-                          Cancelar
-                        </button>
-                        <button type="button" onClick={saveEditDoc} disabled={uploadingDoc}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-[10px] font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50">
-                          <Save className="w-3 h-3" />
-                          Guardar
-                        </button>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div key={doc.file_url} className="flex items-center gap-2">
                     <a
+                      key={doc.file_url}
                       href={doc.file_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 border border-gray-100 bg-white hover:bg-gray-50 cursor-pointer transition-colors min-w-0">
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-gray-100 bg-white hover:bg-gray-50 cursor-pointer transition-colors min-w-0">
                       <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0 flex items-center justify-center">
                         {isImg ? (
                           <Image src={doc.file_url} fill className="object-cover" alt={tipoLabel} unoptimized />
@@ -3725,18 +3723,67 @@ export default function DetalleTransportistaPage() {
                       </div>
                       <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                     </a>
-                    {!isLocked && (
-                      <button type="button" onClick={() => startEditDoc(docIdx)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-blue-400 hover:bg-blue-50 transition-colors shrink-0">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    {!isLocked && (
-                      <button type="button" onClick={() => deleteDocumento(docIdx)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                  );
+                }
+
+                // Se permiten varios documentos del mismo tipo (ej. dos
+                // identificaciones) — el backend ya los guarda como filas
+                // independientes, así que el select ofrece todos los tipos
+                // sin excluir los ya usados por otro documento. Si el tipo
+                // guardado no está en la lista, se agrega para no mostrarlo
+                // como "Sin asignar".
+                const tipoOptions = [
+                  ...TIPOS_DOCUMENTO_SUBIDA.map((t) => t.label),
+                  ...(esRecoleccion ? [FOTO_CAJA_VACIA_LABEL] : []),
+                ];
+                const tipoFueraDeLista = value.tipo && !tipoOptions.some((n) => tipoRequeridoSlug(n) === value.tipo);
+                return (
+                  <div key={doc.file_url}
+                    className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors",
+                      cambiado ? "border-amber-300 bg-amber-50/40" : "border-gray-100 bg-white")}>
+                    <a
+                      href={value.file_url || undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Ver documento"
+                      className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity">
+                      {isImg && value.file_url ? (
+                        <Image src={value.file_url} fill className="object-cover" alt={tipoLabel} unoptimized />
+                      ) : (
+                        <FileText className="w-5 h-5 text-gray-300" />
+                      )}
+                    </a>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <select
+                        value={value.tipo}
+                        disabled={savingAll}
+                        aria-label={`Tipo de documento de ${value.file_name}`}
+                        onChange={(e) => setDocField(docIdx, { tipo: e.target.value })}
+                        className="w-full h-8 rounded-lg border border-gray-200 px-2.5 text-[11px] font-semibold text-gray-700 bg-white focus:outline-none focus:border-blue-400 disabled:opacity-60">
+                        <option value="">Sin asignar</option>
+                        {tipoFueraDeLista && <option value={value.tipo}>{labelDeTipoRequerido(value.tipo)}</option>}
+                        {tipoOptions.map((nombre) => (
+                          <option key={nombre} value={tipoRequeridoSlug(nombre)}>{nombre}</option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-gray-400 truncate">{value.file_name || "Sin archivo"}</p>
+                    </div>
+                    <button type="button" disabled={subiendo || savingAll}
+                      onClick={() => startReplaceDoc(docIdx)}
+                      title="Reemplazar archivo"
+                      aria-label={`Reemplazar archivo de ${value.file_name}`}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-blue-400 hover:bg-blue-50 transition-colors shrink-0 disabled:opacity-50">
+                      {subiendo
+                        ? <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                        : <Camera className="w-3.5 h-3.5" />}
+                    </button>
+                    <button type="button" onClick={() => deleteDocumento(docIdx)}
+                      disabled={savingRegistroCompartido || subiendo}
+                      title={savingRegistroCompartido ? "Espera a que termine el guardado en curso" : "Eliminar documento"}
+                      aria-label={`Eliminar ${value.file_name}`}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0 disabled:opacity-50">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 );
               })}
@@ -3771,7 +3818,7 @@ export default function DetalleTransportistaPage() {
                 const hasAnalyzable = capturandoDocs
                   ? stagedDocs.some((d) => d.file_url)
                   : (data?.documentos_adicionales?.some((d) => d.file_url) ?? false);
-                const analyzeDisabled = analyzingDocs || !hasAnalyzable || isLocked || (capturandoDocs && stagingUpload);
+                const analyzeDisabled = analyzingDocs || savingRegistroCompartido || !hasAnalyzable || isLocked || (capturandoDocs && stagingUpload);
                 return (
                   <button
                     type="button"
@@ -3858,85 +3905,65 @@ export default function DetalleTransportistaPage() {
             </div>
             <div className="p-4 space-y-5">
               {/* Datos del vehículo */}
-              <div className={cn("rounded-xl overflow-hidden border", vehicleEditMode ? "border-indigo-300 ring-2 ring-indigo-100" : "border-indigo-100")}>
+              <div className={cn("rounded-xl overflow-hidden border", vehicleDirty ? "border-amber-300" : "border-indigo-100")}>
                 <div className="flex items-center justify-between px-4 py-2.5 bg-indigo-50">
                   <button
                     type="button"
-                    onClick={() => !vehicleEditMode && setVehicleExpanded((v) => !v)}
+                    onClick={() => setVehicleExpanded((v) => !v)}
                     className="flex items-center gap-2 flex-1 text-left">
                     <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest">
                       Datos del Vehículo
                     </span>
-                    {!vehicleEditMode && (vehicleExpanded
+                    {vehicleExpanded
                       ? <ChevronUp className="w-3.5 h-3.5 text-indigo-400" />
-                      : <ChevronDown className="w-3.5 h-3.5 text-indigo-400" />)}
+                      : <ChevronDown className="w-3.5 h-3.5 text-indigo-400" />}
                   </button>
-                  {!vehicleEditMode && !isLocked && (
-                    <button
-                      type="button"
-                      onClick={startVehicleEdit}
-                      disabled={analyzingDocs}
-                      title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
-                      className="w-6 h-6 rounded-md hover:bg-indigo-100 flex items-center justify-center text-indigo-400 hover:text-indigo-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                  )}
+                  {vehicleDirty && <SinGuardarBadge />}
                 </div>
 
-                {(vehicleExpanded || vehicleEditMode) && (
+                {vehicleExpanded && (
                   <div className="bg-white">
                     {isLoading ? (
                       <div className="px-4 py-3 grid grid-cols-3 gap-4">
                         <Skeleton className="h-8" /><Skeleton className="h-8" /><Skeleton className="h-8" />
                         <Skeleton className="h-8" /><Skeleton className="h-8" /><Skeleton className="h-8" />
                       </div>
-                    ) : vehicleEditMode ? (
-                      <>
-                        <div className="px-4 py-3 grid grid-cols-3 gap-3">
-                          {(
-                            [
-                              { key: "tipo_vehiculo", label: "Tipo de Vehículo" },
-                              { key: "placa",         label: "Placa de tracto",   mono: true },
-                              { key: "no_economico",  label: "No. de tracto",     mono: true },
-                              { key: "marca",         label: "Marca" },
-                              { key: "modelo",        label: "Modelo / Año" },
-                              { key: "color",         label: "Color" },
-                            ] as { key: keyof typeof vehicleDraft; label: string; mono?: boolean }[]
-                          ).map(({ key, label, mono }) => (
-                            <div key={key} className={cn(key === "tipo_vehiculo" && "col-span-3")}>
-                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-                              {key === "tipo_vehiculo" ? (
-                                <SelectorTipoVehiculo
-                                  value={vehicleDraft.tipo_vehiculo}
-                                  onChange={(t) => setVehicleDraft((p) => ({ ...p, tipo_vehiculo: t }))}
-                                />
-                              ) : key === "color" ? (
-                                <SelectorColorVehiculo
-                                  value={vehicleDraft.color}
-                                  onChange={(c) => setVehicleDraft((p) => ({ ...p, color: c }))}
-                                />
-                              ) : (
-                                <input
-                                  className={cn("w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100", mono && "font-mono uppercase")}
-                                  value={vehicleDraft[key]}
-                                  onChange={(e) => setVehicleDraft((p) => ({ ...p, [key]: e.target.value }))}
-                                />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50/60">
-                          <button type="button" onClick={cancelVehicleEdit}
-                            className="h-8 px-3 rounded-lg border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors">
-                            Cancelar
-                          </button>
-                          <button type="button" onClick={saveVehicle} disabled={savingRegistroCompartido}
-                            title={!savingVehicle && savingRegistroCompartido ? "Espera a que termine el otro guardado en curso" : undefined}
-                            className="h-8 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:cursor-not-allowed">
-                            <Save className="w-3 h-3" /> {savingVehicle ? "Guardando…" : "Guardar cambios"}
-                          </button>
-                        </div>
-                      </>
+                    ) : !isLocked ? (
+                      <div className="px-4 py-3 grid grid-cols-3 gap-3">
+                        {(
+                          [
+                            { key: "tipo_vehiculo", label: "Tipo de Vehículo" },
+                            { key: "placa",         label: "Placa de tracto",   mono: true },
+                            { key: "no_economico",  label: "No. de tracto",     mono: true },
+                            { key: "marca",         label: "Marca" },
+                            { key: "modelo",        label: "Modelo / Año" },
+                            { key: "color",         label: "Color" },
+                          ] as { key: keyof VehicleDraft; label: string; mono?: boolean }[]
+                        ).map(({ key, label, mono }) => (
+                          <div key={key} className={cn(key === "tipo_vehiculo" && "col-span-3")}>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+                            {key === "tipo_vehiculo" ? (
+                              <SelectorTipoVehiculo
+                                value={vehicleValue.tipo_vehiculo}
+                                onChange={(t) => setVehicleField("tipo_vehiculo", t)}
+                              />
+                            ) : key === "color" ? (
+                              <SelectorColorVehiculo
+                                value={vehicleValue.color}
+                                onChange={(c) => setVehicleField("color", c)}
+                              />
+                            ) : (
+                              <input
+                                className={cn("w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:opacity-60", mono && "font-mono uppercase")}
+                                value={vehicleValue[key]}
+                                disabled={savingAll}
+                                aria-label={label}
+                                onChange={(e) => setVehicleField(key, e.target.value)}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     ) : (
                       <div className="px-4 py-3 grid grid-cols-3 gap-4">
                         <Field label="Tipo de Vehículo" value={data?.vehiculo?.tipo_vehiculo} />
@@ -3972,14 +3999,14 @@ export default function DetalleTransportistaPage() {
                           </span>
                         </button>
                         <div className="flex items-center gap-2 shrink-0">
-                          <button type="button" disabled={savingUnidades || isLocked || analyzingDocs}
+                          <button type="button" disabled={savingUnidades || savingAll || isLocked || analyzingDocs}
                             title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
                             onClick={() => setEditingUnit(u)}
                             className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <Pencil className="w-3 h-3" />
                           </button>
                           {!isLocked && (
-                            <button type="button" disabled={savingUnidades || analyzingDocs}
+                            <button type="button" disabled={savingUnidades || savingAll || analyzingDocs}
                               title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
                               onClick={() => {
                                 const next = unidades.filter((x) => x.id !== u.id);
@@ -4103,7 +4130,7 @@ export default function DetalleTransportistaPage() {
                     </div>
                     );
                   })}
-                  <button type="button" disabled={savingUnidades || isLocked || analyzingDocs}
+                  <button type="button" disabled={savingUnidades || savingAll || isLocked || analyzingDocs}
                     title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
                     onClick={() => { setAgregarUnidadDefaultConfig(undefined); setShowAgregarUnidad(true); }}
                     className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -4115,60 +4142,43 @@ export default function DetalleTransportistaPage() {
           </div>
 
           {/* Material Carga / Descarga */}
-          <div className={cn("bg-white rounded-xl border shadow-sm overflow-hidden", materialEditMode ? "border-orange-300 ring-2 ring-orange-100" : "border-gray-100")}>
+          <div className={cn("bg-white rounded-xl border shadow-sm overflow-hidden", materialDirty ? "border-amber-300" : "border-gray-100")}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4 text-gray-400" />
                 <span className="text-sm font-bold text-gray-800">Material Carga / Descarga</span>
               </div>
               <div className="flex items-center gap-2">
+                {materialDirty && <SinGuardarBadge />}
                 {data?.tipo_operacion && (
                   <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-600 uppercase tracking-wide">
                     {data.tipo_operacion} de material
                   </span>
                 )}
-                {!materialEditMode && !isLocked && (
-                  <button type="button" onClick={startMaterialEdit} disabled={analyzingDocs}
-                    title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
-                    className="w-6 h-6 rounded-md hover:bg-orange-50 flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
-                    <Pencil className="w-3 h-3" />
-                  </button>
-                )}
               </div>
             </div>
             <div className="p-4 space-y-3">
-              {materialEditMode ? (
-                <>
-                  <div className="grid grid-cols-3 gap-3">
-                    {(
-                      [
-                        { key: "proveedor_cliente", label: "Proveedor / Cliente" },
-                        { key: "no_orden_compra",   label: "Orden de Compra",     mono: true },
-                        { key: "procedencia",       label: "Procedencia" },
-                      ] as { key: keyof typeof materialDraft; label: string; mono?: boolean }[]
-                    ).map(({ key, label, mono }) => (
-                      <div key={key}>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-                        <input
-                          className={cn("w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100", mono && "font-mono")}
-                          value={materialDraft[key]}
-                          onChange={(e) => setMaterialDraft((p) => ({ ...p, [key]: e.target.value }))}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
-                    <button type="button" onClick={cancelMaterialEdit}
-                      className="h-8 px-3 rounded-lg border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors">
-                      Cancelar
-                    </button>
-                    <button type="button" onClick={saveMaterial} disabled={savingRegistroCompartido}
-                      title={!savingMaterial && savingRegistroCompartido ? "Espera a que termine el otro guardado en curso" : undefined}
-                      className="h-8 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:cursor-not-allowed">
-                      <Save className="w-3 h-3" /> {savingMaterial ? "Guardando…" : "Guardar cambios"}
-                    </button>
-                  </div>
-                </>
+              {!isLocked ? (
+                <div className="grid grid-cols-3 gap-3">
+                  {(
+                    [
+                      { key: "proveedor_cliente", label: "Proveedor / Cliente" },
+                      { key: "no_orden_compra",   label: "Factura / Orden de compra", mono: true },
+                      { key: "procedencia",       label: "Procedencia" },
+                    ] as { key: keyof MaterialDraft; label: string; mono?: boolean }[]
+                  ).map(({ key, label, mono }) => (
+                    <div key={key}>
+                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+                      <input
+                        className={cn("w-full h-8 rounded-lg border border-gray-200 px-2.5 text-xs focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:opacity-60", mono && "font-mono")}
+                        value={materialValue[key]}
+                        disabled={savingAll}
+                        aria-label={label}
+                        onChange={(e) => setMaterialField(key, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="grid grid-cols-3 gap-4">
                   <Field label="Proveedor / Cliente" value={data?.embarque?.proveedor_cliente} />
@@ -4222,7 +4232,7 @@ export default function DetalleTransportistaPage() {
                 <div className="pt-1 border-t border-gray-50 relative">
                   <button
                     type="button"
-                    disabled={savingUnidades || isLocked || analyzingDocs}
+                    disabled={savingUnidades || savingAll || isLocked || analyzingDocs}
                     onClick={abrirAgregarMaterial}
                     className="w-full h-8 rounded-lg border border-dashed border-blue-200 text-xs font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
                     <Plus className="w-3.5 h-3.5" /> Agregar material
@@ -4787,6 +4797,25 @@ export default function DetalleTransportistaPage() {
           })()}
         </div>
       </div>
+
+      {/* ── Footer global: guardar / descartar cambios de todas las secciones ── */}
+      {!isLocked && seccionesConCambios > 0 && (
+        <div className="sticky bottom-0 z-30 px-4 pb-4">
+          <PendingChangesFooter
+            label={`${seccionesConCambios} ${seccionesConCambios === 1 ? "sección" : "secciones"} con cambios sin guardar`}
+            saving={savingAll}
+            progress={saveProgress}
+            saveDisabled={analyzingDocs || savingStagedDocs || savingUnidades || uploadingDocIdx !== null}
+            saveDisabledReason={
+              analyzingDocs ? "Espera a que termine el análisis con IA"
+              : uploadingDocIdx !== null ? "Espera a que termine de subir el archivo"
+              : "Espera a que termine el otro guardado en curso"
+            }
+            onDiscard={descartarCambios}
+            onSave={handleSaveAll}
+          />
+        </div>
+      )}
       {showDesgloseMateriales && (
         <DesgloseMaterialesModal
           materiales={data?.materiales ?? []}
