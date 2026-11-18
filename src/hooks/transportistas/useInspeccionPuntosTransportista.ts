@@ -3,12 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getFormFieldsTransportista, getFormasInspeccionTransportista } from "@/services/endpoints";
 
-// TODO: estos form_id son de la cuenta 10 (hardcodeados temporalmente).
-// Si se corre en otra cuenta de Clave10, hay que resolverlos por cuenta.
-const TRACTOR_FORM_ID = "157729";
-const CONTENEDOR_FORM_ID = "157730";
-const SELLO_FORM_ID = "158808";
-
 // field_id de los 3 campos de medida interior — estables aunque se renombre el label.
 const CONTENEDOR_MEDIDA_FIELD_IDS = {
   altura: "d412fb9f428dfc231c9bc3f0",
@@ -300,42 +294,35 @@ const SUBTIPOS_CONTENEDOR = ["caja_seca", "refrigerado"] as const;
 export function useInspeccionPuntosTransportista(ubicacion?: string | null) {
   const { data, isLoading, error } = useQuery<InspeccionPuntos>({
     queryKey: ["inspeccionPuntosTransportista", ubicacion ?? null],
+    // Sin ubicación no se puede resolver la forma: la query espera a que llegue.
+    enabled: !!ubicacion,
     queryFn: async () => {
-      let tractorFormId = TRACTOR_FORM_ID;
-      let selloFormId = SELLO_FORM_ID;
-      let contenedorFormIdPorSubtipo: Record<string, string> = {
-        caja_seca: CONTENEDOR_FORM_ID,
-        refrigerado: CONTENEDOR_FORM_ID,
-      };
-      let norma: "basc" | "ctpat" = "ctpat";
-
-      if (ubicacion) {
-        try {
-          const formasRes = await getFormasInspeccionTransportista(ubicacion);
-          const formasRaw = ((formasRes as Record<string, unknown>)?.response as Record<string, unknown>)?.data
-            ?? (formasRes as Record<string, unknown>)?.data;
-          const formas = formasRaw as {
-            tractor?: string;
-            contenedor?: string;
-            sello?: string;
-            contenedor_por_subtipo?: Record<string, string>;
-            norma?: "basc" | "ctpat";
-          } | undefined;
-          tractorFormId = formas?.tractor || TRACTOR_FORM_ID;
-          selloFormId = formas?.sello || SELLO_FORM_ID;
-          norma = formas?.norma || "ctpat";
-          // Catch-all: fila de contenedor sin subtipo especificado, o default
-          // CTPAT si no hay nada configurado para esta ubicación.
-          const contenedorCatchAll = formas?.contenedor || CONTENEDOR_FORM_ID;
-          contenedorFormIdPorSubtipo = {
-            caja_seca: formas?.contenedor_por_subtipo?.["caja_seca"] || contenedorCatchAll,
-            refrigerado: formas?.contenedor_por_subtipo?.["refrigerado"] || contenedorCatchAll,
-          };
-        } catch {
-          // Si falla la resolución por ubicación, se sigue con los form_id
-          // hardcodeados de la cuenta 10 — mismo fail-open que el backend.
-        }
+      // Los form_id salen siempre del back: get_formas_inspeccion_transportista
+      // regresa la forma custom de la ubicación o, si no hay, la default de la
+      // cuenta en curso. El front no guarda ids propios — los de una cuenta no
+      // existen en otra (get_form_fields_transportista daría 404).
+      const formasRes = await getFormasInspeccionTransportista(ubicacion as string);
+      const formasRaw = ((formasRes as Record<string, unknown>)?.response as Record<string, unknown>)?.data
+        ?? (formasRes as Record<string, unknown>)?.data;
+      const formas = formasRaw as {
+        tractor?: string;
+        contenedor?: string;
+        sello?: string;
+        contenedor_por_subtipo?: Record<string, string>;
+        norma?: "basc" | "ctpat";
+      } | undefined;
+      if (!formas?.tractor || !formas?.contenedor || !formas?.sello) {
+        throw new Error("get_formas_inspeccion_transportista no regresó las formas de inspección");
       }
+      const tractorFormId = formas.tractor;
+      const selloFormId = formas.sello;
+      const norma: "basc" | "ctpat" = formas.norma || "ctpat";
+      // Catch-all: fila de contenedor sin subtipo especificado, o la default de
+      // la cuenta si no hay nada configurado para esta ubicación.
+      const contenedorFormIdPorSubtipo: Record<string, string> = {
+        caja_seca: formas.contenedor_por_subtipo?.["caja_seca"] || formas.contenedor,
+        refrigerado: formas.contenedor_por_subtipo?.["refrigerado"] || formas.contenedor,
+      };
 
       const formIdsUnicos = Array.from(new Set([
         tractorFormId,

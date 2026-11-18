@@ -2310,8 +2310,8 @@ export default function DetalleTransportistaPage() {
   const { isLoading: loadingShift, turno } = useGetShift(area, location);
   // Precarga los puntos de inspección desde que se abre el detalle, en paralelo
   // con el registro, para que el modal de inspección abra sin spinner propio.
-  // Arranca con los form_id por default (ubicación aún no cargada) y se re-resuelve
-  // solo si esta cuenta tiene una forma custom configurada para esa ubicación.
+  // Espera a que cargue la ubicación del registro; las formas (custom o default
+  // de la cuenta) las resuelve el back.
   const { data: inspeccionPuntos } = useInspeccionPuntosTransportista(data?.ubicacion);
   const { data: configFlujo } = useConfigFlujoTransportista();
 
