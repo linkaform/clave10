@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Package } from "lucide-react";
 
 const REPORTS = [
 	{
@@ -13,10 +13,11 @@ const REPORTS = [
 		enabled: true,
 	},
 	{
-		name: "",
-		path: "#",
-		description: "",
-		enabled: false,
+		name: "Reporte de Artículos Concesionados",
+		path: "/dashboard/reportes/reporte_concesionados",
+		icon: <Package className="w-8 h-8 text-blue-500" />,
+		description: "Préstamos, devoluciones y cierres forzados.",
+		enabled: true,
 	},
 	{
 		name: " ",
