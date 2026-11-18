@@ -41,7 +41,16 @@ const COLUMNS: {
     required: false,
     aliases: ["idioma", "lenguaje", "language"],
   },
+  {
+    key: "password",
+    label: "Contraseña",
+    required: false,
+    aliases: ["contrasena", "password", "contrasena temporal"],
+  },
 ];
+
+/** Mínimo que pide sanic (UserActivation.MIN_PASSWORD). */
+export const USER_IMPORT_MIN_PASSWORD = 8;
 
 export const USER_IMPORT_REQUIRED_COLUMNS = COLUMNS.filter(
   (c) => c.required,
@@ -139,6 +148,7 @@ export function buildUsersTemplate(options?: UserOptions): XLSX.WorkBook {
       "Guardia",
       defaults.timezone,
       languageName(defaults.language),
+      "",
     ],
     [
       "John Smith",
@@ -148,6 +158,7 @@ export function buildUsersTemplate(options?: UserOptions): XLSX.WorkBook {
       "Supervisor",
       "America/Tijuana",
       languages[1]?.label ?? "English",
+      "",
     ],
     [
       "Luis Ramos",
@@ -157,6 +168,7 @@ export function buildUsersTemplate(options?: UserOptions): XLSX.WorkBook {
       "Recepción",
       "",
       "",
+      "Caseta2026",
     ],
   ]);
   example["!cols"] = users["!cols"];
@@ -171,6 +183,9 @@ export function buildUsersTemplate(options?: UserOptions): XLSX.WorkBook {
     [],
     [
       `Uso Horario e Idioma son opcionales: vacíos toman ${defaults.timezone} y ${languageName(defaults.language)}.`,
+    ],
+    [
+      `Contraseña es opcional (mínimo ${USER_IMPORT_MIN_PASSWORD} caracteres): con contraseña el usuario queda activo y no se le manda correo; vacía, recibe un correo para activar su cuenta.`,
     ],
   ]);
   valid["!cols"] = [{ wch: 16 }, { wch: 40 }];

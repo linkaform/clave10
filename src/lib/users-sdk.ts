@@ -91,6 +91,8 @@ export interface UserCreateRow {
   /** Vacío = el valor por defecto del backend. */
   timezone: string;
   language: string;
+  /** Opcional: con contraseña el usuario queda activo y no se manda correo. */
+  password: string;
 }
 
 export interface UserCreateResult {
