@@ -98,7 +98,7 @@ const ListaPasesContent = () => {
       )}
 
       <div className="p-6 space-y-4 pt-3 w-full">
-        <PageHeader
+        <PageHeader viewKey="pases"
           title="Historial De Pases De Entrada"
           totalRecords={total_records}
           isLoadingTotal={isLoading}

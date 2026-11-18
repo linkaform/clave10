@@ -130,7 +130,7 @@ const AreasContent = () => {
         />
       )}
       <div className="p-6 space-y-4 pt-3 w-full">
-        <PageHeader
+        <PageHeader viewKey="areas"
           title={statusParam === "disponible" ? "Áreas disponibles" : "Áreas"}
           totalRecords={totalRecordsAreas}
           isLoadingTotal={isLoading}

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
+import { AutoRefreshButton, AutoRefreshControls, useViewRefreshKey } from "./AutoRefreshControls";
 
 // Buscador avanzado por "facets": cada filtro es un chip Campo: valor(es).
 // AND entre chips, OR entre los valores de un mismo chip. Los campos los
@@ -77,6 +78,7 @@ export const FacetSearch: React.FC<FacetSearchProps> = ({
   maxChips = 4,
   className = "",
 }) => {
+  const viewKey = useViewRefreshKey();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -386,6 +388,7 @@ export const FacetSearch: React.FC<FacetSearchProps> = ({
             <X size={16} />
           </button>
         )}
+        {viewKey && <AutoRefreshButton viewKey={viewKey} />}
       </div>
 
       {showOverflow && (
@@ -424,6 +427,11 @@ export const FacetSearch: React.FC<FacetSearchProps> = ({
               </div>
             ))}
           </div>
+          {viewKey && (
+            <div className="px-3.5 py-3 border-t border-slate-100">
+              <AutoRefreshControls viewKey={viewKey} />
+            </div>
+          )}
         </div>
       )}
 

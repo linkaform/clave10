@@ -3,6 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
 import debounce from "lodash.debounce";
+import { useViewRefresh } from "@/hooks/common/useViewRefresh";
+import { ViewRefreshProvider } from "./AutoRefreshControls";
 
 interface PageHeaderProps {
   title: string;
@@ -13,6 +15,12 @@ interface PageHeaderProps {
   /** Si se pasa, muestra un boton de actualizar junto al contador. */
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  /**
+   * Identifica la vista: muestra el reload junto al título y el engrane de
+   * Auto-refresh (por vista) dentro del buscador. Sin `onRefresh` recarga
+   * todas las queries activas de la vista.
+   */
+  viewKey?: string;
   searchPlaceholder?: string;
   children?: React.ReactNode;
   /** Cambia este valor (ej. un contador) para limpiar el input de búsqueda desde afuera. */
@@ -31,7 +39,8 @@ export const PageHeader = ({
   onSearch,
   hideSearch = false,
   onRefresh,
-  isRefreshing = false,
+  isRefreshing,
+  viewKey,
   searchPlaceholder = "Buscar...",
   children,
   resetSignal,
@@ -40,6 +49,9 @@ export const PageHeader = ({
   hideTotal = false,
 }: PageHeaderProps) => {
   const [searchInput, setSearchInput] = useState("");
+  const view = useViewRefresh(viewKey ?? "", { onRefresh, withInterval: !!viewKey });
+  const showRefresh = !!viewKey || !!onRefresh;
+  const refreshing = isRefreshing ?? (viewKey ? view.isRefreshing : false);
 
   useEffect(() => {
     if (resetSignal !== undefined) setSearchInput("");
@@ -73,21 +85,21 @@ export const PageHeader = ({
             )}
           </span>
         )}
-        {onRefresh && (
+        {showRefresh && (
           <button
             type="button"
             title="Actualizar"
-            onClick={onRefresh}
-            disabled={isRefreshing}
+            onClick={() => void view.refresh()}
+            disabled={refreshing}
             className="self-center p-1 rounded-md text-slate-500 hover:text-blue-600 hover:bg-slate-100 disabled:opacity-60 transition-colors"
           >
-            <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
+            <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
           </button>
         )}
       </div>
 
       <div className={`flex flex-wrap items-center gap-3 min-w-0 ${search ? "flex-1 justify-end" : "justify-start"}`}>
-        {search}
+        {viewKey && search ? <ViewRefreshProvider viewKey={viewKey}>{search}</ViewRefreshProvider> : search}
         {!search && !hideSearch && (
         <div className="flex p-1 rounded-lg items-center border border-slate-200 w-[220px] overflow-hidden focus-within:ring-1 focus-within:ring-blue-400 focus-within:border-blue-400 bg-white transition-all">
           <Search

@@ -47,8 +47,6 @@ export const useBitacoras = (
       desglose,
     ],
     enabled: enableList,
-    refetchInterval: 60000,
-    refetchIntervalInBackground: true,
     queryFn: async () => {
       const data = await getListBitacora(
         location,
