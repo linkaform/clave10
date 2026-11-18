@@ -43,8 +43,8 @@ export type DayDetail = {
   tolerancia_retardo?: number | null;
 };
 
-// Miniatura que sube LinkaForm junto con cada foto: misma URL con extensión .thumbnail
-export const thumbUrl = (url?: string) => url?.replace(/\.[a-zA-Z0-9]+$/, ".thumbnail");
+// Movido a components/shared/fotos; se reexporta para no cambiar los imports de asistencias.
+export { thumbUrl } from "../../components/shared/fotos";
 
 export type Jornada = {
   nombre: string;
