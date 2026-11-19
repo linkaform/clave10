@@ -48,7 +48,7 @@ export default function WorkflowLogsPage() {
         filtersConfig={filtersConfig}
       />
       <div className="p-6 space-y-4 pt-3 w-full">
-        <PageHeader title="Logs de workflows"
+        <PageHeader viewKey="workflow-logs" title="Logs de workflows"
           hideTotal
           hideSearch
           onRefresh={() => refetch()}

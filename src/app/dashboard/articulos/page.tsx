@@ -255,7 +255,7 @@ const ArticulosContent = () => {
       )}
       <div className="flex flex-col">
         <div className="p-3 w-full mx-auto">
-          <PageHeader
+          <PageHeader viewKey={`articulos-${selectedTab}`}
             title={TAB_TITLES[selectedTab] || "Artículos"}
             // Las tres pestañas paginan en el back: el total es el de la
             // consulta, no lo que trae la página actual.

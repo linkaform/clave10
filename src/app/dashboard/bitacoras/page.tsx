@@ -87,7 +87,7 @@ const BitacorasContent = () => {
         />
       )}
       <div className="p-6 space-y-4 pt-3 w-full">
-          <PageHeader
+          <PageHeader viewKey="bitacoras" onRefresh={refreshData}
           title="Bitácora de Entradas & Salidas"
           totalRecords={listBitacoras?.total_records || 0}
           isLoadingTotal={isLoadingListBitacoras}

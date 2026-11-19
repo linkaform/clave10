@@ -484,7 +484,7 @@ export default function BitacorasTransportistasPage() {
   return (
     <div className={cn("flex flex-col", viewMode === "kanban" ? "overflow-hidden" : "overflow-y-auto")} style={{ height: "calc(100vh - 57px)" }}>
       <div className="px-6 border-b border-gray-100 shrink-0">
-        <PageHeader
+        <PageHeader viewKey="bitacoras_transportistas"
           title="Bitácoras Transportistas"
           totalRecords={isKanban ? records.length : pagination.total_records}
           search={

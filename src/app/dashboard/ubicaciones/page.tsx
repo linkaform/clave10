@@ -120,7 +120,7 @@ const UbicacionesContent = () => {
         />
       )}
       <div className="p-6 space-y-4 pt-3 w-full">
-        <PageHeader
+        <PageHeader viewKey="ubicaciones"
           title="Ubicaciones"
           totalRecords={totalRecords}
           isLoadingTotal={isLoading}
