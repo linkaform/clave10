@@ -223,7 +223,7 @@ export const ocrAccesoTransportista = async (
 };
 
 // Nota de voz -> texto, para la descripción de incidencias (lkf-sanic-apps,
-// accesos/transcribir_audio). Regresa el texto o lanza un Error con el motivo.
+// accesos/transcribir_audio). Regresa el texto o lanza un Error con el motivo..
 export const transcribirAudio = async (audio_source: string): Promise<string> => {
   const result = await apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
     script_name: "ocr_docs_sdk.py",

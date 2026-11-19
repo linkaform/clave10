@@ -83,6 +83,12 @@ const config: Config = {
   				'meta': 'var(--c10-meta)',
   				'faint': 'var(--c10-faint)',
   				'grip': 'var(--c10-grip)',
+  				'acc': 'var(--c10-acc)',
+  				'acc-h': 'var(--c10-acc-h)',
+  				'acc-l': 'var(--c10-acc-l)',
+  				'acc-subtle': 'var(--c10-acc-s)',
+  				'acc-border': 'var(--c10-acc-b)',
+  				'acc-m': 'var(--c10-acc-m)',
   			},
   			card: {
   				DEFAULT: 'hsl(var(--card))',

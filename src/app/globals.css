@@ -126,6 +126,59 @@ body {
   }
 }
 
+/* Acento de Contratistas (F0-03): azul propio, naranja contratista, violeta
+   cliente. Se aplica con data-c10-acc en el contenedor de la pantalla, no en
+   <html>, para que no se filtre a otras pantallas. Usar bg-c10-acc,
+   text-c10-acc, bg-c10-acc-subtle… nunca el azul fijo. */
+:root, [data-c10-acc="propio"] {
+  --c10-acc: #2F80ED;          /* botón, pestaña activa, ícono */
+  --c10-acc-h: #1E6FDB;        /* hover */
+  --c10-acc-l: #DBEAFE;        /* chip, fondo de ícono */
+  --c10-acc-s: #EFF6FF;        /* fondo activo sutil */
+  --c10-acc-b: #BFDBFE;        /* borde */
+  --c10-acc-m: #93C5FD;        /* medio: anillos, barras */
+}
+[data-c10-acc="ctr"] {
+  --c10-acc: #EA580C;
+  --c10-acc-h: #C2410C;
+  --c10-acc-l: #FFEDD5;
+  --c10-acc-s: #FFF7ED;
+  --c10-acc-b: #FED7AA;
+  --c10-acc-m: #FDBA74;
+}
+[data-c10-acc="cli"] {
+  --c10-acc: #7C3AED;
+  --c10-acc-h: #6D28D9;
+  --c10-acc-l: #EDE9FE;
+  --c10-acc-s: #F5F3FF;
+  --c10-acc-b: #DDD6FE;
+  --c10-acc-m: #C4B5FD;
+}
+.dark, .dark [data-c10-acc="propio"] {
+  --c10-acc: #4C93F0;
+  --c10-acc-h: #6AA6F3;
+  --c10-acc-l: #1B3560;
+  --c10-acc-s: #16284A;
+  --c10-acc-b: #24477F;
+  --c10-acc-m: #3B6FB8;
+}
+.dark [data-c10-acc="ctr"] {
+  --c10-acc: #F97316;
+  --c10-acc-h: #FB923C;
+  --c10-acc-l: #4A2512;
+  --c10-acc-s: #2E1A10;
+  --c10-acc-b: #7C3A16;
+  --c10-acc-m: #B4541F;
+}
+.dark [data-c10-acc="cli"] {
+  --c10-acc: #A78BFA;
+  --c10-acc-h: #C4B5FD;
+  --c10-acc-l: #33255E;
+  --c10-acc-s: #221A40;
+  --c10-acc-b: #4C3A8A;
+  --c10-acc-m: #7C5FD0;
+}
+
 @layer base {
   .dark {
     color-scheme: dark;
