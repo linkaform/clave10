@@ -21,17 +21,17 @@ export type CovFilter = "all" | "f" | "ok";
 
 export type CovLocation = { ubicacion: string; rows: PlantillaRow[]; plazas: Plaza[] };
 
-// Ubicaciones con las casetas del turno elegido
+// Ubicaciones con las casetas del turno elegido; las que no tienen plantilla salen siempre, con quién entró
 export const coverageLocations = (rows: PlantillaRow[], turno: string | undefined, fecha: string): CovLocation[] => {
   const m = new Map<string, PlantillaRow[]>();
-  rows.filter(r => !turno || turnoKey(r) === turno).forEach(r => m.set(r.ubicacion, [...(m.get(r.ubicacion) ?? []), r]));
+  rows.filter(r => r.sin_plantilla || !turno || turnoKey(r) === turno).forEach(r => m.set(r.ubicacion, [...(m.get(r.ubicacion) ?? []), r]));
   return Array.from(m.entries())
     .map(([ubicacion, rs]) => ({
       ubicacion,
       rows: rs.slice().sort((a, b) => a.caseta.localeCompare(b.caseta, "es", { numeric: true })),
       plazas: plazasDe(rs, fecha),
     }))
-    .filter(l => l.plazas.length > 0)
+    .filter(l => l.plazas.length > 0 || l.rows.some(r => r.sin_plantilla))
     .sort((a, b) => a.ubicacion.localeCompare(b.ubicacion, "es"));
 };
 
@@ -51,6 +51,8 @@ const CountPill = ({ label, plazas, extras, total, onClick, title }: {
   label: string; plazas: Plaza[]; extras: PlantillaRow["dias"][number]["extras"]; total?: boolean; onClick: () => void; title: string;
 }) => {
   const r = resumenPlazas(plazas);
+  // Sin plantilla no hay plazas que contar: solo cuántos entraron
+  const sinPlazas = !r.total;
   return (
     <button
       type="button"
@@ -59,8 +61,14 @@ const CountPill = ({ label, plazas, extras, total, onClick, title }: {
       className={`inline-flex h-7 items-center gap-1.5 rounded-full border border-c10-line pl-2.5 pr-1 text-xs transition-colors hover:border-button-primary ${total ? "bg-c10-panel font-semibold text-c10-title" : "bg-c10-surface font-medium text-c10-label"}`}
     >
       {label}
-      <span className={`inline-flex h-5 items-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${tone(plazas)}`}>{r.entradas} de {r.total}</span>
-      {extras.length > 0 && (
+      {sinPlazas ? (
+        <span className="inline-flex h-5 items-center rounded-full bg-c10-blue-light px-1.5 text-[11px] font-semibold tabular-nums text-c10-label">
+          {extras.length} {extras.length === 1 ? "presente" : "presentes"}
+        </span>
+      ) : (
+        <span className={`inline-flex h-5 items-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${tone(plazas)}`}>{r.entradas} de {r.total}</span>
+      )}
+      {!sinPlazas && extras.length > 0 && (
         <span
           title={`Otros en la caseta (no cubren plaza):\n${extras.map(e => `${e.guardia} · ${e.roles?.length ? e.roles.join(", ") : "sin rol"}`).join("\n")}`}
           className="inline-flex h-5 items-center rounded-full bg-slate-100 px-1.5 text-[11px] font-semibold tabular-nums text-slate-600"
@@ -102,19 +110,25 @@ export const CoverageView = ({ locations, fecha, turnoLabel, quick, onOpen }: {
     <div className="columns-1 gap-0 p-0 [column-rule:1px_solid_var(--c10-line)] min-[900px]:columns-2">
       {locations.map(l => (
         <section key={l.ubicacion} className="flex break-inside-avoid flex-col gap-2.5 border-b border-c10-line px-4 py-3.5">
-          <h3 className="m-0 text-[13px] font-semibold text-c10-title">{l.ubicacion}</h3>
+          <h3 className="m-0 flex items-center gap-2 text-[13px] font-semibold text-c10-title">
+            {l.ubicacion}
+            {!l.plazas.length && <span className="rounded-full bg-c10-sunken px-2 py-0.5 text-[11px] font-medium text-c10-meta">Sin plantilla</span>}
+          </h3>
+          {!l.plazas.length && !extrasDe(l.rows, fecha).length ? (
+            <span className="text-xs text-c10-meta">Nadie ha entrado.</span>
+          ) : (
           <div className="flex flex-wrap gap-1.5">
-            {l.rows.map(r => (
+            {l.rows.filter(r => !r.sin_plantilla || extrasDe([r], fecha).length).map(r => (
               <CountPill
-                key={r.caseta}
-                label={r.caseta}
+                key={`${r.caseta}|${r.sin_plantilla ? "sp" : r.horario}`}
+                label={r.caseta || "Sin caseta"}
                 plazas={plazasDe([r], fecha)}
                 extras={extrasDe([r], fecha)}
                 title={`${l.ubicacion} · ${r.caseta}`}
-                onClick={() => onOpen({ title: r.caseta, subtitle: plazasSubtitle(l.ubicacion, fecha, turnoLabel), fecha, rows: [r] })}
+                onClick={() => onOpen({ title: r.caseta || l.ubicacion, subtitle: plazasSubtitle(l.ubicacion, fecha, r.sin_plantilla ? undefined : turnoLabel), fecha, rows: [r] })}
               />
             ))}
-            {l.rows.length > 1 && (
+            {l.rows.filter(r => !r.sin_plantilla || extrasDe([r], fecha).length).length > 1 && (
               <CountPill
                 total
                 label="Total"
@@ -125,7 +139,8 @@ export const CoverageView = ({ locations, fecha, turnoLabel, quick, onOpen }: {
               />
             )}
           </div>
-          <PlazaBar plazas={l.plazas} quick={quick} />
+          )}
+          {l.plazas.length > 0 && <PlazaBar plazas={l.plazas} quick={quick} />}
         </section>
       ))}
     </div>

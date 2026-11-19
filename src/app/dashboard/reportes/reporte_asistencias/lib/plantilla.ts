@@ -30,6 +30,8 @@ export type PlantillaRow = {
   hora_entrada: string;
   hora_salida: string;
   tolerancia_retardo: number;
+  // Caseta (o ubicación, si caseta viene vacía) sin plantilla para el día: sin plazas, solo quién entró en "extras"
+  sin_plantilla?: boolean;
   dias: PlantillaDia[];
 };
 
@@ -69,7 +71,7 @@ export const turnoActual = (rows: PlantillaRow[], now = new Date()) => {
     const [h, m] = v.split(":").map(Number);
     return h * 60 + (m || 0);
   };
-  const turnos = Array.from(new Map(rows.map(r => [turnoKey(r), r])).values())
+  const turnos = Array.from(new Map(rows.filter(r => !r.sin_plantilla).map(r => [turnoKey(r), r])).values())
     .sort((a, b) => a.hora_entrada.localeCompare(b.hora_entrada));
   const cur = turnos.find(t => {
     if (!t.hora_entrada || !t.hora_salida) return false;

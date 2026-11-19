@@ -183,7 +183,7 @@ const ReportPage = () => {
     dateTo: fecha,
   });
   const covTurnos = useMemo(
-    () => Array.from(new Map(plantilla.map(r => [turnoKey(r), r])).values()).sort((a, b) => a.hora_entrada.localeCompare(b.hora_entrada) || a.horario.localeCompare(b.horario)),
+    () => Array.from(new Map(plantilla.filter(r => !r.sin_plantilla).map(r => [turnoKey(r), r])).values()).sort((a, b) => a.hora_entrada.localeCompare(b.hora_entrada) || a.horario.localeCompare(b.horario)),
     [plantilla]
   );
   const covTurnoRow = covTurnos.find(t => turnoKey(t) === covTurno) ?? turnoActual(plantilla);
@@ -192,7 +192,7 @@ const ReportPage = () => {
     const rows = plantilla.filter(r =>
       inLoc(r.ubicacion) &&
       (!fCas.length || fCas.includes(`${r.ubicacion} · ${r.caseta}`)) &&
-      (matches(`${r.ubicacion} ${r.caseta}`, search) || r.dias.some(d => d.plazas.some(p => matches(p.guardia, search))))
+      (matches(`${r.ubicacion} ${r.caseta}`, search) || r.dias.some(d => d.plazas.some(p => matches(p.guardia, search)) || d.extras.some(e => matches(e.guardia, search))))
     );
     return coverageLocations(rows, covKey, fecha);
   }, [plantilla, inLoc, fCas, search, covKey, fecha]);
