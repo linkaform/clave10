@@ -115,22 +115,30 @@ export const galleryToDay = (r: Raw): { employee: EmployeeAttendance; fecha: str
   };
 };
 
-export const GalleryView = ({ dateFrom, dateTo, search, locations, ubicaciones = [], onOpen }: {
-  dateFrom: string; dateTo: string; search: string; locations: boolean; ubicaciones?: string[]; onOpen: (r: Raw) => void;
+// userIds: empleados que pasan los filtros del panel (undefined = sin filtro, [] = ninguno).
+// waiting: los filtros dependen del reporte y aún no llega.
+export const GalleryView = ({ dateFrom, dateTo, search, locations, ubicaciones = [], userIds, waiting = false, onOpen }: {
+  dateFrom: string; dateTo: string; search: string; locations: boolean; ubicaciones?: string[];
+  userIds?: number[]; waiting?: boolean; onOpen: (r: Raw) => void;
 }) => {
   const [size, setSize] = useState(25);
   const [page, setPage] = useState(1);
-  useEffect(() => setPage(1), [dateFrom, dateTo, size]);
+  const idsKey = userIds?.join(",");
+  useEffect(() => setPage(1), [dateFrom, dateTo, size, idsKey]);
+  const noMatch = !!userIds && !userIds.length;
 
-  const { attendanceData, pagination, isLoadingAttendance, errorAttendance, refetchAttendance } = useAttendanceData({
+  const { attendanceData, pagination, isLoadingAttendance: loadingData, errorAttendance, refetchAttendance } = useAttendanceData({
+    enabled: !waiting && !noMatch,
     dateFrom,
     dateTo,
     limit: size,
     offset: (page - 1) * size,
+    userIds,
   });
+  const isLoadingAttendance = waiting || (!noMatch && loadingData);
   const records = useMemo(
-    () => (attendanceData as Raw[]).filter(r => (!ubicaciones.length || ubicaciones.includes(r.attendance_location)) && matches(`${r.attendance_name ?? ""} ${r.attendance_location ?? ""} ${r.attendance_area ?? ""}`, search)),
-    [attendanceData, search, ubicaciones],
+    () => noMatch ? [] : (attendanceData as Raw[]).filter(r => (!ubicaciones.length || ubicaciones.includes(r.attendance_location)) && matches(`${r.attendance_name ?? ""} ${r.attendance_location ?? ""} ${r.attendance_area ?? ""}`, search)),
+    [attendanceData, search, ubicaciones, noMatch],
   );
 
   if (errorAttendance) {
