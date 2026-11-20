@@ -22,6 +22,7 @@ import { useFacetSection } from "@/hooks/common/useFacetSection";
 
 type ViewMode = "table" | "grid";
 
+//adsdad
 const ListaPasesPage = () => {
   return (
     <React.Suspense fallback={<div>Cargando...</div>}>
