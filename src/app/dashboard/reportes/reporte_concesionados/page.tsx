@@ -13,10 +13,12 @@ import { descargarExcel } from "../components/shared/excel";
 import { MultiCombo } from "../components/shared/filtros/MultiCombo";
 import { QuickFilters, QuickPill } from "../components/shared/filtros/QuickFilters";
 import { EcoPanel, EcoRail } from "../components/concesionados/EcoPanel";
+import { DetallePanel } from "../components/concesionados/DetallePanel";
 import { useReporteConcesionados } from "./lib/api";
 import { Calc, QI, QUICK, SER, filtrarTabla } from "./lib/cards";
 import { Prestamo, VLBL, Vista, addDias, corte, enriquecer, n, paso, periodo, sod, uniq } from "./lib/core";
 import { resumen } from "./lib/resumen";
+import { PanelSel, panelSpec } from "./lib/paneles";
 import { articulos, economico, forzadas, guardias, solicitantes } from "./lib/tabs";
 
 type Tab = "resumen" | "guardias" | "solicitantes" | "articulos" | "forzadas" | "economico";
@@ -183,10 +185,13 @@ const ReporteConcesionadosPage = () => {
   const filtrar = (omit?: FKey) => rows.filter(r =>
     usa.every(k => k === omit || k === "guardia" || !f[k].length || FDEF[k].campo(r).some(v => f[k].includes(v))));
 
-  const R: Calc = useMemo(() => {
+  const multi = useMemo(() => (selectedLocations.length ? selectedLocations : uniq(rows.map(r => r.ubicacion))).length > 1, [rows, selectedLocations]);
+  const { base, c } = useMemo(() => {
     const base = rows.filter(r => usa.every(k => k === "guardia" || !f[k].length || FDEF[k].campo(r).some(v => f[k].includes(v))));
-    const c = corte(base, p, usa.includes("guardia") ? f.guardia : []);
-    const multi = (selectedLocations.length ? selectedLocations : uniq(rows.map(r => r.ubicacion))).length > 1;
+    return { base, c: corte(base, p, usa.includes("guardia") ? f.guardia : []) };
+  }, [rows, usa, f, p]);
+
+  const R: Calc = useMemo(() => {
     switch (tab) {
       case "resumen": return resumen(c, multi);
       case "guardias": return guardias(c, f.guardia, multi);
@@ -198,7 +203,12 @@ const ReporteConcesionadosPage = () => {
       }
       case "economico": return economico(c, multi);
     }
-  }, [rows, usa, f, p, tab, agrupar, quick, d0, selectedLocations]);
+  }, [base, c, multi, f, tab, agrupar, quick, d0]);
+
+  // Panel de detalle: se recalcula con el periodo y los filtros actuales (lib/paneles.ts)
+  const [panel, setPanel] = useState<PanelSel | null>(null);
+  const spec = useMemo(() => (panel ? panelSpec(panel, c, multi) : null), [panel, c, multi]);
+  useEffect(() => setPanel(null), [tab]);
 
   // Opciones de cada filtro: lo que hubo en el periodo con los demás filtros aplicados
   const opciones = (k: FKey) => {
@@ -376,7 +386,7 @@ const ReporteConcesionadosPage = () => {
 
         <main className="flex min-w-0 flex-1 flex-col gap-4">
           {graficas ? (
-            R.graf.map(cd => <ChartCard key={cd.title} card={cd} act={act} quick={keys} />)
+            R.graf.map(cd => <ChartCard key={cd.title} card={cd} act={act} quick={keys} onSelect={(sel, serie) => setPanel({ sel, serie })} />)
           ) : (
             <ReportTable
               tablas={tablas}
@@ -387,6 +397,7 @@ const ReporteConcesionadosPage = () => {
             />
           )}
         </main>
+        {spec && <DetallePanel spec={spec} onClose={() => setPanel(null)} />}
         {graficas && R.eco && (ecoOpen ? <EcoPanel eco={R.eco} label={p.label} onClose={() => setEcoOpen(false)} /> : <EcoRail onOpen={() => setEcoOpen(true)} />)}
       </div>
     </div>

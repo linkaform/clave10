@@ -49,6 +49,7 @@ interface ArticuloData {
   persona_nombre_otro?: string;
   persona_email_otro?: string;
   persona_identificacion_otro?: Imagen[];
+  empresa_concesion?: string;
   fecha_concesion?: string;
   equipos?: EquipoConcesionado[];
   observacion_concesion?: string;
@@ -81,6 +82,10 @@ export const equipoSchema = z.object({
   cantidad_equipo_concesion: z.number(),
   evidencia_prestamo: z.array(imagenSchema).optional(),
   comentario_prestamo: z.string().optional(),
+  // Horas para regresarlo (del catálogo) y fecha límite si el guardia la cambió ("yyyy-MM-dd HH:mm:ss").
+  // Sin fecha límite, el back la calcula con la fecha de la concesión + plazo.
+  plazo_devolucion: z.number().optional(),
+  fecha_limite_devolucion: z.string().optional(),
 });
 
 const formSchema = z.object({
@@ -92,6 +97,7 @@ const formSchema = z.object({
   persona_email_concesion: z.union([z.string(), z.array(z.string())]).optional(),
   persona_id_concesion: z.union([z.number(), z.array(z.number())]).optional(),
   persona_nombre_otro: z.string().optional(),
+  empresa_concesion: z.string().optional(),
   persona_email_otro: z.string().optional(),
   persona_identificacion_otro: z.array(imagenSchema).min(1, { message: "La identificación es obligatoria, por favor sube una imagen" }),
   fecha_concesion: z.string().optional(),
@@ -141,6 +147,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
       persona_email_concesion: "",
       persona_id_concesion: undefined,
       persona_nombre_otro: "",
+      empresa_concesion: "",
       persona_email_otro: "",
       persona_identificacion_otro: [],
       fecha_concesion: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
@@ -173,6 +180,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
           persona_email_concesion: initialData.persona_email_concesion || "",
           persona_id_concesion: initialData.persona_id_concesion || undefined,
           persona_nombre_otro: initialData.persona_nombre_otro || "",
+          empresa_concesion: initialData.empresa_concesion || "",
           persona_email_otro: initialData.persona_email_otro || "",
           persona_identificacion_otro: initialData.persona_identificacion_otro || [],
           fecha_concesion: initialData.fecha_concesion || "",
@@ -196,6 +204,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
           persona_email_concesion: "",
           persona_id_concesion: undefined,
           persona_nombre_otro: "",
+          empresa_concesion: "",
           persona_email_otro: "",
           persona_identificacion_otro: [],
           fecha_concesion: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
@@ -243,6 +252,10 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
         observacion_concesion: values.observacion_concesion ?? "",
         evidencia: values.evidencia ?? [],
         firma: values.firma ?? undefined,
+        // Solo visitantes; a los empleados el back les pone la empresa de la cuenta
+        ...(values.solicita_concesion === "otro" && values.empresa_concesion?.trim()
+          ? { empresa_concesion: values.empresa_concesion.trim() }
+          : {}),
       };
       if (mode === "edit") {
         editarArticulosConMutation.mutate({ data_article_update: formatData, folio: "" });
@@ -571,6 +584,24 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                     />
                   )}
 
+                  {tipoCon === "otro" && (
+                    <FormField
+                      control={form.control}
+                      name="empresa_concesion"
+                      render={({ field }: any) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Empresa
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="Empresa de la persona" className="bg-white border-gray-200" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
                   {tipoCon === "empleado" && (
                     <FormField
                       control={form.control}
@@ -603,7 +634,7 @@ export const AddArticuloConModal: React.FC<AddFallaModalProps> = ({
                   <Package className="text-blue-500 w-5 h-5" />
                   <h3 className="font-semibold text-gray-700">Equipos</h3>
                 </div>
-                <TabDatos equipos={equipos} setEquipos={setEquipos} mode={"editar"} from={"nueva_concesion"} dataConcesion={initialData} />
+                <TabDatos equipos={equipos} setEquipos={setEquipos} mode={"editar"} from={"nueva_concesion"} dataConcesion={{ ...initialData, fecha_concesion: form.watch("fecha_concesion") }} />
                 {form.formState.errors.equipos && (
                   <p className="text-sm text-red-500 mt-2">{form.formState.errors.equipos.message}</p>
                 )}

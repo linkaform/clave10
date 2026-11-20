@@ -19,6 +19,7 @@ import { dateToString, ViewMode } from "@/lib/utils";
 import { useBoothStore } from "@/store/useBoothStore";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { AddArticuloConModal } from "@/components/modals/add-article.con";
+import { DetalleDeLaConcesion } from "@/components/modals/concesionados-detalle-de-la-concesion";
 import { PageHeader } from "@/components/common/PageHeader";
 import { FacetSearch } from "@/components/common/FacetSearch";
 import { useFacetSection } from "@/hooks/common/useFacetSection";
@@ -60,6 +61,7 @@ const ArticulosContent = () => {
   const tabParam = searchParams.get("tab");
   const actionParam = searchParams.get("action");
   const statusParam = searchParams.get("status");
+  const folioParam = searchParams.get("folio");
   const [viewMode, setViewMode] = useState<ViewMode>("photos");
   const { location } = useBoothStore();
   const [ubicacionSeleccionada] = useState(location || "Planta Monterrey");
@@ -165,6 +167,27 @@ const ArticulosContent = () => {
     if (selectedTab === "Perdidos") setStatusPerdidos(currentStatus);
     if (selectedTab === "Concecionados") setStatusConcesionados(currentStatus);
   }, [statusParam, selectedTab]);
+
+  // Enlace directo a una concesión (?tab=articulos_concesionados&folio=…, lo usa el reporte
+  // de concesionados): filtra la bitácora por ese folio y abre su detalle en cuanto llega.
+  // El filtro queda como chip para que se pueda quitar.
+  const [folioAbierto, setFolioAbierto] = useState<string | null>(null);
+  useEffect(() => {
+    if (!folioParam) return;
+    con.setFacets([{ key: "folio", values: [folioParam], exact: true }]);
+    setFolioAbierto(folioParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folioParam]);
+  const concesionDelEnlace = folioAbierto
+    ? (listArticulosCon?.records ?? []).find((r: any) => r?.folio === folioAbierto)
+    : undefined;
+  const cerrarConcesionDelEnlace = (open: boolean) => {
+    if (open) return;
+    setFolioAbierto(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("folio");
+    router.replace(`${pathname}?${params.toString()}`);
+  };
 
   const handleOpenChange = (value: React.SetStateAction<boolean>) => {
     const open = typeof value === "function" ? value(isSuccess) : value;
@@ -413,6 +436,9 @@ const ArticulosContent = () => {
         initialData={{}}>
         <div />
       </AddArticuloConModal>
+      {concesionDelEnlace && (
+        <DetalleDeLaConcesion data={concesionDelEnlace} open onOpenChange={cerrarConcesionDelEnlace} />
+      )}
       <AddPaqueteriaModal
         title="Crear Paquetería"
         isSuccess={isSuccessPaq}

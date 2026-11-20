@@ -1,4 +1,5 @@
-import { Box, Calendar, Eye, RotateCcw, User, Zap } from "lucide-react";
+import { AlertTriangle, Box, Calendar, CheckCircle2, Eye, RotateCcw, ShieldCheck, User, XCircle, Zap } from "lucide-react";
+import { campoConcesion } from "@/lib/concesionados-campos";
 import { useEffect, useState } from "react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { VerDetalleDevolucion } from "./modals/concesionados-ver-detalle-devolucion";
@@ -31,6 +32,26 @@ const TextoTruncado = ({ text }: { text: string }) => {
     >
       {span}
     </Tooltip>
+  );
+};
+
+const chip = "flex items-center gap-1 whitespace-nowrap text-xs font-semibold border px-2.5 py-1 rounded-full";
+
+// Estado en que regresó el equipo: Completo / Dañado / Perdido
+const ESTADOS: Record<string, { t: string; cls: string; Icon: typeof CheckCircle2 }> = {
+  completo: { t: "Completo", cls: "bg-green-50 text-green-700 border-green-200", Icon: CheckCircle2 },
+  danado: { t: "Dañado", cls: "bg-yellow-50 text-yellow-700 border-yellow-200", Icon: AlertTriangle },
+  perdido: { t: "Perdido", cls: "bg-red-50 text-red-600 border-red-200", Icon: XCircle },
+};
+const EstadoChip = ({ estado }: { estado?: string }) => {
+  const clave = (estado ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const e = ESTADOS[clave];
+  if (!e) return null;
+  return (
+    <span className={`${chip} ${e.cls}`}>
+      <e.Icon className="w-3.5 h-3.5" />
+      {e.t}
+    </span>
   );
 };
 
@@ -84,16 +105,26 @@ export const HistorialDevolucionesList: React.FC<HistorialDevolucionesListProps>
                   <TextoTruncado text={devItem.quien_entrega || "-"} />
                 </div>
               </div>
+              {campoConcesion(devItem, "recibio_devolucion") && (
+                <div className="flex items-center gap-2 min-w-0">
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
+                  <span className="text-xs text-gray-500 flex-shrink-0">Recibió:</span>
+                  <div className="min-w-0 flex-1">
+                    <TextoTruncado text={campoConcesion(devItem, "recibio_devolucion")} />
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <EstadoChip estado={devItem.estatus_equipo} />
               {["sí", "si"].includes(devItem.se_forzo_devolucion ?? "") && (
-                <span className="flex items-center gap-1 text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200 px-2.5 py-1 rounded-full">
+                <span className={`${chip} bg-orange-50 text-orange-700 border-orange-200`}>
                   <Zap className="w-3.5 h-3.5" />
                   Forzada
                 </span>
               )}
-              <span className="flex items-center gap-1 text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full">
+              <span className={`${chip} bg-purple-50 text-purple-700 border-purple-200`}>
                 <Box className="w-3.5 h-3.5" />
                 {(() => {
                   const unidades = devItem.cantidad_devolucion?.parsedValue ?? devItem.cantidad_devolucion ?? "-";
@@ -102,11 +133,12 @@ export const HistorialDevolucionesList: React.FC<HistorialDevolucionesListProps>
               </span>
               <button
                 type="button"
+                title="Ver detalle de la devolución"
                 onClick={() => {
                   setDevolucionSeleccionada(devItem);
                   setVerDevolucionModal(true);
                 }}
-                className="text-blue-400 hover:text-blue-600 transition-colors"
+                className="ml-1 text-blue-400 hover:text-blue-600 transition-colors"
               >
                 <Eye className="w-4 h-4" />
               </button>
