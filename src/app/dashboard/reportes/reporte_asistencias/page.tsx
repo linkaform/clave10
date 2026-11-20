@@ -183,7 +183,7 @@ const ReportPage = () => {
     dateTo: fecha,
   });
   const covTurnos = useMemo(
-    () => Array.from(new Map(plantilla.map(r => [turnoKey(r), r])).values()).sort((a, b) => a.hora_entrada.localeCompare(b.hora_entrada) || a.horario.localeCompare(b.horario)),
+    () => Array.from(new Map(plantilla.filter(r => !r.sin_plantilla).map(r => [turnoKey(r), r])).values()).sort((a, b) => a.hora_entrada.localeCompare(b.hora_entrada) || a.horario.localeCompare(b.horario)),
     [plantilla]
   );
   const covTurnoRow = covTurnos.find(t => turnoKey(t) === covTurno) ?? turnoActual(plantilla);
@@ -192,7 +192,7 @@ const ReportPage = () => {
     const rows = plantilla.filter(r =>
       inLoc(r.ubicacion) &&
       (!fCas.length || fCas.includes(`${r.ubicacion} · ${r.caseta}`)) &&
-      (matches(`${r.ubicacion} ${r.caseta}`, search) || r.dias.some(d => d.plazas.some(p => matches(p.guardia, search))))
+      (matches(`${r.ubicacion} ${r.caseta}`, search) || r.dias.some(d => d.plazas.some(p => matches(p.guardia, search)) || d.extras.some(e => matches(e.guardia, search))))
     );
     return coverageLocations(rows, covKey, fecha);
   }, [plantilla, inLoc, fCas, search, covKey, fecha]);
@@ -265,6 +265,13 @@ const ReportPage = () => {
   }, [isEmployees, locEmployees, locShifts, fechas]);
 
   const activeFilters = isEmployees ? fEmp.length + fDep.length + fJor.length + fRol.length : fGua.length + fCas.length;
+  // Galería: el back filtra por id los empleados que pasan los filtros del panel (paginación en el servidor).
+  // El texto libre y las ubicaciones los sigue aplicando la galería.
+  const galleryUserIds = useMemo(() => {
+    if (!isEmployees || !activeFilters) return undefined;
+    const exactFacets = facets.filter(f => f.exact);
+    return allEmployees.filter(e => passFacets(employeeValues(e, fechas), exactFacets)).map(e => e.employee_id).sort((x, y) => x - y);
+  }, [isEmployees, activeFilters, facets, allEmployees, fechas]);
   const clearFilters = () => {
     setFacets([]); setQuick([]); setCovFilter("all");
     setPrevView(null);
@@ -310,7 +317,7 @@ const ReportPage = () => {
 
   // ───── Contenido ─────
   const renderView = () => {
-    if (mode === "gallery") return <div className="p-3"><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} ubicaciones={selectedLocations} onOpen={r => setDaySelection(withEmployeeData(galleryToDay(r)))} /></div>;
+    if (mode === "gallery") return <div className="p-3"><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} ubicaciones={selectedLocations} userIds={galleryUserIds} waiting={!!galleryUserIds && isLoading} onOpen={r => setDaySelection(withEmployeeData(galleryToDay(r)))} /></div>;
     if (isCov) {
       if (isLoadingPlantilla) return <div className="p-3"><ReportSkeleton variant="cards" /></div>;
       if (errorPlantilla) {

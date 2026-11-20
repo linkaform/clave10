@@ -44,7 +44,7 @@ export default function UsuariosPage() {
   return (
     <div className="w-full relative">
       <div className="p-6 space-y-4 pt-3 w-full">
-        <PageHeader
+        <PageHeader viewKey="users"
           title="Usuarios"
           totalRecords={users.total_records}
           isLoadingTotal={isLoading}

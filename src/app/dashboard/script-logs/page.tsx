@@ -48,7 +48,7 @@ export default function ScriptLogsPage() {
         filtersConfig={filtersConfig}
       />
       <div className="p-6 space-y-4 pt-3 w-full">
-        <PageHeader
+        <PageHeader viewKey="script-logs"
           title="Logs de scripts"
           hideTotal
           hideSearch

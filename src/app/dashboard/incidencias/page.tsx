@@ -206,7 +206,7 @@ const IncidenciasPage = () => {
       )}
       <div className="flex flex-col">
         <div className="p-3 w-full mx-auto">
-          <PageHeader
+          <PageHeader viewKey={`incidencias-${selectedTab}`}
             title={titulo}
             totalRecords={current.list?.total_records ?? 0}
             isLoadingTotal={current.loading}

@@ -2,7 +2,7 @@ import React from "react";
 import { PlazaStatusIcon } from "./attendanceStatus";
 import { DrawerShell } from "./drawerParts";
 import { PlazaBar } from "./asistencia/CoverageView";
-import { Plaza, PlantillaRow, PlazasSelection, ordenPlazas, plantillaTurnoLabel, plazasDe, resumenPlazas } from "../reporte_asistencias/lib/plantilla";
+import { Plaza, PlantillaRow, PlazasSelection, extrasDe, ordenPlazas, plantillaTurnoLabel, plazasDe, resumenPlazas } from "../reporte_asistencias/lib/plantilla";
 
 const hhmm = (v?: string | null) => v?.substring(0, 5) ?? "";
 
@@ -47,6 +47,23 @@ const PlazaList = ({ row, plazas }: { row: PlantillaRow; plazas: Plaza[] }) => (
   </ul>
 );
 
+// Check-ins que no cubren plaza: extras de la plantilla o presentes en casetas sin plantilla
+const ExtrasCard = ({ title, note, extras }: { title: string; note: string; extras: PlantillaRow["dias"][number]["extras"] }) => (
+  <div className="flex flex-col gap-1 rounded-xl bg-c10-surface px-5 py-3 shadow-[0_0_0_1px_var(--c10-line-card)]">
+    <span className="pt-1 text-[13px] font-semibold text-c10-title">{title}</span>
+    <span className="pb-1 text-xs text-c10-meta">{note}</span>
+    {extras.map((e, i) => (
+      <div key={i} className="flex items-center justify-between gap-3 border-t border-c10-sunken py-2 text-[13px] first:border-t-0">
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-c10-title">{e.guardia}</span>
+          <span className={`truncate text-xs ${e.roles?.length ? "text-c10-secondary" : "text-amber-700"}`}>{e.roles?.length ? e.roles.join(", ") : "Sin rol registrado"}</span>
+        </span>
+        <span className="tabular-nums text-c10-secondary">Entrada {hhmm(e.hora)}</span>
+      </div>
+    ))}
+  </div>
+);
+
 // Panel lateral con las plazas de una caseta (o de todas las casetas de una ubicación) en un día
 export const PlazasDrawer = ({ selection, onClose }: { selection: PlazasSelection | null; onClose: () => void }) => {
   if (!selection) return null;
@@ -55,6 +72,7 @@ export const PlazasDrawer = ({ selection, onClose }: { selection: PlazasSelectio
   const r = resumenPlazas(all);
   const varias = rows.length > 1;
   const extras = rows.flatMap(row => row.dias.find(d => d.fecha === fecha)?.extras ?? []);
+  const extrasPlantilla = extrasDe(rows.filter(row => !row.sin_plantilla), fecha);
   const sum = [`${r.total} ${r.total === 1 ? "plaza programada" : "plazas programadas"}`, r.sinEntrada ? `${r.sinEntrada} sin entrada` : "", r.porLlegar ? `${r.porLlegar} por llegar` : ""]
     .filter(Boolean)
     .join(" · ");
@@ -64,12 +82,20 @@ export const PlazasDrawer = ({ selection, onClose }: { selection: PlazasSelectio
       <div className="flex flex-col gap-2 rounded-xl bg-c10-surface p-5 shadow-[0_0_0_1px_var(--c10-line-card)]">
         <div className="flex items-center justify-between gap-3">
           <h3 className="m-0 text-base font-semibold text-c10-title">Guardias del día</h3>
-          <b className={`text-sm font-semibold tabular-nums ${entradasTone(all)}`}>{r.entradas}/{r.total} entradas</b>
+          {r.total > 0
+            ? <b className={`text-sm font-semibold tabular-nums ${entradasTone(all)}`}>{r.entradas}/{r.total} entradas</b>
+            : <b className="text-sm font-semibold tabular-nums text-c10-secondary">{extras.length} {extras.length === 1 ? "presente" : "presentes"}</b>}
         </div>
-        <PlazaBar plazas={all} height={6} />
-        <span className="text-xs text-c10-secondary">{sum}</span>
+        {r.total > 0 ? (
+          <>
+            <PlazaBar plazas={all} height={6} />
+            <span className="text-xs text-c10-secondary">{sum}</span>
+          </>
+        ) : (
+          <span className="text-xs text-c10-secondary">Sin plantilla configurada: se muestra quién entró.</span>
+        )}
       </div>
-      {rows.map(row => {
+      {rows.filter(row => !row.sin_plantilla).map(row => {
         const plazas = plazasDe([row], fecha);
         return (
           <div key={`${row.caseta}|${row.horario}`} className="flex flex-col gap-1 rounded-xl bg-c10-surface px-5 py-3 shadow-[0_0_0_1px_var(--c10-line-card)]">
@@ -81,21 +107,15 @@ export const PlazasDrawer = ({ selection, onClose }: { selection: PlazasSelectio
           </div>
         );
       })}
-      {extras.length > 0 && (
-        <div className="flex flex-col gap-1 rounded-xl bg-c10-surface px-5 py-3 shadow-[0_0_0_1px_var(--c10-line-card)]">
-          <span className="pt-1 text-[13px] font-semibold text-c10-title">Extras / otros</span>
-          <span className="pb-1 text-xs text-c10-meta">Entraron con otro rol o sin rol, o ya no había plaza; no cubren plazas de la plantilla.</span>
-          {extras.map((e, i) => (
-            <div key={i} className="flex items-center justify-between gap-3 border-t border-c10-sunken py-2 text-[13px] first:border-t-0">
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate text-c10-title">{e.guardia}</span>
-                <span className={`truncate text-xs ${e.roles?.length ? "text-c10-secondary" : "text-amber-700"}`}>{e.roles?.length ? e.roles.join(", ") : "Sin rol registrado"}</span>
-              </span>
-              <span className="tabular-nums text-c10-secondary">Entrada {hhmm(e.hora)}</span>
-            </div>
-          ))}
-        </div>
+      {extrasPlantilla.length > 0 && (
+        <ExtrasCard title="Extras / otros" note="Entraron con otro rol o sin rol, o ya no había plaza; no cubren plazas de la plantilla." extras={extrasPlantilla} />
       )}
+      {rows.filter(row => row.sin_plantilla).map(row => {
+        const presentes = extrasDe([row], fecha);
+        return presentes.length > 0 && (
+          <ExtrasCard key={`sp|${row.caseta}`} title={`${row.caseta || "Sin caseta"} · sin plantilla`} note="Check-ins del día; la caseta no tiene plantilla configurada." extras={presentes} />
+        );
+      })}
     </DrawerShell>
   );
 };

@@ -302,7 +302,7 @@ const RondinesContent = () => {
 
       <div className="flex flex-col">
         <div className="p-3 w-full mx-auto">
-        <PageHeader
+        <PageHeader viewKey="rondines"
           title={titulo}
           totalRecords={totalRegistros}
           onRefresh={() => queryClient.invalidateQueries({ queryKey: listQueryKey })}

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
+import { AutoRefreshButton, AutoRefreshControls, useViewRefreshKey } from "./AutoRefreshControls";
 
 // Buscador avanzado por "facets": cada filtro es un chip Campo: valor(es).
 // AND entre chips, OR entre los valores de un mismo chip. Los campos los
@@ -77,6 +78,7 @@ export const FacetSearch: React.FC<FacetSearchProps> = ({
   maxChips = 4,
   className = "",
 }) => {
+  const viewKey = useViewRefreshKey();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -370,7 +372,7 @@ export const FacetSearch: React.FC<FacetSearchProps> = ({
             }}
             onBlur={() => setFocused(false)}
             placeholder={facets.length ? "" : placeholder}
-            className="flex-1 basis-20 min-w-[80px] h-7 border-0 outline-none bg-transparent px-0.5 text-sm text-neutral-900 placeholder:text-slate-400"
+            className="flex-1 basis-20 min-w-[80px] h-7 border-0 outline-none bg-transparent px-0.5 text-sm text-c10-title placeholder:text-c10-faint"
           />
         </div>
         {hasContent && (
@@ -386,6 +388,7 @@ export const FacetSearch: React.FC<FacetSearchProps> = ({
             <X size={16} />
           </button>
         )}
+        {viewKey && <AutoRefreshButton viewKey={viewKey} />}
       </div>
 
       {showOverflow && (
@@ -424,6 +427,11 @@ export const FacetSearch: React.FC<FacetSearchProps> = ({
               </div>
             ))}
           </div>
+          {viewKey && (
+            <div className="px-3.5 py-3 border-t border-slate-100">
+              <AutoRefreshControls viewKey={viewKey} />
+            </div>
+          )}
         </div>
       )}
 
@@ -441,7 +449,7 @@ export const FacetSearch: React.FC<FacetSearchProps> = ({
                     addFacet(r);
                   }}
                   onMouseEnter={() => active !== i && setActive(i)}
-                  className={`flex items-center gap-2 h-9 pr-2 rounded-lg cursor-pointer text-sm text-neutral-900 ${
+                  className={`flex items-center gap-2 h-9 pr-2 rounded-lg cursor-pointer text-sm text-c10-title ${
                     r.type === "option" ? "pl-9" : "pl-2"
                   } ${i === active ? "bg-blue-50" : ""}`}>
                   {r.type === "field" ? (

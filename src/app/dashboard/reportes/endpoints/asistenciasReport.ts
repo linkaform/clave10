@@ -99,12 +99,14 @@ export const getAttendanceData = async ({
     offset = 0,
     dateFrom,
     dateTo,
+    userIds,
   }: {
     locations?: string[];
     limit?: number;
     offset?: number;
     dateFrom?: string;
     dateTo?: string;
+    userIds?: number[];
   }) => {
     try {
       const payload = {
@@ -115,6 +117,8 @@ export const getAttendanceData = async ({
         offset,
         date_from: dateFrom,
         date_to: dateTo,
+        // Sin userIds no se filtra por empleado
+        ...(userIds ? { user_ids: userIds } : {}),
       };
       const userJwt = await getValidToken();
       const response = await fetch(API_ENDPOINTS.runScript, {

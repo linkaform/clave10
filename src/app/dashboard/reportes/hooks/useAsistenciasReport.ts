@@ -101,6 +101,7 @@ export const useAttendanceData = ({
     offset = 0,
     dateFrom,
     dateTo,
+    userIds,
   }: {
     enabled?: boolean;
     locations?: string[];
@@ -108,6 +109,7 @@ export const useAttendanceData = ({
     offset?: number;
     dateFrom?: string;
     dateTo?: string;
+    userIds?: number[];
   }) => {
     const {
       data,
@@ -116,10 +118,10 @@ export const useAttendanceData = ({
       error: errorAttendance,
       refetch: refetchAttendance,
     } = useQuery<any>({
-      queryKey: ["getAttendanceData", { locations, limit, offset, dateFrom, dateTo }],
+      queryKey: ["getAttendanceData", { locations, limit, offset, dateFrom, dateTo, userIds }],
       enabled,
       ...CACHE,
-      queryFn: () => getAttendanceData({ locations, limit, offset, dateFrom, dateTo }),
+      queryFn: () => getAttendanceData({ locations, limit, offset, dateFrom, dateTo, userIds }),
       refetchOnWindowFocus: false,
       retry: 1,
     });

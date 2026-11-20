@@ -100,7 +100,7 @@ const NotasContent = () => {
         />
       )}
 
-      <PageHeader
+      <PageHeader viewKey="notas"
         title="Notas"
         totalRecords={totalRegistros}
         search={
