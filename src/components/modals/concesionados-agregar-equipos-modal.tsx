@@ -23,7 +23,7 @@ import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
-import { AlertTriangle, Calculator, Loader2 } from "lucide-react";
+import { AlertTriangle, Calculator, Clock, Loader2 } from "lucide-react";
 import LoadImage from "../upload-Image";
 import { EquipoConcesionado } from "../concesionados-tab-datos";
 import { errorMsj, formatCurrency } from "@/lib/utils";
@@ -36,6 +36,8 @@ import { useBoothStore } from "@/store/useBoothStore";
 import { getTipoConcesion } from "@/lib/articulos-concesionados";
 import Image from "next/image";
 import { SearchSelect } from "../custom-search-select";
+import DateTimePicker from "../dateTimerPicker";
+import { PLAZO_DEVOLUCION_DEFAULT } from "@/lib/concesionados-campos";
 import { useDisponibilidadEquipo } from "@/hooks/Concesionados/useDisponibilidadEquipo";
 import { ForzarDevolucionEquipoModal } from "./forzar-devolucion-equipo-modal";
 
@@ -55,6 +57,7 @@ type Equipo = {
   article_name: string;
   article_image?: { file_url: string }[];
   article_cost?: number;
+  article_plazo?: number | number[] | null; // horas para regresarlo; vacío si no tiene
 };
 
 export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps> = ({
@@ -120,6 +123,10 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
   const cantidad = form.watch("cantidad_equipo_concesion");
   const equipoCompleto = equiposCatalogo?.find((eq) => eq.article_name === equipoSeleccionadoNombre);
   const subtotal = equipoCompleto && cantidad ? (equipoCompleto.article_cost ?? 0) * cantidad : 0;
+  // Plazo para regresar: el del catálogo; al editar un equipo ya agregado, el que traía
+  const plazoCatalogo = Number(Array.isArray(equipoCompleto?.article_plazo) ? equipoCompleto?.article_plazo[0] : equipoCompleto?.article_plazo) || 0;
+  const plazoSeleccionado = plazoCatalogo || Number(agregarEquiposSeleccion?.plazo_devolucion) || PLAZO_DEVOLUCION_DEFAULT;
+  const limiteEditado = form.watch("fecha_limite_devolucion");
 
   // Solo se valida disponibilidad al AGREGAR un equipo nuevo — si se está
   // editando un equipo que ya estaba en la lista local de esta concesión
@@ -211,6 +218,8 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         comentario_prestamo: "",
         evidencia_prestamo: [],
         costo_equipo_concesion: 0,
+        plazo_devolucion: undefined,
+        fecha_limite_devolucion: "",
       });
       setCategoriaSeleccionada("");
     }
@@ -223,6 +232,8 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         comentario_prestamo: agregarEquiposSeleccion.comentario_prestamo,
         evidencia_prestamo: agregarEquiposSeleccion.evidencia_prestamo,
         costo_equipo_concesion: agregarEquiposSeleccion.costo_equipo_concesion,
+        plazo_devolucion: agregarEquiposSeleccion.plazo_devolucion,
+        fecha_limite_devolucion: agregarEquiposSeleccion.fecha_limite_devolucion ?? "",
       });
       setCategoriaSeleccionada(agregarEquiposSeleccion.categoria_equipo_concesion ?? "");
     }
@@ -247,6 +258,9 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
         (editarAgregarEquiposModal ? agregarEquiposSeleccion?.imagen_equipo_concesion : undefined) ??
         [],
       costo_equipo_concesion: values.costo_equipo_concesion,
+      plazo_devolucion: plazoSeleccionado,
+      // Solo si el guardia la cambió; si no, el back la calcula con la fecha de la concesión
+      ...(values.fecha_limite_devolucion ? { fecha_limite_devolucion: values.fecha_limite_devolucion } : {}),
     };
     if (editarAgregarEquiposModal) {
       setEditarAgregarEquiposModal(false);
@@ -332,7 +346,10 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                           <SearchSelect
                             options={equiposCatalogo.map((e) => e.article_name)}
                             value={field.value}
-                            onChange={(val) => field.onChange(val)}
+                            onChange={(val) => {
+                              field.onChange(val);
+                              form.setValue("fecha_limite_devolucion", "");
+                            }}
                             isLoading={loadingEquipos}
                             isDisabled={!categoriaSeleccionada}
                             placeholder={
@@ -369,6 +386,12 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                           <Calculator size={14} className="text-blue-500" />
                           <span className="text-xs font-semibold text-blue-600">Precio unitario:</span>
                           <span className="text-xs font-bold text-blue-700">{formatCurrency(precio)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Clock size={14} className="text-blue-500" />
+                          <span className="text-xs font-semibold text-blue-600">Plazo para regresar:</span>
+                          <span className="text-xs font-bold text-blue-700">{plazoSeleccionado} h</span>
+                          {!plazoCatalogo && <span className="text-xs text-blue-500">(sin plazo en el catálogo)</span>}
                         </div>
                       </div>
                     </div>
@@ -411,6 +434,34 @@ export const ConcesionadosAgregarEquipoModal: React.FC<AgregarEquiposModalProps>
                     </FormItem>
                   )}
                 />
+
+                {equipoSeleccionado && (
+                  <FormField
+                    control={form.control}
+                    name="fecha_limite_devolucion"
+                    render={({ field }: any) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          Debe regresar
+                        </FormLabel>
+                        <FormControl>
+                          <DateTimePicker
+                            showTime={true}
+                            placeholder="Selecciona fecha y hora"
+                            date={field.value ? new Date(field.value.replace(" ", "T")) : new Date(Date.now() + plazoSeleccionado * 36e5)}
+                            setDate={(d) => field.onChange(d ? format(d, "yyyy-MM-dd HH:mm:ss") : "")}
+                          />
+                        </FormControl>
+                        <p className="text-xs text-gray-400">
+                          {limiteEditado
+                            ? "Fecha cambiada a mano."
+                            : `Se calcula con el plazo de ${plazoSeleccionado} h desde la fecha de la concesión. Cámbiala solo si este préstamo tiene otro plazo.`}
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormField
                   control={form.control}

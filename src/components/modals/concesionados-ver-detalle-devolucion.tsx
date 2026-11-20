@@ -10,6 +10,7 @@ import {
 import { Dispatch, SetStateAction } from "react";
 import { ImageOff, Package, RotateCcw } from "lucide-react";
 import ViewImage from "./view-image";
+import { campoConcesion } from "@/lib/concesionados-campos";
 
 export interface DevolucionItem {
   id_movimiento_devolucion: string;
@@ -113,6 +114,12 @@ interface HistorialDevolucionesModalProps {
                     ) : (
                       <p className="text-sm italic text-gray-400">Sin comentario disponible</p>
                     )}
+                  </div>
+
+                  <div>
+                    <p className={labelClass}>Guardia que recibió</p>
+                    {/* Registros anteriores al campo "Recibió": solo las forzadas guardan quién la hizo */}
+                    <p className="text-sm text-gray-700">{campoConcesion(devolucion, "recibio_devolucion") || devolucion?.devolucion_forzada_por || "—"}</p>
                   </div>
 
                   {devolucion?.quien_entrega_company && (

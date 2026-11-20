@@ -10,7 +10,7 @@ reportes/
   components/
     shared/                 piezas comunes a todos los reportes  ← usar primero
     asistencia/             vistas propias del reporte de asistencias
-    concesionados/          vistas propias del reporte de concesionados (EcoPanel)
+    concesionados/          vistas propias del reporte de concesionados (EcoPanel, DetallePanel)
   reporte_<nombre>/
     page.tsx                solo arma las piezas: estado, filtros, layout
     layout.tsx              BasicLayout + metadata
@@ -40,7 +40,7 @@ reportes/
 | `tabla/ResizeHandle.tsx` | `ResizeHandle`, `usePcw`, `pcwVar`, `PCW` | Ancho arrastrable de la primera columna, guardado en el navegador |
 | `tabla/ScrollBox.tsx` | `ScrollBox` | Scroll horizontal que difumina el borde si queda contenido a la derecha |
 | `tabla/tipos.ts` | `Cell`, `TableSpec` | Datos de una tabla |
-| `graficas/Charts.tsx` | `ChartCard` | Barras horizontales y verticales, línea y mapa de calor, con tooltip, a partir de un `Card` |
+| `graficas/Charts.tsx` | `ChartCard`, `OnSelect` | Barras horizontales y verticales, línea y mapa de calor, con tooltip, a partir de un `Card`. Con `onSelect`, las filas de barras horizontales que traen `sel` se pueden clicar (nombre, barra o tramo) |
 | `graficas/tipos.ts` | `Card`, `HCard`, `VCard`, `LCard`, `HeatCard`, `Tip`, `Serie`… | Datos de una gráfica |
 | `drawer/drawerParts.tsx` | `DrawerShell`, `Field`, `Fields`, `Card`, `Warn`, `CloseButton`, `EvidencePhotos` | Panel lateral de detalle |
 | `excel.ts` | `descargarExcel(tablas, nombre)` | Una hoja por `TableSpec`; los números se guardan como números |
@@ -52,6 +52,10 @@ reportes/
 `ChartCard` y `ReportTable` solo pintan. El reporte calcula en `lib/` objetos `Card` y
 `TableSpec` (datos puros) y se los pasa. Así una gráfica nueva casi nunca pide un
 componente nuevo. `reporte_concesionados/lib/` es el ejemplo completo.
+
+Lo mismo con el panel de detalle que se abre al hacer clic en una gráfica: en concesionados,
+`lib/paneles.ts` arma un `PanelSpec` y `components/concesionados/DetallePanel.tsx` lo pinta
+dentro del `DrawerShell`.
 
 ## Cómo cambiar algo de `shared/`
 

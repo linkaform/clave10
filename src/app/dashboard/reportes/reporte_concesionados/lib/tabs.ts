@@ -30,7 +30,7 @@ export const guardias = (c: Corte, sel: string[], multi: boolean): Calc => {
     empty: !top.length,
   }];
   const tab: TableSpec[] = [{
-    id: "g_tabla", short: "Guardias", title: T, cap: 'Abiertos = préstamos que entregó ese guardia y siguen sin devolverse. "Cierres sin evidencia" = sin foto o sin identificación.',
+    id: "g_tabla", short: "Guardias", title: T, cap: 'Abiertos = préstamos que entregó ese guardia y siguen sin devolverse. "Cierres sin evidencia" = devoluciones recibidas sin foto o sin identificación (no cuenta las forzadas).',
     cols: [{ t: "Guardia" }, { t: "Abiertos", r: true }, ...(multi ? [{ t: "Ubicación" }] : []), { t: "Transacciones", r: true }, { t: "Préstamos entregados", r: true }, { t: "Devoluciones recibidas", r: true }, { t: "Cierres forzados realizados", r: true }, { t: "Cierres sin evidencia", r: true }, { t: "Recibidos con daño", r: true }],
     rows: datos.map(d => [
       cell(d.g, { fw: 700 }), num(d.ab), ...(multi ? [cell(d.ub)] : []), num(d.tx, { fw: 700 }), num(d.ent), num(d.devR), colr(d.forzR, "red"),

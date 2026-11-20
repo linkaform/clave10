@@ -6,6 +6,7 @@ import { ConcesionadosAgregarEquipoModal } from "./modals/concesionados-agregar-
 import { Imagen } from "./upload-Image";
 import { ConcesionadosVerEquipo } from "./modals/concesionados-ver-equipo";
 import { formatCurrency } from "@/lib/utils";
+import { equipoVencido, fechaLimiteEquipo, plazoEquipo } from "@/lib/concesionados-campos";
 export type DevolucionItem = {
   id_movimiento_devolucion: string;
   estatus_equipo: string;
@@ -145,6 +146,7 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
                 <><th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Devueltas</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Pendientes</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Estatus</th></>}
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Debe regresar</th>
                 <th className="px-4 py-2.5" />
               </tr>
             </thead>
@@ -188,6 +190,19 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
                     })()}
                     </td>
                     </>}
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      {(() => {
+                        const limite = fechaLimiteEquipo(item, dataConcesion?.fecha_concesion);
+                        const plazo = plazoEquipo(item);
+                        if (!limite) return <span className="text-gray-400">—</span>;
+                        return (
+                          <>
+                            <span className={equipoVencido(item, limite) ? "font-semibold text-red-600" : "text-gray-600"}>{limite}</span>
+                            {plazo && <p className="mt-0.5 text-[11px] text-gray-500">Plazo: {plazo} h</p>}
+                          </>
+                        );
+                      })()}
+                    </td>
                     <td className="px-4">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
@@ -224,7 +239,7 @@ const TabDatos: React.FC<AgregarEquiposListProps> = ({ equipos, setEquipos, mode
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="text-center text-gray-400 text-sm py-6">
+                  <td colSpan={8} className="text-center text-gray-400 text-sm py-6">
                     No hay equipos agregados.
                   </td>
                 </tr>

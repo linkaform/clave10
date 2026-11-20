@@ -53,7 +53,10 @@ const niceMax = (m: number) => {
 };
 
 // ───── Barras horizontales apiladas ─────
-const HBars = ({ card, act, quick, bind }: { card: HCard; act: string[]; quick: string[]; bind: ReturnType<typeof useTooltip>["bind"] }) => {
+// Clic en una fila: (sel de la fila, serie del tramo si se hizo clic en un tramo)
+export type OnSelect = (sel: string, serie?: string) => void;
+
+const HBars = ({ card, act, quick, bind, onSelect }: { card: HCard; act: string[]; quick: string[]; bind: ReturnType<typeof useTooltip>["bind"]; onSelect?: OnSelect }) => {
   const fmt = card.fmt ?? n;
   const rows = card.rows.map(r => ({ ...r, vals: r.vals.map((v, i) => (visible(card.series[i].k, act, quick) ? v : 0)) }));
   const tot = (vals: number[]) => vals.reduce((a, b) => a + b, 0);
@@ -63,15 +66,27 @@ const HBars = ({ card, act, quick, bind }: { card: HCard; act: string[]; quick: 
     <div className="flex flex-col gap-2">
       {rows.map(r => {
         const t = tot(r.vals);
+        const sel = onSelect && r.sel; // solo es seleccionable si la página pasa onSelect y la fila trae sel
         return (
           <div key={r.l} className="grid items-center gap-3" style={{ gridTemplateColumns: `minmax(90px, min(${lw}px, 32%)) minmax(80px, 1fr) minmax(56px, min(84px, 22%))` }}>
             <div className="min-w-0" title={r.l}>
-              <div className="truncate text-[13px] font-semibold text-c10-title">{r.l}</div>
+              {sel ? (
+                <button type="button" onClick={() => onSelect!(sel)} className="block w-full truncate text-left text-[13px] font-semibold text-c10-title hover:text-button-primary hover:underline">{r.l}</button>
+              ) : (
+                <div className="truncate text-[13px] font-semibold text-c10-title">{r.l}</div>
+              )}
               {r.sub && <div className="truncate text-[11px] text-c10-meta">{r.sub}</div>}
             </div>
-            <div {...bind(r.tip)} className="relative h-3.5 rounded-full bg-c10-sunken">
+            <div {...bind(r.tip)} className={`relative h-3.5 rounded-full bg-c10-sunken ${sel ? "cursor-pointer" : ""}`} onClick={sel ? () => onSelect!(sel) : undefined}>
               <div className="flex h-full overflow-hidden rounded-full" style={{ width: `${(t / max) * 100}%` }}>
-                {r.vals.map((v, i) => (v ? <span key={i} className="min-w-0 shadow-[inset_-1px_0_0_#fff]" style={{ flex: `${v} 1 0px`, background: r.cols?.[i] ?? card.series[i].col }} /> : null))}
+                {r.vals.map((v, i) => (v ? (
+                  <span
+                    key={i}
+                    className={`min-w-0 shadow-[inset_-1px_0_0_#fff] ${sel ? "hover:brightness-90" : ""}`}
+                    style={{ flex: `${v} 1 0px`, background: r.cols?.[i] ?? card.series[i].col }}
+                    onClick={sel ? e => { e.stopPropagation(); onSelect!(sel, card.series[i].k); } : undefined}
+                  />
+                ) : null))}
               </div>
               {!!r.mk && <span className="absolute -bottom-1 -top-1 -ml-px w-0.5 bg-red-600" style={{ left: `${(r.mk / max) * 100}%` }} />}
             </div>
@@ -165,7 +180,9 @@ const Heat = ({ card, bind }: { card: HeatCard; bind: ReturnType<typeof useToolt
   </div>
 );
 
-export const ChartCard = ({ card, act, quick }: { card: Card; act: string[]; quick: string[] }) => {
+// onSelect (opcional): hace clicables las filas de barras horizontales que traen `sel`.
+// Sin él la gráfica se comporta igual que siempre.
+export const ChartCard = ({ card, act, quick, onSelect }: { card: Card; act: string[]; quick: string[]; onSelect?: OnSelect }) => {
   const { bind, node } = useTooltip();
   const legend = card.kind === "heat" ? card.legend : null;
   const nota = card.kind === "h" ? card.nota : "";
@@ -190,7 +207,7 @@ export const ChartCard = ({ card, act, quick }: { card: Card; act: string[]; qui
       {card.empty ? (
         <div className="px-3 py-9 text-center text-[13px] text-c10-meta">{card.emptyT ?? "Sin datos en este periodo con estos filtros"}</div>
       ) : card.kind === "h" ? (
-        <HBars card={card} act={act} quick={quick} bind={bind} />
+        <HBars card={card} act={act} quick={quick} bind={bind} onSelect={onSelect} />
       ) : card.kind === "v" ? (
         <VBars card={card} act={act} quick={quick} bind={bind} />
       ) : card.kind === "l" ? (

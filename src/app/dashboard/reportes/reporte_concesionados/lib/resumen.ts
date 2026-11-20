@@ -1,5 +1,6 @@
 // Pestaña "Resumen operativo"
 import { Corte, DIA, HORA, INICIO_DIA, Prestamo, addDias, f1, fd, fh, grupo, hh, n, plural, sod, suma } from "./core";
+import { TIEMPO_FUERA as V, selPanel } from "./paneles";
 import { C, Calc, Card, Cell, HRow, TX, TableSpec, TipLine, cell, colr, mon, nota10, num, ser } from "./cards";
 
 type Est = "plazo" | "hoy" | "venc";
@@ -16,7 +17,8 @@ export const resumen = (c: Corte, multi: boolean): Calc => {
     l: ([[x.plazo.length, "En plazo", C.CLARO], [x.hoy.length, "Deben regresar hoy", C.BLUE], [x.venc.length, "Vencidos", C.AMBAR]] as [number, string, string][])
       .filter(z => z[0]).map(z => ({ t: `${z[1]}: ${n(z[0])}`, col: z[2] })),
   });
-  const fila3 = (k: string, x: Parte): HRow => ({ l: k, vals: [x.plazo.length, x.hoy.length, x.venc.length], tip: tip3(k, x) });
+  // sel: abre el panel de detalle (lib/paneles.ts). Una fila vacía no abre nada.
+  const fila3 = (k: string, x: Parte, sel: string): HRow => ({ l: k, vals: [x.plazo.length, x.hoy.length, x.venc.length], tip: tip3(k, x), sel: x.l.length ? sel : undefined });
   const cols3 = [{ t: "Pendientes", r: true }, { t: "En plazo", r: true }, { t: "Deben regresar hoy", r: true }, { t: "Vencidos", r: true }, { t: "Valor fuera", r: true }];
   const cel3 = (x: Parte): Cell[] => [num(x.l.length, { fw: 700 }), num(x.plazo.length), num(x.hoy.length), colr(x.venc.length, "amber"), mon(suma(x.l, r => r.precio))];
   const T3 = [{ t: "Préstamos", r: true }, { t: "Devueltos", r: true }, { t: "Cerrados a la fuerza", r: true }];
@@ -27,16 +29,15 @@ export const resumen = (c: Corte, multi: boolean): Calc => {
   const TC = "Artículos pendientes de regresar por categoría";
   graf.push({
     kind: "h", title: TC, cap: "Lo que sigue prestado y está pendiente de regresar al final del periodo.", series: ser("plazo", "hoy", "venc"), lw: 190,
-    rows: cats.slice(0, 10).map(d => fila3(d.k, d)), nota: nota10(Math.min(10, cats.length), cats.length, "categorías"), empty: !c.abiertos.length, emptyT: sinNada,
+    rows: cats.slice(0, 10).map(d => fila3(d.k, d, selPanel("categoria", d.k))), nota: nota10(Math.min(10, cats.length), cats.length, "categorías"), empty: !c.abiertos.length, emptyT: sinNada,
   });
   tab.push({ id: "r_cat", short: "Categoría", title: TC, cols: [{ t: "Categoría" }, ...cols3], rows: cats.map(d => [cell(d.k, { fw: 700 }), ...cel3(d)]), rk: cats.map(d => [...(d.plazo.length ? ["plazo"] : []), ...(d.hoy.length ? ["hoy"] : []), ...(d.venc.length ? ["venc"] : [])]) });
 
   // Tiempo fuera
-  const V: [string, number, number][] = [["Menos de 8 h", 0, 8], ["8 a 24 h", 8, 24], ["1 a 3 días", 24, 72], ["Más de 3 días", 72, Infinity]];
-  const vig = V.map(([l, a, b]) => ({ k: l, ...parte(c.abiertos.filter(r => { const h = (fin - r.t_ini) / HORA; return h >= a && h < b; })) }));
+  const vig = V.map(([l, a, b], i) => ({ i, k: l, ...parte(c.abiertos.filter(r => { const h = (fin - r.t_ini) / HORA; return h >= a && h < b; })) }));
   graf.push({
     kind: "h", title: "Tiempo fuera de los artículos prestados", cap: "Cuánto tiempo llevan fuera los artículos pendientes de regresar al final del periodo.",
-    series: ser("plazo", "hoy", "venc"), lw: 120, rows: vig.map(d => fila3(d.k, d)), empty: !c.abiertos.length, emptyT: sinNada,
+    series: ser("plazo", "hoy", "venc"), lw: 120, rows: vig.map(d => fila3(d.k, d, selPanel("vig", String(d.i)))), empty: !c.abiertos.length, emptyT: sinNada,
   });
   const pend = c.abiertos.slice().sort((a, b) => a.t_ini - b.t_ini);
   tab.push({
@@ -59,7 +60,7 @@ export const resumen = (c: Corte, multi: boolean): Calc => {
   if (multi) {
     const ubs = grupo(c.abiertos, r => r.ubicacion).map(g => ({ k: g.k, ...parte(g.v), he: c.hechos.filter(r => r.ubicacion === g.k) }));
     const TU = "Artículos prestados actualmente por ubicación";
-    graf.push({ kind: "h", title: TU, cap: "Artículos prestados en cada ubicación.", series: ser("plazo", "hoy", "venc"), lw: 190, rows: ubs.map(d => fila3(d.k, d)), empty: !c.abiertos.length, emptyT: sinNada });
+    graf.push({ kind: "h", title: TU, cap: "Artículos prestados en cada ubicación.", series: ser("plazo", "hoy", "venc"), lw: 190, rows: ubs.map(d => fila3(d.k, d, selPanel("ubicacion", d.k))), empty: !c.abiertos.length, emptyT: sinNada });
     tab.push({
       id: "r_ubic", short: "Ubicación", title: TU, cols: [{ t: "Ubicación" }, ...cols3, ...T3],
       rows: ubs.map(d => [cell(d.k, { fw: 700 }), ...cel3(d), num(d.he.length), num(d.he.filter(r => c.cerroAntes(r) && r.tipo_cierre === "Normal").length), colr(d.he.filter(r => c.cerroAntes(r) && r.tipo_cierre === "Forzada").length, "red")]),
