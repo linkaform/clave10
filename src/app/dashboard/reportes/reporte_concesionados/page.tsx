@@ -207,7 +207,9 @@ const ReporteConcesionadosPage = () => {
 
   // Panel de detalle: se recalcula con el periodo y los filtros actuales (lib/paneles.ts)
   const [panel, setPanel] = useState<PanelSel | null>(null);
-  const spec = useMemo(() => (panel ? panelSpec(panel, c, multi) : null), [panel, c, multi]);
+  // El panel de cierres forzados cuenta solo los que pasan los filtros de estatus, como las gráficas
+  const actForz = useMemo(() => (tab === "forzadas" ? quick.filter(k => QUICK.forzadas.includes(k)) : []), [tab, quick]);
+  const spec = useMemo(() => (panel ? panelSpec(panel, c, multi, actForz) : null), [panel, c, multi, actForz]);
   useEffect(() => setPanel(null), [tab]);
 
   // Opciones de cada filtro: lo que hubo en el periodo con los demás filtros aplicados

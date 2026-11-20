@@ -42,7 +42,7 @@ reportes/
 | `tabla/tipos.ts` | `Cell`, `TableSpec` | Datos de una tabla |
 | `graficas/Charts.tsx` | `ChartCard`, `OnSelect` | Barras horizontales y verticales, línea y mapa de calor, con tooltip, a partir de un `Card`. Con `onSelect`, las filas de barras horizontales que traen `sel` se pueden clicar (nombre, barra o tramo) |
 | `graficas/tipos.ts` | `Card`, `HCard`, `VCard`, `LCard`, `HeatCard`, `Tip`, `Serie`… | Datos de una gráfica |
-| `drawer/drawerParts.tsx` | `DrawerShell`, `Field`, `Fields`, `Card`, `Warn`, `CloseButton`, `EvidencePhotos` | Panel lateral de detalle |
+| `drawer/drawerParts.tsx` | `DrawerShell`, `Field`, `Fields`, `Card`, `Warn`, `CloseButton`, `EvidencePhotos` | Panel lateral de detalle. `DrawerShell` acepta `lead` (opcional) para un avatar a la izquierda del título |
 | `excel.ts` | `descargarExcel(tablas, nombre)` | Una hoja por `TableSpec`; los números se guardan como números |
 | `formato.ts` | `n` | Número con separador de miles (es-MX) |
 | `fotos.ts` | `thumbUrl` | URL de la miniatura que LinkaForm sube con cada foto |
@@ -55,7 +55,8 @@ componente nuevo. `reporte_concesionados/lib/` es el ejemplo completo.
 
 Lo mismo con el panel de detalle que se abre al hacer clic en una gráfica: en concesionados,
 `lib/paneles.ts` arma un `PanelSpec` y `components/concesionados/DetallePanel.tsx` lo pinta
-dentro del `DrawerShell`.
+dentro del `DrawerShell`. Un panel nuevo se arma con los tres tipos de sección que ya existen
+(`stats` tarjeta de datos, `items` lista de préstamos, `bars` lista con barras), sin componente nuevo.
 
 ## Cómo cambiar algo de `shared/`
 

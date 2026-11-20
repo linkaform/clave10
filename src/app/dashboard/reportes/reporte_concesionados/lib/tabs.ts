@@ -1,6 +1,7 @@
 // Pestañas Guardias, Solicitantes, Artículos, Cierres forzados y Económico
 import { Corte, DIA, HORA, MALO, MES, Prestamo, addDias, dur, f1, fd, fh, grupo, lunes, money, n, pct, plural, suma, uniq } from "./core";
 import { C, Calc, Card, Cell, Eco, HRow, SER, TX, TableSpec, Tip, cell, colr, mon, nota10, num, ser } from "./cards";
+import { selForz, selPersona } from "./paneles";
 
 const desglose = (multi: boolean, l: Prestamo[]) => (multi ? grupo(l, r => r.ubicacion).map(g => ({ t: `${g.k}: ${n(g.v.length)}` })) : []);
 const cerr = (c: Corte, t: string) => c.cerrados.filter(r => r.tipo_cierre === t).length;
@@ -77,14 +78,14 @@ export const solicitantes = (c: Corte, emp: boolean, multi: boolean): Calc => {
   const graf: Card[] = [
     {
       kind: "h", title: TV, cap: "Valor de lo que tiene vencido actualmente y no ha regresado.", series: ser("venc"), lw: 200, fmt: money,
-      rows: vg.slice(0, 10).map(d => ({ l: d.k, sub: emp ? plural(d.personas, "persona", "personas") : d.empresa, vals: [d.val], tip: { h: d.k, s: plural(d.v.length, "artículo", "artículos"), l: [{ t: `Vencido: ${money(d.val)}`, col: C.AMBAR }] } })),
+      rows: vg.slice(0, 10).map(d => ({ l: d.k, sub: emp ? plural(d.personas, "persona", "personas") : d.empresa, vals: [d.val], sel: selPersona("sol", emp, d.k), tip: { h: d.k, s: plural(d.v.length, "artículo", "artículos"), l: [{ t: `Vencido: ${money(d.val)}`, col: C.AMBAR }] } })),
       nota: nota10(Math.min(10, vg.length), vg.length, quien), empty: !vg.length, emptyT: "Nadie tiene artículos vencidos al cierre del periodo",
     },
     {
       kind: "h", title: emp ? "Las 10 empresas con más valor prestado" : "Las 10 personas con más valor prestado", cap: "Valor total de lo que se prestó en el periodo y qué pasó con él.",
       series: ser("bien", "ahora", "vvenc", "perdido"), lw: 200, fmt: money,
       rows: v10.map(d => ({
-        l: d.k, sub: sub(d), vals: [d.vTot - d.vPer - d.vSig, d.vSig - d.vVen, d.vVen, d.vPer],
+        l: d.k, sub: sub(d), vals: [d.vTot - d.vPer - d.vSig, d.vSig - d.vVen, d.vVen, d.vPer], sel: selPersona("sol", emp, d.k),
         tip: {
           h: d.k, s: `${money(d.vTot)} · ${plural(d.prest, "préstamo", "préstamos")}`,
           l: ([["Regresó", d.vTot - d.vPer - d.vSig, d.prest - d.nPer - d.nSig, C.NAVY], ["En plazo", d.vSig - d.vVen, d.nSig - d.nVen, C.CLARO], ["Vencido", d.vVen, d.nVen, C.AMBAR], ["Perdido o dañado", d.vPer, d.nPer, C.ROSA]] as [string, number, number, string][])
@@ -97,7 +98,7 @@ export const solicitantes = (c: Corte, emp: boolean, multi: boolean): Calc => {
       kind: "h", title: emp ? "Las 10 empresas con más irregularidades" : "Las 10 personas con más irregularidades", cap: "Total de irregularidades en el periodo.",
       series: ser("forz", "dan", "venc"), lw: 200,
       rows: i10.map(d => ({
-        l: d.k, sub: sub(d), vals: [d.forz, d.dan + d.per, d.venc],
+        l: d.k, sub: sub(d), vals: [d.forz, d.dan + d.per, d.venc], sel: selPersona("irr", emp, d.k),
         tip: { h: d.k, s: `${plural(d.inc, "irregularidad", "irregularidades")} · ${plural(d.prest, "préstamo", "préstamos")}`, l: [{ t: `Cerrados a la fuerza: ${n(d.forz)}`, col: C.RED }, { t: `Perdidos o dañados: ${n(d.dan + d.per)}`, col: C.ROSA }, { t: `Vencidos: ${n(d.venc)}`, col: C.AMBAR }] },
       })),
       nota: nota10(i10.length, irr.length, quien), empty: !i10.length, emptyT: "Nadie tiene irregularidades en este periodo",
@@ -251,7 +252,7 @@ export const forzadas = (c: Corte, base: Prestamo[], act: string[], d0: number, 
     graf.push({
       kind: "h", title: d.top, cap: d.cap, series: ser("forz"), lw: 200,
       rows: top.map(g => ({
-        l: g.k, vals: [g.v.length],
+        l: g.k, vals: [g.v.length], sel: selForz(d.campo, g.k),
         sub: d.campo === "solicitante" ? g.v[0].empresa : d.campo === "empresa" ? plural(uniq(g.v.map(r => r.solicitante)).length, "persona", "personas") : plural(uniq(g.v.map(r => r.articulo)).length, "artículo", "artículos"),
         tip: { h: g.k, l: [{ t: `Cerrados a la fuerza: ${n(g.v.length)}`, col: C.RED }, ...desglose(multi, g.v)] },
       })),
