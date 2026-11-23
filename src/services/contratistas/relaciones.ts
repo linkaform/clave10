@@ -8,7 +8,9 @@ import type {
   RelacionFila,
   RelacionInput,
 } from "@/types/contratistas";
-import { callContratistas } from "./client";
+import { CONTRATISTAS_SCRIPTS, callContratistas } from "./client";
+
+const SCRIPT = CONTRATISTAS_SCRIPTS.relaciones;
 
 export interface RelacionesFiltros extends ListParams {
   estatus?: Estatus;
@@ -16,21 +18,21 @@ export interface RelacionesFiltros extends ListParams {
 
 /** Lista única Clientes/Contratistas: misma fila, contraparte ya resuelta. */
 export const listRelaciones = (direccion: Direccion, filtros: RelacionesFiltros = {}) =>
-  callContratistas<Pagina<RelacionFila>>("list_relaciones", { direccion, ...filtros });
+  callContratistas<Pagina<RelacionFila>>("list_relaciones", { direccion, ...filtros }, SCRIPT);
 
 export const getRelacion = (relacion_id: Id) =>
-  callContratistas<Relacion>("get_relacion", { relacion_id });
+  callContratistas<Relacion>("get_relacion", { relacion_id }, SCRIPT);
 
 export const createRelacion = (relacion: RelacionInput) =>
-  callContratistas<Relacion>("create_relacion", { relacion });
+  callContratistas<Relacion>("create_relacion", { relacion }, SCRIPT);
 
 export const updateRelacion = (
   relacion_id: Id,
   cambios: { notas?: string; requerimientos_asignados?: Id[] },
-) => callContratistas<Relacion>("update_relacion", { relacion_id, cambios });
+) => callContratistas<Relacion>("update_relacion", { relacion_id, cambios }, SCRIPT);
 
 export const changeStatusRelacion = (relacion_id: Id, estatus: Estatus) =>
-  callContratistas<Relacion>("change_status_relacion", { relacion_id, estatus });
+  callContratistas<Relacion>("change_status_relacion", { relacion_id, estatus }, SCRIPT);
 
 /** Árbol de subcontratación hacia abajo de una relación (R-03 / R-08). */
 export const getArbolRelacion = (relacion_id: Id) =>

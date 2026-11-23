@@ -14,6 +14,8 @@ export const CONTRATISTAS_SCRIPT = "contratistas_sdk.py";
 export const CONTRATISTAS_SCRIPTS = {
   /** ME-14 */
   contratos: "contratos_sdk.py",
+  /** R-01 */
+  relaciones: "relaciones_sdk.py",
 } as const;
 
 /**
