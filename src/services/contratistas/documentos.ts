@@ -12,7 +12,7 @@ import type {
   Pagina,
   RevisionDocumento,
 } from "@/types/contratistas";
-import { callContratistas } from "./client";
+import { CONTRATISTAS_SCRIPTS, callContratistas } from "./client";
 
 /* ---------- Documentos ---------- */
 
@@ -45,11 +45,15 @@ export const commentDocumento = (documento_id: Id, texto: string) =>
 /* ---------- Cumplimiento ---------- */
 
 export const listCumplimiento = (filtros: CumplimientoFiltros = {}) =>
-  callContratistas<CumplimientoFila[]>("list_cumplimiento", { ...filtros });
+  callContratistas<CumplimientoFila[]>("list_cumplimiento", { ...filtros }, CONTRATISTAS_SCRIPTS.cumplimiento);
 
 /** Fijar No aplica o corregir un estado, con motivo (lo que el diseño llama ccOv). */
 export const setEstadoCumplimiento = (
   cumplimiento_id: Id,
   estado: EstadoCumplimiento | null,
   motivo: string,
-) => callContratistas<CumplimientoFila>("set_estado_cumplimiento", { cumplimiento_id, estado, motivo });
+) => callContratistas<CumplimientoFila>(
+    "set_estado_cumplimiento",
+    { cumplimiento_id, estado, motivo },
+    CONTRATISTAS_SCRIPTS.cumplimiento,
+  );
