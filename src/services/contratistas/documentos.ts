@@ -16,6 +16,8 @@ import { CONTRATISTAS_SCRIPTS, callContratistas } from "./client";
 
 /* ---------- Documentos ---------- */
 
+const DOCS = CONTRATISTAS_SCRIPTS.documentos;
+
 export interface DocumentosFiltros extends ListParams {
   dueno_tipo?: Ambito;
   empresa_id?: Id;
@@ -26,21 +28,21 @@ export interface DocumentosFiltros extends ListParams {
 }
 
 export const listDocumentos = (filtros: DocumentosFiltros = {}) =>
-  callContratistas<Pagina<Documento>>("list_documentos", { ...filtros });
+  callContratistas<Pagina<Documento>>("list_documentos", { ...filtros }, DOCS);
 
 export const getDocumento = (documento_id: Id) =>
-  callContratistas<Documento>("get_documento", { documento_id });
+  callContratistas<Documento>("get_documento", { documento_id }, DOCS);
 
 /** Alta o versión nueva (si trae `reemplaza_id`). */
 export const uploadDocumento = (documento: DocumentoInput) =>
-  callContratistas<Documento>("upload_documento", { documento });
+  callContratistas<Documento>("upload_documento", { documento }, DOCS);
 
 /** Decisión del cliente activo sobre el documento. */
 export const reviewDocumento = (documento_id: Id, revision: RevisionDocumento) =>
-  callContratistas<Documento>("review_documento", { documento_id, ...revision });
+  callContratistas<Documento>("review_documento", { documento_id, ...revision }, DOCS);
 
 export const commentDocumento = (documento_id: Id, texto: string) =>
-  callContratistas<Documento>("comment_documento", { documento_id, texto });
+  callContratistas<Documento>("comment_documento", { documento_id, texto }, DOCS);
 
 /* ---------- Cumplimiento ---------- */
 

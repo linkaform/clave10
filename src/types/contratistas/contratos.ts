@@ -221,7 +221,7 @@ export interface DocumentoInput {
   nombre: string;
   categoria?: string;
   requerimiento_id?: Id | null;
-  dueno: { tipo: Ambito; empresa_id: Id; empleado_id?: Id; equipo_id?: Id };
+  dueno: { tipo: Ambito; empresa_id: Id; empleado_id?: Id; equipo_id?: Id; equipo_nombre?: string };
   periodo?: { clave: string; inicio: string; fin: string };
   en_ceros?: boolean;
   vigencia_inicio?: string;
@@ -231,6 +231,10 @@ export interface DocumentoInput {
   contratos?: Id[];
   /** Si viene, se agrega como versión nueva de ese documento (Reemplazar). */
   reemplaza_id?: Id;
+  /** "Carga masiva" cuando viene del alta en lote; default "Carga". */
+  origen?: "Carga" | "Carga masiva";
+  /** Resultado de analizar_documento (F0-11) para guardarlo con el documento. */
+  lectura_ia?: Record<string, unknown>;
 }
 
 export interface RevisionDocumento {
