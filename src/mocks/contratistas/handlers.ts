@@ -453,6 +453,39 @@ const handlers: Record<string, Handler> = {
     db.recursos.push(nuevo);
     return nuevo;
   },
+  get_recurso: ({ recurso_id }) => buscar(db.recursos, recurso_id, "Recurso"),
+  get_aplicacion_recurso: ({ recurso_id }) => {
+    const rec = buscar(db.recursos, recurso_id, "Recurso");
+    return {
+      requerimientos: rec.requerimientos
+        .map((r) => db.requerimientos.find((q) => q.id === r.id))
+        .filter((q): q is Requerimiento => Boolean(q)),
+      contratos: db.contratos
+        .filter((c) => [...c.servicios.map((x) => x.id), ...c.perfiles.map((x) => x.perfil.id), ...c.equipos.map((x) => x.equipo.id)].includes(rec.id))
+        .map((c) => ({ id: c.id, folio: c.folio, objeto: c.objeto, contratista: c.contratista.razon_social, cumplimiento_pct: c.cumplimiento.total })),
+    };
+  },
+  get_aplicacion_requerimiento: ({ requerimiento_id }) => {
+    const filas = recalcular().filter((f) => f.requerimiento.id === requerimiento_id);
+    const recursos = db.recursos.filter((r) => r.requerimientos.some((q) => q.id === requerimiento_id));
+    return {
+      exigencia: recursos.map((r) => ({ id: r.id, nombre: r.nombre, tipo: r.tipo })),
+      relaciones: db.relaciones
+        .filter((r) => r.requerimientos_asignados.some((q) => q.id === requerimiento_id))
+        .map((r) => ({ id: r.id, folio: r.folio, contratista: r.contratista.razon_social })),
+      contratos: db.contratos
+        .filter((c) => filas.some((f) => f.contrato === c.id))
+        .map((c) => ({ id: c.id, folio: c.folio, contratista: c.contratista.razon_social })),
+      sujetos: filas.map((f) => ({
+        tipo: f.sujeto.tipo,
+        sujeto: f.sujeto.empleado ?? f.sujeto.equipo ?? f.sujeto.empresa,
+        empresa: f.sujeto.empresa,
+        contrato: f.contrato,
+        periodo: f.periodo.clave,
+        estado: f.estado,
+      })),
+    };
+  },
   list_requerimientos: (p) =>
     paginar(
       db.requerimientos.filter(
