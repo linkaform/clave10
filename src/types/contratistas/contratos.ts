@@ -81,6 +81,25 @@ export interface Requerimiento {
 
 export type RequerimientoInput = Omit<Requerimiento, "id">;
 
+/** Pestaña Aplicación del detalle de un requerimiento (CF-01). */
+export interface AplicacionRequerimiento {
+  /** Servicios, perfiles o equipos que lo exigen. */
+  exigencia: { id: Id; nombre: string; tipo: "Servicio" | "Perfil" | "Equipo" | "" }[];
+  /** Relaciones (como cliente) que lo tienen asignado. */
+  relaciones: { id: Id; folio: string; contratista: string }[];
+  /** Contratos (como cliente) donde se solicita. */
+  contratos: { id: Id; folio: string; contratista: string }[];
+  /** Una fila por sujeto y periodo, con su estado de cumplimiento. */
+  sujetos: {
+    tipo: Ambito;
+    sujeto: Ref;
+    empresa: Ref;
+    contrato: Id | null;
+    periodo: string;
+    estado: EstadoCumplimiento;
+  }[];
+}
+
 /* ---------- Contratos ---------- */
 
 export type EstatusContrato =
