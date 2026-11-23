@@ -48,6 +48,8 @@ export interface PaseEntrada {
   grupo_equipos: string[];
   total_entradas?: number;
   limite_de_acceso?: number;
+  ultima_entrada?: string;
+  ultima_salida?: string;
   pdf_to_img: Imagen[];
 }
 
@@ -392,5 +394,31 @@ export const getPasesEntradaColumns = (
         </div>
       );
     },
+  },
+  {
+    accessorKey: "ultima_entrada",
+    header: "Entrada",
+    cell: ({ row }) => {
+      const fecha = row.original.ultima_entrada;
+      return (
+        <div className="text-green-600 font-medium">
+          {fecha ? formatTo12Hour(fecha) : ""}
+        </div>
+      );
+    },
+    enableSorting: true,
+  },
+  {
+    accessorKey: "ultima_salida",
+    header: "Salida",
+    cell: ({ row }) => {
+      const fecha = row.original.ultima_salida;
+      return (
+        <div className="text-red-600 font-medium">
+          {fecha ? formatTo12Hour(fecha) : ""}
+        </div>
+      );
+    },
+    enableSorting: true,
   },
 ];
