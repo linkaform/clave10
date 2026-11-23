@@ -7,6 +7,7 @@ import type {
   Participante,
   RecursoContrato,
   RecursoInput,
+  AplicacionRequerimiento,
   Requerimiento,
   RequerimientoInput,
   Sesion,
@@ -15,8 +16,11 @@ import type {
   TipoRequerimiento,
   Ambito,
   EstatusSesion,
+  Estatus,
 } from "@/types/contratistas";
-import { callContratistas } from "./client";
+import { CONTRATISTAS_SCRIPTS, callContratistas } from "./client";
+
+const CONF = CONTRATISTAS_SCRIPTS.configuracion;
 
 /* ---------- Recursos ---------- */
 
@@ -31,16 +35,21 @@ export const saveRecurso = (recurso: RecursoInput, recurso_id?: Id) =>
 export interface RequerimientosFiltros extends ListParams {
   tipo?: TipoRequerimiento;
   ambito?: Ambito;
+  estatus?: Estatus;
 }
 
 export const listRequerimientos = (filtros: RequerimientosFiltros = {}) =>
-  callContratistas<Pagina<Requerimiento>>("list_requerimientos", { ...filtros });
+  callContratistas<Pagina<Requerimiento>>("list_requerimientos", { ...filtros }, CONF);
 
 export const getRequerimiento = (requerimiento_id: Id) =>
-  callContratistas<Requerimiento>("get_requerimiento", { requerimiento_id });
+  callContratistas<Requerimiento>("get_requerimiento", { requerimiento_id }, CONF);
 
 export const saveRequerimiento = (requerimiento: RequerimientoInput, requerimiento_id?: Id) =>
-  callContratistas<Requerimiento>("save_requerimiento", { requerimiento, requerimiento_id });
+  callContratistas<Requerimiento>("save_requerimiento", { requerimiento, requerimiento_id }, CONF);
+
+/** Pestaña Aplicación del detalle: dónde se exige y a quién. */
+export const getAplicacionRequerimiento = (requerimiento_id: Id) =>
+  callContratistas<AplicacionRequerimiento>("get_aplicacion_requerimiento", { requerimiento_id }, CONF);
 
 /* ---------- Sesiones ---------- */
 

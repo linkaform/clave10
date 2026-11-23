@@ -20,6 +20,8 @@ export const CONTRATISTAS_SCRIPTS = {
   cumplimiento: "cumplimiento_sdk.py",
   /** F0-11 y ME-06-B */
   documentos: "documentos_sdk.py",
+  /** CF-01 a CF-04 (por ahora requerimientos, CF-01-B) */
+  configuracion: "configuracion_sdk.py",
 } as const;
 
 /**
