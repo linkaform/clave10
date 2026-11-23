@@ -4,12 +4,17 @@ import type { ApiResponse } from "@/types/api";
 import { handleMock } from "@/mocks/contratistas/handlers";
 
 /**
- * Script de Sanic que expone las rutas de contratistas (módulo `accesos`).
- * Los nombres de script y de `option` son provisionales: los fija cada tarea
- * de back (R-01, ME-14, ME-15, CF-01…). Si cambian, solo se tocan aquí y en
- * los services; los tipos no cambian.
+ * Script de Sanic por defecto para las rutas de contratistas (módulo `accesos`).
+ * Es provisional: cada tarea de back fija el script de su área (un script por
+ * área) y su service lo pasa en `callContratistas`. Los tipos no cambian.
  */
 export const CONTRATISTAS_SCRIPT = "contratistas_sdk.py";
+
+/** Scripts ya fijados por su tarea de back. */
+export const CONTRATISTAS_SCRIPTS = {
+  /** ME-14 */
+  contratos: "contratos_sdk.py",
+} as const;
 
 /**
  * Mocks prendidos por defecto mientras no existe el back. Para pegarle al back
@@ -28,12 +33,13 @@ export class ContratistasError extends Error {}
 export async function callContratistas<T>(
   option: string,
   params: Record<string, unknown> = {},
+  script: string = CONTRATISTAS_SCRIPT,
 ): Promise<T> {
   if (USE_CONTRATISTAS_MOCKS) {
     return handleMock<T>(option, params);
   }
   const data = await apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
-    script_name: CONTRATISTAS_SCRIPT,
+    script_name: script,
     option,
     ...params,
   });
