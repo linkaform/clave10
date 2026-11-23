@@ -18,6 +18,8 @@ export const CONTRATISTAS_SCRIPTS = {
   relaciones: "relaciones_sdk.py",
   /** ME-15 */
   cumplimiento: "cumplimiento_sdk.py",
+  /** F0-11 y ME-06-B */
+  documentos: "documentos_sdk.py",
 } as const;
 
 /**
