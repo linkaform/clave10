@@ -13,7 +13,8 @@ export interface RecursoContrato {
   descripcion?: string;
   categoria?: string;
   clase?: ClaseEquipo;
-  requerimientos: Ref[];
+  /** Con su ámbito para los chips por ámbito de la lista. */
+  requerimientos: (Ref & { ambito?: Ambito })[];
   estatus: Estatus;
 }
 
@@ -80,6 +81,12 @@ export interface Requerimiento {
 }
 
 export type RequerimientoInput = Omit<Requerimiento, "id">;
+
+/** Pestaña Aplicación del detalle de un servicio, perfil o equipo (CF-02). */
+export interface AplicacionRecurso {
+  requerimientos: (Pick<Requerimiento, "id" | "nombre" | "descripcion" | "tipo" | "ambito" | "vigencia_modo" | "vigencia" | "periodicidad" | "limitante" | "estatus">)[];
+  contratos: { id: Id; folio: string; objeto: string; contratista: string; cumplimiento_pct: number }[];
+}
 
 /** Pestaña Aplicación del detalle de un requerimiento (CF-01). */
 export interface AplicacionRequerimiento {

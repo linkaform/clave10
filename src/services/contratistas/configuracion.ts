@@ -7,7 +7,9 @@ import type {
   Participante,
   RecursoContrato,
   RecursoInput,
+  AplicacionRecurso,
   AplicacionRequerimiento,
+  ClaseEquipo,
   Requerimiento,
   RequerimientoInput,
   Sesion,
@@ -24,11 +26,25 @@ const CONF = CONTRATISTAS_SCRIPTS.configuracion;
 
 /* ---------- Recursos ---------- */
 
-export const listRecursos = (tipo: TipoRecurso, filtros: ListParams = {}) =>
-  callContratistas<Pagina<RecursoContrato>>("list_recursos", { tipo, ...filtros });
+export interface RecursosFiltros extends ListParams {
+  categoria?: string;
+  clase?: ClaseEquipo;
+  estatus?: Estatus;
+}
 
+export const listRecursos = (tipo: TipoRecurso, filtros: RecursosFiltros = {}) =>
+  callContratistas<Pagina<RecursoContrato>>("list_recursos", { tipo, ...filtros }, CONF);
+
+export const getRecurso = (recurso_id: Id) =>
+  callContratistas<RecursoContrato>("get_recurso", { recurso_id }, CONF);
+
+/** Alta (sin id) o edición completa. Borrar = guardar con estatus Inactivo. */
 export const saveRecurso = (recurso: RecursoInput, recurso_id?: Id) =>
-  callContratistas<RecursoContrato>("save_recurso", { recurso, recurso_id });
+  callContratistas<RecursoContrato>("save_recurso", { recurso, recurso_id }, CONF);
+
+/** Pestaña Aplicación del detalle: requerimientos ligados y contratos donde se usa. */
+export const getAplicacionRecurso = (recurso_id: Id) =>
+  callContratistas<AplicacionRecurso>("get_aplicacion_recurso", { recurso_id }, CONF);
 
 /* ---------- Requerimientos ---------- */
 
