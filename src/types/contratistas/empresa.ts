@@ -18,6 +18,8 @@ export interface Domicilio {
 export type RolContacto = "Representante legal" | "Apoderado legal" | "Contacto";
 
 export interface Contacto {
+  /** Posición en la lista: se usa para editar y borrar (no hay id). */
+  indice?: number;
   nombre: string;
   rol: RolContacto;
   telefono?: string;
@@ -31,7 +33,12 @@ export interface Repse {
   inicio: string;
   fin: string;
   aviso?: Archivo;
+  /** Calculado: Por vencer = 60 días o menos. */
   estatus: EstatusRepse;
+  /** Negativo = vencido. */
+  dias_restantes?: number;
+  /** Barra "Transcurrido N%" (solo con inicio). */
+  transcurrido_pct?: number;
 }
 
 export interface Empresa {
@@ -62,16 +69,22 @@ export interface Empresa {
     descripcion?: string;
     trabajadores_registrados?: number;
   }[];
+  /** Suma de los registros patronales; null = "---" (no cargado). */
+  trabajadores_registrados?: number | null;
   contactos: Contacto[];
   logo?: Archivo;
   es_propia: boolean;
   estatus: Estatus;
 }
 
-/** Lo editable de una empresa (sin folio, id ni calculados). */
-export type EmpresaInput = Omit<Empresa, "id" | "folio" | "es_propia" | "repse"> & {
-  repse?: Omit<Repse, "estatus">;
-};
+/**
+ * Lo editable en Mi Empresa · Generales (ME-01): solo estas 4 llaves; el back
+ * ignora cualquier otra. El RFC se guarda en mayúsculas.
+ */
+export type EmpresaInput = Partial<Pick<Empresa, "razon_social" | "rfc" | "objeto_social" | "domicilio_fiscal">>;
+
+/** Alta o edición de un contacto. Nombre ≥ 3, teléfono ≥ 10 dígitos, correo válido; rol por defecto "Contacto". */
+export type ContactoInput = Omit<Contacto, "indice" | "rol"> & { rol?: RolContacto };
 
 export interface EmpleadoContratista {
   id: Id;
