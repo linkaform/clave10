@@ -36,6 +36,15 @@ const MODES: { mode: DisplayMode; label: string; icon: React.ReactNode }[] = [
   { mode: "charts", label: "Vista de gráficas", icon: <ChartColumn size={16} aria-hidden="true" /> },
 ];
 
+// Estatus de la galería (los calcula el back por registro de check-in)
+const GALLERY_QUICK: { key: string; label: string }[] = [
+  { key: "presente", label: "Asistencia" },
+  { key: "en_turno", label: "En turno" },
+  { key: "retardo", label: "Retardo" },
+  { key: "sin_salida", label: "Sin salida" },
+  { key: "falta", label: "Falta" },
+];
+
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 type FacetKey = "nombre" | "departamento" | "jornada" | "rol" | "guardia" | "caseta";
@@ -106,6 +115,11 @@ const ReportPage = () => {
   // Texto libre (para galería y cobertura, que buscan con un solo texto)
   const search = facets.find(f => !f.exact)?.values[0] ?? "";
   const [quick, setQuick] = useState<string[]>([]);
+  // Galería: filtro de estatus propio (sus estatus son por registro, no por día)
+  const [galQuick, setGalQuick] = useState<string[]>([]);
+  const [galCounts, setGalCounts] = useState<Record<string, number> | null>(null);
+  // undefined = el back aún no manda conteos: se conserva lo último para no parpadear
+  const onGalCounts = useCallback((c?: Record<string, number>) => { if (c) setGalCounts(c); }, []);
   const [selected, setSelected] = useState<number[]>([]);
   const [toastOpen, setToastOpen] = useState(true);
   const [covTurno, setCovTurno] = useState<string>();
@@ -130,6 +144,7 @@ const ReportPage = () => {
   // Al cambiar de periodo se limpian los filtros rápidos y la selección
   useEffect(() => {
     setQuick([]);
+    setGalQuick([]);
     setSelected([]);
     setToastOpen(true);
   }, [period, v.from]);
@@ -277,7 +292,7 @@ const ReportPage = () => {
     return allEmployees.filter(e => passFacets(employeeValues(e, fechas), exactFacets)).map(e => e.employee_id).sort((x, y) => x - y);
   }, [isEmployees, activeFilters, facets, allEmployees, fechas]);
   const clearFilters = () => {
-    setFacets([]); setQuick([]); setCovFilter("all");
+    setFacets([]); setQuick([]); setGalQuick([]); setCovFilter("all");
     setPrevView(null);
   };
 
@@ -321,7 +336,7 @@ const ReportPage = () => {
 
   // ───── Contenido ─────
   const renderView = () => {
-    if (mode === "gallery") return <div><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} ubicaciones={selectedLocations} userIds={galleryUserIds} waiting={!!galleryUserIds && isLoading} onOpen={r => setDaySelection(withEmployeeData(galleryToDay(r)))} /></div>;
+    if (mode === "gallery") return <div><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} ubicaciones={selectedLocations} userIds={galleryUserIds} waiting={!!galleryUserIds && isLoading} statuses={galQuick} onCounts={onGalCounts} onOpen={r => setDaySelection(withEmployeeData(galleryToDay(r)))} /></div>;
     if (isCov) {
       if (isLoadingPlantilla) return <div className="p-3"><ReportSkeleton variant="cards" /></div>;
       if (errorPlantilla) {
@@ -424,6 +439,16 @@ const ReportPage = () => {
               )}
             </div>
           </Seccion>
+          {mode === "gallery" && galCounts && (galQuick.length > 0 || Object.values(galCounts).some(n => n > 0)) && (
+            <Seccion titulo="Estatus" cnt={galQuick.length}>
+              <QuickFilters
+                pildora
+                pills={GALLERY_QUICK.map(q => ({ key: q.key, label: q.label, count: galCounts[q.key] ?? 0, icon: <StatusIcon status={q.key} size={20} /> }))}
+                active={galQuick}
+                onToggle={k => setGalQuick(q => (q.includes(k) ? q.filter(x => x !== k) : [...q, k]))}
+              />
+            </Seccion>
+          )}
           {mode === "charts" && !loading && pills.some(p => p.count > 0 || quick.includes(p.key)) && (
             <Seccion titulo="Estatus" cnt={quick.length}>
               <QuickFilters pildora pills={pills} active={quick} onToggle={k => setQuick(q => (q.includes(k) ? q.filter(x => x !== k) : [...q, k]))} />

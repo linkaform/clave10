@@ -204,7 +204,7 @@ const ReporteConcesionadosPage = () => {
           )}
           {(!rows.length || keys.some(k => (R.qn[k] ?? 0) > 0 || act.includes(k))) && (
             <Seccion titulo="Estatus" cnt={act.length}>
-              <QuickFilters pills={pills} active={act} onToggle={toggleQuick} todos={!rows.length} />
+              <QuickFilters pildora pills={pills} active={act} onToggle={toggleQuick} todos={!rows.length} />
             </Seccion>
           )}
         </>
