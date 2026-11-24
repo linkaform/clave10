@@ -26,6 +26,8 @@ export const CONTRATISTAS_SCRIPTS = {
   empresa: "empresa_sdk.py",
   /** ME-03 a ME-05 (por ahora ME-03-B) */
   empleados: "empleados_sdk.py",
+  /** ME-08 (Mi Empresa · Activos y mantenimientos) */
+  activos: "activos_sdk.py",
 } as const;
 
 /**
