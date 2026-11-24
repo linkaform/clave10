@@ -2,6 +2,8 @@ import type {
   AnalisisDocumentosEmpleado,
   Archivo,
   ContactoInput,
+  ContratoEmpleado,
+  ContratoParaLigar,
   DocumentoEmpleadoRenglon,
   EmpleadoContratista,
   EmpleadoInput,
@@ -16,6 +18,7 @@ import type {
   PreferenciasEmpleado,
   QrEmpleado,
   ResultadoCargaEmpleados,
+  ResultadoContratoEmpleado,
   ValidacionCargaEmpleados,
 } from "@/types/contratistas";
 import { CONTRATISTAS_SCRIPTS, callContratistas } from "./client";
@@ -112,3 +115,30 @@ export const updatePreferenciasEmpleado = (empleado_id: Id, preferencias: Partia
 /** Manda al correo del usuario la liga para poner contraseña nueva. */
 export const restaurarPasswordEmpleado = (empleado_id: Id) =>
   callContratistas<{ enviado: boolean; email: string }>("restaurar_password_empleado", { empleado_id }, EMP);
+
+/* ---- Contratos del empleado (ME-05) ---- */
+
+export const listContratosEmpleado = (
+  empleado_id: Id,
+  filtros: ListParams & { estatus?: Estatus } = {},
+) => callContratistas<Pagina<ContratoEmpleado>>("list_contratos_empleado", { empleado_id, ...filtros }, EMP);
+
+export const listContratosParaLigar = (
+  empleado_id: Id,
+  filtros: { cliente_id?: Id; perfil_id?: Id; search?: string } = {},
+) => callContratistas<Pagina<ContratoParaLigar>>("list_contratos_para_ligar", { empleado_id, ...filtros }, EMP);
+
+/** Perfiles: ids de perfiles que pide el contrato (al menos uno). */
+export const ligarContratoEmpleado = (empleado_id: Id, contrato_id: Id, perfiles: Id[]) =>
+  callContratistas<ResultadoContratoEmpleado>("ligar_contrato_empleado", { empleado_id, contrato_id, perfiles }, EMP);
+
+export const editarPerfilesContratoEmpleado = (empleado_id: Id, contrato_id: Id, perfiles: Id[]) =>
+  callContratistas<ResultadoContratoEmpleado>(
+    "editar_perfiles_contrato_empleado",
+    { empleado_id, contrato_id, perfiles },
+    EMP,
+  );
+
+/** Sus documentos se conservan. */
+export const removerContratoEmpleado = (empleado_id: Id, contrato_id: Id) =>
+  callContratistas<ResultadoContratoEmpleado>("remover_contrato_empleado", { empleado_id, contrato_id }, EMP);

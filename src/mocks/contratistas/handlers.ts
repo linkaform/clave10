@@ -446,6 +446,26 @@ const validarSubcontratacion = (padre: Relacion, clienteId: string, contratistaI
   if (!permite) throw new MockError("Ningún contrato vigente de la relación padre permite subcontratación.");
 };
 
+/* ---------------- Contratos del empleado (ME-05-B) ---------------- */
+
+const NO_VIGENTE: string[] = ["Pausado", "Cancelado", "Vencido"];
+
+/** Como el back: un renglón por perfil, conserva fecha de alta y suma perfiles nuevos al empleado. */
+const renglonesEmpleado = (e: EmpleadoContratista, c: Contrato, perfiles: string[]) => {
+  const del = new Map(c.perfiles.map((x) => [x.perfil.id, x.perfil]));
+  const malos = perfiles.filter((id) => !del.has(id));
+  if (malos.length) throw new MockError(`Perfiles que no pide el contrato ${c.folio}: ${malos.join(", ")}.`);
+  const antes = new Map(c.empleados.filter((x) => x.empleado.id === e.id).map((x) => [x.perfil.id, x]));
+  c.empleados = [
+    ...c.empleados.filter((x) => x.empleado.id !== e.id),
+    ...perfiles.map((id) => ({ ...antes.get(id), empleado: { id: e.id, nombre: e.nombre }, perfil: del.get(id)!, fecha_alta: antes.get(id)?.fecha_alta ?? hoyISO() })),
+  ];
+  const tiene = new Set(e.perfiles.map((x) => x.id));
+  const perfiles_agregados = perfiles.filter((id) => !tiene.has(id)).map((id) => del.get(id)!);
+  e.perfiles = [...e.perfiles, ...perfiles_agregados];
+  return { contrato: { id: c.id, folio: c.folio }, perfiles_agregados, empleado: empleadoDetalle(e) };
+};
+
 /* ---------------- Opciones ---------------- */
 
 type Handler = (p: any) => unknown;
@@ -597,6 +617,73 @@ const handlers: Record<string, Handler> = {
     };
   },
   list_documentos_empleado: ({ empleado_id, ...p }) => documentosEmpleado(empleado_id, p),
+  list_contratos_empleado: ({ empleado_id, ...p }) => {
+    const e = buscar(db.empleados, empleado_id, "Empleado");
+    const filas = recalcular();
+    const items = db.contratos
+      .filter((c) => c.empleados.some((x) => x.empleado.id === e.id))
+      .map((c) => {
+        const mios = c.empleados.filter((x) => x.empleado.id === e.id);
+        const estados = filas
+          .filter((f) => f.contrato === c.id && f.sujeto.empleado?.id === e.id)
+          .map((f) => f.estado)
+          .filter((s) => s !== "No aplica" && s !== "Por transcurrir");
+        return {
+          id: c.id, folio: c.folio, objeto: c.objeto, cliente: c.cliente, contratista: c.contratista,
+          servicios: c.servicios, perfiles: mios.map((x) => x.perfil),
+          fecha_alta: mios.map((x) => x.fecha_alta).sort()[0] ?? "",
+          vigencia: { inicio: c.inicio, fin: c.fin }, estatus_contrato: c.estatus,
+          estatus: NO_VIGENTE.includes(c.estatus) ? "Inactivo" : "Activo",
+          requerimientos: { pendientes: estados.filter((s) => s !== "Cumplido" && s !== "En ceros").length, total: estados.length },
+        };
+      })
+      .filter((i) => (p.estatus ? i.estatus === p.estatus : true) && coincide(`${i.folio} ${i.objeto}`, p.search));
+    return paginar(items, p);
+  },
+  list_contratos_para_ligar: ({ empleado_id, ...p }) => {
+    const e = buscar(db.empleados, empleado_id, "Empleado");
+    const mios = new Set(e.perfiles.map((x) => x.id));
+    const items = db.contratos
+      .filter((c) => c.contratista.id === (e.empresa?.id ?? EMPRESA_ACTIVA) && !NO_VIGENTE.includes(c.estatus))
+      .filter((c) => !c.empleados.some((x) => x.empleado.id === e.id))
+      .map((c) => {
+        const perfiles = c.perfiles.map((x) => ({
+          ...x.perfil, cantidad: x.cantidad,
+          asignados: c.empleados.filter((y) => y.perfil.id === x.perfil.id).length,
+          ya_lo_tiene: mios.has(x.perfil.id),
+        }));
+        return { id: c.id, folio: c.folio, objeto: c.objeto, cliente: c.cliente, vigencia: { inicio: c.inicio, fin: c.fin },
+          estatus_contrato: c.estatus, perfiles, coincide: perfiles.filter((x) => x.ya_lo_tiene) };
+      })
+      .filter((i) => (p.cliente_id ? i.cliente.id === p.cliente_id : true) &&
+        (p.perfil_id ? i.perfiles.some((x) => x.id === p.perfil_id) : true) && coincide(`${i.folio} ${i.objeto}`, p.search))
+      .sort((a, b) => Number(!a.coincide.length) - Number(!b.coincide.length));
+    return { items, total: items.length };
+  },
+  ligar_contrato_empleado: ({ empleado_id, contrato_id, perfiles }) => {
+    const e = buscar(db.empleados, empleado_id, "Empleado");
+    if (e.estatus !== "Activo") throw new MockError("El empleado está desactivado.");
+    if (e.vetado) throw new MockError("El empleado está vetado: no se puede ligar a contratos.");
+    if (!e.disponible_para_contratos) throw new MockError("El empleado no está disponible para contratos.");
+    const c = buscar(db.contratos, contrato_id, "Contrato");
+    if (c.empleados.some((x) => x.empleado.id === e.id))
+      throw new MockError("El empleado ya está ligado a ese contrato; edita sus perfiles.");
+    if (!perfiles?.length) throw new MockError("Elige al menos un perfil del contrato.");
+    return renglonesEmpleado(e, c, perfiles);
+  },
+  editar_perfiles_contrato_empleado: ({ empleado_id, contrato_id, perfiles }) => {
+    const e = buscar(db.empleados, empleado_id, "Empleado");
+    const c = buscar(db.contratos, contrato_id, "Contrato");
+    if (!c.empleados.some((x) => x.empleado.id === e.id)) throw new MockError("El empleado no está ligado a ese contrato.");
+    if (!perfiles?.length) throw new MockError("Elige al menos un perfil; para quitarlo del contrato usa Remover.");
+    return renglonesEmpleado(e, c, perfiles);
+  },
+  remover_contrato_empleado: ({ empleado_id, contrato_id }) => {
+    const e = buscar(db.empleados, empleado_id, "Empleado");
+    const c = buscar(db.contratos, contrato_id, "Contrato");
+    if (!c.empleados.some((x) => x.empleado.id === e.id)) throw new MockError("El empleado no está ligado a ese contrato.");
+    return renglonesEmpleado(e, c, []);
+  },
 
   /* Relaciones */
   list_relaciones: (p) => {
