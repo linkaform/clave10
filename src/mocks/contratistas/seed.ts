@@ -97,6 +97,7 @@ export const RELACIONES: Relacion[] = [
     fecha_alta: "2026-01-15",
     num_contratos: 1,
     cumplimiento_pct: 0,
+    ultima_notificacion: null,
   },
   {
     id: "rel-vigilancia",
@@ -110,6 +111,7 @@ export const RELACIONES: Relacion[] = [
     fecha_alta: "2026-03-02",
     num_contratos: 1,
     cumplimiento_pct: 0,
+    ultima_notificacion: null,
   },
   {
     id: "rel-cliente-delta",
@@ -123,6 +125,7 @@ export const RELACIONES: Relacion[] = [
     fecha_alta: "2025-11-01",
     num_contratos: 0,
     cumplimiento_pct: 0,
+    ultima_notificacion: null,
   },
   {
     id: "rel-sub-jardineria",
@@ -136,6 +139,7 @@ export const RELACIONES: Relacion[] = [
     fecha_alta: "2026-04-10",
     num_contratos: 0,
     cumplimiento_pct: 0,
+    ultima_notificacion: null,
   },
 ];
 

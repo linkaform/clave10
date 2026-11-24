@@ -18,7 +18,10 @@ import type {
   PestanaPeriodo,
   PestanaVigencia,
   ResumenCumplimiento,
+  EstadoIncumplimiento,
   FilaAsignacion,
+  IncumplimientoRequerimiento,
+  ResultadoNotificacion,
   EmpleadoContratista,
   Empresa,
   EstatusRepse,
@@ -314,7 +317,37 @@ const aFila = (r: Relacion, direccion: string): RelacionFila => {
     num_contratos: r.num_contratos,
     cumplimiento_pct: r.cumplimiento_pct,
     estatus: r.estatus,
+    ultima_notificacion: r.ultima_notificacion,
   };
+};
+
+/* MX-03: incumplimientos de una relación, como el back (Rechazado, Vencido, Por subir = No entregado). */
+const INCUMPLE: Record<string, EstadoIncumplimiento> = { Rechazado: "Rechazado", Vencido: "Vencido", "Por subir": "No entregado" };
+
+const incumplimientosDe = (relacionId: string, requerimientoId?: string): IncumplimientoRequerimiento[] => {
+  const porReq = new Map<string, IncumplimientoRequerimiento>();
+  recalcular()
+    .filter((f) => f.relacion === relacionId && INCUMPLE[f.estado] && (!requerimientoId || f.requerimiento.id === requerimientoId))
+    .forEach((f) => {
+      const g = porReq.get(f.requerimiento.id) ?? { requerimiento: f.requerimiento, periodos: [] };
+      const sujeto = f.sujeto.empleado?.nombre ?? f.sujeto.equipo?.nombre;
+      g.periodos.push({ clave: f.periodo.clave, estado: INCUMPLE[f.estado], ...(sujeto ? { sujeto } : {}) });
+      porReq.set(f.requerimiento.id, g);
+    });
+  return [...porReq.values()].sort((a, b) => a.requerimiento.nombre.localeCompare(b.requerimiento.nombre));
+};
+
+const destinatarioDe = (empresaId: string) => {
+  const emp = buscar(db.empresas, empresaId, "Empresa");
+  const con = emp.contactos.filter((c) => c.email);
+  const c = con.find((x) => x.rol === "Representante legal") ?? con[0];
+  return c ? { nombre: c.nombre, email: c.email!, rol: c.rol } : null;
+};
+
+const relacionDelCliente = (id: string) => {
+  const r = buscar(db.relaciones, id, "Relación");
+  if (r.cliente.id !== EMPRESA_ACTIVA) throw new MockError("Solo el cliente notifica incumplimientos a su contratista.");
+  return r;
 };
 
 const empresaRef = (id: string) => {
@@ -1061,6 +1094,7 @@ const handlers: Record<string, Handler> = {
       notas: relacion.notas,
       num_contratos: 0,
       cumplimiento_pct: 0,
+      ultima_notificacion: null,
     };
     db.relaciones.push(nueva);
     return nueva;
@@ -1705,6 +1739,57 @@ const handlers: Record<string, Handler> = {
     buscar(db.mantenimientos, mantenimiento_id, "Mantenimiento");
     db.mantenimientos = db.mantenimientos.filter((m) => m.id !== mantenimiento_id);
     return { eliminado: mantenimiento_id };
+  },
+
+  /* Notificar incumplimientos (MX-03) */
+  get_incumplimientos: ({ relacion_ids, requerimiento_id }) => {
+    const anio = new Date().getFullYear();
+    const cliente = buscar(db.empresas, EMPRESA_ACTIVA, "Empresa").razon_social;
+    const items = (relacion_ids as string[]).map((id) => {
+      const r = relacionDelCliente(id);
+      const inc = incumplimientosDe(r.id, requerimiento_id);
+      const dest = destinatarioDe(r.contratista.id);
+      const lista = inc.map((g) => `- ${g.requerimiento.nombre}: ${g.periodos.map((p) => `${p.clave === "unico" ? "vigente" : p.clave}${p.sujeto ? ` (${p.sujeto})` : ""}: ${p.estado}`).join(", ")}`);
+      return {
+        relacion_id: r.id, folio: r.folio, contratista: r.contratista, estatus: r.estatus, destinatario: dest,
+        incumplimientos: inc, total: inc.reduce((n, g) => n + g.periodos.length, 0),
+        mensaje_sugerido: inc.length
+          ? [dest ? `Hola ${dest.nombre},` : "Hola,", "", `${cliente} te avisa que estas obligaciones no se cumplieron en ${anio}:`, "", ...lista, "", "Sube o corrige los documentos en tu portal de Clave 10 para regularizarte."].join("\n")
+          : "",
+        ultima_notificacion: r.ultima_notificacion,
+      };
+    });
+    const con = items.filter((x) => x.total);
+    return {
+      items,
+      con_incumplimientos: con.length,
+      mensaje_sugerido: con.length === 1 ? con[0].mensaje_sugerido
+        : `${cliente} te avisa que tienes obligaciones de cumplimiento pendientes en ${anio}. Revisa el detalle en tu portal de Clave 10 y sube o corrige los documentos para regularizarte.`,
+    };
+  },
+  notificar_incumplimientos: ({ relacion_ids, motivo, requerimiento_id }) => {
+    if (!String(motivo ?? "").trim()) throw new MockError("Escribe el motivo.");
+    const rels = (relacion_ids as string[]).map(relacionDelCliente);
+    const inactiva = rels.find((r) => r.estatus !== "Activo");
+    if (inactiva) throw new MockError(`La relación ${inactiva.folio} está inactiva.`);
+    const items: ResultadoNotificacion["items"] = [];
+    const omitidas: ResultadoNotificacion["omitidas"] = [];
+    rels.forEach((r) => {
+      const inc = incumplimientosDe(r.id, requerimiento_id);
+      if (!inc.length) {
+        omitidas.push({ relacion_id: r.id, folio: r.folio, motivo: "Sin incumplimientos" });
+        return;
+      }
+      const dest = destinatarioDe(r.contratista.id);
+      const fecha = ahora();
+      r.ultima_notificacion = { fecha, autor: AUTOR, correo_enviado: Boolean(dest), total: (r.ultima_notificacion?.total ?? 0) + 1 };
+      items.push({
+        relacion_id: r.id, folio: r.folio, contratista: r.contratista, correo: dest?.email ?? null,
+        correo_enviado: Boolean(dest), ...(dest ? {} : { sin_correo: true }), portal: 1,
+        incumplimientos: inc.reduce((n, g) => n + g.periodos.length, 0), fecha,
+      });
+    });
+    return { enviadas: items.length, items, omitidas };
   },
 
   list_cumplimiento: (p) =>

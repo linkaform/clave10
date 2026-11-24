@@ -19,6 +19,16 @@ export interface Relacion {
   notas?: string;
   num_contratos: number;
   cumplimiento_pct: number;
+  /** MX-03: última alerta de incumplimientos enviada ("Alerta enviada"). */
+  ultima_notificacion: UltimaNotificacion | null;
+}
+
+export interface UltimaNotificacion {
+  fecha: string;
+  autor: string;
+  correo_enviado: boolean;
+  /** Cuántas se han enviado en total. */
+  total: number;
 }
 
 /** Fila de la lista única Clientes/Contratistas (R-04): contraparte ya resuelta. */
@@ -36,6 +46,7 @@ export interface RelacionFila {
   num_contratos: number;
   cumplimiento_pct: number;
   estatus: Estatus;
+  ultima_notificacion: UltimaNotificacion | null;
 }
 
 export interface RelacionInput {
@@ -89,4 +100,55 @@ export interface AsignacionInput {
   relacion_id: Id;
   /** Lista completa de lo que queda asignado a ese contratista. */
   requerimientos: Id[];
+}
+
+/* ---------- Notificar incumplimientos (MX-03) ---------- */
+
+/** Rechazado / Vencido / No entregado (= "Por subir" del motor). */
+export type EstadoIncumplimiento = "Rechazado" | "Vencido" | "No entregado";
+
+export interface IncumplimientoRequerimiento {
+  requerimiento: Ref;
+  /** clave "unico" = requerimiento por vigencia; sujeto = empleado o equipo. */
+  periodos: { clave: string; estado: EstadoIncumplimiento; sujeto?: string }[];
+}
+
+export interface DestinatarioIncumplimiento {
+  relacion_id: Id;
+  folio: string;
+  contratista: EmpresaRef;
+  estatus: Estatus;
+  /** Representante legal con correo, o el primer contacto con correo; null = solo portal. */
+  destinatario: { nombre: string; email: string; rol: string } | null;
+  incumplimientos: IncumplimientoRequerimiento[];
+  /** "N incumplimientos"; 0 = campana atenuada ("Sin incumplimientos"). */
+  total: number;
+  mensaje_sugerido: string;
+  ultima_notificacion: UltimaNotificacion | null;
+}
+
+export interface Incumplimientos {
+  items: DestinatarioIncumplimiento[];
+  con_incumplimientos: number;
+  /** Para uno: detalle; para varios: mensaje genérico. Precarga el Motivo. */
+  mensaje_sugerido: string;
+}
+
+export interface ResultadoNotificacion {
+  enviadas: number;
+  items: {
+    relacion_id: Id;
+    folio: string;
+    contratista: EmpresaRef;
+    correo: string | null;
+    correo_enviado: boolean;
+    sin_correo?: boolean;
+    error_correo?: string;
+    /** Usuarios de la empresa avisados en su bandeja. */
+    portal: number;
+    incumplimientos: number;
+    fecha: string;
+  }[];
+  /** Relaciones sin incumplimientos (no se notificaron). */
+  omitidas: { relacion_id: Id; folio: string; motivo: string }[];
 }
