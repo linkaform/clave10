@@ -25,6 +25,8 @@ import { employeeMetrics } from "./lib/metrics";
 import { exportNomina, exportRegistros } from "./lib/exportExcel";
 import { PlazasSelection, plantillaTurnoLabel, plazaQuickKey, resumenPlazas, turnoActual, turnoKey } from "./lib/plantilla";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
+import { FechaPicker } from "../components/shared/periodo/FechaPicker";
+import { Seccion } from "../components/shared/filtros/Seccion";
 
 const MODES: { mode: DisplayMode; label: string; icon: React.ReactNode }[] = [
   { mode: "cov", label: "Vista de tablero", icon: <LayoutDashboard size={16} aria-hidden="true" /> },
@@ -137,6 +139,8 @@ const ReportPage = () => {
   const isDay = period === "dia";
   const mode = displayMode;
   const isCov = mode === "cov";
+  // Galería y Gráficas: periodo, fecha y estatus van en el panel y las tarjetas van sin tarjeta blanca alrededor
+  const side = mode === "gallery" || mode === "charts";
 
   // ───── Empleados ─────
   const allEmployees = useMemo(
@@ -317,7 +321,7 @@ const ReportPage = () => {
 
   // ───── Contenido ─────
   const renderView = () => {
-    if (mode === "gallery") return <div className="p-3"><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} ubicaciones={selectedLocations} userIds={galleryUserIds} waiting={!!galleryUserIds && isLoading} onOpen={r => setDaySelection(withEmployeeData(galleryToDay(r)))} /></div>;
+    if (mode === "gallery") return <div><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} ubicaciones={selectedLocations} userIds={galleryUserIds} waiting={!!galleryUserIds && isLoading} onOpen={r => setDaySelection(withEmployeeData(galleryToDay(r)))} /></div>;
     if (isCov) {
       if (isLoadingPlantilla) return <div className="p-3"><ReportSkeleton variant="cards" /></div>;
       if (errorPlantilla) {
@@ -347,7 +351,7 @@ const ReportPage = () => {
     }
     const sel = { ids: selected, set: setSelected };
     if (isEmployees) {
-      if (mode === "charts") return <div className="p-4"><EmployeeCharts employees={employees} days={days} quick={quick} onSelectEmployee={selectEmployee} /></div>;
+      if (mode === "charts") return <EmployeeCharts employees={employees} days={days} quick={quick} onSelectEmployee={selectEmployee} />;
       if (mode === "table") {
         return isDay
           ? <EmployeeDayTable employees={employees} date={date} sel={sel} onOpenDay={openDay} />
@@ -357,7 +361,7 @@ const ReportPage = () => {
         ? <EmployeeDayCalendar employees={employees} date={date} quick={quick} onOpenDay={openDay} />
         : <EmployeePeriodGrid employees={employees} days={days} quick={quick} metrics={metrics} onOpenDay={openDay} />;
     }
-    if (mode === "charts") return <div className="p-4"><LocationCharts rows={shifts} days={days} quick={quick} /></div>;
+    if (mode === "charts") return <LocationCharts rows={shifts} days={days} quick={quick} />;
     if (mode === "table") {
       return isDay
         ? <LocationDayTable rows={shifts} date={date} onOpenShift={setShiftSelection} />
@@ -378,7 +382,7 @@ const ReportPage = () => {
   const enCurso = qTo >= new Date(new Date().toDateString());
 
   const filterPanel = (
-    <aside aria-label="Filtros" className={`flex w-[280px] flex-none flex-col gap-4 rounded-2xl bg-c10-surface p-4 shadow-[0_1px_2px_rgba(15,23,42,.04),0_6px_20px_rgba(15,23,42,.04)] ${wide ? "sticky top-[84px]" : "fixed bottom-0 left-0 top-0 z-[58] overflow-auto rounded-none"}`}>
+    <aside aria-label="Filtros" className={`flex w-[280px] flex-none flex-col gap-4 rounded-2xl bg-c10-surface p-4 shadow-[0_1px_2px_rgba(15,23,42,.04),0_6px_20px_rgba(15,23,42,.04)] ${wide ? "sticky top-[84px] max-h-[calc(100vh-100px)] overflow-y-auto" : "fixed bottom-0 left-0 top-0 z-[58] overflow-auto rounded-none"}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-2">
           <button type="button" title="Ocultar filtros" aria-label="Ocultar filtros" onClick={() => (wide ? setPanelOpen(false) : setNarrowOpen(false))} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-c10-sunken text-c10-secondary hover:bg-c10-blue-light hover:text-button-primary">
@@ -389,6 +393,45 @@ const ReportPage = () => {
         </span>
         <button type="button" onClick={clearFilters} className="text-sm font-semibold text-button-primary hover:underline">Limpiar</button>
       </div>
+      {side && (
+        <div className="-mb-2 flex flex-col [&>div:last-child]:pb-0">
+          <Seccion titulo="Periodo">
+            <div role="group" aria-label="Periodo" className="flex flex-wrap gap-1.5">
+              {PERIOD_VIEWS.filter(p => MODE_PERIODS[mode].includes(p.value)).map(p => {
+                const on = period === p.value;
+                return (
+                  <button key={p.value} type="button" aria-pressed={on} onClick={() => v.setPeriod(p.value)} className={`h-[30px] flex-none whitespace-nowrap rounded-full px-3 text-[13px] transition-colors ${on ? "bg-button-primary font-semibold text-white" : "bg-c10-sunken font-medium text-c10-label hover:bg-c10-line"}`}>
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Seccion>
+          <Seccion titulo="Fecha">
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1"><FechaPicker view={period} date={date} label={v.label} onPick={v.setDate} /></div>
+              {mode === "charts" && (
+                <button
+                  type="button"
+                  title="Recargar"
+                  aria-label="Recargar"
+                  onClick={() => v.refetchReportAsistencias()}
+                  disabled={v.isFetching}
+                  className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-full bg-c10-sunken text-c10-secondary transition-colors hover:bg-c10-blue-light hover:text-button-primary disabled:opacity-40"
+                >
+                  <RotateCw size={16} className={v.isFetching ? "animate-spin" : ""} />
+                </button>
+              )}
+            </div>
+          </Seccion>
+          {mode === "charts" && !loading && pills.some(p => p.count > 0 || quick.includes(p.key)) && (
+            <Seccion titulo="Estatus" cnt={quick.length}>
+              <QuickFilters pildora pills={pills} active={quick} onToggle={k => setQuick(q => (q.includes(k) ? q.filter(x => x !== k) : [...q, k]))} />
+            </Seccion>
+          )}
+        </div>
+      )}
+      {side && <div className="border-t border-c10-sunken" />}
       {!isEmployees && isCov ? (
         <CoverageFilters turnos={covTurnos} turno={covKey} onTurno={setCovTurno} filter={covFilter} onFilter={setCovFilter} counts={covCounts} />
       ) : isEmployees ? (
@@ -520,6 +563,9 @@ const ReportPage = () => {
           </button>
         )}
 
+        {side ? (
+          <main className="flex min-w-0 flex-1 flex-col gap-4">{renderView()}</main>
+        ) : (
         <section className="flex min-w-0 flex-1 flex-col rounded-2xl bg-c10-surface shadow-[0_1px_2px_rgba(15,23,42,.04),0_6px_20px_rgba(15,23,42,.04)]">
           <div className="flex flex-col gap-3 border-b border-c10-line p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -539,7 +585,7 @@ const ReportPage = () => {
                   title="Recargar"
                   aria-label="Recargar"
                   onClick={() => (isCov ? refetchPlantilla() : v.refetchReportAsistencias())}
-                  disabled={(isCov ? isFetchingPlantilla : v.isFetching) || mode === "gallery"}
+                  disabled={(isCov ? isFetchingPlantilla : v.isFetching)}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-c10-sunken text-c10-secondary transition-colors hover:bg-c10-blue-light hover:text-button-primary disabled:opacity-40"
                 >
                   <RotateCw size={16} className={(isCov ? isFetchingPlantilla : v.isFetching) ? "animate-spin" : ""} />
@@ -553,7 +599,7 @@ const ReportPage = () => {
                 />
               </div>
             </div>
-            {mode !== "gallery" && !loading && (
+            {!loading && (
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <QuickFilters
                   pills={pills}
@@ -570,6 +616,7 @@ const ReportPage = () => {
           </div>
           {renderView()}
         </section>
+        )}
 
         {isEmployees && mode === "table" && (
           <button
