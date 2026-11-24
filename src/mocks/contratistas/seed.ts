@@ -3,7 +3,7 @@
 // cliente y una subcontratación. Nombres y RFC son inventados.
 import type {
   Contrato,
-  Documento,
+  DocumentoBase,
   EmpleadoContratista,
   Empresa,
   EventoContrato,
@@ -315,7 +315,7 @@ export const HISTORIAL: EventoContrato[] = [
 
 const propia = { id: "emp-propia", nombre: "Grupo Ejemplo SA de CV" };
 
-export const DOCUMENTOS: Documento[] = [
+export const DOCUMENTOS: DocumentoBase[] = [
   {
     id: "doc-1",
     folio: "D-0001",

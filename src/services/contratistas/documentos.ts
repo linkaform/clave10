@@ -41,6 +41,13 @@ export const uploadDocumento = (documento: DocumentoInput) =>
 export const reviewDocumento = (documento_id: Id, revision: RevisionDocumento) =>
   callContratistas<Documento>("review_documento", { documento_id, ...revision }, DOCS);
 
+/**
+ * MX-02: el dueño cambia con qué clientes comparte. Cliente nuevo entra
+ * Pendiente; el que sale pierde su decisión. Solo clientes activos.
+ */
+export const updateCompartidoDocumento = (documento_id: Id, compartido_con: Id[]) =>
+  callContratistas<Documento>("update_compartido_documento", { documento_id, compartido_con }, DOCS);
+
 export const commentDocumento = (documento_id: Id, texto: string) =>
   callContratistas<Documento>("comment_documento", { documento_id, texto }, DOCS);
 
