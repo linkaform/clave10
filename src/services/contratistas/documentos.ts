@@ -1,6 +1,9 @@
 // Documentos (ME-06, F0-13, MX-02) y cumplimiento (ME-07, MX-01, MX-04).
 import type {
+  AcuseInput,
   Ambito,
+  CumplimientoDocumental,
+  CumplimientoGenerado,
   CumplimientoFila,
   CumplimientoFiltros,
   Documento,
@@ -10,6 +13,8 @@ import type {
   Id,
   ListParams,
   Pagina,
+  PeriodoCumplimiento,
+  ResumenCumplimiento,
   RevisionDocumento,
 } from "@/types/contratistas";
 import { CONTRATISTAS_SCRIPTS, callContratistas } from "./client";
@@ -48,6 +53,10 @@ export const reviewDocumento = (documento_id: Id, revision: RevisionDocumento) =
 export const updateCompartidoDocumento = (documento_id: Id, compartido_con: Id[]) =>
   callContratistas<Documento>("update_compartido_documento", { documento_id, compartido_con }, DOCS);
 
+/** ME-07: el dueño borra un documento que ningún cliente aprobó (si no, 409: reemplazar). */
+export const deleteDocumento = (documento_id: Id) =>
+  callContratistas<{ eliminado: Id; folio: string }>("delete_documento", { documento_id }, DOCS);
+
 export const commentDocumento = (documento_id: Id, texto: string) =>
   callContratistas<Documento>("comment_documento", { documento_id, texto }, DOCS);
 
@@ -66,3 +75,38 @@ export const setEstadoCumplimiento = (
     { cumplimiento_id, estado, motivo },
     CONTRATISTAS_SCRIPTS.cumplimiento,
   );
+
+/* ---------- Cumplimiento documental de Mi Empresa (ME-07) ---------- */
+
+const CUMP = CONTRATISTAS_SCRIPTS.cumplimiento;
+
+/** Matriz obligación × periodo y vistas por vigencia del ejercicio (default: año en curso). */
+export const getCumplimientoDocumental = (anio?: number) =>
+  callContratistas<CumplimientoDocumental>("get_cumplimiento_documental", { anio }, CUMP);
+
+/** Detalle del periodo (sin periodo_clave = documento único de la obligación). */
+export const getPeriodoCumplimiento = (requerimiento_id: Id, periodo_clave?: string) =>
+  callContratistas<PeriodoCumplimiento>("get_periodo_cumplimiento", { requerimiento_id, periodo_clave }, CUMP);
+
+/**
+ * Sube el acuse del periodo; si ya había uno se reemplaza (versión nueva,
+ * aprobaciones a Pendiente). Leerlo antes con `analizarDocumento` (F0-11).
+ */
+export const subirAcuse = (acuse: AcuseInput) =>
+  callContratistas<{ documento: Documento; reemplazado: boolean }>("subir_acuse", { acuse }, CUMP);
+
+/** ZIP con CSV de contratos y trabajadores del periodo (ICSOE / SISUB). */
+export const generarCumplimiento = (requerimiento_id: Id, periodo_clave: string) =>
+  callContratistas<CumplimientoGenerado>("generar_cumplimiento", { requerimiento_id, periodo_clave }, CUMP);
+
+/** ZIP con los archivos del ejercicio (pestañas elegidas) y un resumen .xlsx. */
+export const descargarCumplimiento = (anio: number, pestanas?: string[]) =>
+  callContratistas<{ archivo: { name: string; file_url: string }; documentos: number; omitidos: unknown[] }>(
+    "descargar_cumplimiento",
+    { anio, pestanas },
+    CUMP,
+  );
+
+/** Panel lateral de Generales: anillo y pendientes. */
+export const getResumenCumplimiento = (limit = 50) =>
+  callContratistas<ResumenCumplimiento>("get_resumen_cumplimiento", { limit }, CUMP);

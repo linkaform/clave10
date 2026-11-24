@@ -318,6 +318,127 @@ export interface CumplimientoFiltros {
   anio?: number;
 }
 
+/* ---------- Cumplimiento documental de Mi Empresa (ME-07) ---------- */
+
+/** Estado de una celda: documento de la empresa para ese periodo (regla de MX-02). */
+export type EstadoDocumental =
+  | "Aceptado"
+  | "En ceros"
+  | "Por revisar"
+  | "Rechazado"
+  | "Vencido"
+  | "Por subir"
+  | "No entregado"
+  | "No aplica";
+
+export type PestanaPeriodica =
+  | "Mensuales"
+  | "Bimestrales"
+  | "Trimestrales"
+  | "Cuatrimestrales"
+  | "Semestrales"
+  | "Anuales";
+
+export type ObligacionDocumental = Pick<
+  Requerimiento,
+  | "id"
+  | "nombre"
+  | "descripcion"
+  | "tipo"
+  | "plataforma"
+  | "plataforma_url"
+  | "periodicidad"
+  | "vigencia"
+  | "requiere_acuse"
+  | "limitante"
+>;
+
+export interface AcuseRef {
+  id: Id;
+  folio: string;
+  archivo: Archivo;
+  en_ceros: boolean;
+  vigencia_inicio: string | null;
+  vigencia_fin: string | null;
+}
+
+export interface CeldaDocumental {
+  clave: string;
+  vence: string;
+  /** null = periodo futuro (celda vacía). */
+  estado: EstadoDocumental | null;
+  documento: AcuseRef | null;
+}
+
+export interface PestanaPeriodo {
+  pestana: PestanaPeriodica;
+  columnas: { clave: string; inicio: string; fin: string }[];
+  filas: { requerimiento: ObligacionDocumental; celdas: CeldaDocumental[]; cumplimiento_pct: number | null }[];
+  /** % por columna; null = nada que cuente todavía. */
+  pie: (number | null)[];
+  cumplimiento_pct: number | null;
+  pendientes: number;
+}
+
+export interface PestanaVigencia {
+  pestana: "Por vigencia" | "Sin vencimiento";
+  filas: { requerimiento: ObligacionDocumental; estado: EstadoDocumental; documento: Documento | null }[];
+  cumplimiento_pct: number | null;
+  pendientes: number;
+}
+
+export interface CumplimientoDocumental {
+  anio: number;
+  hoy: string;
+  /** Solo las pestañas que tienen obligaciones, en orden. */
+  pestanas: (PestanaPeriodo | PestanaVigencia)[];
+}
+
+export interface PeriodoCumplimiento {
+  /** Con `descripcion` = nota de la obligación. */
+  requerimiento: Requerimiento;
+  periodo: { clave: string; inicio: string; fin: string; vence: string };
+  estado: EstadoDocumental | null;
+  documento: Documento | null;
+}
+
+export interface AcuseInput {
+  requerimiento_id: Id;
+  /** Clave del periodo (2026-05, 2026-C2…); sin ella = documento único. */
+  periodo_clave?: string;
+  /** Emisión o presentación (YYYY-MM-DD), obligatoria. */
+  fecha: string;
+  archivo: Archivo;
+  /** Solo cuatrimestrales. */
+  en_ceros?: boolean;
+  lectura_ia?: Record<string, unknown>;
+  compartido_con?: Id[];
+}
+
+export interface CumplimientoGenerado {
+  archivo: Archivo;
+  en_ceros: boolean;
+  contratos: number;
+  trabajadores: number;
+  plataforma: Plataforma;
+  plataforma_url?: string;
+}
+
+export interface ResumenCumplimiento {
+  anio: number;
+  empresa_pct: number | null;
+  empleados_pct: number;
+  acuses_pct: number | null;
+  pendientes: {
+    requerimiento: Ref;
+    requiere_acuse: boolean;
+    periodo: string | null;
+    vence: string | null;
+    estado: EstadoDocumental;
+  }[];
+  total_pendientes: number;
+}
+
 /* ---------- Sesiones ---------- */
 
 /** Tipos del diseño (decisión 2026-11-24). */
