@@ -28,6 +28,8 @@ export const CONTRATISTAS_SCRIPTS = {
   empleados: "empleados_sdk.py",
   /** ME-08 (Mi Empresa · Activos y mantenimientos) */
   activos: "activos_sdk.py",
+  /** R-07 y ME-05 (sanciones de empleados y contratistas) */
+  sanciones: "sanciones_sdk.py",
 } as const;
 
 /**

@@ -137,6 +137,8 @@ export interface EmpleadoContratista {
   preferencias?: PreferenciasEmpleado;
   /** false si está desactivado o vetado. */
   qr_activo?: boolean;
+  /** R-07: fin de la suspensión vigente (sanción sin días de acceso); solo informativo. */
+  suspendido_hasta?: string | null;
 }
 
 export type Genero = "Femenino" | "Masculino";

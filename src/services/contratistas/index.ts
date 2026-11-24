@@ -5,3 +5,4 @@ export * from "./contratos";
 export * from "./configuracion";
 export * from "./documentos";
 export * from "./activos";
+export * from "./sanciones";
