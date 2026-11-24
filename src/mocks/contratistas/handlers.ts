@@ -8,6 +8,7 @@ import type {
   Contrato,
   CumplimientoFila,
   Documento,
+  DocumentoBase,
   EmpleadoContratista,
   Empresa,
   EstatusRepse,
@@ -41,7 +42,7 @@ const db = {
   empleados: clone(seed.EMPLEADOS) as EmpleadoContratista[],
   contratos: clone(seed.CONTRATOS) as Contrato[],
   historial: clone(seed.HISTORIAL) as EventoContrato[],
-  documentos: clone(seed.DOCUMENTOS) as Documento[],
+  documentos: clone(seed.DOCUMENTOS) as DocumentoBase[],
   sesiones: clone(seed.SESIONES) as Sesion[],
   /** Estados fijados a mano (ccOv): id de fila -> estado y motivo. */
   manual: {} as Record<string, { estado: EstadoCumplimiento; motivo: string }>,
@@ -99,7 +100,8 @@ const estadoDe = (
       d.requerimiento?.id === fila.requerimiento.id &&
       d.dueno.empresa.id === fila.sujeto.empresa.id &&
       (fila.sujeto.empleado ? d.dueno.empleado?.id === fila.sujeto.empleado.id : true) &&
-      (fila.periodo.clave === "unico" || d.periodo?.clave === fila.periodo.clave),
+      (fila.periodo.clave === "unico" || d.periodo?.clave === fila.periodo.clave) &&
+      d.compartido_con.some((c) => c.id === clienteId),
   );
   if (!doc) {
     return { estado: fila.periodo.vence < hoy ? "Por subir" : "En plazo", documento: null };
@@ -220,11 +222,27 @@ const recalcular = () => {
   return filas;
 };
 
-const estatusDocumento = (d: Documento): EstatusDocumento => {
+const estatusDocumento = (d: DocumentoBase): EstatusDocumento => {
   if (d.aprobaciones.some((a) => a.decision === "Rechazado")) return "Rechazado";
   const aprobado = d.aprobaciones.length > 0 && d.aprobaciones.every((a) => a.decision === "Aprobado");
   if (aprobado) return d.vigencia_fin && d.vigencia_fin < hoyISO() ? "Vencido" : "Aceptado";
   return "Por revisar";
+};
+
+/** Como el back: agrega resumen "N de M" y la decisión de la empresa activa. */
+const docOut = (d: DocumentoBase): Documento => {
+  const decs = d.aprobaciones.map((a) => a.decision);
+  const mia = d.aprobaciones.find((a) => a.cliente.id === EMPRESA_ACTIVA)?.decision;
+  return {
+    ...d,
+    resumen_aprobacion: {
+      aprobados: decs.filter((x) => x === "Aprobado").length,
+      rechazados: decs.filter((x) => x === "Rechazado").length,
+      pendientes: decs.filter((x) => x === "Pendiente").length,
+      total: decs.length,
+    },
+    ...(mia ? { mi_decision: mia } : {}),
+  };
 };
 
 /* ---------------- Relaciones ---------------- */
@@ -499,6 +517,9 @@ const otorgarMock = (s: Sesion, p: Participante) =>
     if (ya) return;
     const empl = buscar(db.empleados, p.empleado.id, "Empleado");
     const empresa = empl.empresa ? { id: empl.empresa.id, nombre: empl.empresa.razon_social } : { id: EMPRESA_ACTIVA, nombre: "" };
+    const clientes = db.relaciones
+      .filter((r) => r.contratista.id === empresa.id)
+      .map((r) => ({ id: r.cliente.id, nombre: r.cliente.razon_social }));
     db.documentos.push({
       id: nuevoId("doc"),
       folio: folio("D", db.documentos.length + 1),
@@ -508,14 +529,12 @@ const otorgarMock = (s: Sesion, p: Participante) =>
       en_ceros: false,
       archivo: { name: "constancia.pdf", file_url: "https://example.com/mock/constancia.pdf" },
       estatus: "Aceptado",
-      compartido_con: [],
+      compartido_con: clientes,
       contratos: [],
       origen: "Sesión",
       versiones: [],
       comentarios: [],
-      aprobaciones: db.relaciones
-    .filter((r) => r.contratista.id === empresa.id)
-    .map((r) => ({ cliente: { id: r.cliente.id, nombre: r.cliente.razon_social }, decision: "Aprobado" as const, revisor: AUTOR, fecha: ahora() })),
+      aprobaciones: clientes.map((cliente) => ({ cliente, decision: "Aprobado" as const, revisor: AUTOR, fecha: ahora() })),
     });
   });
 
@@ -1080,7 +1099,7 @@ const handlers: Record<string, Handler> = {
   /* Documentos */
   list_documentos: (p) =>
     paginar(
-      db.documentos.filter(
+      db.documentos.map(docOut).filter(
         (d) =>
           (p.dueno_tipo ? d.dueno.tipo === p.dueno_tipo : true) &&
           (p.empresa_id ? d.dueno.empresa.id === p.empresa_id : true) &&
@@ -1092,7 +1111,7 @@ const handlers: Record<string, Handler> = {
       ),
       p,
     ),
-  get_documento: ({ documento_id }) => buscar(db.documentos, documento_id, "Documento"),
+  get_documento: ({ documento_id }) => docOut(buscar(db.documentos, documento_id, "Documento")),
   upload_documento: ({ documento }) => {
     const version = (numero: number) => ({
       numero,
@@ -1107,7 +1126,7 @@ const handlers: Record<string, Handler> = {
       d.archivo = documento.archivo;
       d.aprobaciones.forEach((a) => Object.assign(a, { decision: "Pendiente", revisor: undefined, fecha: undefined, motivo: undefined }));
       d.estatus = estatusDocumento(d);
-      return d;
+      return docOut(d);
     }
     const empresa = buscar(db.empresas, documento.dueno.empresa_id, "Empresa");
     const empleado = documento.dueno.empleado_id ? buscar(db.empleados, documento.dueno.empleado_id, "Empleado") : undefined;
@@ -1116,7 +1135,7 @@ const handlers: Record<string, Handler> = {
       const e = buscar(db.empresas, id, "Empresa");
       return { id: e.id, nombre: e.razon_social };
     });
-    const nuevo: Documento = {
+    const nuevo: DocumentoBase = {
       id: nuevoId("doc"),
       folio: folio("D", db.documentos.length + 1),
       nombre: documento.nombre,
@@ -1144,7 +1163,7 @@ const handlers: Record<string, Handler> = {
       aprobaciones: compartido.map((cliente: { id: string; nombre: string }) => ({ cliente, decision: "Pendiente" as const })),
     };
     db.documentos.push(nuevo);
-    return nuevo;
+    return docOut(nuevo);
   },
   review_documento: ({ documento_id, decision, motivo }) => {
     const d = buscar(db.documentos, documento_id, "Documento");
@@ -1158,12 +1177,34 @@ const handlers: Record<string, Handler> = {
     d.estatus = estatusDocumento(d);
     const actual = d.versiones[d.versiones.length - 1];
     if (actual) Object.assign(actual, { estatus: d.estatus, motivo_rechazo: decision === "Rechazado" ? motivo : undefined });
-    return d;
+    return docOut(d);
+  },
+  update_compartido_documento: ({ documento_id, compartido_con }) => {
+    const d = buscar(db.documentos, documento_id, "Documento");
+    if (d.dueno.empresa.id !== EMPRESA_ACTIVA) throw new MockError("Solo el dueño del documento puede cambiar con quién se comparte");
+    const activos = new Set(
+      db.relaciones.filter((r) => r.contratista.id === EMPRESA_ACTIVA && r.estatus === "Activo").map((r) => r.cliente.id),
+    );
+    const ids: string[] = Array.from(new Set(compartido_con as string[]));
+    if (ids.some((id) => !activos.has(id) && !d.compartido_con.some((c) => c.id === id))) {
+      throw new MockError("Solo puedes compartir con tus clientes activos");
+    }
+    d.compartido_con = ids.map((id) => {
+      const e = buscar(db.empresas, id, "Empresa");
+      return { id: e.id, nombre: e.razon_social };
+    });
+    d.aprobaciones = d.compartido_con.map(
+      (cliente) => d.aprobaciones.find((a) => a.cliente.id === cliente.id) ?? { cliente, decision: "Pendiente" as const },
+    );
+    d.estatus = estatusDocumento(d);
+    const actual = d.versiones[d.versiones.length - 1];
+    if (actual) actual.estatus = d.estatus;
+    return docOut(d);
   },
   comment_documento: ({ documento_id, texto }) => {
     const d = buscar(db.documentos, documento_id, "Documento");
     d.comentarios.push({ autor: AUTOR, fecha: ahora(), texto });
-    return d;
+    return docOut(d);
   },
 
   /* Cumplimiento */

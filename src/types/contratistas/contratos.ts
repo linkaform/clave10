@@ -208,7 +208,8 @@ export interface DuenoDocumento {
   equipo?: Ref;
 }
 
-export interface Documento {
+/** Documento tal como se guarda; la salida del back es `Documento`. */
+export interface DocumentoBase {
   id: Id;
   folio: string;
   nombre: string;
@@ -241,6 +242,20 @@ export interface Documento {
     fecha?: string;
     motivo?: string;
   }[];
+}
+
+export interface Documento extends DocumentoBase {
+  /** MX-02: "N de M aprobaron" (M = clientes de compartido_con). */
+  resumen_aprobacion: ResumenAprobacion;
+  /** Decisión de la empresa activa si es uno de los clientes; ausente si es el dueño. */
+  mi_decision?: DecisionAprobacion;
+}
+
+export interface ResumenAprobacion {
+  aprobados: number;
+  rechazados: number;
+  pendientes: number;
+  total: number;
 }
 
 export interface DocumentoInput {
