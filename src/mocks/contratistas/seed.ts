@@ -388,8 +388,9 @@ export const SESIONES: Sesion[] = [
     modalidad: "Presencial",
     areas: [{ id: "area-cap", nombre: "Sala de capacitación" }],
     cupo: 20,
-    examen: req("req-examen-seguridad"),
-    otorga: req("req-examen-seguridad"),
+    examenes: [req("req-examen-seguridad")],
+    otorgados: [req("req-examen-seguridad")],
+    recursos: [],
     temario: [
       { tema: "Reglamento interno", leccion: "Accesos y gafetes", minutos: 30, material_tipo: "Presentación", material_origen: "Archivo", material: pdf("reglamento.pdf") },
       { tema: "Reglamento interno", leccion: "Zonas restringidas", minutos: 20, material_tipo: "Video", material_origen: "Enlace", material: "https://example.com/video" },
