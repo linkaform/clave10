@@ -4,7 +4,7 @@ import type {
   Id,
   ListParams,
   Pagina,
-  Participante,
+  ParticipantesSesion,
   RecursoContrato,
   RecursoInput,
   AplicacionRecurso,
@@ -95,6 +95,26 @@ export const saveSesion = (sesion: SesionInput, sesion_id?: Id) =>
 export const cancelSesion = (sesion_id: Id, motivo: string) =>
   callContratistas<Sesion>("cancel_sesion", { sesion_id, motivo }, CONF);
 
-/** Inscribir, registrar asistencia o calificar (CF-04). */
-export const saveParticipantes = (sesion_id: Id, participantes: Participante[]) =>
-  callContratistas<Sesion>("save_participantes", { sesion_id, participantes });
+/* ---------- Participantes (CF-04) ---------- */
+
+export const getParticipantes = (sesion_id: Id) =>
+  callContratistas<ParticipantesSesion>("get_participantes", { sesion_id }, CONF);
+
+/** Programada o En curso; respeta el cupo. */
+export const inscribirParticipantes = (sesion_id: Id, empleado_ids: Id[]) =>
+  callContratistas<ParticipantesSesion>("inscribir_participantes", { sesion_id, empleado_ids }, CONF);
+
+/** Solo en sesión Programada. */
+export const quitarParticipante = (sesion_id: Id, empleado_id: Id) =>
+  callContratistas<ParticipantesSesion>("quitar_participante", { sesion_id, empleado_id }, CONF);
+
+/** Días ya transcurridos; estado null borra la marca. */
+export const registrarAsistencia = (
+  sesion_id: Id,
+  asistencias: { empleado_id: Id; fecha: string; estado: "Asistió" | "Faltó" | null }[],
+) => callContratistas<ParticipantesSesion>("registrar_asistencia", { sesion_id, asistencias }, CONF);
+
+/** Solo a quien asistió; null borra la calificación de ese examen. */
+export const calificarParticipante = (sesion_id: Id, empleado_id: Id, calificaciones: Record<Id, number | null>) =>
+  callContratistas<ParticipantesSesion>("calificar_participante", { sesion_id, empleado_id, calificaciones }, CONF);
+
