@@ -102,6 +102,86 @@ export interface EmpleadoContratista {
   cumplimiento_pct?: number | null;
   /** false = empleado de otra empresa (solo lectura). Solo en get_empleado. */
   editable?: boolean;
+  /* ---- Solo en get_empleado (detalle, ME-04) ---- */
+  fecha_nacimiento?: string;
+  genero?: Genero;
+  estado_civil?: EstadoCivil;
+  /** Correo y teléfono de la cuenta (solo lectura). */
+  cuenta?: { email: string; telefono: string };
+  /** Catálogo de la forma: solo lectura. */
+  domicilio?: { nombre_direccion?: string; direccion?: string; colonia?: string; estado?: string; pais?: string };
+  contratacion?: {
+    /** compañía y jefe directo son catálogos: solo lectura. */
+    compania?: string;
+    jefe_directo?: string;
+    tipo_contrato?: TipoContratoEmpleado;
+    numero_empleado?: number;
+    fecha_ingreso?: string;
+    /** Calculada: "2 años 8 meses". */
+    antiguedad?: string;
+    dias_vacaciones?: number;
+  };
+  preferencias?: PreferenciasEmpleado;
+  /** false si está desactivado o vetado. */
+  qr_activo?: boolean;
+}
+
+export type Genero = "Femenino" | "Masculino";
+export type EstadoCivil = "Soltero(a)" | "Casado(a)" | "Viudo(a)" | "Unión libre";
+export type TipoContratoEmpleado = "Permanente" | "Eventual" | "Planta" | "Becario";
+
+/** Interruptores de Configuraciones. Solo "disponible" tiene efecto por ahora. */
+export interface PreferenciasEmpleado {
+  disponible_para_contratos: boolean;
+  notificaciones_correo: boolean;
+  /** Requiere cuenta. */
+  acceso_app: boolean;
+  checkin_foto: boolean;
+}
+
+export type EstatusDocumentoEmpleado = "Rechazado" | "Vencido" | "Por subir" | "Por revisar" | "Aceptado";
+
+export interface OrigenDocumentoEmpleado {
+  tipo: "Perfil" | "Contrato" | "Expediente base" | "Carga";
+  nombre: string;
+  /** id del contrato cuando tipo = Contrato. */
+  id?: Id;
+}
+
+/** Renglón de la pestaña Documentos (list_documentos_empleado). */
+export interface DocumentoEmpleadoRenglon {
+  /** null = documento subido sin requerimiento. */
+  requerimiento: Ref | null;
+  origen: OrigenDocumentoEmpleado;
+  /** "También lo requiere:" */
+  tambien_lo_requiere: OrigenDocumentoEmpleado[];
+  recurrencia: string | null;
+  limitante: boolean;
+  estatus: EstatusDocumentoEmpleado;
+  periodo?: { clave: string; inicio: string; fin: string; vence: string };
+  /** Documento más reciente (ME-06-B); null = Por subir. */
+  documento: {
+    id: Id;
+    folio: string;
+    nombre: string;
+    archivo: Archivo;
+    vigencia_inicio?: string | null;
+    vigencia_fin?: string | null;
+    versiones: { numero: number; archivo: Archivo; estatus: string; subido_por: string; fecha: string; motivo_rechazo?: string }[];
+    /** Motivo de rechazo o último comentario. */
+    comentario?: string | null;
+  } | null;
+}
+
+export interface QrEmpleado {
+  /** Lo que codifica el QR: id del empleado. */
+  contenido: Id;
+  activo: boolean;
+  motivo_inactivo?: "Empleado vetado" | "Empleado desactivado";
+  nombre: string;
+  folio: string;
+  /** data:image/png;base64,… */
+  imagen: string;
 }
 
 /**
@@ -132,6 +212,12 @@ export interface EmpleadoInput {
   estatus?: Estatus;
   centro_trabajo?: Ref | null;
   cuenta?: CuentaEmpleadoInput;
+  /* Generales (ME-04) */
+  fecha_nacimiento?: string;
+  genero?: Genero;
+  estado_civil?: EstadoCivil;
+  tipo_contrato?: TipoContratoEmpleado;
+  fecha_ingreso?: string;
 }
 
 /** Paso 1 del alta manual (analizar_documentos_empleado). No guarda nada. */

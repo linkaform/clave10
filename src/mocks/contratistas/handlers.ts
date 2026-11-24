@@ -271,8 +271,10 @@ const empleadoOut = (e: EmpleadoContratista): EmpleadoContratista => {
 };
 
 const empleadoIn = (e: any): Partial<EmpleadoContratista> => {
-  const { cuenta, perfiles, ...resto } = e ?? {};
+  const { cuenta, perfiles, tipo_contrato, fecha_ingreso, ...resto } = e ?? {};
   const out: Partial<EmpleadoContratista> = { ...resto };
+  if (tipo_contrato || fecha_ingreso)
+    out.contratacion = { ...(tipo_contrato && { tipo_contrato }), ...(fecha_ingreso && { fecha_ingreso }) };
   if (perfiles) {
     out.perfiles = perfiles.map((p: any) => {
       const id = typeof p === "string" ? p : p.id;
@@ -322,6 +324,81 @@ const cargaMock = () => {
   };
 };
 
+/** QR de mentira (1×1 px). */
+const QR_MOCK =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
+/** get_empleado: lo de la lista + generales, preferencias y QR. */
+const empleadoDetalle = (e: EmpleadoContratista): EmpleadoContratista => {
+  const base = empleadoOut(e);
+  return {
+    ...base,
+    contratacion: { tipo_contrato: e.contratacion?.tipo_contrato ?? "Permanente", fecha_ingreso: e.contratacion?.fecha_ingreso ?? "2024-03-15", antiguedad: "2 años 8 meses", ...e.contratacion },
+    cuenta: e.usuario ? { email: e.usuario.email, telefono: "8112345678" } : undefined,
+    preferencias: {
+      notificaciones_correo: true,
+      checkin_foto: false,
+      ...e.preferencias,
+      acceso_app: Boolean(e.usuario) && (e.preferencias?.acceso_app ?? true),
+      disponible_para_contratos: e.disponible_para_contratos,
+    },
+    qr_activo: e.estatus === "Activo" && !e.vetado,
+    editable: (e.empresa?.id ?? EMPRESA_ACTIVA) === EMPRESA_ACTIVA,
+  };
+};
+
+const URGENCIA = ["Rechazado", "Vencido", "Por subir", "Por revisar", "Aceptado"] as const;
+
+/** Pestaña Documentos: requerimientos de perfiles + filas del motor, con su documento más reciente. */
+const documentosEmpleado = (empleado_id: string, p: any) => {
+  const e = buscar(db.empleados, empleado_id, "Empleado");
+  const renglones = new Map<string, any>();
+  const renglon = (req: { id: string; nombre: string }) => {
+    if (!renglones.has(req.id)) {
+      const r = db.requerimientos.find((x) => x.id === req.id);
+      renglones.set(req.id, { requerimiento: { id: req.id, nombre: r?.nombre ?? req.nombre }, recurrencia: r?.periodicidad ?? "Única", limitante: r?.limitante ?? false, origenes: [], estado: null });
+    }
+    return renglones.get(req.id);
+  };
+  e.perfiles.forEach((perfil) => {
+    db.recursos.find((x) => x.id === perfil.id)?.requerimientos.forEach((q: any) => {
+      if (q.ambito === "Persona") renglon(q).origenes.push({ tipo: "Perfil", nombre: perfil.nombre });
+    });
+  });
+  recalcular()
+    .filter((f) => f.sujeto.empleado?.id === e.id)
+    .forEach((f) => {
+      const r = renglon(f.requerimiento);
+      const c = f.contrato ? db.contratos.find((x) => x.id === f.contrato) : undefined;
+      const o = c ? { tipo: "Contrato", nombre: c.folio, id: c.id } : { tipo: "Expediente base", nombre: "Asignado por el cliente" };
+      if (!r.origenes.some((x: any) => x.nombre === o.nombre)) r.origenes.push(o);
+      r.estado ??= f.estado;
+    });
+  const docs = db.documentos.filter((d) => d.dueno.empleado?.id === e.id);
+  const items: any[] = [...renglones.values()].map((r) => {
+    const d = docs.find((x) => x.requerimiento?.id === r.requerimiento.id);
+    const motor: Record<string, string> = { Cumplido: "Aceptado", "En ceros": "Aceptado", Vencido: "Vencido", Rechazado: "Rechazado", "Por revisar": "Por revisar" };
+    return {
+      requerimiento: r.requerimiento,
+      origen: r.origenes[0] ?? { tipo: "Carga", nombre: "Subido sin requerimiento ligado" },
+      tambien_lo_requiere: r.origenes.slice(1),
+      recurrencia: r.recurrencia,
+      limitante: r.limitante,
+      estatus: d?.estatus ?? motor[r.estado] ?? "Por subir",
+      documento: d
+        ? { id: d.id, folio: d.folio, nombre: d.nombre, archivo: d.archivo, vigencia_inicio: d.vigencia_inicio, vigencia_fin: d.vigencia_fin, versiones: d.versiones, comentario: d.comentarios.at(-1)?.texto ?? null }
+        : null,
+    };
+  });
+  const conteo = Object.fromEntries(URGENCIA.map((s) => [s, items.filter((i) => i.estatus === s).length]));
+  const filtrados = items
+    .filter((i) => (p.estatus ? [p.estatus].flat().includes(i.estatus) : true))
+    .filter((i) => (p.origen ? [i.origen, ...i.tambien_lo_requiere].some((o: any) => o.tipo === p.origen) : true))
+    .filter((i) => coincide(i.requerimiento?.nombre, p.search))
+    .sort((a, b) => URGENCIA.indexOf(a.estatus) - URGENCIA.indexOf(b.estatus));
+  return { ...paginar(filtrados, p), conteo, pendientes: conteo.Rechazado + conteo.Vencido + conteo["Por subir"] };
+};
+
 /* ---------------- Opciones ---------------- */
 
 type Handler = (p: any) => unknown;
@@ -358,10 +435,7 @@ const handlers: Record<string, Handler> = {
       );
     return { ...paginar(items, p), editable: empresa === EMPRESA_ACTIVA };
   },
-  get_empleado: ({ empleado_id }) => ({
-    ...empleadoOut(buscar(db.empleados, empleado_id, "Empleado")),
-    editable: (buscar(db.empleados, empleado_id, "Empleado").empresa?.id ?? EMPRESA_ACTIVA) === EMPRESA_ACTIVA,
-  }),
+  get_empleado: ({ empleado_id }) => empleadoDetalle(buscar(db.empleados, empleado_id, "Empleado")),
   create_empleado: ({ empleado }) => {
     validarEmpleado(empleado);
     const empresa = buscar(db.empresas, EMPRESA_ACTIVA, "Empresa");
@@ -380,10 +454,10 @@ const handlers: Record<string, Handler> = {
   update_empleado: ({ empleado_id, empleado }) => {
     const e = buscar(db.empleados, empleado_id, "Empleado");
     validarEmpleado({ ...e, ...empleado }, empleado_id);
-    return empleadoOut(Object.assign(e, empleadoIn(empleado)));
+    return empleadoDetalle(Object.assign(e, empleadoIn(empleado)));
   },
   change_status_empleado: ({ empleado_id, estatus }) =>
-    empleadoOut(Object.assign(buscar(db.empleados, empleado_id, "Empleado"), { estatus })),
+    empleadoDetalle(Object.assign(buscar(db.empleados, empleado_id, "Empleado"), { estatus })),
   analizar_documentos_empleado: ({ archivos }) => ({
     documentos: (archivos as { name: string; file_url: string }[]).map((a, i) => ({
       archivo: a,
@@ -410,10 +484,47 @@ const handlers: Record<string, Handler> = {
   },
   vetar_empleado: ({ empleado_id, motivo }) => {
     const e = buscar(db.empleados, empleado_id, "Empleado");
+    if (!String(motivo ?? "").trim()) throw new MockError("Escribe el motivo del veto.");
+    if (e.vetado) throw new MockError("El empleado ya está vetado.");
     e.vetado = { fecha: hoyISO(), motivo, por: AUTOR };
     e.disponible_para_contratos = false;
-    return e;
+    return empleadoDetalle(e);
   },
+  levantar_veto_empleado: ({ empleado_id }) => {
+    const e = buscar(db.empleados, empleado_id, "Empleado");
+    if (!e.vetado) throw new MockError("El empleado no está vetado.");
+    delete e.vetado;
+    e.disponible_para_contratos = true;
+    return empleadoDetalle(e);
+  },
+  update_preferencias_empleado: ({ empleado_id, preferencias }) => {
+    const e = buscar(db.empleados, empleado_id, "Empleado");
+    if (preferencias.disponible_para_contratos && e.vetado)
+      throw new MockError("Un empleado vetado no puede estar disponible para contratos.");
+    if (preferencias.acceso_app && !e.usuario)
+      throw new MockError("El acceso a la app móvil requiere que el empleado tenga cuenta.");
+    const { disponible_para_contratos, ...resto } = preferencias;
+    if (disponible_para_contratos !== undefined) e.disponible_para_contratos = disponible_para_contratos;
+    e.preferencias = { ...empleadoDetalle(e).preferencias!, ...resto };
+    return empleadoDetalle(e);
+  },
+  restaurar_password_empleado: ({ empleado_id }) => {
+    const e = buscar(db.empleados, empleado_id, "Empleado");
+    if (!e.usuario) throw new MockError("El empleado no tiene cuenta.");
+    return { enviado: true, email: e.usuario.email };
+  },
+  get_qr_empleado: ({ empleado_id }) => {
+    const e = empleadoDetalle(buscar(db.empleados, empleado_id, "Empleado"));
+    return {
+      contenido: e.id,
+      activo: e.qr_activo,
+      ...(e.qr_activo ? {} : { motivo_inactivo: e.vetado ? "Empleado vetado" : "Empleado desactivado" }),
+      nombre: e.nombre,
+      folio: e.folio,
+      imagen: QR_MOCK,
+    };
+  },
+  list_documentos_empleado: ({ empleado_id, ...p }) => documentosEmpleado(empleado_id, p),
 
   /* Relaciones */
   list_relaciones: (p) => {
