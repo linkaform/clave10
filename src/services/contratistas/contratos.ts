@@ -1,12 +1,17 @@
 import type {
+  AltaCatalogoInput,
   CambioEstatusContrato,
   Contrato,
   ContratoInput,
   EstatusContrato,
   EventoContrato,
+  FilaMapeoInput,
   Id,
   ListParams,
+  MapeoContrato,
   Pagina,
+  Requerimiento,
+  SugerenciaMapeo,
 } from "@/types/contratistas";
 import { callContratistas, CONTRATISTAS_SCRIPTS } from "./client";
 
@@ -38,3 +43,28 @@ export const changeStatusContrato = (contrato_id: Id, cambio: CambioEstatusContr
 
 export const getHistorialContrato = (contrato_id: Id) =>
   callContratistas<EventoContrato[]>("get_historial_contrato", { contrato_id }, SCRIPT);
+
+/* ---------- Mapeo y homologación de requerimientos (ME-13) ---------- */
+
+/** Catálogo maestro (requerimientos de la cuenta) y filas homologadas del contrato. */
+export const getMapeoContrato = (contrato_id: Id) =>
+  callContratistas<MapeoContrato>("get_mapeo_contrato", { contrato_id }, SCRIPT);
+
+/**
+ * Sugerencia al escribir / Auto-Mapear por Similitud (regla en el back).
+ * Con solo_sin_match no toca las filas que ya tienen requerimiento.
+ */
+export const sugerirMapeo = (filas: FilaMapeoInput[], solo_sin_match = false) =>
+  callContratistas<{ filas: SugerenciaMapeo[]; homologados: number; total: number }>(
+    "sugerir_mapeo",
+    { filas, solo_sin_match },
+    SCRIPT,
+  );
+
+/** Guardar Configuración: lista completa; los homologados se exigen en el contrato (motor). */
+export const saveMapeoContrato = (contrato_id: Id, filas: FilaMapeoInput[]) =>
+  callContratistas<MapeoContrato>("save_mapeo_contrato", { contrato_id, filas }, SCRIPT);
+
+/** "Alta en catálogo maestro": crea un requerimiento Documento sin vencimiento. */
+export const crearEnCatalogo = (requerimiento: AltaCatalogoInput) =>
+  callContratistas<Requerimiento>("crear_en_catalogo", { requerimiento }, SCRIPT);

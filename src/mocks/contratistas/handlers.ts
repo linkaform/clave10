@@ -4,6 +4,7 @@
 // vista espejo de relaciones, estatus de contrato y documento, y un motor de
 // cumplimiento simplificado. Solo para desarrollo del front.
 import type {
+  FilaMapeoInput,
   Ref,
   Sancion,
   Activo,
@@ -61,6 +62,7 @@ const db = {
   activos: clone(seed.ACTIVOS) as Activo[],
   mantenimientos: clone(seed.MANTENIMIENTOS) as Mantenimiento[],
   sanciones: clone(seed.SANCIONES) as Sancion[],
+  mapeos: {} as Record<string, FilaMapeoInput[]>,
   sesiones: clone(seed.SESIONES) as Sesion[],
   /** Estados fijados a mano (ccOv): id de fila -> estado y motivo. */
   manual: {} as Record<string, { estado: EstadoCumplimiento; motivo: string }>,
@@ -180,15 +182,18 @@ const filasDeContrato = (c: Contrato, anio: number): CumplimientoFila[] => {
   // Ámbito Empresa: de los servicios y de los asignados a la relación.
   const reqsEmpresa = new Set<string>(rel.requerimientos_asignados.map((r) => r.id));
   c.servicios.forEach((s) => recurso(s.id)?.requerimientos.forEach((r) => reqsEmpresa.add(r.id)));
+  // ME-13: los homologados del mapeo se exigen como los de los servicios.
+  const mapeados = (db.mapeos[c.id] ?? []).map((f) => f.requerimiento_id).filter((x): x is string => Boolean(x));
+  mapeados.forEach((id) => reqsEmpresa.add(id));
   reqsEmpresa.forEach((id) => {
     const r = reqById(id);
     if (r?.ambito === "Empresa") agregar(r, { tipo: "Empresa", empresa }, "emp");
   });
 
-  // Ámbito Persona: por empleado ligado, según su perfil en el contrato.
+  // Ámbito Persona: por empleado ligado, según su perfil en el contrato (+ homologados).
   c.empleados.forEach((e) => {
     const renglon = c.perfiles.find((p) => p.perfil.id === e.perfil.id);
-    recurso(e.perfil.id)?.requerimientos.forEach(({ id }) => {
+    [...(recurso(e.perfil.id)?.requerimientos ?? []), ...mapeados.map((id) => ({ id }))].forEach(({ id }) => {
       const r = reqById(id);
       if (r?.ambito === "Persona" && !renglon?.requerimientos_excluidos.includes(id)) {
         agregar(r, { tipo: "Persona", empresa, empleado: e.empleado }, e.empleado.id, e.fecha_alta);
@@ -887,6 +892,64 @@ const datosSancion = (s: Sancion, d: any) => {
       Object.assign(s, { sin_acceso: true, dias_sin_acceso: dias, inicio_suspension: ini, fin_suspension: fin.toISOString().slice(0, 10) });
     } else Object.assign(s, { sin_acceso: false, dias_sin_acceso: 0, inicio_suspension: null, fin_suspension: null });
   }
+};
+
+/* ---------------- Mapeo (ME-13), como el back ---------------- */
+
+const normMapeo = (t: string) => t.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+/** Dice sobre bigramas (0..1). */
+const similitudMapeo = (a: string, b: string) => {
+  const x = normMapeo(a), y = normMapeo(b);
+  if (!x || !y) return 0;
+  if (x === y) return 1;
+  if (x.length < 2 || y.length < 2) return 0;
+  const cuenta = new Map<string, number>();
+  for (let i = 0; i < y.length - 1; i++) cuenta.set(y.slice(i, i + 2), (cuenta.get(y.slice(i, i + 2)) ?? 0) + 1);
+  let inter = 0;
+  for (let i = 0; i < x.length - 1; i++) {
+    const g = x.slice(i, i + 2);
+    if (cuenta.get(g)) { inter++; cuenta.set(g, cuenta.get(g)! - 1); }
+  }
+  return (2 * inter) / (x.length - 1 + y.length - 1);
+};
+
+const catalogoMaestro = () =>
+  db.requerimientos
+    .filter((q) => q.estatus === "Activo")
+    .map((q) => ({ id: q.id, nombre: q.nombre, codigo: q.codigo ?? null, nivel: q.ambito }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+const mejorMapeo = (origen: string, nivel?: string) => {
+  const cat = catalogoMaestro();
+  let mejor: { req: (typeof cat)[number] | null; s: number } = { req: null, s: 0 };
+  for (const grupo of [nivel ? cat.filter((c) => c.nivel === nivel) : [], cat]) {
+    grupo.forEach((c) => {
+      const s = Math.max(similitudMapeo(origen, c.nombre), similitudMapeo(origen, c.codigo ?? ""));
+      if (s > mejor.s) mejor = { req: c, s };
+    });
+    if (mejor.s >= 0.4) break;
+  }
+  return mejor;
+};
+
+const codigoSistema = (t: string) =>
+  t.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 24).replace(/_+$/, "");
+
+const mapeoOut = (contratoId: string) => {
+  const c = buscar(db.contratos, contratoId, "Contrato");
+  const rel = buscar(db.relaciones, c.relacion, "Relación");
+  if (![rel.cliente.id, rel.contratista.id].includes(EMPRESA_ACTIVA)) throw new MockError("No tienes acceso a este contrato.");
+  const cat = catalogoMaestro();
+  const filas = (db.mapeos[contratoId] ?? []).map((f) => ({
+    origen: f.origen, nivel: f.nivel ?? "Persona",
+    requerimiento: f.requerimiento_id ? cat.find((x) => x.id === f.requerimiento_id) ?? { id: f.requerimiento_id, nombre: "", codigo: null, nivel: null, inactivo: true } : null,
+    similitud: f.similitud ?? null,
+  }));
+  return {
+    contrato: { id: c.id, folio: c.folio }, catalogo: cat, filas, editable: rel.cliente.id === EMPRESA_ACTIVA,
+    homologados: filas.filter((f) => f.requerimiento).length, total: filas.length, umbral_sugerir: 40, umbral_homologar: 60,
+  };
 };
 
 const handlers: Record<string, Handler> = {
@@ -1923,6 +1986,49 @@ const handlers: Record<string, Handler> = {
     if (s.registra?.id !== EMPRESA_ACTIVA) throw new MockError("Solo quien registró la sanción imprime el acta.");
     s.acta = { name: `acta_${s.folio}.pdf`, file_url: "https://example.com/mock/acta.pdf" };
     return { acta: s.acta, sancion: sancionOut(s) };
+  },
+
+  /* Mapeo (ME-13) */
+  get_mapeo_contrato: ({ contrato_id }) => mapeoOut(contrato_id),
+  sugerir_mapeo: ({ filas, solo_sin_match }) => {
+    const cat = catalogoMaestro();
+    const out = (filas as FilaMapeoInput[]).map((f) => {
+      const actual = cat.find((c) => c.id === f.requerimiento_id);
+      if (actual && solo_sin_match) {
+        return { origen: f.origen, nivel: f.nivel ?? actual.nivel, requerimiento: actual, similitud: f.similitud ?? null, sugerido: false, homologa: true };
+      }
+      const { req, s } = mejorMapeo(f.origen, f.nivel);
+      const sug = s >= 0.4 ? req : null;
+      return { origen: f.origen, nivel: sug?.nivel ?? f.nivel ?? "Persona", requerimiento: sug, similitud: sug ? Math.round(s * 100) : null, sugerido: Boolean(sug), homologa: s >= 0.6 };
+    });
+    return { filas: out, homologados: out.filter((f) => f.requerimiento).length, total: out.length };
+  },
+  save_mapeo_contrato: ({ contrato_id, filas }) => {
+    if (!mapeoOut(contrato_id).editable) throw new MockError("Solo el cliente del contrato edita su mapeo de requerimientos.");
+    const cat = catalogoMaestro();
+    db.mapeos[contrato_id] = (filas as FilaMapeoInput[]).map((f) => {
+      if (!f.origen?.trim()) throw new MockError("Cada fila necesita el texto del cliente.");
+      const req = f.requerimiento_id ? cat.find((c) => c.id === f.requerimiento_id) : undefined;
+      if (f.requerimiento_id && !req) throw new MockError(`El requerimiento ${f.requerimiento_id} no existe o está inactivo.`);
+      const sim = f.similitud ?? (req ? Math.round(Math.max(similitudMapeo(f.origen, req.nombre), similitudMapeo(f.origen, req.codigo ?? "")) * 100) : null);
+      return { origen: f.origen.trim(), nivel: f.nivel ?? "Persona", requerimiento_id: req?.id ?? null, similitud: sim };
+    });
+    return mapeoOut(contrato_id);
+  },
+  crear_en_catalogo: ({ requerimiento }) => {
+    if (!requerimiento?.nombre?.trim()) throw new MockError("El nombre canónico es obligatorio.");
+    if (!["Empresa", "Persona", "Equipo"].includes(requerimiento.nivel)) throw new MockError("Nivel: Empresa, Persona o Equipo.");
+    const codigo = codigoSistema(requerimiento.codigo || requerimiento.nombre);
+    if (db.requerimientos.some((q) => q.estatus === "Activo" && q.codigo === codigo)) {
+      throw new MockError(`Ya hay un requerimiento activo con el código ${codigo}.`);
+    }
+    const q: Requerimiento = {
+      id: nuevoId("req"), nombre: requerimiento.nombre.trim(), descripcion: requerimiento.descripcion, tipo: "Documento",
+      ambito: requerimiento.nivel, plataforma: "Sin plataforma", vigencia_modo: "vigencia", vigencia: null,
+      requiere_acuse: false, limitante: false, criterios: [], estatus: "Activo", codigo,
+    };
+    db.requerimientos.push(q);
+    return q;
   },
 
   list_cumplimiento: (p) =>
