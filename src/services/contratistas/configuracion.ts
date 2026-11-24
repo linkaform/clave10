@@ -18,6 +18,7 @@ import type {
   TipoRequerimiento,
   Ambito,
   EstatusSesion,
+  TipoSesion,
   Estatus,
 } from "@/types/contratistas";
 import { CONTRATISTAS_SCRIPTS, callContratistas } from "./client";
@@ -70,22 +71,29 @@ export const getAplicacionRequerimiento = (requerimiento_id: Id) =>
 /* ---------- Sesiones ---------- */
 
 export interface SesionesFiltros extends ListParams {
-  estatus?: EstatusSesion;
+  tipo?: TipoSesion | TipoSesion[];
+  modalidad?: Sesion["modalidad"] | Sesion["modalidad"][];
+  estatus?: EstatusSesion | EstatusSesion[];
+  /** Rango para el calendario (YYYY-MM-DD). */
   desde?: string;
   hasta?: string;
 }
 
+/** Orden: en curso, programadas, resto. `conteo` = contadores de los chips de filtros. */
 export const listSesiones = (filtros: SesionesFiltros = {}) =>
-  callContratistas<Pagina<Sesion>>("list_sesiones", { ...filtros });
+  callContratistas<
+    Pagina<Sesion> & { conteo: { tipo: Record<string, number>; modalidad: Record<string, number>; estatus: Record<string, number> } }
+  >("list_sesiones", { ...filtros }, CONF);
 
 export const getSesion = (sesion_id: Id) =>
-  callContratistas<Sesion>("get_sesion", { sesion_id });
+  callContratistas<Sesion>("get_sesion", { sesion_id }, CONF);
 
 export const saveSesion = (sesion: SesionInput, sesion_id?: Id) =>
-  callContratistas<Sesion>("save_sesion", { sesion, sesion_id });
+  callContratistas<Sesion>("save_sesion", { sesion, sesion_id }, CONF);
 
+/** Solo Programada; motivo obligatorio. "Eliminar" en la UI también usa esta ruta. */
 export const cancelSesion = (sesion_id: Id, motivo: string) =>
-  callContratistas<Sesion>("cancel_sesion", { sesion_id, motivo });
+  callContratistas<Sesion>("cancel_sesion", { sesion_id, motivo }, CONF);
 
 /** Inscribir, registrar asistencia o calificar (CF-04). */
 export const saveParticipantes = (sesion_id: Id, participantes: Participante[]) =>

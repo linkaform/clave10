@@ -305,7 +305,8 @@ export interface CumplimientoFiltros {
 
 /* ---------- Sesiones ---------- */
 
-export type TipoSesion = "Curso" | "Taller" | "Webinar" | "Plática";
+/** Tipos del diseño (decisión 2026-11-24). */
+export type TipoSesion = "Curso" | "Capacitación" | "Plática" | "Inducción";
 export type EstatusSesion = "Programada" | "En curso" | "Finalizada" | "Cancelada";
 
 export interface Participante {
@@ -332,8 +333,10 @@ export interface Sesion {
   modalidad: "Presencial" | "Virtual" | "Híbrida";
   areas: Ref[];
   cupo?: number;
-  examen: Ref | null;
-  otorga: Ref | null;
+  /** Requerimientos tipo Examen, ámbito Persona (al terminar). */
+  examenes: Ref[];
+  /** Requerimientos tipo Documento, ámbito Persona, que cumple quien acredite. */
+  otorgados: Ref[];
   temario: {
     tema: string;
     leccion: string;
@@ -342,8 +345,25 @@ export interface Sesion {
     material_origen: "Archivo" | "Enlace";
     material?: Archivo | string;
   }[];
+  /** Materiales de apoyo (Capacitación, Plática, Inducción). */
+  recursos: {
+    nombre: string;
+    material_tipo: "Video" | "Lectura" | "Presentación" | "Cuestionario" | "Clase en vivo";
+    material_origen: "Archivo" | "Enlace";
+    material?: Archivo | string;
+  }[];
   participantes: Participante[];
+  /** Participantes inscritos (barra inscritos/cupo). */
+  inscritos?: number;
+  motivo_cancelacion?: string;
   estatus: EstatusSesion;
 }
 
-export type SesionInput = Omit<Sesion, "id" | "modalidad" | "estatus" | "participantes">;
+/**
+ * Alta o edición completa. Exámenes y otorgados aceptan ids o Ref. Curso
+ * exige temario; lugar y/o enlace obligatorio. Participantes van por CF-04.
+ */
+export type SesionInput = Omit<
+  Sesion,
+  "id" | "modalidad" | "estatus" | "participantes" | "inscritos" | "motivo_cancelacion" | "examenes" | "otorgados"
+> & { examenes: (Id | Ref)[]; otorgados: (Id | Ref)[] };

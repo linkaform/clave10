@@ -466,6 +466,18 @@ const renglonesEmpleado = (e: EmpleadoContratista, c: Contrato, perfiles: string
   return { contrato: { id: c.id, folio: c.folio }, perfiles_agregados, empleado: empleadoDetalle(e) };
 };
 
+/* ---------------- Sesiones (CF-03-B) ---------------- */
+
+/** Como el back: modalidad deducida, estatus por fecha e inscritos. */
+const sesionOut = (s: Sesion): Sesion => {
+  const hoy = hoyISO();
+  const fin = s.recurrencia?.repetir_hasta ?? s.fecha_fin;
+  const estatus =
+    s.estatus === "Cancelada" ? "Cancelada" : hoy < s.fecha_inicio ? "Programada" : hoy > fin ? "Finalizada" : "En curso";
+  const modalidad = s.lugar && s.enlace ? "Híbrida" : s.enlace ? "Virtual" : "Presencial";
+  return { ...s, estatus, modalidad, inscritos: s.participantes.length };
+};
+
 /* ---------------- Opciones ---------------- */
 
 type Handler = (p: any) => unknown;
@@ -894,35 +906,54 @@ const handlers: Record<string, Handler> = {
     db.requerimientos.push(nuevo);
     return nuevo;
   },
-  list_sesiones: (p) =>
-    paginar(
-      db.sesiones.filter(
-        (s) =>
-          (p.estatus ? s.estatus === p.estatus : true) &&
-          (p.desde ? s.fecha_fin >= p.desde : true) &&
-          (p.hasta ? s.fecha_inicio <= p.hasta : true) &&
-          coincide(s.nombre, p.search),
-      ),
-      p,
-    ),
-  get_sesion: ({ sesion_id }) => buscar(db.sesiones, sesion_id, "Sesión"),
-  save_sesion: ({ sesion, sesion_id }) => {
-    const modalidad = sesion.lugar && sesion.enlace ? "Híbrida" : sesion.enlace ? "Virtual" : "Presencial";
-    if (sesion_id) return Object.assign(buscar(db.sesiones, sesion_id, "Sesión"), sesion, { modalidad });
-    const nueva: Sesion = { ...sesion, id: nuevoId("ses"), modalidad, participantes: [], estatus: "Programada" };
-    db.sesiones.push(nueva);
-    return nueva;
+  list_sesiones: (p) => {
+    const todas = db.sesiones.map(sesionOut).filter(
+      (s) => (p.desde ? (s.recurrencia?.repetir_hasta ?? s.fecha_fin) >= p.desde : true) &&
+        (p.hasta ? s.fecha_inicio <= p.hasta : true) && coincide(s.nombre, p.search),
+    );
+    const conteo = { tipo: {} as Record<string, number>, modalidad: {} as Record<string, number>, estatus: {} as Record<string, number> };
+    todas.forEach((s) => (["tipo", "modalidad", "estatus"] as const).forEach((k) => (conteo[k][s[k]] = (conteo[k][s[k]] ?? 0) + 1)));
+    const orden = ["En curso", "Programada", "Finalizada", "Cancelada"];
+    const items = todas
+      .filter((s) => (["tipo", "modalidad", "estatus"] as const).every((k) => !p[k] || [p[k]].flat().includes(s[k])))
+      .sort((a, b) => orden.indexOf(a.estatus) - orden.indexOf(b.estatus));
+    return { ...paginar(items, p), conteo };
   },
-  cancel_sesion: ({ sesion_id }) => Object.assign(buscar(db.sesiones, sesion_id, "Sesión"), { estatus: "Cancelada" }),
+  get_sesion: ({ sesion_id }) => sesionOut(buscar(db.sesiones, sesion_id, "Sesión")),
+  save_sesion: ({ sesion, sesion_id }) => {
+    const errores: string[] = [];
+    if (!String(sesion.nombre ?? "").trim()) errores.push("El nombre es obligatorio.");
+    if (!["Curso", "Capacitación", "Plática", "Inducción"].includes(sesion.tipo)) errores.push("Tipo no válido.");
+    if (!sesion.lugar && !sesion.enlace) errores.push("Indica el lugar, el enlace de la reunión o ambos.");
+    if (sesion.tipo === "Curso" && !sesion.temario?.length) errores.push("Un curso necesita al menos una sección con una lección.");
+    if (errores.length) throw new MockError(errores.join("\n"));
+    const refs = (xs: any[] = []) => xs.map((x) => (typeof x === "string" ? { id: x, nombre: db.requerimientos.find((r) => r.id === x)?.nombre ?? x } : x));
+    const datos = { ...sesion, examenes: refs(sesion.examenes), otorgados: refs(sesion.otorgados), recursos: sesion.recursos ?? [] };
+    if (sesion_id) {
+      const s = buscar(db.sesiones, sesion_id, "Sesión");
+      if (s.estatus === "Cancelada") throw new MockError("Una sesión cancelada no se edita.");
+      return sesionOut(Object.assign(s, datos));
+    }
+    const nueva: Sesion = { ...datos, id: nuevoId("ses"), modalidad: "Presencial", participantes: [], estatus: "Programada" };
+    db.sesiones.push(nueva);
+    return sesionOut(nueva);
+  },
+  cancel_sesion: ({ sesion_id, motivo }) => {
+    const s = sesionOut(buscar(db.sesiones, sesion_id, "Sesión"));
+    if (s.estatus !== "Programada") throw new MockError(`Solo se cancela una sesión Programada (esta está ${s.estatus}).`);
+    if (!String(motivo ?? "").trim()) throw new MockError("El motivo de cancelación es obligatorio.");
+    return sesionOut(Object.assign(buscar(db.sesiones, sesion_id, "Sesión"), { estatus: "Cancelada", motivo_cancelacion: motivo }));
+  },
   save_participantes: ({ sesion_id, participantes }) => {
     const s = buscar(db.sesiones, sesion_id, "Sesión");
     s.participantes = participantes;
     // Aprobado → documento ya Aceptado del requerimiento que otorga la sesión.
     participantes
-      .filter((p: any) => p.resultado === "Aprobado" && s.otorga)
-      .forEach((p: any) => {
+      .filter((p: any) => p.resultado === "Aprobado")
+      .flatMap((p: any) => s.otorgados.map((otorga) => ({ p, otorga })))
+      .forEach(({ p, otorga }: any) => {
         const ya = db.documentos.some(
-          (d) => d.origen === "Sesión" && d.requerimiento?.id === s.otorga!.id && d.dueno.empleado?.id === p.empleado.id,
+          (d) => d.origen === "Sesión" && d.requerimiento?.id === otorga.id && d.dueno.empleado?.id === p.empleado.id,
         );
         if (ya) return;
         const empl = buscar(db.empleados, p.empleado.id, "Empleado");
@@ -931,7 +962,7 @@ const handlers: Record<string, Handler> = {
           id: nuevoId("doc"),
           folio: folio("D", db.documentos.length + 1),
           nombre: `${s.nombre} · ${p.empleado.nombre}`,
-          requerimiento: s.otorga,
+          requerimiento: otorga,
           dueno: { tipo: "Persona", empresa, empleado: p.empleado },
           en_ceros: false,
           archivo: { name: "constancia.pdf", file_url: "https://example.com/mock/constancia.pdf" },
