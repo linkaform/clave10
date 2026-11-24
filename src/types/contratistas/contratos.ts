@@ -78,9 +78,75 @@ export interface Requerimiento {
   };
   inspeccion?: string;
   estatus: Estatus;
+  /** ME-13: código de sistema del catálogo maestro (MAYÚSCULAS, máx. 24, único). */
+  codigo?: string | null;
 }
 
 export type RequerimientoInput = Omit<Requerimiento, "id">;
+
+/* ---------- Mapeo y homologación del contrato (ME-13) ---------- */
+
+/** Nivel del requerimiento (el diseño dice Empleado; el modelo usa Persona). */
+export type NivelMapeo = Ambito;
+
+export interface RequerimientoCatalogo {
+  id: Id;
+  nombre: string;
+  codigo: string | null;
+  nivel: NivelMapeo | null;
+  /** Ya no está activo en el catálogo (mapeo guardado antes de desactivarlo). */
+  inactivo?: boolean;
+}
+
+export interface FilaMapeo {
+  /** Texto tal como lo escribió el cliente. */
+  origen: string;
+  nivel: NivelMapeo;
+  /** null = "Sin mapear". */
+  requerimiento: RequerimientoCatalogo | null;
+  /** % de coincidencia (Dice sobre bigramas). */
+  similitud: number | null;
+}
+
+export interface MapeoContrato {
+  contrato: { id: Id; folio: string };
+  /** Requerimientos activos de la cuenta (catálogo maestro), agrupar por nivel. */
+  catalogo: RequerimientoCatalogo[];
+  filas: FilaMapeo[];
+  /** Solo el cliente del contrato edita. */
+  editable: boolean;
+  /** "N de M homologados". */
+  homologados: number;
+  total: number;
+  /** 40: sugiere / auto-mapea. */
+  umbral_sugerir: number;
+  /** 60: homologa al agregar. */
+  umbral_homologar: number;
+}
+
+export interface FilaMapeoInput {
+  origen: string;
+  nivel?: NivelMapeo;
+  requerimiento_id?: Id | null;
+  similitud?: number | null;
+}
+
+export interface SugerenciaMapeo extends FilaMapeo {
+  /** Hubo match ≥ 40 %. */
+  sugerido: boolean;
+  /** ≥ 60 %: al agregar entra ya homologada. */
+  homologa: boolean;
+}
+
+export interface AltaCatalogoInput {
+  /** Nombre canónico (precargar con el texto del cliente). */
+  nombre: string;
+  /** Se genera del nombre si viene vacío. */
+  codigo?: string;
+  nivel: NivelMapeo;
+  /** Descripción o norma oficial. */
+  descripcion?: string;
+}
 
 /** Pestaña Aplicación del detalle de un servicio, perfil o equipo (CF-02). */
 export interface AplicacionRecurso {
