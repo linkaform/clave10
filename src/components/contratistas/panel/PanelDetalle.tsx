@@ -11,9 +11,11 @@
 //     accionPrincipal={<Boton>Editar Empleado</Boton>}>
 //     {tab === "generales" && <Generales />}
 //   </PanelDetalle>
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as KE, type ReactNode } from "react";
+import {
+  createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as KE, type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Boton, BotonIcono } from "@/components/contratistas/ui/Boton";
 import { useAcentoPortal } from "@/components/contratistas/ui/acento";
@@ -40,6 +42,13 @@ const guardarAncho = (w: number) => {
     /* sin almacenamiento: el ancho vale solo esta sesión */
   }
 };
+
+/**
+ * Solo lectura (p. ej. el empleado visto dentro de un contrato o en el detalle de otra
+ * empresa): el contenido de cada tab lo lee para ocultar sus botones de edición.
+ */
+const SoloLecturaCtx = createContext(false);
+export const usePanelSoloLectura = () => useContext(SoloLecturaCtx);
 
 /** Marca un botón (el ojo de una fila) para que abrir otra fila no cierre el panel en vista tabla. */
 export const PANEL_OJO = { "data-panel-ojo": "" } as const;
@@ -73,12 +82,31 @@ export interface PanelDetalleProps {
   enTabla?: boolean;
   /** Para lectores de pantalla: "Detalle del documento". */
   etiqueta: string;
+  /**
+   * Título editable: lápiz junto al título → campo en línea. Enter o salir del campo
+   * guarda; Esc cancela. Solo si `titulo` es texto.
+   */
+  onRenombrar?: (nuevo: string) => void;
+  /** Mientras llega el registro: skeleton en el cuerpo (de datos o de tabla, según la tab). */
+  cargando?: boolean;
+  esqueleto?: "datos" | "tabla";
+  /**
+   * Sin edición: oculta acciones del registro, acción principal y renombrar. Las tabs que
+   * no aplican las quita la pantalla; el contenido lo sabe con usePanelSoloLectura().
+   */
+  soloLectura?: boolean;
   children: ReactNode;
 }
 
 export function PanelDetalle({
-  abierto, onCerrar, titulo, chips, acciones, tabs, tab, onTab, accionPrincipal, sinPie, enTabla, etiqueta, children,
+  abierto, onCerrar, titulo, chips, acciones, tabs, tab, onTab, accionPrincipal, sinPie, enTabla, etiqueta,
+  onRenombrar, cargando, esqueleto = "datos", soloLectura, children,
 }: PanelDetalleProps) {
+  if (soloLectura) {
+    acciones = undefined;
+    accionPrincipal = undefined;
+    onRenombrar = undefined;
+  }
   // Se queda montado mientras corre la animación de salida
   const [montado, setMontado] = useState(abierto);
   const [ancho, setAncho] = useState(POR_DEFECTO);
@@ -117,6 +145,8 @@ export function PanelDetalle({
     // abierto) y después del Selector, que en window detiene el Esc de su menú.
     const esc = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || document.querySelector('[role=dialog][data-state=open],[role=alertdialog][data-state=open]')) return;
+      // Renombrando: Esc cancela la edición del título, no cierra el panel
+      if ((e.target as HTMLElement).closest?.("[data-panel-titulo]")) return;
       cerrar.current();
     };
     // En vista tabla no hay velo: un clic fuera del panel lo cierra
@@ -207,7 +237,11 @@ export function PanelDetalle({
             <header className={cn("flex flex-col gap-3.5 border-b border-c10-line-card px-6 pt-5", !tabs?.length && "pb-4")}>
               <div className="flex items-start gap-3.5">
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  <h2 className="m-0 text-xl font-semibold leading-[1.3] tracking-[-0.02em] text-c10-title [text-wrap:pretty]">{titulo}</h2>
+                  {onRenombrar && typeof titulo === "string" ? (
+                    <TituloEditable titulo={titulo} onRenombrar={onRenombrar} />
+                  ) : (
+                    <h2 className="m-0 text-xl font-semibold leading-[1.3] tracking-[-0.02em] text-c10-title [text-wrap:pretty]">{titulo}</h2>
+                  )}
                   {chips && <div className="flex flex-wrap gap-1.5">{chips}</div>}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -229,7 +263,7 @@ export function PanelDetalle({
                         onClick={() => onTab?.(t.k)}
                         className={cn(
                           "flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 text-sm transition-colors duration-150",
-                          on ? "border-c10-acc font-semibold text-c10-acc" : "border-transparent font-medium text-c10-secondary hover:text-c10-acc",
+                          on ? "border-c10-acc font-semibold text-c10-acc" : "border-transparent font-normal text-c10-meta hover:text-c10-acc",
                         )}
                       >
                         {t.etiqueta}
@@ -250,8 +284,16 @@ export function PanelDetalle({
               )}
             </header>
 
-            <div role={tabs?.length ? "tabpanel" : undefined} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto bg-c10-panel px-6 py-5">
-              {children}
+            <div
+              role={tabs?.length ? "tabpanel" : undefined}
+              aria-busy={cargando || undefined}
+              className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto bg-c10-panel px-6 py-5"
+            >
+              {cargando ? (
+                esqueleto === "tabla" ? <EsqueletoTabla /> : <EsqueletoDatos />
+              ) : (
+                <SoloLecturaCtx.Provider value={!!soloLectura}>{children}</SoloLecturaCtx.Provider>
+              )}
             </div>
 
             {!sinPie && (
@@ -267,6 +309,118 @@ export function PanelDetalle({
         document.body,
       )}
     </>
+  );
+}
+
+/** Título con lápiz para renombrar en línea (diseño: tdTitleEdit, ~3441). */
+function TituloEditable({ titulo, onRenombrar }: { titulo: string; onRenombrar: (nuevo: string) => void }) {
+  const [editando, setEditando] = useState(false);
+  const [borrador, setBorrador] = useState(titulo);
+  const campo = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (editando) campo.current?.select();
+  }, [editando]);
+  // Al cambiar de registro se sale de la edición
+  useEffect(() => setEditando(false), [titulo]);
+
+  const guardar = () => {
+    const nuevo = borrador.trim();
+    setEditando(false);
+    if (nuevo && nuevo !== titulo) onRenombrar(nuevo);
+  };
+
+  if (editando) {
+    return (
+      <input
+        ref={campo}
+        data-panel-titulo=""
+        aria-label="Título"
+        value={borrador}
+        onChange={(e) => setBorrador(e.target.value)}
+        onBlur={guardar}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            guardar();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            setEditando(false);
+          }
+        }}
+        className="-my-[3px] h-9 w-full min-w-0 rounded-lg border border-c10-acc bg-c10-surface px-2.5 text-xl font-semibold tracking-[-0.02em] text-c10-title shadow-[0_0_0_3px_rgba(59,130,246,.15)] outline-none"
+      />
+    );
+  }
+  return (
+    <div className="flex min-w-0 items-start gap-1">
+      <h2 className="m-0 min-w-0 text-xl font-semibold leading-[1.3] tracking-[-0.02em] text-c10-title [text-wrap:pretty]">{titulo}</h2>
+      <button
+        type="button"
+        title="Renombrar"
+        aria-label="Renombrar"
+        onClick={() => {
+          setBorrador(titulo);
+          setEditando(true);
+        }}
+        className="-mt-px flex size-7 shrink-0 items-center justify-center rounded-full text-c10-faint transition-colors duration-150 hover:bg-c10-acc-l hover:text-c10-acc"
+      >
+        <Pencil className="size-[15px]" />
+      </button>
+    </div>
+  );
+}
+
+const Hueso = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
+  <span style={style} className={cn("block animate-pulse rounded-full bg-c10-skeleton", className)} />
+);
+
+/** Skeleton de una tarjeta de datos (diseño: pnSkCards). */
+function EsqueletoDatos() {
+  return (
+    <div aria-label="Cargando información" className="flex flex-col gap-4">
+      {[6, 4].map((n, k) => (
+        <section key={k} className="flex flex-col gap-4 rounded-xl bg-c10-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,.04)]">
+          <Hueso className="h-3.5 w-[140px]" />
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-x-6 gap-y-4">
+            {Array.from({ length: n }, (_, i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <Hueso className="h-2.5 w-2/5" />
+                <Hueso className="h-3.5 w-3/4" />
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+/** Skeleton de una tab con tabla: barra de búsqueda y filas (diseño: pnSkTable). */
+function EsqueletoTabla() {
+  return (
+    <div aria-label="Cargando información" className="flex flex-col gap-4">
+      <div className="flex items-center gap-2.5">
+        <Hueso className="h-3.5 w-[110px]" />
+        <Hueso className="h-[22px] w-[72px]" />
+        <span className="flex-1" />
+        <Hueso className="size-10 rounded-lg" />
+        <Hueso className="h-10 w-[240px] max-w-[40%] rounded-lg" />
+      </div>
+      <div className="overflow-hidden rounded-xl bg-c10-surface shadow-[0_0_0_1px_var(--c10-line)]">
+        <div className="h-10 bg-c10-acc-l" />
+        {Array.from({ length: 7 }, (_, i) => (
+          <div key={i} className="grid h-[52px] grid-cols-[120px_repeat(4,minmax(0,1fr))] items-center gap-4 border-t border-c10-sunken px-3">
+            <span className="flex gap-1.5">
+              <Hueso className="size-8 rounded-lg" />
+              <Hueso className="size-8 rounded-lg" />
+            </span>
+            {[0, 1, 2, 3].map((j) => (
+              <Hueso key={j} className="h-3" style={{ width: `${40 + ((i * 7 + j * 13) % 50)}%` }} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
