@@ -16,6 +16,7 @@ import type {
   EstatusDocumento,
   EventoContrato,
   Pagina,
+  Participante,
   RecursoContrato,
   Relacion,
   RelacionFila,
@@ -476,6 +477,83 @@ const sesionOut = (s: Sesion): Sesion => {
     s.estatus === "Cancelada" ? "Cancelada" : hoy < s.fecha_inicio ? "Programada" : hoy > fin ? "Finalizada" : "En curso";
   const modalidad = s.lugar && s.enlace ? "Híbrida" : s.enlace ? "Virtual" : "Presencial";
   return { ...s, estatus, modalidad, inscritos: s.participantes.length };
+};
+
+/* ---------------- Participantes (CF-04-B) ---------------- */
+
+/** Días transcurridos de la sesión (sin recurrencias complejas en los mocks). */
+const diasSesion = (s: Sesion): string[] => {
+  const fin = [s.recurrencia?.repetir_hasta ?? s.fecha_fin, hoyISO()].sort()[0];
+  const out: string[] = [];
+  for (let d = new Date(s.fecha_inicio); d.toISOString().slice(0, 10) <= fin; d.setDate(d.getDate() + 1)) {
+    out.push(d.toISOString().slice(0, 10));
+  }
+  return out;
+};
+
+const otorgarMock = (s: Sesion, p: Participante) =>
+  s.otorgados.forEach((otorga) => {
+    const ya = db.documentos.some(
+      (d) => d.origen === "Sesión" && d.requerimiento?.id === otorga.id && d.dueno.empleado?.id === p.empleado.id,
+    );
+    if (ya) return;
+    const empl = buscar(db.empleados, p.empleado.id, "Empleado");
+    const empresa = empl.empresa ? { id: empl.empresa.id, nombre: empl.empresa.razon_social } : { id: EMPRESA_ACTIVA, nombre: "" };
+    db.documentos.push({
+      id: nuevoId("doc"),
+      folio: folio("D", db.documentos.length + 1),
+      nombre: `${s.nombre} · ${p.empleado.nombre}`,
+      requerimiento: otorga,
+      dueno: { tipo: "Persona", empresa, empleado: p.empleado },
+      en_ceros: false,
+      archivo: { name: "constancia.pdf", file_url: "https://example.com/mock/constancia.pdf" },
+      estatus: "Aceptado",
+      compartido_con: [],
+      contratos: [],
+      origen: "Sesión",
+      versiones: [],
+      comentarios: [],
+      aprobaciones: db.relaciones
+    .filter((r) => r.contratista.id === empresa.id)
+    .map((r) => ({ cliente: { id: r.cliente.id, nombre: r.cliente.razon_social }, decision: "Aprobado" as const, revisor: AUTOR, fecha: ahora() })),
+    });
+  });
+
+/** Como el back: resultado (todos los exámenes ≥ 80, o asistencia completa) y otorga a los Aprobados. */
+const guardarParticipantes = (s: Sesion) => {
+  const dias = diasSesion(s);
+  s.participantes.forEach((p) => {
+    let res: Participante["resultado"];
+    if (s.examenes.length) {
+      const cal = p.calificaciones ?? {};
+      if (s.examenes.every((x) => x.id in cal)) res = s.examenes.every((x) => cal[x.id] >= 80) ? "Aprobado" : "No aprobado";
+    } else if (dias.length && dias.every((d) => p.asistencia[d])) {
+      res = dias.every((d) => p.asistencia[d] === "Asistió") ? "Aprobado" : "No aprobado";
+    }
+    p.resultado = res;
+    if (res === "Aprobado") otorgarMock(s, p);
+  });
+  return participantesOut(s);
+};
+
+const participantesOut = (s: Sesion) => {
+  const dias = diasSesion(s);
+  const participantes = s.participantes.map((p) => {
+    const e = db.empleados.find((x) => x.id === p.empleado.id);
+    const asistio = dias.filter((d) => p.asistencia[d] === "Asistió").length;
+    return { ...p, puesto: e?.puesto, centro_trabajo: e?.centro_trabajo?.nombre,
+      asistencia_resumen: { asistio, dias: dias.length, pct: dias.length ? Math.round((asistio * 100) / dias.length) : null } };
+  });
+  const total = participantes.reduce((n, p) => n + p.asistencia_resumen.asistio, 0);
+  const o = sesionOut(s);
+  return {
+    sesion: { id: o.id, nombre: o.nombre, estatus: o.estatus, cupo: o.cupo, inscritos: o.inscritos, examenes: o.examenes, otorgados: o.otorgados },
+    dias,
+    examenes_minimas: Object.fromEntries(s.examenes.map((x) => [x.id, 80])),
+    kpi: { inscritos: participantes.length, cupo: s.cupo ?? null, asistieron: participantes.filter((p) => p.asistencia_resumen.asistio).length,
+      asistencia_pct: participantes.length && dias.length ? Math.round((total * 100) / (participantes.length * dias.length)) : null },
+    participantes,
+  };
 };
 
 /* ---------------- Opciones ---------------- */
@@ -944,40 +1022,59 @@ const handlers: Record<string, Handler> = {
     if (!String(motivo ?? "").trim()) throw new MockError("El motivo de cancelación es obligatorio.");
     return sesionOut(Object.assign(buscar(db.sesiones, sesion_id, "Sesión"), { estatus: "Cancelada", motivo_cancelacion: motivo }));
   },
-  save_participantes: ({ sesion_id, participantes }) => {
+  get_participantes: ({ sesion_id }) => participantesOut(buscar(db.sesiones, sesion_id, "Sesión")),
+  inscribir_participantes: ({ sesion_id, empleado_ids }) => {
     const s = buscar(db.sesiones, sesion_id, "Sesión");
-    s.participantes = participantes;
-    // Aprobado → documento ya Aceptado del requerimiento que otorga la sesión.
-    participantes
-      .filter((p: any) => p.resultado === "Aprobado")
-      .flatMap((p: any) => s.otorgados.map((otorga) => ({ p, otorga })))
-      .forEach(({ p, otorga }: any) => {
-        const ya = db.documentos.some(
-          (d) => d.origen === "Sesión" && d.requerimiento?.id === otorga.id && d.dueno.empleado?.id === p.empleado.id,
-        );
-        if (ya) return;
-        const empl = buscar(db.empleados, p.empleado.id, "Empleado");
-        const empresa = empl.empresa ? { id: empl.empresa.id, nombre: empl.empresa.razon_social } : { id: EMPRESA_ACTIVA, nombre: "" };
-        db.documentos.push({
-          id: nuevoId("doc"),
-          folio: folio("D", db.documentos.length + 1),
-          nombre: `${s.nombre} · ${p.empleado.nombre}`,
-          requerimiento: otorga,
-          dueno: { tipo: "Persona", empresa, empleado: p.empleado },
-          en_ceros: false,
-          archivo: { name: "constancia.pdf", file_url: "https://example.com/mock/constancia.pdf" },
-          estatus: "Aceptado",
-          compartido_con: [],
-          contratos: [],
-          origen: "Sesión",
-          versiones: [],
-          comentarios: [],
-          aprobaciones: db.relaciones
-            .filter((r) => r.contratista.id === empresa.id)
-            .map((r) => ({ cliente: { id: r.cliente.id, nombre: r.cliente.razon_social }, decision: "Aprobado" as const, revisor: AUTOR, fecha: ahora() })),
-        });
-      });
-    return s;
+    const est = sesionOut(s).estatus;
+    if (est !== "Programada" && est !== "En curso") throw new MockError(`Solo se inscribe en una sesión Programada o En curso (esta está ${est}).`);
+    const nuevos = [...new Set<string>(empleado_ids ?? [])].filter((id) => !s.participantes.some((p) => p.empleado.id === id));
+    if (!nuevos.length) throw new MockError("Elige al menos un empleado que no esté inscrito.");
+    if (s.cupo && s.participantes.length + nuevos.length > s.cupo)
+      throw new MockError(`Se alcanzó el cupo de la sesión: quedan ${Math.max(s.cupo - s.participantes.length, 0)} lugares.`);
+    nuevos.forEach((id) => {
+      const e = buscar(db.empleados, id, "Empleado");
+      if (e.estatus !== "Activo" || e.vetado) throw new MockError(`${e.nombre} está desactivado o vetado.`);
+      s.participantes.push({ empleado: { id: e.id, nombre: e.nombre }, asistencia: {} });
+    });
+    return guardarParticipantes(s);
+  },
+  quitar_participante: ({ sesion_id, empleado_id }) => {
+    const s = buscar(db.sesiones, sesion_id, "Sesión");
+    if (sesionOut(s).estatus !== "Programada") throw new MockError("Solo se quita a un participante de una sesión Programada.");
+    if (!s.participantes.some((p) => p.empleado.id === empleado_id)) throw new MockError("El empleado no está inscrito.");
+    s.participantes = s.participantes.filter((p) => p.empleado.id !== empleado_id);
+    return guardarParticipantes(s);
+  },
+  registrar_asistencia: ({ sesion_id, asistencias }) => {
+    const s = buscar(db.sesiones, sesion_id, "Sesión");
+    const est = sesionOut(s).estatus;
+    if (est !== "En curso" && est !== "Finalizada") throw new MockError(`La asistencia se registra en una sesión En curso o Finalizada (esta está ${est}).`);
+    const dias = diasSesion(s);
+    (asistencias ?? []).forEach((x: any) => {
+      const p = s.participantes.find((y) => y.empleado.id === x.empleado_id);
+      if (!p) throw new MockError(`El empleado ${x.empleado_id} no está inscrito.`);
+      if (!dias.includes(x.fecha)) throw new MockError(`${x.fecha} no es un día transcurrido de la sesión.`);
+      if (x.estado) p.asistencia[x.fecha] = x.estado;
+      else delete p.asistencia[x.fecha];
+    });
+    return guardarParticipantes(s);
+  },
+  calificar_participante: ({ sesion_id, empleado_id, calificaciones }) => {
+    const s = buscar(db.sesiones, sesion_id, "Sesión");
+    if (!s.examenes.length) throw new MockError("La sesión no tiene exámenes.");
+    const p = s.participantes.find((y) => y.empleado.id === empleado_id);
+    if (!p) throw new MockError("El empleado no está inscrito.");
+    if (!Object.values(p.asistencia).includes("Asistió")) throw new MockError("Registra primero su asistencia: solo se califica a quien asistió.");
+    const cal = { ...(p.calificaciones ?? {}) };
+    Object.entries(calificaciones ?? {}).forEach(([k, v]: [string, any]) => {
+      if (!s.examenes.some((x) => x.id === k)) throw new MockError(`El examen ${k} no es de esta sesión.`);
+      if (v === null || v === "") delete cal[k];
+      else if (Number(v) < 0 || Number(v) > 100) throw new MockError("La calificación va de 0 a 100.");
+      else cal[k] = Number(v);
+    });
+    p.calificaciones = cal;
+    p.calificacion = Object.values(cal).length ? Math.min(...Object.values(cal)) : undefined;
+    return guardarParticipantes(s);
   },
 
   /* Documentos */

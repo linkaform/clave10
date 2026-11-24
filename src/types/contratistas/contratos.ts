@@ -313,8 +313,29 @@ export interface Participante {
   empleado: Ref;
   /** fecha (YYYY-MM-DD) -> asistencia */
   asistencia: Record<string, "Asistió" | "Faltó">;
+  /** La menor de sus calificaciones. */
   calificacion?: number;
+  /** Una por examen de la sesión: examen_id -> 0–100. */
+  calificaciones?: Record<Id, number>;
+  /** Lo calcula el back: todos los exámenes ≥ su mínima (80 por defecto), o asistencia completa sin examen. */
   resultado?: "Aprobado" | "No aprobado";
+}
+
+/** Pestaña Participantes (get_participantes y respuesta de inscribir/quitar/asistencia/calificar). */
+export interface ParticipantesSesion {
+  sesion: Pick<Sesion, "id" | "nombre" | "estatus" | "cupo" | "inscritos" | "examenes" | "otorgados">;
+  /** Días transcurridos de la sesión (YYYY-MM-DD). */
+  dias: string[];
+  /** examen_id -> calificación mínima. */
+  examenes_minimas: Record<Id, number>;
+  kpi: { inscritos: number; cupo?: number | null; asistieron: number; asistencia_pct: number | null };
+  participantes: (Participante & {
+    puesto?: string;
+    centro_trabajo?: string;
+    asistencia_resumen: { asistio: number; dias: number; pct: number | null };
+  })[];
+  /** Documentos creados al aprobar en esta operación. */
+  documentos_otorgados?: { id: Id; requerimiento: string; empleado: string }[];
 }
 
 export interface Sesion {
