@@ -4,6 +4,8 @@
 // vista espejo de relaciones, estatus de contrato y documento, y un motor de
 // cumplimiento simplificado. Solo para desarrollo del front.
 import type {
+  Ref,
+  Sancion,
   Activo,
   Mantenimiento,
   Ambito,
@@ -58,6 +60,7 @@ const db = {
   documentos: clone(seed.DOCUMENTOS) as DocumentoBase[],
   activos: clone(seed.ACTIVOS) as Activo[],
   mantenimientos: clone(seed.MANTENIMIENTOS) as Mantenimiento[],
+  sanciones: clone(seed.SANCIONES) as Sancion[],
   sesiones: clone(seed.SESIONES) as Sesion[],
   /** Estados fijados a mano (ccOv): id de fila -> estado y motivo. */
   manual: {} as Record<string, { estado: EstadoCumplimiento; motivo: string }>,
@@ -477,6 +480,7 @@ const empleadoDetalle = (e: EmpleadoContratista): EmpleadoContratista => {
     },
     qr_activo: e.estatus === "Activo" && !e.vetado,
     editable: (e.empresa?.id ?? EMPRESA_ACTIVA) === EMPRESA_ACTIVA,
+    suspendido_hasta: suspendidoHasta(e.id),
   };
 };
 
@@ -833,6 +837,55 @@ const aplicarActivo = (a: Activo, d: any, alta: boolean) => {
   if ("asignado_id" in d) {
     if (d.asignado_id && a.estado === "Inactivo") throw new MockError("Un activo inactivo no se puede asignar.");
     a.asignado = d.asignado_id ? empleadoRef(d.asignado_id) : null;
+  }
+};
+
+/* ---------------- Sanciones (R-07 / ME-05), como el back ---------------- */
+
+const MOTIVOS_SANCION = ["Retardos", "Falta injustificada", "No portar EPP", "Abandono de puesto",
+  "Incumplimiento de procedimiento", "Conducta inapropiada", "Otro"];
+
+const estatusSancion = (s: Sancion) => (s.sin_acceso && s.fin_suspension && s.fin_suspension >= hoyISO() ? "Vigente" : "Cumplida");
+
+function suspendidoHasta(empleadoId: string) {
+  const fines = db.sanciones
+    .filter((s) => s.empleado?.id === empleadoId && s.sin_acceso && s.fin_suspension && s.fin_suspension >= hoyISO())
+    .map((s) => s.fin_suspension as string);
+  return fines.length ? fines.sort().at(-1)! : null;
+}
+
+const sancionOut = (s: Sancion): Sancion => ({
+  ...s, estatus: estatusSancion(s), evidencias: s.comentarios.reduce((n, c) => n + c.evidencias.length, 0),
+  editable: s.registra?.id === EMPRESA_ACTIVA,
+});
+
+const sancionVisible = (id: string) => {
+  const s = buscar(db.sanciones, id, "Sanción");
+  if (![s.registra?.id, s.empresa?.id].includes(EMPRESA_ACTIVA)) throw new MockError("No tienes acceso a esta sanción.");
+  return s;
+};
+
+const datosSancion = (s: Sancion, d: any) => {
+  if ("motivo" in d || !s.motivo) {
+    if (!MOTIVOS_SANCION.includes(d.motivo)) throw new MockError("Elige el motivo.");
+    s.motivo = d.motivo;
+  }
+  if ("motivo_otro" in d) s.motivo_otro = d.motivo_otro?.trim() || null;
+  if (s.motivo === "Otro" && !s.motivo_otro) throw new MockError("Escribe el motivo.");
+  if (s.motivo !== "Otro") s.motivo_otro = null;
+  if ("fecha" in d || !s.fecha) s.fecha = d.fecha || hoyISO();
+  if ("sin_acceso" in d || "dias_sin_acceso" in d || "inicio_suspension" in d) {
+    const sin = d.sin_acceso ?? s.sin_acceso;
+    if (sin && s.sujeto_tipo !== "Empleado") throw new MockError("Los días sin acceso son solo para empleados.");
+    if (sin) {
+      const dias = Number(d.dias_sin_acceso ?? s.dias_sin_acceso);
+      if (!(dias >= 1 && dias <= 8)) throw new MockError("Los días sin acceso van de 1 a 8 (Ley Federal del Trabajo).");
+      const ini = d.inicio_suspension ?? s.inicio_suspension;
+      if (!ini) throw new MockError("Falta la fecha de inicio de la suspensión.");
+      const fin = new Date(`${ini}T00:00:00Z`);
+      fin.setUTCDate(fin.getUTCDate() + dias - 1);
+      Object.assign(s, { sin_acceso: true, dias_sin_acceso: dias, inicio_suspension: ini, fin_suspension: fin.toISOString().slice(0, 10) });
+    } else Object.assign(s, { sin_acceso: false, dias_sin_acceso: 0, inicio_suspension: null, fin_suspension: null });
   }
 };
 
@@ -1790,6 +1843,86 @@ const handlers: Record<string, Handler> = {
       });
     });
     return { enviadas: items.length, items, omitidas };
+  },
+
+  /* Sanciones (R-07 / ME-05) */
+  get_opciones_sancion: () => ({ motivos: MOTIVOS_SANCION, max_dias_sin_acceso: 8, sujetos: ["Empleado", "Empresa"] }),
+  list_sanciones: (p) =>
+    paginar(
+      db.sanciones
+        .filter((s) => [s.registra?.id, s.empresa?.id].includes(EMPRESA_ACTIVA))
+        .map(sancionOut)
+        .filter(
+          (s) =>
+            (p.empleado_id ? s.empleado?.id === p.empleado_id : true) &&
+            (p.relacion_id ? s.relacion?.id === p.relacion_id : true) &&
+            (p.sujeto_tipo ? s.sujeto_tipo === p.sujeto_tipo : true) &&
+            (p.estatus ? s.estatus === p.estatus : true) &&
+            [s.folio, s.motivo, s.motivo_otro ?? "", s.empleado?.nombre ?? "", s.empresa?.nombre ?? "", s.registro].some((t) => coincide(t, p.search)),
+        ),
+      p,
+    ),
+  get_sancion: ({ sancion_id }) => sancionOut(sancionVisible(sancion_id)),
+  save_sancion: ({ sancion, sancion_id }) => {
+    const d = sancion ?? {};
+    if (sancion_id) {
+      const s = sancionVisible(sancion_id);
+      if (s.registra?.id !== EMPRESA_ACTIVA) throw new MockError("Solo quien registró la sanción la edita.");
+      const copia = JSON.parse(JSON.stringify(s)) as Sancion;
+      datosSancion(copia, d);
+      Object.assign(s, copia);
+      return sancionOut(s);
+    }
+    const tipo = d.sujeto_tipo ?? (d.empleado_id ? "Empleado" : "Empresa");
+    let empleado: Ref | null = null;
+    let empresaId: string;
+    let rel: Relacion | undefined;
+    if (tipo === "Empleado") {
+      const e = buscar(db.empleados, d.empleado_id, "Empleado");
+      empleado = { id: e.id, nombre: e.nombre };
+      empresaId = e.empresa?.id ?? EMPRESA_ACTIVA;
+      if (empresaId !== EMPRESA_ACTIVA) {
+        rel = db.relaciones.find((r) => r.cliente.id === EMPRESA_ACTIVA && r.contratista.id === empresaId && r.estatus === "Activo");
+        if (!rel) throw new MockError("Solo sancionas a tus empleados o a los de un contratista tuyo con relación activa.");
+      }
+    } else {
+      rel = buscar(db.relaciones, d.relacion_id, "Relación");
+      if (rel.cliente.id !== EMPRESA_ACTIVA) throw new MockError("Solo el cliente sanciona a su contratista.");
+      if (rel.estatus !== "Activo") throw new MockError("La relación está inactiva.");
+      empresaId = rel.contratista.id;
+    }
+    const s: Sancion = {
+      id: nuevoId("san"), folio: folio("S", db.sanciones.length + 1), sujeto_tipo: tipo, empleado,
+      empresa: { id: empresaId, nombre: buscar(db.empresas, empresaId, "Empresa").razon_social },
+      registra: { id: EMPRESA_ACTIVA, nombre: buscar(db.empresas, EMPRESA_ACTIVA, "Empresa").razon_social },
+      relacion: rel ? { id: rel.id, nombre: rel.folio } : null, contrato: null,
+      motivo: "Otro", motivo_otro: null, fecha: null, sin_acceso: false, dias_sin_acceso: 0,
+      inicio_suspension: null, fin_suspension: null, registro: AUTOR, acta: null,
+      comentarios: d.comentario || d.evidencias?.length
+        ? [{ autor: AUTOR, fecha: ahora(), texto: d.comentario ?? "", evidencias: d.evidencias ?? [] }] : [],
+      evidencias: 0, estatus: "Cumplida",
+    };
+    datosSancion(s, { ...d, motivo: d.motivo, sin_acceso: d.sin_acceso ?? false });
+    db.sanciones.push(s);
+    return sancionOut(s);
+  },
+  comment_sancion: ({ sancion_id, texto, evidencias }) => {
+    const s = sancionVisible(sancion_id);
+    if (!String(texto ?? "").trim() && !evidencias?.length) throw new MockError("Escribe un comentario o agrega una evidencia.");
+    s.comentarios.push({ autor: AUTOR, fecha: ahora(), texto: texto ?? "", evidencias: evidencias ?? [] });
+    return sancionOut(s);
+  },
+  delete_sancion: ({ sancion_id }) => {
+    const s = sancionVisible(sancion_id);
+    if (s.registra?.id !== EMPRESA_ACTIVA) throw new MockError("Solo quien registró la sanción la elimina.");
+    db.sanciones = db.sanciones.filter((x) => x.id !== s.id);
+    return { eliminado: s.id, folio: s.folio };
+  },
+  imprimir_acta: ({ sancion_id }) => {
+    const s = sancionVisible(sancion_id);
+    if (s.registra?.id !== EMPRESA_ACTIVA) throw new MockError("Solo quien registró la sanción imprime el acta.");
+    s.acta = { name: `acta_${s.folio}.pdf`, file_url: "https://example.com/mock/acta.pdf" };
+    return { acta: s.acta, sancion: sancionOut(s) };
   },
 
   list_cumplimiento: (p) =>

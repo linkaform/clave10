@@ -3,6 +3,7 @@
 // cliente y una subcontratación. Nombres y RFC son inventados.
 import type {
   Activo,
+  Sancion,
   Contrato,
   Mantenimiento,
   DocumentoBase,
@@ -456,5 +457,21 @@ export const MANTENIMIENTOS: Mantenimiento[] = [
     asignado: { id: "empl-p2", nombre: "Pedro Salinas Ruiz" }, prioridad: "Media", fecha_limite: "2026-12-05",
     descripcion: "Servicio de 50,000 km", estatus: "Abierta", fecha_cierre: null,
     historial: [{ estatus: "Abierta", comentario: "Programar en taller autorizado", evidencias: [], autor: "Laura Méndez", fecha: "2026-11-20 09:00:00" }],
+  },
+];
+
+/* R-07 / ME-05: una sanción vigente a un empleado de Limpieza (contratista de la empresa propia). */
+export const SANCIONES: Sancion[] = [
+  {
+    id: "san-1", folio: "S-0001", sujeto_tipo: "Empleado",
+    empleado: { id: "empl-2", nombre: "José Ramírez Cantú" },
+    empresa: { id: "emp-limpieza", nombre: "Limpieza Integral del Norte SA de CV" },
+    registra: { id: "emp-propia", nombre: "Grupo Ejemplo SA de CV" },
+    relacion: { id: "rel-limpieza", nombre: "R-0001" }, contrato: null,
+    motivo: "No portar EPP", motivo_otro: null, fecha: "2026-11-20",
+    sin_acceso: true, dias_sin_acceso: 8, inicio_suspension: "2026-11-21", fin_suspension: "2026-11-28",
+    registro: "Laura Méndez", acta: null,
+    comentarios: [{ autor: "Laura Méndez", fecha: "2026-11-20 10:15:00", texto: "Sin casco en zona de carga", evidencias: [{ name: "foto.jpg", file_url: "https://example.com/mock/foto.jpg" }] }],
+    evidencias: 1, estatus: "Vigente",
   },
 ];
