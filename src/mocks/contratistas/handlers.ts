@@ -8,7 +8,14 @@ import type {
   Contrato,
   CumplimientoFila,
   Documento,
+  CeldaDocumental,
+  CumplimientoDocumental,
   DocumentoBase,
+  EstadoDocumental,
+  PestanaPeriodica,
+  PestanaPeriodo,
+  PestanaVigencia,
+  ResumenCumplimiento,
   FilaAsignacion,
   EmpleadoContratista,
   Empresa,
@@ -73,6 +80,11 @@ const coincide = (texto: string | undefined, search: unknown) =>
 
 /* ---------------- Motor de cumplimiento (simplificado) ---------------- */
 
+const MESES_PERIODO: Record<string, number> = {
+  Mensual: 1, Bimestral: 2, Trimestral: 3, Cuatrimestral: 4, Semestral: 6, Anual: 12,
+};
+const LETRA_PERIODO: Record<number, string> = { 2: "B", 3: "T", 4: "C", 6: "S" };
+
 /**
  * Periodos de un requerimiento dentro del año y de la vigencia del sujeto
  * (`desde`–`hasta`). Uno único (o por vigencia) se exige desde el alta.
@@ -81,12 +93,16 @@ const periodosDelAnio = (r: Requerimiento, anio: number, desde: string, hasta: s
   if (r.vigencia_modo !== "periodo" || r.periodicidad === "Única") {
     return [{ clave: "unico", inicio: desde, fin: hasta, vence: desde }];
   }
-  // Mocks: solo periodos mensuales; el back real cubre todas las periodicidades.
-  return Array.from({ length: 12 }, (_, i) => {
-    const mes = String(i + 1).padStart(2, "0");
-    const finMes = new Date(Date.UTC(anio, i + 1, 0)).toISOString().slice(0, 10);
-    const sig = new Date(Date.UTC(anio, i + 1, r.dia_limite ?? 17)).toISOString().slice(0, 10);
-    return { clave: `${anio}-${mes}`, inicio: `${anio}-${mes}-01`, fin: finMes, vence: sig };
+  const n = MESES_PERIODO[r.periodicidad ?? ""];
+  if (!n) return [{ clave: "unico", inicio: desde, fin: hasta, vence: desde }];
+  // Vence el día límite del mes siguiente al periodo (el back además respeta meses_periodo).
+  return Array.from({ length: 12 / n }, (_, i) => {
+    const mesIni = i * n + 1;
+    const inicio = `${anio}-${String(mesIni).padStart(2, "0")}-01`;
+    const fin = new Date(Date.UTC(anio, mesIni - 1 + n, 0)).toISOString().slice(0, 10);
+    const vence = new Date(Date.UTC(anio, mesIni - 1 + n, r.dia_limite ?? 17)).toISOString().slice(0, 10);
+    const clave = n === 1 ? `${anio}-${String(mesIni).padStart(2, "0")}` : n === 12 ? `${anio}` : `${anio}-${LETRA_PERIODO[n]}${i + 1}`;
+    return { clave, inicio, fin, vence };
   }).filter((p) => p.fin >= desde && p.inicio <= hasta);
 };
 
@@ -610,6 +626,111 @@ const participantesOut = (s: Sesion) => {
 /* ---------------- Opciones ---------------- */
 
 type Handler = (p: any) => unknown;
+
+/* ---------------- Cumplimiento documental (ME-07), como el back ---------------- */
+
+const PESTANA_DE: Record<string, PestanaPeriodica> = {
+  Mensual: "Mensuales", Bimestral: "Bimestrales", Trimestral: "Trimestrales",
+  Cuatrimestral: "Cuatrimestrales", Semestral: "Semestrales", Anual: "Anuales",
+};
+const ORDEN_PESTANAS = [...Object.values(PESTANA_DE), "Por vigencia", "Sin vencimiento"];
+const PENDIENTES_DOC: EstadoDocumental[] = ["Por subir", "No entregado", "Rechazado", "Vencido"];
+
+const pctDoc = (estados: (EstadoDocumental | null)[], cuentaPorSubir = false) => {
+  const fuera: (EstadoDocumental | null)[] = cuentaPorSubir ? [null, "No aplica"] : [null, "No aplica", "Por subir"];
+  const ap = estados.filter((e) => !fuera.includes(e));
+  return ap.length ? Math.round((ap.filter((e) => e === "Aceptado" || e === "En ceros").length * 100) / ap.length) : null;
+};
+
+const estadoDoc = (d: DocumentoBase): EstadoDocumental => {
+  const e = estatusDocumento(d);
+  return e === "Aceptado" && d.en_ceros ? "En ceros" : e;
+};
+
+const contextoDocumental = () => {
+  const exigidos = new Set(
+    recalcular()
+      .filter((f) => f.sujeto.tipo === "Empresa" && f.sujeto.empresa.id === EMPRESA_ACTIVA)
+      .map((f) => f.requerimiento.id),
+  );
+  const reqs = db.requerimientos
+    .filter((q) => q.ambito === "Empresa" && q.estatus === "Activo" && (q.requiere_acuse || exigidos.has(q.id)))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const docs = new Map<string, DocumentoBase>();
+  db.documentos
+    .filter((d) => d.dueno.empresa.id === EMPRESA_ACTIVA && d.dueno.tipo === "Empresa")
+    .forEach((d) => docs.set(`${d.requerimiento?.id}|${d.periodo?.clave ?? "unico"}`, d));
+  return { reqs, docs };
+};
+
+const acuseRef = (d: DocumentoBase) => ({
+  id: d.id, folio: d.folio, archivo: d.archivo, en_ceros: d.en_ceros,
+  vigencia_inicio: d.vigencia_inicio ?? null, vigencia_fin: d.vigencia_fin ?? null,
+});
+
+const obligacion = (q: Requerimiento) => ({
+  id: q.id, nombre: q.nombre, descripcion: q.descripcion, tipo: q.tipo, plataforma: q.plataforma,
+  plataforma_url: q.plataforma_url, periodicidad: q.periodicidad, vigencia: q.vigencia,
+  requiere_acuse: q.requiere_acuse, limitante: q.limitante,
+});
+
+const matrizDocumental = (anio: number): CumplimientoDocumental => {
+  const hoy = hoyISO();
+  const { reqs, docs } = contextoDocumental();
+  const tabs = new Map<string, PestanaPeriodo | PestanaVigencia>();
+  reqs.forEach((q) => {
+    const periodica = q.vigencia_modo === "periodo" && PESTANA_DE[q.periodicidad ?? ""];
+    if (periodica) {
+      const ps = periodosDelAnio(q, anio, `${anio}-01-01`, `${anio}-12-31`);
+      const t = (tabs.get(periodica) as PestanaPeriodo) ?? {
+        pestana: periodica, columnas: ps.map(({ clave, inicio, fin }) => ({ clave, inicio, fin })),
+        filas: [], pie: [], cumplimiento_pct: null, pendientes: 0,
+      };
+      const celdas: CeldaDocumental[] = ps.map((p) => {
+        if (p.inicio > hoy) return { clave: p.clave, vence: p.vence, estado: null, documento: null };
+        const d = docs.get(`${q.id}|${p.clave}`);
+        return {
+          clave: p.clave, vence: p.vence,
+          estado: d ? estadoDoc(d) : p.vence < hoy ? "No entregado" : "Por subir",
+          documento: d ? acuseRef(d) : null,
+        };
+      });
+      t.filas.push({ requerimiento: obligacion(q), celdas, cumplimiento_pct: pctDoc(celdas.map((c) => c.estado)) });
+      tabs.set(periodica, t);
+    } else {
+      const nombre = q.vigencia ? "Por vigencia" : "Sin vencimiento";
+      const t = (tabs.get(nombre) as PestanaVigencia) ?? { pestana: nombre, filas: [], cumplimiento_pct: null, pendientes: 0 };
+      const d = docs.get(`${q.id}|unico`);
+      t.filas.push({ requerimiento: obligacion(q), estado: d ? estadoDoc(d) : "Por subir", documento: d ? docOut(d) : null });
+      tabs.set(nombre, t);
+    }
+  });
+  const pestanas = ORDEN_PESTANAS.filter((n) => tabs.has(n)).map((n) => {
+    const t = tabs.get(n)!;
+    if ("columnas" in t) {
+      t.pie = t.columnas.map((_, i) => pctDoc(t.filas.map((f) => f.celdas[i].estado)));
+      const estados = t.filas.flatMap((f) => f.celdas.map((c) => c.estado));
+      t.cumplimiento_pct = pctDoc(estados);
+      t.pendientes = estados.filter((e) => e && PENDIENTES_DOC.includes(e)).length;
+    } else {
+      const estados = t.filas.map((f) => f.estado);
+      t.cumplimiento_pct = pctDoc(estados, true);
+      t.pendientes = estados.filter((e) => PENDIENTES_DOC.includes(e)).length;
+    }
+    return t;
+  });
+  return { anio, hoy, pestanas };
+};
+
+const reqPeriodo = (requerimiento_id: string, periodo_clave?: string) => {
+  const q = buscar(db.requerimientos, requerimiento_id, "Requerimiento");
+  if (q.ambito !== "Empresa") throw new MockError("Solo los requerimientos de ámbito Empresa van en el cumplimiento documental.");
+  if (!periodo_clave || periodo_clave === "unico") return { q, p: { clave: "unico", inicio: "", fin: "", vence: "" } };
+  const anio = Number(periodo_clave.slice(0, 4));
+  const p = periodosDelAnio(q, anio, `${anio}-01-01`, `${anio}-12-31`).find((x) => x.clave === periodo_clave);
+  if (!p) throw new MockError(`El periodo ${periodo_clave} no corresponde a la periodicidad de ${q.nombre}.`);
+  return { q, p };
+};
 
 const handlers: Record<string, Handler> = {
   /* Empresa y empleados */
@@ -1270,6 +1391,15 @@ const handlers: Record<string, Handler> = {
     if (actual) actual.estatus = d.estatus;
     return docOut(d);
   },
+  delete_documento: ({ documento_id }) => {
+    const d = buscar(db.documentos, documento_id, "Documento");
+    if (d.dueno.empresa.id !== EMPRESA_ACTIVA) throw new MockError("Solo el dueño del documento puede eliminarlo.");
+    if (d.aprobaciones.some((a) => a.decision === "Aprobado")) {
+      throw new MockError("Un cliente ya aprobó este documento: solo se puede reemplazar.");
+    }
+    db.documentos = db.documentos.filter((x) => x.id !== d.id);
+    return { eliminado: d.id, folio: d.folio };
+  },
   comment_documento: ({ documento_id, texto }) => {
     const d = buscar(db.documentos, documento_id, "Documento");
     d.comentarios.push({ autor: AUTOR, fecha: ahora(), texto });
@@ -1277,6 +1407,118 @@ const handlers: Record<string, Handler> = {
   },
 
   /* Cumplimiento */
+  get_cumplimiento_documental: ({ anio }) => matrizDocumental(Number(anio) || new Date().getFullYear()),
+  get_periodo_cumplimiento: ({ requerimiento_id, periodo_clave }) => {
+    const { q, p } = reqPeriodo(requerimiento_id, periodo_clave);
+    const m = matrizDocumental(p.clave === "unico" ? new Date().getFullYear() : Number(p.clave.slice(0, 4)));
+    let estado: EstadoDocumental | null = null;
+    let documento: Documento | null = null;
+    m.pestanas.forEach((t) => t.filas.forEach((f) => {
+      if (f.requerimiento.id !== q.id) return;
+      if ("celdas" in f) {
+        const c = f.celdas.find((x) => x.clave === p.clave);
+        estado = c?.estado ?? null;
+        const d = c?.documento ? db.documentos.find((x) => x.id === c.documento!.id) : undefined;
+        documento = d ? docOut(d) : null;
+      } else {
+        estado = f.estado;
+        documento = f.documento;
+      }
+    }));
+    return { requerimiento: q, periodo: p, estado, documento };
+  },
+  subir_acuse: ({ acuse }) => {
+    const { q, p } = reqPeriodo(acuse.requerimiento_id, acuse.periodo_clave);
+    if (!acuse.fecha) throw new MockError("La fecha (emisión o presentación) es obligatoria, YYYY-MM-DD.");
+    if (acuse.en_ceros && q.periodicidad !== "Cuatrimestral") {
+      throw new MockError("La declaración en ceros solo aplica a obligaciones cuatrimestrales.");
+    }
+    const previo = contextoDocumental().docs.get(`${q.id}|${p.clave}`);
+    const periodo = p.clave === "unico" ? undefined : { clave: p.clave, inicio: p.inicio, fin: p.fin };
+    const base = { archivo: acuse.archivo, vigencia_inicio: acuse.fecha, en_ceros: Boolean(acuse.en_ceros), periodo };
+    if (previo) {
+      const doc = handlers.upload_documento({ documento: { ...base, reemplaza_id: previo.id } }) as Documento;
+      Object.assign(buscar(db.documentos, previo.id, "Documento"), { en_ceros: base.en_ceros, vigencia_inicio: acuse.fecha, periodo });
+      return { documento: { ...doc, en_ceros: base.en_ceros }, reemplazado: true };
+    }
+    const clientes = db.relaciones
+      .filter((r) => r.contratista.id === EMPRESA_ACTIVA && r.estatus === "Activo")
+      .map((r) => r.cliente.id);
+    const doc = handlers.upload_documento({
+      documento: {
+        ...base,
+        nombre: periodo ? `${q.nombre} ${p.clave}` : q.nombre,
+        categoria: q.requiere_acuse ? "Acuse" : undefined,
+        requerimiento_id: q.id,
+        dueno: { tipo: "Empresa", empresa_id: EMPRESA_ACTIVA },
+        compartido_con: acuse.compartido_con ?? clientes,
+      },
+    }) as Documento;
+    Object.assign(buscar(db.documentos, doc.id, "Documento"), { en_ceros: base.en_ceros, periodo });
+    return { documento: { ...doc, en_ceros: base.en_ceros, periodo }, reemplazado: false };
+  },
+  generar_cumplimiento: ({ requerimiento_id, periodo_clave }) => {
+    const { q, p } = reqPeriodo(requerimiento_id, periodo_clave);
+    if (p.clave === "unico") throw new MockError("Generar cumplimiento es por periodo.");
+    const d = contextoDocumental().docs.get(`${q.id}|${p.clave}`);
+    const contratos = d?.en_ceros ? [] : db.contratos.filter((c) => {
+      const rel = db.relaciones.find((r) => r.id === c.relacion);
+      return rel?.contratista.id === EMPRESA_ACTIVA && c.estatus !== "Cancelado" && c.inicio <= p.fin && (!c.fin || c.fin >= p.inicio);
+    });
+    const tag = q.nombre.normalize("NFKD").replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 12);
+    return {
+      archivo: { name: `${tag}_XAXX010101000_${p.clave}.zip`, file_url: "https://example.com/mock/cumplimiento.zip" },
+      en_ceros: Boolean(d?.en_ceros),
+      contratos: contratos.length,
+      trabajadores: contratos.reduce((n, c) => n + c.empleados.length, 0),
+      plataforma: q.plataforma,
+      plataforma_url: q.plataforma_url,
+    };
+  },
+  descargar_cumplimiento: ({ anio, pestanas }) => {
+    const m = matrizDocumental(Number(anio) || new Date().getFullYear());
+    const tabs = m.pestanas.filter((t) => !pestanas?.length || pestanas.includes(t.pestana));
+    const documentos = tabs.reduce(
+      (n, t) => n + t.filas.reduce((k, f) => k + ("celdas" in f ? f.celdas.filter((c) => c.documento).length : f.documento ? 1 : 0), 0),
+      0,
+    );
+    return { archivo: { name: `cumplimiento_XAXX010101000_${m.anio}.zip`, file_url: "https://example.com/mock/cumplimiento.zip" }, documentos, omitidos: [] };
+  },
+  get_resumen_cumplimiento: ({ limit }) => {
+    const m = matrizDocumental(new Date().getFullYear());
+    const empresa: (EstadoDocumental | null)[] = [];
+    const acuses: (EstadoDocumental | null)[] = [];
+    const pendientes: ResumenCumplimiento["pendientes"] = [];
+    m.pestanas.forEach((t) => t.filas.forEach((f) => {
+      const r = f.requerimiento;
+      const destino = r.requiere_acuse ? acuses : empresa;
+      const ref = { id: r.id, nombre: r.nombre };
+      if ("celdas" in f) {
+        f.celdas.forEach((c) => {
+          destino.push(c.estado);
+          if (c.estado && PENDIENTES_DOC.includes(c.estado)) {
+            pendientes.push({ requerimiento: ref, requiere_acuse: r.requiere_acuse, periodo: c.clave, vence: c.vence, estado: c.estado });
+          }
+        });
+      } else {
+        destino.push(f.estado === "Por subir" ? "No entregado" : f.estado);
+        if (PENDIENTES_DOC.includes(f.estado)) {
+          pendientes.push({ requerimiento: ref, requiere_acuse: r.requiere_acuse, periodo: null, vence: f.documento?.vigencia_fin ?? null, estado: f.estado });
+        }
+      }
+    }));
+    const orden: Record<string, number> = { "No entregado": 0, Rechazado: 1, Vencido: 2, "Por subir": 3 };
+    pendientes.sort((a, b) => (orden[a.estado] ?? 9) - (orden[b.estado] ?? 9) || (a.vence ?? "9999").localeCompare(b.vence ?? "9999"));
+    const personas = recalcular().filter((f) => f.sujeto.tipo === "Persona" && f.sujeto.empresa.id === EMPRESA_ACTIVA);
+    return {
+      anio: m.anio,
+      empresa_pct: pctDoc(empresa),
+      empleados_pct: porcentajeCumplimiento(personas.map((f) => f.estado)),
+      acuses_pct: pctDoc(acuses),
+      pendientes: pendientes.slice(0, Number(limit) || 50),
+      total_pendientes: pendientes.length,
+    };
+  },
   list_cumplimiento: (p) =>
     recalcular().filter(
       (f) =>
