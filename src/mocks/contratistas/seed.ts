@@ -242,6 +242,9 @@ export const RECURSOS: RecursoContrato[] = [
 ];
 
 export const EMPLEADOS: EmpleadoContratista[] = [
+  // Empresa propia (EMPRESA_ACTIVA de los mocks): uno de siempre (sin empresa) y uno con usuario.
+  { id: "empl-p1", folio: "", nombre: "Laura Méndez Garza", curp: "MEGL880404MNLNRR07", rfc: "MEGL880404AB7", empresa: null, puesto: "Gerente de compras", perfiles: [], disponible_para_contratos: true, estatus: "Activo", usuario_id: 101, usuario: { id: 101, username: "laura.mendez", email: "laura@empresa.mx" } },
+  { id: "empl-p2", folio: "E-0005", nombre: "Pedro Salinas Ruiz", curp: "SARP910606HNLLZD08", nss: "12345678908", empresa: { id: "emp-propia", razon_social: "Grupo Ejemplo SA de CV" }, perfiles: [], disponible_para_contratos: true, estatus: "Activo", centro_trabajo: { id: "ubi-mty", nombre: "Planta Monterrey" } },
   { id: "empl-1", folio: "E-0001", nombre: "María López Hernández", curp: "LOHM900101MNLPRR01", nss: "12345678901", empresa: { id: "emp-limpieza", razon_social: "Limpieza Integral del Norte SA de CV" }, puesto: "Afanadora", perfiles: [{ id: "prf-afanador", nombre: "Afanador" }], disponible_para_contratos: true, estatus: "Activo" },
   { id: "empl-2", folio: "E-0002", nombre: "José Ramírez Cantú", curp: "RACJ880312HNLMNS02", empresa: { id: "emp-limpieza", razon_social: "Limpieza Integral del Norte SA de CV" }, puesto: "Afanador", perfiles: [{ id: "prf-afanador", nombre: "Afanador" }], disponible_para_contratos: true, estatus: "Activo" },
   { id: "empl-3", folio: "E-0003", nombre: "Luis Fernández Ortiz", curp: "FEOL850720HNLRRS03", empresa: { id: "emp-vigilancia", razon_social: "Vigilancia Táctica SA de CV" }, puesto: "Guardia", perfiles: [{ id: "prf-guardia", nombre: "Guardia de seguridad" }], disponible_para_contratos: true, estatus: "Activo" },

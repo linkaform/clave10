@@ -92,6 +92,79 @@ export interface EmpleadoContratista {
   vetado?: { fecha: string; motivo: string; por: string };
   estatus: Estatus;
   usuario_id?: number;
+  /** Usuario de la app ligado (sin cuenta = no viene). */
+  usuario?: { id: number; username: string; email: string };
+  /** Ubicación de la empresa (ME-02). */
+  centro_trabajo?: Ref | null;
+  /** Contratos no cancelados donde está ligado; vacío = "Libre". */
+  contratos?: { id: Id; folio: string; objeto: string }[];
+  /** Filas del motor (ME-15) del empleado; null = sin requerimientos. */
+  cumplimiento_pct?: number | null;
+  /** false = empleado de otra empresa (solo lectura). Solo en get_empleado. */
+  editable?: boolean;
 }
 
-export type EmpleadoInput = Omit<EmpleadoContratista, "id" | "folio" | "vetado">;
+/**
+ * Cuenta del empleado: sin cuenta (no inicia sesión), ligar un usuario
+ * existente o crear uno (se manda la liga de activación al correo).
+ */
+export type CuentaEmpleadoInput =
+  | { modo: "sin_cuenta" }
+  | { modo: "ligar"; usuario_id: number }
+  | { modo: "crear"; username: string; email: string; telefono: string };
+
+/**
+ * Alta y edición. En update_empleado solo se mandan las llaves que cambian;
+ * `cuenta` ausente = no tocar la cuenta. Puesto no se escribe (es catálogo).
+ */
+export interface EmpleadoInput {
+  nombre: string;
+  curp: string;
+  rfc?: string;
+  nss?: string;
+  foto?: Archivo | null;
+  registro_patronal?: string;
+  salario_base_cotizacion?: number;
+  alta_imss?: string;
+  /** ids de Recursos de contrato tipo Perfil (también acepta Ref). */
+  perfiles?: (Id | Ref)[];
+  disponible_para_contratos?: boolean;
+  estatus?: Estatus;
+  centro_trabajo?: Ref | null;
+  cuenta?: CuentaEmpleadoInput;
+}
+
+/** Paso 1 del alta manual (analizar_documentos_empleado). No guarda nada. */
+export interface AnalisisDocumentosEmpleado {
+  documentos: {
+    archivo: Archivo;
+    estado: "ok" | "ilegible" | "error";
+    error?: string;
+    tipo?: "INE" | "CURP" | "Comprobante de domicilio" | "Constancia de situación fiscal" | "CV" | "Otro";
+    confianza?: number;
+    datos?: { nombre?: string; curp?: string; rfc?: string; nss?: string };
+  }[];
+  /** Lo que se prellena en el paso 2 (marca "IA"). */
+  sugerido: { nombre?: string; curp?: string; rfc?: string; nss?: string };
+  inconsistencias: (
+    | { campo: string; valores: { valor: string; documento: string }[] }
+    | { campo: string; mensaje: string }
+  )[];
+  alertas: string[];
+}
+
+/** validar_carga_empleados. Las CURP repetidas se omiten; con errores no se carga. */
+export interface ValidacionCargaEmpleados {
+  valido: boolean;
+  total: number;
+  por_cargar: number;
+  omitidos: { fila: number; curp: string; motivo: string }[];
+  errores: { fila: number; mensaje: string }[];
+  muestra: { nombre: string; curp: string; rfc: string; nss: string }[];
+}
+
+export interface ResultadoCargaEmpleados {
+  creados: { fila: number; id: Id; folio: string; nombre: string }[];
+  omitidos: { fila: number; curp: string; motivo: string }[];
+  fallidos: { fila: number; curp: string; error: string }[];
+}

@@ -22,6 +22,8 @@ export const CONTRATISTAS_SCRIPTS = {
   documentos: "documentos_sdk.py",
   /** CF-01 a CF-04 (por ahora requerimientos, CF-01-B) */
   configuracion: "configuracion_sdk.py",
+  /** ME-03 a ME-05 (por ahora ME-03-B) */
+  empleados: "empleados_sdk.py",
 } as const;
 
 /**

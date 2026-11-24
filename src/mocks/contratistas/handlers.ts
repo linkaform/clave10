@@ -253,6 +253,75 @@ const empresaRef = (id: string) => {
 const registrarEvento = (contrato: string, evento: EventoContrato["evento"], detalle: string) =>
   db.historial.push({ id: nuevoId("ev"), contrato, evento, detalle, autor: AUTOR, fecha: ahora() });
 
+/* ---------------- Empleados (ME-03-B) ---------------- */
+
+/** Como el back: contratos no cancelados y % de las filas del motor. */
+const empleadoOut = (e: EmpleadoContratista): EmpleadoContratista => {
+  const contratos = db.contratos
+    .filter((c) => c.estatus !== "Cancelado" && c.empleados.some((x) => x.empleado.id === e.id))
+    .map((c) => ({ id: c.id, folio: c.folio, objeto: c.objeto }));
+  const estados = recalcular()
+    .filter((f) => f.sujeto.empleado?.id === e.id)
+    .map((f) => f.estado)
+    .filter((s) => !["No aplica", "Por transcurrir", "En plazo"].includes(s));
+  const cumplimiento_pct = estados.length
+    ? Math.round((estados.filter((s) => s === "Cumplido" || s === "En ceros").length * 100) / estados.length)
+    : null;
+  return { ...e, contratos, cumplimiento_pct };
+};
+
+const empleadoIn = (e: any): Partial<EmpleadoContratista> => {
+  const { cuenta, perfiles, ...resto } = e ?? {};
+  const out: Partial<EmpleadoContratista> = { ...resto };
+  if (perfiles) {
+    out.perfiles = perfiles.map((p: any) => {
+      const id = typeof p === "string" ? p : p.id;
+      return { id, nombre: buscar(db.recursos, id, "Perfil").nombre };
+    });
+  }
+  if (cuenta?.modo === "sin_cuenta") Object.assign(out, { usuario: undefined, usuario_id: undefined });
+  if (cuenta?.modo === "crear" || cuenta?.modo === "ligar") {
+    const id = cuenta.usuario_id ?? ++consecutivo;
+    out.usuario = { id, username: cuenta.username ?? `usuario${id}`, email: cuenta.email ?? `usuario${id}@example.com` };
+    out.usuario_id = id;
+  }
+  return out;
+};
+
+const validarEmpleado = (e: any, excepto?: string) => {
+  const errores: string[] = [];
+  if (!String(e.nombre ?? "").trim()) errores.push("El nombre es obligatorio.");
+  if (!/^[A-Z][AEIOUX][A-Z]{2}\d{6}[HMX][A-Z]{5}[A-Z\d]\d$/.test(String(e.curp ?? "").toUpperCase()))
+    errores.push("La CURP debe tener 18 caracteres válidos.");
+  else if (db.empleados.some((x) => x.id !== excepto && x.curp.toUpperCase() === String(e.curp).toUpperCase()))
+    errores.push("La CURP ya está registrada en otro empleado.");
+  if (e.rfc && String(e.rfc).length !== 13) errores.push("El RFC debe tener 13 caracteres (persona física).");
+  if (e.nss && !/^\d{11}$/.test(String(e.nss))) errores.push("El NSS debe tener 11 dígitos.");
+  if (errores.length) throw new MockError(errores.join("\n"));
+};
+
+/** Archivo fijo de ejemplo: 2 válidos, 1 CURP ya registrada (se omite). */
+const cargaMock = () => {
+  const filas = [
+    { nombre: "Ana Torres Garza", curp: "TOGA950505MNLRRN05", rfc: "", nss: "" },
+    { nombre: "Raúl Medina Salas", curp: "MESR870909HNLDLL06", rfc: "", nss: "12345678906" },
+    { nombre: "María López Hernández", curp: "LOHM900101MNLPRR01", rfc: "", nss: "" },
+  ];
+  const curps = new Set(db.empleados.map((e) => e.curp));
+  const muestra = filas.filter((f) => !curps.has(f.curp));
+  const omitidos = filas
+    .map((f, i) => ({ fila: i + 2, curp: f.curp, motivo: "La CURP ya está registrada" }))
+    .filter((f) => curps.has(f.curp));
+  return {
+    valido: muestra.length > 0,
+    total: filas.length,
+    por_cargar: muestra.length,
+    omitidos,
+    errores: [] as { fila: number; mensaje: string }[],
+    muestra,
+  };
+};
+
 /* ---------------- Opciones ---------------- */
 
 type Handler = (p: any) => unknown;
@@ -267,26 +336,78 @@ const handlers: Record<string, Handler> = {
   },
   get_empresa: ({ empresa_id }) => buscar(db.empresas, empresa_id, "Empresa"),
 
-  list_empleados: (p) =>
-    paginar(
-      db.empleados.filter(
+  list_empleados: (p) => {
+    const empresa = p.empresa_id || EMPRESA_ACTIVA;
+    const items = db.empleados
+      .filter((e) => (e.empresa?.id ?? EMPRESA_ACTIVA) === empresa)
+      .map(empleadoOut)
+      .filter(
         (e) =>
-          (p.empresa_id ? e.empresa?.id === p.empresa_id : true) &&
           (p.estatus ? e.estatus === p.estatus : true) &&
+          (p.usuario ? Boolean(e.usuario) === (p.usuario === "con") : true) &&
+          (p.cumplimiento
+            ? (e.cumplimiento_pct == null || e.cumplimiento_pct >= 100) === (p.cumplimiento === "Completo")
+            : true) &&
           (p.perfil_id ? e.perfiles.some((x) => x.id === p.perfil_id) : true) &&
-          (coincide(e.nombre, p.search) || coincide(e.curp, p.search)),
-      ),
-      p,
-    ),
-  get_empleado: ({ empleado_id }) => buscar(db.empleados, empleado_id, "Empleado"),
-  create_empleado: ({ empleado }) => {
-    if (db.empleados.some((e) => e.curp === empleado.curp)) throw new MockError("La CURP ya existe");
-    const nuevo = { ...empleado, id: nuevoId("empl"), folio: folio("E", db.empleados.length + 1) };
-    db.empleados.push(nuevo);
-    return nuevo;
+          (p.contrato_id === "libre"
+            ? !e.contratos?.length
+            : p.contrato_id
+              ? e.contratos?.some((c) => c.id === p.contrato_id)
+              : true) &&
+          (coincide(e.nombre, p.search) || coincide(e.curp, p.search) || coincide(e.folio, p.search)),
+      );
+    return { ...paginar(items, p), editable: empresa === EMPRESA_ACTIVA };
   },
-  update_empleado: ({ empleado_id, empleado }) =>
-    Object.assign(buscar(db.empleados, empleado_id, "Empleado"), empleado),
+  get_empleado: ({ empleado_id }) => ({
+    ...empleadoOut(buscar(db.empleados, empleado_id, "Empleado")),
+    editable: (buscar(db.empleados, empleado_id, "Empleado").empresa?.id ?? EMPRESA_ACTIVA) === EMPRESA_ACTIVA,
+  }),
+  create_empleado: ({ empleado }) => {
+    validarEmpleado(empleado);
+    const empresa = buscar(db.empresas, EMPRESA_ACTIVA, "Empresa");
+    const nuevo: EmpleadoContratista = {
+      perfiles: [],
+      disponible_para_contratos: true,
+      estatus: "Activo",
+      ...empleadoIn(empleado),
+      id: nuevoId("empl"),
+      folio: folio("E", db.empleados.length + 1),
+      empresa: { id: empresa.id, razon_social: empresa.razon_social },
+    } as EmpleadoContratista;
+    db.empleados.push(nuevo);
+    return empleadoOut(nuevo);
+  },
+  update_empleado: ({ empleado_id, empleado }) => {
+    const e = buscar(db.empleados, empleado_id, "Empleado");
+    validarEmpleado({ ...e, ...empleado }, empleado_id);
+    return empleadoOut(Object.assign(e, empleadoIn(empleado)));
+  },
+  change_status_empleado: ({ empleado_id, estatus }) =>
+    empleadoOut(Object.assign(buscar(db.empleados, empleado_id, "Empleado"), { estatus })),
+  analizar_documentos_empleado: ({ archivos }) => ({
+    documentos: (archivos as { name: string; file_url: string }[]).map((a, i) => ({
+      archivo: a,
+      estado: "ok",
+      tipo: ["INE", "CURP", "Constancia de situación fiscal"][i % 3],
+      confianza: 95,
+      datos: { nombre: "PEDRO PÉREZ DOMÍNGUEZ", curp: "PEDP900202HDFRNR01", ...(i % 3 === 2 ? { rfc: "PEDP900202QW3" } : {}) },
+    })),
+    sugerido: { nombre: "PEDRO PÉREZ DOMÍNGUEZ", curp: "PEDP900202HDFRNR01", rfc: "PEDP900202QW3" },
+    inconsistencias: [],
+    alertas: db.empleados.some((e) => e.curp === "PEDP900202HDFRNR01")
+      ? ["La CURP ya está registrada en otro empleado."]
+      : [],
+  }),
+  validar_carga_empleados: () => cargaMock(),
+  cargar_empleados: () => {
+    const v = cargaMock();
+    if (v.errores.length) throw new MockError("El archivo tiene errores");
+    const creados = v.muestra.map((m, i) => {
+      const e = handlers.create_empleado({ empleado: { ...m } }) as EmpleadoContratista;
+      return { fila: i + 2, id: e.id, folio: e.folio, nombre: e.nombre };
+    });
+    return { creados, omitidos: v.omitidos, fallidos: [] };
+  },
   vetar_empleado: ({ empleado_id, motivo }) => {
     const e = buscar(db.empleados, empleado_id, "Empleado");
     e.vetado = { fecha: hoyISO(), motivo, por: AUTOR };
