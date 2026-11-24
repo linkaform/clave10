@@ -1,5 +1,5 @@
 // Fuente: specs/empresa/empresa-001-modelo-de-datos.md (clave10-sdk).
-import type { Archivo, Estatus, Id, Ref } from "./comun";
+import type { Archivo, EmpresaRef, Estatus, Id, Ref } from "./comun";
 
 export interface Domicilio {
   cp: string;
@@ -266,4 +266,46 @@ export interface ResultadoCargaEmpleados {
   creados: { fila: number; id: Id; folio: string; nombre: string }[];
   omitidos: { fila: number; curp: string; motivo: string }[];
   fallidos: { fila: number; curp: string; error: string }[];
+}
+
+/* ---- Contratos del empleado (ME-05) ---- */
+
+/** Renglón de la pestaña Contratos (list_contratos_empleado). Activo = contrato vigente. */
+export interface ContratoEmpleado {
+  id: Id;
+  folio: string;
+  objeto: string;
+  cliente: EmpresaRef;
+  contratista: EmpresaRef;
+  servicios: Ref[];
+  /** Perfiles que cubre en este contrato. */
+  perfiles: Ref[];
+  fecha_alta: string;
+  vigencia: { inicio: string; fin: string };
+  estatus_contrato: string;
+  estatus: Estatus;
+  /** "N de M pendientes" (filas del motor del empleado en el contrato). */
+  requerimientos: { pendientes: number; total: number };
+}
+
+/** Paso 1 de Ligar Contrato (list_contratos_para_ligar). */
+export interface ContratoParaLigar {
+  id: Id;
+  folio: string;
+  objeto: string;
+  cliente: EmpresaRef;
+  vigencia: { inicio: string; fin: string };
+  estatus_contrato: string;
+  /** Perfiles que pide el contrato; `ya_lo_tiene` = "Ya está en sus perfiles". */
+  perfiles: (Ref & { cantidad: number; asignados: number; ya_lo_tiene: boolean })[];
+  /** "Coincide con sus perfiles: …" (los que coinciden van primero). */
+  coincide: (Ref & { cantidad: number; asignados: number; ya_lo_tiene: boolean })[];
+}
+
+/** Resultado de ligar, editar perfiles o remover. */
+export interface ResultadoContratoEmpleado {
+  contrato: { id: Id; folio: string };
+  /** Perfiles nuevos que se sumaron al empleado ("…y se agregó N perfil(es)"). */
+  perfiles_agregados: Ref[];
+  empleado: EmpleadoContratista;
 }
