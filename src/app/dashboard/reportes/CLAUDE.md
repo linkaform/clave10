@@ -30,10 +30,12 @@ reportes/
 |---|---|---|
 | `ui.tsx` | `SegTabs`, `KpiChip`, `Empty`, `Avatar`, `Checkbox`, `matches`, `useOutside` | Tabs unidos, chip del encabezado, vacío, búsqueda sin acentos, cerrar al hacer clic fuera |
 | `filtros/MultiCombo.tsx` | `MultiCombo` | Selección múltiple con búsqueda, para el panel de filtros |
-| `filtros/QuickFilters.tsx` | `QuickFilters`, `QuickPill` | Botones de estatus con conteo (varios activos a la vez). `todos` muestra también los que están en 0 |
+| `filtros/QuickFilters.tsx` | `QuickFilters`, `QuickPill` | Botones de estatus con conteo (varios activos a la vez). `todos` muestra también los que están en 0. `pildora` los pinta grises (activo azul sólido), como van dentro del panel |
+| `filtros/Seccion.tsx` | `Seccion` | Sección del panel de filtros: separador, título y contador opcional |
 | `filtros/PanelAnim.tsx` | `PanelAnim` | Abre y cierra el panel de filtros con animación (ancho en línea, deslizado en pantalla angosta) |
 | `periodo/PeriodNav.tsx` | `PeriodNav` | "Hoy · ‹ periodo ▾ ›" con calendario |
 | `periodo/MiniCalendar.tsx` | `MiniCalendar` | Calendario de día, semana, quincena, mes o año. Mide 316px |
+| `periodo/FechaPicker.tsx` | `FechaPicker` | Campo "Fecha" del panel: abre el `MiniCalendar` en un portal fijo (no lo recorta el scroll del panel) |
 | `periodo/period.ts` | `PeriodView`, `periodRange`, `shiftPeriod`, `periodLabel`, `toISO`, `fromISO`, `MESES`, `DIAS`… | Fechas y periodos |
 | `tabla/ReportTable.tsx` | `ReportTable` | Tabla a partir de un `TableSpec`: pestañas verticales si hay varias, primera columna fija, orden A–Z, filas de grupo plegables, paginación |
 | `tabla/Pager.tsx` | `Pager`, `usePaged`, `T` | Paginación (25/50/100/250) y clases de tabla, para tablas hechas a mano |
@@ -77,6 +79,10 @@ Asistencias y concesionados ya lo usan, y la app de producción depende de asist
   encabezado "Filtros · contador · Limpiar". No uses el `FloatingFiltersDrawer` de
   bitácoras. Hoy cada página lo arma a mano (ver asistencias y concesionados); está
   pendiente extraerlo a `shared/`.
+- **Vistas de gráficas y galería:** sin tarjeta blanca envolvente; cada gráfica o tarjeta va
+  directo sobre el fondo. Periodo (píldoras), Fecha (`FechaPicker`) y Estatus
+  (`QuickFilters pildora`) van dentro del panel de filtros, cada uno en su `Seccion`, arriba
+  de los demás filtros. Las vistas de tabla y calendario conservan su barra arriba.
 - **Popovers dentro del panel:** el panel tiene scroll y recorta lo que se sale por los
   lados. Algo más ancho que el panel, como el `MiniCalendar`, se pinta en un portal con
   `position: fixed` (ver `FechaPicker` en `reporte_concesionados/page.tsx`).
