@@ -6,6 +6,8 @@ import type {
   ListParams,
   MatrizAsignacion,
   FilaAsignacion,
+  Incumplimientos,
+  ResultadoNotificacion,
   Pagina,
   Relacion,
   RelacionFila,
@@ -65,5 +67,23 @@ export const saveAsignacionRequerimientos = (asignaciones: AsignacionInput[]) =>
   callContratistas<{ guardadas: number; items: FilaAsignacion[] }>(
     "save_asignacion_requerimientos",
     { asignaciones },
+    SCRIPT,
+  );
+
+/* ---------- Notificar incumplimientos (MX-03) ---------- */
+
+/** Destinatarios del modal (con requerimiento_id: solo ese requerimiento). */
+export const getIncumplimientos = (relacion_ids: Id[], requerimiento_id?: Id) =>
+  callContratistas<Incumplimientos>("get_incumplimientos", { relacion_ids, requerimiento_id }, SCRIPT);
+
+/**
+ * Correo al representante legal + aviso en la bandeja de los usuarios del
+ * contratista + historial en la relación. Solo el cliente y con la relación
+ * activa; las que no tienen incumplimientos regresan en `omitidas`.
+ */
+export const notificarIncumplimientos = (relacion_ids: Id[], motivo: string, requerimiento_id?: Id) =>
+  callContratistas<ResultadoNotificacion>(
+    "notificar_incumplimientos",
+    { relacion_ids, motivo, requerimiento_id },
     SCRIPT,
   );
