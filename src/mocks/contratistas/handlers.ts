@@ -9,6 +9,7 @@ import type {
   CumplimientoFila,
   Documento,
   DocumentoBase,
+  FilaAsignacion,
   EmpleadoContratista,
   Empresa,
   EstatusRepse,
@@ -246,6 +247,37 @@ const docOut = (d: DocumentoBase): Documento => {
 };
 
 /* ---------------- Relaciones ---------------- */
+
+/** Requerimientos activos de ámbito Empresa, por nombre (columnas de MX-05). */
+const reqsEmpresa = () =>
+  db.requerimientos
+    .filter((q) => q.ambito === "Empresa" && q.estatus === "Activo")
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+/** Como el back: activos de Empresa, o ya asignados aunque se hayan desactivado. */
+const asignar = (r: Relacion, ids: string[]) => {
+  if (r.cliente.id !== EMPRESA_ACTIVA) throw new MockError("Solo el cliente asigna requerimientos al contratista.");
+  const activos = reqsEmpresa();
+  r.requerimientos_asignados = Array.from(new Set(ids)).map((id) => {
+    const q = activos.find((x) => x.id === id) ?? r.requerimientos_asignados.find((x) => x.id === id);
+    if (!q) throw new MockError(`El requerimiento ${id} no existe, está inactivo o no es de ámbito Empresa.`);
+    return { id: q.id, nombre: q.nombre };
+  });
+};
+
+const filaAsignacion = (r: Relacion): FilaAsignacion => {
+  const activos = new Set(reqsEmpresa().map((q) => q.id));
+  const asignados = r.requerimientos_asignados.map((q) => q.id);
+  return {
+    relacion_id: r.id,
+    folio: r.folio,
+    contratista: r.contratista,
+    estatus: r.estatus,
+    editable: r.estatus === "Activo",
+    asignados,
+    solicitados: { n: asignados.filter((id) => activos.has(id)).length, m: activos.size },
+  };
+};
 
 const aFila = (r: Relacion, direccion: string): RelacionFila => {
   const ref = direccion === "clientes" ? r.cliente : r.contratista;
@@ -828,7 +860,10 @@ const handlers: Record<string, Handler> = {
       contratista,
       relacion_padre: padre?.id ?? null,
       nivel: padre ? padre.nivel + 1 : 1,
-      requerimientos_asignados: [],
+      // Como el back (MX-05): por defecto los limitantes de empresa.
+      requerimientos_asignados: reqsEmpresa()
+        .filter((q) => q.limitante)
+        .map((q) => ({ id: q.id, nombre: q.nombre })),
       estatus: "Activo",
       fecha_alta: hoyISO(),
       notas: relacion.notas,
@@ -842,12 +877,46 @@ const handlers: Record<string, Handler> = {
     const r = buscar(db.relaciones, relacion_id, "Relación");
     if (cambios.notas !== undefined) r.notas = cambios.notas;
     if (cambios.requerimientos_asignados) {
-      r.requerimientos_asignados = cambios.requerimientos_asignados.map((id: string) => {
-        const q = buscar(db.requerimientos, id, "Requerimiento");
-        return { id: q.id, nombre: q.nombre };
-      });
+      asignar(r, cambios.requerimientos_asignados);
     }
     return r;
+  },
+  get_asignacion_requerimientos: (p) => {
+    const reqs = reqsEmpresa();
+    const mias = db.relaciones.filter((r) => r.cliente.id === EMPRESA_ACTIVA);
+    const cuenta = (id: string) =>
+      mias.filter((r) => r.estatus === "Activo" && r.requerimientos_asignados.some((q) => q.id === id)).length;
+    const ids = p.requerimiento_ids?.length ? new Set<string>(p.requerimiento_ids) : null;
+    const filas = mias
+      .filter((r) => (p.estatus ? r.estatus === p.estatus : true))
+      .filter((r) => {
+        const e = db.empresas.find((x) => x.id === r.contratista.id);
+        const correos = (e?.contactos ?? []).map((c) => c.email ?? "").join(" ");
+        return [r.contratista.razon_social, r.contratista.rfc, r.folio, correos].some((t) => coincide(t, p.search));
+      })
+      .map(filaAsignacion)
+      .sort((a, b) => Number(!a.editable) - Number(!b.editable) || a.contratista.razon_social.localeCompare(b.contratista.razon_social));
+    return {
+      requerimientos: reqs
+        .filter((q) => (ids ? ids.has(q.id) : true))
+        .map((q) => ({
+          id: q.id, nombre: q.nombre, tipo: q.tipo, plataforma: q.plataforma, plataforma_url: q.plataforma_url,
+          vigencia_modo: q.vigencia_modo, vigencia: q.vigencia, periodicidad: q.periodicidad, aviso: q.aviso,
+          requiere_acuse: q.requiere_acuse, limitante: q.limitante, solicitados: cuenta(q.id),
+        })),
+      ...paginar(filas, p),
+    };
+  },
+  save_asignacion_requerimientos: ({ asignaciones }) => {
+    if (!Array.isArray(asignaciones) || !asignaciones.length) throw new MockError("Sin cambios que guardar");
+    const rels = asignaciones.map((x: { relacion_id: string; requerimientos: string[] }) => {
+      const r = buscar(db.relaciones, x.relacion_id, "Relación");
+      if (r.cliente.id !== EMPRESA_ACTIVA) throw new MockError("Solo el cliente asigna requerimientos al contratista.");
+      if (r.estatus !== "Activo") throw new MockError(`La relación ${r.folio} está inactiva.`);
+      return [r, x.requerimientos] as const;
+    });
+    rels.forEach(([r, ids]) => asignar(r, ids));
+    return { guardadas: rels.length, items: rels.map(([r]) => filaAsignacion(r)) };
   },
   change_status_relacion: ({ relacion_id, estatus }) => {
     const r = buscar(db.relaciones, relacion_id, "Relación");

@@ -1,8 +1,11 @@
 import type {
+  AsignacionInput,
   Direccion,
   Estatus,
   Id,
   ListParams,
+  MatrizAsignacion,
+  FilaAsignacion,
   Pagina,
   Relacion,
   RelacionFila,
@@ -41,3 +44,26 @@ export const changeStatusRelacion = (relacion_id: Id, estatus: Estatus) =>
  */
 export const getArbolRelacion = (relacion_id: Id) =>
   callContratistas<Relacion[]>("get_arbol_relacion", { relacion_id }, SCRIPT);
+
+/* ---------- Asignación de requerimientos (MX-05) ---------- */
+
+export interface AsignacionFiltros extends ListParams {
+  estatus?: Estatus;
+  /** Solo estas columnas. */
+  requerimiento_ids?: Id[];
+}
+
+/** Matriz contratista × requerimiento de empresa (la empresa activa es el cliente). */
+export const getAsignacionRequerimientos = (filtros: AsignacionFiltros = {}) =>
+  callContratistas<MatrizAsignacion>("get_asignacion_requerimientos", { ...filtros }, SCRIPT);
+
+/**
+ * Guarda las filas con cambios (lista completa de cada una). Valida todo antes
+ * de escribir: solo el cliente, solo relaciones activas. Recalcula el motor.
+ */
+export const saveAsignacionRequerimientos = (asignaciones: AsignacionInput[]) =>
+  callContratistas<{ guardadas: number; items: FilaAsignacion[] }>(
+    "save_asignacion_requerimientos",
+    { asignaciones },
+    SCRIPT,
+  );
