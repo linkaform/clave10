@@ -34,6 +34,10 @@ export const updateRelacion = (
 export const changeStatusRelacion = (relacion_id: Id, estatus: Estatus) =>
   callContratistas<Relacion>("change_status_relacion", { relacion_id, estatus }, SCRIPT);
 
-/** Árbol de subcontratación hacia abajo de una relación (R-03 / R-08). */
+/**
+ * Subcontrataciones hacia abajo de una relación (sin incluirla), ordenadas por
+ * nivel; armar el árbol con `relacion_padre` (R-08). La raíz ve toda la cadena;
+ * un intermedio, de su relación hacia abajo.
+ */
 export const getArbolRelacion = (relacion_id: Id) =>
-  callContratistas<Relacion[]>("get_arbol_relacion", { relacion_id });
+  callContratistas<Relacion[]>("get_arbol_relacion", { relacion_id }, SCRIPT);

@@ -399,6 +399,24 @@ const documentosEmpleado = (empleado_id: string, p: any) => {
   return { ...paginar(filtrados, p), conteo, pendientes: conteo.Rechazado + conteo.Vencido + conteo["Por subir"] };
 };
 
+/* ---------------- Subcontratación (R-03) ---------------- */
+
+/** Mismas reglas que el back al crear o reactivar una relación hija. */
+const validarSubcontratacion = (padre: Relacion, clienteId: string, contratistaId: string) => {
+  if (padre.estatus !== "Activo") throw new MockError("La relación padre está inactiva.");
+  if (padre.contratista.id !== clienteId)
+    throw new MockError("El cliente de la subcontratación debe ser el contratista de la relación padre.");
+  if (padre.nivel + 1 > 3) throw new MockError("Se excede el nivel máximo de subcontratación (3).");
+  for (let r: Relacion | undefined = padre; r; r = db.relaciones.find((x) => x.id === r!.relacion_padre)) {
+    if (r.cliente.id === contratistaId || r.contratista.id === contratistaId)
+      throw new MockError("No se puede subcontratar a una empresa que ya está en la cadena (se formaría un ciclo).");
+  }
+  const permite = db.contratos.some(
+    (c) => c.relacion === padre.id && c.permite_subcontratacion && !["Pausado", "Cancelado", "Vencido"].includes(c.estatus),
+  );
+  if (!permite) throw new MockError("Ningún contrato vigente de la relación padre permite subcontratación.");
+};
+
 /* ---------------- Opciones ---------------- */
 
 type Handler = (p: any) => unknown;
@@ -545,9 +563,7 @@ const handlers: Record<string, Handler> = {
     const otra = empresaRef(relacion.contraparte_id);
     const [cliente, contratista] = relacion.direccion === "clientes" ? [otra, propia] : [propia, otra];
     const padre = relacion.relacion_padre ? buscar(db.relaciones, relacion.relacion_padre, "Relación") : null;
-    if (padre && padre.contratista.id !== cliente.id) {
-      throw new MockError("El cliente de la subcontratación debe ser el contratista de la relación padre");
-    }
+    if (padre) validarSubcontratacion(padre, cliente.id, contratista.id);
     const existente = db.relaciones.find(
       (r) => r.cliente.id === cliente.id && r.contratista.id === contratista.id && r.relacion_padre === (padre?.id ?? null),
     );
@@ -569,7 +585,6 @@ const handlers: Record<string, Handler> = {
       num_contratos: 0,
       cumplimiento_pct: 0,
     };
-    if (nueva.nivel > 3) throw new MockError("Se excede el nivel máximo de subcontratación (3)");
     db.relaciones.push(nueva);
     return nueva;
   },
@@ -589,6 +604,12 @@ const handlers: Record<string, Handler> = {
     const activos = db.contratos.some(
       (c) => c.relacion === r.id && !["Pausado", "Cancelado", "Vencido"].includes(c.estatus),
     );
+    if (estatus === "Inactivo" && db.relaciones.some((h) => h.relacion_padre === r.id && h.estatus === "Activo")) {
+      throw new MockError("Desactiva primero las subcontrataciones de esta relación.");
+    }
+    if (estatus === "Activo" && r.relacion_padre) {
+      validarSubcontratacion(buscar(db.relaciones, r.relacion_padre, "Relación"), r.cliente.id, r.contratista.id);
+    }
     if (estatus === "Inactivo" && activos) {
       throw new MockError("Pausa o cancela los contratos activos antes de desactivar la relación");
     }
