@@ -1,6 +1,7 @@
 import type {
   AnalisisDocumentosEmpleado,
   Archivo,
+  ContactoInput,
   DocumentoEmpleadoRenglon,
   EmpleadoContratista,
   EmpleadoInput,
@@ -19,15 +20,25 @@ import type {
 } from "@/types/contratistas";
 import { CONTRATISTAS_SCRIPTS, callContratistas } from "./client";
 
+const EMPRESA = CONTRATISTAS_SCRIPTS.empresa;
+
 /** Empresa activa del usuario ("Mi Empresa"); el back la resuelve del JWT. */
-export const getMiEmpresa = () => callContratistas<Empresa>("get_mi_empresa");
+export const getMiEmpresa = () => callContratistas<Empresa>("get_mi_empresa", {}, EMPRESA);
 
+/** Solo razón social, RFC, objeto social y domicilio fiscal. */
 export const updateMiEmpresa = (empresa: EmpresaInput) =>
-  callContratistas<Empresa>("update_mi_empresa", { empresa });
+  callContratistas<Empresa>("update_mi_empresa", { empresa }, EMPRESA);
 
-/** Empresa de una contraparte (detalle de cliente/contratista, solo lectura). */
+/** Empresa de una contraparte (detalle de cliente/contratista, solo lectura; requiere relación). */
 export const getEmpresa = (empresa_id: Id) =>
-  callContratistas<Empresa>("get_empresa", { empresa_id });
+  callContratistas<Empresa>("get_empresa", { empresa_id }, EMPRESA);
+
+/** Alta (sin indice) o edición del contacto en esa posición. Regresa la empresa. */
+export const saveContacto = (contacto: ContactoInput, indice?: number) =>
+  callContratistas<Empresa>("save_contacto", { contacto, indice }, EMPRESA);
+
+export const deleteContacto = (indice: number) =>
+  callContratistas<Empresa>("delete_contacto", { indice }, EMPRESA);
 
 export interface EmpleadosFiltros extends ListParams {
   /** Vacío = los de la empresa activa. Otra empresa solo con relación (solo lectura). */

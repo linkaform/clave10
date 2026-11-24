@@ -10,6 +10,7 @@ import type {
   Documento,
   EmpleadoContratista,
   Empresa,
+  EstatusRepse,
   EstadoCumplimiento,
   EstatusContrato,
   EstatusDocumento,
@@ -253,6 +254,34 @@ const empresaRef = (id: string) => {
 const registrarEvento = (contrato: string, evento: EventoContrato["evento"], detalle: string) =>
   db.historial.push({ id: nuevoId("ev"), contrato, evento, detalle, autor: AUTOR, fecha: ahora() });
 
+/* ---------------- Mi Empresa (ME-01-B) ---------------- */
+
+/** Como el back: contactos con índice, REPSE con días y % y suma de trabajadores. */
+const empresaOut = (e: Empresa): Empresa => {
+  const hoy = new Date(hoyISO()).getTime();
+  const dia = 86400000;
+  const repse = e.repse?.fin
+    ? (() => {
+        const dias = Math.round((new Date(e.repse!.fin).getTime() - hoy) / dia);
+        const ini = e.repse!.inicio ? new Date(e.repse!.inicio).getTime() : 0;
+        const fin = new Date(e.repse!.fin).getTime();
+        return {
+          ...e.repse!,
+          estatus: (dias < 0 ? "Vencido" : dias <= 60 ? "Por vencer" : "Vigente") as EstatusRepse,
+          dias_restantes: dias,
+          ...(ini && fin > ini ? { transcurrido_pct: Math.max(0, Math.min(100, Math.round(((hoy - ini) * 100) / (fin - ini)))) } : {}),
+        };
+      })()
+    : e.repse;
+  const cargados = e.registros_patronales.filter((r) => r.trabajadores_registrados != null);
+  return {
+    ...e,
+    repse,
+    contactos: e.contactos.map((c, indice) => ({ ...c, indice })),
+    trabajadores_registrados: cargados.length ? cargados.reduce((s, r) => s + (r.trabajadores_registrados ?? 0), 0) : null,
+  };
+};
+
 /* ---------------- Empleados (ME-03-B) ---------------- */
 
 /** Como el back: contratos no cancelados y % de las filas del motor. */
@@ -423,13 +452,38 @@ type Handler = (p: any) => unknown;
 
 const handlers: Record<string, Handler> = {
   /* Empresa y empleados */
-  get_mi_empresa: () => buscar(db.empresas, EMPRESA_ACTIVA, "Empresa"),
+  get_mi_empresa: () => empresaOut(buscar(db.empresas, EMPRESA_ACTIVA, "Empresa")),
   update_mi_empresa: ({ empresa }) => {
     const e = buscar(db.empresas, EMPRESA_ACTIVA, "Empresa");
-    Object.assign(e, empresa);
-    return e;
+    const cambios: Partial<Empresa> = {};
+    (["razon_social", "rfc", "objeto_social", "domicilio_fiscal"] as const).forEach((k) => {
+      if (k in empresa) (cambios as any)[k] = empresa[k];
+    });
+    if (cambios.rfc) cambios.rfc = cambios.rfc.toUpperCase();
+    if (cambios.razon_social !== undefined && !cambios.razon_social.trim())
+      throw new MockError("La razón social es obligatoria.");
+    return empresaOut(Object.assign(e, cambios));
   },
-  get_empresa: ({ empresa_id }) => buscar(db.empresas, empresa_id, "Empresa"),
+  get_empresa: ({ empresa_id }) => empresaOut(buscar(db.empresas, empresa_id, "Empresa")),
+  save_contacto: ({ contacto, indice }) => {
+    const e = buscar(db.empresas, EMPRESA_ACTIVA, "Empresa");
+    const errores: string[] = [];
+    if (String(contacto.nombre ?? "").trim().length < 3) errores.push("El nombre completo debe tener al menos 3 caracteres.");
+    if (String(contacto.telefono ?? "").replace(/\D/g, "").length < 10) errores.push("El teléfono debe tener al menos 10 dígitos.");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(contacto.email ?? ""))) errores.push("El correo no es válido.");
+    if (errores.length) throw new MockError(errores.join("\n"));
+    const nuevo = { ...contacto, rol: contacto.rol ?? "Contacto", telefono: String(contacto.telefono).replace(/\D/g, "") };
+    if (indice === undefined || indice === null) e.contactos.push(nuevo);
+    else if (!e.contactos[indice]) throw new MockError("El contacto no existe.");
+    else e.contactos[indice] = nuevo;
+    return empresaOut(e);
+  },
+  delete_contacto: ({ indice }) => {
+    const e = buscar(db.empresas, EMPRESA_ACTIVA, "Empresa");
+    if (!e.contactos[indice]) throw new MockError("El contacto no existe.");
+    e.contactos.splice(indice, 1);
+    return empresaOut(e);
+  },
 
   list_empleados: (p) => {
     const empresa = p.empresa_id || EMPRESA_ACTIVA;
