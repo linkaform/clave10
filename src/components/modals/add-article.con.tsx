@@ -99,7 +99,7 @@ const formSchema = z.object({
   persona_nombre_otro: z.string().optional(),
   empresa_concesion: z.string().optional(),
   persona_email_otro: z.string().optional(),
-  persona_identificacion_otro: z.array(imagenSchema).min(1, { message: "La identificación es obligatoria, por favor sube una imagen" }),
+  persona_identificacion_otro: z.array(imagenSchema).optional().default([]),
   fecha_concesion: z.string().optional(),
   equipos: z.array(equipoSchema).optional().default([]),
   observacion_concesion: z.string().optional(),
