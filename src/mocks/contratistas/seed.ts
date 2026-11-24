@@ -2,7 +2,9 @@
 // la empresa activa (propia) es Grupo Ejemplo; tiene dos contratistas, un
 // cliente y una subcontratación. Nombres y RFC son inventados.
 import type {
+  Activo,
   Contrato,
+  Mantenimiento,
   DocumentoBase,
   EmpleadoContratista,
   Empresa,
@@ -416,5 +418,39 @@ export const SESIONES: Sesion[] = [
       { empleado: { id: "empl-3", nombre: "Luis Fernández Ortiz" }, asistencia: {} },
     ],
     estatus: "Programada",
+  },
+];
+
+/* ME-08: activos de la empresa propia (EMPRESA_ACTIVA de los mocks). */
+export const ACTIVOS: Activo[] = [
+  {
+    id: "act-1", folio: "A-0001", nombre: "Camioneta de supervisión", clase: "Vehículo",
+    foto: { name: "pickup.jpg", file_url: "https://example.com/mock/pickup.jpg" },
+    marca: "Nissan", modelo: "NP300", estado: "Activo", disponible: true, inventario: "Único", cantidad: null,
+    ubicacion: "Planta Monterrey", area: "Patio de maniobras", asignado: { id: "empl-p2", nombre: "Pedro Salinas Ruiz" },
+    adquisicion: "2025-03-10", costo: 420000, ultimo_mantenimiento: "2026-09-15",
+    empresa: { id: "emp-propia", nombre: "Grupo Ejemplo SA de CV" },
+    vehiculo: {
+      tipo: "Pick up", serie_chasis: "3N6AD33A0KK800001", serie_motor1: "QR25-123456", serie_motor2: null,
+      kilometraje: { valor: 48210, fecha: "2026-11-10" }, horometro: { valor: null, fecha: null },
+      kilometraje2: { valor: null, fecha: null }, horometro2: { valor: null, fecha: null },
+    },
+  },
+  {
+    id: "act-2", folio: "A-0002", nombre: "Taladro percutor", clase: "Herramienta",
+    foto: { name: "taladro.jpg", file_url: "https://example.com/mock/taladro.jpg" },
+    marca: "Bosch", modelo: null, estado: "Activo", disponible: true, inventario: "Stock", cantidad: 4,
+    ubicacion: "Planta Monterrey", area: "Almacén", asignado: null,
+    adquisicion: "2026-01-20", costo: 2500, ultimo_mantenimiento: null,
+    empresa: { id: "emp-propia", nombre: "Grupo Ejemplo SA de CV" },
+  },
+];
+
+export const MANTENIMIENTOS: Mantenimiento[] = [
+  {
+    id: "mant-1", folio: "M-0001", activo: { id: "act-1", nombre: "Camioneta de supervisión" },
+    asignado: { id: "empl-p2", nombre: "Pedro Salinas Ruiz" }, prioridad: "Media", fecha_limite: "2026-12-05",
+    descripcion: "Servicio de 50,000 km", estatus: "Abierta", fecha_cierre: null,
+    historial: [{ estatus: "Abierta", comentario: "Programar en taller autorizado", evidencias: [], autor: "Laura Méndez", fecha: "2026-11-20 09:00:00" }],
   },
 ];

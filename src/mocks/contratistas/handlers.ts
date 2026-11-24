@@ -4,6 +4,8 @@
 // vista espejo de relaciones, estatus de contrato y documento, y un motor de
 // cumplimiento simplificado. Solo para desarrollo del front.
 import type {
+  Activo,
+  Mantenimiento,
   Ambito,
   Contrato,
   CumplimientoFila,
@@ -51,6 +53,8 @@ const db = {
   contratos: clone(seed.CONTRATOS) as Contrato[],
   historial: clone(seed.HISTORIAL) as EventoContrato[],
   documentos: clone(seed.DOCUMENTOS) as DocumentoBase[],
+  activos: clone(seed.ACTIVOS) as Activo[],
+  mantenimientos: clone(seed.MANTENIMIENTOS) as Mantenimiento[],
   sesiones: clone(seed.SESIONES) as Sesion[],
   /** Estados fijados a mano (ccOv): id de fila -> estado y motivo. */
   manual: {} as Record<string, { estado: EstadoCumplimiento; motivo: string }>,
@@ -730,6 +734,73 @@ const reqPeriodo = (requerimiento_id: string, periodo_clave?: string) => {
   const p = periodosDelAnio(q, anio, `${anio}-01-01`, `${anio}-12-31`).find((x) => x.clave === periodo_clave);
   if (!p) throw new MockError(`El periodo ${periodo_clave} no corresponde a la periodicidad de ${q.nombre}.`);
   return { q, p };
+};
+
+/* ---------------- Activos (ME-08), como el back ---------------- */
+
+const activoMio = (id: string) => {
+  const a = buscar(db.activos, id, "Activo");
+  if (a.empresa && a.empresa.id !== EMPRESA_ACTIVA) throw new MockError("El activo no es de tu empresa.");
+  return a;
+};
+
+const abiertos = (activoId: string) =>
+  db.mantenimientos.filter((m) => m.activo.id === activoId && m.estatus !== "Cerrada").length;
+
+const empleadoRef = (id: string) => {
+  const e = buscar(db.empleados, id, "Empleado");
+  return { id: e.id, nombre: e.nombre };
+};
+
+const aplicarActivo = (a: Activo, d: any, alta: boolean) => {
+  if (alta || "nombre" in d) {
+    if (!d.nombre?.trim()) throw new MockError("El nombre es obligatorio.");
+    a.nombre = d.nombre.trim();
+  }
+  if (d.clase) a.clase = d.clase;
+  if (alta || "costo" in d) {
+    if (d.costo == null || d.costo < 0) throw new MockError("El costo es obligatorio y no puede ser negativo.");
+    a.costo = Number(d.costo);
+  }
+  if (alta || "area" in d || "ubicacion" in d) {
+    if (!d.ubicacion || !d.area) throw new MockError("Selecciona la ubicación y el área.");
+    a.ubicacion = d.ubicacion;
+    a.area = d.area;
+  }
+  if (alta || "foto" in d) {
+    if (!d.foto?.file_url) throw new MockError("Falta la foto del activo (name y file_url).");
+    a.foto = d.foto;
+  }
+  const inventario = alta || "inventario" in d ? d.inventario ?? "Único" : a.inventario;
+  if (a.clase !== "Herramienta" && inventario === "Stock") throw new MockError("Vehículos y equipos son siempre Único.");
+  a.inventario = inventario;
+  if (inventario === "Stock") {
+    const cant = Number("cantidad" in d ? d.cantidad : a.cantidad);
+    if (!(cant > 0)) throw new MockError("Con inventario Stock la cantidad en existencia debe ser mayor a 0.");
+    a.cantidad = cant;
+  } else a.cantidad = null;
+  ["marca", "modelo", "adquisicion", "ultimo_mantenimiento"].forEach((k) => {
+    if (k in d) (a as any)[k] = d[k] || null;
+  });
+  if (a.clase === "Vehículo" && d.vehiculo) {
+    const v = d.vehiculo;
+    a.vehiculo = {
+      tipo: v.tipo ?? a.vehiculo?.tipo ?? null,
+      serie_chasis: v.serie_chasis ?? a.vehiculo?.serie_chasis ?? null,
+      serie_motor1: v.serie_motor1 ?? a.vehiculo?.serie_motor1 ?? null,
+      serie_motor2: v.serie_motor2 ?? a.vehiculo?.serie_motor2 ?? null,
+      kilometraje: v.kilometraje ?? a.vehiculo?.kilometraje ?? { valor: null, fecha: null },
+      horometro: v.horometro ?? a.vehiculo?.horometro ?? { valor: null, fecha: null },
+      kilometraje2: v.kilometraje2 ?? a.vehiculo?.kilometraje2 ?? { valor: null, fecha: null },
+      horometro2: v.horometro2 ?? a.vehiculo?.horometro2 ?? { valor: null, fecha: null },
+    };
+    if (v.marca) a.marca = v.marca;
+    if (v.modelo) a.modelo = v.modelo;
+  } else if (a.clase !== "Vehículo") delete a.vehiculo;
+  if ("asignado_id" in d) {
+    if (d.asignado_id && a.estado === "Inactivo") throw new MockError("Un activo inactivo no se puede asignar.");
+    a.asignado = d.asignado_id ? empleadoRef(d.asignado_id) : null;
+  }
 };
 
 const handlers: Record<string, Handler> = {
@@ -1519,6 +1590,123 @@ const handlers: Record<string, Handler> = {
       total_pendientes: pendientes.length,
     };
   },
+  /* Activos (ME-08) */
+  get_opciones_activo: () => ({
+    ubicaciones: [{ ubicacion: "Planta Monterrey", areas: ["Almacén", "Patio de maniobras", "Taller"] }],
+    vehiculos: [
+      { tipo: "Pick up", marcas: [{ marca: "Nissan", modelos: ["NP300", "Frontier"] }, { marca: "Toyota", modelos: ["Hilux"] }] },
+      { tipo: "Montacargas", marcas: [{ marca: "Yale", modelos: ["GLP050"] }] },
+    ],
+    clases: ["Vehículo", "Equipo", "Herramienta"],
+    inventarios: ["Único", "Stock"],
+    prioridades: ["Alta", "Media", "Baja"],
+  }),
+  list_activos: (p) =>
+    paginar(
+      db.activos
+        .filter((a) => !a.empresa || a.empresa.id === EMPRESA_ACTIVA)
+        .map((a) => ({ ...a, mantenimientos_abiertos: abiertos(a.id) }))
+        .filter(
+          (a) =>
+            (p.clase ? a.clase === p.clase : true) &&
+            (p.disponible !== undefined && p.disponible !== "" ? a.disponible === (p.disponible === true || p.disponible === "true") : true) &&
+            (p.estado ? a.estado === p.estado : true) &&
+            (p.inventario ? a.inventario === p.inventario : true) &&
+            (p.ubicacion ? a.ubicacion === p.ubicacion : true) &&
+            (p.mantenimiento_desde ? (a.ultimo_mantenimiento ?? "") >= p.mantenimiento_desde : true) &&
+            (p.mantenimiento_hasta ? !!a.ultimo_mantenimiento && a.ultimo_mantenimiento <= p.mantenimiento_hasta : true) &&
+            [a.nombre, a.folio, a.marca ?? "", a.modelo ?? "", a.asignado?.nombre ?? ""].some((t) => coincide(t, p.search)),
+        ),
+      p,
+    ),
+  get_activo: ({ activo_id }) => ({ ...activoMio(activo_id), mantenimientos_abiertos: abiertos(activo_id) }),
+  create_activo: ({ activo }) => {
+    const a: Activo = {
+      id: nuevoId("act"), folio: folio("A", db.activos.length + 1), nombre: "", clase: activo.clase ?? "Equipo",
+      foto: null, marca: null, modelo: null, estado: "Activo", disponible: true, inventario: "Único", cantidad: null,
+      ubicacion: null, area: null, asignado: null, adquisicion: null, costo: null, ultimo_mantenimiento: null,
+      empresa: { id: EMPRESA_ACTIVA, nombre: buscar(db.empresas, EMPRESA_ACTIVA, "Empresa").razon_social },
+    };
+    if (!["Vehículo", "Equipo", "Herramienta"].includes(a.clase)) throw new MockError("Tipo de activo: Vehículo, Equipo o Herramienta.");
+    aplicarActivo(a, activo, true);
+    db.activos.push(a);
+    return { ...a, mantenimientos_abiertos: 0 };
+  },
+  update_activo: ({ activo_id, cambios }) => {
+    const a = activoMio(activo_id);
+    const copia = JSON.parse(JSON.stringify(a)) as Activo;
+    aplicarActivo(copia, cambios, false);
+    if (!copia.asignado && copia.estado !== "Inactivo") throw new MockError("Selecciona a quién se asigna.");
+    Object.assign(a, copia);
+    return { ...a, mantenimientos_abiertos: abiertos(a.id) };
+  },
+  change_estado_activo: ({ activo_id, estado }) => {
+    const a = activoMio(activo_id);
+    a.estado = estado;
+    a.disponible = estado === "Activo";
+    return { ...a, mantenimientos_abiertos: abiertos(a.id) };
+  },
+  delete_activo: ({ activo_id }) => {
+    const a = activoMio(activo_id);
+    if (abiertos(a.id)) throw new MockError("El activo tiene mantenimientos abiertos.");
+    db.activos = db.activos.filter((x) => x.id !== a.id);
+    return { eliminado: a.id, folio: a.folio };
+  },
+  list_concesiones_activo: ({ activo_id }) =>
+    activo_id === "act-2"
+      ? [{ id: "cons-1", folio: "C-120", persona: "José Ramírez Cantú", estatus: "En préstamo", piezas: 1, fecha: "2026-11-18", devolucion: null }]
+      : (activoMio(activo_id), []),
+  analizar_foto_activo: ({ archivo }) => {
+    if (!/\.(jpe?g|png)$/i.test(archivo?.name ?? archivo?.file_url ?? "")) throw new MockError("La foto debe ser JPG o PNG.");
+    return {
+      legible: true, identificado: "Taladro percutor", modelo_detectado: false,
+      campos: { nombre: { valor: "Taladro percutor", confianza: 92 }, clase: { valor: "Herramienta", confianza: 95 }, marca: { valor: "Bosch", confianza: 80 } },
+    };
+  },
+  list_mantenimientos: ({ activo_id }) => (activoMio(activo_id), db.mantenimientos.filter((m) => m.activo.id === activo_id)),
+  save_mantenimiento: ({ mantenimiento, mantenimiento_id }) => {
+    const d = mantenimiento ?? {};
+    if (mantenimiento_id) {
+      const m = buscar(db.mantenimientos, mantenimiento_id, "Mantenimiento");
+      if (m.estatus === "Cerrada") throw new MockError("Un mantenimiento cerrado no se edita.");
+      if ("asignado_id" in d) m.asignado = empleadoRef(d.asignado_id);
+      if (d.prioridad) m.prioridad = d.prioridad;
+      if (d.fecha_limite) m.fecha_limite = d.fecha_limite;
+      if ("descripcion" in d) m.descripcion = d.descripcion ?? "";
+      return m;
+    }
+    const a = activoMio(d.activo_id);
+    if (a.estado === "Inactivo") throw new MockError("Un activo inactivo no se puede asignar.");
+    if (!d.asignado_id) throw new MockError("Selecciona a quién se asigna el mantenimiento.");
+    if (!["Alta", "Media", "Baja"].includes(d.prioridad)) throw new MockError("Prioridad: Alta, Media o Baja.");
+    if (!d.fecha_limite) throw new MockError("La fecha límite es obligatoria (YYYY-MM-DD).");
+    const m: Mantenimiento = {
+      id: nuevoId("mant"), folio: folio("M", db.mantenimientos.length + 1), activo: { id: a.id, nombre: a.nombre },
+      asignado: empleadoRef(d.asignado_id), prioridad: d.prioridad, fecha_limite: d.fecha_limite,
+      descripcion: d.descripcion ?? "", estatus: "Abierta", fecha_cierre: null,
+      historial: [{ estatus: "Abierta", comentario: d.comentario ?? "", evidencias: d.evidencias ?? [], autor: AUTOR, fecha: ahora() }],
+    };
+    db.mantenimientos.push(m);
+    return m;
+  },
+  change_status_mantenimiento: ({ mantenimiento_id, estatus, comentario, evidencias }) => {
+    if (!["Abierta", "En proceso", "Cerrada"].includes(estatus)) throw new MockError("Estatus: Abierta, En proceso o Cerrada.");
+    const m = buscar(db.mantenimientos, mantenimiento_id, "Mantenimiento");
+    m.estatus = estatus;
+    m.historial.push({ estatus, comentario: comentario ?? "", evidencias: evidencias ?? [], autor: AUTOR, fecha: ahora() });
+    m.fecha_cierre = estatus === "Cerrada" ? ahora() : null;
+    if (estatus === "Cerrada") {
+      const a = db.activos.find((x) => x.id === m.activo.id);
+      if (a) a.ultimo_mantenimiento = hoyISO();
+    }
+    return m;
+  },
+  delete_mantenimiento: ({ mantenimiento_id }) => {
+    buscar(db.mantenimientos, mantenimiento_id, "Mantenimiento");
+    db.mantenimientos = db.mantenimientos.filter((m) => m.id !== mantenimiento_id);
+    return { eliminado: mantenimiento_id };
+  },
+
   list_cumplimiento: (p) =>
     recalcular().filter(
       (f) =>
