@@ -12,9 +12,12 @@ export const getAreasCatalogSdk = async (
   skip: number = 0,
   /** Filtros del buscador avanzado (FacetSearch, get_search_fields_areas). */
   facets: SearchFacet[] = [],
+  /** Texto libre: el back filtra por folio, nombre de área, tipo y estado. */
+  search: string = "",
 ) => {
   const payload = {
     locations,
+    ...(search ? { search } : {}),
     dynamic_filters: dynamicFilters,
     limit,
     offset: skip,

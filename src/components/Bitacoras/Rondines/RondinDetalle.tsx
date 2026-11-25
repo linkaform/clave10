@@ -1,6 +1,9 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getAreasCatalogSdk } from "@/lib/areas-sdk";
+import { errorMsj } from "@/lib/utils";
 import { useGetRondinById } from "@/hooks/Rondines/useGetRondinById";
 import { usePlayOrPauseRondin } from "@/hooks/Rondines/usePlayOrPauseROndin";
 import { useEditAreasRondin } from "@/hooks/Rondines/useEditAreasRondin";
@@ -10,7 +13,7 @@ import { EliminarRondinModal } from "@/components/modals/delete-rondin-modal";
 import { AreasList } from "@/components/areas-list-draggable";
 import { Button } from "@/components/ui/button";
 import {
-  ListChecks, Loader2, MoveLeft, Pause, Play, Search, Trash2,
+  ListChecks, Loader2, MoveLeft, Pause, Play, Trash2,
   MapPin, Clock, RefreshCw, User, AlertCircle, CalendarDays,
   Tag,
   FilePenLine,
@@ -18,7 +21,6 @@ import {
   X,
 } from "lucide-react";
 import { useRecorridoStore } from "@/store/useRecorridoStore";
-import { useCatalogoPaseAreaLocation } from "@/hooks/useCatalogoPaseAreaLocation";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { useEditarRondin } from "@/hooks/Rondines/useEditarRondin";
 import { useAreasLocationStore } from "@/store/useGetAreaLocationByUser";
@@ -84,9 +86,6 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const [tipoRondin, setTipoRondin] = useState("");
   const [rolesSeleccionados, setRolesSeleccionados] = useState<string[]>([]);
 
-  const { dataAreas } = useCatalogoPaseAreaLocation(
-    rondin?.ubicacion ?? "", true, !!rondin?.ubicacion, { uso: "rondines" }
-  );
   const { editarRondinMutation } = useEditarRondin();
   const router = useRouter();
   const { location } = useBoothStore();
@@ -97,7 +96,17 @@ const RondinDetalle = ({ id }: { id: string }) => {
   const { data: dataEmpleados, isLoading: loadingEmpleados } = useCatalogoAreaEmpleado(true, location ?? "", "Incidencias");
   const { data: dataInspecciones, isLoading: loadingInspecciones } = useCatalogoInspeccionesRecorridos();
   const [areas, setAreas] = useState<any[]>([]);
-  const [areaSearch, setAreaSearch] = useState("");
+  const { data: catalogoAreas, isLoading: isLoadingCatalogoAreas } = useQuery({
+    queryKey: ["areasUbicacionRecorrido", rondin?.ubicacion],
+    enabled: !!rondin?.ubicacion,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const res = await getAreasCatalogSdk([rondin.ubicacion], [], 1000, 0);
+      const textMsj = errorMsj(res);
+      if (textMsj) throw new Error(`Error al obtener áreas de la ubicación, Error: ${res.error}`);
+      return res?.response?.data?.records ?? [];
+    },
+  });
   const [ubicacionesLS, setUbicacionesLS] = useState<string[]>([]);
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
   const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(rondin?.ubicacion || "");
@@ -335,9 +344,23 @@ const handleActualizar = () => {
     },{ onSuccess: () => setForceRefetch(true) });
   };
 
-  const filteredAreas = areas.filter((a: any) =>
-    (a.rondin_area || "").toLowerCase().includes(areaSearch.toLowerCase())
-  );
+  // Áreas existentes en la ubicación del recorrido que aún no están en él.
+  const areaKey = (a: any) => String([a?.area_tag_id ?? []].flat()[0] ?? a?.rondin_area ?? "");
+  const areasDisponibles = (catalogoAreas ?? [])
+    .filter((c: any) => !areas.some((a: any) => areaKey(a) === areaKey(c) || a.rondin_area === c.rondin_area))
+    .map((c: any) => ({ value: areaKey(c), label: c.rondin_area, area: c }));
+
+  const handleAgregarArea = (c: any) => {
+    setAreas((prev) => [
+      ...prev,
+      {
+        rondin_area: c.rondin_area || "",
+        area_tag_id: c.area_tag_id || [],
+        geolocalizacion_area_ubicacion: c.geolocalizacion_area_ubicacion || [],
+        foto_area: c.foto_area || [],
+      },
+    ]);
+  };
 
   if (isLoadingRondin) return (
     <div className="flex flex-col items-center gap-3 h-32 justify-center">
@@ -698,7 +721,7 @@ const handleActualizar = () => {
               <div className="flex justify-between mb-2">
                 <span className="text-xs font-medium text-gray-600">Semana del mes:</span>
                 <div className="flex items-center gap-1.5">
-                  <input type="checkbox" onChange={(e) => set_todas_las_semanas(e.target.checked)} />
+                  <input type="checkbox" checked={todas_las_semanas} onChange={(e) => set_todas_las_semanas(e.target.checked)} />
                   <span className="text-xs">Todas las semanas</span>
                 </div>
               </div>
@@ -821,7 +844,7 @@ const handleActualizar = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-semibold text-gray-800 text-sm">Puntos del rondín</h3>
-            <p className="text-xs text-gray-400">{rondin.cantidad_de_puntos} puntos</p>
+            <p className="text-xs text-gray-400">{areas.length} puntos</p>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline"
@@ -853,7 +876,7 @@ const handleActualizar = () => {
                       {areaInspeccion}
                     </div>
                   ) : (
-                    // Viene desde el botón general — mostrar checkbox + multiselect
+                    // Viene desde el botón general (masivo) — solo áreas que ya están en el recorrido
                     <div className="flex flex-col gap-1.5">
                       <label className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-blue-200 bg-white cursor-pointer hover:bg-blue-50 transition-colors">
                         <input
@@ -868,7 +891,7 @@ const handleActualizar = () => {
                         isMulti
                         isDisabled={areaInspeccion === "todas"}
                         placeholder="Selecciona áreas..."
-                        options={(dataAreas ?? []).map((a: string) => ({ value: a, label: a }))}
+                        options={areas.map((a: any) => a.rondin_area).filter(Boolean).map((n: string) => ({ value: n, label: n }))}
                         value={
                           areaInspeccion === "todas" || !areaInspeccion
                             ? []
@@ -958,17 +981,37 @@ const handleActualizar = () => {
           </div>
         )}
 
-        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-3">
-          <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-          <input type="text" placeholder="Buscar punto..." value={areaSearch}
-            onChange={(e) => setAreaSearch(e.target.value)}
-            className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-full" />
+        <div className="mb-3">
+          <Select
+            instanceId="buscar-agregar-area"
+            placeholder={isLoadingCatalogoAreas ? "Cargando áreas..." : "Buscar área para agregar..."}
+            isLoading={isLoadingCatalogoAreas}
+            isDisabled={isLoadingCatalogoAreas}
+            options={areasDisponibles}
+            value={null}
+            noOptionsMessage={() => "No hay más áreas en esta ubicación"}
+            onChange={(opt: any) => opt && handleAgregarArea(opt.area)}
+            className="text-xs"
+            styles={{
+              control: (base: any) => ({
+                ...base,
+                minHeight: "36px",
+                fontSize: "12px",
+                borderRadius: "12px",
+                backgroundColor: "#f9fafb",
+                borderColor: "#e5e7eb",
+              }),
+              menuPortal: (base: any) => ({ ...base, zIndex: 99999, pointerEvents: "auto" }),
+            }}
+            menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+            menuPosition="fixed"
+          />
         </div>
         <div className="flex-1 overflow-y-auto">
           <AreasList
             rondin={rondin}
             setAreas={setAreas}
-            areas={filteredAreas}
+            areas={areas}
             onAsignarInspeccion={handleAbrirModalInspeccion}
           />
         </div>
