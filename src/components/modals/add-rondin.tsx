@@ -663,8 +663,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       if (!("se_repite_cada" in rondinData)) setNoRecurrente(true);
       if (rondinData?.en_que_semana_sucede?.length > 0) {
         set_en_que_semana_sucede(rondinData.en_que_semana_sucede);
-        if (rondinData.en_que_semana_sucede !== "todas_las_semanas")
-          set_todas_las_semanas(false);
+        set_todas_las_semanas(rondinData.en_que_semana_sucede === "todas_las_semanas");
       }
       if (rondinData?.en_que_mes?.length > 0) {
         const meses = Array.isArray(rondinData.en_que_mes)
