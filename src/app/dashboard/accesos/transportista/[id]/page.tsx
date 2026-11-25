@@ -2395,8 +2395,11 @@ export default function DetalleTransportistaPage() {
         contenedor: rawCont ? {
           tipo:          rawCont.tipo_remolque ?? "",
           noSello:       rawCont.no_sello      ?? "",
-          noContenedor:  "",
-          noCaja:        rawCont.no_caja       ?? "",
+          // La forma tiene una sola columna (num_caja_contenedor) y el back
+          // guarda ahí no_contenedor si viene, si no no_caja; al leerla la
+          // regresa como no_caja. Para un contenedor es su número.
+          noContenedor:  rawCont.no_caja       ?? "",
+          noCaja:        "",
           color:         rawCont.color         ?? "",
           comentarios:   rawCont.comentarios   ?? "",
           materiales:    conMats.length ? conMats : [emptyMaterial()],
