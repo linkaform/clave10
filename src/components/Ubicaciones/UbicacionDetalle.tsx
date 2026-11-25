@@ -102,7 +102,7 @@ const UbicacionDetalle = ({
             <h2 className="text-xl font-bold text-gray-900">{nombre}</h2>
           </div>
           {folio && (
-            <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200 ring-1 ring-blue-300/50">
+            <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold ${onClose ? "mr-16" : ""} bg-blue-50 text-blue-700 border border-blue-200 ring-1 ring-blue-300/50`}>
               # {folio}
             </span>
           )}

@@ -12,6 +12,7 @@ export const getUbicacionesColumns = (
     cell: ({ row }) => (
       <div className="flex items-center gap-3">
         <div
+          data-ubicacion-eye
           className="cursor-pointer"
           onClick={() => onVerUbicacion(row.original)}
           title="Ver ubicación"
@@ -19,6 +20,7 @@ export const getUbicacionesColumns = (
           <Eye className="w-5 h-5" />
         </div>
         <div
+          data-ubicacion-eye
           className="cursor-pointer"
           onClick={() => onEditarUbicacion(row.original)}
           title="Editar ubicación"
