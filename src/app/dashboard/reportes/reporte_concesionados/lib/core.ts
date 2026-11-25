@@ -32,11 +32,13 @@ export type PrestamoRaw = {
   guardia_cierre: string;
   fecha_cierre: string | null;
   estado: string;
-  foto: string;
-  identificacion: string;
   ubicacion: string;
-  // Evidencia de la devolución (URL). "" = la devolución no la trae; null = no hay devolución
-  // capturada (abierto, o cerrado en registros viejos sin devolución)
+  // ¿La devolución trae foto e identificación? null = no hay devolución capturada (abierto, o
+  // cerrado en registros viejos sin devolución). El reporte no muestra las imágenes: el back ya
+  // no manda las ligas (pesaban casi la mitad de la respuesta).
+  evidencia_cierre?: boolean | null;
+  // Formato anterior del back (ligas): se sigue leyendo mientras haya un back viejo desplegado
+  // o una copia guardada en el navegador. Se puede quitar cuando el back nuevo esté en todas las cuentas.
   foto_cierre?: string | null;
   identificacion_cierre?: string | null;
   plazo?: number | null; // horas: el guardado al prestar o, en registros viejos, el actual del catálogo
@@ -65,6 +67,7 @@ const plazoDe = (p: PrestamoRaw, ini: number) => {
 // forzadas tienen su propia columna y no llevan evidencia. null = no aplica o no se sabe.
 const evidenciaCierre = (p: PrestamoRaw): boolean | null => {
   if (p.tipo_cierre !== "Normal") return null;
+  if (p.evidencia_cierre !== undefined) return p.evidencia_cierre;
   if (p.foto_cierre == null && p.identificacion_cierre == null) return null;
   return !!p.foto_cierre && !!p.identificacion_cierre;
 };

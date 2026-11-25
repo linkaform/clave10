@@ -236,3 +236,23 @@ export const panelSpec = (ps: PanelSel, c: Corte, multi: boolean, act: string[] 
   if (tipo === "forz" && (dim === "categoria" || dim === "empresa" || dim === "solicitante")) return forzados(c, dim, val, act);
   return null;
 };
+
+// ───── "Ver todos" de una sección del panel ─────
+// El panel enseña los 5 más recientes; "Ver todos" pasa el reporte a la vista de tabla, a la
+// tabla de detalle que corresponde, con los filtros que existen para esa sección. Si no hay
+// filtro para algo (ubicación, tiempo fuera, persona o empresa), se queda sin ese filtro.
+//   tabla      id de la tabla (resumen.ts / tabs.ts)
+//   quick      botones de estatus que se prenden
+//   categoria  filtro de categoría (solo en Resumen, que lo tiene)
+export type VerTodos = { tabla: string; quick: string[]; categoria?: string };
+export const verTodosDe = (sel: string, k: string): VerTodos | null => {
+  const [tipo, dim, ...resto] = sel.split("|");
+  // Resumen: secciones venc / hoy / plazo = los mismos botones de estatus de la pestaña
+  if (tipo === "prest") return { tabla: "r_pend", quick: [k], categoria: dim === "categoria" ? resto.join("|") : undefined };
+  // Solicitantes: los vencidos tienen su tabla; lo demás, el detalle por empresa y solicitante
+  if (tipo === "sol" || tipo === "irr") {
+    if (k === "en") return { tabla: "s_venc", quick: ["venc"] };
+    return { tabla: "s_det", quick: k === "fz" ? ["forz"] : k === "per" || k === "dn" ? ["dan"] : [] };
+  }
+  return null;
+};

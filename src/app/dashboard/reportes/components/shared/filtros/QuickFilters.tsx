@@ -7,7 +7,9 @@ export type QuickPill = { key: string; label: string; count: number; icon: React
 
 // Por defecto se ocultan los que tienen 0. `todos` los muestra siempre (p. ej. mientras el
 // reporte aún no tiene datos y se quiere ver el diseño completo).
-export const QuickFilters = ({ pills, active, onToggle, todos = false }: { pills: QuickPill[]; active: string[]; onToggle: (k: string) => void; todos?: boolean }) => {
+// `gris`: sin prender llevan fondo gris, como las píldoras de periodo (Día, Semana, Mes) del
+// panel de filtros; si no, van sin fondo.
+export const QuickFilters = ({ pills, active, onToggle, todos = false, gris = false }: { pills: QuickPill[]; active: string[]; onToggle: (k: string) => void; todos?: boolean; gris?: boolean }) => {
   const shown = todos ? pills : pills.filter(p => p.count > 0 || active.includes(p.key));
   if (!shown.length) return null;
   return (
@@ -20,7 +22,7 @@ export const QuickFilters = ({ pills, active, onToggle, todos = false }: { pills
             type="button"
             aria-pressed={on}
             onClick={() => onToggle(p.key)}
-            className={`inline-flex h-[30px] items-center gap-1.5 rounded-full pl-[5px] pr-2 text-[13px] transition-colors duration-150 ${on ? "bg-c10-blue-light font-semibold text-button-primary-hover" : "bg-transparent font-normal text-c10-label hover:bg-c10-sunken"}`}
+            className={`inline-flex h-[30px] items-center gap-1.5 rounded-full pl-[5px] pr-2 text-[13px] transition-colors duration-150 ${on ? "bg-c10-blue-light font-semibold text-button-primary-hover" : gris ? "bg-c10-sunken font-medium text-c10-label hover:bg-c10-line" : "bg-transparent font-normal text-c10-label hover:bg-c10-sunken"}`}
           >
             {p.icon}
             {p.label}

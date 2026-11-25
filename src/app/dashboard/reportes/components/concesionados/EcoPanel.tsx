@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { PieChart, X } from "lucide-react";
+import React, { useState } from "react";
+import { ChevronDown, ChevronLeft, PieChart, X } from "lucide-react";
 import { C, Eco, SER } from "../../reporte_concesionados/lib/cards";
 import { money, n, pct } from "../../reporte_concesionados/lib/core";
 
@@ -34,13 +34,24 @@ const Dona = ({ partes, ctr, ctrSub }: { partes: Parte[]; ctr: string; ctrSub: s
   );
 };
 
-const Tarjeta = ({ titulo, desc, children }: { titulo: string; desc: string; children: React.ReactNode }) => (
-  <div className="rounded-xl bg-c10-surface p-5 shadow-[0_0_0_1px_var(--c10-line-card)]">
-    <h3 className="m-0 text-sm font-semibold text-c10-title">{titulo}</h3>
-    <p className="m-0 mb-2.5 mt-0.5 text-xs text-c10-meta">{desc}</p>
-    {children}
-  </div>
-);
+// Tarjeta plegable: el título y la flecha la abren o la cierran
+const Tarjeta = ({ titulo, desc, children }: { titulo: string; desc: string; children: React.ReactNode }) => {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="rounded-xl bg-c10-surface p-5 shadow-[0_0_0_1px_var(--c10-line-card)]">
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="flex w-full items-center justify-between gap-3 text-left">
+        <h3 className="m-0 text-sm font-semibold text-c10-title">{titulo}</h3>
+        <ChevronDown size={16} strokeWidth={2.4} aria-hidden="true" className={`flex-none text-c10-secondary transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <>
+          <p className="m-0 mb-2.5 mt-0.5 text-xs text-c10-meta">{desc}</p>
+          {children}
+        </>
+      )}
+    </div>
+  );
+};
 
 export const EcoPanel = ({ eco, label, onClose }: { eco: Eco; label: string; onClose: () => void }) => {
   const enPlazo = eco.vCalle - eco.vVenc;
@@ -61,8 +72,7 @@ export const EcoPanel = ({ eco, label, onClose }: { eco: Eco; label: string; onC
           <Dona ctr={money(eco.prestado)} ctrSub="Prestado" partes={eco.partes.map(p => ({ t: SER[p.k][0], col: SER[p.k][1], v: p.v }))} />
         </Tarjeta>
         <Tarjeta titulo="Fuera" desc="Todo lo que sigue sin devolverse, sin importar cuándo salió.">
-          <Dona ctr={money(eco.vCalle)} ctrSub="Valor fuera" partes={[{ t: "En plazo", col: C.CLARO, v: enPlazo }, { t: "Vencido", col: C.AMBAR, v: eco.vVenc }]} />
-          <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-4">
+          <div className="mb-4 grid grid-cols-2 gap-x-3 gap-y-4">
             <div>
               <span className="mb-1 block text-[11px] font-medium uppercase tracking-[.05em] text-c10-faint">Artículos fuera</span>
               <b className="block text-sm font-medium tabular-nums text-c10-title">{n(eco.nCalle)}</b>
@@ -72,22 +82,28 @@ export const EcoPanel = ({ eco, label, onClose }: { eco: Eco; label: string; onC
               <b className="block text-sm font-medium tabular-nums" style={{ color: eco.nVenc ? "#B45309" : undefined }}>{n(eco.nVenc)}</b>
             </div>
           </div>
+          <Dona ctr={money(eco.vCalle)} ctrSub="Valor fuera" partes={[{ t: "En plazo", col: C.CLARO, v: enPlazo }, { t: "Vencido", col: C.AMBAR, v: eco.vVenc }]} />
         </Tarjeta>
       </div>
     </aside>
   );
 };
 
-// Pestaña vertical para volver a abrir el panel
+// Pestaña vertical para volver a abrir el resumen (como en el diseño): ícono, "RESUMEN
+// ECONÓMICO" en vertical y abajo el botón con la flecha. Toda la pestaña abre el panel; al
+// pasar el mouse la flecha se pinta azul y sale el texto "Ver resumen económico".
 export const EcoRail = ({ onOpen }: { onOpen: () => void }) => (
   <button
     type="button"
     title="Ver resumen económico"
     aria-label="Ver resumen económico"
     onClick={onOpen}
-    className="sticky top-[84px] flex w-9 flex-none flex-col items-center gap-2.5 rounded-[10px] border border-c10-line bg-c10-surface py-2.5 shadow-sm max-lg:hidden"
+    className="group sticky top-[84px] flex w-9 flex-none flex-col items-center gap-2.5 rounded-[10px] border border-c10-line bg-c10-surface py-2.5 shadow-sm max-lg:hidden"
   >
     <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-c10-blue-light text-button-primary"><PieChart size={14} /></span>
     <span className="whitespace-nowrap text-[10px] font-bold tracking-[.08em] text-c10-meta [writing-mode:vertical-rl]">RESUMEN ECONÓMICO</span>
+    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-c10-line bg-c10-surface text-c10-secondary transition-colors group-hover:border-transparent group-hover:bg-c10-blue-light group-hover:text-button-primary">
+      <ChevronLeft size={14} strokeWidth={2.4} />
+    </span>
   </button>
 );

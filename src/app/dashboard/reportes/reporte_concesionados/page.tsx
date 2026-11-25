@@ -2,23 +2,28 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { BarChart3, ChevronDown, ChevronLeft, FileDown, SlidersHorizontal, Table2 } from "lucide-react";
+import { AlertTriangle, BarChart3, ChevronDown, ChevronLeft, FileDown, Loader2, RotateCw, SlidersHorizontal, Table2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { KpiChip, SegTabs } from "../components/shared/ui";
+import { ReportSkeleton } from "../components/ReportSkeleton";
 import { MiniCalendar } from "../components/shared/periodo/MiniCalendar";
 import { PeriodNav } from "../components/shared/periodo/PeriodNav";
 import { ChartCard } from "../components/shared/graficas/Charts";
+import { ChartSkeleton } from "../components/shared/graficas/ChartSkeleton";
 import { ReportTable } from "../components/shared/tabla/ReportTable";
 import { descargarExcel } from "../components/shared/excel";
 import { MultiCombo } from "../components/shared/filtros/MultiCombo";
 import { QuickFilters, QuickPill } from "../components/shared/filtros/QuickFilters";
+import { PanelAnim } from "../components/shared/filtros/PanelAnim";
+import { BotonFiltros } from "../components/shared/filtros/BotonFiltros";
 import { EcoPanel, EcoRail } from "../components/concesionados/EcoPanel";
 import { DetallePanel } from "../components/concesionados/DetallePanel";
 import { useReporteConcesionados } from "./lib/api";
 import { Calc, QI, QUICK, SER, filtrarTabla } from "./lib/cards";
 import { Prestamo, VLBL, Vista, addDias, corte, enriquecer, n, paso, periodo, sod, uniq } from "./lib/core";
 import { resumen } from "./lib/resumen";
-import { PanelSel, panelSpec } from "./lib/paneles";
+import { PanelSel, panelSpec, verTodosDe } from "./lib/paneles";
 import { articulos, economico, forzadas, guardias, solicitantes } from "./lib/tabs";
 
 type Tab = "resumen" | "guardias" | "solicitantes" | "articulos" | "forzadas" | "economico";
@@ -168,7 +173,11 @@ const ReporteConcesionadosPage = () => {
   // TODO(back): ver lib/api.ts
   const desde = toISO(addDias(sod(ahora), -365)), hasta = toISO(ahora);
   const { selectedLocations } = useSelectedLocationsStore();
-  const { raw } = useReporteConcesionados({ desde, hasta, ubicaciones: selectedLocations });
+  const { raw, hayDatos, isFetching, error, refetch } = useReporteConcesionados({ desde, hasta, ubicaciones: selectedLocations });
+  // Carga: sin datos todavía → esqueleto (o el error si falló). Con datos y pidiendo otros
+  // (cambió la ubicación) → se quedan los anteriores, atenuados, con "Actualizando…" arriba.
+  const actualizando = hayDatos && isFetching;
+  const errorMsg = error instanceof Error ? error.message : error ? String(error) : "";
   const rows = useMemo(() => {
     const l = enriquecer(raw, ahora);
     return selectedLocations.length ? l.filter(r => selectedLocations.includes(r.ubicacion)) : l;
@@ -211,6 +220,19 @@ const ReporteConcesionadosPage = () => {
   const actForz = useMemo(() => (tab === "forzadas" ? quick.filter(k => QUICK.forzadas.includes(k)) : []), [tab, quick]);
   const spec = useMemo(() => (panel ? panelSpec(panel, c, multi, actForz) : null), [panel, c, multi, actForz]);
   useEffect(() => setPanel(null), [tab]);
+  // "Ver todos" de una sección del panel: vista de tabla, en la tabla de detalle, con los
+  // filtros que existen para esa sección (lib/paneles.ts → verTodosDe)
+  const verTodos = (k: string) => {
+    const d = panel && verTodosDe(panel.sel, k);
+    if (!d) return;
+    const cat = d.categoria;
+    if (cat !== undefined && usa.includes("categoria")) setF(s => ({ ...s, categoria: [cat] }));
+    setQuick(d.quick);
+    setTablaSel(s => ({ ...s, [tab]: d.tabla }));
+    setModo("tablas");
+    setPanel(null);
+    window.scrollTo({ top: 0 });
+  };
 
   // Opciones de cada filtro: lo que hubo en el periodo con los demás filtros aplicados
   const opciones = (k: FKey) => {
@@ -236,7 +258,35 @@ const ReporteConcesionadosPage = () => {
 
   const graficas = modo === "graficas";
   const showPanel = wide ? panelOpen : narrowOpen;
-  const cerrarPanel = () => (wide ? setPanelOpen(false) : setNarrowOpen(false));
+
+  // Económico (vista de gráficas, pantalla ancha): entra con el resumen económico abierto y el
+  // filtro oculto. Al cerrar uno se abre el otro, salvo que ese otro ya lo haya cerrado la
+  // persona en esta visita: así se pueden cerrar los dos. Al salir, el filtro regresa como estaba.
+  const [cerro, setCerro] = useState({ eco: false, filtro: false });
+  const filtroAntes = useRef<boolean | null>(null);
+  const enEco = tab === "economico" && graficas && wide;
+  const cambiarTab = (t: Tab) => {
+    if (t === tab) return;
+    setTab(t);
+    if (t === "economico") {
+      setEcoOpen(true);
+      setCerro({ eco: false, filtro: false });
+      if (graficas && wide) { filtroAntes.current = panelOpen; setPanelOpen(false); }
+    } else if (filtroAntes.current !== null) {
+      setPanelOpen(filtroAntes.current);
+      filtroAntes.current = null;
+    }
+  };
+  const cerrarPanel = () => {
+    if (!wide) return setNarrowOpen(false);
+    setPanelOpen(false);
+    if (enEco) { setCerro(c => ({ ...c, filtro: true })); if (!cerro.eco) setEcoOpen(true); }
+  };
+  const cerrarEco = () => {
+    setEcoOpen(false);
+    setCerro(c => ({ ...c, eco: true }));
+    if (wide && !cerro.filtro) setPanelOpen(true);
+  };
 
   const filterPanel = (
     <aside aria-label="Filtros" className={`flex w-[280px] flex-none flex-col bg-c10-surface px-[18px] pb-[18px] pt-4 shadow-[0_1px_2px_rgba(15,23,42,.04),0_6px_20px_rgba(15,23,42,.04)] ${wide ? "sticky top-[84px] max-h-[calc(100vh-100px)] overflow-y-auto rounded-2xl" : "fixed bottom-0 left-0 top-0 z-[58] overflow-y-auto"}`}>
@@ -283,7 +333,7 @@ const ReporteConcesionadosPage = () => {
           )}
           {(!rows.length || keys.some(k => (R.qn[k] ?? 0) > 0 || act.includes(k))) && (
             <Seccion titulo="Estatus" cnt={act.length}>
-              <QuickFilters pills={pills} active={act} onToggle={toggleQuick} todos={!rows.length} />
+              <QuickFilters pills={pills} active={act} onToggle={toggleQuick} todos={!rows.length} gris />
             </Seccion>
           )}
         </>
@@ -335,7 +385,12 @@ const ReporteConcesionadosPage = () => {
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-none items-center gap-2.5">
           <h1 className="m-0 whitespace-nowrap text-2xl font-semibold tracking-[-.02em] text-c10-title">Reporte de artículos concesionados</h1>
-          <KpiChip>{n(R.total)} préstamos</KpiChip>
+          {hayDatos ? <KpiChip>{n(R.total)} préstamos</KpiChip> : !error && <Skeleton className="h-[22px] w-24 rounded-full" />}
+          {actualizando && (
+            <span role="status" className="inline-flex items-center gap-1.5 text-xs font-medium text-c10-meta">
+              <Loader2 size={14} className="animate-spin" aria-hidden="true" />Actualizando…
+            </span>
+          )}
         </div>
         <span className="flex-auto" />
         {!wide && (
@@ -351,7 +406,7 @@ const ReporteConcesionadosPage = () => {
           </button>
         )}
         <div className="max-w-full overflow-x-auto">
-          <SegTabs<Tab> label="Secciones del reporte" value={tab} onChange={t => { setTab(t); if (t === "economico") setEcoOpen(true); }} options={TABS} />
+          <SegTabs<Tab> label="Secciones del reporte" value={tab} onChange={cambiarTab} options={TABS} />
         </div>
         <div role="group" aria-label="Tipo de vista" className="inline-flex h-10 flex-none overflow-hidden rounded-lg border border-c10-line bg-c10-surface">
           {([["graficas", "Vista gráfica", <BarChart3 key="g" size={18} />], ["tablas", "Vista de tabla", <Table2 key="t" size={18} />]] as [Modo, string, React.ReactNode][]).map(([m, l, ic]) => (
@@ -372,24 +427,44 @@ const ReporteConcesionadosPage = () => {
 
       <div className="flex items-start gap-4">
         {showPanel && !wide && <div className="fixed inset-0 z-[57] bg-white/70" onClick={() => setNarrowOpen(false)} />}
-        {showPanel && filterPanel}
-        {wide && !panelOpen && (
-          <button
-            type="button"
-            title="Mostrar filtros"
-            aria-label="Mostrar filtros"
-            onClick={() => setPanelOpen(true)}
-            className="fixed left-0 top-1/2 z-40 inline-flex h-[52px] w-[38px] -translate-y-1/2 items-center justify-center rounded-r-full bg-button-primary text-white shadow-[0_4px_12px_rgba(47,128,237,.3)] hover:bg-button-primary-hover"
-          >
-            <SlidersHorizontal size={18} />
-            {activos > 0 && <span className="absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">{activos}</span>}
-          </button>
-        )}
+        <PanelAnim open={showPanel}>{filterPanel}</PanelAnim>
+        {wide && !panelOpen && <BotonFiltros activos={activos} onOpen={() => setPanelOpen(true)} />}
 
         <main className="flex min-w-0 flex-1 flex-col gap-4">
-          {graficas ? (
-            R.graf.map(cd => <ChartCard key={cd.title} card={cd} act={act} quick={keys} onSelect={(sel, serie) => setPanel({ sel, serie })} />)
+          {error && hayDatos && !isFetching && (
+            <div role="alert" className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">
+              <AlertTriangle size={16} className="flex-none" aria-hidden="true" />
+              <span className="min-w-0 flex-auto">No se pudo actualizar el reporte; se muestran los datos anteriores.</span>
+              <button type="button" onClick={() => refetch()} className="flex-none font-semibold text-button-primary hover:underline">Reintentar</button>
+            </div>
+          )}
+          {!hayDatos ? (
+            error && !isFetching ? (
+              <div role="alert" className="flex flex-col items-center gap-3 rounded-xl border border-c10-line-card bg-c10-surface px-6 py-12 text-center">
+                <AlertTriangle size={28} className="text-amber-600" aria-hidden="true" />
+                <div>
+                  <b className="block text-base font-semibold text-c10-title">No se pudo cargar el reporte</b>
+                  {errorMsg && <span className="mt-1 block text-[13px] text-c10-meta">{errorMsg}</span>}
+                </div>
+                <button type="button" onClick={() => refetch()} className="inline-flex h-9 items-center gap-2 rounded-lg bg-button-primary px-4 text-[13px] font-semibold text-white hover:bg-button-primary-hover">
+                  <RotateCw size={15} aria-hidden="true" />Reintentar
+                </button>
+              </div>
+            ) : (
+              <>
+                <p role="status" className="m-0 inline-flex items-center gap-2 text-[13px] text-c10-meta">
+                  <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+                  Cargando préstamos de los últimos 12 meses… puede tardar unos segundos.
+                </p>
+                {graficas ? <ChartSkeleton cards={R.graf} /> : <ReportSkeleton variant="table" />}
+              </>
+            )
+          ) : graficas ? (
+            <div className={`flex flex-col gap-4 transition-opacity ${actualizando ? "opacity-60" : ""}`}>
+              {R.graf.map(cd => <ChartCard key={cd.title} card={cd} act={act} quick={keys} onSelect={(sel, serie) => setPanel({ sel, serie })} />)}
+            </div>
           ) : (
+            <div className={`flex min-w-0 flex-col transition-opacity ${actualizando ? "opacity-60" : ""}`}>
             <ReportTable
               tablas={tablas}
               activa={tAct}
@@ -397,10 +472,11 @@ const ReporteConcesionadosPage = () => {
               toolbar={toolbar}
               resetKey={`${tab}|${p.ini}|${vista}|${act.join()}|${JSON.stringify(f)}`}
             />
+            </div>
           )}
         </main>
-        {spec && <DetallePanel spec={spec} onClose={() => setPanel(null)} />}
-        {graficas && R.eco && (ecoOpen ? <EcoPanel eco={R.eco} label={p.label} onClose={() => setEcoOpen(false)} /> : <EcoRail onOpen={() => setEcoOpen(true)} />)}
+        {spec && <DetallePanel spec={spec} onVerTodos={verTodos} onClose={() => setPanel(null)} />}
+        {graficas && hayDatos && R.eco && (ecoOpen ? <EcoPanel eco={R.eco} label={p.label} onClose={cerrarEco} /> : <EcoRail onOpen={() => setEcoOpen(true)} />)}
       </div>
     </div>
   );
