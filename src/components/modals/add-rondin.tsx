@@ -32,7 +32,7 @@ import { Loader2, Settings, CalendarClock, Layers, User } from "lucide-react";
 import { useRondines } from "@/hooks/Rondines/useRondines";
 import { Input } from "../ui/input";
 import { format } from "date-fns";
-import Multiselect from "multiselect-react-dropdown";
+import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCatalogAreasRondin } from "@/hooks/Rondines/useCatalogAreasRondin";
 import {
@@ -341,6 +341,14 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       form.setValue("roles", []);
       setGrupoSeleccionado("");
       setAsignacionError("");
+      // El componente no se desmonta al cerrar: sin esto las áreas y la
+      // recurrencia del recorrido anterior aparecían ya seleccionadas.
+      setAreasSeleccionadas([]);
+      setDate("");
+      set_todas_las_meses(false);
+      setEsRepetirCada(null);
+      setMostrarFrecuencia(false);
+      setNoRecurrente(false);
       reset();
     }
   }, [isSuccess]);
@@ -515,7 +523,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         return {
           se_repite_cada: "semana",
           que_dias_de_la_semana: [date ? obtenerDiaSemana(date) : ""],
-          ...(!todas_las_semanas && { en_que_semana_sucede }),
+          en_que_semana_sucede: todas_las_semanas ? "todas_las_semanas" : en_que_semana_sucede,
           sucede_recurrencia: ["dia_de_la_semana"],
         };
       case "mes": {
@@ -532,7 +540,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
             se_repite_cada: "configurable",
             que_dias_de_la_semana,
             sucede_recurrencia: ["dia_de_la_semana"],
-            ...(todas_las_semanas ? {} : { en_que_semana_sucede }),
+            en_que_semana_sucede: todas_las_semanas ? "todas_las_semanas" : en_que_semana_sucede,
             en_que_mes,
           };
         }
@@ -1208,7 +1216,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                       <div className="flex justify-between">
                         <FormLabel>Seleccione la semana del mes:</FormLabel>
                         <div className="flex items-center gap-2 ml-3">
-                          <input type="checkbox" onChange={(e: any) => set_todas_las_semanas(e.target.checked)} />
+                          <input type="checkbox" checked={todas_las_semanas} onChange={(e: any) => set_todas_las_semanas(e.target.checked)} />
                           <span className="text-sm">Todas las semanas</span>
                         </div>
                       </div>
@@ -1385,31 +1393,23 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                       Cargando áreas...
                     </div>
                   ) : (
-                    <Multiselect
-                      options={areasOptions}
-                      onSelect={setAreasSeleccionadas}
-                      onRemove={setAreasSeleccionadas}
-                      displayValue="name"
-                      selectedValues={areasSeleccionadas}
-                      disable={isLoadingAreas}
-                      style={{
-                        optionContainer: {
-                          position: "absolute",
-                          bottom: `${dropdownOffset.distance}px`,
-                          left: 0,
-                          width: dropdownOffset.width || "100%",
-                          zIndex: 999999,
-                          backgroundColor: "white",
-                          borderRadius: "8px",
-                          overflow: "auto",
-                          maxHeight: "200px",
-                          boxShadow: "0 -4px 10px rgba(0,0,0,0.15)",
-                          marginBottom: `${dropdownOffset.margin || 0}px`,
-                        },
-                        searchBox: {
-                          position: "relative",
-                          opacity: isLoadingAreas ? 0.5 : 1,
-                        },
+                    <MultiSelect
+                      isMulti
+                      placeholder="Selecciona áreas"
+                      className="border border-slate-100 rounded-2xl"
+                      options={areasOptions as any[]}
+                      value={areasSeleccionadas}
+                      getOptionLabel={(o: any) => o.name}
+                      getOptionValue={(o: any) => String(o.id)}
+                      onChange={(selected: any) => setAreasSeleccionadas(selected ? [...selected] : [])}
+                      closeMenuOnSelect={false}
+                      // El menú vive en el body: así flota sobre el footer y el
+                      // scroll del modal (Radix bloquea el puntero fuera del dialog).
+                      menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                      menuPosition="fixed"
+                      menuPlacement="auto"
+                      styles={{
+                        menuPortal: (base: any) => ({ ...base, zIndex: 99999, pointerEvents: "auto" }),
                       }}
                     />
                   )}
