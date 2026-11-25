@@ -103,6 +103,26 @@ const CtrlWheelZoom = () => {
   return null;
 };
 
+// Encuadra TODOS los puntos y reencuadra cuando el contenedor cambia de tamaño
+// (el panel lateral se anima/redimensiona despues de montar el mapa).
+const FitBounds = ({ points }: { points: [number, number][] }) => {
+  const map = useMap();
+  useEffect(() => {
+    const fit = () => {
+      map.invalidateSize();
+      const bounds = latLngBounds(points);
+      if (!bounds.isValid()) return;
+      if (points.length === 1) map.setView(points[0], 17);
+      else map.fitBounds(bounds, { padding: [40, 40], maxZoom: 19 });
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(map.getContainer());
+    return () => ro.disconnect();
+  }, [map, points]);
+  return null;
+};
+
 const MapView = ({ map_data }: MapaRutasProps) => {
   const user = useAuthStore();
   const instanceId = useId().replace(/:/g, "_");
@@ -155,12 +175,6 @@ const puntos = useMemo<Punto[]>(() =>
     foto: p.foto || "",
   }));
 
-  const setZoom = (map: any) => {
-    const bounds = latLngBounds([]);
-    records.forEach(r => { if (r.geolocation) bounds.extend(r.geolocation); });
-    if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
-  };
-
   const getIcon = (foto?: string) => {
     if (foto) {
       return L.divIcon({
@@ -201,7 +215,7 @@ const puntos = useMemo<Punto[]>(() =>
     });
   };
 
-  const linePositions: [number, number][] = puntos.map(p => [p.lat, p.lng]);
+  const linePositions = useMemo<[number, number][]>(() => puntos.map(p => [p.lat, p.lng]), [puntos]);
 
   return (
     <article key={mapKey} style={{ height: "100%", width: "100%" }}>
@@ -211,7 +225,6 @@ const puntos = useMemo<Punto[]>(() =>
         ref={mapRef}
         maxZoom={22}
         scrollWheelZoom={false}
-        whenReady={() => { if (mapRef.current) setZoom(mapRef.current); }}
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
@@ -221,6 +234,7 @@ const puntos = useMemo<Punto[]>(() =>
           maxNativeZoom={19} 
         />
         <Polyline positions={linePositions} color="green" />
+        <FitBounds points={linePositions} />
         <CtrlWheelZoom />
         <MyComponent prefix={instanceId} />
         {records.map((obj) => (
