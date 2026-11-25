@@ -245,7 +245,8 @@ export function ComentarioDetailPanel({ item, onBack }: { item: any; onBack: () 
 
 export function AreaDetailPanel({ area, onBack, onSetImage }: { 
   area: any; 
-  onBack: () => void;
+  /** Sin onBack no se pinta "Volver" (ej. dentro de la pestaña Áreas, que navega por la lista). */
+  onBack?: () => void;
   onSetImage?: (url: string) => void;
 }) {
   const [areaTab, setAreaTab] = useState<"generales" | "checklist" | "incidencias">("generales");
@@ -352,13 +353,15 @@ export function AreaDetailPanel({ area, onBack, onSetImage }: {
         )}
       </div>
        {/* Volver */}
-        <button
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 text-xs font-medium mb-4 transition-colors"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        Volver al rondín
-      </button>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 text-xs font-medium mb-4 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Volver al rondín
+          </button>
+        )}
 
         {/* Título */}
         <h3 className="text-2xl font-extrabold text-slate-800 leading-tight mb-0.5">{area.nombre}</h3>
