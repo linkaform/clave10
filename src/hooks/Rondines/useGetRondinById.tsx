@@ -6,6 +6,7 @@ export const useGetRondinById= (record_id:string) => {
 
     //Obtener lista de Rondines
     const {data, isLoading:isLoadingRondin} = useQuery<any>({
+    refetchOnWindowFocus: false,
         queryKey: ["getRondinById", record_id],
         enabled: record_id?true:false,
         queryFn: async () => {

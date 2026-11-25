@@ -6,6 +6,7 @@ export const useRondinesImages = (enable: boolean, location: string, areas: stri
 
     //Obtener lista de Rondines
     const {data, isLoading, error} = useQuery<any>({
+    refetchOnWindowFocus: false,
         queryKey: ["getListRondines", location, areas, dateFrom, dateTo, limit, offset],
         enabled: enable,
         queryFn: async () => {

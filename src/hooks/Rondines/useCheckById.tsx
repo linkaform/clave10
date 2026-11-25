@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 export const useCheckById= (record_id:string) => {
 
     const {data, isLoading:isLoadingRondin} = useQuery<any>({
+    refetchOnWindowFocus: false,
         queryKey: ["getRondinById", record_id],
         enabled: record_id?true:false,
         queryFn: async () => {

@@ -8,6 +8,7 @@ import { SearchFacet } from "@/components/common/FacetSearch";
 export const useGetListRecorridos = (enableList:boolean, date1:string, date2:string, limit:number, offset:number, facets?: SearchFacet[]) => {
 
     const {data: listRecorridos, isLoading:isLoadingListRecorridos, isFetching:isFetchingListRecorridos, error:errorListRecorridos} = useQuery<any>({
+    refetchOnWindowFocus: false,
         queryKey: ["getListRecorridos", date1, date2, limit, offset, facets],
         enabled:enableList,
         // conserva la pagina anterior mientras llega la siguiente (sin parpadeo)
@@ -79,6 +80,7 @@ export const useGetListRondines = (
 ) => {
   const { data, isLoading: isLoadingListRondines, isFetching: isFetchingListRondines, error: errorListRondines } =
     useQuery<{ records: BitacoraRondin[]; total: number }>({
+    refetchOnWindowFocus: false,
       queryKey: ["getListRondines", date1, date2, limit, offset, locations, facets],
       enabled: enableList,
       // conserva la pagina anterior mientras llega la siguiente (sin parpadeo)
