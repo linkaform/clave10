@@ -11,6 +11,7 @@ export const useFallas = (location:string, area:string,status:string, enableList
 
     //Obtener lista de Fallas
     const {data: listFallas, isLoading:isLoadingListFallas, error:errorListFallas } = useQuery<any>({
+        refetchOnWindowFocus: false,
         queryKey: ["getListFallas", area, location, status],
         enabled:enableList,
         queryFn: async () => {

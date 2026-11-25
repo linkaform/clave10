@@ -40,6 +40,7 @@ export const useCheckInvitacion = (
   enabled: boolean,
 ) => {
   const { data, isLoading, error, refetch } = useQuery<InvitacionCheck | null>({
+    refetchOnWindowFocus: false,
     queryKey: ["checkInvitacion", record_id, email, account_id],
     enabled,
     retry: false,
@@ -60,6 +61,7 @@ export const useGetContratista = (
   enabled: boolean,
 ) => {
   const { data, isLoading, refetch } = useQuery<ContratistaRecord | null>({
+    refetchOnWindowFocus: false,
     queryKey: ["getContratista", record_id, account_id],
     enabled: enabled && !!record_id && !!jwt,
     retry: false,

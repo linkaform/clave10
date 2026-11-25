@@ -11,6 +11,7 @@ export const useNotes = (enableGetNotes:boolean, area:string, location:string, p
   const [isLoadingNotes, setLoadingNotes] = useState(false);
   //Obtener lista de notas
   const { data, isLoading: isLoadingListNotes, error, isFetching, refetch } = useQuery<any, Error>({
+    refetchOnWindowFocus: false,
     queryKey: ["getNotes", area, location, pageIndex, pageSize, dateFrom, dateTo, status, search], 
     queryFn: async () => {
       // Con el buscador nuevo basta con las ubicaciones del header.

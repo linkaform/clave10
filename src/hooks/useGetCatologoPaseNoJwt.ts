@@ -114,6 +114,7 @@ export const useGetCatalogoPaseNoJwt = (
   enable: boolean,
 ) => {
   const { data, isLoading, error, isFetching, refetch } = useQuery<Data>({
+    refetchOnWindowFocus: false,
     queryKey: ["useGetCatalogoPaseNoJwt"],
     enabled: enable,
     queryFn: async () => {

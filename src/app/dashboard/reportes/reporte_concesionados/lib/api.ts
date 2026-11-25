@@ -43,6 +43,7 @@ export const getReporteConcesionados = async ({ desde, hasta, ubicaciones }: Rep
 
 export const useReporteConcesionados = (params: ReporteParams) => {
   const { data, isLoading, isFetching, error, refetch } = useQuery<PrestamoRaw[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["reporteConcesionados", params.desde, params.hasta, params.ubicaciones],
     queryFn: () => getReporteConcesionados(params),
   });

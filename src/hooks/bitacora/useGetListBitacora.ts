@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export const useGetListBitacora = (location:string, area:string, prioridades:string[], enabled:boolean, date1:string, date2:string, dateFilter:string) => {
   const { data: data, isLoading, error, isFetching, refetch } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["getListBitacora", location, area, prioridades], 
     enabled:enabled,
     queryFn: async () => {

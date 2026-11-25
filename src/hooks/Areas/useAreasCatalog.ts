@@ -35,6 +35,7 @@ export const useAreasCatalog = (
     error,
     refetch,
   } = useQuery<AreasCatalogPage>({
+    refetchOnWindowFocus: false,
     queryKey: ["areasCatalog", locations, dynamicFilters, limit, skip, facets],
     enabled: locations.length > 0 && enabled,
     // Igual que en Concesionados: al cambiar de página/búsqueda, mantiene la

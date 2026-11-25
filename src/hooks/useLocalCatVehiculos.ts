@@ -19,6 +19,7 @@ export const fetchCatalogVehiculos = ({ tipo = "", marca = "" }: { tipo?: string
 
 export const useGetLocalVehiculos = ({ tipo, marca, isModalOpen }: getVehiculosParams) => {
   const { data, isLoading, error, isFetching, refetch } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: catalogVehiculosQueryKey(tipo, marca),
     enabled: isModalOpen,
     queryFn: () => fetchCatalogVehiculos({ tipo, marca }),

@@ -37,6 +37,7 @@ export function useFacetSection({ scriptName, panel, status, locations, optionSu
   const [skip, setSkip] = useState(0);
 
   const { data: fields = [] } = useQuery<SearchFieldConfig[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["searchFields", scriptName, optionSuffix],
     staleTime: Infinity,
     queryFn: async () => (await getSearchFields(scriptName, optionSuffix))?.response?.data ?? [],

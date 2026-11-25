@@ -10,6 +10,7 @@ export const usePasses = (location: string | null, area?: string) => {
     isFetching,
     refetch,
   } = useQuery<any>({
+    refetchOnWindowFocus: false,
     enabled: !!location, 
     queryKey: ["getActivePasses", location, area],
     queryFn: async () => {

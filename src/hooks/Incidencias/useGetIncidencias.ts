@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 export const useGetIncidencias = (location:string, area:string, prioridades:string[], dateFrom:string, dateTo:string, filterDate:string) => {
 
   const { data: dataListIncidencias, isLoading, error, isFetching, refetch } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["getListIncidencias", location, area, prioridades], 
     queryFn: async () => {
         const data = await getListIncidencias(location, area , prioridades, dateFrom,dateTo, filterDate); 

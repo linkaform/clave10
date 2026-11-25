@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export const useGetUbicacionById = (record_id: string) => {
   const { data, isLoading: isLoadingUbicacion } = useQuery<UbicacionRow | null>({
+    refetchOnWindowFocus: false,
     queryKey: ["getUbicacionById", record_id],
     enabled: record_id ? true : false,
     queryFn: async () => {

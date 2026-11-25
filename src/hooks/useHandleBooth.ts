@@ -9,6 +9,7 @@ export const useHandleBooth = (enableGetBooths:boolean) => {
     const { setArea, setLocation, setLoading } = useShiftStore();
 
     const { data: booths, isLoading, error, isFetching } = useQuery<any[]>({
+		refetchOnWindowFocus: false,
 		queryKey: ["getBooths"], 
 		enabled:enableGetBooths,
 		queryFn: async () => {

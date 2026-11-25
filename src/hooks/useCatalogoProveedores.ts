@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 export const useCatalogoProveedores = (isModalOpen:boolean) => {
   const { data: dataProveedores, isLoading:isLoadingProveedores, error: errorProveedores } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["getCatalogoProveedores"], 
     enabled:isModalOpen,
     queryFn: async () => {

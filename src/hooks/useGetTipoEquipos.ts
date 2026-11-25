@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export const useGetTipoEquipos = ({ account_id, isModalOpen }: getEquiposParams) => {
   const { data, isLoading, error, isFetching, refetch } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["useGetEquipos", account_id],
     enabled: isModalOpen && !!account_id,
     staleTime: Infinity,

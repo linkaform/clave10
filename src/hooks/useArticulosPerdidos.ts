@@ -14,6 +14,7 @@ export const useArticulosPerdidos = (location:string, area:string, status:string
 
     //Obtener lista de ArtículosPerdidos
     const {data: listArticulosPerdidos, isLoading:isLoadingQuery, isFetching, isPlaceholderData, error:errorListArticulosPerdidos, refetch } = useQuery<any>({
+        refetchOnWindowFocus: false,
         queryKey: ["getListArticulosPerdidos", location, status, date1, date2, filterDate, paging],
         enabled:enableList,
         placeholderData: keepPreviousData,
@@ -128,6 +129,7 @@ export const useArticulosPerdidos = (location:string, area:string, status:string
 
       const { data: stats, isLoading: isStatsLoading, error: statsError,
       } = useQuery<any>({
+        refetchOnWindowFocus: false,
         queryKey: ["getStatsArticulos", area, location],
         enabled:enableList,
         queryFn: async () => {

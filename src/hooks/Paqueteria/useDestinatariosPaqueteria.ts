@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 export const useDestinatariosPaqueteria = (enabled: boolean) => {
   const { data, isLoading } = useQuery<DestinatarioPaquete[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["getDestinatariosPaqueteria"],
     enabled,
     // El contacto se edita en Linkaform: siempre datos frescos al abrir el modal.
