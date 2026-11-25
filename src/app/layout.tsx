@@ -5,6 +5,7 @@ import "./globals.css";
 import "./theme-palette.css";
 import { Toaster } from "@/components/ui/sonner";
 import Providers from "./providers";
+import { LoginIntro } from "@/components/login-intro/login-intro";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -38,6 +39,8 @@ export default function RootLayout({
         {children}
 
         <Toaster/>
+
+        <LoginIntro />
 
         </Providers>
 

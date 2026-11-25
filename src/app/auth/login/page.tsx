@@ -26,6 +26,11 @@ import { getShift } from "@/lib/get-shift";
 import { useBoothStore } from "@/store/useBoothStore";
 import { errorMsj } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  cancelLoginIntro,
+  loginIntroOk,
+  playLoginIntro,
+} from "@/components/login-intro/login-intro";
 
 const formSchema = z.object({
   username: z
@@ -56,8 +61,10 @@ export default function LoginPage() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
+      playLoginIntro(); // el logo vuela al centro y late mientras se valida
       const response = await getLogin(values.username, values.password);
       if (response.success) {
+        loginIntroOk(); // aparece el slogan; se va al cargar el dashboard
         setAuth(
           response.jwt,
           response.session_id,
@@ -94,12 +101,14 @@ export default function LoginPage() {
 
         router.push("/");
       } else {
+        cancelLoginIntro(); // el logo regresa a la tarjeta
         form.setError("password", {
           type: "manual",
           message: response.error || "Usuario o contraseña inválida",
         });
       }
     } catch (error) {
+      cancelLoginIntro();
       console.log("Error durante el inicio de sesión:", error);
     } finally {
       setIsLoading(false);
@@ -108,12 +117,13 @@ export default function LoginPage() {
 
   return (
     <Suspense>
-      <div className="flex h-screen items-center justify-center bg-gray-100">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-gray-100 px-4 py-8">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <Card className="w-[440px] shadow-md border-0 rounded-2xl">
-              <CardContent className="flex flex-col items-center px-10 py-12">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="w-full max-w-[440px]">
+            <Card className="w-full shadow-md border-0 rounded-2xl">
+              <CardContent className="flex flex-col items-center px-6 py-10 sm:px-10 sm:py-12">
                 <Image
+                  id="login-logo"
                   className="mb-10 dark:brightness-0 dark:invert"
                   src="https://f001.backblazeb2.com/file/app-linkaform/public-client-126/71202/60b81349bde5588acca320e1/694ace05f1bef74262302cc9.png"
                   alt="Clave 10"

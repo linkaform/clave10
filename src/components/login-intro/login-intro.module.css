@@ -1,0 +1,106 @@
+/* Animación del inicio de sesión, por fases (las controla login-intro.tsx):
+   - esperando: el logo del login vuela al centro (FLIP) y el escudo late mientras corre la petición.
+   - exito:     el 10 rebota, el logo se recorre a la izquierda y aparece "Operación segura.";
+                sigue latiendo hasta que el dashboard está listo.
+   - saliendo:  todo se desvanece.
+   - regresando (login fallido): el logo vuelve a la tarjeta y el fondo se va. */
+
+.overlay {
+  --logo: #212a4d;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+}
+:global(.dark) .overlay {
+  --logo: #e8ebf7;
+}
+
+/* fondo aparte para que entre y salga con fade sin afectar al logo */
+.fondo {
+  position: absolute;
+  inset: 0;
+  background: var(--c10-canvas, #f3f5f8);
+  opacity: 0;
+  animation: fadeIn 0.4s ease forwards;
+}
+.regresando .fondo {
+  animation: fadeOutFondo 0.45s ease forwards;
+}
+.saliendo {
+  animation: fadeOut 0.45s ease forwards;
+}
+
+.vuelo {
+  position: relative;
+  width: min(820px, 88vw);
+  will-change: transform;
+}
+.svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+  fill: var(--logo);
+}
+.p {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+/* el escudo late desde que aterriza hasta que todo termina */
+.escudo {
+  animation: latido 1.6s 0.7s ease-in-out infinite;
+}
+.regresando .escudo {
+  animation: none;
+}
+
+/* ----- fase de éxito ----- */
+.raya,
+.slogan {
+  opacity: 0;
+}
+.exito .diez {
+  animation: bounce 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.exito .todo {
+  animation: toLeft 0.5s 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.exito .raya {
+  transform: scaleY(0);
+  animation: grow 0.3s 0.4s cubic-bezier(0.3, 1.4, 0.5, 1) forwards;
+}
+.slogan {
+  font: 700 150px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  transform: translateX(-60px);
+}
+.exito .slogan {
+  animation: slideIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn { to { opacity: 1; } }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes fadeOutFondo { from { opacity: 1; } to { opacity: 0; } }
+@keyframes bounce { 0% { transform: scale(1); } 45% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes slideIn { to { opacity: 1; transform: none; } }
+@keyframes toLeft { to { transform: translateX(-462px); } }
+@keyframes grow { to { opacity: 1; transform: none; } }
+@keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+/* ----- móvil: el logo sube y el slogan aparece abajo en una línea (composición y 17..1139, centro del viewBox 414) ----- */
+.movil .vuelo {
+  width: 86vw;
+}
+.movil.exito .todo {
+  animation-name: toUp;
+}
+.movil .raya {
+  transform: scaleX(0);
+}
+.movil .slogan {
+  font-size: 175px;
+  transform: translateY(40px);
+}
+@keyframes toUp { to { transform: translateY(-164px); } }
+
