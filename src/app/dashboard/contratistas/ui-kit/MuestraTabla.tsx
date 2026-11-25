@@ -1,7 +1,7 @@
 "use client";
 // F0-05 · Ejemplo del listado completo para la página de muestra: los tres modos con el
 // mismo dato, orden, ancho ajustable, paginación, selección con acciones masivas, estados
-// vacíos, panel de detalle (F0-07) y botón flotante. Datos inventados.
+// vacíos, panel de detalle (F0-07), filtros (F0-06) y botón flotante. Datos inventados.
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ClipboardCheck, Copy, Download, Eye, FileText, IdCard, Pencil, Plus, RotateCw, ShieldCheck, Trash2, UserRound } from "lucide-react";
@@ -11,6 +11,9 @@ import {
   TarjetaCompacta, TarjetaLista, avisar, tipoVacio, useTabla, useVista,
 } from "@/components/contratistas/ui";
 import { Dato, Datos, PANEL_OJO, PanelDetalle, TarjetaPanel } from "@/components/contratistas/panel";
+import {
+  ConFiltros, FECHA_TODOS, FiltroChips, FiltroFecha, FiltroInterruptor, FiltroLista, FiltrosCabecera, coincide, enFecha, enLista, useFiltros,
+} from "@/components/contratistas/filtros";
 import { ESTATUS_REPSE_TONO, SEMAFORO_TONO, semaforo } from "@/mappers/contratistas.mapper";
 import type { EstatusRepse } from "@/types/contratistas/empresa";
 
@@ -62,11 +65,12 @@ const BASE: Ctr[] = NOMBRES.map((razon, i) => {
   };
 });
 
-/** Búsqueda sin acentos ni mayúsculas. */
-const normal = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-
 const SIMULAR = ["3 registros", "42 registros", "Sin registros", "Error", "Tiempo agotado"] as const;
 type Simular = (typeof SIMULAR)[number];
+
+/** "26-05-12" → "2026-05-12" */
+const fechaVence = (c: Ctr) => (c.repse === "Sin REPSE" ? null : `20${c.vence}`);
+const estatusDe = (c: Ctr) => (c.activo ? "Activo" : "Inactivo");
 
 function CopiarRfc({ rfc }: { rfc: string }) {
   return (
@@ -99,13 +103,55 @@ export function MuestraTabla() {
   const [vista, setVista] = useVista("ui-kit", "tabla");
   const [abierto, setAbierto] = useState<{ c: Ctr; enTabla: boolean } | null>(null);
   const [borrar, setBorrar] = useState<Ctr[] | null>(null);
+  const f = useFiltros({ estatus: [] as string[], repse: [] as string[], representante: [] as string[], vence: FECHA_TODOS, conContratos: false });
+  const v = f.valores;
 
-  const datos = useMemo(() => {
-    if (simular !== "3 registros" && simular !== "42 registros") return [];
-    const base = simular === "3 registros" ? filas.slice(0, 3) : filas;
-    const t = normal(q.trim());
-    return t ? base.filter((c) => normal(`${c.razon} ${c.rfc} ${c.folio}`).includes(t)) : base;
-  }, [filas, q, simular]);
+  // Todo lo que hay antes de buscar y filtrar: de aquí salen los contadores de cada opción
+  const base = useMemo(
+    () => (simular === "3 registros" ? filas.slice(0, 3) : simular === "42 registros" ? filas : []),
+    [filas, simular],
+  );
+  const cuantos = (fn: (c: Ctr) => boolean) => base.filter(fn).length;
+
+  const datos = useMemo(
+    () =>
+      base.filter(
+        (c) =>
+          coincide(q, c.razon, c.rfc, c.folio) &&
+          enLista(v.estatus, estatusDe(c)) &&
+          enLista(v.repse, c.repse) &&
+          enLista(v.representante, c.representante) &&
+          enFecha(fechaVence(c), v.vence) &&
+          (!v.conContratos || c.contratos > 0),
+      ),
+    [base, q, v],
+  );
+
+  const controles = (
+    <>
+      <FiltroChips
+        titulo="Estatus"
+        opciones={["Activo", "Inactivo"].map((e) => ({ valor: e, cuenta: cuantos((c) => estatusDe(c) === e) }))}
+        valor={v.estatus}
+        onCambio={(x) => f.poner("estatus", x)}
+      />
+      <FiltroChips
+        titulo="REPSE"
+        opciones={["Vigente", "Por vencer", "Vencido", "Sin REPSE"].map((e) => ({ valor: e, cuenta: cuantos((c) => c.repse === e) }))}
+        valor={v.repse}
+        onCambio={(x) => f.poner("repse", x)}
+      />
+      <FiltroLista
+        titulo="Representante"
+        placeholder="Selecciona un representante"
+        opciones={REPRES.map((r) => ({ valor: r, cuenta: cuantos((c) => c.representante === r) }))}
+        valor={v.representante}
+        onCambio={(x) => f.poner("representante", x)}
+      />
+      <FiltroFecha titulo="Vence REPSE" valor={v.vence} onCambio={(x) => f.poner("vence", x)} />
+      <FiltroInterruptor titulo="Con contratos" descripcion="Solo los que tienen al menos uno" valor={v.conContratos} onCambio={(x) => f.poner("conContratos", x)} />
+    </>
+  );
 
   const columnas = useMemo<ColumnDef<Ctr, unknown>[]>(
     () => [
@@ -148,7 +194,7 @@ export function MuestraTabla() {
   const error = simular === "Error" ? new Error("Error 500") : simular === "Tiempo agotado" ? new Error("Tiempo agotado") : null;
   const vacio = (
     <EstadoVacio
-      tipo={tipoVacio({ error, filtrando: !!q.trim() })}
+      tipo={tipoVacio({ error, filtrando: !!q.trim() || f.activos })}
       accion={
         error ? (
           <Boton variante="contorno" tam="sm" icono={<RotateCw />} onClick={() => setSimular("3 registros")}>
@@ -186,6 +232,7 @@ export function MuestraTabla() {
           <ChipKpi n={datos.length} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <FiltrosCabecera angosto vista={vista} cuenta={f.cuenta} onLimpiar={f.limpiar} filtros={controles} />
           <Buscador value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar contratista" className="w-[260px]" />
           <SelectorVista vista={vista} onCambio={setVista} />
         </div>
@@ -198,78 +245,88 @@ export function MuestraTabla() {
           </ChipFiltro>
         ))}
       </div>
+      <p className="m-0 text-xs text-c10-meta">
+        Filtros (F0-06): panel a la izquierda en pantalla ancha; en tabla nace oculto. Angosta: botón en la cabecera (cards y lista) o
+        pastilla (tabla). Atajo del menú:{" "}
+        <a className="text-c10-acc underline" href="?estatus=Activo&repse=Por%20vencer">?estatus=Activo&amp;repse=Por vencer</a>
+      </p>
 
-      {vista === "tabla" && (
-        <Tabla
-          tabla={tabla}
-          seleccion
-          fijarPrincipal
-          claveAncho="ui-kit-contratistas"
-          acciones={(c) => <AccionesFila c={c} />}
-          nombreFila={(c) => c.razon}
-          filaActiva={abierto?.enTabla ? abierto.c.id : null}
-          vacio={vacio}
-        />
-      )}
+      {/* Panel lateral (o pastilla y cajón en pantallas angostas); en tabla nace oculto */}
+      <ConFiltros conCabecera cuenta={f.cuenta} onLimpiar={f.limpiar} filtros={controles} vista={vista} tope="96px">
+        <div className="flex flex-col gap-4">
+          {vista === "tabla" && (
+            <Tabla
+              tabla={tabla}
+              seleccion
+              fijarPrincipal
+              claveAncho="ui-kit-contratistas"
+              acciones={(c) => <AccionesFila c={c} />}
+              nombreFila={(c) => c.razon}
+              filaActiva={abierto?.enTabla ? abierto.c.id : null}
+              vacio={vacio}
+            />
+          )}
 
-      {vista !== "tabla" && !filasPagina.length && <div className="rounded-xl bg-c10-surface shadow-[0_0_0_1px_var(--c10-line-card)]">{vacio}</div>}
+          {vista !== "tabla" && !filasPagina.length && <div className="rounded-xl bg-c10-surface shadow-[0_0_0_1px_var(--c10-line-card)]">{vacio}</div>}
 
-      {/* Cards compactas: foto, nombre con punto de estatus, filas y pie de acciones. Sin folio (spec §3.11) */}
-      {vista === "cards" && !!filasPagina.length && (
-        <RejillaCards>
-          {filasPagina.map((r) => {
-            const c = r.original;
-            return (
-              <TarjetaCompacta
-                key={r.id}
-                etiqueta={`Ver detalle de ${c.razon}`}
-                onAbrir={() => abrir(c, false)}
-                seleccion={{ marcada: r.getIsSelected(), onCambio: (v) => r.toggleSelected(v), titulo: `Seleccionar ${c.razon}` }}
-                textoSinImagen="Logo del contratista"
-                titulo={c.razon}
-                estatus={{ texto: c.activo ? "Activo" : "Inactivo", activo: c.activo }}
-                acciones={<AccionesCard c={c} />}
-              >
-                <BarraCumplimiento pct={c.cumplimiento} icono={<ClipboardCheck />} />
-                <FilaDato icono={<IdCard />} etiqueta="RFC" copiar={c.rfc}>{c.rfc}</FilaDato>
-                <FilaDato icono={<ShieldCheck />} etiqueta="REPSE">{c.repse === "Sin REPSE" ? c.repse : `${c.repse} · vence ${c.vence}`}</FilaDato>
-                <FilaDato icono={<FileText />} etiqueta="Contratos">{c.contratos || "Sin contratos"}</FilaDato>
-                <FilaDato icono={<UserRound />} etiqueta="Representante">{c.representante}</FilaDato>
-              </TarjetaCompacta>
-            );
-          })}
-        </RejillaCards>
-      )}
+          {/* Cards compactas: foto, nombre con punto de estatus, filas y pie de acciones. Sin folio (spec §3.11) */}
+          {vista === "cards" && !!filasPagina.length && (
+            <RejillaCards>
+              {filasPagina.map((r) => {
+                const c = r.original;
+                return (
+                  <TarjetaCompacta
+                    key={r.id}
+                    etiqueta={`Ver detalle de ${c.razon}`}
+                    onAbrir={() => abrir(c, false)}
+                    seleccion={{ marcada: r.getIsSelected(), onCambio: (v) => r.toggleSelected(v), titulo: `Seleccionar ${c.razon}` }}
+                    textoSinImagen="Logo del contratista"
+                    titulo={c.razon}
+                    estatus={{ texto: c.activo ? "Activo" : "Inactivo", activo: c.activo }}
+                    acciones={<AccionesCard c={c} />}
+                  >
+                    <BarraCumplimiento pct={c.cumplimiento} icono={<ClipboardCheck />} />
+                    <FilaDato icono={<IdCard />} etiqueta="RFC" copiar={c.rfc}>{c.rfc}</FilaDato>
+                    <FilaDato icono={<ShieldCheck />} etiqueta="REPSE">{c.repse === "Sin REPSE" ? c.repse : `${c.repse} · vence ${c.vence}`}</FilaDato>
+                    <FilaDato icono={<FileText />} etiqueta="Contratos">{c.contratos || "Sin contratos"}</FilaDato>
+                    <FilaDato icono={<UserRound />} etiqueta="Representante">{c.representante}</FilaDato>
+                  </TarjetaCompacta>
+                );
+              })}
+            </RejillaCards>
+          )}
 
-      {/* Lista de cards: foto a la izquierda; nombre, estatus y folio; cumplimiento y datos */}
-      {vista === "lista" && !!filasPagina.length && (
-        <ColumnaLista>
-          {filasPagina.map((r) => {
-            const c = r.original;
-            return (
-              <TarjetaLista
-                key={r.id}
-                etiqueta={`Ver detalle de ${c.razon}`}
-                onAbrir={() => abrir(c, false)}
-                seleccion={{ marcada: r.getIsSelected(), onCambio: (v) => r.toggleSelected(v), titulo: `Seleccionar ${c.razon}` }}
-                textoSinImagen="Logo del contratista"
-                titulo={c.razon}
-                chips={<><Estatus c={c} /><ChipFolio folio={c.folio} /></>}
-                acciones={<AccionesCard c={c} />}
-              >
-                <BarraCumplimiento variante="bloque" pct={c.cumplimiento} detalle={`${Math.round((c.cumplimiento * 12) / 100)} de 12`} />
-                <DatoLista nombre="RFC" copiar={c.rfc}>{c.rfc}</DatoLista>
-                <DatoLista nombre="REPSE">{c.repse}</DatoLista>
-                <DatoLista nombre="Vence REPSE">{c.repse === "Sin REPSE" ? undefined : c.vence}</DatoLista>
-                <DatoLista nombre="Contratos">{c.contratos || "Sin contratos"}</DatoLista>
-                <DatoLista nombre="Representante">{c.representante}</DatoLista>
-              </TarjetaLista>
-            );
-          })}
-        </ColumnaLista>
-      )}
+          {/* Lista de cards: foto a la izquierda; nombre, estatus y folio; cumplimiento y datos */}
+          {vista === "lista" && !!filasPagina.length && (
+            <ColumnaLista>
+              {filasPagina.map((r) => {
+                const c = r.original;
+                return (
+                  <TarjetaLista
+                    key={r.id}
+                    etiqueta={`Ver detalle de ${c.razon}`}
+                    onAbrir={() => abrir(c, false)}
+                    seleccion={{ marcada: r.getIsSelected(), onCambio: (v) => r.toggleSelected(v), titulo: `Seleccionar ${c.razon}` }}
+                    textoSinImagen="Logo del contratista"
+                    titulo={c.razon}
+                    chips={<><Estatus c={c} /><ChipFolio folio={c.folio} /></>}
+                    acciones={<AccionesCard c={c} />}
+                  >
+                    <BarraCumplimiento variante="bloque" pct={c.cumplimiento} detalle={`${Math.round((c.cumplimiento * 12) / 100)} de 12`} />
+                    <DatoLista nombre="RFC" copiar={c.rfc}>{c.rfc}</DatoLista>
+                    <DatoLista nombre="REPSE">{c.repse}</DatoLista>
+                    <DatoLista nombre="Vence REPSE">{c.repse === "Sin REPSE" ? undefined : c.vence}</DatoLista>
+                    <DatoLista nombre="Contratos">{c.contratos || "Sin contratos"}</DatoLista>
+                    <DatoLista nombre="Representante">{c.representante}</DatoLista>
+                  </TarjetaLista>
+                );
+              })}
+            </ColumnaLista>
+          )}
 
-      <Paginacion tabla={tabla} />
+          <Paginacion tabla={tabla} />
+        </div>
+      </ConFiltros>
 
       <BarraSeleccion tabla={tabla}>
         <BotonBarra blanco icono={<Download />} onClick={() => avisar(`Se inició la descarga de ${tabla.getSelectedRowModel().rows.length} expedientes`, "info")}>
