@@ -9,6 +9,7 @@ import {
   avisar, folio, type EntidadFolio,
 } from "@/components/contratistas/ui";
 import type { Acento } from "@/lib/contratistas/contexto";
+import { MuestraDocumento } from "./MuestraDocumento";
 import { MuestraPanel } from "./MuestraPanel";
 import { MuestraTabla } from "./MuestraTabla";
 
@@ -239,6 +240,10 @@ export default function UiKitPage() {
 
         <Bloque titulo="Panel de detalle (F0-07)">
           <MuestraPanel />
+        </Bloque>
+
+        <Bloque titulo="Revisar documento (F0-13)">
+          <MuestraDocumento />
         </Bloque>
 
         <Bloque titulo="Folios">
