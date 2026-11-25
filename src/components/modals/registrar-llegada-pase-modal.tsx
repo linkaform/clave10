@@ -19,7 +19,7 @@ import {
   Sparkles,
   Truck,
 } from "lucide-react";
-import { cn, errorMsj, reemplazarGuionMinuscula } from "@/lib/utils";
+import { cn, errorMsj, normalizarFecha, reemplazarGuionMinuscula } from "@/lib/utils";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { useBoothStore } from "@/store/useBoothStore";
 import { getPassTransportista, createVisitTransportista, ocrAccesoTransportista } from "@/services/endpoints";
@@ -114,26 +114,6 @@ const extraerIdDePase = (raw: string): string => {
     // no es una URL válida — se usa el texto tal cual
   }
   return texto;
-};
-
-// El campo "Vigencia de Licencia" de la bitácora es tipo fecha: Linkaform
-// rechaza el registro completo ("Este campo debe ser una fecha") si recibe
-// otro formato. La vigencia que trae el pase la captura el transportista en
-// el formulario público, así que se normaliza a YYYY-MM-DD; si no se
-// reconoce como fecha se descarta en vez de bloquear el registro.
-const normalizarFecha = (valor: string): string => {
-  const v = (valor || "").trim();
-  if (!v) return "";
-  const valida = (y: string, m: string, d: string) => {
-    const iso = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-    const fecha = new Date(`${iso}T00:00:00`);
-    return !Number.isNaN(fecha.getTime()) && fecha.toISOString().startsWith(iso) ? iso : "";
-  };
-  const isoMatch = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (isoMatch) return valida(isoMatch[1], isoMatch[2], isoMatch[3]);
-  const mxMatch = v.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
-  if (mxMatch) return valida(mxMatch[3], mxMatch[2], mxMatch[1]);
-  return "";
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

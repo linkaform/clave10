@@ -1141,3 +1141,24 @@ export const convertirTextoAImagen = (texto: string): string => {
     ctx.fillText(texto, canvas.width / 2, canvas.height / 2);
     return canvas.toDataURL("image/png");
   };
+
+// El campo "Vigencia de Licencia" de la bitácora es tipo fecha: Linkaform
+// rechaza el registro completo ("Este campo debe ser una fecha") si recibe
+// otro formato. La vigencia la captura el transportista en el formulario
+// público o la lee la IA de la licencia (p. ej. "2034-2034"), así que se
+// normaliza a YYYY-MM-DD; si no se reconoce como fecha se descarta en vez de
+// bloquear el registro.
+export const normalizarFecha = (valor: string): string => {
+  const v = (valor || "").trim();
+  if (!v) return "";
+  const valida = (y: string, m: string, d: string) => {
+    const iso = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    const fecha = new Date(`${iso}T00:00:00`);
+    return !Number.isNaN(fecha.getTime()) && fecha.toISOString().startsWith(iso) ? iso : "";
+  };
+  const isoMatch = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) return valida(isoMatch[1], isoMatch[2], isoMatch[3]);
+  const mxMatch = v.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
+  if (mxMatch) return valida(mxMatch[3], mxMatch[2], mxMatch[1]);
+  return "";
+};

@@ -17,7 +17,7 @@ import {
   Trash2,
   Truck,
 } from "lucide-react";
-import { cn, errorMsj, reemplazarGuionMinuscula } from "@/lib/utils";
+import { cn, errorMsj, normalizarFecha, reemplazarGuionMinuscula } from "@/lib/utils";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { useCreateVisitTransportista } from "@/hooks/useCreateVisitTransportista";
 import { useBoothStore } from "@/store/useBoothStore";
@@ -555,7 +555,8 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
   // obligatorios; se exige la foto de la licencia (de ahí los lee la IA).
   // Factura/OC sigue pidiendo al menos 4 caracteres.
   const tieneFotoLicencia = documentos.some((d) => d.tipo === "licencia" && d.file_url);
-  const licenciaVencida = !!vigenciaLicencia && new Date(vigenciaLicencia) < new Date();
+  const vigenciaNormalizada = normalizarFecha(vigenciaLicencia);
+  const licenciaVencida = !!vigenciaNormalizada && new Date(`${vigenciaNormalizada}T00:00:00`) < new Date();
   // Rígidos y pickup no piden no. de tracto ni caja (junta 14 oct); el no. de
   // tracto ya no es obligatorio (junta 19 oct).
   const campos = camposDeVehiculo(tipoVehiculo);
@@ -602,7 +603,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
         nombre: conductor || null,
         celular: celular || null,
         no_licencia: noLicencia || null,
-        vigencia_licencia: vigenciaLicencia || null,
+        vigencia_licencia: normalizarFecha(vigenciaLicencia) || null,
         rfc: rfcConductor || null,
         acompanante: acompanante || null,
       },
@@ -647,7 +648,7 @@ export function NuevoAccesoTransportistaModal({ open, onClose }: Props) {
               nombre: conductor || null,
               celular: celular || null,
               no_licencia: noLicencia || null,
-              vigencia_licencia: vigenciaLicencia || null,
+              vigencia_licencia: normalizarFecha(vigenciaLicencia) || null,
               rfc: rfcConductor || null,
               acompanante: acompanante || null,
               foto_conductor: null,
