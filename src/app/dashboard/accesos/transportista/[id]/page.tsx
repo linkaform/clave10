@@ -2323,6 +2323,8 @@ export default function DetalleTransportistaPage() {
   const { fotos: galeriaFotos, isLoading: isLoadingGaleria } = useGetFotografiasTransportista(registrosFotografias);
 
   const unidadesInitialized = useRef(false);
+  // Unidades tal como están en el servidor; "Descartar" regresa a esto.
+  const unidadesGuardadasRef = useRef<UnidadItem[]>([]);
 
   useEffect(() => {
     if (!data || unidadesInitialized.current) return;
@@ -2423,6 +2425,7 @@ export default function DetalleTransportistaPage() {
         }]
       : mapped;
 
+    unidadesGuardadasRef.current = finalUnidades;
     setUnidades(finalUnidades);
     setExpandedUnits(new Set(finalUnidades.map((u) => u.id)));
   }, [data]);
@@ -2456,7 +2459,7 @@ export default function DetalleTransportistaPage() {
   // Cada sección guarda su draft; `null` = sin tocar y el campo muestra lo
   // guardado. Así un refetch nunca pisa lo que el usuario está escribiendo y
   // "Descartar" solo regresa los drafts a null. Todo se guarda desde el
-  // footer (handleSaveAll), una sección a la vez.
+  // footer (handleSaveAll) en una sola petición.
   type VehicleDraft = { tipo_vehiculo: string; placa: string; no_economico: string; marca: string; modelo: string; color: string };
   type MaterialDraft = { proveedor_cliente: string; no_orden_compra: string; procedencia: string };
 
@@ -2485,15 +2488,9 @@ export default function DetalleTransportistaPage() {
   const setMaterialField = (key: keyof MaterialDraft, value: string) =>
     setMaterialDraft((p) => ({ ...(p ?? savedMaterial), [key]: value }));
 
-  // Lanza el error para que handleSaveAll detenga la cola.
-  const saveMaterial = async (draft: MaterialDraft) => {
-    await saveBitacoraTransportistaRecord(id, "embarque", {
-      embarque: {
-        proveedor_cliente: draft.proveedor_cliente,
-        no_orden_compra:   draft.no_orden_compra,
-        procedencia:       draft.procedencia,
-      },
-    });
+  // Tras el guardado único del footer: refleja en cache lo que se mandó para
+  // que el campo no parpadee al valor viejo mientras llega el refetch.
+  const aplicarMaterialEnCache = (draft: MaterialDraft) =>
     queryClient.setQueryData(["visitaTransportista", id], (old: import("@/hooks/useGetVisitTransportista").VisitaTransportista | null) => {
       if (!old) return old;
       return {
@@ -2502,28 +2499,12 @@ export default function DetalleTransportistaPage() {
         vehiculo: old.vehiculo ? { ...old.vehiculo, procedencia: draft.procedencia } : old.vehiculo,
       };
     });
-  };
 
-  // Lanza el error para que handleSaveAll detenga la cola.
-  const saveVehicle = async (draft: VehicleDraft) => {
-    await saveBitacoraTransportistaRecord(id, "vehiculo", {
-      vehiculo: {
-        tipo_de_vehiculo:   draft.tipo_vehiculo,
-        placas_de_vehiculo: draft.placa,
-        num_eco_num_rotulo: draft.no_economico,
-        marca:  draft.marca,
-        modelo: draft.modelo,
-        color:  draft.color,
-      },
-    });
-    // Optimistic: actualizar cache inmediatamente
+  const aplicarVehiculoEnCache = (draft: VehicleDraft) =>
     queryClient.setQueryData(["visitaTransportista", id], (old: import("@/hooks/useGetVisitTransportista").VisitaTransportista | null) => {
       if (!old) return old;
       return { ...old, vehiculo: { ...old.vehiculo, ...draft } };
     });
-  };
-
-  const [savingUnidades, setSavingUnidades] = useState(false);
 
   interface Deletions {
     delete_remolques:    number[];
@@ -2555,24 +2536,38 @@ export default function DetalleTransportistaPage() {
     };
   };
 
-  const persistUnidades = async (list: UnidadItem[], deletions: Deletions = emptyDeletions()) => {
-    setSavingUnidades(true);
-    try {
-      const payload = {
-        ...serializeUnidades(list),
-        ...(deletions.delete_remolques.length    && { delete_remolques:    deletions.delete_remolques }),
-        ...(deletions.delete_contenedores.length && { delete_contenedores: deletions.delete_contenedores }),
-        ...(deletions.delete_materiales.length   && { delete_materiales:   deletions.delete_materiales }),
-      };
-      await saveBitacoraTransportistaRecord(id, "remolques", payload);
-      // Resetear para que el useEffect re-inicialice unidades con los índices reales del servidor
-      unidadesInitialized.current = false;
-      refetch();
-    } catch (err) {
-      console.error("[saveUnidades]", err);
-    } finally {
-      setSavingUnidades(false);
-    }
+  // Unidades siguen el mismo esquema que las demás secciones: agregar, editar
+  // o borrar solo cambia el estado local y acumula los índices a borrar; todo
+  // se manda desde el footer (handleSaveAll).
+  const [unidadesDirty, setUnidadesDirty] = useState(false);
+  const [unidadesDeletions, setUnidadesDeletions] = useState<Deletions>(emptyDeletions);
+
+  const mergeDeletions = (a: Deletions, b: Deletions): Deletions => ({
+    delete_remolques:    [...new Set([...a.delete_remolques,    ...b.delete_remolques])],
+    delete_contenedores: [...new Set([...a.delete_contenedores, ...b.delete_contenedores])],
+    delete_materiales:   [...new Set([...a.delete_materiales,   ...b.delete_materiales])],
+  });
+
+  const stageUnidades = (list: UnidadItem[], deletions?: Deletions) => {
+    setUnidades(list);
+    setUnidadesDirty(true);
+    if (deletions) setUnidadesDeletions((p) => mergeDeletions(p, deletions));
+  };
+
+  const payloadUnidades = (list: UnidadItem[], deletions: Deletions) => ({
+    ...serializeUnidades(list),
+    ...(deletions.delete_remolques.length    && { delete_remolques:    deletions.delete_remolques }),
+    ...(deletions.delete_contenedores.length && { delete_contenedores: deletions.delete_contenedores }),
+    ...(deletions.delete_materiales.length   && { delete_materiales:   deletions.delete_materiales }),
+  });
+
+  // Guardado inmediato de unidades, solo para "Analizar con IA". Al terminar
+  // se re-inicializan las unidades con los índices reales del servidor.
+  const saveUnidades = async (list: UnidadItem[], deletions: Deletions) => {
+    await saveBitacoraTransportistaRecord(id, "remolques", payloadUnidades(list, deletions));
+    setUnidadesDirty(false);
+    setUnidadesDeletions(emptyDeletions());
+    unidadesInitialized.current = false;
   };
 
   const toggleUnit = (id: string) =>
@@ -2632,20 +2627,14 @@ export default function DetalleTransportistaPage() {
   // Varios documentos cambiados se mandan uno por uno (mismo registro). Cada
   // uno que se guarda deja de estar pendiente; si uno falla se lanza el error
   // y los que faltan conservan su draft.
-  const saveEditDocs = async (cambios: (readonly [number, DocDraft])[]) => {
-    for (const [idx, draft] of cambios) {
-      await saveBitacoraTransportistaRecord(id, "documentos", {
-        documentos_adicionales: { ...draft, index: idx },
-      });
-      queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
-        ["visitaTransportista", id],
-        (old) => old ? { ...old, documentos_adicionales: old.documentos_adicionales?.map((d, i) =>
-          i === idx ? { ...d, ...draft } : d
-        ) } : old
-      );
-      setDocDrafts((p) => { const next = { ...p }; delete next[idx]; return next; });
-    }
-  };
+  const aplicarDocsEnCache = (cambios: (readonly [number, DocDraft])[]) =>
+    queryClient.setQueryData<import("@/hooks/useGetVisitTransportista").VisitaTransportista>(
+      ["visitaTransportista", id],
+      (old) => old ? { ...old, documentos_adicionales: old.documentos_adicionales?.map((d, i) => {
+        const cambio = cambios.find(([idx]) => idx === i);
+        return cambio ? { ...d, ...cambio[1] } : d;
+      }) } : old
+    );
 
   const startReplaceDoc = (idx: number) => {
     replacingDocIdx.current = idx;
@@ -2720,59 +2709,72 @@ export default function DetalleTransportistaPage() {
 
   const [savingStagedDocs, setSavingStagedDocs] = useState(false);
   // Footer global: secciones con cambios y avance del guardado.
-  const [saveProgress, setSaveProgress] = useState<{ done: number; total: number } | null>(null);
-  const savingAll = saveProgress !== null;
-  const seccionesConCambios = [vehicleDirty, materialDirty, docsDirty].filter(Boolean).length;
+  const [savingAll, setSavingAll] = useState(false);
+  const seccionesConCambios = [vehicleDirty, materialDirty, docsDirty, unidadesDirty].filter(Boolean).length;
 
   // Footer, documentos nuevos y unidades guardan sobre el mismo registro —
   // mientras cualquiera esté en curso, se bloquean los demás guardados para no
   // mandar peticiones concurrentes.
-  const savingRegistroCompartido = savingAll || savingStagedDocs || savingUnidades;
+  const savingRegistroCompartido = savingAll || savingStagedDocs;
 
   const descartarCambios = () => {
     setVehicleDraft(null);
     setMaterialDraft(null);
     setDocDrafts({});
+    setUnidades(unidadesGuardadasRef.current);
+    setExpandedUnits(new Set(unidadesGuardadasRef.current.map((u) => u.id)));
+    setUnidadesDirty(false);
+    setUnidadesDeletions(emptyDeletions());
   };
 
-  // Recorre las secciones con cambios UNA POR UNA (nunca Promise.all): todas
-  // llaman a saveBitacoraTransportistaRecord sobre el mismo registro y en
-  // paralelo una podría pisar a otra. Si una falla se detiene; las ya
-  // guardadas quedan guardadas y la que falló conserva su draft.
+  // Todas las secciones van en UNA sola petición: el back
+  // (save_bitac_transportista_record) lee cada clave que venga en el payload,
+  // corre los borrados y hace un solo patch al registro. Si falla, no se
+  // limpia ningún draft y el usuario puede reintentar.
   const handleSaveAll = async () => {
-    const pendientes: { nombre: string; run: () => Promise<void> }[] = [];
-    if (vehicleDirty && vehicleDraft) {
-      const draft = vehicleDraft;
-      pendientes.push({ nombre: "Datos del Vehículo", run: async () => { await saveVehicle(draft); setVehicleDraft(null); } });
+    const payload: Record<string, unknown> = {};
+    const vehiculo = vehicleDirty ? vehicleDraft : null;
+    const material = materialDirty ? materialDraft : null;
+    const docs = docsDirty ? docsCambiados : [];
+    if (vehiculo) {
+      payload.vehiculo = {
+        tipo_de_vehiculo:   vehiculo.tipo_vehiculo,
+        placas_de_vehiculo: vehiculo.placa,
+        num_eco_num_rotulo: vehiculo.no_economico,
+        marca:  vehiculo.marca,
+        modelo: vehiculo.modelo,
+        color:  vehiculo.color,
+      };
     }
-    if (materialDirty && materialDraft) {
-      const draft = materialDraft;
-      pendientes.push({ nombre: "Material Carga / Descarga", run: async () => { await saveMaterial(draft); setMaterialDraft(null); } });
+    if (material) {
+      payload.embarque = {
+        proveedor_cliente: material.proveedor_cliente,
+        no_orden_compra:   material.no_orden_compra,
+        procedencia:       material.procedencia,
+      };
     }
-    if (docsDirty) {
-      const cambios = docsCambiados;
-      pendientes.push({ nombre: "Documentos", run: () => saveEditDocs(cambios) });
-    }
-    if (!pendientes.length) return;
+    if (unidadesDirty) Object.assign(payload, payloadUnidades(unidades, unidadesDeletions));
+    if (docs.length) payload.documentos_adicionales = docs.map(([idx, d]) => ({ ...d, index: idx }));
+    if (!Object.keys(payload).length) return;
 
-    let guardadas = 0;
-    setSaveProgress({ done: 0, total: pendientes.length });
+    setSavingAll(true);
     try {
-      for (const seccion of pendientes) {
-        setSaveProgress({ done: guardadas + 1, total: pendientes.length });
-        try {
-          await seccion.run();
-          guardadas++;
-        } catch (err) {
-          console.error("[handleSaveAll]", seccion.nombre, err);
-          toast.error(`Error al guardar ${seccion.nombre}${guardadas ? ` — ${guardadas} de ${pendientes.length} secciones sí se guardaron` : ""}`);
-          return;
-        }
+      await saveBitacoraTransportistaRecord(id, "cambios", payload);
+      if (vehiculo) { aplicarVehiculoEnCache(vehiculo); setVehicleDraft(null); }
+      if (material) { aplicarMaterialEnCache(material); setMaterialDraft(null); }
+      if (docs.length) { aplicarDocsEnCache(docs); setDocDrafts({}); }
+      if (unidadesDirty) {
+        setUnidadesDirty(false);
+        setUnidadesDeletions(emptyDeletions());
+        unidadesInitialized.current = false;
       }
       toast.success("Cambios guardados");
+      refetch();
+    } catch (err) {
+      console.error("[handleSaveAll]", err);
+      toast.error("Error al guardar los cambios");
     } finally {
-      setSaveProgress(null);
-      if (guardadas) refetch();
+      setSavingAll(false);
     }
   };
   const guardarDocumentosPendientes = async () => {
@@ -3015,8 +3017,7 @@ export default function DetalleTransportistaPage() {
             });
           }
           setUnidades(newUnidades);
-          await saveBitacoraTransportistaRecord(id, "remolques", serializeUnidades(newUnidades));
-          unidadesInitialized.current = false;
+          await saveUnidades(newUnidades, unidadesDeletions);
           camposLlenados += newUnidades.length;
         } else if (unidades.length === 1 && (aiRems.length > 0 || aiCons.length > 0 || aiMats.length > 0)) {
           // Reintento sobre una unidad ya existente: si un análisis previo (con
@@ -3047,8 +3048,7 @@ export default function DetalleTransportistaPage() {
                 : { ...existente, remolque: { ...existente.remolque, materiales: nuevosMateriales } };
               const newUnidades = [actualizada];
               setUnidades(newUnidades);
-              await saveBitacoraTransportistaRecord(id, "remolques", serializeUnidades(newUnidades));
-              unidadesInitialized.current = false;
+              await saveUnidades(newUnidades, unidadesDeletions);
               camposLlenados += nuevosMateriales.length;
             }
           }
@@ -3896,12 +3896,7 @@ export default function DetalleTransportistaPage() {
               <span className="text-[11px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
                 {unidades.length}
               </span>
-              {savingUnidades && (
-                <span className="text-[11px] font-semibold text-blue-500 flex items-center gap-1.5 ml-auto">
-                  <span className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                  Guardando…
-                </span>
-              )}
+              {unidadesDirty && <span className="ml-auto"><SinGuardarBadge /></span>}
             </div>
             <div className="p-4 space-y-5">
               {/* Datos del vehículo */}
@@ -3999,19 +3994,17 @@ export default function DetalleTransportistaPage() {
                           </span>
                         </button>
                         <div className="flex items-center gap-2 shrink-0">
-                          <button type="button" disabled={savingUnidades || savingAll || isLocked || analyzingDocs}
+                          <button type="button" disabled={savingAll || isLocked || analyzingDocs}
                             title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
                             onClick={() => setEditingUnit(u)}
                             className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <Pencil className="w-3 h-3" />
                           </button>
                           {!isLocked && (
-                            <button type="button" disabled={savingUnidades || savingAll || analyzingDocs}
+                            <button type="button" disabled={savingAll || analyzingDocs}
                               title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
                               onClick={() => {
-                                const next = unidades.filter((x) => x.id !== u.id);
-                                setUnidades(next);
-                                persistUnidades(next, deletionsFromUnit(u));
+                                stageUnidades(unidades.filter((x) => x.id !== u.id), deletionsFromUnit(u));
                               }}
                               className="w-6 h-6 rounded-md hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                               <Trash2 className="w-3 h-3" />
@@ -4130,7 +4123,7 @@ export default function DetalleTransportistaPage() {
                     </div>
                     );
                   })}
-                  <button type="button" disabled={savingUnidades || savingAll || isLocked || analyzingDocs}
+                  <button type="button" disabled={savingAll || isLocked || analyzingDocs}
                     title={analyzingDocs ? "Espera a que termine el análisis con IA" : undefined}
                     onClick={() => { setAgregarUnidadDefaultConfig(undefined); setShowAgregarUnidad(true); }}
                     className="w-full border-2 border-dashed border-blue-200 rounded-xl py-3.5 text-sm font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -4232,7 +4225,7 @@ export default function DetalleTransportistaPage() {
                 <div className="pt-1 border-t border-gray-50 relative">
                   <button
                     type="button"
-                    disabled={savingUnidades || savingAll || isLocked || analyzingDocs}
+                    disabled={savingAll || isLocked || analyzingDocs}
                     onClick={abrirAgregarMaterial}
                     className="w-full h-8 rounded-lg border border-dashed border-blue-200 text-xs font-semibold text-blue-500 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
                     <Plus className="w-3.5 h-3.5" /> Agregar material
@@ -4804,8 +4797,7 @@ export default function DetalleTransportistaPage() {
           <PendingChangesFooter
             label={`${seccionesConCambios} ${seccionesConCambios === 1 ? "sección" : "secciones"} con cambios sin guardar`}
             saving={savingAll}
-            progress={saveProgress}
-            saveDisabled={analyzingDocs || savingStagedDocs || savingUnidades || uploadingDocIdx !== null}
+            saveDisabled={analyzingDocs || savingStagedDocs || uploadingDocIdx !== null}
             saveDisabledReason={
               analyzingDocs ? "Espera a que termine el análisis con IA"
               : uploadingDocIdx !== null ? "Espera a que termine de subir el archivo"
@@ -4908,10 +4900,8 @@ export default function DetalleTransportistaPage() {
           tipoVehiculo={data?.vehiculo?.tipo_vehiculo}
           onClose={() => { setShowAgregarUnidad(false); setAgregarUnidadDefaultConfig(undefined); }}
           onSave={(u) => {
-            const next = [...unidades, u];
-            setUnidades(next);
+            stageUnidades([...unidades, u]);
             setExpandedUnits((prev) => new Set(prev).add(u.id));
-            persistUnidades(next);
             setAgregarUnidadDefaultConfig(undefined);
           }}
         />
@@ -4952,10 +4942,8 @@ export default function DetalleTransportistaPage() {
           tipoVehiculo={data?.vehiculo?.tipo_vehiculo}
           onClose={() => setEditingUnit(null)}
           onSave={(updated) => {
-            const next = unidades.map((x) => x.id === updated.id ? updated : x);
-            setUnidades(next);
+            stageUnidades(unidades.map((x) => x.id === updated.id ? updated : x), deletionsFromMaterialDiff(editingUnit, updated));
             setEditingUnit(null);
-            persistUnidades(next, deletionsFromMaterialDiff(editingUnit, updated));
           }}
         />
       )}
