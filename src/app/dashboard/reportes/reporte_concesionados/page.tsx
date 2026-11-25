@@ -1,22 +1,24 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { BarChart3, ChevronDown, ChevronLeft, FileDown, SlidersHorizontal, Table2 } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { BarChart3, ChevronLeft, FileDown, SlidersHorizontal, Table2 } from "lucide-react";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
 import { KpiChip, SegTabs } from "../components/shared/ui";
-import { MiniCalendar } from "../components/shared/periodo/MiniCalendar";
+import { FechaPicker } from "../components/shared/periodo/FechaPicker";
 import { PeriodNav } from "../components/shared/periodo/PeriodNav";
 import { ChartCard } from "../components/shared/graficas/Charts";
 import { ReportTable } from "../components/shared/tabla/ReportTable";
 import { descargarExcel } from "../components/shared/excel";
 import { MultiCombo } from "../components/shared/filtros/MultiCombo";
+import { Seccion } from "../components/shared/filtros/Seccion";
 import { QuickFilters, QuickPill } from "../components/shared/filtros/QuickFilters";
 import { EcoPanel, EcoRail } from "../components/concesionados/EcoPanel";
+import { DetallePanel } from "../components/concesionados/DetallePanel";
 import { useReporteConcesionados } from "./lib/api";
 import { Calc, QI, QUICK, SER, filtrarTabla } from "./lib/cards";
 import { Prestamo, VLBL, Vista, addDias, corte, enriquecer, n, paso, periodo, sod, uniq } from "./lib/core";
 import { resumen } from "./lib/resumen";
+import { PanelSel, panelSpec } from "./lib/paneles";
 import { articulos, economico, forzadas, guardias, solicitantes } from "./lib/tabs";
 
 type Tab = "resumen" | "guardias" | "solicitantes" | "articulos" | "forzadas" | "economico";
@@ -67,85 +69,6 @@ const QuickIcon = ({ k }: { k: string }) => (
   <span className="inline-flex h-5 w-5 flex-none items-center justify-center" style={{ color: QI[k][1] }}><Icono d={QI[k][0]} /></span>
 );
 
-// Campo "Fecha" del panel: abre el mini calendario.
-// El calendario (316px) es más ancho que el panel (280px, con scroll que recorta), así que
-// se pinta en un portal con posición fija, pegado al botón y sin salirse de la ventana.
-const CAL_W = 316;
-const FechaPicker = ({ view, date, label, onPick }: { view: "dia" | "semana" | "mes"; date: Date; label: string; onPick: (d: Date) => void }) => {
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
-  const open = !!pos;
-  const btn = useRef<HTMLButtonElement>(null);
-  const pop = useRef<HTMLDivElement>(null);
-  const abrir = () => {
-    const r = btn.current?.getBoundingClientRect();
-    if (!r) return;
-    setPos({ left: Math.max(8, Math.min(r.left, window.innerWidth - CAL_W - 8)), top: r.bottom + 8 });
-  };
-  useEffect(() => {
-    if (!open) return;
-    const cerrar = () => setPos(null);
-    const down = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (!btn.current?.contains(t) && !pop.current?.contains(t)) cerrar();
-    };
-    const tecla = (e: KeyboardEvent) => e.key === "Escape" && cerrar();
-    // Si se recorre el panel o la página el botón se mueve: mejor cerrar que dejarlo flotando
-    const scroll = (e: Event) => { if (!pop.current?.contains(e.target as Node)) cerrar(); };
-    // Si no cabe abajo, se sube para que se vea completo
-    const r = pop.current?.getBoundingClientRect();
-    if (r && r.bottom > window.innerHeight - 8) {
-      const b = btn.current?.getBoundingClientRect();
-      if (b) setPos(p => p && { ...p, top: Math.max(8, b.top - r.height - 8) });
-    }
-    document.addEventListener("mousedown", down);
-    document.addEventListener("keydown", tecla);
-    window.addEventListener("scroll", scroll, true);
-    window.addEventListener("resize", cerrar);
-    return () => {
-      document.removeEventListener("mousedown", down);
-      document.removeEventListener("keydown", tecla);
-      window.removeEventListener("scroll", scroll, true);
-      window.removeEventListener("resize", cerrar);
-    };
-  }, [open]);
-  return (
-    <div className="relative">
-      <button
-        ref={btn}
-        type="button"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => (open ? setPos(null) : abrir())}
-        className={`flex h-10 w-full items-center justify-between gap-2 rounded-lg border bg-c10-surface px-3 text-left text-sm tabular-nums text-c10-title transition-colors ${open ? "border-button-primary shadow-[0_0_0_3px_rgba(59,130,246,.15)]" : "border-c10-line"}`}
-      >
-        {label}
-        <ChevronDown size={16} aria-hidden="true" className={`flex-none transition-transform duration-200 ${open ? "rotate-180 text-button-primary" : "text-c10-faint"}`} />
-      </button>
-      {pos && createPortal(
-        <div
-          ref={pop}
-          role="dialog"
-          aria-label="Elegir fecha"
-          style={{ left: pos.left, top: pos.top }}
-          className="fixed z-[70] rounded-xl bg-c10-surface p-3 shadow-[0_0_0_1px_var(--c10-line),0_12px_28px_rgba(15,23,42,.12)]"
-        >
-          <MiniCalendar view={view} date={date} onPick={d => { onPick(d); setPos(null); }} />
-        </div>,
-        document.body,
-      )}
-    </div>
-  );
-};
-
-const Seccion = ({ titulo, cnt, children }: { titulo: string; cnt?: number; children: React.ReactNode }) => (
-  <div className="border-t border-c10-sunken py-3.5">
-    <div className="mb-2.5 flex items-center gap-1.5 text-[13px] font-semibold text-c10-label">
-      {titulo}
-      {!!cnt && <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-button-primary px-[5px] text-[11px] font-bold text-white">{cnt}</span>}
-    </div>
-    {children}
-  </div>
-);
 
 const ReporteConcesionadosPage = () => {
   const wide = useWide();
@@ -183,10 +106,13 @@ const ReporteConcesionadosPage = () => {
   const filtrar = (omit?: FKey) => rows.filter(r =>
     usa.every(k => k === omit || k === "guardia" || !f[k].length || FDEF[k].campo(r).some(v => f[k].includes(v))));
 
-  const R: Calc = useMemo(() => {
+  const multi = useMemo(() => (selectedLocations.length ? selectedLocations : uniq(rows.map(r => r.ubicacion))).length > 1, [rows, selectedLocations]);
+  const { base, c } = useMemo(() => {
     const base = rows.filter(r => usa.every(k => k === "guardia" || !f[k].length || FDEF[k].campo(r).some(v => f[k].includes(v))));
-    const c = corte(base, p, usa.includes("guardia") ? f.guardia : []);
-    const multi = (selectedLocations.length ? selectedLocations : uniq(rows.map(r => r.ubicacion))).length > 1;
+    return { base, c: corte(base, p, usa.includes("guardia") ? f.guardia : []) };
+  }, [rows, usa, f, p]);
+
+  const R: Calc = useMemo(() => {
     switch (tab) {
       case "resumen": return resumen(c, multi);
       case "guardias": return guardias(c, f.guardia, multi);
@@ -198,7 +124,14 @@ const ReporteConcesionadosPage = () => {
       }
       case "economico": return economico(c, multi);
     }
-  }, [rows, usa, f, p, tab, agrupar, quick, d0, selectedLocations]);
+  }, [base, c, multi, f, tab, agrupar, quick, d0]);
+
+  // Panel de detalle: se recalcula con el periodo y los filtros actuales (lib/paneles.ts)
+  const [panel, setPanel] = useState<PanelSel | null>(null);
+  // El panel de cierres forzados cuenta solo los que pasan los filtros de estatus, como las gráficas
+  const actForz = useMemo(() => (tab === "forzadas" ? quick.filter(k => QUICK.forzadas.includes(k)) : []), [tab, quick]);
+  const spec = useMemo(() => (panel ? panelSpec(panel, c, multi, actForz) : null), [panel, c, multi, actForz]);
+  useEffect(() => setPanel(null), [tab]);
 
   // Opciones de cada filtro: lo que hubo en el periodo con los demás filtros aplicados
   const opciones = (k: FKey) => {
@@ -271,7 +204,7 @@ const ReporteConcesionadosPage = () => {
           )}
           {(!rows.length || keys.some(k => (R.qn[k] ?? 0) > 0 || act.includes(k))) && (
             <Seccion titulo="Estatus" cnt={act.length}>
-              <QuickFilters pills={pills} active={act} onToggle={toggleQuick} todos={!rows.length} />
+              <QuickFilters pildora pills={pills} active={act} onToggle={toggleQuick} todos={!rows.length} />
             </Seccion>
           )}
         </>
@@ -376,7 +309,7 @@ const ReporteConcesionadosPage = () => {
 
         <main className="flex min-w-0 flex-1 flex-col gap-4">
           {graficas ? (
-            R.graf.map(cd => <ChartCard key={cd.title} card={cd} act={act} quick={keys} />)
+            R.graf.map(cd => <ChartCard key={cd.title} card={cd} act={act} quick={keys} onSelect={(sel, serie) => setPanel({ sel, serie })} />)
           ) : (
             <ReportTable
               tablas={tablas}
@@ -387,6 +320,7 @@ const ReporteConcesionadosPage = () => {
             />
           )}
         </main>
+        {spec && <DetallePanel spec={spec} onClose={() => setPanel(null)} />}
         {graficas && R.eco && (ecoOpen ? <EcoPanel eco={R.eco} label={p.label} onClose={() => setEcoOpen(false)} /> : <EcoRail onOpen={() => setEcoOpen(true)} />)}
       </div>
     </div>

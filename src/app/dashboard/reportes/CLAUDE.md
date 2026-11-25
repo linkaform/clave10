@@ -10,7 +10,7 @@ reportes/
   components/
     shared/                 piezas comunes a todos los reportes  ← usar primero
     asistencia/             vistas propias del reporte de asistencias
-    concesionados/          vistas propias del reporte de concesionados (EcoPanel)
+    concesionados/          vistas propias del reporte de concesionados (EcoPanel, DetallePanel)
   reporte_<nombre>/
     page.tsx                solo arma las piezas: estado, filtros, layout
     layout.tsx              BasicLayout + metadata
@@ -30,19 +30,21 @@ reportes/
 |---|---|---|
 | `ui.tsx` | `SegTabs`, `KpiChip`, `Empty`, `Avatar`, `Checkbox`, `matches`, `useOutside` | Tabs unidos, chip del encabezado, vacío, búsqueda sin acentos, cerrar al hacer clic fuera |
 | `filtros/MultiCombo.tsx` | `MultiCombo` | Selección múltiple con búsqueda, para el panel de filtros |
-| `filtros/QuickFilters.tsx` | `QuickFilters`, `QuickPill` | Botones de estatus con conteo (varios activos a la vez). `todos` muestra también los que están en 0 |
+| `filtros/QuickFilters.tsx` | `QuickFilters`, `QuickPill` | Botones de estatus con conteo (varios activos a la vez). `todos` muestra también los que están en 0. `pildora` los pinta grises (activo azul sólido), como van dentro del panel |
+| `filtros/Seccion.tsx` | `Seccion` | Sección del panel de filtros: separador, título y contador opcional |
 | `filtros/PanelAnim.tsx` | `PanelAnim` | Abre y cierra el panel de filtros con animación (ancho en línea, deslizado en pantalla angosta) |
 | `periodo/PeriodNav.tsx` | `PeriodNav` | "Hoy · ‹ periodo ▾ ›" con calendario |
 | `periodo/MiniCalendar.tsx` | `MiniCalendar` | Calendario de día, semana, quincena, mes o año. Mide 316px |
+| `periodo/FechaPicker.tsx` | `FechaPicker` | Campo "Fecha" del panel: abre el `MiniCalendar` en un portal fijo (no lo recorta el scroll del panel) |
 | `periodo/period.ts` | `PeriodView`, `periodRange`, `shiftPeriod`, `periodLabel`, `toISO`, `fromISO`, `MESES`, `DIAS`… | Fechas y periodos |
 | `tabla/ReportTable.tsx` | `ReportTable` | Tabla a partir de un `TableSpec`: pestañas verticales si hay varias, primera columna fija, orden A–Z, filas de grupo plegables, paginación |
 | `tabla/Pager.tsx` | `Pager`, `usePaged`, `T` | Paginación (25/50/100/250) y clases de tabla, para tablas hechas a mano |
 | `tabla/ResizeHandle.tsx` | `ResizeHandle`, `usePcw`, `pcwVar`, `PCW` | Ancho arrastrable de la primera columna, guardado en el navegador |
 | `tabla/ScrollBox.tsx` | `ScrollBox` | Scroll horizontal que difumina el borde si queda contenido a la derecha |
 | `tabla/tipos.ts` | `Cell`, `TableSpec` | Datos de una tabla |
-| `graficas/Charts.tsx` | `ChartCard` | Barras horizontales y verticales, línea y mapa de calor, con tooltip, a partir de un `Card` |
+| `graficas/Charts.tsx` | `ChartCard`, `OnSelect` | Barras horizontales y verticales, línea y mapa de calor, con tooltip, a partir de un `Card`. Con `onSelect`, las filas de barras horizontales que traen `sel` se pueden clicar (nombre, barra o tramo) |
 | `graficas/tipos.ts` | `Card`, `HCard`, `VCard`, `LCard`, `HeatCard`, `Tip`, `Serie`… | Datos de una gráfica |
-| `drawer/drawerParts.tsx` | `DrawerShell`, `Field`, `Fields`, `Card`, `Warn`, `CloseButton`, `EvidencePhotos` | Panel lateral de detalle |
+| `drawer/drawerParts.tsx` | `DrawerShell`, `Field`, `Fields`, `Card`, `Warn`, `CloseButton`, `EvidencePhotos` | Panel lateral de detalle. `DrawerShell` acepta `lead` (opcional) para un avatar a la izquierda del título |
 | `excel.ts` | `descargarExcel(tablas, nombre)` | Una hoja por `TableSpec`; los números se guardan como números |
 | `formato.ts` | `n` | Número con separador de miles (es-MX) |
 | `fotos.ts` | `thumbUrl` | URL de la miniatura que LinkaForm sube con cada foto |
@@ -52,6 +54,11 @@ reportes/
 `ChartCard` y `ReportTable` solo pintan. El reporte calcula en `lib/` objetos `Card` y
 `TableSpec` (datos puros) y se los pasa. Así una gráfica nueva casi nunca pide un
 componente nuevo. `reporte_concesionados/lib/` es el ejemplo completo.
+
+Lo mismo con el panel de detalle que se abre al hacer clic en una gráfica: en concesionados,
+`lib/paneles.ts` arma un `PanelSpec` y `components/concesionados/DetallePanel.tsx` lo pinta
+dentro del `DrawerShell`. Un panel nuevo se arma con los tres tipos de sección que ya existen
+(`stats` tarjeta de datos, `items` lista de préstamos, `bars` lista con barras), sin componente nuevo.
 
 ## Cómo cambiar algo de `shared/`
 
@@ -72,6 +79,10 @@ Asistencias y concesionados ya lo usan, y la app de producción depende de asist
   encabezado "Filtros · contador · Limpiar". No uses el `FloatingFiltersDrawer` de
   bitácoras. Hoy cada página lo arma a mano (ver asistencias y concesionados); está
   pendiente extraerlo a `shared/`.
+- **Vistas de gráficas y galería:** sin tarjeta blanca envolvente; cada gráfica o tarjeta va
+  directo sobre el fondo. Periodo (píldoras), Fecha (`FechaPicker`) y Estatus
+  (`QuickFilters pildora`) van dentro del panel de filtros, cada uno en su `Seccion`, arriba
+  de los demás filtros. Las vistas de tabla y calendario conservan su barra arriba.
 - **Popovers dentro del panel:** el panel tiene scroll y recorta lo que se sale por los
   lados. Algo más ancho que el panel, como el `MiniCalendar`, se pinta en un portal con
   `position: fixed` (ver `FechaPicker` en `reporte_concesionados/page.tsx`).

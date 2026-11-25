@@ -4,7 +4,8 @@ export type Tip = { h: string; s?: string; tt?: string; l: TipLine[] };
 
 export type Serie = { k: string; t: string; col: string };
 
-export type HRow = { l: string; sub?: string; vals: number[]; cols?: string[]; mk?: number; tip?: Tip };
+// sel: si viene, la fila se puede seleccionar (ChartCard llama a onSelect con este valor)
+export type HRow = { l: string; sub?: string; vals: number[]; cols?: string[]; mk?: number; tip?: Tip; sel?: string };
 export type HCard = {
   kind: "h"; title: string; cap: string; series: Serie[]; rows: HRow[];
   fmt?: (v: number) => string; lw?: number; nota?: string; empty: boolean; emptyT?: string;

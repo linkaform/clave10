@@ -101,6 +101,8 @@ export const useAttendanceData = ({
     offset = 0,
     dateFrom,
     dateTo,
+    userIds,
+    statuses,
   }: {
     enabled?: boolean;
     locations?: string[];
@@ -108,6 +110,8 @@ export const useAttendanceData = ({
     offset?: number;
     dateFrom?: string;
     dateTo?: string;
+    userIds?: number[];
+    statuses?: string[];
   }) => {
     const {
       data,
@@ -116,10 +120,10 @@ export const useAttendanceData = ({
       error: errorAttendance,
       refetch: refetchAttendance,
     } = useQuery<any>({
-      queryKey: ["getAttendanceData", { locations, limit, offset, dateFrom, dateTo }],
+      queryKey: ["getAttendanceData", { locations, limit, offset, dateFrom, dateTo, userIds, statuses }],
       enabled,
       ...CACHE,
-      queryFn: () => getAttendanceData({ locations, limit, offset, dateFrom, dateTo }),
+      queryFn: () => getAttendanceData({ locations, limit, offset, dateFrom, dateTo, userIds, statuses }),
       refetchOnWindowFocus: false,
       retry: 1,
     });
@@ -132,6 +136,8 @@ export const useAttendanceData = ({
         actual_page: data?.actual_page ?? 1,
         records_on_page: data?.records_on_page ?? 0,
       },
+      // Conteo por estatus de todo el periodo; undefined si el back aún no lo manda
+      statusCounts: data?.status_counts as Record<string, number> | undefined,
       // Solo la primera carga de una página; al regresar a una ya vista se muestra lo guardado
       isLoadingAttendance,
       isFetchingAttendance,

@@ -4,14 +4,8 @@ import { n } from "../../components/shared/formato";
 
 export const HORA = 36e5;
 
-// Plazo para regresar, en horas, por categoría.
-// TODO: no existe en la forma; confirmar con el equipo de dónde sale.
-export const PLAZOS: Record<string, number> = {
-  Llaves: 24,
-  "Comunicación": 12,
-  "Protección personal": 12,
-  "Herramienta y equipo": 72,
-};
+// Plazo para regresar, en horas, cuando el préstamo no trae fecha límite ni plazo
+// (equipo sin plazo en el catálogo)
 export const PLAZO_DEFAULT = 24;
 
 // Condiciones que cuentan como "perdido o dañado"
@@ -41,9 +35,15 @@ export type PrestamoRaw = {
   foto: string;
   identificacion: string;
   ubicacion: string;
+  // Evidencia de la devolución (URL). "" = la devolución no la trae; null = no hay devolución
+  // capturada (abierto, o cerrado en registros viejos sin devolución)
+  foto_cierre?: string | null;
+  identificacion_cierre?: string | null;
+  plazo?: number | null; // horas: el guardado al prestar o, en registros viejos, el actual del catálogo
+  fecha_limite?: string | null; // "YYYY-MM-DD HH:mm"; si viene, manda sobre el plazo
 };
 
-export type Prestamo = PrestamoRaw & {
+export type Prestamo = Omit<PrestamoRaw, "plazo"> & {
   plazo: number;
   horas: number;
   t_ini: number;
@@ -54,9 +54,30 @@ export type Prestamo = PrestamoRaw & {
 
 const fecha = (s: string | null) => (s ? new Date(s.replace(" ", "T") + ":00").getTime() : null);
 
+// Horas que tenía el préstamo para regresar: hasta la fecha límite, o el plazo, o 24 h
+const plazoDe = (p: PrestamoRaw, ini: number) => {
+  const lim = fecha(p.fecha_limite ?? null);
+  if (lim && lim > ini) return (lim - ini) / HORA;
+  return p.plazo && p.plazo > 0 ? p.plazo : PLAZO_DEFAULT;
+};
+
+// ¿La devolución trae foto e identificación? Solo cuenta en devoluciones normales: las
+// forzadas tienen su propia columna y no llevan evidencia. null = no aplica o no se sabe.
+const evidenciaCierre = (p: PrestamoRaw): boolean | null => {
+  if (p.tipo_cierre !== "Normal") return null;
+  if (p.foto_cierre == null && p.identificacion_cierre == null) return null;
+  return !!p.foto_cierre && !!p.identificacion_cierre;
+};
+
 // Agrega tiempos, plazo y "pidió con otro vencido"
 export const enriquecer = (raw: PrestamoRaw[], ahora: number): Prestamo[] => {
-  const base = raw.map(p => ({ p, ini: fecha(p.fecha_prestamo) as number, fin: fecha(p.fecha_cierre), plazo: PLAZOS[p.categoria] ?? PLAZO_DEFAULT }));
+  // Préstamos capturados sin nombre (hay registros así): cada folio por separado, para no
+  // juntarlos en una sola "persona" ni ligarlos entre sí en "pidió con otro vencido"
+  raw = raw.map(p => (p.solicitante?.trim() ? p : { ...p, solicitante: `Sin nombre · #${p.folio}` }));
+  const base = raw.map(p => {
+    const ini = fecha(p.fecha_prestamo) as number;
+    return { p, ini, fin: fecha(p.fecha_cierre), plazo: plazoDe(p, ini) };
+  });
   const porPersona = new Map<string, typeof base>();
   base.forEach(x => {
     const l = porPersona.get(x.p.solicitante) ?? [];
@@ -66,7 +87,6 @@ export const enriquecer = (raw: PrestamoRaw[], ahora: number): Prestamo[] => {
   return base.map(({ p, ini, fin, plazo }) => {
     const otros = porPersona.get(p.solicitante) ?? [];
     const conOtro = otros.some(q => q.p !== p && q.ini < ini && (!q.fin || q.fin > ini) && (ini - q.ini) / HORA > q.plazo);
-    const cerrado = p.tipo_cierre !== "Abierto";
     return {
       ...p,
       precio: Number(p.precio) || 0,
@@ -75,7 +95,7 @@ export const enriquecer = (raw: PrestamoRaw[], ahora: number): Prestamo[] => {
       t_ini: ini,
       t_fin: fin,
       con_otro_vencido: conOtro,
-      evidencia: cerrado ? p.foto === "Sí" && p.identificacion === "Sí" : null,
+      evidencia: evidenciaCierre(p),
     };
   });
 };

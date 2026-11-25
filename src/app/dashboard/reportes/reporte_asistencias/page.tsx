@@ -25,6 +25,8 @@ import { employeeMetrics } from "./lib/metrics";
 import { exportNomina, exportRegistros } from "./lib/exportExcel";
 import { PlazasSelection, plantillaTurnoLabel, plazaQuickKey, resumenPlazas, turnoActual, turnoKey } from "./lib/plantilla";
 import { useSelectedLocationsStore } from "@/store/useSelectedLocationsStore";
+import { FechaPicker } from "../components/shared/periodo/FechaPicker";
+import { Seccion } from "../components/shared/filtros/Seccion";
 
 const MODES: { mode: DisplayMode; label: string; icon: React.ReactNode }[] = [
   { mode: "cov", label: "Vista de tablero", icon: <LayoutDashboard size={16} aria-hidden="true" /> },
@@ -32,6 +34,15 @@ const MODES: { mode: DisplayMode; label: string; icon: React.ReactNode }[] = [
   { mode: "gallery", label: "Vista de galería", icon: <LayoutGrid size={16} aria-hidden="true" /> },
   { mode: "table", label: "Vista de tabla", icon: <Table2 size={16} aria-hidden="true" /> },
   { mode: "charts", label: "Vista de gráficas", icon: <ChartColumn size={16} aria-hidden="true" /> },
+];
+
+// Estatus de la galería (los calcula el back por registro de check-in)
+const GALLERY_QUICK: { key: string; label: string }[] = [
+  { key: "presente", label: "Asistencia" },
+  { key: "en_turno", label: "En turno" },
+  { key: "retardo", label: "Retardo" },
+  { key: "sin_salida", label: "Sin salida" },
+  { key: "falta", label: "Falta" },
 ];
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
@@ -104,6 +115,11 @@ const ReportPage = () => {
   // Texto libre (para galería y cobertura, que buscan con un solo texto)
   const search = facets.find(f => !f.exact)?.values[0] ?? "";
   const [quick, setQuick] = useState<string[]>([]);
+  // Galería: filtro de estatus propio (sus estatus son por registro, no por día)
+  const [galQuick, setGalQuick] = useState<string[]>([]);
+  const [galCounts, setGalCounts] = useState<Record<string, number> | null>(null);
+  // undefined = el back aún no manda conteos: se conserva lo último para no parpadear
+  const onGalCounts = useCallback((c?: Record<string, number>) => { if (c) setGalCounts(c); }, []);
   const [selected, setSelected] = useState<number[]>([]);
   const [toastOpen, setToastOpen] = useState(true);
   const [covTurno, setCovTurno] = useState<string>();
@@ -128,6 +144,7 @@ const ReportPage = () => {
   // Al cambiar de periodo se limpian los filtros rápidos y la selección
   useEffect(() => {
     setQuick([]);
+    setGalQuick([]);
     setSelected([]);
     setToastOpen(true);
   }, [period, v.from]);
@@ -137,6 +154,8 @@ const ReportPage = () => {
   const isDay = period === "dia";
   const mode = displayMode;
   const isCov = mode === "cov";
+  // Galería y Gráficas: periodo, fecha y estatus van en el panel y las tarjetas van sin tarjeta blanca alrededor
+  const side = mode === "gallery" || mode === "charts";
 
   // ───── Empleados ─────
   const allEmployees = useMemo(
@@ -183,7 +202,7 @@ const ReportPage = () => {
     dateTo: fecha,
   });
   const covTurnos = useMemo(
-    () => Array.from(new Map(plantilla.map(r => [turnoKey(r), r])).values()).sort((a, b) => a.hora_entrada.localeCompare(b.hora_entrada) || a.horario.localeCompare(b.horario)),
+    () => Array.from(new Map(plantilla.filter(r => !r.sin_plantilla).map(r => [turnoKey(r), r])).values()).sort((a, b) => a.hora_entrada.localeCompare(b.hora_entrada) || a.horario.localeCompare(b.horario)),
     [plantilla]
   );
   const covTurnoRow = covTurnos.find(t => turnoKey(t) === covTurno) ?? turnoActual(plantilla);
@@ -192,7 +211,7 @@ const ReportPage = () => {
     const rows = plantilla.filter(r =>
       inLoc(r.ubicacion) &&
       (!fCas.length || fCas.includes(`${r.ubicacion} · ${r.caseta}`)) &&
-      (matches(`${r.ubicacion} ${r.caseta}`, search) || r.dias.some(d => d.plazas.some(p => matches(p.guardia, search))))
+      (matches(`${r.ubicacion} ${r.caseta}`, search) || r.dias.some(d => d.plazas.some(p => matches(p.guardia, search)) || d.extras.some(e => matches(e.guardia, search))))
     );
     return coverageLocations(rows, covKey, fecha);
   }, [plantilla, inLoc, fCas, search, covKey, fecha]);
@@ -265,8 +284,15 @@ const ReportPage = () => {
   }, [isEmployees, locEmployees, locShifts, fechas]);
 
   const activeFilters = isEmployees ? fEmp.length + fDep.length + fJor.length + fRol.length : fGua.length + fCas.length;
+  // Galería: el back filtra por id los empleados que pasan los filtros del panel (paginación en el servidor).
+  // El texto libre y las ubicaciones los sigue aplicando la galería.
+  const galleryUserIds = useMemo(() => {
+    if (!isEmployees || !activeFilters) return undefined;
+    const exactFacets = facets.filter(f => f.exact);
+    return allEmployees.filter(e => passFacets(employeeValues(e, fechas), exactFacets)).map(e => e.employee_id).sort((x, y) => x - y);
+  }, [isEmployees, activeFilters, facets, allEmployees, fechas]);
   const clearFilters = () => {
-    setFacets([]); setQuick([]); setCovFilter("all");
+    setFacets([]); setQuick([]); setGalQuick([]); setCovFilter("all");
     setPrevView(null);
   };
 
@@ -310,7 +336,7 @@ const ReportPage = () => {
 
   // ───── Contenido ─────
   const renderView = () => {
-    if (mode === "gallery") return <div className="p-3"><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} ubicaciones={selectedLocations} onOpen={r => setDaySelection(withEmployeeData(galleryToDay(r)))} /></div>;
+    if (mode === "gallery") return <div><GalleryView dateFrom={v.from} dateTo={v.to} search={search} locations={!isEmployees} ubicaciones={selectedLocations} userIds={galleryUserIds} waiting={!!galleryUserIds && isLoading} statuses={galQuick} onCounts={onGalCounts} onOpen={r => setDaySelection(withEmployeeData(galleryToDay(r)))} /></div>;
     if (isCov) {
       if (isLoadingPlantilla) return <div className="p-3"><ReportSkeleton variant="cards" /></div>;
       if (errorPlantilla) {
@@ -340,7 +366,7 @@ const ReportPage = () => {
     }
     const sel = { ids: selected, set: setSelected };
     if (isEmployees) {
-      if (mode === "charts") return <div className="p-4"><EmployeeCharts employees={employees} days={days} quick={quick} onSelectEmployee={selectEmployee} /></div>;
+      if (mode === "charts") return <EmployeeCharts employees={employees} days={days} quick={quick} onSelectEmployee={selectEmployee} />;
       if (mode === "table") {
         return isDay
           ? <EmployeeDayTable employees={employees} date={date} sel={sel} onOpenDay={openDay} />
@@ -350,7 +376,7 @@ const ReportPage = () => {
         ? <EmployeeDayCalendar employees={employees} date={date} quick={quick} onOpenDay={openDay} />
         : <EmployeePeriodGrid employees={employees} days={days} quick={quick} metrics={metrics} onOpenDay={openDay} />;
     }
-    if (mode === "charts") return <div className="p-4"><LocationCharts rows={shifts} days={days} quick={quick} /></div>;
+    if (mode === "charts") return <LocationCharts rows={shifts} days={days} quick={quick} />;
     if (mode === "table") {
       return isDay
         ? <LocationDayTable rows={shifts} date={date} onOpenShift={setShiftSelection} />
@@ -371,7 +397,7 @@ const ReportPage = () => {
   const enCurso = qTo >= new Date(new Date().toDateString());
 
   const filterPanel = (
-    <aside aria-label="Filtros" className={`flex w-[280px] flex-none flex-col gap-4 rounded-2xl bg-c10-surface p-4 shadow-[0_1px_2px_rgba(15,23,42,.04),0_6px_20px_rgba(15,23,42,.04)] ${wide ? "sticky top-[84px]" : "fixed bottom-0 left-0 top-0 z-[58] overflow-auto rounded-none"}`}>
+    <aside aria-label="Filtros" className={`flex w-[280px] flex-none flex-col gap-4 rounded-2xl bg-c10-surface p-4 shadow-[0_1px_2px_rgba(15,23,42,.04),0_6px_20px_rgba(15,23,42,.04)] ${wide ? "sticky top-[84px] max-h-[calc(100vh-100px)] overflow-y-auto" : "fixed bottom-0 left-0 top-0 z-[58] overflow-auto rounded-none"}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-2">
           <button type="button" title="Ocultar filtros" aria-label="Ocultar filtros" onClick={() => (wide ? setPanelOpen(false) : setNarrowOpen(false))} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-c10-sunken text-c10-secondary hover:bg-c10-blue-light hover:text-button-primary">
@@ -382,6 +408,55 @@ const ReportPage = () => {
         </span>
         <button type="button" onClick={clearFilters} className="text-sm font-semibold text-button-primary hover:underline">Limpiar</button>
       </div>
+      {side && (
+        <div className="-mb-2 flex flex-col [&>div:last-child]:pb-0">
+          <Seccion titulo="Periodo">
+            <div role="group" aria-label="Periodo" className="flex flex-wrap gap-1.5">
+              {PERIOD_VIEWS.filter(p => MODE_PERIODS[mode].includes(p.value)).map(p => {
+                const on = period === p.value;
+                return (
+                  <button key={p.value} type="button" aria-pressed={on} onClick={() => v.setPeriod(p.value)} className={`h-[30px] flex-none whitespace-nowrap rounded-full px-3 text-[13px] transition-colors ${on ? "bg-button-primary font-semibold text-white" : "bg-c10-sunken font-medium text-c10-label hover:bg-c10-line"}`}>
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Seccion>
+          <Seccion titulo="Fecha">
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1"><FechaPicker view={period} date={date} label={v.label} onPick={v.setDate} /></div>
+              {mode === "charts" && (
+                <button
+                  type="button"
+                  title="Recargar"
+                  aria-label="Recargar"
+                  onClick={() => v.refetchReportAsistencias()}
+                  disabled={v.isFetching}
+                  className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-full bg-c10-sunken text-c10-secondary transition-colors hover:bg-c10-blue-light hover:text-button-primary disabled:opacity-40"
+                >
+                  <RotateCw size={16} className={v.isFetching ? "animate-spin" : ""} />
+                </button>
+              )}
+            </div>
+          </Seccion>
+          {mode === "gallery" && galCounts && (galQuick.length > 0 || Object.values(galCounts).some(n => n > 0)) && (
+            <Seccion titulo="Estatus" cnt={galQuick.length}>
+              <QuickFilters
+                pildora
+                pills={GALLERY_QUICK.map(q => ({ key: q.key, label: q.label, count: galCounts[q.key] ?? 0, icon: <StatusIcon status={q.key} size={20} /> }))}
+                active={galQuick}
+                onToggle={k => setGalQuick(q => (q.includes(k) ? q.filter(x => x !== k) : [...q, k]))}
+              />
+            </Seccion>
+          )}
+          {mode === "charts" && !loading && pills.some(p => p.count > 0 || quick.includes(p.key)) && (
+            <Seccion titulo="Estatus" cnt={quick.length}>
+              <QuickFilters pildora pills={pills} active={quick} onToggle={k => setQuick(q => (q.includes(k) ? q.filter(x => x !== k) : [...q, k]))} />
+            </Seccion>
+          )}
+        </div>
+      )}
+      {side && <div className="border-t border-c10-sunken" />}
       {!isEmployees && isCov ? (
         <CoverageFilters turnos={covTurnos} turno={covKey} onTurno={setCovTurno} filter={covFilter} onFilter={setCovFilter} counts={covCounts} />
       ) : isEmployees ? (
@@ -513,6 +588,9 @@ const ReportPage = () => {
           </button>
         )}
 
+        {side ? (
+          <main className="flex min-w-0 flex-1 flex-col gap-4">{renderView()}</main>
+        ) : (
         <section className="flex min-w-0 flex-1 flex-col rounded-2xl bg-c10-surface shadow-[0_1px_2px_rgba(15,23,42,.04),0_6px_20px_rgba(15,23,42,.04)]">
           <div className="flex flex-col gap-3 border-b border-c10-line p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -532,7 +610,7 @@ const ReportPage = () => {
                   title="Recargar"
                   aria-label="Recargar"
                   onClick={() => (isCov ? refetchPlantilla() : v.refetchReportAsistencias())}
-                  disabled={(isCov ? isFetchingPlantilla : v.isFetching) || mode === "gallery"}
+                  disabled={(isCov ? isFetchingPlantilla : v.isFetching)}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-c10-sunken text-c10-secondary transition-colors hover:bg-c10-blue-light hover:text-button-primary disabled:opacity-40"
                 >
                   <RotateCw size={16} className={(isCov ? isFetchingPlantilla : v.isFetching) ? "animate-spin" : ""} />
@@ -546,7 +624,7 @@ const ReportPage = () => {
                 />
               </div>
             </div>
-            {mode !== "gallery" && !loading && (
+            {!loading && (
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <QuickFilters
                   pills={pills}
@@ -563,6 +641,7 @@ const ReportPage = () => {
           </div>
           {renderView()}
         </section>
+        )}
 
         {isEmployees && mode === "table" && (
           <button

@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import TabDatos, { EquipoConcesionado } from "../concesionados-tab-datos";
 import { useEffect, useState } from "react";
 import { Imagen } from "../upload-Image";
-import { Building2, Calendar, CircleDot, ClipboardList, IdCard, PenLine, User } from "lucide-react";
+import { Briefcase, Building2, Calendar, CircleDot, ClipboardList, IdCard, PenLine, ShieldCheck, User } from "lucide-react";
+import { campoConcesion } from "@/lib/concesionados-campos";
 import TabSeguimientos from "../concesionados-tab-seguimientos";
 import ViewImage from "./view-image";
 import { DescargarPdfConcesionButton } from "@/components/Bitacoras/Concesionados/DescargarPdfConcesionButton";
@@ -35,6 +36,7 @@ export type Concesion = {
   grupo_equipos?: EquipoConcesionado[];
   grupo_equipos_devolucion?: any;
   equipos?: EquipoConcesionado[];
+  created_by?: string;
 };
 interface ViewArtModalProps {
   data: Concesion;
@@ -60,6 +62,9 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
     data?.persona_nombre_concesion ||
     data?.persona_nombre_otro ||
     "—";
+  const empresa = campoConcesion(data, "empresa_concesion") || "—";
+  // Registros anteriores al campo "Guardia que entrega": quien capturó la concesión
+  const guardiaEntrega = campoConcesion(data, "guardia_entrega_concesion") || data?.created_by || "—";
   const estatus = data?.status_concesion ?? "";
   const firmaRaw = Array.isArray(data?.firma)
     ? data.firma[0]
@@ -132,6 +137,22 @@ export const DetalleDeLaConcesion: React.FC<ViewArtModalProps> = ({ data, childr
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Empleado que solicita el préstamo</p>
                     <p className="text-sm font-medium text-gray-700">{empleado}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <Briefcase className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Empresa</p>
+                    <p className="text-sm text-gray-700">{empresa}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Guardia que entrega</p>
+                    <p className="text-sm text-gray-700">{guardiaEntrega}</p>
                   </div>
                 </div>
 

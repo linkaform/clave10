@@ -512,7 +512,9 @@ const AccesosContent = () => {
 					{searchPass?.tipo_movimiento === "Entrada" && (
 						<Button
 						className="bg-green-600 hover:bg-green-700"
+						disabled={doAccess.isPending}
 						onClick={() => {
+							if (doAccess.isPending) return;
 							if (shift?.guard?.status_turn === "Turno Cerrado") {
 							toast.error(
 								"¡Debes iniciar turno antes de registrar un ingreso!."
@@ -534,7 +536,9 @@ const AccesosContent = () => {
 					{searchPass?.tipo_movimiento === "Salida" && (
 						<Button
 						className="bg-red-500 hover:bg-red-600 text-white"
+						disabled={exitRegisterAccess.isPending}
 						onClick={() => {
+							if (exitRegisterAccess.isPending) return;
 							if (shift?.guard?.status_turn === "Turno Cerrado") {
 							toast.error(
 								"¡Debes iniciar turno antes de registrar una salida!."

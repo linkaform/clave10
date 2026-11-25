@@ -59,8 +59,8 @@ export const useAsistenciasView = () => {
     errorReportAsistencias,
     refetchReportAsistencias,
   } = useReportAsistencias({
-    // La galería lee los registros de check-in, no el reporte
-    enabled: displayMode !== "gallery" && displayMode !== "cov",
+    // La galería lee los registros de check-in; por empleado también carga el reporte para sus filtros
+    enabled: displayMode !== "cov" && (displayMode !== "gallery" || groupingMode === "employees"),
     dateRange: period,
     locations: [],
     groupBy: groupingMode,

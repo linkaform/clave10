@@ -14,6 +14,7 @@ import { Calculator, ImageOff, Package, RotateCcw } from "lucide-react";
 import { DevolucionItem, VerDetalleDevolucion } from "./concesionados-ver-detalle-devolucion";
 import { HistorialDevolucionesList } from "../concesionados-historial-devoluciones-list";
 import ViewImage from "./view-image";
+import { equipoVencido, fechaLimiteEquipo, plazoEquipo } from "@/lib/concesionados-campos";
 
 interface ConcesionadosVerEquipoProps {
   title: string;
@@ -48,7 +49,7 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
       <DialogTrigger asChild>{children}</DialogTrigger>
 
       <DialogContent
-        className="max-w-[1040px] flex flex-col gap-0 bg-white p-0 max-h-[90vh] overflow-hidden"
+        className="max-w-[1200px] flex flex-col gap-0 bg-white p-0 max-h-[90vh] overflow-hidden"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="flex-shrink-0 bg-white px-6 py-5 border-b">
@@ -81,6 +82,23 @@ export const ConcesionadosVerEquipo: React.FC<ConcesionadosVerEquipoProps> = ({
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Unidades</p>
                 <p className="text-sm text-gray-700">{data?.cantidad_equipo_devuelto??0} / {data?.cantidad_equipo_concesion ?? "—"}</p>
               </div>
+              {(() => {
+                // Aquí no llega la fecha de la concesión: solo se muestra la fecha límite guardada
+                const limite = fechaLimiteEquipo(data);
+                const plazo = plazoEquipo(data);
+                return (
+                  <>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Plazo de devolución</p>
+                      <p className="text-sm text-gray-700">{plazo ? `${plazo} h` : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Debe regresar</p>
+                      <p className={`text-sm ${equipoVencido(data, limite) ? "font-semibold text-red-600" : "text-gray-700"}`}>{limite || "—"}</p>
+                    </div>
+                  </>
+                );
+              })()}
 
               {data?.comentario_prestamo && (
                 <div className="col-span-2">

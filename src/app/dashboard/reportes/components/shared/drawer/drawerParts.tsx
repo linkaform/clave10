@@ -21,14 +21,16 @@ const readWidth = () => {
   }
 };
 
-// Panel lateral derecho: entra deslizándose, ancho ajustable arrastrando el borde izquierdo (480–1440 px)
-export const DrawerShell = ({ title, subtitle, chips, onClose, children, labelledBy }: {
+// Panel lateral derecho: entra deslizándose, ancho ajustable arrastrando el borde izquierdo (480–1440 px).
+// lead: algo a la izquierda del título (p. ej. un avatar); sin él, el encabezado es el de siempre.
+export const DrawerShell = ({ title, subtitle, chips, onClose, children, labelledBy, lead }: {
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   chips?: React.ReactNode;
   onClose: () => void;
   children: React.ReactNode;
   labelledBy: string;
+  lead?: React.ReactNode;
 }) => {
   const [width, setWidth] = useState(640);
   useEffect(() => setWidth(readWidth()), []);
@@ -63,11 +65,22 @@ export const DrawerShell = ({ title, subtitle, chips, onClose, children, labelle
       >
         <span onMouseDown={drag} aria-hidden="true" className="absolute -left-1 bottom-0 top-0 w-2 cursor-col-resize hover:bg-c10-blue-light/60 max-md:hidden" />
         <header className="flex items-start justify-between gap-3 border-b border-c10-line px-6 pb-4 pt-5">
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <h2 id={labelledBy} className="m-0 text-xl font-semibold tracking-[-.02em] text-c10-title">{title}</h2>
-            {subtitle && <div className="text-[13px] text-c10-secondary">{subtitle}</div>}
-            {chips && <div className="flex flex-wrap items-center gap-1.5">{chips}</div>}
-          </div>
+          {lead ? (
+            <div className="flex min-w-0 items-center gap-3">
+              {lead}
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <h2 id={labelledBy} className="m-0 text-xl font-semibold tracking-[-.02em] text-c10-title">{title}</h2>
+                {subtitle && <div className="text-[13px] text-c10-secondary">{subtitle}</div>}
+                {chips && <div className="flex flex-wrap items-center gap-1.5">{chips}</div>}
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <h2 id={labelledBy} className="m-0 text-xl font-semibold tracking-[-.02em] text-c10-title">{title}</h2>
+              {subtitle && <div className="text-[13px] text-c10-secondary">{subtitle}</div>}
+              {chips && <div className="flex flex-wrap items-center gap-1.5">{chips}</div>}
+            </div>
+          )}
           <CloseButton onClick={onClose} />
         </header>
         <div className="flex flex-1 flex-col gap-3 overflow-auto bg-c10-panel px-6 py-5">{children}</div>

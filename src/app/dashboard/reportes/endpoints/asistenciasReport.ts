@@ -99,14 +99,19 @@ export const getAttendanceData = async ({
     offset = 0,
     dateFrom,
     dateTo,
+    userIds,
+    statuses,
   }: {
     locations?: string[];
     limit?: number;
     offset?: number;
     dateFrom?: string;
     dateTo?: string;
+    userIds?: number[];
+    statuses?: string[];
   }) => {
     try {
+      const now = new Date();
       const payload = {
         option: "get_attendance_data",
         script_name: "asistencia_report.py",
@@ -115,6 +120,12 @@ export const getAttendanceData = async ({
         offset,
         date_from: dateFrom,
         date_to: dateTo,
+        // Sin userIds no se filtra por empleado
+        ...(userIds ? { user_ids: userIds } : {}),
+        // Estatus del registro (presente, retardo, falta, en_turno, sin_salida); vacío = todos
+        ...(statuses?.length ? { statuses } : {}),
+        // "Hoy" del navegador: decide en_turno vs sin_salida sin depender de la zona del servidor
+        today: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
       };
       const userJwt = await getValidToken();
       const response = await fetch(API_ENDPOINTS.runScript, {
