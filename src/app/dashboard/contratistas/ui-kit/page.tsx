@@ -9,6 +9,7 @@ import {
   avisar, folio, type EntidadFolio,
 } from "@/components/contratistas/ui";
 import type { Acento } from "@/lib/contratistas/contexto";
+import { MuestraFiltros } from "./MuestraFiltros";
 import { MuestraPanel } from "./MuestraPanel";
 import { MuestraTabla } from "./MuestraTabla";
 
@@ -235,6 +236,10 @@ export default function UiKitPage() {
 
         <Bloque titulo="Tabla, lista y cards">
           <MuestraTabla />
+        </Bloque>
+
+        <Bloque titulo="Filtros en la cabecera (F0-06)">
+          <MuestraFiltros />
         </Bloque>
 
         <Bloque titulo="Panel de detalle (F0-07)">
