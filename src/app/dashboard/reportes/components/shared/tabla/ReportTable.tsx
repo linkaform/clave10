@@ -3,11 +3,18 @@
 import React, { useMemo, useState } from "react";
 import { ArrowDownAZ, ArrowUpDown, ArrowUpZA, ChevronRight } from "lucide-react";
 import { Pager, usePaged } from "./Pager";
+import { PCW, ResizeHandle, pcwVar, usePcw } from "./ResizeHandle";
+import { ScrollBox } from "./ScrollBox";
 import { Cell, TableSpec } from "./tipos";
 
 type Fila = { c: Cell[]; g: boolean; sub: boolean; key: string };
 
-// Tabla del reporte: una a la vez, con pestañas verticales a la derecha si hay varias
+// Tabla del reporte: una a la vez, con pestañas verticales a la derecha si hay varias.
+// - La primera columna se puede hacer más ancha o más angosta (ResizeHandle; el ancho se guarda
+//   en el navegador y es el mismo para todas las tablas).
+// - Si queda contenido a la derecha, la orilla se difumina (ScrollBox).
+// - Con pocas filas, las filas se estiran para llenar la tarjeta (que mide al menos lo que las
+//   pestañas verticales) en vez de dejar espacio en blanco abajo.
 export const ReportTable = ({ tablas, activa, onActiva, toolbar, resetKey }: {
   tablas: TableSpec[];
   activa: TableSpec | undefined;
@@ -36,6 +43,7 @@ export const ReportTable = ({ tablas, activa, onActiva, toolbar, resetKey }: {
     return bloques.flatMap(b => [b.h, ...(abiertos[b.h.key] ? b.hijos : [])]);
   }, [activa, orden, abiertos]);
   const pg = usePaged(rows, `${resetKey}|${activa?.id}|${orden}`);
+  const pcw = usePcw();
   const varias = tablas.length > 1;
   const SortIcon = orden === 1 ? ArrowDownAZ : orden === -1 ? ArrowUpZA : ArrowUpDown;
   const th = "sticky top-0 whitespace-nowrap bg-c10-blue-light px-3.5 py-2.5 text-xs font-semibold uppercase tracking-[.05em] text-c10-secondary";
@@ -67,12 +75,12 @@ export const ReportTable = ({ tablas, activa, onActiva, toolbar, resetKey }: {
         <div className={`flex min-w-0 flex-1 flex-col overflow-hidden bg-c10-surface shadow-[0_0_0_1px_var(--c10-line)] ${varias ? "rounded-l-xl" : "rounded-xl"}`}>
           <div className="flex flex-col gap-3 px-4 py-3">{toolbar}</div>
           {activa?.cap && <p className="m-0 px-4 pb-2 text-xs text-c10-meta">{activa.cap}</p>}
-          <div className="max-h-[calc(100vh-230px)] overflow-auto">
-            <table className="w-full min-w-max border-separate border-spacing-0 text-sm tabular-nums">
+          <ScrollBox className="max-h-[calc(100vh-230px)] min-h-0 flex-1 overflow-y-auto">
+            <table className="h-full w-full min-w-max border-separate border-spacing-0 text-sm tabular-nums" style={pcwVar(pcw)}>
               <thead>
                 <tr>
                   {activa?.cols.map((c, j) => j === 0 ? (
-                    <th key={j} className={`${th} left-0 z-[4] text-left shadow-[inset_-1px_0_0_var(--c10-line-strong)]`}>
+                    <th key={j} className={`${th} ${PCW} left-0 z-[4] text-left shadow-[inset_-1px_0_0_var(--c10-line-strong)]`}>
                       {c.t}
                       <button
                         type="button"
@@ -83,6 +91,7 @@ export const ReportTable = ({ tablas, activa, onActiva, toolbar, resetKey }: {
                       >
                         <SortIcon size={14} />
                       </button>
+                      <ResizeHandle />
                     </th>
                   ) : (
                     <th key={j} className={`${th} z-[2] ${c.r ? "text-right" : "text-left"}`}>{c.t}</th>
@@ -95,7 +104,7 @@ export const ReportTable = ({ tablas, activa, onActiva, toolbar, resetKey }: {
                     {f.c.map((x, j) => (
                       <td
                         key={j}
-                        className={`${td} ${f.g && activa?.grp ? "bg-c10-panel" : "bg-c10-surface"} group-hover:bg-c10-blue-subtle ${j === 0 ? "sticky left-0 z-[1] shadow-[inset_-1px_0_0_var(--c10-line-strong)]" : ""} ${activa?.cols[j]?.r ? "text-right" : "text-left"} ${x.col ? "" : "text-c10-title"}`}
+                        className={`${td} ${f.g && activa?.grp ? "bg-c10-panel" : "bg-c10-surface"} group-hover:bg-c10-blue-subtle ${j === 0 ? `sticky left-0 z-[1] ${PCW} shadow-[inset_-1px_0_0_var(--c10-line-strong)]` : ""} ${activa?.cols[j]?.r ? "text-right" : "text-left"} ${x.col ? "" : "text-c10-title"}`}
                         style={{ color: x.col, fontWeight: f.sub && j === 0 ? 400 : x.fw ?? 400 }}
                       >
                         {j === 0 && f.g && activa?.grp ? (
@@ -103,13 +112,17 @@ export const ReportTable = ({ tablas, activa, onActiva, toolbar, resetKey }: {
                             type="button"
                             aria-expanded={!!abiertos[f.key]}
                             onClick={() => setAbiertos(a => ({ ...a, [f.key]: !a[f.key] }))}
-                            className="inline-flex items-center gap-2 font-bold text-c10-title"
+                            title={x.t}
+                            className="inline-flex max-w-full items-center gap-2 font-bold text-c10-title"
                           >
                             <ChevronRight size={16} className={`flex-none text-c10-meta transition-transform duration-200 ${abiertos[f.key] ? "rotate-90" : ""}`} />
-                            {x.t}
+                            <span className="truncate">{x.t}</span>
                           </button>
+                        ) : j === 0 ? (
+                          // Primera columna de ancho fijo: si no cabe, "…" y el texto completo al pasar el mouse
+                          <span title={x.t} className={`block truncate ${f.sub ? "pl-6" : ""}`}>{x.t}</span>
                         ) : (
-                          <span className={j === 0 && f.sub ? "pl-6" : ""}>{x.t}</span>
+                          <span>{x.t}</span>
                         )}
                       </td>
                     ))}
@@ -118,7 +131,7 @@ export const ReportTable = ({ tablas, activa, onActiva, toolbar, resetKey }: {
               </tbody>
             </table>
             {!rows.length && <div className="p-6 text-center text-[13px] text-c10-meta">No se encontraron registros</div>}
-          </div>
+          </ScrollBox>
         </div>
       </div>
       <Pager {...pg} sizes={[10, 15, 25, 50]} />
