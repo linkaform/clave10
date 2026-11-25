@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 export const useBitacoraById= (record_id:string) => {
 
     const {data, isLoading:isLoadingRondin} = useQuery<any>({
+    refetchOnWindowFocus: false,
         queryKey: ["getBitacoraById", record_id],
         enabled: record_id?true:false,
         queryFn: async () => {

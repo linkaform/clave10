@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export const useGetVehiculos = ({account_id, tipo, marca , isModalOpen}: getVehiculosParams) => {
   const { data, isLoading, error, isFetching, refetch } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["useGetVehiculos", account_id,tipo,marca],
     enabled:isModalOpen,
     queryFn: async () => {

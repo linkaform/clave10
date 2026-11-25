@@ -148,14 +148,37 @@ export const getRondinesColumns = (
         : tipo === "persona_especifica" ? "bg-purple-50 text-purple-600 border-purple-100"
         : "bg-amber-50 text-amber-700 border-amber-100";
 
-      if (items.length === 0) return <span className="text-slate-400">—</span>;
+      // En responsable en turno los chips son los ROLES (quien deberia tomarlo);
+      // asignado_a es la persona que realmente lo trae en su inbox, si ya se resolvio.
+      const persona = tipo === "responsable_en_turno" ? (r.asignado_a || "").trim() : "";
+
+      if (items.length === 0 && !persona) return <span className="text-slate-400">—</span>;
       return (
-        <div className="flex flex-wrap gap-1">
-          {items.map((e, i) => (
-            <span key={i} className={`px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${style}`}>
-              {e}
-            </span>
-          ))}
+        <div className="flex flex-col gap-1">
+          {tipo === "responsable_en_turno" && (
+            persona ? (
+              <span
+                title="Ya está en el inbox de esta persona"
+                className="w-fit px-2 py-0.5 rounded-full text-xs font-medium border bg-emerald-50 text-emerald-700 border-emerald-200"
+              >
+                ● {persona}
+              </span>
+            ) : (
+              <span
+                title="Aún no está en el inbox de nadie"
+                className="w-fit px-2 py-0.5 rounded-full text-xs font-medium border bg-slate-50 text-slate-500 border-slate-200 border-dashed"
+              >
+                Pendiente de Asignar
+              </span>
+            )
+          )}
+          <div className="flex flex-wrap gap-1">
+            {items.map((e, i) => (
+              <span key={i} className={`px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${style}`}>
+                {e}
+              </span>
+            ))}
+          </div>
         </div>
       );
     },

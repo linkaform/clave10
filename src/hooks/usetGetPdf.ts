@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export const useGetPdf = (account_id: number|null,qr_code:string, enable:boolean) => {
   const { data, isLoading, error, isFetching, refetch } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["getPdf", account_id, qr_code],
     enabled:enable,
     queryFn: async () => {
@@ -32,6 +33,7 @@ export const useGetPdfMutation = (
   name_pdf?: string
 ) => {
   const { data, isLoading, error, isFetching, refetch } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["getPdf", qr_code, template_id, account_id, name_pdf],
     queryFn: async () => {
       const data = await getPdfIncidencias(qr_code, template_id, account_id, name_pdf);

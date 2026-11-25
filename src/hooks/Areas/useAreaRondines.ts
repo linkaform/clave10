@@ -34,6 +34,7 @@ const EMPTY_PAGE: AreaRondinesPage = {
 
 export const useAreaRondines = (areaId: string, limit: number = 5, skip: number = 0) => {
   const { data, isLoading, isFetching } = useQuery<AreaRondinesPage>({
+    refetchOnWindowFocus: false,
     queryKey: ["areaRondines", areaId, limit, skip],
     enabled: Boolean(areaId),
     placeholderData: keepPreviousData,

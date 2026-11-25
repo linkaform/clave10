@@ -8,6 +8,7 @@ export interface DisponibilidadEquipo {
 
 export const useDisponibilidadEquipo = (location: string, nombreEquipo: string) => {
   const { data, isFetching, refetch } = useQuery<DisponibilidadEquipo>({
+    refetchOnWindowFocus: false,
     queryKey: ["revisarDisponibilidadArtConcesionado", location, nombreEquipo],
     queryFn: async () => {
       const data = await revisarDisponibilidadArtConcesionado(location, nombreEquipo);

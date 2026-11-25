@@ -66,6 +66,7 @@ export const useAreaChecks = (ubicacion: string, area: string) => {
     checks: AreaCheckItem[];
     total: number;
   }>({
+    refetchOnWindowFocus: false,
     queryKey: ["areaChecks", ubicacion, area],
     enabled: Boolean(ubicacion && area),
     queryFn: async () => {

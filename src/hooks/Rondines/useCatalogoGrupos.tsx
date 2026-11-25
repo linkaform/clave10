@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export const useCatalogoGrupos= (isModalOpen:boolean) => {
   const { data: data, isLoading, error, isFetching, refetch } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["catalogoGruposRecorridos"], 
     enabled:isModalOpen ? true:false,
     queryFn: async () => {

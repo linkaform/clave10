@@ -52,6 +52,7 @@ export type Update_full_pass = {
 
 export const usePaseEntrada = (locationConfSeguridad:string[]) => {
     const { data: dataConfigLocation, isLoading:isLoadingConfigLocation, error: errorConfigLocation} = useQuery<any>({
+        refetchOnWindowFocus: false,
         queryKey: ["getConfSeguridad", locationConfSeguridad], 
         enabled: locationConfSeguridad.length > 0 ? true : false, 
         queryFn: async () => {

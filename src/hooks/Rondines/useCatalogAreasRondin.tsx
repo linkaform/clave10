@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export const useCatalogAreasRondin = (ubicacion:string, isModalOpen:boolean) => {
   const { data: data, isLoading, error, isFetching, refetch } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["catalogAreasRondin", ubicacion], 
     enabled:isModalOpen && ubicacion ? true:false,
     queryFn: async () => {

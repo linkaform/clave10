@@ -4,6 +4,7 @@ import { DireccionContacto, getCatalogDireccionesSdk } from "@/lib/areas-sdk";
 // Direcciones del catálogo "contacto" para el selector de dirección de las áreas.
 export const useCatalogDirecciones = () => {
   const { data, isLoading } = useQuery<DireccionContacto[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["catalogDirecciones"],
     queryFn: async () => {
       const result = await getCatalogDireccionesSdk();

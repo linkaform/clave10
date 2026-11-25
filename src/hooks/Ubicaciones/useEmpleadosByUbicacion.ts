@@ -5,6 +5,7 @@ import { EmpleadoUbicacionRow } from "@/lib/ubicaciones";
 
 export const useEmpleadosByUbicacion = (ubicacion: string) => {
   const { data, isLoading, error, refetch } = useQuery<EmpleadoUbicacionRow[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["empleadosByUbicacion", ubicacion],
     enabled: Boolean(ubicacion),
     queryFn: async () => {

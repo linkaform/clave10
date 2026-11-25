@@ -29,6 +29,7 @@ export const useBitacoraSearch = ({
   selectedLocation,
 }: BitacoraSearchInput) => {
   const { data: searchFields = [] } = useQuery<SearchFieldConfig[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["searchFields", SCRIPT],
     staleTime: Infinity,
     queryFn: async () => (await getSearchFields(SCRIPT))?.response?.data ?? [],

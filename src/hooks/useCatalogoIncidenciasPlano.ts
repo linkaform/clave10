@@ -3,6 +3,7 @@ import { getCatIncidenciasPlano, TipoIncidenciaCatalogo } from "@/lib/incidencia
 
 export const useCatalogoIncidenciasPlano = (enabled: boolean) => {
   const { data, isLoading } = useQuery<TipoIncidenciaCatalogo[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["catIncidenciasPlano"],
     queryFn: getCatIncidenciasPlano,
     enabled,

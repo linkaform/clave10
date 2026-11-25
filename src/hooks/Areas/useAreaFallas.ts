@@ -34,6 +34,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export const useAreaFallas = (ubicacion: string, area: string, enabled: boolean = true) => {
   const { data, isLoading: isLoadingFallas } = useQuery<AreaFallaItem[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["areaFallas", ubicacion, area],
     enabled: Boolean(ubicacion && area) && enabled,
     queryFn: async () => {

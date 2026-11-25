@@ -45,23 +45,24 @@ interface HeaderProps {
   subtitle?: React.ReactNode;
   /** Ids copiables (CopyableId) bajo el subtitulo. */
   ids?: React.ReactNode;
-  /** Badges de estado, alineados a la derecha (dejan lugar a los botones del sheet). */
+  /** Badges de estado (burbujas), en una fila bajo el titulo/ids. */
   badges?: React.ReactNode;
   actions?: React.ReactNode;
+  /** Tabs (DetailTabs) dentro del header, sobre fondo blanco y pegadas al borde inferior. */
+  tabs?: React.ReactNode;
 }
 
-export function DetailPanelHeader({ title, subtitle, ids, badges, actions }: HeaderProps) {
+export function DetailPanelHeader({ title, subtitle, ids, badges, actions, tabs }: HeaderProps) {
   return (
-    <div className="p-5 border-b bg-white space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
-          {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
-          {ids}
-        </div>
-        {badges && <div className="flex items-center gap-2 pr-20 flex-wrap justify-end">{badges}</div>}
+    <div className={cn("p-5 bg-white space-y-3", tabs ? "pb-0 border-b-0" : "border-b")}>
+      <div className="min-w-0 pr-20">
+        <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
+        {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
+        {ids}
+        {badges && <div className="mt-2 flex items-center gap-2 flex-wrap">{badges}</div>}
       </div>
       {actions && <div className="flex gap-2 flex-wrap">{actions}</div>}
+      {tabs && <div className="-mx-5 px-5 pt-1">{tabs}</div>}
     </div>
   );
 }

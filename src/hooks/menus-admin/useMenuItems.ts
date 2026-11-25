@@ -17,6 +17,7 @@ export const useMenuItems = () => {
     isLoading: isLoadingMenuItems,
     error: errorMenuItems,
   } = useQuery<MenuItemAdmin[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["menuItemsAdmin"],
     queryFn: async () => {
       const data = await listMenuItems();

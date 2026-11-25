@@ -13,6 +13,7 @@ export interface PlantillaImpresionQr {
  */
 export const usePlantillasImpresionQr = (enabled: boolean = true) => {
   const { data, isLoading } = useQuery<PlantillaImpresionQr[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["plantillasImpresionQr"],
     enabled,
     staleTime: 1000 * 60 * 10,

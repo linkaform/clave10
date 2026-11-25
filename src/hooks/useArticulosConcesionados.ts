@@ -11,6 +11,7 @@ export const useArticulosConcesionados = (location:string, area:string, status:s
 
     //Obtener lista de ArtículosCon
     const {data: listArticulosCon, isLoading:isLoadingQuery, isFetching, isPlaceholderData, error:errorListArticulosCon } = useQuery<any>({
+        refetchOnWindowFocus: false,
         queryKey: ["getListArticulosCon",location, area, status, date1, date2, filterDate, limit, skip, locations, facets],
         enabled:enableList,
         // Al cambiar los filtros del buscador cambia el queryKey; sin esto el

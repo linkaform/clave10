@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export const useCatalogoFallas = (tipo:string, isModalOpen:boolean) => {
   const { data: data, isLoading, error, isFetching, refetch } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["getCatalogoFallas", tipo], 
     enabled:isModalOpen && tipo ? true:false,
     queryFn: async () => {

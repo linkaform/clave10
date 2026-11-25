@@ -35,6 +35,7 @@ export const useUbicacionesCatalog = (
     error,
     refetch,
   } = useQuery<UbicacionesCatalogPage>({
+    refetchOnWindowFocus: false,
     queryKey: ["ubicacionesCatalog", locations, dynamicFilters, limit, skip, facets],
     // locations vacío es válido: el back regresa todas las de la cuenta.
     enabled,

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export const useGetAreaById = (record_id: string) => {
   const { data, isLoading: isLoadingArea } = useQuery<AreaRow | null>({
+    refetchOnWindowFocus: false,
     queryKey: ["getAreaById", record_id],
     enabled: record_id ? true : false,
     queryFn: async () => {

@@ -14,6 +14,7 @@ export const usePaqueteria = (location:string, area:string, status:string, enabl
 
     //Obtener lista de Paquetes
     const {data: listPaqueteria, isLoading:isLoadingQuery, isFetching, isPlaceholderData, error:errorListPaqueteria } = useQuery<any>({
+        refetchOnWindowFocus: false,
         queryKey: ["getListPaqueteria", location, area , status, date1, date2, filterDate, paging],
         enabled:enableList,
         placeholderData: keepPreviousData,
@@ -131,6 +132,7 @@ export const usePaqueteria = (location:string, area:string, status:string, enabl
 
       const { data: stats, isLoading: isStatsLoading, error: statsError,
       } = useQuery<any>({
+        refetchOnWindowFocus: false,
         queryKey: ["getStatsArticulos", area, location],
         enabled:enableList,
         queryFn: async () => {

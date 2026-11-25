@@ -10,6 +10,7 @@ export const useGetListCheckUbicaciones = (
   search?: CheckAreasSearch,
 ) => {
   const { data, isLoading: isLoadingQuery, isFetching, isPlaceholderData, error: errorListCheckUbicaciones } = useQuery({
+    refetchOnWindowFocus: false,
     queryKey: ["getListCheckUbicaciones", ubicacion, nombreRondin, search],
     enabled: enableList,
     placeholderData: keepPreviousData,

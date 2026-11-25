@@ -112,6 +112,7 @@ const RegistroIngresoPage = () => {
   // solo `.requerimientos` (lo consume otra pantalla del dashboard); aquí
   // necesitamos el objeto completo, así que se llama directo al mismo lib.
   const { data: confData, isLoading: loadingConfig, isError: errorConfig } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["getConfSeguridadFull", ubicacion, accountId],
     enabled: !!ubicacion,
     queryFn: async () => {

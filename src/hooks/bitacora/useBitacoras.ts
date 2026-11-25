@@ -32,6 +32,7 @@ export const useBitacoras = (
     error: errorListBitacoras,
     refetch,
   } = useQuery<Data>({
+    refetchOnWindowFocus: false,
     queryKey: [
       "getListBitacoras",
       area,

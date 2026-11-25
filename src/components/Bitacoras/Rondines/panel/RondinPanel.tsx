@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { ChevronRight, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ResizableLogSheet } from "@/components/ScriptLogs/ResizableLogSheet";
 import { CopyableId } from "@/components/ScriptLogs/CopyableId";
@@ -22,8 +24,8 @@ const MapView = dynamic(() => import("@/components/map-v2"), { ssr: false });
 
 /** Atributo de las acciones que abren el panel: cambiar de rondin no lo cierra. */
 export const RONDIN_PANEL_OPENER = "[data-rondin-eye]";
+const EMPTY_MAP: MapItem[] = [];
 const KEEP_OPEN_SELECTOR = `${RONDIN_PANEL_OPENER},${PANEL_KEEP_OPEN_SELECTOR}`;
-const AREAS_PREVIEW = 6;
 
 const ESTATUS_BADGE: Record<string, { label: string; className: string }> = {
   realizado: { label: "Realizado", className: "bg-green-100 text-green-700 border-green-200 hover:bg-green-100" },
@@ -51,6 +53,8 @@ const asList = (...candidates: unknown[]) => {
   return (found as any[]) ?? [];
 };
 
+type MainTab = "generales" | "areas" | "imagenes";
+
 interface Props {
   record: any | null;
   open: boolean;
@@ -74,7 +78,7 @@ export function RondinPanel({ record, open, onOpenChange, mapData, action }: Pro
         <RondinPanelContent
           key={record.id ?? record.folio}
           record={record}
-          mapData={mapData ?? []}
+          mapData={mapData ?? EMPTY_MAP}
           action={typeof action === "function" ? action(record) : action}
         />
       )}
@@ -91,13 +95,13 @@ function RondinPanelContent({
   mapData: MapItem[];
   action?: React.ReactNode;
 }) {
-  const [activeTab, setActiveTab] = useState<"incidencias" | "comentarios">("incidencias");
+  const [mainTab, setMainTab] = useState<MainTab>("generales");
+  const [activeTab, setActiveTab] = useState<"incidencias" | "comentarios">("comentarios");
   const [areaSearch, setAreaSearch] = useState("");
-  const [expandedAreas, setExpandedAreas] = useState(false);
-  const [selectedArea, setSelectedArea] = useState<any>(null);
+  const [selectedAreaIdx, setSelectedAreaIdx] = useState(0);
   const [selectedIncidencia, setSelectedIncidencia] = useState<any>(null);
   const [selectedComentario, setSelectedComentario] = useState<any>(null);
-  // Evidencias que muestra el carrusel cuando se abre un detalle; vacio = fotos del rondin/area.
+  // Evidencias que se abren en el visor (lightbox); vacio = cerrado.
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
 
@@ -120,10 +124,29 @@ function RondinPanelContent({
   }));
   const inspected = areas.filter((a: any) => a.hora).length;
   const progress = areas.length > 0 ? Math.round((inspected / areas.length) * 100) : 0;
-  const filteredAreas = areas.filter((a: any) => a.nombre?.toLowerCase().includes(areaSearch.toLowerCase()));
-  const visibleAreas = expandedAreas || areaSearch ? filteredAreas : filteredAreas.slice(0, AREAS_PREVIEW);
+  const filteredAreas = areas
+    .map((a: any, idx: number) => ({ a, idx }))
+    .filter(({ a }: any) => a.nombre?.toLowerCase().includes(areaSearch.toLowerCase()));
+  const currentArea = areas[selectedAreaIdx] ?? null;
 
-  const slides = buildSlides(selectedImages, selectedArea, areas);
+  // Fotos de todo el rondin, cada una con el indice de su area (pestaña Imágenes).
+  const allPhotos = areas.flatMap((a: any, idx: number) =>
+    (a.fotos || [])
+      .filter((f: any) => f?.file_url?.startsWith("https://"))
+      .map((f: any) => ({ url: f.file_url as string, name: (f.file_name || "Foto") as string, area: a.nombre as string, idx })),
+  );
+
+  // Mapa 1: recorrido diseñado (todas las areas con coordenadas).
+  const designedMap = useMemo(() => mapData, [mapData]);
+  // Mapa 2: recorrido realizado = areas inspeccionadas, en el orden en que se inspeccionaron.
+  const executedMap = useMemo(() => {
+    const geoByName = new Map(mapData.map((m: any) => [m.nombre_area, m]));
+    return areas
+      .filter((a: any) => a.hora && geoByName.has(a.nombre))
+      .sort((x: any, y: any) => String(x.hora).localeCompare(String(y.hora)))
+      .map((a: any) => ({ ...(geoByName.get(a.nombre) as any), foto_area: [{ file_name: "", file_url: a.img }] }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapData, record]);
 
   const estatus = ESTATUS_BADGE[raw.estatus_recorrido ?? ""];
   const folio = record.folio ?? raw.folio ?? "";
@@ -132,25 +155,24 @@ function RondinPanelContent({
     (d) => hasValue(d.value) && !EXCLUDED_EXTRAS.some((m) => labelOf(d).includes(m)),
   );
 
-  const openArea = (area: any) => {
-    setSelectedArea({
-      ...area,
-      asignado_a: raw.asignado_a || "Guardia en turno",
-      estatus_recorrido: raw.estatus_recorrido || "",
-      folio_rondin: folio,
-    });
-    resetDetail({ keepArea: true });
-  };
-  const resetDetail = ({ keepArea = false } = {}) => {
-    if (!keepArea) setSelectedArea(null);
+  const resetDetail = () => {
     setSelectedIncidencia(null);
     setSelectedComentario(null);
-    setSelectedImages([]);
-    setSlideIndex(0);
+  };
+  const goToArea = (idx: number) => {
+    setSelectedAreaIdx(idx);
+    setMainTab("areas");
+    resetDetail();
   };
   const showImages = (urls: string[], index = 0) => {
     setSelectedImages(urls);
     setSlideIndex(index);
+  };
+  const areaForPanel = currentArea && {
+    ...currentArea,
+    asignado_a: raw.asignado_a || "Guardia en turno",
+    estatus_recorrido: raw.estatus_recorrido || "",
+    folio_rondin: folio,
   };
   const evidenceUrls = (item: any): string[] =>
     (item.evidencias || item.incidente_evidencia || []).map((e: any) => e.file_url).filter(Boolean);
@@ -178,57 +200,69 @@ function RondinPanelContent({
           </>
         }
         actions={action}
+        tabs={
+      <DetailTabs
+        tabs={[
+          { key: "generales", label: "Generales" },
+          { key: "areas", label: "Áreas Inspeccionadas", count: areas.length },
+          { key: "imagenes", label: "Imágenes", count: allPhotos.length },
+        ]}
+        value={mainTab}
+        onChange={(t) => {
+          setMainTab(t);
+          resetDetail();
+        }}
+      />
+        }
       />
 
       <div className="flex-1 overflow-auto p-4 space-y-4 bg-slate-100">
-        <DetailSection title="Datos del rondín">
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {DETAIL_FIELDS.map(({ label, match }) => (
-              <DetailField key={label} label={label} value={findDetail(match) as React.ReactNode} />
-            ))}
-            {extras.map((item, i) => (
-              <DetailField
-                key={i}
-                label={item.label}
-                className={Array.isArray(item.value) ? "sm:col-span-2" : undefined}
-                value={Array.isArray(item.value) ? <ChipList values={item.value} /> : item.value}
-              />
-            ))}
-          </dl>
-        </DetailSection>
 
-        <DetailSection title="Evidencia y ubicación">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <SlideCarousel
-              slides={slides}
-              index={slideIndex}
-              onIndexChange={setSlideIndex}
-              caption={selectedArea?.nombre || record.title}
-            />
-            <div className="h-56 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
-              <MapView map_data={mapData} areas={record.areas || []} />
-            </div>
-          </div>
-          <MissingGeoNotice mapData={mapData} />
-        </DetailSection>
+        {mainTab === "generales" && (
+          <>
+            <DetailSection title="Datos del rondín">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {DETAIL_FIELDS.map(({ label, match }) => (
+                  <DetailField
+                    key={label}
+                    label={label}
+                    value={
+                      (label === "Realizado por"
+                        ? findDetail(match) || raw.asignado_a
+                        : findDetail(match)) as React.ReactNode
+                    }
+                  />
+                ))}
+                {extras.map((item, i) => (
+                  <DetailField
+                    key={i}
+                    label={item.label}
+                    className={Array.isArray(item.value) ? "sm:col-span-2" : undefined}
+                    value={Array.isArray(item.value) ? <ChipList values={item.value} /> : item.value}
+                  />
+                ))}
+              </dl>
+            </DetailSection>
 
-        {selectedArea ? (
-          <DetailBlock>
-            <AreaDetailPanel area={selectedArea} onBack={() => resetDetail()} onSetImage={(url) => showImages([url])} />
-          </DetailBlock>
-        ) : selectedIncidencia ? (
-          <DetailBlock>
-            <IncidenciaDetailPanel
-              item={selectedIncidencia}
-              onBack={() => resetDetail()}
-              onSetImage={(url) => showImages([url])}
-            />
-          </DetailBlock>
-        ) : selectedComentario ? (
-          <DetailBlock>
-            <ComentarioDetailPanel item={selectedComentario} onBack={() => resetDetail()} />
-          </DetailBlock>
-        ) : (
+            <DetailSection title="Mapas del recorrido">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <MapCard title="Recorrido diseñado" count={designedMap.length}>
+                  <MapView map_data={designedMap} areas={record.areas || []} />
+                </MapCard>
+                <MapCard
+                  title="Rondín realizado"
+                  count={executedMap.length}
+                  empty="Aún no hay áreas inspeccionadas con ubicación"
+                >
+                  <MapView map_data={executedMap} areas={record.areas || []} />
+                </MapCard>
+              </div>
+              <MissingGeoNotice mapData={mapData} />
+            </DetailSection>
+          </>
+        )}
+
+        {mainTab === "areas" && (
           <>
             <DetailSection title={`Áreas inspeccionadas ${inspected}/${areas.length}`}>
               <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden mb-3">
@@ -248,89 +282,134 @@ function RondinPanelContent({
                 <p className="text-xs text-slate-400 text-center py-3">Sin áreas registradas</p>
               ) : (
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {visibleAreas.map((area: any, i: number) => (
-                    <AreaItem key={i} area={area} onClick={() => openArea(area)} />
+                  {filteredAreas.map(({ a, idx }: any) => (
+                    <AreaItem key={idx} area={a} selected={idx === selectedAreaIdx} onClick={() => goToArea(idx)} />
                   ))}
                 </ul>
               )}
-              {!expandedAreas && !areaSearch && filteredAreas.length > AREAS_PREVIEW && (
-                <button
-                  type="button"
-                  onClick={() => setExpandedAreas(true)}
-                  className="mt-3 text-xs font-semibold text-blue-600 hover:text-blue-700"
-                >
-                  Ver las {filteredAreas.length - AREAS_PREVIEW} áreas restantes
-                </button>
-              )}
             </DetailSection>
 
-            <DetailSection title="Seguimiento">
-              <DetailTabs
-                tabs={[
-                  { key: "incidencias", label: "Incidencias", count: incidencias.length },
-                  { key: "comentarios", label: "Comentarios", count: comentarios.length },
-                ]}
-                value={activeTab}
-                onChange={setActiveTab}
-              />
-              <div className="pt-3">
-                {activeTab === "incidencias" ? (
-                  incidencias.length === 0 ? (
-                    <EmptyText>Sin incidencias registradas</EmptyText>
+            {areaForPanel && (
+              <>
+                <DetailBlock>
+                  <AreaDetailPanel
+                    key={`${selectedAreaIdx}-${areaForPanel.nombre}`}
+                    area={areaForPanel}
+                    onSetImage={(url) => showImages([url])}
+                  />
+                </DetailBlock>
+                <DetailSection title={`Fotos de la inspección (${currentArea.fotos.length})`}>
+                  {currentArea.fotos.length === 0 ? (
+                    <EmptyText>Esta área no tiene fotos</EmptyText>
                   ) : (
-                    incidencias.map((item: any, i: number) => (
-                      <IncidenciaListItem
-                        key={item.id || i}
-                        item={item}
-                        onClick={() => {
-                          setSelectedIncidencia(item);
-                          const urls = evidenceUrls(item);
-                          if (urls.length > 0) showImages(urls);
-                        }}
-                        onImageClick={(url) => {
-                          const urls = evidenceUrls(item);
-                          showImages(urls, Math.max(urls.indexOf(url), 0));
-                        }}
-                      />
-                    ))
-                  )
-                ) : comentarios.length === 0 ? (
-                  <EmptyText>Sin comentarios registrados</EmptyText>
-                ) : (
-                  comentarios.map((item: any, i: number) => (
-                    <button key={i} type="button" className="block w-full text-left" onClick={() => setSelectedComentario(item)}>
-                      <ComentarioListItem item={item} />
-                    </button>
-                  ))
-                )}
-              </div>
-            </DetailSection>
+                    <PhotoGrid
+                      photos={currentArea.fotos.map((f: any) => ({ url: f.file_url, name: f.file_name || "Foto" }))}
+                      onClick={(_, i) => showImages(currentArea.fotos.map((f: any) => f.file_url), i)}
+                    />
+                  )}
+                </DetailSection>
+              </>
+            )}
           </>
         )}
+
+        {mainTab === "imagenes" && (
+          <DetailSection title={`Imágenes del recorrido (${allPhotos.length})`}>
+            {allPhotos.length === 0 ? (
+              <EmptyText>Este rondín no tiene imágenes</EmptyText>
+            ) : (
+              <PhotoGrid
+                photos={allPhotos.map((p: any) => ({ url: p.url, name: p.name, caption: p.area }))}
+                onClick={(_, i) => goToArea(allPhotos[i].idx)}
+              />
+            )}
+          </DetailSection>
+        )}
+
+        {selectedIncidencia ? (
+          <DetailBlock>
+            <IncidenciaDetailPanel
+              item={selectedIncidencia}
+              onBack={() => resetDetail()}
+              onSetImage={(url) => showImages([url])}
+            />
+          </DetailBlock>
+        ) : selectedComentario ? (
+          <DetailBlock>
+            <ComentarioDetailPanel item={selectedComentario} onBack={() => resetDetail()} />
+          </DetailBlock>
+        ) : (
+          <DetailSection title="Seguimiento">
+            <DetailTabs
+              tabs={[
+                { key: "comentarios", label: "Comentarios", count: comentarios.length },
+                { key: "incidencias", label: "Incidencias", count: incidencias.length },
+              ]}
+              value={activeTab}
+              onChange={setActiveTab}
+            />
+            <div className="pt-3">
+              {activeTab === "incidencias" ? (
+                incidencias.length === 0 ? (
+                  <EmptyText>Sin incidencias registradas</EmptyText>
+                ) : (
+                  incidencias.map((item: any, i: number) => (
+                    <IncidenciaListItem
+                      key={item.id || i}
+                      item={item}
+                      onClick={() => {
+                        setSelectedIncidencia(item);
+                        const urls = evidenceUrls(item);
+                        if (urls.length > 0) showImages(urls);
+                      }}
+                      onImageClick={(url) => {
+                        const urls = evidenceUrls(item);
+                        showImages(urls, Math.max(urls.indexOf(url), 0));
+                      }}
+                    />
+                  ))
+                )
+              ) : comentarios.length === 0 ? (
+                <EmptyText>Sin comentarios registrados</EmptyText>
+              ) : (
+                comentarios.map((item: any, i: number) => (
+                  <button key={i} type="button" className="block w-full text-left" onClick={() => setSelectedComentario(item)}>
+                    <ComentarioListItem item={item} />
+                  </button>
+                ))
+              )}
+            </div>
+          </DetailSection>
+        )}
       </div>
+
+      <Dialog open={selectedImages.length > 0} onOpenChange={(o) => !o && setSelectedImages([])}>
+        <DialogContent data-panel-keep className="max-w-3xl p-4 bg-white">
+          <DialogTitle className="sr-only">Evidencia</DialogTitle>
+          {selectedImages.length > 0 && (
+            <SlideCarousel
+              slides={toSlides(selectedImages, "Evidencia")}
+              index={slideIndex}
+              onIndexChange={setSlideIndex}
+              className="h-[60vh]"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-// Fotos del carrusel: evidencias abiertas > fotos del area elegida > fotos de todas las areas.
-function buildSlides(selectedImages: string[], selectedArea: any, areas: any[]) {
-  if (selectedImages.length > 0) {
-    return toSlides(selectedImages, "Evidencia");
-  }
-  const fotos: any[] = selectedArea ? selectedArea.fotos : areas.flatMap((a) => a.fotos);
-  const slides = fotos
-    .filter((f) => f?.file_url?.startsWith("https://"))
-    .map((f) => ({ src: f.file_url as string, label: (f.file_name || "Foto") as string }));
-  return slides.length > 0 ? slides : toSlides([]);
-}
-
-function AreaItem({ area, onClick }: { area: any; onClick: () => void }) {
+function AreaItem({ area, onClick, selected }: { area: any; onClick: () => void; selected?: boolean }) {
   return (
     <li>
       <button
         type="button"
         onClick={onClick}
-        className="w-full flex items-center gap-2.5 rounded-md border border-slate-200 bg-white p-2 text-left hover:border-blue-300 hover:bg-blue-50/40 transition-colors"
+        className={cn(
+          "w-full flex items-center gap-2.5 rounded-md border bg-white p-2 text-left hover:border-blue-300 hover:bg-blue-50/40 transition-colors",
+          selected ? "border-blue-500 ring-1 ring-blue-500 bg-blue-50/40" : "border-slate-200",
+        )}
       >
         <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-slate-200 relative">
           <Image
@@ -378,3 +457,66 @@ const DetailBlock = ({ children }: { children: React.ReactNode }) => (
 const EmptyText = ({ children }: { children: React.ReactNode }) => (
   <p className="text-sm text-slate-400 italic text-center py-6">{children}</p>
 );
+
+function MapCard({
+  title,
+  count,
+  empty,
+  children,
+}: {
+  title: string;
+  count: number;
+  empty?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-semibold text-slate-600">
+        {title} <span className="font-normal text-slate-400">· {count} punto{count === 1 ? "" : "s"}</span>
+      </p>
+      <div className="h-64 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+        {count === 0 ? (
+          <div className="h-full flex items-center justify-center px-4 text-center text-xs text-slate-400">
+            {empty ?? "Sin ubicaciones para mostrar"}
+          </div>
+        ) : (
+          children
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PhotoGrid({
+  photos,
+  onClick,
+}: {
+  photos: { url: string; name: string; caption?: string }[];
+  onClick: (photo: { url: string; name: string }, index: number) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+      {photos.map((p, i) => (
+        <button
+          key={`${p.url}-${i}`}
+          type="button"
+          onClick={() => onClick(p, i)}
+          className="group relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100 hover:ring-2 hover:ring-blue-400 transition-all"
+        >
+          <Image
+            src={p.url}
+            alt={p.name}
+            fill
+            className="object-cover"
+            onError={(e) => ((e.target as HTMLImageElement).src = NO_IMAGE)}
+          />
+          {p.caption && (
+            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1 text-left text-[10px] font-semibold text-white truncate">
+              {p.caption}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}

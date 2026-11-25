@@ -37,6 +37,7 @@ export const useCatalogoPaseAreaLocation = (
   const [ubicacionesDefaultFormatted, setubicacionesDefaultFormatted] = useState<any[]>([]);
 
   const { data: dataAreas, isLoading: isLoadingAreas, error: errorAreas, isFetching: isFetchingAreas, refetch: refetchAreas } = useQuery<any>({
+    refetchOnWindowFocus: false,
     // uso y tipoArea van en la llave: cada modulo tiene su propia lista por ubicacion
     queryKey: ["areasPorUso", location, uso ?? null],
     enabled: enableArea,
@@ -97,7 +98,7 @@ export const useGetAreasByLocations = (enable: boolean, locations: string[]) => 
       }
       return data?.response?.data?.areas_by_location;
     },
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 

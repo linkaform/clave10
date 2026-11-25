@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export const useCatalogoInspeccionesRecorridos = () => {
   const { data, isLoading, isError } = useQuery({
+    refetchOnWindowFocus: false,
     queryKey: ["catalogoInspeccionesRecorridos"],
     queryFn: async () => {
       const response = await catalogoInspeccionesRecorridos();

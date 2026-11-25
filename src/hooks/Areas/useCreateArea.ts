@@ -14,6 +14,7 @@ export const useCreateArea = () => {
   const [isCreating, setIsCreating] = useState(false);
 
   const { data: filtros } = useQuery<{ tipo: FilterOption[]; disponibilidad: FilterOption[] }>({
+    refetchOnWindowFocus: false,
     queryKey: ["filtersAreas", "crear"],
     queryFn: async () => {
       const result = await getFiltersAreasSdk();

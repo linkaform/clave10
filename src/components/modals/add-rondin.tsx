@@ -32,7 +32,6 @@ import { Loader2, Settings, CalendarClock, Layers, User } from "lucide-react";
 import { useRondines } from "@/hooks/Rondines/useRondines";
 import { Input } from "../ui/input";
 import { format } from "date-fns";
-import Multiselect from "multiselect-react-dropdown";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCatalogAreasRondin } from "@/hooks/Rondines/useCatalogAreasRondin";
 import {
@@ -282,12 +281,6 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     (acc, r) => ({ ...acc, [r.value]: r.label }),
     {} as Record<string, string>,
   );
-  const [dropdownOffset, setDropdownOffset] = useState({
-    distance: 40,
-    width: "100%",
-    margin: "39px",
-  });
-  const multiselectRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -341,6 +334,14 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       form.setValue("roles", []);
       setGrupoSeleccionado("");
       setAsignacionError("");
+      // El componente no se desmonta al cerrar: sin esto las áreas y la
+      // recurrencia del recorrido anterior aparecían ya seleccionadas.
+      setAreasSeleccionadas([]);
+      setDate("");
+      set_todas_las_meses(false);
+      setEsRepetirCada(null);
+      setMostrarFrecuencia(false);
+      setNoRecurrente(false);
       reset();
     }
   }, [isSuccess]);
@@ -515,7 +516,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
         return {
           se_repite_cada: "semana",
           que_dias_de_la_semana: [date ? obtenerDiaSemana(date) : ""],
-          ...(!todas_las_semanas && { en_que_semana_sucede }),
+          en_que_semana_sucede: todas_las_semanas ? "todas_las_semanas" : en_que_semana_sucede,
           sucede_recurrencia: ["dia_de_la_semana"],
         };
       case "mes": {
@@ -532,7 +533,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
             se_repite_cada: "configurable",
             que_dias_de_la_semana,
             sucede_recurrencia: ["dia_de_la_semana"],
-            ...(todas_las_semanas ? {} : { en_que_semana_sucede }),
+            en_que_semana_sucede: todas_las_semanas ? "todas_las_semanas" : en_que_semana_sucede,
             en_que_mes,
           };
         }
@@ -655,8 +656,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
       if (!("se_repite_cada" in rondinData)) setNoRecurrente(true);
       if (rondinData?.en_que_semana_sucede?.length > 0) {
         set_en_que_semana_sucede(rondinData.en_que_semana_sucede);
-        if (rondinData.en_que_semana_sucede !== "todas_las_semanas")
-          set_todas_las_semanas(false);
+        set_todas_las_semanas(rondinData.en_que_semana_sucede === "todas_las_semanas");
       }
       if (rondinData?.en_que_mes?.length > 0) {
         const meses = Array.isArray(rondinData.en_que_mes)
@@ -730,58 +730,6 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     setAreasSeleccionadas(cat);
     setAreasHydrated(true);
   }, [mode, isSuccess, rondinId, rondinEfectivo, catalogAreasRondin]);
-
-  useEffect(() => {
-    const container = multiselectRef.current;
-    if (!container) return;
-    const updatePosition = () => {
-      const inputBox = container.querySelector(".searchWrapper") as HTMLElement | null;
-      if (!inputBox) return;
-      const height = inputBox.offsetHeight || 39;
-      const width = `${container.offsetWidth}px`;
-      const margin = areasSeleccionadas.length === 0 ? "32px" : "0px";
-      setDropdownOffset({ distance: height, width, margin });
-    };
-    updatePosition();
-    requestAnimationFrame(() => updatePosition());
-    setTimeout(updatePosition, 50);
-    setTimeout(updatePosition, 150);
-    setTimeout(updatePosition, 300);
-    const resizeObserver = new ResizeObserver(() => {
-      updatePosition();
-      setTimeout(updatePosition, 100);
-    });
-    const handleClick = () => {
-      setTimeout(updatePosition, 10);
-      setTimeout(updatePosition, 50);
-      setTimeout(updatePosition, 100);
-    };
-    const targetElement = container.querySelector(".searchWrapper");
-    if (targetElement) resizeObserver.observe(targetElement);
-    container.addEventListener("click", handleClick);
-    container.addEventListener("focus", handleClick, true);
-    return () => {
-      resizeObserver.disconnect();
-      container.removeEventListener("click", handleClick);
-      container.removeEventListener("focus", handleClick, true);
-    };
-  }, [areasSeleccionadas]);
-
-  useEffect(() => {
-    const container = multiselectRef.current;
-    if (!container) return;
-    const updatePosition = () => {
-      const inputBox = container.querySelector(".searchWrapper") as HTMLElement | null;
-      if (!inputBox) return;
-      const height = inputBox.offsetHeight || 39;
-      const width = `${container.offsetWidth}px`;
-      const margin = areasSeleccionadas.length === 0 ? "32px" : "0px";
-      setDropdownOffset({ distance: height, width, margin });
-    };
-    setTimeout(updatePosition, 100);
-    setTimeout(updatePosition, 300);
-    setTimeout(updatePosition, 500);
-  }, []);
 
   return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
@@ -1208,7 +1156,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
                       <div className="flex justify-between">
                         <FormLabel>Seleccione la semana del mes:</FormLabel>
                         <div className="flex items-center gap-2 ml-3">
-                          <input type="checkbox" onChange={(e: any) => set_todas_las_semanas(e.target.checked)} />
+                          <input type="checkbox" checked={todas_las_semanas} onChange={(e: any) => set_todas_las_semanas(e.target.checked)} />
                           <span className="text-sm">Todas las semanas</span>
                         </div>
                       </div>
@@ -1378,38 +1326,30 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
               </SectionCard>
 
               <SectionCard icon={<Layers size={15} />} label="Áreas">
-                <div className="relative multiselect-wrapper" ref={multiselectRef}>
+                <div className="relative multiselect-wrapper">
                   <div className="text-sm mb-2">Áreas: </div>
                   {isLoadingAreas ? (
                     <div className="border rounded-lg p-3 bg-gray-50 text-gray-500 text-sm">
                       Cargando áreas...
                     </div>
                   ) : (
-                    <Multiselect
-                      options={areasOptions}
-                      onSelect={setAreasSeleccionadas}
-                      onRemove={setAreasSeleccionadas}
-                      displayValue="name"
-                      selectedValues={areasSeleccionadas}
-                      disable={isLoadingAreas}
-                      style={{
-                        optionContainer: {
-                          position: "absolute",
-                          bottom: `${dropdownOffset.distance}px`,
-                          left: 0,
-                          width: dropdownOffset.width || "100%",
-                          zIndex: 999999,
-                          backgroundColor: "white",
-                          borderRadius: "8px",
-                          overflow: "auto",
-                          maxHeight: "200px",
-                          boxShadow: "0 -4px 10px rgba(0,0,0,0.15)",
-                          marginBottom: `${dropdownOffset.margin || 0}px`,
-                        },
-                        searchBox: {
-                          position: "relative",
-                          opacity: isLoadingAreas ? 0.5 : 1,
-                        },
+                    <MultiSelect
+                      isMulti
+                      placeholder="Selecciona áreas"
+                      className="border border-slate-100 rounded-2xl"
+                      options={areasOptions as any[]}
+                      value={areasSeleccionadas}
+                      getOptionLabel={(o: any) => o.name}
+                      getOptionValue={(o: any) => String(o.id)}
+                      onChange={(selected: any) => setAreasSeleccionadas(selected ? [...selected] : [])}
+                      closeMenuOnSelect={false}
+                      // El menú vive en el body: así flota sobre el footer y el
+                      // scroll del modal (Radix bloquea el puntero fuera del dialog).
+                      menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                      menuPosition="fixed"
+                      menuPlacement="auto"
+                      styles={{
+                        menuPortal: (base: any) => ({ ...base, zIndex: 99999, pointerEvents: "auto" }),
                       }}
                     />
                   )}

@@ -37,6 +37,7 @@ export const useConfigSeguridadUbicacion = (ubicacion: string) => {
   const enCache = grupoRequisitos?.find((requisito) => requisitoAplicaA(requisito.ubicacion, ubicacion));
 
   const { data, isLoading, isPlaceholderData, error } = useQuery<ConfigSeguridadUbicacion>({
+    refetchOnWindowFocus: false,
     ...configSeguridadUbicacionQuery(ubicacion),
     enabled: Boolean(ubicacion),
     placeholderData: enCache

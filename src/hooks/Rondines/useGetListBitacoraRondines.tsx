@@ -46,6 +46,7 @@ export const useGetListRondines = (
 ) => {
   const { data: listRondines, isLoading: isLoadingListRondines, error: errorListRondines } =
     useQuery<BitacoraRondin[]>({
+    refetchOnWindowFocus: false,
       queryKey: ["getListRondines", date1, date2, limit, offset],
       enabled: enableList,
       queryFn: async () => {

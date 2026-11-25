@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 export const useCatalogoAreaEmpleado = (isSuccess:boolean, location:string, bitacora:string) => {
   const { data: data, isLoading, error, isFetching, refetch } = useQuery<any>({
+    refetchOnWindowFocus: false,
     queryKey: ["getCatalogoAreaEmpleado", location, bitacora ], 
     enabled: isSuccess,
     queryFn: async () => {

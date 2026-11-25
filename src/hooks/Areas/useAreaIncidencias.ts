@@ -41,6 +41,7 @@ const EMPTY_PAGE: AreaIncidenciasPage = {
 
 export const useAreaIncidencias = (areaId: string, limit: number = 5, skip: number = 0) => {
   const { data, isLoading, isFetching } = useQuery<AreaIncidenciasPage>({
+    refetchOnWindowFocus: false,
     queryKey: ["areaIncidencias", areaId, limit, skip],
     enabled: Boolean(areaId),
     placeholderData: keepPreviousData,

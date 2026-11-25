@@ -27,6 +27,7 @@ export const useMenuUsers = () => {
     isLoading: isLoadingUsers,
     error: errorUsers,
   } = useQuery<MenuUser[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["menuAdminUsers"],
     queryFn: async () => {
       const data = await listMenuUsers();
@@ -216,6 +217,7 @@ export const useMigrateLegacyMenus = () => {
 // consulta con el botón "Analizar": son 3 llamadas a LinkaForm por usuario.
 export const usePermissionGaps = () => {
   const { data, isFetching, error, refetch } = useQuery<PermissionGapsResult>({
+    refetchOnWindowFocus: false,
     queryKey: ["menuAdminPermissionGaps"],
     enabled: false,
     queryFn: async () => {
@@ -269,6 +271,7 @@ export const useMenuConfigDiagnostics = () => {
     error: errorMissingConfig,
     refetch: refetchMissingConfig,
   } = useQuery<MenuUser[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["menuAdminUsersMissingConfig"],
     queryFn: async () => {
       const data = await listUsersMissingMenuConfig();
@@ -286,6 +289,7 @@ export const useMenuConfigDiagnostics = () => {
     error: errorOnlyLegacy,
     refetch: refetchOnlyLegacy,
   } = useQuery<MenuUser[]>({
+    refetchOnWindowFocus: false,
     queryKey: ["menuAdminUsersOnlyLegacyAccesos"],
     queryFn: async () => {
       const data = await listUsersOnlyInLegacyAccesos();
