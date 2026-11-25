@@ -32,7 +32,6 @@ import { Loader2, Settings, CalendarClock, Layers, User } from "lucide-react";
 import { useRondines } from "@/hooks/Rondines/useRondines";
 import { Input } from "../ui/input";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCatalogAreasRondin } from "@/hooks/Rondines/useCatalogAreasRondin";
 import {
@@ -282,12 +281,6 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     (acc, r) => ({ ...acc, [r.value]: r.label }),
     {} as Record<string, string>,
   );
-  const [dropdownOffset, setDropdownOffset] = useState({
-    distance: 40,
-    width: "100%",
-    margin: "39px",
-  });
-  const multiselectRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -737,58 +730,6 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
     setAreasSeleccionadas(cat);
     setAreasHydrated(true);
   }, [mode, isSuccess, rondinId, rondinEfectivo, catalogAreasRondin]);
-
-  useEffect(() => {
-    const container = multiselectRef.current;
-    if (!container) return;
-    const updatePosition = () => {
-      const inputBox = container.querySelector(".searchWrapper") as HTMLElement | null;
-      if (!inputBox) return;
-      const height = inputBox.offsetHeight || 39;
-      const width = `${container.offsetWidth}px`;
-      const margin = areasSeleccionadas.length === 0 ? "32px" : "0px";
-      setDropdownOffset({ distance: height, width, margin });
-    };
-    updatePosition();
-    requestAnimationFrame(() => updatePosition());
-    setTimeout(updatePosition, 50);
-    setTimeout(updatePosition, 150);
-    setTimeout(updatePosition, 300);
-    const resizeObserver = new ResizeObserver(() => {
-      updatePosition();
-      setTimeout(updatePosition, 100);
-    });
-    const handleClick = () => {
-      setTimeout(updatePosition, 10);
-      setTimeout(updatePosition, 50);
-      setTimeout(updatePosition, 100);
-    };
-    const targetElement = container.querySelector(".searchWrapper");
-    if (targetElement) resizeObserver.observe(targetElement);
-    container.addEventListener("click", handleClick);
-    container.addEventListener("focus", handleClick, true);
-    return () => {
-      resizeObserver.disconnect();
-      container.removeEventListener("click", handleClick);
-      container.removeEventListener("focus", handleClick, true);
-    };
-  }, [areasSeleccionadas]);
-
-  useEffect(() => {
-    const container = multiselectRef.current;
-    if (!container) return;
-    const updatePosition = () => {
-      const inputBox = container.querySelector(".searchWrapper") as HTMLElement | null;
-      if (!inputBox) return;
-      const height = inputBox.offsetHeight || 39;
-      const width = `${container.offsetWidth}px`;
-      const margin = areasSeleccionadas.length === 0 ? "32px" : "0px";
-      setDropdownOffset({ distance: height, width, margin });
-    };
-    setTimeout(updatePosition, 100);
-    setTimeout(updatePosition, 300);
-    setTimeout(updatePosition, 500);
-  }, []);
 
   return (
     <Dialog open={isSuccess} onOpenChange={setIsSuccess} modal>
@@ -1385,7 +1326,7 @@ export const AddRondinModal: React.FC<AddRondinModalProps> = ({
               </SectionCard>
 
               <SectionCard icon={<Layers size={15} />} label="Áreas">
-                <div className="relative multiselect-wrapper" ref={multiselectRef}>
+                <div className="relative multiselect-wrapper">
                   <div className="text-sm mb-2">Áreas: </div>
                   {isLoadingAreas ? (
                     <div className="border rounded-lg p-3 bg-gray-50 text-gray-500 text-sm">
