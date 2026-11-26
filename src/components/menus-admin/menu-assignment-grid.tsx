@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowDownAZ, ArrowUpAZ, PanelRightOpen, Search, X } from "lucide-react";
 import { useMenuUsers, useAllUsersMenuItems } from "@/hooks/menus-admin/useUserMenuAssignment";
 import { groupByModule } from "@/lib/menus-admin-tree";
-import { MenuItemAdmin, MenuUser } from "@/services/menus-admin";
+import { MenuItemAdmin, MenuItemPlatform, MenuUser } from "@/services/menus-admin";
 import { cn } from "@/lib/utils";
 import { AssignCheckbox, CheckState, checkState } from "./assign-checkbox";
 import { MenuAssignmentDrawer } from "./menu-assignment-drawer";
@@ -14,6 +14,10 @@ import { PendingChangesFooter } from "@/components/common/PendingChangesFooter";
 interface MenuAssignmentGridProps {
   /** Items del catálogo de la plataforma que se está viendo (web o móvil). */
   items: MenuItemAdmin[];
+  /** Catálogo completo (web y móvil): el panel lateral muestra las dos plataformas. */
+  allItems: MenuItemAdmin[];
+  /** Plataforma que se está viendo en la tabla; va primero en el panel. */
+  platform: MenuItemPlatform;
   onDirtyChange?: (dirty: boolean) => void;
 }
 
@@ -28,7 +32,14 @@ const sameKeys = (a: string[], b: string[]) => {
  * el módulo completo; el detalle por sección/menú está en el panel lateral.
  * Nada se guarda hasta "Guardar cambios".
  */
-export function MenuAssignmentGrid({ items, onDirtyChange }: MenuAssignmentGridProps) {
+const PLATFORM_LABEL: Record<MenuItemPlatform, string> = { web: "Web", mobile: "Móvil" };
+
+export function MenuAssignmentGrid({
+  items,
+  allItems,
+  platform,
+  onDirtyChange,
+}: MenuAssignmentGridProps) {
   const { users, isLoadingUsers } = useMenuUsers();
   const { keysByUser, isLoading, error, saveManyMutation, progress } = useAllUsersMenuItems();
 
@@ -38,6 +49,17 @@ export function MenuAssignmentGrid({ items, onDirtyChange }: MenuAssignmentGridP
     [modules],
   );
   const platformKeys = useMemo(() => new Set(items.map((i) => i.key)), [items]);
+  // Panel lateral: las dos plataformas, primero la que se está viendo.
+  const drawerGroups = useMemo(() => {
+    const order: MenuItemPlatform[] = platform === "web" ? ["web", "mobile"] : ["mobile", "web"];
+    return order
+      .map((p) => ({
+        platform: p,
+        label: PLATFORM_LABEL[p],
+        modules: groupByModule(allItems.filter((i) => i.platforms === p)),
+      }))
+      .filter((g) => g.modules.length > 0);
+  }, [allItems, platform]);
 
   // Cambios sin guardar: lista completa de keys por usuario.
   const [pending, setPending] = useState<Record<number, string[]>>({});
@@ -351,7 +373,7 @@ export function MenuAssignmentGrid({ items, onDirtyChange }: MenuAssignmentGridP
 
       <MenuAssignmentDrawer
         user={detailUser}
-        modules={modules}
+        groups={drawerGroups}
         targetCount={detailTargets.length}
         stateOf={(keys) => groupState(detailTargets, keys)}
         onToggleKeys={(keys) => toggleKeys(detailTargets, keys)}

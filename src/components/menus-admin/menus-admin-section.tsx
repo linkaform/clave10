@@ -167,6 +167,8 @@ export function MenusAdminSection() {
       {tab === "asignacion" && (
         <MenuAssignmentGrid
           items={assignmentMenuItems}
+          allItems={menuItems}
+          platform={assignmentPlatformTab}
           onDirtyChange={setAssignmentDirty}
         />
       )}
