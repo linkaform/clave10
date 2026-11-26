@@ -39,7 +39,7 @@ test.describe("bitacoras · formulario", () => {
   });
 
   // TF-014
-  test("da salida a todos los visitantes seleccionados", async ({ page, back }) => {
+  test("da salida a todos los visitantes seleccionados", { tag: "@bug-1483" }, async ({ page, back }) => {
     back.simular(DO_OUT, { success: true, response: { data: { status_code: 202, json: {} } } });
 
     await tarjeta(page, UNO).getByRole("checkbox").click();
@@ -53,12 +53,12 @@ test.describe("bitacoras · formulario", () => {
   });
 
   // TF-015
-  test("ofrece la salida masiva cuando hay personas dentro", async ({ page }) => {
+  test("ofrece la salida masiva cuando hay personas dentro", { tag: "@bug-1483" }, async ({ page }) => {
     await expect(page.getByRole("button", { name: "Sacar" })).toBeVisible();
   });
 
   // TF-016
-  test("manda la ubicación como texto en la salida masiva", async ({ page, back }) => {
+  test("manda la ubicación como texto en la salida masiva", { tag: ["@bug-1653", "@bug-1483"] }, async ({ page, back }) => {
     back.simular(SALIDA_MASIVA, {
       success: true,
       response: { data: { status_code: 202, json: { msg: "Salida registrada." } } },
@@ -76,7 +76,7 @@ test.describe("bitacoras · formulario", () => {
   });
 
   // TF-017
-  test("dice cuántas personas van a salir en la salida masiva", async ({ page }) => {
+  test("dice cuántas personas van a salir en la salida masiva", { tag: ["@bug-1654", "@bug-1483"] }, async ({ page }) => {
     await page.getByRole("button", { name: "Sacar" }).click();
 
     // La respuesta guardada de get_stats trae personas_dentro: 2.
@@ -84,7 +84,7 @@ test.describe("bitacoras · formulario", () => {
   });
 
   // TF-018
-  test("muestra el mensaje del back si no se puede regresar el gafete", async ({ page, back }) => {
+  test("muestra el mensaje del back si no se puede regresar el gafete", { tag: "@bug-1655" }, async ({ page, back }) => {
     const mensaje = "El gafete no está asignado a esta visita.";
     // Así contesta el runner cuando el script lanza LKFException.
     back.simular(GAFETE, { success: false, response: "", error: { exception: { msg: mensaje } } });
