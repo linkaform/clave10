@@ -56,4 +56,23 @@ test.describe("accesos/transportista · formulario", () => {
 
     await expect(page.getByRole("button", { name: "Pasar a etapa · Carga / Descarga" })).toBeVisible();
   });
+
+  // TF-030
+  test("la inspección de sello solo manda las unidades que faltaban", { tag: "@bug-1665" }, async ({ page, back }) => {
+    back.simular(SELLO, OK);
+    await abrirVisita(page, back, (visita) => {
+      visita.remolques = [remolque(1), remolque(2)];
+    });
+
+    await page.getByRole("button", { name: "Realizar inspección de sello" }).click();
+    // El modal abre en el remolque principal, que ya tiene su sello.
+    await page.getByRole("button", { name: "Siguiente · Remolque #2" }).click();
+    await page.getByRole("checkbox", { name: /No aplica/ }).click();
+    await page.getByRole("button", { name: "Guardar", exact: true }).filter({ visible: true }).click();
+
+    await expect.poll(() => back.llamadas(SELLO).length, { timeout: 10_000 }).toBe(1);
+    const [body] = back.llamadas(SELLO);
+    // El remolque 1 ya tiene su sello; volver a mandarlo lo duplica.
+    expect(body.inspecciones.map((i: any) => i.unidad)).toEqual([2]);
+  });
 });
