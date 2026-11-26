@@ -134,4 +134,25 @@ test.describe("bitacoras_transportistas · formulario", () => {
     await expect(page.getByText(/error al subir/i)).toBeVisible();
     await expect(page.getByText("Archivo cargado con éxito")).toBeHidden();
   });
+
+  // TF-027
+  test("muestra el mensaje del back si no se puede registrar el acceso", async ({ page, back }) => {
+    const mensaje = "La placa QA-456 ya tiene una visita abierta.";
+    await subidaDeFotos(page, true);
+    back.simular(OCR, {
+      success: true,
+      response: {
+        status_code: 200,
+        data: { vehiculo: { transportista: "Transportes QA", placa: "QA-456" }, embarque: { no_orden_compra: "OC-1234" } },
+      },
+    });
+    await falloDelBack(page, "create_visit_transportista", mensaje);
+
+    await capturarLlegada(page);
+    await expect(page.getByText("Archivo cargado con éxito")).toBeVisible();
+    await page.getByRole("button", { name: "Analizar y continuar" }).click();
+    await page.getByRole("button", { name: "Registrar acceso" }).click();
+
+    await expect(page.getByText(mensaje)).toBeVisible();
+  });
 });
