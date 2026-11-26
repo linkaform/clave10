@@ -1,18 +1,19 @@
 "use client";
 // CF-03 · Panel de detalle de una sesión: Generales, Temario (Curso) o Recursos, y
-// Participantes (solo la lista; inscribir, asistencia y examen son de CF-04).
+// Participantes (CF-04: inscribir, asistencia, examen). Cancelar con motivo (CF-04).
 // Diseño: plataforma.dc.html, ssnDetOpen (~2111–2159) y ssnD.lines (~7504).
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Award, CalendarDays, ChevronDown, ClipboardCheck, ExternalLink, FileText, Link2, MapPin, Pencil, Repeat, Trash2, UserRound, Users,
+  Award, Ban, CalendarDays, ChevronDown, ClipboardCheck, ExternalLink, FileText, Link2, MapPin, Pencil, Repeat, Trash2, UserRound, Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BotonIcono, ChipKpi } from "@/components/contratistas/ui";
+import { AreaTexto, BotonIcono, Campo, ChipKpi, Modal, avisar } from "@/components/contratistas/ui";
 import { PanelDetalle, TarjetaPanel } from "@/components/contratistas/panel";
 import { duracionSesion, textoRecurrenciaSesion } from "@/components/contratistas/vigencia";
-import { getSesion } from "@/services/contratistas";
+import { cancelSesion, getSesion } from "@/services/contratistas";
 import type { Sesion } from "@/types/contratistas";
+import { ParticipantesSesion } from "./ParticipantesSesion";
 import { ChipEstatusSesion, ChipModalidad, ChipTipoSesion, IconoMaterial, Linea } from "./piezas";
 import {
   CLAVE_SESIONES, INSTRUCTOR, conExamenes, conTemario, horario, horarioDe, nombreMaterial, rangoFechas, recurrenciaEditor, resumenTemario,
@@ -32,6 +33,7 @@ export function DetalleSesion({
   const q = useQuery({ queryKey: [...CLAVE_SESIONES, id], queryFn: () => getSesion(id!), enabled: !!id });
   const s = q.data;
   const [tab, setTab] = useState("generales");
+  const [cancelar, setCancelar] = useState(false);
   useEffect(() => setTab("generales"), [id]);
 
   const tabs = s
@@ -58,6 +60,7 @@ export function DetalleSesion({
       acciones={s && (
         <>
           <BotonIcono titulo="Editar" icono={<Pencil />} disabled={s.estatus === "Cancelada"} onClick={() => onEditar(s)} />
+          {s.estatus === "Programada" && <BotonIcono titulo="Cancelar sesión" icono={<Ban />} peligro onClick={() => setCancelar(true)} />}
           {s.estatus === "Programada" && <BotonIcono titulo="Eliminar" icono={<Trash2 />} peligro onClick={() => onEliminar(s)} />}
         </>
       )}
@@ -66,8 +69,45 @@ export function DetalleSesion({
       {s && tab === "generales" && <Generales s={s} />}
       {s && tab === "temario" && <Temario s={s} />}
       {s && tab === "recursos" && <Recursos s={s} />}
-      {s && tab === "participantes" && <Participantes s={s} />}
+      {s && tab === "participantes" && <ParticipantesSesion sesion={s} />}
+      {s && cancelar && <ModalCancelar s={s} onCerrar={() => setCancelar(false)} />}
     </PanelDetalle>
+  );
+}
+
+/** Solo Programada; el motivo es obligatorio y se avisa a los inscritos. */
+function ModalCancelar({ s, onCerrar }: { s: Sesion; onCerrar: () => void }) {
+  const qc = useQueryClient();
+  const [motivo, setMotivo] = useState("");
+  const [intento, setIntento] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const n = s.inscritos ?? s.participantes.length;
+  const guardar = async () => {
+    setIntento(true);
+    if (!motivo.trim()) return;
+    setGuardando(true);
+    try {
+      await cancelSesion(s.id, motivo.trim());
+      avisar("Se canceló la sesión");
+      qc.invalidateQueries({ queryKey: CLAVE_SESIONES });
+      onCerrar();
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : "No se pudo cancelar la sesión", "error");
+    } finally {
+      setGuardando(false);
+    }
+  };
+  return (
+    <Modal
+      abierto onCerrar={onCerrar} titulo="¿Cancelar sesión?" ancho={460} onGuardar={guardar} guardando={guardando}
+      etiquetaGuardar="Cancelar Sesión"
+      descripcion={n ? `Se avisará a ${n} ${n === 1 ? "participante inscrito" : "participantes inscritos"}. La sesión queda Cancelada y ya no se edita.` : "La sesión queda Cancelada y ya no se edita."}
+    >
+      <div className="rounded-lg bg-c10-sunken px-3 py-2 text-sm font-medium text-c10-title">{s.nombre}</div>
+      <Campo etiqueta="Motivo de cancelación" obligatorio error={intento && !motivo.trim() && "Escribe el motivo"}>
+        <AreaTexto value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3} placeholder="Por qué se cancela la sesión" autoFocus />
+      </Campo>
+    </Modal>
   );
 }
 
@@ -182,27 +222,6 @@ function Recursos({ s }: { s: Sesion }) {
       {!s.recursos.length && <Vacio titulo="Sin recursos" texto="Agrega recursos desde Editar." />}
       {s.recursos.map((r, i) => (
         <FilaMaterial key={i} tipo={r.material_tipo} nombre={nombreMaterial(r)} material={r.material} meta={`${r.material_tipo} · ${r.material_origen}`} />
-      ))}
-    </div>
-  );
-}
-
-function Participantes({ s }: { s: Sesion }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <span className="text-base font-semibold text-c10-title">Participantes</span>
-        <ChipKpi n={s.participantes.length} singular="inscrito" />
-      </div>
-      {!s.participantes.length && <Vacio titulo="No hay participantes inscritos" texto="Inscribir empleados, asistencia y examen llegan con CF-04." />}
-      {s.participantes.map((p) => (
-        <div key={p.empleado.id} className="flex items-center gap-3 rounded-lg bg-c10-surface px-3 py-2 ring-1 ring-c10-line">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-c10-acc-l text-xs font-semibold text-c10-acc-h">
-            {p.empleado.nombre.split(" ").slice(0, 2).map((x) => x[0]).join("")}
-          </span>
-          <span className="min-w-0 flex-1 truncate text-sm text-c10-title">{p.empleado.nombre}</span>
-          {p.resultado && <span className="text-xs text-c10-meta">{p.resultado}</span>}
-        </div>
       ))}
     </div>
   );
