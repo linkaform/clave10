@@ -14,6 +14,7 @@ import { MuestraFiltros } from "./MuestraFiltros";
 import { MuestraLigar } from "./MuestraLigar";
 import { MuestraPanel } from "./MuestraPanel";
 import { MuestraTabla } from "./MuestraTabla";
+import { MuestraVigencia } from "./MuestraVigencia";
 
 const ACENTOS: { k: Acento; l: string }[] = [
   { k: "propio", l: "Mi empresa" },
@@ -254,6 +255,10 @@ export default function UiKitPage() {
 
         <Bloque titulo="Ligar y notificar (F0-15)">
           <MuestraLigar />
+        </Bloque>
+
+        <Bloque titulo="Vigencia y recurrencia (F0-14)">
+          <MuestraVigencia />
         </Bloque>
 
         <Bloque titulo="Folios">
