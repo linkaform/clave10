@@ -6,11 +6,12 @@ import { EmployeeAttendance } from "../../reporte_asistencias/lib/employees";
 import { OPENED, ShiftRow, turnoLabel } from "../../reporte_asistencias/lib/shifts";
 import { DIAS, MESES, toISO } from "../../reporte_asistencias/lib/period";
 import { shiftQuickKey } from "./LocationViews";
+import { SegTabs } from "../shared/ui";
 import { Empty } from "./ui";
 
 type Serie = { key: string; label: string; bar: string; text: string; match: (s: string) => boolean };
 
-const Section = ({ title, note, children, legend }: { title: string; note: string; children: React.ReactNode; legend?: Serie[] }) => (
+const Section = ({ title, note, children, legend, actions }: { title: string; note: string; children: React.ReactNode; legend?: Serie[]; actions?: React.ReactNode }) => (
   <section className="flex flex-col gap-4 rounded-2xl bg-c10-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_6px_20px_rgba(15,23,42,.04)]">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -24,6 +25,7 @@ const Section = ({ title, note, children, legend }: { title: string; note: strin
           ))}
         </div>
       )}
+      {actions}
     </div>
     {children}
   </section>
@@ -36,7 +38,7 @@ type TipItem = { label: string; value: string; cls?: string };
 type TipData = { title: string; sub?: string; items: TipItem[] };
 type TipState = TipData & { x: number; y: number };
 
-const useChartTip = () => {
+export const useChartTip = () => {
   const [tip, setTip] = useState<TipState | null>(null);
   const on = (d: TipData) => {
     const place = (e: React.MouseEvent) => {
@@ -68,8 +70,8 @@ const useChartTip = () => {
 const StackedRows = ({ rows, series }: { rows: BarRow[]; series: Serie[] }) => {
   const tip = useChartTip();
   const total = (r: BarRow) => series.reduce((n, s) => n + (r.counts[s.key] ?? 0), 0);
-  const max = Math.max(1, ...rows.map(total));
   const shown = rows.filter(r => total(r) > 0);
+  const pct = (v: number, t: number) => Math.round((v / t) * 100);
   if (!shown.length) return <Empty />;
   return (
     <div className="flex flex-col gap-2.5">
@@ -83,20 +85,19 @@ const StackedRows = ({ rows, series }: { rows: BarRow[]; series: Serie[] }) => {
             {...tip.on({
               title: r.label,
               sub: r.onClick ? `${t} registros · clic para ver solo este` : `${t} registros`,
-              items: series.filter(s => r.counts[s.key]).map(s => ({ label: s.label, value: String(r.counts[s.key]), cls: s.bar })),
+              items: series.filter(s => r.counts[s.key]).map(s => ({ label: s.label, value: `${r.counts[s.key]} · ${pct(r.counts[s.key], t)}%`, cls: s.bar })),
             })}
             {...(r.onClick ? { type: "button" as const, onClick: r.onClick } : {})} className="-mx-2 grid grid-cols-[minmax(120px,200px)_minmax(0,1fr)_44px] items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors duration-150 hover:bg-c10-sunken">
             <span className="min-w-0">
               <span className="block truncate text-[13px] text-c10-title">{r.label}</span>
               {r.sub && <span className="block truncate text-[11px] text-c10-meta">{r.sub}</span>}
             </span>
+            {/* Cada barra es el 100 % de los registros de su fila, repartido por estatus */}
             <span className="flex h-2.5 overflow-hidden rounded-full bg-c10-sunken">
-              <span className="flex h-full" style={{ width: `${(t / max) * 100}%` }}>
-                {series.map(s => {
-                  const v = r.counts[s.key] ?? 0;
-                  return v ? <i key={s.key} className={`block h-full ${s.bar}`} style={{ width: `${(v / t) * 100}%` }} /> : null;
-                })}
-              </span>
+              {series.map(s => {
+                const v = r.counts[s.key] ?? 0;
+                return v ? <i key={s.key} className={`block h-full ${s.bar}`} style={{ width: `${(v / t) * 100}%` }} /> : null;
+              })}
             </span>
             <b className="text-right text-[13px] font-semibold tabular-nums text-c10-title">{t}</b>
           </Tag>
@@ -106,7 +107,7 @@ const StackedRows = ({ rows, series }: { rows: BarRow[]; series: Serie[] }) => {
   );
 };
 
-type Bucket = { key: string; label: string; sub: string; title: string; values: (number | null)[]; nota?: string };
+type Bucket = { key: string; label: string; sub: string; title: string; values: (number | null)[]; nota?: string; detalle?: TipItem[] };
 
 // Línea por serie, una columna por día (o por mes si el periodo es largo).
 // Hover gris por columna; los días por venir o sin esperados quedan sin punto.
@@ -148,7 +149,7 @@ const Trend = ({ buckets, series, max, unit = "" }: { buckets: Bucket[]; series:
               const vacio = b.values.every(v => v == null);
               const data = vacio
                 ? { title: b.title, sub: b.nota ?? "Por venir", items: [] }
-                : { title: b.title, items: series.map((s, i) => ({ label: s.label, value: `${b.values[i]}${unit}`, cls: s.bar })) };
+                : { title: b.title, items: [...series.map((s, i) => ({ label: s.label, value: `${b.values[i]}${unit}`, cls: s.bar })), ...(b.detalle ?? [])] };
               return (
                 <span key={b.key} {...tip.on(data)} className="relative h-full rounded-md transition-colors duration-150 hover:bg-c10-sunken">
                   {series.map((s, i) => {
@@ -206,7 +207,22 @@ const groupDays = (days: Date[]) => {
 // ───────── Empleados ─────────
 const EMP_SERIES: Serie[] = EMPLOYEE_QUICK.filter(q => q.key !== "por_llegar").map(q => ({ key: q.key, label: q.label, bar: getStatusConfig(q.status).bar, text: getStatusConfig(q.status).icon, match: s => q.match.includes(s) }));
 
+// Colores de las líneas por rol (se repiten si hay más roles)
+const ROL_COLORES = [
+  { bar: "bg-blue-600", text: "text-blue-600" },
+  { bar: "bg-violet-600", text: "text-violet-600" },
+  { bar: "bg-teal-600", text: "text-teal-600" },
+  { bar: "bg-amber-600", text: "text-amber-600" },
+  { bar: "bg-pink-600", text: "text-pink-600" },
+  { bar: "bg-lime-600", text: "text-lime-600" },
+  { bar: "bg-cyan-600", text: "text-cyan-600" },
+  { bar: "bg-slate-500", text: "text-slate-500" },
+];
+
+type TrendBy = "total" | "rol";
+
 export const EmployeeCharts = ({ employees, days, quick, onSelectEmployee }: { employees: EmployeeAttendance[]; days: Date[]; quick: string[]; onSelectEmployee: (nombre: string) => void }) => {
+  const [trendBy, setTrendBy] = useState<TrendBy>("total");
   if (!employees.length) return <Empty />;
   const fechas = days.map(toISO);
   const series = EMP_SERIES.filter(s => (!quick.length || quick.includes(s.key)) && employees.some(e => fechas.some(f => s.match(e.dias[f]?.status ?? ""))));
@@ -234,17 +250,51 @@ export const EmployeeCharts = ({ employees, days, quick, onSelectEmployee }: { e
     };
   });
 
+  // Por rol: cuántas personas entraron con cada rol. El rol sale del check-in, así que una falta
+  // no tiene rol y no se puede sacar un % de asistencia por rol.
+  const rolesPeriodo = Array.from(new Set(employees.flatMap(e => fechas.flatMap(f => e.dias[f]?.roles ?? []))))
+    .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  const rolSeries: Serie[] = rolesPeriodo.map((rol, i) => ({ key: rol, label: rol, ...ROL_COLORES[i % ROL_COLORES.length], match: () => false }));
+  const rolBuckets: Bucket[] = groups.map(g => ({
+    key: g.key, label: g.label, sub: g.sub, title: g.title,
+    values: rolesPeriodo.map(rol => (g.dates.length ? employees.reduce((n, e) => n + g.dates.filter(f => e.dias[f]?.roles?.includes(rol)).length, 0) : null)),
+  }));
+  const rolMax = Math.max(2, Math.ceil(Math.max(0, ...rolBuckets.flatMap(b => b.values.map(v => v ?? 0))) / 2) * 2);
+  const porRol = trendBy === "rol";
+  const trendTabs = (
+    <SegTabs<TrendBy>
+      label="Tendencia"
+      variant="outline"
+      value={trendBy}
+      onChange={setTrendBy}
+      options={[{ value: "total", label: "Total" }, { value: "rol", label: "Por rol" }]}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-4">
-      <Section title="Registros de asistencia por empleado" note="Total de registros de cada empleado en el periodo.">
+      <Section title="Registros de asistencia por empleado" note="Cada barra es el 100 % de los registros del empleado en el periodo, repartido por estatus. El número es el total de registros.">
         <StackedRows series={series} rows={employees.map(e => ({ key: String(e.employee_id), label: e.nombre, sub: e.departamento, counts: countOf([e], fechas), onClick: () => onSelectEmployee(e.nombre) }))} />
       </Section>
-      <Section title="Registros de asistencia por departamento" note="Total de registros de los empleados de cada departamento en el periodo.">
+      <Section title="Registros de asistencia por departamento" note="Cada barra es el 100 % de los registros del departamento en el periodo, repartido por estatus. El número es el total de registros.">
         <StackedRows series={series} rows={deps.map(d => ({ key: d, label: d, counts: countOf(employees.filter(e => (e.departamento || "Sin departamento") === d), fechas) }))} />
       </Section>
       {trendSeries.length > 0 && groups.length > 1 && (
-        <Section title={byMonth ? "Tendencia por mes" : "Tendencia por día"} note="Asistencias, retardos y faltas como % de los empleados esperados. Descansos y asuetos no cuentan.">
-          <Trend buckets={buckets} series={trendSeries} max={100} unit="%" />
+        <Section
+          title={byMonth ? "Tendencia por mes" : "Tendencia por día"}
+          note={porRol
+            ? "Personas que iniciaron turno con cada rol. El rol sale del check-in."
+            : "Asistencias, retardos y faltas como % de los empleados esperados. Descansos y asuetos no cuentan."}
+          legend={porRol ? rolSeries : undefined}
+          actions={trendTabs}
+        >
+          {!porRol ? (
+            <Trend buckets={buckets} series={trendSeries} max={100} unit="%" />
+          ) : rolSeries.length ? (
+            <Trend buckets={rolBuckets} series={rolSeries} max={rolMax} />
+          ) : (
+            <Empty>Ningún check-in del periodo trae rol.</Empty>
+          )}
         </Section>
       )}
     </div>
@@ -254,7 +304,7 @@ export const EmployeeCharts = ({ employees, days, quick, onSelectEmployee }: { e
 // ───────── Ubicaciones ─────────
 const LOC_SERIES: Serie[] = SHIFT_QUICK.filter(q => q.key !== "por_abrir").map(q => ({ key: q.key, label: q.label, bar: getShiftConfig(q.status).bar, text: getShiftConfig(q.status).icon, match: s => s === q.key }));
 
-export const LocationCharts = ({ rows, days, quick }: { rows: ShiftRow[]; days: Date[]; quick: string[] }) => {
+export const LocationCharts = ({ rows, days, quick, ubicaciones = [] }: { rows: ShiftRow[]; days: Date[]; quick: string[]; ubicaciones?: string[] }) => {
   if (!rows.length) return <Empty />;
   const fechas = days.map(toISO);
   const series = LOC_SERIES.filter(s => !quick.length || quick.includes(s.key));
@@ -270,20 +320,36 @@ export const LocationCharts = ({ rows, days, quick }: { rows: ShiftRow[]; days: 
   const turnos = Array.from(new Set(rows.map(turnoLabel))).sort();
   const { groups, byMonth } = groupDays(days);
   const cov: Serie = { key: "cov", label: "Cobertura", bar: "bg-button-primary", text: "text-button-primary", match: () => true };
+  // Ubicaciones que entran en la gráfica (las del selector del header, o todas las que traen turnos)
+  const ubis = Array.from(new Set(rows.map(r => r.ubicacion))).sort((a, b) => a.localeCompare(b, "es"));
+  const dondeCov = ubicaciones.length ? ubis.join(", ") : `todas las ubicaciones (${ubis.join(", ")})`;
   const buckets: Bucket[] = groups.map(g => {
     if (!g.dates.length) return { key: g.key, label: g.label, sub: g.sub, title: g.title, values: [null] };
-    let prog = 0, open = 0;
+    const porUbi: Record<string, { prog: number; open: number }> = {};
     rows.forEach(r => r.dias.forEach(d => {
       if (!g.dates.includes(d.fecha) || ["pendiente", "descanso", "por_abrir"].includes(d.status)) return;
-      prog++;
-      if (OPENED.includes(d.status)) open++;
+      const u = (porUbi[r.ubicacion] ??= { prog: 0, open: 0 });
+      u.prog++;
+      if (OPENED.includes(d.status)) u.open++;
     }));
-    return { key: g.key, label: g.label, sub: g.sub, title: g.title, values: [prog ? Math.round((open / prog) * 100) : 0] };
+    const prog = Object.values(porUbi).reduce((n, u) => n + u.prog, 0);
+    const open = Object.values(porUbi).reduce((n, u) => n + u.open, 0);
+    // Desglose por ubicación en el tooltip cuando la gráfica junta varias
+    const detalle = ubis.length > 1 && prog
+      ? Object.entries(porUbi).sort(([a], [b]) => a.localeCompare(b, "es")).map(([u, c]) => ({ label: u, value: `${c.open} de ${c.prog} · ${Math.round((c.open / c.prog) * 100)}%` }))
+      : undefined;
+    // Sin turnos programados (descanso) el día queda vacío, no como 0 %
+    return {
+      key: g.key, label: g.label, sub: g.sub, title: g.title,
+      values: [prog ? Math.round((open / prog) * 100) : null],
+      nota: prog ? undefined : "sin turnos programados (descanso)",
+      detalle,
+    };
   });
 
   return (
     <div className="flex flex-col gap-4">
-      <Section title="Registros por caseta" note="Turnos de cada caseta en el periodo, por estatus.">
+      <Section title="Registros por caseta" note="Cada barra es el 100 % de los turnos de la caseta en el periodo, repartido por estatus. El número es el total de turnos.">
         <StackedRows series={series} rows={rows.reduce<BarRow[]>((acc, r) => {
           const key = `${r.ubicacion}|${r.caseta}`;
           const prev = acc.find(x => x.key === key);
@@ -293,11 +359,11 @@ export const LocationCharts = ({ rows, days, quick }: { rows: ShiftRow[]; days: 
           return acc;
         }, [])} />
       </Section>
-      <Section title="Registros por turno" note="Turnos en el periodo, por estatus.">
+      <Section title="Registros por turno" note="Cada barra es el 100 % de los turnos de ese horario en el periodo, repartido por estatus. El número es el total de turnos.">
         <StackedRows series={series} rows={turnos.map(t => ({ key: t, label: t, counts: countOf(rows.filter(r => turnoLabel(r) === t), fechas) }))} />
       </Section>
       {groups.length > 1 && (
-        <Section title="Cobertura de turnos" note={byMonth ? "Turnos abiertos ÷ turnos programados, por mes." : "Turnos abiertos ÷ turnos programados, por día."}>
+        <Section title="Cobertura de turnos" note={`Turnos abiertos ÷ turnos programados, por ${byMonth ? "mes" : "día"}, en ${dondeCov}.`}>
           <Trend buckets={buckets} series={[cov]} max={100} unit="%" />
         </Section>
       )}

@@ -15,6 +15,7 @@ import {
   turnoKey,
 } from "../../reporte_asistencias/lib/plantilla";
 import { DIAS, MESES, fromISO } from "../../reporte_asistencias/lib/period";
+import { useChartTip } from "./Charts";
 import { Empty } from "./ui";
 
 export type CovFilter = "all" | "f" | "ok";
@@ -80,22 +81,34 @@ const CountPill = ({ label, plazas, extras, total, onClick, title }: {
   );
 };
 
-// Barra de plazas: un segmento por plaza; los que no coinciden con el filtro rápido se atenúan
-export const PlazaBar = ({ plazas, quick = [], height = 6 }: { plazas: Plaza[]; quick?: string[]; height?: number }) => (
-  <span className="flex w-full gap-0.5" role="img" aria-label={`${resumenPlazas(plazas).entradas} de ${plazas.length} plazas con entrada`}>
-    {ordenPlazas(plazas).map((p, i) => {
-      const cfg = getPlazaConfig(p.status);
-      return (
+// Qué significa cada color de la barra (para el tooltip)
+const PLAZA_LEYENDA: { status: Plaza["status"][]; label: string; cls: string }[] = [
+  { status: ["A"], label: "Con entrada", cls: "bg-green-600" },
+  { status: ["R"], label: "Entrada con retardo", cls: "bg-amber-600" },
+  { status: ["F"], label: "Sin entrada (ya pasó la hora)", cls: "bg-red-600" },
+  { status: ["PL", "PE"], label: "Por llegar o programado", cls: "bg-slate-300" },
+];
+const segmentoCls = (status: Plaza["status"]) => PLAZA_LEYENDA.find(l => l.status.includes(status))?.cls ?? "bg-slate-300";
+
+// Barra de plazas: un segmento por plaza; los que no coinciden con el filtro rápido se atenúan.
+// Al pasar el cursor, la plaza y qué significa cada color con su conteo.
+export const PlazaBar = ({ plazas, quick = [], height = 6 }: { plazas: Plaza[]; quick?: string[]; height?: number }) => {
+  const tip = useChartTip();
+  const leyenda = PLAZA_LEYENDA.map(l => ({ label: l.label, value: String(plazas.filter(p => l.status.includes(p.status)).length), cls: l.cls }));
+  return (
+    <span className="flex w-full gap-0.5" role="img" aria-label={`${resumenPlazas(plazas).entradas} de ${plazas.length} plazas con entrada`}>
+      {tip.node}
+      {ordenPlazas(plazas).map((p, i) => (
         <span
           key={i}
-          title={`${p.rol || "Plaza"} · ${p.guardia || "Sin guardia"} · ${cfg.label}`}
-          className={`flex-1 rounded-full ${cfg.bar}`}
+          {...tip.on({ title: p.rol || "Plaza", sub: `${p.guardia || "Sin guardia"} · ${getPlazaConfig(p.status).label}`, items: leyenda })}
+          className={`flex-1 rounded-full ${segmentoCls(p.status)}`}
           style={{ height, opacity: !quick.length || quick.includes(plazaQuickKey(p)) ? 1 : 0.2 }}
         />
-      );
-    })}
-  </span>
-);
+      ))}
+    </span>
+  );
+};
 
 // ───────── Cobertura · Día: plazas cubiertas por ubicación y caseta ─────────
 export const CoverageView = ({ locations, fecha, turnoLabel, quick, onOpen }: {

@@ -260,7 +260,7 @@ const ReportPage = () => {
     emp: locEmployees.map(e => e.nombre),
     dep: Array.from(new Set(locEmployees.map(e => e.departamento).filter(Boolean))).sort(),
     jor: Array.from(new Set(locEmployees.map(e => jornadaLabel(e.jornada)).filter(Boolean))).sort(),
-    rol: Array.from(new Set(locEmployees.flatMap(e => fechas.flatMap(f => e.dias[f]?.roles ?? [])))).sort(),
+    rol: Array.from(new Set(locEmployees.flatMap(e => fechas.flatMap(f => e.dias[f]?.roles ?? [])))).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" })),
     gua: Array.from(new Set(locShifts.flatMap(r => r.dias.flatMap(d => d.guardias.map(g => g.nombre))))).sort(),
     cas: Array.from(new Set(locShifts.map(r => `${r.ubicacion} · ${r.caseta}`))).sort(),
   }), [locEmployees, locShifts, fechas]);
@@ -376,7 +376,7 @@ const ReportPage = () => {
         ? <EmployeeDayCalendar employees={employees} date={date} quick={quick} onOpenDay={openDay} />
         : <EmployeePeriodGrid employees={employees} days={days} quick={quick} metrics={metrics} onOpenDay={openDay} />;
     }
-    if (mode === "charts") return <LocationCharts rows={shifts} days={days} quick={quick} />;
+    if (mode === "charts") return <LocationCharts rows={shifts} days={days} quick={quick} ubicaciones={selectedLocations} />;
     if (mode === "table") {
       return isDay
         ? <LocationDayTable rows={shifts} date={date} onOpenShift={setShiftSelection} />
@@ -478,9 +478,9 @@ const ReportPage = () => {
         </>
       ) : (
         <>
-          <MultiCombo label="Guardia" placeholder="Buscar guardia" options={opts.gua} value={fGua} onChange={setFGua} />
-          <div className="border-t border-c10-sunken" />
           <MultiCombo label="Caseta" placeholder="Buscar caseta" options={opts.cas} value={fCas} onChange={setFCas} />
+          <div className="border-t border-c10-sunken" />
+          <MultiCombo label="Guardia" placeholder="Buscar guardia" options={opts.gua} value={fGua} onChange={setFGua} />
         </>
       )}
     </aside>
