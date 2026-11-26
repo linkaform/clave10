@@ -93,4 +93,35 @@ test.describe("bitacoras_transportistas · formulario", () => {
     // El back busca la visita programada por el id del pase; con el folio crea otra.
     expect(body.payload.num_de_pase).toBe(PASE_ID);
   });
+
+  // TF-025
+  test("registra el acceso con la operación, la caseta, el vehículo y la orden de compra", async ({ page, back }) => {
+    await subidaDeFotos(page, true);
+    back.simular(OCR, {
+      success: true,
+      response: {
+        status_code: 200,
+        data: { vehiculo: { transportista: "Transportes QA", placa: "QA-456" }, embarque: { no_orden_compra: "OC-1234" } },
+      },
+    });
+    back.simular(ALTA, { success: true, response: { data: { status_code: 201, json: {} } } });
+
+    await capturarLlegada(page);
+    await expect(page.getByText("Archivo cargado con éxito")).toBeVisible();
+    await page.getByRole("button", { name: "Analizar y continuar" }).click();
+    await page.getByRole("button", { name: "Registrar acceso" }).click();
+
+    await expect.poll(() => back.llamadas(ALTA).length, { timeout: 10_000 }).toBe(1);
+    const { payload } = back.llamadas(ALTA)[0];
+    expect(payload).toMatchObject({
+      tipo_operacion: "Entrega",
+      ubicacion: "Planta Monterrey",
+      area: "Caseta Principal",
+      vehiculo: expect.objectContaining({ transportista: "Transportes QA", tipo_vehiculo: "Torton", placa: "QA-456" }),
+      embarque: expect.objectContaining({ no_orden_compra: "OC-1234" }),
+    });
+    expect(payload.documentos_adicionales).toEqual([
+      expect.objectContaining({ file_url: "https://f001.backblazeb2.com/file/qa/licencia-qa.jpg" }),
+    ]);
+  });
 });
