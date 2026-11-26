@@ -65,4 +65,16 @@ test.describe("accesos · formulario", () => {
     expect(body.equipo).toEqual([expect.objectContaining({ serie: "SERIE-QA-1" })]);
     expect(body.visita_a).toEqual([expect.objectContaining({ nombre: "Empleado QA" })]);
   });
+
+  // TF-021
+  test("muestra el mensaje del back si no se puede registrar el ingreso", async ({ page, back }) => {
+    const mensaje = "El pase no está vigente para hoy.";
+    back.simular(INGRESO, errorDelBack(mensaje));
+    await escanearPase(page, back, "Entrada");
+
+    await page.getByRole("button", { name: "Registrar Ingreso" }).click();
+
+    await expect(page.getByText("Error al realizar ingreso:")).toBeVisible();
+    await expect(page.getByText(mensaje)).toBeVisible();
+  });
 });
