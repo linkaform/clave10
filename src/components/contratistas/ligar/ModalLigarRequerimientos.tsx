@@ -82,6 +82,8 @@ export interface ListaRequerimientosProps {
   conAmbito?: boolean;
   agruparPor?: "ambito" | "tipo";
   titulo?: string;
+  /** Asterisco de obligatorio junto al título (por defecto sí). */
+  obligatorio?: boolean;
 }
 
 /**
@@ -89,7 +91,7 @@ export interface ListaRequerimientosProps {
  * título con "N seleccionados", filtros por ámbito y tipo, buscador y la tabla.
  */
 export function ListaRequerimientos({
-  requerimientos, valor, onCambio, error, conAmbito = true, agruparPor, titulo = "Requerimientos",
+  requerimientos, valor, onCambio, error, conAmbito = true, agruparPor, titulo = "Requerimientos", obligatorio = true,
 }: ListaRequerimientosProps) {
   const [q, setQ] = useState("");
   const f = useFiltros({ ambito: [] as string[], tipo: [] as string[] }, { url: false });
@@ -121,7 +123,7 @@ export function ListaRequerimientos({
   return (
     <Campo
       etiqueta={titulo}
-      obligatorio
+      obligatorio={obligatorio}
       error={error}
       extra={<ChipSeleccionados n={valor.length} />}
       className="min-h-[220px] flex-auto"
