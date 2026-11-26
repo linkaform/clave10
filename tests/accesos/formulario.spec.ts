@@ -77,4 +77,16 @@ test.describe("accesos · formulario", () => {
     await expect(page.getByText("Error al realizar ingreso:")).toBeVisible();
     await expect(page.getByText(mensaje)).toBeVisible();
   });
+
+  // TF-022
+  test("registra la salida con el pase y la caseta", async ({ page, back }) => {
+    back.simular(SALIDA, { success: true, response: { data: { status_code: 202 } } });
+    await escanearPase(page, back, "Salida");
+
+    await page.getByRole("button", { name: "Registrar Salida" }).click();
+    await expect(page.getByText("Salida Exitosa")).toBeVisible();
+
+    const [body] = back.llamadas(SALIDA);
+    expect(body).toMatchObject({ qr_code: QR, location: "Planta Monterrey", area: "Caseta Principal" });
+  });
 });
