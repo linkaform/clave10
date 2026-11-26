@@ -45,4 +45,9 @@ test.describe("bitacoras · formulario", () => {
     const registros = back.llamadas(DO_OUT).map((body) => body.record_id);
     expect(registros.sort()).toEqual(["000000000000000000000001", "000000000000000000000002"]);
   });
+
+  // TF-015
+  test("ofrece la salida masiva cuando hay personas dentro", async ({ page }) => {
+    await expect(page.getByRole("button", { name: "Sacar" })).toBeVisible();
+  });
 });
