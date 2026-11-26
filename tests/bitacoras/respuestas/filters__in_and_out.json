@@ -1,0 +1,46 @@
+{
+  "response": {
+    "data": [
+      {
+        "defaultDisplayOpen": true,
+        "key": "status",
+        "label": "Estatus",
+        "type": "multiple",
+        "options": [
+          {
+            "label": "Entrada",
+            "value": "entrada"
+          },
+          {
+            "label": "Salida",
+            "value": "salida"
+          }
+        ]
+      },
+      {
+        "defaultDisplayOpen": false,
+        "key": "perfil_visita",
+        "label": "Perfil",
+        "type": "multiple",
+        "options": [
+          {
+            "label": "Visita General",
+            "value": "Visita General"
+          }
+        ]
+      },
+      {
+        "defaultDisplayOpen": false,
+        "key": "visita_a",
+        "label": "Visita a",
+        "type": "multiselect",
+        "options": [
+          {
+            "label": "Empleado QA",
+            "value": "Empleado QA"
+          }
+        ]
+      }
+    ]
+  }
+}
