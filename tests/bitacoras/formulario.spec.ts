@@ -26,7 +26,13 @@ function tarjeta(page: Page, nombre: string) {
 
 test.describe("bitacoras · formulario", () => {
   test.beforeEach(async ({ page, back }) => {
-    back.simularDesde("bitacoras", ["script_turnos__list_bitacora2", "get_stats__get_stats"]);
+    back.simularDesde("bitacoras", [
+      "script_turnos__list_bitacora2",
+      "get_stats__get_stats",
+      // Config del panel de filtros: es lectura, pero "in_and_out" no empieza
+      // con un prefijo de LECTURA y el candado la bloquearía.
+      "filters__in_and_out",
+    ]);
     await abrir(page, "bitacoras");
     await expect(page.getByText(UNO, { exact: true })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(DOS, { exact: true })).toBeVisible();
