@@ -1,0 +1,92 @@
+{
+  "response": {
+    "data": {
+      "records": [
+        {
+          "_id": "000000000000000000000001",
+          "folio": "101-1",
+          "nombre_visitante": "Visitante QA Uno",
+          "perfil_visita": "Visita General",
+          "contratista": "Proveedor QA",
+          "status_visita": "Entrada",
+          "ubicacion": "Planta Monterrey",
+          "caseta_entrada": "Caseta Principal",
+          "caseta_salida": "",
+          "nombre_area_salida": "",
+          "codigo_qr": "0000000000000000000000a1",
+          "pase_id": "0000000000000000000000a1",
+          "status_gafete": "asignado",
+          "id_gafet": "Gafete QA 1",
+          "id_locker": "Locker QA 1",
+          "documento": "",
+          "fecha_entrada": "2026-11-26 09:15:00",
+          "fecha_salida": "",
+          "motivo_visita": "",
+          "visita_a": [
+            {
+              "nombre": "Empleado QA",
+              "posicion": "",
+              "user_id": 0,
+              "email": "",
+              "departamento": ""
+            }
+          ],
+          "equipos": [],
+          "vehiculos": [],
+          "comentarios": [],
+          "fotografia": [],
+          "identificacion": [],
+          "grupo_areas_acceso": [],
+          "file_name": "",
+          "file_url": "",
+          "created_at": "2026-11-26 09:15:00",
+          "updated_at": "2026-11-26 09:15:00"
+        },
+        {
+          "_id": "000000000000000000000002",
+          "folio": "102-1",
+          "nombre_visitante": "Visitante QA Dos",
+          "perfil_visita": "Visita General",
+          "contratista": "Proveedor QA",
+          "status_visita": "Entrada",
+          "ubicacion": "Planta Monterrey",
+          "caseta_entrada": "Caseta Principal",
+          "caseta_salida": "",
+          "nombre_area_salida": "",
+          "codigo_qr": "0000000000000000000000a2",
+          "pase_id": "0000000000000000000000a2",
+          "status_gafete": "",
+          "id_gafet": "",
+          "id_locker": "",
+          "documento": "",
+          "fecha_entrada": "2026-11-26 09:15:00",
+          "fecha_salida": "",
+          "motivo_visita": "",
+          "visita_a": [
+            {
+              "nombre": "Empleado QA",
+              "posicion": "",
+              "user_id": 0,
+              "email": "",
+              "departamento": ""
+            }
+          ],
+          "equipos": [],
+          "vehiculos": [],
+          "comentarios": [],
+          "fotografia": [],
+          "identificacion": [],
+          "grupo_areas_acceso": [],
+          "file_name": "",
+          "file_url": "",
+          "created_at": "2026-11-26 09:15:00",
+          "updated_at": "2026-11-26 09:15:00"
+        }
+      ],
+      "total_records": 2,
+      "total_pages": 1,
+      "actual_page": 1,
+      "records_on_page": 2
+    }
+  }
+}
