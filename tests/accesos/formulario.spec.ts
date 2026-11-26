@@ -91,7 +91,7 @@ test.describe("accesos · formulario", () => {
   });
 
   // TF-023
-  test("muestra el mensaje del back si no se puede registrar la salida", async ({ page, back }) => {
+  test("muestra el mensaje del back si no se puede registrar la salida", { tag: "@bug-1656" }, async ({ page, back }) => {
     const mensaje = "Se necesita liberar el gafete antes de registrar la salida.";
     back.simular(SALIDA, errorDelBack(mensaje));
     await escanearPase(page, back, "Salida");
