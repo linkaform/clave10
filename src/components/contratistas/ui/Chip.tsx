@@ -6,6 +6,9 @@ import { PRIORIDAD_TONO, TONO, type Prioridad, type Tono } from "./tonos";
 
 const BASE = "inline-flex h-[22px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-[9px] text-[11px] font-semibold";
 
+/** Para chips con un color propio (cn(CLASE_CHIP, TONO.success.chip)). */
+export const CLASE_CHIP = BASE;
+
 /** Estado con bolita: "Activo", "En proceso"… El tono sale de los mappers (ESTATUS_*_TONO). */
 export function ChipEstado({ texto, tono, className }: { texto: string; tono: Tono; className?: string }) {
   return (
