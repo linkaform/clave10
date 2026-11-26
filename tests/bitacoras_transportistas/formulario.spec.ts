@@ -124,4 +124,14 @@ test.describe("bitacoras_transportistas · formulario", () => {
       expect.objectContaining({ file_url: "https://f001.backblazeb2.com/file/qa/licencia-qa.jpg" }),
     ]);
   });
+
+  // TF-026
+  test("avisa si la subida de una foto falla", async ({ page }) => {
+    await subidaDeFotos(page, false);
+
+    await capturarLlegada(page);
+
+    await expect(page.getByText(/error al subir/i)).toBeVisible();
+    await expect(page.getByText("Archivo cargado con éxito")).toBeHidden();
+  });
 });
