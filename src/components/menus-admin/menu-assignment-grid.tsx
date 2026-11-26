@@ -99,13 +99,20 @@ export function MenuAssignmentGrid({ items, onDirtyChange }: MenuAssignmentGridP
     return sel.length ? sel : visibleUsers.map((u) => u.user_id);
   })();
 
-  const columnState = (mKeys: string[]): CheckState => {
-    if (!targetIds.length) return "none";
-    const states = targetIds.map((id) => checkState(mKeys, new Set(keysOf(id))));
+  // Celdas y panel lateral: si el usuario es parte de una selección de varios,
+  // el cambio aplica a todos los seleccionados; si no, solo a ese usuario.
+  const rowTargets = (userId: number) =>
+    selected.has(userId) && selected.size > 1 ? Array.from(selected) : [userId];
+
+  const groupState = (ids: number[], keys: string[]): CheckState => {
+    if (!ids.length) return "none";
+    const states = ids.map((id) => checkState(keys, new Set(keysOf(id))));
     if (states.every((s) => s === "all")) return "all";
     if (states.every((s) => s === "none")) return "none";
     return "some";
   };
+
+  const columnState = (mKeys: string[]) => groupState(targetIds, mKeys);
 
   const allVisibleSelected =
     visibleUsers.length > 0 && visibleUsers.every((u) => selected.has(u.user_id));
@@ -137,6 +144,7 @@ export function MenuAssignmentGrid({ items, onDirtyChange }: MenuAssignmentGridP
 
   const gridCols = `minmax(280px, 1fr) repeat(${modules.length}, 120px)`;
   const detailUser = users.find((u) => u.user_id === detailUserId) ?? null;
+  const detailTargets = detailUser ? rowTargets(detailUser.user_id) : [];
   const isSaving = saveManyMutation.isPending;
 
   if (isLoading || isLoadingUsers) {
@@ -191,6 +199,8 @@ export function MenuAssignmentGrid({ items, onDirtyChange }: MenuAssignmentGridP
         La casilla de cada columna asigna o quita el módulo a{" "}
         {selected.size > 0 ? "los usuarios seleccionados" : "todos los usuarios visibles"}. Para
         elegir menús sueltos abre el detalle del usuario.
+        {selected.size > 1 &&
+          " Con varios seleccionados, las casillas y el detalle de cualquiera de ellos aplican a todos."}
       </p>
 
       <div className="max-h-[70vh] overflow-auto rounded-xl shadow-[0_0_0_1px_var(--c10-line)]">
@@ -294,6 +304,7 @@ export function MenuAssignmentGrid({ items, onDirtyChange }: MenuAssignmentGridP
                   const mKeys = moduleKeys[i];
                   const n = mKeys.filter((k) => assigned.has(k)).length;
                   const state = checkState(mKeys, assigned);
+                  const cellTargets = rowTargets(u.user_id);
                   return (
                     <div
                       key={m.menuKey}
@@ -303,8 +314,12 @@ export function MenuAssignmentGrid({ items, onDirtyChange }: MenuAssignmentGridP
                       )}>
                       <AssignCheckbox
                         state={state}
-                        onToggle={() => toggleKeys([u.user_id], mKeys)}
-                        label={`Asignar o quitar ${m.menu} a ${u.nombre || u.username}`}
+                        onToggle={() => toggleKeys(cellTargets, mKeys)}
+                        label={
+                          cellTargets.length > 1
+                            ? `Asignar o quitar ${m.menu} a los ${cellTargets.length} seleccionados`
+                            : `Asignar o quitar ${m.menu} a ${u.nombre || u.username}`
+                        }
                       />
                       <button
                         type="button"
@@ -337,8 +352,9 @@ export function MenuAssignmentGrid({ items, onDirtyChange }: MenuAssignmentGridP
       <MenuAssignmentDrawer
         user={detailUser}
         modules={modules}
-        assignedKeys={detailUser ? keysOf(detailUser.user_id) : []}
-        onToggleKeys={(keys) => detailUser && toggleKeys([detailUser.user_id], keys)}
+        targetCount={detailTargets.length}
+        stateOf={(keys) => groupState(detailTargets, keys)}
+        onToggleKeys={(keys) => toggleKeys(detailTargets, keys)}
         onClose={() => setDetailUserId(null)}
       />
     </div>

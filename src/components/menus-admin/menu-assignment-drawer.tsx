@@ -1,37 +1,37 @@
 "use client";
 
-import { useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ModuleGroup } from "@/lib/menus-admin-tree";
 import { MenuUser } from "@/services/menus-admin";
-import { AssignCheckbox, checkState } from "./assign-checkbox";
+import { AssignCheckbox, CheckState } from "./assign-checkbox";
 
 interface MenuAssignmentDrawerProps {
   user: MenuUser | null;
   modules: ModuleGroup[];
-  assignedKeys: string[];
+  /** Usuarios a los que aplican los cambios (1, o los seleccionados). */
+  targetCount: number;
+  /** Estado de un conjunto de keys entre los usuarios destino. */
+  stateOf: (keys: string[]) => CheckState;
   onToggleKeys: (keys: string[]) => void;
   onClose: () => void;
 }
 
-/** Panel lateral con los menús de un usuario, por módulo y sección. */
+/**
+ * Panel lateral con los menús por módulo y sección. Si el usuario abierto es
+ * parte de una selección de varios, los cambios aplican a todos ellos.
+ */
 export function MenuAssignmentDrawer({
   user,
   modules,
-  assignedKeys,
+  targetCount,
+  stateOf,
   onToggleKeys,
   onClose,
 }: MenuAssignmentDrawerProps) {
-  const assigned = useMemo(() => new Set(assignedKeys), [assignedKeys]);
-  const total = modules.reduce(
-    (n, m) => n + m.sections.reduce((k, s) => k + s.items.length, 0),
-    0,
-  );
-  const count = modules.reduce(
-    (n, m) =>
-      n + m.sections.reduce((k, s) => k + s.items.filter((i) => assigned.has(i.key)).length, 0),
-    0,
-  );
+  const allKeys = modules.flatMap((m) => m.sections.flatMap((s) => s.items.map((i) => i.key)));
+  const total = allKeys.length;
+  const count = allKeys.filter((k) => stateOf([k]) === "all").length;
+  const multi = targetCount > 1;
 
   return (
     <Sheet open={!!user} onOpenChange={(open) => !open && onClose()}>
@@ -48,8 +48,15 @@ export function MenuAssignmentDrawer({
                 {user.nombre || user.username}
               </span>
               <span className="text-xs text-c10-meta">
-                {user.username} · {count}/{total} menús
+                {multi
+                  ? `${count}/${total} menús en común`
+                  : `${user.username} · ${count}/${total} menús`}
               </span>
+              {multi && (
+                <span className="mt-1.5 rounded-lg bg-c10-blue-light px-2.5 py-1.5 text-xs font-medium text-c10-secondary">
+                  Los cambios aplican a los {targetCount} usuarios seleccionados.
+                </span>
+              )}
             </div>
           )}
         </SheetHeader>
@@ -58,8 +65,8 @@ export function MenuAssignmentDrawer({
           <div className="flex flex-col gap-3">
             {modules.map((m) => {
               const moduleKeys = m.sections.flatMap((s) => s.items.map((i) => i.key));
-              const mState = checkState(moduleKeys, assigned);
-              const mCount = moduleKeys.filter((k) => assigned.has(k)).length;
+              const mState = stateOf(moduleKeys);
+              const mCount = moduleKeys.filter((k) => stateOf([k]) === "all").length;
               return (
                 <div key={m.menuKey} className="rounded-xl bg-c10-surface p-3 shadow-[0_0_0_1px_var(--c10-line-card)]">
                   <div className="flex items-center gap-3">
@@ -80,7 +87,7 @@ export function MenuAssignmentDrawer({
                         <div key={s.seccionKey} className="flex flex-col gap-1">
                           <div className="flex items-center gap-2.5">
                             <AssignCheckbox
-                              state={checkState(sKeys, assigned)}
+                              state={stateOf(sKeys)}
                               onToggle={() => onToggleKeys(sKeys)}
                               label={`Asignar o quitar ${s.seccion}`}
                             />
@@ -94,7 +101,7 @@ export function MenuAssignmentDrawer({
                                 key={item.key}
                                 className="flex min-h-8 cursor-pointer items-center gap-2.5 rounded-lg px-1 text-[13px] text-c10-text hover:bg-c10-panel">
                                 <AssignCheckbox
-                                  state={assigned.has(item.key) ? "all" : "none"}
+                                  state={stateOf([item.key])}
                                   onToggle={() => onToggleKeys([item.key])}
                                   label={`Asignar o quitar ${item.elemento}`}
                                 />
