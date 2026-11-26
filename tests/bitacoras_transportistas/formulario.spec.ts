@@ -82,7 +82,7 @@ test.describe("bitacoras_transportistas · formulario", () => {
   });
 
   // TF-024
-  test("al registrar la llegada buscando por folio manda el id del pase", async ({ page, back }) => {
+  test("al registrar la llegada buscando por folio manda el id del pase", { tag: "@bug-1660" }, async ({ page, back }) => {
     back.simular(ALTA, { success: true, response: { data: { status_code: 201, json: {} } } });
 
     await buscarPasePorFolio(page);
@@ -126,7 +126,7 @@ test.describe("bitacoras_transportistas · formulario", () => {
   });
 
   // TF-026
-  test("avisa si la subida de una foto falla", async ({ page }) => {
+  test("avisa si la subida de una foto falla", { tag: "@bug-1661" }, async ({ page }) => {
     await subidaDeFotos(page, false);
 
     await capturarLlegada(page);
@@ -136,7 +136,7 @@ test.describe("bitacoras_transportistas · formulario", () => {
   });
 
   // TF-027
-  test("muestra el mensaje del back si no se puede registrar el acceso", async ({ page, back }) => {
+  test("muestra el mensaje del back si no se puede registrar el acceso", { tag: "@bug-1662" }, async ({ page, back }) => {
     const mensaje = "La placa QA-456 ya tiene una visita abierta.";
     await subidaDeFotos(page, true);
     back.simular(OCR, {
@@ -157,7 +157,7 @@ test.describe("bitacoras_transportistas · formulario", () => {
   });
 
   // TF-028
-  test("muestra el mensaje del back si no se puede confirmar la llegada", async ({ page }) => {
+  test("muestra el mensaje del back si no se puede confirmar la llegada", { tag: "@bug-1662" }, async ({ page }) => {
     const mensaje = "Este pase ya fue registrado en la bitácora.";
     await falloDelBack(page, "create_visit_transportista", mensaje);
 
