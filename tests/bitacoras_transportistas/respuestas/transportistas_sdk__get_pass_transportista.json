@@ -1,0 +1,34 @@
+{
+  "success": true,
+  "response": {
+    "data": {
+      "_id": "0000000000000000000000e1",
+      "folio": "PT-QA-1",
+      "estado_transportista": "programado",
+      "tipo_de_operacion": "entrega",
+      "empresa_transportista": "Transportes QA",
+      "proveedor_cliente_material": "Proveedor QA",
+      "orden_de_compra": "OC-1234",
+      "vehiculo_tipo_unidad": "Torton",
+      "vehiculo_marca": "",
+      "vehiculo_modelo": "",
+      "vehiculo_color": "",
+      "vehiculo_placas": "QA-456",
+      "vehiculo_no_economico": "",
+      "conductor_nombre": "Conductor QA",
+      "conductor_no_licencia": "LIC-QA-1",
+      "conductor_vigencia": "2027-12-31",
+      "conductor_rfc": "",
+      "ayudante_nombre": "",
+      "conductor_foto_licencia": [
+        {
+          "file_url": "https://f001.backblazeb2.com/file/qa/licencia-qa.jpg",
+          "file_name": "licencia-qa.jpg"
+        }
+      ],
+      "documentos": [],
+      "contenedores": [],
+      "materiales": []
+    }
+  }
+}

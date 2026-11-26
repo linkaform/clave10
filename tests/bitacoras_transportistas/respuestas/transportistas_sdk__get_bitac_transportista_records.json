@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "response": {
+    "data": {
+      "records": [],
+      "total_records": 0,
+      "total_pages": 1,
+      "actual_page": 1,
+      "records_on_page": 0
+    }
+  }
+}
