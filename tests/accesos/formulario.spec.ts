@@ -50,4 +50,19 @@ test.describe("accesos · formulario", () => {
     expect(back.llamadas(BUSCAR).some((body) => body.qr_code === QR)).toBe(true);
     await expect(page.getByRole("button", { name: "Registrar Ingreso" })).toBeVisible();
   });
+
+  // TF-020
+  test("registra el ingreso con el pase, la caseta, el vehículo y el equipo", async ({ page, back }) => {
+    back.simular(INGRESO, { success: true, response: { data: { status_code: 201, accesos: [] } } });
+    await escanearPase(page, back, "Entrada");
+
+    await page.getByRole("button", { name: "Registrar Ingreso" }).click();
+    await expect(page.getByText("Entrada Exitosa")).toBeVisible();
+
+    const [body] = back.llamadas(INGRESO);
+    expect(body).toMatchObject({ qr_code: QR, location: "Planta Monterrey", area: "Caseta Principal" });
+    expect(body.vehiculo).toEqual([expect.objectContaining({ placas: "QA-123" })]);
+    expect(body.equipo).toEqual([expect.objectContaining({ serie: "SERIE-QA-1" })]);
+    expect(body.visita_a).toEqual([expect.objectContaining({ nombre: "Empleado QA" })]);
+  });
 });
