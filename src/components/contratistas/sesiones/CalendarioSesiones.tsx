@@ -2,13 +2,14 @@
 // CF-03 · Calendario de sesiones: Día / Semana / Mes con Hoy y flechas, leyenda por tipo
 // que filtra, arrastrar sobre un hueco para programar y popover del evento.
 // Diseño: plataforma.dc.html, ssnIsCal (~1897–1971) y scal*/sev* (~7380–7500).
-// La subvista "Asistencia" (empleado × día) es de CF-04.
+// Subvista "Asistencia" (empleado × día, CF-04) en AsistenciaCalendario.
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ME } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Expand, Link2, MapPin, Pencil, Repeat, Trash2, UserRound, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BotonIcono } from "@/components/contratistas/ui";
 import { MESES, fechaLocal, isoLocal, textoRecurrenciaSesion } from "@/components/contratistas/vigencia";
 import type { Sesion, TipoSesion } from "@/types/contratistas";
+import { AsistenciaCalendario } from "./AsistenciaCalendario";
 import { ChipEstatusSesion, ChipModalidad, ICONO_TIPO, Linea } from "./piezas";
 import {
   COLOR_TIPO, INSTRUCTOR, TIPOS_SESION, diasEntre, horario, ocurrencias, rangoFechas, recurrenciaEditor, sesionNueva, sumarDias,
@@ -74,6 +75,7 @@ export function CalendarioSesiones({
   const [ref, setRef] = useState(hoy);
   const [tipos, setTipos] = useState<TipoSesion[]>([]);
   const [pop, setPop] = useState<{ ev: Evento; x: number } | null>(null);
+  const [sub, setSub] = useState<"sesiones" | "asistencia">("sesiones");
 
   const dias = useMemo(() => diasDe(modo, ref), [modo, ref]);
   const desde = dias[0];
@@ -127,6 +129,20 @@ export function CalendarioSesiones({
             />
           </label>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+        <div role="tablist" aria-label="Qué ver" className="flex overflow-hidden rounded-lg ring-1 ring-c10-line">
+          {(["sesiones", "asistencia"] as const).map((k, i) => (
+            <button
+              key={k} type="button" role="tab" aria-selected={sub === k} onClick={() => setSub(k)}
+              className={cn(
+                "h-9 px-4 text-sm transition-colors", i > 0 && "border-l border-c10-line",
+                sub === k ? "bg-c10-acc font-semibold text-white" : "font-medium text-c10-secondary hover:bg-c10-sunken",
+              )}
+            >
+              {k === "sesiones" ? "Sesiones" : "Asistencia"}
+            </button>
+          ))}
+        </div>
         <div role="tablist" aria-label="Modo del calendario" className="flex overflow-hidden rounded-lg ring-1 ring-c10-line">
           {MODOS.map((m, i) => (
             <button
@@ -139,6 +155,7 @@ export function CalendarioSesiones({
               {m.etiqueta}
             </button>
           ))}
+        </div>
         </div>
       </div>
 
@@ -167,12 +184,17 @@ export function CalendarioSesiones({
       </div>
 
       <div className={cn("relative transition-opacity", cargando && "opacity-50")}>
-        {modo === "mes" ? (
+        {sub === "asistencia" ? (
+          <AsistenciaCalendario
+            dias={modo === "mes" ? dias.filter((d) => fechaLocal(d)!.getMonth() === fechaLocal(ref)!.getMonth()) : dias}
+            eventos={visibles} hoy={hoy} onVer={onVer}
+          />
+        ) : modo === "mes" ? (
           <Mes dias={dias} ref_={ref} hoy={hoy} delDia={delDia} onAbrir={abrir} onDia={(d) => { setModo("dia"); setRef(d); }} onNueva={nueva} />
         ) : (
           <Horas dias={dias} hoy={hoy} delDia={delDia} onAbrir={abrir} onDia={(d) => { setModo("dia"); setRef(d); }} onNueva={nueva} />
         )}
-        {!cargando && !visibles.length && (
+        {sub === "sesiones" && !cargando && !visibles.length && (
           <div className="pointer-events-none absolute inset-x-0 top-24 flex justify-center">
             <span className="rounded-full bg-c10-surface px-4 py-2 text-sm text-c10-meta shadow-[0_0_0_1px_var(--c10-line)]">No hay sesiones en este periodo.</span>
           </div>
