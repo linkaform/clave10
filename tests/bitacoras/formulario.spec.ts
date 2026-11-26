@@ -76,4 +76,18 @@ test.describe("bitacoras · formulario", () => {
     // La respuesta guardada de get_stats trae personas_dentro: 2.
     await expect(page.getByText("2 personas", { exact: true })).toBeVisible();
   });
+
+  // TF-018
+  test("muestra el mensaje del back si no se puede regresar el gafete", async ({ page, back }) => {
+    const mensaje = "El gafete no está asignado a esta visita.";
+    // Así contesta el runner cuando el script lanza LKFException.
+    back.simular(GAFETE, { success: false, response: "", error: { exception: { msg: mensaje } } });
+
+    await tarjeta(page, UNO).hover();
+    await tarjeta(page, UNO).getByTitle("Regresar gafete").click();
+    await page.getByRole("button", { name: "Confirmar" }).click();
+
+    await expect.poll(() => back.llamadas(GAFETE).length, { timeout: 5_000 }).toBe(1);
+    await expect(page.getByText(mensaje)).toBeVisible();
+  });
 });
