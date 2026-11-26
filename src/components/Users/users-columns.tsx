@@ -95,7 +95,7 @@ export const getUsersColumns = ({
   },
   { accessorKey: "email", header: "Email" },
   { accessorKey: "phone", header: "Teléfono" },
-  { accessorKey: "role", header: "Rol" },
+  { accessorKey: "role", header: "Puesto" },
   {
     accessorKey: "language_label",
     header: "Idioma",

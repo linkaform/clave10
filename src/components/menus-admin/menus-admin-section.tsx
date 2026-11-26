@@ -8,6 +8,7 @@ import { useResyncAllPermissions } from "@/hooks/menus-admin/useUserMenuAssignme
 import { MenuAssignmentGrid } from "./menu-assignment-grid";
 import { MenuCatalogBoard } from "./menu-catalog-board";
 import { MenuConfigDiagnosticsPanel } from "./menu-config-diagnostics";
+import { MenuRolesPanel } from "./menu-roles-panel";
 import { Segmented } from "./segmented";
 import { ConfigCard } from "@/components/configuracion/config-card";
 import { ImportCatalogDialog } from "@/components/modals/import-catalog-dialog";
@@ -16,7 +17,7 @@ import { MenuItemAdmin } from "@/services/menus-admin";
 import { exportMenuItemsToExcel } from "@/lib/menus-admin-export";
 import { cn } from "@/lib/utils";
 
-type MenusTab = "catalogo" | "asignacion" | "diagnostico";
+type MenusTab = "catalogo" | "asignacion" | "roles" | "diagnostico";
 type Platform = "web" | "mobile";
 
 const PLATFORM_OPTIONS = [
@@ -24,7 +25,7 @@ const PLATFORM_OPTIONS = [
   { value: "mobile" as const, label: "Móvil", icon: <Smartphone className="h-4 w-4" /> },
 ];
 
-/** Configuración > Menús: editor del catálogo, asignación por usuario y diagnóstico. */
+/** Configuración > Menús: editor del catálogo, asignación por usuario, menús por rol y diagnóstico. */
 export function MenusAdminSection() {
   const [tab, setTab] = useState<MenusTab>("catalogo");
 
@@ -84,7 +85,8 @@ export function MenusAdminSection() {
     });
   };
 
-  const showPlatform = tab !== "diagnostico";
+  // Roles muestra web y móvil juntos; no usa el selector de plataforma.
+  const showPlatform = tab !== "diagnostico" && tab !== "roles";
   const platformValue = tab === "asignacion" ? assignmentPlatformTab : platformTab;
   const onPlatformChange = (p: Platform) =>
     tab === "asignacion" ? setAssignmentPlatformTab(p) : handlePlatformTabChange(p);
@@ -113,6 +115,7 @@ export function MenusAdminSection() {
           options={[
             { value: "catalogo", label: "Catálogo" },
             { value: "asignacion", label: "Asignación" },
+            { value: "roles", label: "Roles" },
             { value: "diagnostico", label: "Diagnóstico" },
           ]}
         />
@@ -172,6 +175,8 @@ export function MenusAdminSection() {
           onDirtyChange={setAssignmentDirty}
         />
       )}
+
+      {tab === "roles" && <MenuRolesPanel allItems={menuItems} />}
 
       {tab === "diagnostico" && <MenuConfigDiagnosticsPanel />}
 

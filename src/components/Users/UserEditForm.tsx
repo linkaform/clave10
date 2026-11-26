@@ -16,7 +16,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { UserRow, useUpdateUser } from "@/hooks/Users/useUsers";
+import { UserRow, useUpdateUser, useUserOptions } from "@/hooks/Users/useUsers";
+import { cn } from "@/lib/utils";
 import { UserLocaleFields } from "./UserLocaleFields";
 import { userBaseShape } from "./user-schema";
 
@@ -39,13 +40,31 @@ const toValues = (user: UserRow): EditValues => ({
 
 interface Props {
   user: UserRow;
+  /** Roles actuales del empleado ligado (catálogo `rol`). */
+  roles: string[];
+  /** Sin empleado ligado no se pueden asignar roles. */
+  rolesEditable: boolean;
   /** Se llama al guardar o al cancelar, para que el panel salga del modo edición. */
   onDone: () => void;
 }
 
 // Edición dentro del panel lateral. El username no se puede cambiar.
-export function UserEditForm({ user, onDone }: Props) {
+export function UserEditForm({ user, roles, rolesEditable, onDone }: Props) {
   const updateUser = useUpdateUser();
+  const { data: options } = useUserOptions();
+  const roleOptions = options?.roles ?? [];
+  // Roles: fuera del form de zod porque no son texto del registro de Usuarios.
+  const [selectedRoles, setSelectedRoles] = React.useState<string[]>(roles);
+  React.useEffect(() => {
+    setSelectedRoles(roles);
+  }, [user.id, roles.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rolesChanged =
+    selectedRoles.length !== roles.length ||
+    selectedRoles.some((r) => !roles.includes(r));
+  const toggleRole = (rol: string) =>
+    setSelectedRoles((prev) =>
+      prev.includes(rol) ? prev.filter((r) => r !== rol) : [...prev, rol],
+    );
   const form = useForm<EditValues>({
     resolver: zodResolver(editSchema),
     defaultValues: toValues(user),
@@ -55,6 +74,17 @@ export function UserEditForm({ user, onDone }: Props) {
   React.useEffect(() => {
     form.reset(toValues(user));
   }, [user.id, form]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Si solo cambiaron los roles se guardan sin validar el resto: hay usuarios
+  // viejos sin teléfono o puesto y eso no debe impedir asignarles roles.
+  const handleSave = (e: React.FormEvent) => {
+    if (!form.formState.isDirty && rolesChanged) {
+      e.preventDefault();
+      onSubmit(toValues(user));
+      return;
+    }
+    form.handleSubmit(onSubmit)(e);
+  };
 
   const onSubmit = (values: EditValues) => {
     // Solo viajan los campos que cambiaron; vacío = sin cambio para el backend.
@@ -68,12 +98,15 @@ export function UserEditForm({ user, onDone }: Props) {
       timezone: changed("timezone"),
       language: changed("language"),
     };
-    if (!Object.values(edit).some(Boolean)) {
+    if (!Object.values(edit).some(Boolean) && !rolesChanged) {
       toast.info("No hay cambios que guardar.");
       return;
     }
     updateUser.mutate(
-      { recordId: user.id, values: edit },
+      {
+        recordId: user.id,
+        values: rolesChanged ? { ...edit, roles: selectedRoles } : edit,
+      },
       {
         onSuccess: () => {
           toast.success("Usuario actualizado");
@@ -113,7 +146,7 @@ export function UserEditForm({ user, onDone }: Props) {
         Editar usuario
       </h3>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSave} className="space-y-4">
           <div className="min-w-0">
             <p className="text-sm font-medium">Username</p>
             <p className="text-sm text-slate-500 break-words">
@@ -128,7 +161,55 @@ export function UserEditForm({ user, onDone }: Props) {
             "email",
           )}
           {field("phone", "* Teléfono")}
-          {field("role", "* Rol")}
+          {field("role", "* Puesto")}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Roles</p>
+            {rolesEditable ? (
+              <>
+                <div
+                  className="flex flex-wrap gap-1.5"
+                  role="group"
+                  aria-label="Roles"
+                >
+                  {roleOptions.map((rol) => {
+                    const on = selectedRoles.includes(rol);
+                    return (
+                      <button
+                        key={rol}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleRole(rol)}
+                        disabled={updateUser.isPending}
+                        className={cn(
+                          "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors duration-150",
+                          on
+                            ? "border-blue-500 bg-blue-500 text-white"
+                            : "border-slate-300 bg-white text-slate-600 hover:border-blue-400",
+                        )}
+                      >
+                        {rol}
+                      </button>
+                    );
+                  })}
+                  {roleOptions.length === 0 && (
+                    <span className="text-xs text-slate-500">
+                      No hay roles en el catálogo.
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500">
+                  Se guardan en el empleado (Configuración de Áreas y
+                  Empleados). Los usan turnos, rondines, asistencias y los menús
+                  por rol.
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Este usuario no tiene empleado ligado; los roles se asignan al
+                empleado.
+              </p>
+            )}
+          </div>
           <UserLocaleFields
             control={form.control}
             emptyLabel="Sin definir"

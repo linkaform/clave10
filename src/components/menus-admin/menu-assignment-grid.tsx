@@ -1,13 +1,27 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDownAZ, ArrowUpAZ, PanelRightOpen, Search, X } from "lucide-react";
-import { useMenuUsers, useAllUsersMenuItems } from "@/hooks/menus-admin/useUserMenuAssignment";
+import {
+  ArrowDownAZ,
+  ArrowUpAZ,
+  PanelRightOpen,
+  Search,
+  X,
+} from "lucide-react";
+import {
+  useMenuUsers,
+  useAllUsersMenuItems,
+} from "@/hooks/menus-admin/useUserMenuAssignment";
 import { groupByModule } from "@/lib/menus-admin-tree";
-import { MenuItemAdmin, MenuItemPlatform, MenuUser } from "@/services/menus-admin";
+import {
+  MenuItemAdmin,
+  MenuItemPlatform,
+  MenuUser,
+} from "@/services/menus-admin";
 import { cn } from "@/lib/utils";
 import { AssignCheckbox, CheckState, checkState } from "./assign-checkbox";
 import { MenuAssignmentDrawer } from "./menu-assignment-drawer";
+import { buildPlatformGroups } from "./menu-keys-columns";
 import { DiagEmpty } from "./diag-ui";
 import { PendingChangesFooter } from "@/components/common/PendingChangesFooter";
 
@@ -32,8 +46,6 @@ const sameKeys = (a: string[], b: string[]) => {
  * el módulo completo; el detalle por sección/menú está en el panel lateral.
  * Nada se guarda hasta "Guardar cambios".
  */
-const PLATFORM_LABEL: Record<MenuItemPlatform, string> = { web: "Web", mobile: "Móvil" };
-
 export function MenuAssignmentGrid({
   items,
   allItems,
@@ -41,25 +53,21 @@ export function MenuAssignmentGrid({
   onDirtyChange,
 }: MenuAssignmentGridProps) {
   const { users, isLoadingUsers } = useMenuUsers();
-  const { keysByUser, isLoading, error, saveManyMutation, progress } = useAllUsersMenuItems();
+  const { keysByUser, isLoading, error, saveManyMutation, progress } =
+    useAllUsersMenuItems();
 
   const modules = useMemo(() => groupByModule(items), [items]);
   const moduleKeys = useMemo(
-    () => modules.map((m) => m.sections.flatMap((s) => s.items.map((i) => i.key))),
+    () =>
+      modules.map((m) => m.sections.flatMap((s) => s.items.map((i) => i.key))),
     [modules],
   );
   const platformKeys = useMemo(() => new Set(items.map((i) => i.key)), [items]);
   // Panel lateral: las dos plataformas, primero la que se está viendo.
-  const drawerGroups = useMemo(() => {
-    const order: MenuItemPlatform[] = platform === "web" ? ["web", "mobile"] : ["mobile", "web"];
-    return order
-      .map((p) => ({
-        platform: p,
-        label: PLATFORM_LABEL[p],
-        modules: groupByModule(allItems.filter((i) => i.platforms === p)),
-      }))
-      .filter((g) => g.modules.length > 0);
-  }, [allItems, platform]);
+  const drawerGroups = useMemo(
+    () => buildPlatformGroups(allItems, platform),
+    [allItems, platform],
+  );
 
   // Cambios sin guardar: lista completa de keys por usuario.
   const [pending, setPending] = useState<Record<number, string[]>>({});
@@ -85,12 +93,16 @@ export function MenuAssignmentGrid({
     const q = query.trim().toLowerCase();
     const list = q
       ? users.filter((u) =>
-          [u.nombre, u.username, u.email].some((v) => (v || "").toLowerCase().includes(q)),
+          [u.nombre, u.username, u.email].some((v) =>
+            (v || "").toLowerCase().includes(q),
+          ),
         )
       : users;
     const name = (u: MenuUser) => (u.nombre || u.username || "").toLowerCase();
     return [...list].sort((a, b) =>
-      sortDesc ? name(b).localeCompare(name(a)) : name(a).localeCompare(name(b)),
+      sortDesc
+        ? name(b).localeCompare(name(a))
+        : name(a).localeCompare(name(b)),
     );
   }, [users, query, sortDesc]);
 
@@ -117,7 +129,9 @@ export function MenuAssignmentGrid({
 
   // Las acciones de columna aplican a los seleccionados; si no hay, a los visibles.
   const targetIds = (() => {
-    const sel = visibleUsers.filter((u) => selected.has(u.user_id)).map((u) => u.user_id);
+    const sel = visibleUsers
+      .filter((u) => selected.has(u.user_id))
+      .map((u) => u.user_id);
     return sel.length ? sel : visibleUsers.map((u) => u.user_id);
   })();
 
@@ -137,13 +151,15 @@ export function MenuAssignmentGrid({
   const columnState = (mKeys: string[]) => groupState(targetIds, mKeys);
 
   const allVisibleSelected =
-    visibleUsers.length > 0 && visibleUsers.every((u) => selected.has(u.user_id));
+    visibleUsers.length > 0 &&
+    visibleUsers.every((u) => selected.has(u.user_id));
   const someVisibleSelected = visibleUsers.some((u) => selected.has(u.user_id));
 
   const toggleSelectAll = () => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (allVisibleSelected) visibleUsers.forEach((u) => next.delete(u.user_id));
+      if (allVisibleSelected)
+        visibleUsers.forEach((u) => next.delete(u.user_id));
       else visibleUsers.forEach((u) => next.add(u.user_id));
       return next;
     });
@@ -173,7 +189,10 @@ export function MenuAssignmentGrid({
     return (
       <div className="flex flex-col gap-2" aria-label="Cargando">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-14 animate-pulse rounded-lg bg-c10-skeleton" />
+          <div
+            key={i}
+            className="h-14 animate-pulse rounded-lg bg-c10-skeleton"
+          />
         ))}
       </div>
     );
@@ -181,8 +200,8 @@ export function MenuAssignmentGrid({
   if (error) {
     return (
       <DiagEmpty tone="error">
-        No se pudieron cargar los menús de los usuarios. Si la cuenta todavía no tiene la
-        versión nueva del editor, falta instalar el módulo base.
+        No se pudieron cargar los menús de los usuarios. Si la cuenta todavía no
+        tiene la versión nueva del editor, falta instalar el módulo base.
       </DiagEmpty>
     );
   }
@@ -205,13 +224,15 @@ export function MenuAssignmentGrid({
         </div>
         <span className="text-[13px] tabular-nums text-c10-meta">
           {visibleUsers.length} usuario{visibleUsers.length === 1 ? "" : "s"}
-          {selected.size > 0 && ` · ${selected.size} seleccionado${selected.size === 1 ? "" : "s"}`}
+          {selected.size > 0 &&
+            ` · ${selected.size} seleccionado${selected.size === 1 ? "" : "s"}`}
         </span>
         {selected.size > 0 && (
           <button
             type="button"
             onClick={() => setSelected(new Set())}
-            className="flex h-8 items-center gap-1 rounded-lg px-2 text-[13px] font-medium text-c10-secondary transition-colors duration-150 hover:bg-c10-sunken">
+            className="flex h-8 items-center gap-1 rounded-lg px-2 text-[13px] font-medium text-c10-secondary transition-colors duration-150 hover:bg-c10-sunken"
+          >
             <X className="h-3.5 w-3.5" /> Quitar selección
           </button>
         )}
@@ -219,8 +240,10 @@ export function MenuAssignmentGrid({
 
       <p className="text-xs text-c10-faint">
         La casilla de cada columna asigna o quita el módulo a{" "}
-        {selected.size > 0 ? "los usuarios seleccionados" : "todos los usuarios visibles"}. Para
-        elegir menús sueltos abre el detalle del usuario.
+        {selected.size > 0
+          ? "los usuarios seleccionados"
+          : "todos los usuarios visibles"}
+        . Para elegir menús sueltos abre el detalle del usuario.
         {selected.size > 1 &&
           " Con varios seleccionados, las casillas y el detalle de cualquiera de ellos aplican a todos."}
       </p>
@@ -230,17 +253,25 @@ export function MenuAssignmentGrid({
           {/* Encabezado */}
           <div
             className="sticky top-0 z-10 grid bg-c10-blue-light"
-            style={{ gridTemplateColumns: gridCols }}>
+            style={{ gridTemplateColumns: gridCols }}
+          >
             <div className="sticky left-0 z-10 flex items-center gap-3 bg-c10-blue-light px-3 py-2.5 shadow-[1px_0_0_var(--c10-blue-border)]">
               <AssignCheckbox
-                state={allVisibleSelected ? "all" : someVisibleSelected ? "some" : "none"}
+                state={
+                  allVisibleSelected
+                    ? "all"
+                    : someVisibleSelected
+                      ? "some"
+                      : "none"
+                }
                 onToggle={toggleSelectAll}
                 label="Seleccionar usuarios visibles"
               />
               <button
                 type="button"
                 onClick={() => setSortDesc((d) => !d)}
-                className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[.05em] text-c10-secondary">
+                className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[.05em] text-c10-secondary"
+              >
                 Usuario
                 {sortDesc ? (
                   <ArrowUpAZ className="h-3.5 w-3.5" />
@@ -252,7 +283,8 @@ export function MenuAssignmentGrid({
             {modules.map((m, i) => (
               <div
                 key={m.menuKey}
-                className="flex flex-col items-center justify-end gap-2 px-1.5 py-2.5 text-center">
+                className="flex flex-col items-center justify-end gap-2 px-1.5 py-2.5 text-center"
+              >
                 <span className="w-full text-[11px] font-semibold uppercase leading-tight tracking-[.04em] text-c10-secondary [overflow-wrap:anywhere] [text-wrap:balance]">
                   {m.menu}
                 </span>
@@ -283,12 +315,14 @@ export function MenuAssignmentGrid({
               <div
                 key={u.user_id}
                 className={cn("grid border-t border-c10-line", rowBg)}
-                style={{ gridTemplateColumns: gridCols }}>
+                style={{ gridTemplateColumns: gridCols }}
+              >
                 <div
                   className={cn(
                     "sticky left-0 z-[1] flex min-w-0 items-center gap-3 px-3 py-2.5 shadow-[1px_0_0_var(--c10-line)]",
                     rowBg,
-                  )}>
+                  )}
+                >
                   <AssignCheckbox
                     state={isSel ? "all" : "none"}
                     onToggle={() => toggleRow(u.user_id)}
@@ -299,7 +333,9 @@ export function MenuAssignmentGrid({
                       {u.nombre || u.username}
                     </span>
                     <span className="flex min-w-0 items-center gap-1.5">
-                      <span className="truncate text-xs text-c10-meta">{u.username}</span>
+                      <span className="truncate text-xs text-c10-meta">
+                        {u.username}
+                      </span>
                       <span
                         className={cn(
                           "inline-flex h-[18px] shrink-0 items-center rounded-full px-[7px] text-[11px] font-semibold",
@@ -308,8 +344,13 @@ export function MenuAssignmentGrid({
                             : hasPlatformMenus
                               ? "bg-[rgba(22,163,74,.12)] text-[#16A34A]"
                               : "bg-c10-red-subtle text-[#DC2626]",
-                        )}>
-                        {changed ? "Sin guardar" : hasPlatformMenus ? "Asignado" : "Por asignar"}
+                        )}
+                      >
+                        {changed
+                          ? "Sin guardar"
+                          : hasPlatformMenus
+                            ? "Asignado"
+                            : "Por asignar"}
                       </span>
                     </span>
                   </div>
@@ -318,7 +359,8 @@ export function MenuAssignmentGrid({
                     onClick={() => setDetailUserId(u.user_id)}
                     title="Ver menús asignados"
                     aria-label={`Ver menús asignados de ${u.nombre || u.username}`}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-c10-sunken text-c10-secondary transition-colors duration-150 hover:bg-c10-blue-light hover:text-[#2F80ED]">
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-c10-sunken text-c10-secondary transition-colors duration-150 hover:bg-c10-blue-light hover:text-[#2F80ED]"
+                  >
                     <PanelRightOpen className="h-4 w-4" />
                   </button>
                 </div>
@@ -333,7 +375,8 @@ export function MenuAssignmentGrid({
                       className={cn(
                         "flex flex-col items-center justify-center gap-1 px-1.5 py-2",
                         state === "all" && !isSel && "bg-c10-panel",
-                      )}>
+                      )}
+                    >
                       <AssignCheckbox
                         state={state}
                         onToggle={() => toggleKeys(cellTargets, mKeys)}
@@ -348,8 +391,11 @@ export function MenuAssignmentGrid({
                         onClick={() => setDetailUserId(u.user_id)}
                         className={cn(
                           "text-[11px] tabular-nums hover:text-[#2F80ED] hover:underline",
-                          n > 0 ? "font-semibold text-c10-label" : "text-c10-faint",
-                        )}>
+                          n > 0
+                            ? "font-semibold text-c10-label"
+                            : "text-c10-faint",
+                        )}
+                      >
                         {n}/{mKeys.length}
                       </button>
                     </div>

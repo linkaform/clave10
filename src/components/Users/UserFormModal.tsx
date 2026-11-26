@@ -178,7 +178,7 @@ export function UserFormModal({ open, onOpenChange }: Props) {
             {textField("username", "* Username")}
             {textField("email", "* Email", { type: "email" })}
             {textField("phone", "* Teléfono")}
-            {textField("role", "* Rol")}
+            {textField("role", "* Puesto")}
             <UserLocaleFields control={form.control} />
 
             <FormField
