@@ -19,11 +19,12 @@ const CAJA =
   "data-[state=open]:animate-in data-[state=open]:fade-in data-[state=open]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out duration-200";
 
 function Marco({
-  abierto, onCerrar, ancho, alerta, children, sinDescripcion, alAbrir,
+  abierto, onCerrar, ancho, alto, alerta, children, sinDescripcion, alAbrir,
 }: {
   abierto: boolean;
   onCerrar: () => void;
   ancho: number;
+  alto?: number;
   alerta?: boolean;
   children: ReactNode;
   sinDescripcion?: boolean;
@@ -39,8 +40,12 @@ function Marco({
           <D.Content
             role={alerta ? "alertdialog" : "dialog"}
             className={CAJA}
-            style={{ maxWidth: ancho }}
+            style={{ maxWidth: ancho, height: alto }}
             onOpenAutoFocus={alAbrir}
+            // Con un popover abierto adentro (filtros), Esc cierra el popover y no el modal
+            onEscapeKeyDown={(e) => {
+              if (document.querySelector("[data-c10-popover]")) e.preventDefault();
+            }}
             {...(sinDescripcion ? { "aria-describedby": undefined } : {})}
           >
             {children}
@@ -69,11 +74,18 @@ export interface ModalProps {
   guardando?: boolean;
   /** Pie propio, en lugar del estándar. */
   pie?: ReactNode;
+  /** Alto fijo en px (modales de selección: la lista no hace saltar el modal al filtrar). */
+  alto?: number;
+  /** Parte fija bajo el título, sin scroll: aviso, buscador, "seleccionar todos". */
+  cabecera?: ReactNode;
+  /** Clases extra del cuerpo con scroll (p. ej. otro padding para una lista). */
+  claseCuerpo?: string;
 }
 
 /** Crear o editar: título y cerrar arriba, campos con scroll, pie fijo. */
 export function Modal({
   abierto, onCerrar, titulo, descripcion, ancho = 560, children, onGuardar, etiquetaGuardar = "Guardar", guardando, pie,
+  alto, cabecera, claseCuerpo,
 }: ModalProps) {
   // Con pie (formulario) la cabecera lleva línea abajo; sin pie (modal de elegir, p. ej.
   // Invitar contratista) cabecera y cuerpo van juntos, como en el diseño.
@@ -82,16 +94,19 @@ export function Modal({
     e.preventDefault();
     if (!guardando) onGuardar?.();
   };
-  // Al abrir, el foco va al primer campo y no a la "x" de cerrar
+  // Al abrir, el foco va al primer campo y no a la "x" de cerrar (el buscador de la cabecera va primero)
   const cuerpoRef = useRef<HTMLDivElement>(null);
+  const cabeceraRef = useRef<HTMLDivElement>(null);
   const alAbrir = (e: Event) => {
-    const campo = cuerpoRef.current?.querySelector<HTMLElement>("input:not([disabled]), textarea:not([disabled]), button[aria-haspopup]:not([disabled])");
+    const campo =
+      cabeceraRef.current?.querySelector<HTMLElement>("input:not([disabled])") ??
+      cuerpoRef.current?.querySelector<HTMLElement>("input:not([disabled]), textarea:not([disabled]), button[aria-haspopup]:not([disabled])");
     if (!campo) return;
     e.preventDefault();
     campo.focus();
   };
   const cuerpo = (
-    <div ref={cuerpoRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-6 py-5">
+    <div ref={cuerpoRef} className={cn("flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-6 py-5", claseCuerpo)}>
       {children}
     </div>
   );
@@ -107,21 +122,18 @@ export function Modal({
     </div>
   );
   return (
-    <Marco abierto={abierto} onCerrar={onCerrar} ancho={ancho} sinDescripcion={!descripcion} alAbrir={alAbrir}>
-      <div
-        className={cn(
-          "flex justify-between gap-3 px-6 pt-[22px]",
-          descripcion ? "items-start" : "items-center",
-          conPie ? "border-b border-c10-sunken pb-[18px]" : "pb-1",
-        )}
-      >
-        <div className="flex min-w-0 flex-col gap-1">
-          <D.Title className="m-0 text-xl font-semibold tracking-[-0.02em] text-c10-title">{titulo}</D.Title>
-          {descripcion && <D.Description className="m-0 text-sm text-c10-secondary [text-wrap:pretty]">{descripcion}</D.Description>}
+    <Marco abierto={abierto} onCerrar={onCerrar} ancho={ancho} alto={alto} sinDescripcion={!descripcion} alAbrir={alAbrir}>
+      <div className={cn("flex flex-col gap-3.5 px-6 pt-[22px]", conPie || cabecera ? "border-b border-c10-sunken pb-4" : "pb-1", cabecera && "relative z-[2]")}>
+        <div className={cn("flex justify-between gap-3", descripcion ? "items-start" : "items-center", conPie && !cabecera && "pb-0.5")}>
+          <div className="flex min-w-0 flex-col gap-1">
+            <D.Title className="m-0 text-xl font-semibold tracking-[-0.02em] text-c10-title">{titulo}</D.Title>
+            {descripcion && <D.Description className="m-0 text-sm text-c10-secondary [text-wrap:pretty]">{descripcion}</D.Description>}
+          </div>
+          <D.Close asChild>
+            <BotonIcono titulo="Cerrar" icono={<X />} />
+          </D.Close>
         </div>
-        <D.Close asChild>
-          <BotonIcono titulo="Cerrar" icono={<X />} />
-        </D.Close>
+        {cabecera && <div ref={cabeceraRef} className="contents">{cabecera}</div>}
       </div>
       {onGuardar ? (
         <form onSubmit={enviar} noValidate className="flex min-h-0 flex-1 flex-col">

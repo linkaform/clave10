@@ -485,6 +485,7 @@ export function FiltrosCabecera({
         <div
           role="dialog"
           aria-label="Filtros"
+          data-c10-popover=""
           className={cn(
             "absolute left-0 top-12 z-[31] flex max-h-[480px] w-[316px] max-w-[calc(100vw-32px)] flex-col gap-3 overflow-y-auto rounded-2xl bg-c10-surface p-4 animate-in fade-in slide-in-from-top-1 duration-200",
             SOMBRA_CAJA,

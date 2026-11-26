@@ -11,6 +11,7 @@ import {
 import type { Acento } from "@/lib/contratistas/contexto";
 import { MuestraDocumento } from "./MuestraDocumento";
 import { MuestraFiltros } from "./MuestraFiltros";
+import { MuestraLigar } from "./MuestraLigar";
 import { MuestraPanel } from "./MuestraPanel";
 import { MuestraTabla } from "./MuestraTabla";
 
@@ -249,6 +250,10 @@ export default function UiKitPage() {
 
         <Bloque titulo="Revisar documento (F0-13)">
           <MuestraDocumento />
+        </Bloque>
+
+        <Bloque titulo="Ligar y notificar (F0-15)">
+          <MuestraLigar />
         </Bloque>
 
         <Bloque titulo="Folios">
