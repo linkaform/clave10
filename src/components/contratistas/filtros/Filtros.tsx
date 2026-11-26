@@ -14,7 +14,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { ChevronLeft, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Entrada, Selector, type Opcion } from "../ui";
+import { Entrada, Interruptor, Selector, type Opcion } from "../ui";
 import type { Vista } from "../ui/tabla/Listado";
 import { PERIODOS, type FiltroFecha as ValorFecha, type Periodo } from "./fecha";
 
@@ -213,16 +213,7 @@ export function FiltroInterruptor({
         <span className="text-[13px] font-semibold text-c10-label">{titulo}</span>
         {descripcion && <span className="text-xs text-c10-meta">{descripcion}</span>}
       </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={valor}
-        aria-label={etiqueta ?? titulo}
-        onClick={() => onCambio(!valor)}
-        className={cn("relative h-5 w-9 shrink-0 rounded-full transition-colors duration-150", valor ? "bg-c10-acc" : "bg-c10-line-strong")}
-      >
-        <span className={cn("absolute top-[3px] size-3.5 rounded-full bg-white shadow-[0_1px_2px_rgba(15,23,42,.2)] transition-[left] duration-150", valor ? "left-[19px]" : "left-[3px]")} />
-      </button>
+      <Interruptor valor={valor} onCambio={onCambio} etiqueta={etiqueta ?? titulo} />
     </div>
   );
 }
