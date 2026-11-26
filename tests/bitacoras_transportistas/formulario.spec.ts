@@ -155,4 +155,15 @@ test.describe("bitacoras_transportistas · formulario", () => {
 
     await expect(page.getByText(mensaje)).toBeVisible();
   });
+
+  // TF-028
+  test("muestra el mensaje del back si no se puede confirmar la llegada", async ({ page }) => {
+    const mensaje = "Este pase ya fue registrado en la bitácora.";
+    await falloDelBack(page, "create_visit_transportista", mensaje);
+
+    await buscarPasePorFolio(page);
+    await page.getByRole("button", { name: "Confirmar llegada" }).click();
+
+    await expect(page.getByText(mensaje)).toBeVisible();
+  });
 });
