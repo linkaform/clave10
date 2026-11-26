@@ -1568,7 +1568,8 @@ const handlers: Record<string, Handler> = {
         const c = buscar(db.contratos, id, "Contrato");
         return { id: c.id, nombre: c.folio };
       }),
-      origen: "Carga",
+      origen: documento.origen ?? "Carga",
+      lectura_ia: documento.lectura_ia,
       versiones: [version(1)],
       comentarios: [],
       aprobaciones: compartido.map((cliente: { id: string; nombre: string }) => ({ cliente, decision: "Pendiente" as const })),
