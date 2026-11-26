@@ -135,12 +135,18 @@ export const EmployeePeriodGrid = ({ employees, days, quick, metrics, onOpenDay 
                 </th>
               );
             })}
-            <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-[.05em] text-c10-secondary">Asist.</th>
+            <th
+              className="cursor-help px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-[.05em] text-c10-secondary"
+              title="% de asistencia: días que vino ÷ días que se esperaba que viniera. No cuentan descansos, asuetos, vacaciones, incapacidades, permisos, home office, trabajo fuera ni días por venir."
+            >
+              % asist.
+            </th>
           </tr>
         </thead>
         <tbody>
           {employees.map(emp => {
-            const pct = metrics.get(emp.employee_id)?.asistPct;
+            const m = metrics.get(emp.employee_id);
+            const pct = m?.asistPct;
             return (
               <tr key={emp.employee_id} className="group">
                 <td className={`sticky left-0 z-[1] ${PCW} border-t border-c10-line bg-c10-surface px-3 py-2 group-hover:bg-c10-panel`}>
@@ -178,7 +184,10 @@ export const EmployeePeriodGrid = ({ employees, days, quick, metrics, onOpenDay 
                     </td>
                   );
                 })}
-                <td className={`border-t border-c10-line px-3 py-2 text-right text-[13px] font-semibold tabular-nums group-hover:bg-c10-panel ${pct != null ? asistTone(pct) : "text-c10-faint"}`}>
+                <td
+                  className={`border-t border-c10-line px-3 py-2 text-right text-[13px] font-semibold tabular-nums group-hover:bg-c10-panel ${pct != null ? asistTone(pct) : "text-c10-faint"}`}
+                  title={m && pct != null ? `Vino ${m.asistDias} de ${m.esperadosDias} ${m.esperadosDias === 1 ? "día esperado" : "días esperados"}` : "Sin días esperados en el periodo"}
+                >
                   {pct != null ? `${Math.round(pct)}%` : "---"}
                 </td>
               </tr>

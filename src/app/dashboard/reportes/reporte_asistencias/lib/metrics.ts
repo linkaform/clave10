@@ -24,6 +24,8 @@ export type EmployeeMetrics = {
   laborales: number;
   aPagar: number;
   asistPct: number | null; // días con asistencia ÷ días esperados (calendario)
+  asistDias: number;       // días con asistencia
+  esperadosDias: number;   // días en que se esperaba que viniera
   revisar: boolean;
 };
 
@@ -136,6 +138,8 @@ export const employeeMetrics = (emp: EmployeeAttendance, fechas: string[], now =
     laborales,
     aPagar: Math.max(0, laborales - faltas - incap),
     asistPct: esperados ? (asist / esperados) * 100 : null,
+    asistDias: asist,
+    esperadosDias: esperados,
     revisar: faltas > 0 || sinSalida > 0 || alerts.some(a => a.level === "alerta"),
   };
 };
