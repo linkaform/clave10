@@ -68,4 +68,12 @@ test.describe("bitacoras · formulario", () => {
     expect(typeof body.location).toBe("string");
     expect(body.location).not.toBe("");
   });
+
+  // TF-017
+  test("dice cuántas personas van a salir en la salida masiva", async ({ page }) => {
+    await page.getByRole("button", { name: "Sacar" }).click();
+
+    // La respuesta guardada de get_stats trae personas_dentro: 2.
+    await expect(page.getByText("2 personas", { exact: true })).toBeVisible();
+  });
 });
