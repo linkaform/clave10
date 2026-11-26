@@ -1,0 +1,41 @@
+{
+  "success": true,
+  "response": {
+    "data": {
+      "id": "0000000000000000000000d1",
+      "location": {
+        "name": "Planta Monterrey",
+        "area": "Caseta Principal",
+        "extra_locations": [],
+        "city": "",
+        "state": "",
+        "address": ""
+      },
+      "guard": {
+        "status_turn": "Turno Abierto",
+        "location": "Planta Monterrey",
+        "area": "Caseta Principal",
+        "name": "Guardia QA",
+        "user_id": 0,
+        "position": "",
+        "roles": [],
+        "start_turn_image": [],
+        "end_turn_image": [],
+        "config_exception": false
+      },
+      "booth_status": {
+        "status": "Ocupada",
+        "guard_on_dutty": "Guardia QA",
+        "checkin_id": "0000000000000000000000d1",
+        "stated_at": "2026-11-26 08:00:00"
+      },
+      "booth_stats": {},
+      "support_guards": [],
+      "notes": {
+        "records": []
+      },
+      "user_booths": [],
+      "booth_config": []
+    }
+  }
+}

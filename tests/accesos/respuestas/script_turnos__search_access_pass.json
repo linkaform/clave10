@@ -1,0 +1,79 @@
+{
+  "success": true,
+  "response": {
+    "data": {
+      "_id": "0000000000000000000000c1",
+      "folio": "201-1",
+      "nombre": "Visitante QA Pase",
+      "empresa": "Proveedor QA",
+      "email": "",
+      "telefono": "",
+      "curp": "",
+      "estatus": "activo",
+      "status_pase": "Activo",
+      "tipo_movimiento": "Entrada",
+      "tipo_de_pase": "Visita General",
+      "ubicacion": [
+        "Planta Monterrey"
+      ],
+      "motivo_visita": "",
+      "visita_a": [
+        {
+          "nombre": "Empleado QA",
+          "email": "empleado.qa@ejemplo.com",
+          "phone": "+528100000000"
+        }
+      ],
+      "anfitrions_data": [
+        {
+          "nombre": "Empleado QA",
+          "name": "Empleado QA",
+          "email": "empleado.qa@ejemplo.com",
+          "phone": "+528100000000"
+        }
+      ],
+      "grupo_vehiculos": [
+        {
+          "tipo": "Automóvil",
+          "marca": "Nissan",
+          "modelo": "Versa",
+          "placas": "QA-123",
+          "color": "Blanco",
+          "estado": "Nuevo León",
+          "foto_vehiculo": []
+        }
+      ],
+      "grupo_equipos": [
+        {
+          "tipo": "Computo",
+          "nombre": "Laptop QA",
+          "marca": "Dell",
+          "modelo": "XPS",
+          "serie": "SERIE-QA-1",
+          "color": "Negro",
+          "foto_equipo": []
+        }
+      ],
+      "grupo_areas_acceso": [],
+      "grupo_instrucciones_pase": [],
+      "certificaciones": [],
+      "ultimo_acceso": [],
+      "comentario": [],
+      "limite_de_acceso": 5,
+      "total_entradas": "0",
+      "limitado_a_dias": "",
+      "config_dia_de_acceso": "cualquier día",
+      "gafete_id": "",
+      "locker_id": "",
+      "habilitar_vehiculo": "sí",
+      "fecha_de_expedicion": "2026-11-26 00:00:00",
+      "fecha_de_caducidad": "2026-12-31 23:59:00",
+      "foto": [],
+      "identificacion": [],
+      "qr_pase": [],
+      "link": "",
+      "acompanantes_pases": [],
+      "pase_padre": null
+    }
+  }
+}
