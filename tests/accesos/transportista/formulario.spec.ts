@@ -90,4 +90,20 @@ test.describe("accesos/transportista · formulario", () => {
     expect(body.record_id).toBe(ID);
     expect(body.payload).toEqual({ estatus: "carga_/_descarga", anden: "Andén QA 1" });
   });
+
+  // TF-032
+  test("terminar el proceso manda el estatus terminado", async ({ page, back }) => {
+    back.simular(GUARDAR, OK);
+    await abrirVisita(page, back, (visita) => {
+      visita.estatus = "inspeccion_salida";
+      visita.inspecciones.push({ tipo: "salida_tractor" });
+    });
+
+    await page.getByRole("button", { name: "Terminar proceso · Dar salida" }).click();
+
+    await expect.poll(() => back.llamadas(GUARDAR).length, { timeout: 10_000 }).toBe(1);
+    const [body] = back.llamadas(GUARDAR);
+    expect(body.record_id).toBe(ID);
+    expect(body.payload).toEqual({ estatus: "terminado" });
+  });
 });
