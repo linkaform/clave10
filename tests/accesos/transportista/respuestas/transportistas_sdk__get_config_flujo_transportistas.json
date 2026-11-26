@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "response": {
+    "data": {
+      "etapas_activas": [
+        "inspeccion_de_entrada",
+        "carga_/_descarga",
+        "inspeccion_salida",
+        "inspeccion_materiales"
+      ],
+      "kanban_view": []
+    }
+  }
+}

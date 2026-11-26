@@ -1,0 +1,71 @@
+{
+  "success": true,
+  "response": {
+    "data": {
+      "_id": "0000000000000000000000f1",
+      "folio": "BT-QA-1",
+      "estatus": "inspeccion_entrada",
+      "num_de_pase": null,
+      "tipo_de_operacion": "entrega",
+      "created_at": "2026-11-26 08:00:00",
+      "fecha_hora_ingreso": "2026-11-26 08:00:00",
+      "ubicacion": "Planta Monterrey",
+      "area": "Caseta Principal",
+      "empresa_transportista": "Transportes QA",
+      "procedencia": null,
+      "tipo_de_vehiculo": "Tractocamión",
+      "placas_de_vehiculo": "QA-456",
+      "placas_de_vehiculo_tarjeta_circulacion": null,
+      "anden_asignado": null,
+      "num_eco_num_rotulo": null,
+      "marca_vehiculo": null,
+      "year_vehiculo": null,
+      "color_vehiculo": null,
+      "conductor": "Conductor QA",
+      "telefono_conductor": null,
+      "num_licencia": "LIC-QA-1",
+      "proveedor_cliente": "Proveedor QA",
+      "orden_de_compra": "OC-1234",
+      "file_url": null,
+      "file_name": null,
+      "documentos": [],
+      "remolques": [
+        {
+          "tipo_remolque": "Caja seca",
+          "no_sello": "SELLO-QA-1",
+          "no_caja": "CAJA-QA-1",
+          "placas_caja": "QA-781",
+          "color": null,
+          "comentarios": null
+        }
+      ],
+      "materiales": [
+        {
+          "lugar": "remolque",
+          "no_referencia": "remolque_1",
+          "producto": "Producto QA",
+          "lote": null,
+          "cantidad": "10",
+          "cantidad_fisica": null,
+          "cantidad_buena": null,
+          "cantidad_danada": null,
+          "cantidad_faltante": null,
+          "peso": null,
+          "volumen": null,
+          "evidencia": [],
+          "comentario": null
+        }
+      ],
+      "desglose_empaque": [],
+      "inspecciones": [
+        {
+          "tipo": "tractor"
+        },
+        {
+          "tipo": "sello_1",
+          "unidad": 1
+        }
+      ]
+    }
+  }
+}
