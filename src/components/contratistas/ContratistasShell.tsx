@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DocumentosEmpresa } from "@/components/contratistas/empresa/DocumentosEmpresa";
 import { useContratistasContexto } from "@/hooks/Contratistas/useContratistasContexto";
 import { BASE, hrefPestana, nombreCorto } from "@/lib/contratistas/contexto";
 import { ESTATUS_CONTRATO_TONO, type Tono } from "@/mappers/contratistas.mapper";
@@ -126,7 +127,7 @@ export function ContratistasShell({ children }: { children?: React.ReactNode }) 
             No se pudo cargar: {ctx.error.message}
           </div>
         ) : (
-          children ?? <PestanaPendiente />
+          children ?? (modo === "propio" && pestana.activa.key === "documentos" ? <DocumentosEmpresa /> : <PestanaPendiente />)
         )}
       </main>
     </div>
