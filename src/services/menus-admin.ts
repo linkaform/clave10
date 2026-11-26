@@ -106,6 +106,29 @@ export const saveUserMenuItems = (user_id: number, item_keys: string[]) =>
     item_keys,
   });
 
+/** Rol del catálogo `rol` con sus menús y sus usuarios (por empleado). 2611-1649. */
+export interface MenuRol {
+  rol: string;
+  /** true si el rol ya tiene registro de menús. */
+  configured: boolean;
+  item_keys: string[];
+  user_ids: number[];
+}
+
+export const listMenuRoles = () =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "list_menu_roles",
+  });
+
+export const saveRolMenuItems = (rol: string, item_keys: string[]) =>
+  apiPost<ApiResponse>(API_ENDPOINTS.runScript, {
+    script_name: SCRIPT_NAME,
+    option: "save_rol_menu_items",
+    rol,
+    item_keys,
+  });
+
 export interface ResyncPermissionsResult {
   updated: number;
   skipped: { record_id: string; user_id?: number; reason: string }[];

@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/confirm-modal";
 import { ResizableLogSheet } from "@/components/ScriptLogs/ResizableLogSheet";
 import { CopyableId } from "@/components/ScriptLogs/CopyableId";
-import { DetailField, DetailPanelHeader, DetailSection } from "@/components/common/DetailPanel";
+import {
+  DetailField,
+  DetailPanelHeader,
+  DetailSection,
+} from "@/components/common/DetailPanel";
 import { formatDate } from "@/components/ScriptLogs/ScriptLogsTable";
 import {
   LinkedEmployee,
@@ -164,7 +168,12 @@ export function UserPanel({
 
           <div className="flex-1 overflow-auto p-4 space-y-4 bg-slate-100">
             {editing && canEdit ? (
-              <UserEditForm user={user} onDone={() => onEditingChange(false)} />
+              <UserEditForm
+                user={user}
+                roles={detail.data?.roles ?? []}
+                rolesEditable={!!detail.data?.roles_editable}
+                onDone={() => onEditingChange(false)}
+              />
             ) : (
               <DetailSection title="Datos del usuario">
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -172,7 +181,11 @@ export function UserPanel({
                   <DetailField label="Username" value={user.username} />
                   <DetailField label="Email" value={user.email} />
                   <DetailField label="Teléfono" value={user.phone} />
-                  <DetailField label="Rol" value={user.role} />
+                  <DetailField label="Puesto" value={user.role} />
+                  <DetailField
+                    label="Roles"
+                    value={(detail.data?.roles ?? []).join(", ") || "—"}
+                  />
                   <DetailField label="Idioma" value={user.language_label} />
                   <DetailField label="Uso Horario" value={user.timezone} />
                   <DetailField label="Id de usuario" value={user.user_id} />

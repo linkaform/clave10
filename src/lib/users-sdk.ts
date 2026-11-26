@@ -28,7 +28,10 @@ export interface UserFormValues {
 export type UserEditValues = Pick<
   UserFormValues,
   "name" | "email" | "phone" | "role" | "timezone" | "language"
->;
+> & {
+  /** Roles del catálogo `rol` (van al empleado). Sin la llave = no se tocan. */
+  roles?: string[];
+};
 
 const runScript = (payload: Record<string, any>) =>
   runScriptSdk("users_sdk.py", payload);
@@ -53,6 +56,8 @@ export interface UserOptions {
   timezones: string[];
   languages: { value: string; label: string }[];
   defaults: { timezone: string; language: string };
+  /** Catálogo `rol` (turnos, rondines, asistencias y menús por rol). */
+  roles?: string[];
 }
 
 export const getUserOptionsSdk = () =>

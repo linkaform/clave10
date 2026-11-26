@@ -52,6 +52,10 @@ export interface LinkedEmployee {
 export interface UserDetail {
   user: UserRow;
   employees: LinkedEmployee[];
+  /** Roles del empleado (Configuración de Áreas y Empleados). */
+  roles?: string[];
+  /** Solo con empleado ligado se pueden asignar roles. */
+  roles_editable?: boolean;
 }
 
 export interface UsersPage {
