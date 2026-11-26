@@ -50,4 +50,22 @@ test.describe("bitacoras · formulario", () => {
   test("ofrece la salida masiva cuando hay personas dentro", async ({ page }) => {
     await expect(page.getByRole("button", { name: "Sacar" })).toBeVisible();
   });
+
+  // TF-016
+  test("manda la ubicación como texto en la salida masiva", async ({ page, back }) => {
+    back.simular(SALIDA_MASIVA, {
+      success: true,
+      response: { data: { status_code: 202, json: { msg: "Salida registrada." } } },
+    });
+
+    await page.getByRole("button", { name: "Sacar" }).click();
+    await page.getByRole("button", { name: "Confirmar" }).click();
+
+    await expect.poll(() => back.llamadas(SALIDA_MASIVA).length, { timeout: 5_000 }).toBe(1);
+    const [body] = back.llamadas(SALIDA_MASIVA);
+    // force_quit_all_persons compara la ubicación con igualdad: una lista no
+    // coincide con ningún registro y responde "No hay personas dentro".
+    expect(typeof body.location).toBe("string");
+    expect(body.location).not.toBe("");
+  });
 });
