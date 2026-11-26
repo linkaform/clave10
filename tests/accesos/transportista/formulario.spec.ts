@@ -75,4 +75,19 @@ test.describe("accesos/transportista · formulario", () => {
     // El remolque 1 ya tiene su sello; volver a mandarlo lo duplica.
     expect(body.inspecciones.map((i: any) => i.unidad)).toEqual([2]);
   });
+
+  // TF-031
+  test("pasar a Carga / Descarga manda el estatus y el andén elegido", async ({ page, back }) => {
+    back.simular(GUARDAR, OK);
+    await abrirVisita(page, back);
+
+    await page.getByRole("button", { name: "Pasar a etapa · Carga / Descarga" }).click();
+    await page.getByRole("button", { name: "Andén QA 1" }).click();
+    await page.getByRole("button", { name: "Confirmar y pasar a Carga / Descarga" }).click();
+
+    await expect.poll(() => back.llamadas(GUARDAR).length, { timeout: 10_000 }).toBe(1);
+    const [body] = back.llamadas(GUARDAR);
+    expect(body.record_id).toBe(ID);
+    expect(body.payload).toEqual({ estatus: "carga_/_descarga", anden: "Andén QA 1" });
+  });
 });
