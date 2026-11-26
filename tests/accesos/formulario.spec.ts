@@ -89,4 +89,16 @@ test.describe("accesos · formulario", () => {
     const [body] = back.llamadas(SALIDA);
     expect(body).toMatchObject({ qr_code: QR, location: "Planta Monterrey", area: "Caseta Principal" });
   });
+
+  // TF-023
+  test("muestra el mensaje del back si no se puede registrar la salida", async ({ page, back }) => {
+    const mensaje = "Se necesita liberar el gafete antes de registrar la salida.";
+    back.simular(SALIDA, errorDelBack(mensaje));
+    await escanearPase(page, back, "Salida");
+
+    await page.getByRole("button", { name: "Registrar Salida" }).click();
+
+    await expect(page.getByText("Error al realizar la salida:")).toBeVisible();
+    await expect(page.getByText(mensaje)).toBeVisible();
+  });
 });
