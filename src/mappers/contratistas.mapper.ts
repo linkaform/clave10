@@ -51,7 +51,7 @@ export const ESTATUS_SESION_TONO: Record<EstatusSesion, Tono> = {
   Programada: "info",
   "En curso": "success",
   Finalizada: "neutral",
-  Cancelada: "neutral",
+  Cancelada: "danger",
 };
 
 /**
