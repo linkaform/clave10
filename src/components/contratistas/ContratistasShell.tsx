@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ContratosLista } from "@/components/contratistas/contratos/ContratosLista";
 import { DocumentosEmpresa } from "@/components/contratistas/empresa/DocumentosEmpresa";
 import { useContratistasContexto } from "@/hooks/Contratistas/useContratistasContexto";
 import { BASE, hrefPestana, nombreCorto } from "@/lib/contratistas/contexto";
@@ -127,11 +128,21 @@ export function ContratistasShell({ children }: { children?: React.ReactNode }) 
             No se pudo cargar: {ctx.error.message}
           </div>
         ) : (
-          children ?? (modo === "propio" && pestana.activa.key === "documentos" ? <DocumentosEmpresa /> : <PestanaPendiente />)
+          children ?? <Pestana />
         )}
       </main>
     </div>
   );
+}
+
+/** Contenido de la pestaña activa: la de su tarea si ya existe. */
+function Pestana() {
+  const { modo, pestana } = useContratistasContexto();
+  const key = pestana.activa.key;
+  if (modo === "propio" && key === "documentos") return <DocumentosEmpresa />;
+  // Mismo componente en Mi empresa, Contratistas / Clientes y el detalle de una relación.
+  if (key === "contratos" && modo !== "contrato") return <ContratosLista />;
+  return <PestanaPendiente />;
 }
 
 /** Lo que se ve en una pestaña que todavía no se construye. */
