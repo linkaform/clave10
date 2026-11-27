@@ -41,6 +41,10 @@ export interface AnalisisIA {
   propietario: { id: string | null; confianza: number };
   campos: { vigencia_fin?: string; registro?: string };
   alertas: AlertaIA[];
+  /** "Contrato", "REPSE", "CSF"…; null si no se identificó. */
+  tipo_documento?: string | null;
+  /** Datos propios del tipo (p. ej. ExtraccionContrato en ME-12). */
+  extraccion?: Record<string, unknown>;
 }
 
 export type FaseUploader =

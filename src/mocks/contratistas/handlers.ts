@@ -1352,6 +1352,14 @@ const handlers: Record<string, Handler> = {
   get_historial_contrato: ({ contrato_id }) =>
     db.historial.filter((h) => h.contrato === contrato_id).sort((a, b) => b.fecha.localeCompare(a.fecha)),
 
+  /** location_sdk.py: catálogo de ubicaciones (Nuevo contrato, ME-12). */
+  get_catalog_ubicaciones_formatted: () => ({
+    records: [
+      ["ubi-mty", "Planta Monterrey"], ["ubi-apo", "Planta Apodaca"], ["ubi-sta", "CEDIS Santa Catarina"],
+      ["ubi-corp", "Corporativo Monterrey"], ["ubi-esc", "Almacén Escobedo"],
+    ].map(([record_id, location]) => ({ record_id, location })),
+  }),
+
   /* Configuración */
   list_recursos: (p) =>
     paginar(db.recursos.filter((r) => r.tipo === p.tipo && coincide(r.nombre, p.search)), p),

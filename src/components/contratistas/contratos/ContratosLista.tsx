@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Download, Eye, MapPin, RotateCw, UsersRound, Wrench } from "lucide-react";
 import {
-  BarraCumplimiento, Boton, BotonCopiar, BotonIcono, Buscador, ChipEstado, ChipKpi, ChipTipo, EstadoVacio, Paginacion, Tabla,
+  BarraCumplimiento, Boton, BotonCopiar, BotonFlotante, BotonIcono, Buscador, ChipEstado, ChipKpi, ChipTipo, EstadoVacio, Paginacion, Tabla,
   tipoVacio, useTabla,
 } from "@/components/contratistas/ui";
 import { ConFiltros, FECHA_TODOS, FiltroChips, FiltroFecha, FiltrosCabecera, enLista, useFiltros } from "@/components/contratistas/filtros";
@@ -141,6 +141,12 @@ export function ContratosLista() {
     const desde = hrefPestana(pathname, "contratos");
     router.push(`${BASE}/contratos/${c.id}?desde=${encodeURIComponent(desde)}`);
   };
+  // ME-12: alta solo donde la empresa activa es el cliente (Mi empresa y lado Contratistas).
+  const puedeCrear = modo === "propio" || (modo === "lista" && lado === "ctr");
+  const nuevo = () => {
+    const desde = hrefPestana(pathname, "contratos");
+    router.push(`${BASE}/contratos/nuevo?desde=${encodeURIComponent(desde)}`);
+  };
   const descargar = (c: Contrato) => c.contrato_firmado && window.open(c.contrato_firmado.file_url, "_blank", "noopener");
 
   const vacio = (
@@ -180,6 +186,7 @@ export function ContratosLista() {
           <Paginacion tabla={tabla} />
         </div>
       </ConFiltros>
+      {puedeCrear && <BotonFlotante etiqueta="Nuevo contrato" onClick={nuevo} />}
     </div>
   );
 }

@@ -101,6 +101,25 @@ async function mockAnalizar(a: ArchivoSubido, _ctx: ContextoAnalisis, signal: Ab
       }],
     };
   }
+  if (/contrato/.test(n)) {
+    // ME-12: lo que F0-11 extrae de un contrato firmado (extraccion de tipo Contrato).
+    return {
+      legible: true, tipo: "Contrato de prestación de servicios · Contratos", tipo_documento: "Contrato", confianza: 94,
+      nombre_sugerido: "Contrato de servicios", mapeo: { id: null, confianza: 0 }, propietario: { id: null, confianza: 0 },
+      campos: { vigencia_inicio: "2026-10-01", vigencia_fin: "2027-09-30" } as AnalisisIA["campos"], alertas: [],
+      extraccion: {
+        numero_contrato: "GI-LIM-2026/0348",
+        objeto: "Servicio integral de limpieza industrial",
+        monto: 1840000,
+        inicio: "2026-10-01",
+        fin: "2027-09-30",
+        partes: {
+          cliente: { razon_social: "Grupo Ejemplo SA de CV", rfc: "GEJ010101AB1" },
+          contratista: { razon_social: "Limpieza Integral del Norte SA de CV", rfc: "LIN150301KZ2" },
+        },
+      },
+    };
+  }
   if (/icsoe/.test(n)) {
     return {
       legible: true, tipo: "Acuse ICSOE · Seguridad social", confianza: 92, nombre_sugerido: "Acuse ICSOE",

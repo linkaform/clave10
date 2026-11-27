@@ -10,3 +10,4 @@ export { RecurrenciaContrato, type RecurrenciaContratoProps } from "./Recurrenci
 export { EditorRecurrencia } from "./EditorRecurrencia";
 export { CadaUnidad, Fila, FrecuenciaHoras, Grupo, Hora, Numero, PanelVigencia, Pastillas, Segmentado, type OpcionSegmento } from "./piezas";
 export * from "./textos";
+export * from "./back";
