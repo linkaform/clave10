@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ContratoGenerales } from "@/components/contratistas/contratos/ContratoGenerales";
 import { ContratosLista } from "@/components/contratistas/contratos/ContratosLista";
+import { PUNTO_ESTATUS, tituloEstatus } from "@/components/contratistas/contratos/contratoGenerales";
 import { DocumentosEmpresa } from "@/components/contratistas/empresa/DocumentosEmpresa";
 import { useContratistasContexto } from "@/hooks/Contratistas/useContratistasContexto";
 import { BASE, hrefPestana, nombreCorto } from "@/lib/contratistas/contexto";
-import { ESTATUS_CONTRATO_TONO, type Tono } from "@/mappers/contratistas.mapper";
+import type { Tono } from "@/mappers/contratistas.mapper";
 
 const TONO_PILL: Record<Tono, string> = {
   success: "bg-green-100 text-green-700",
@@ -84,10 +86,18 @@ export function ContratistasShell({ children }: { children?: React.ReactNode }) 
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Link>
-                <h1 className="truncate text-2xl font-semibold tracking-[-0.025em] text-c10-title">
-                  {contrato ? `${contrato.folio} · ${contrato.objeto}` : ctx.isLoading ? "Cargando…" : "—"}
+                <h1 className="truncate text-2xl font-semibold tracking-[-0.025em] text-c10-title" title={contrato?.objeto}>
+                  {contrato ? contrato.objeto : ctx.isLoading ? "Cargando…" : "—"}
                 </h1>
-                {contrato && <Pill texto={contrato.estatus} tono={ESTATUS_CONTRATO_TONO[contrato.estatus]} />}
+                {contrato && (
+                  // ME-10: punto de estatus con tooltip ("Contrato pausado"), como empModeCto del diseño.
+                  <span
+                    role="img"
+                    title={tituloEstatus(contrato.estatus)}
+                    aria-label={tituloEstatus(contrato.estatus)}
+                    className={`ml-1 size-2.5 shrink-0 rounded-full ${PUNTO_ESTATUS[contrato.estatus].punto} ${PUNTO_ESTATUS[contrato.estatus].anillo}`}
+                  />
+                )}
               </div>
             )}
 
@@ -142,6 +152,7 @@ function Pestana() {
   if (modo === "propio" && key === "documentos") return <DocumentosEmpresa />;
   // Mismo componente en Mi empresa, Contratistas / Clientes y el detalle de una relación.
   if (key === "contratos" && modo !== "contrato") return <ContratosLista />;
+  if (modo === "contrato" && key === "generales") return <ContratoGenerales />;
   return <PestanaPendiente />;
 }
 
