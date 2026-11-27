@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
@@ -195,6 +196,13 @@ export default function LoginPage() {
                   onClick={() => setOpenOlvido(true)}>
                   ¿Olvidaste tu contraseña?
                 </button>
+
+                <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                  ¿No tienes cuenta?{" "}
+                  <Link href="/auth/registro" className="font-semibold text-c10-acc hover:underline">
+                    Regístrate aquí
+                  </Link>
+                </p>
               </CardContent>
             </Card>
           </form>
