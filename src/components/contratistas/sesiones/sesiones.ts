@@ -1,11 +1,11 @@
 // CF-03 · Sesiones: constantes del diseño y conversiones entre lo que edita la
 // pantalla y lo que guarda el back (configuracion_sdk.py, CF-03-B).
 // Diseño: plataforma.dc.html, ssnVals (~7336–7639): TC, IMP, MT, MI y colores de estatus.
-import type { Archivo, Recurrencia as RecurrenciaBack } from "@/types/contratistas/comun";
+import type { Archivo } from "@/types/contratistas/comun";
 import type { EstatusSesion, Sesion, SesionInput, TipoSesion } from "@/types/contratistas";
 import {
-  DIAS, MESES, RECURRENCIA_SESION, RECURRENCIA_SESION_INICIAL, fechaLocal, isoLocal, ordinalDe,
-  type HorarioSesion, type Recurrencia, type RecurrenciaSesionValor, type Unidad,
+  DIAS, MESES, RECURRENCIA_SESION, RECURRENCIA_SESION_INICIAL, TODOS_MESES, UNIDAD_FRONT, aBack, aFront, fechaLocal, isoLocal,
+  mensualBack, ordinalDe, personalizadaBack, type HorarioSesion, type Recurrencia, type RecurrenciaSesionValor,
 } from "@/components/contratistas/vigencia";
 
 export const CLAVE_SESIONES = ["contratistas", "sesiones"];
@@ -102,22 +102,7 @@ export const sumarDias = (iso: string, n: number) => {
 
 /* ---------- Recurrencia: editor (F0-14) ↔ back ---------- */
 
-// Front: índices de DIAS (0 = domingo). Back: 0 = lunes.
-const aBack = (d: number) => (d + 6) % 7;
-const aFront = (d: number) => (d + 1) % 7;
-const UNIDAD_BACK: Record<Unidad, NonNullable<RecurrenciaBack["unidad"]>> = {
-  "día(s)": "día", "semana(s)": "semana", "mes(es)": "mes", "año(s)": "año",
-};
-const UNIDAD_FRONT = Object.fromEntries(Object.entries(UNIDAD_BACK).map(([f, b]) => [b, f])) as Record<string, Unidad>;
-const TODOS_MESES = Array.from({ length: 12 }, (_, i) => i + 1);
-
 type RecBack = NonNullable<Sesion["recurrencia"]>;
-
-/** Mensual según la fecha: el mismo día, o su {ordinal} {día} (5 = último). */
-const mensual = (ref: Date, modo: "dia" | "ordinal", meses: number[]): RecBack =>
-  modo === "dia"
-    ? { tipo: "Mensual", mensual_modo: "dia", mensual_dia: ref.getDate(), meses }
-    : { tipo: "Mensual", mensual_modo: "ordinal", mensual_ordinal: ordinalDe(ref) + 1, mensual_dia_semana: aBack(ref.getDay()), meses };
 
 /** Lo que el editor de F0-14 elige → recurrencia del back (sin repetir_hasta). */
 function recurrenciaBack(v: RecurrenciaSesionValor, fecha: string): RecBack | undefined {
@@ -127,29 +112,11 @@ function recurrenciaBack(v: RecurrenciaSesionValor, fecha: string): RecBack | un
     case "dia": return { tipo: "Por día" };
     case "semana": return { tipo: "Semanal", dias_semana: [aBack(ref.getDay())] };
     case "laborables": return { tipo: "Semanal", dias_semana: [0, 1, 2, 3, 4] };
-    case "mes-dia": return mensual(ref, "dia", TODOS_MESES);
-    case "mes-ordinal": return mensual(ref, "ordinal", TODOS_MESES);
+    case "mes-dia": return mensualBack(ref, "dia", TODOS_MESES);
+    case "mes-ordinal": return mensualBack(ref, "ordinal", TODOS_MESES);
     case "anio": return { tipo: "Configurable", cada_n: 1, unidad: "año" };
   }
-  const r = v.personalizada;
-  switch (r.tipo) {
-    case "Por día":
-      return r.dias.length === 7
-        ? { tipo: "Por día", ...(r.porHoras ? { cada_horas: r.cadaHoras } : {}) }
-        : { tipo: "Semanal", dias_semana: r.dias.map(aBack).sort(), ...(r.porHoras ? { cada_horas: r.cadaHoras } : {}) };
-    case "Semanal":
-      return { tipo: "Semanal", dias_semana: [aBack(ref.getDay())], semanas_mes: r.semanas.map((s) => s + 1).sort() };
-    case "Mensual": {
-      // El back no guarda "cada N meses": se traduce a los meses que tocan desde el de inicio.
-      const meses = r.modoMeses === "sel"
-        ? r.meses.map((m) => m + 1).sort((a, b) => a - b)
-        : TODOS_MESES.filter((m) => ((m - 1 - ref.getMonth() + 12) % 12) % Math.max(1, r.cadaMeses) === 0);
-      return mensual(ref, r.diaMes, meses);
-    }
-    case "Anual": return { tipo: "Configurable", cada_n: 1, unidad: "año" };
-    case "Configurable": return { tipo: "Configurable", cada_n: r.cadaN, unidad: r.unidad ? UNIDAD_BACK[r.unidad] : "día" };
-    default: return undefined;
-  }
+  return personalizadaBack(v.personalizada, ref);
 }
 
 /** Recurrencia del back → valor del editor (para editar una sesión guardada). */

@@ -10,6 +10,7 @@ import type {
   ListParams,
   MapeoContrato,
   Pagina,
+  Ref,
   Requerimiento,
   SugerenciaMapeo,
 } from "@/types/contratistas";
@@ -43,6 +44,19 @@ export const changeStatusContrato = (contrato_id: Id, cambio: CambioEstatusContr
 
 export const getHistorialContrato = (contrato_id: Id) =>
   callContratistas<EventoContrato[]>("get_historial_contrato", { contrato_id }, SCRIPT);
+
+/**
+ * ME-12 · Centros de trabajo para "Ubicaciones de trabajo": el catálogo de
+ * Ubicaciones de la cuenta (location_sdk.py, el mismo de Accesos).
+ */
+export const listCentrosTrabajo = async (): Promise<Ref[]> => {
+  const pagina = await callContratistas<{ records?: { record_id?: string; _id?: string; location: string }[] }>(
+    "get_catalog_ubicaciones_formatted",
+    { locations: [], dynamic_filters: [], limit: 200, offset: 0, facets: [] },
+    "location_sdk.py",
+  );
+  return (pagina?.records ?? []).map((u) => ({ id: u.record_id ?? u._id ?? u.location, nombre: u.location }));
+};
 
 /* ---------- Mapeo y homologación de requerimientos (ME-13) ---------- */
 
