@@ -2,10 +2,12 @@
 // Mi empresa → Configuraciones: Requerimientos, Servicios, Perfiles, Equipos y Sesiones.
 // Diseño: plataforma.dc.html, isEcfg (~1824) y ET (~7170). La pestaña sale de `?tab=`.
 // Cada pestaña es de su tarea (CF-01, CF-02, CF-03); mientras no exista se dice cuál es.
+// Requerimientos acepta ?tipo=Documento|Examen|Inspección (sub-ítems del menú).
 import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { RequerimientosConfig } from "@/components/contratistas/requerimientos/RequerimientosConfig";
 import { SesionesConfig } from "@/components/contratistas/sesiones/SesionesConfig";
 import { CabeceraConfig } from "./CabeceraConfig";
 
@@ -34,7 +36,13 @@ function Configuracion() {
   return (
     <div data-c10-acc="propio" className="min-h-[calc(100vh-var(--c10-header-h,65px))] bg-c10-canvas font-[Arial,Helvetica,sans-serif]">
       <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 pb-20 pt-6 min-[1080px]:px-5 min-[1080px]:pt-10 min-[1440px]:px-6 min-[1440px]:pt-12">
-        {activa.key === "sesiones" ? <SesionesConfig pestanas={pestanas} /> : <Pendiente p={activa} pestanas={pestanas} />}
+        {activa.key === "requerimientos" ? (
+          <RequerimientosConfig pestanas={pestanas} />
+        ) : activa.key === "sesiones" ? (
+          <SesionesConfig pestanas={pestanas} />
+        ) : (
+          <Pendiente p={activa} pestanas={pestanas} />
+        )}
       </main>
     </div>
   );
